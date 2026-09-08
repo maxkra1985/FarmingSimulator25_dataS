@@ -1,0 +1,46 @@
+-- Local values: SetCoverStateEvent_mt
+SetCoverStateEvent = {}
+local SetCoverStateEvent_mt = Class(SetCoverStateEvent, Event)
+InitStaticEventClass(SetCoverStateEvent, "SetCoverStateEvent")
+function SetCoverStateEvent.emptyNew()
+	-- upvalues: (copy) SetCoverStateEvent_mt
+	return Event.new(SetCoverStateEvent_mt)
+end
+
+-- Local values: self
+function SetCoverStateEvent.new(vehicle, state)
+	local v4_ = SetCoverStateEvent.emptyNew()
+	v4_.vehicle = vehicle
+	v4_.state = state
+	return v4_
+end
+
+function SetCoverStateEvent:readStream(streamId, connection)
+	self.vehicle = NetworkUtil.readNodeObject(streamId)
+	self.state = streamReadUIntN(streamId, Cover.SEND_NUM_BITS)
+	self:run(connection)
+end
+
+function SetCoverStateEvent:writeStream(streamId, connection)
+	NetworkUtil.writeNodeObject(streamId, self.vehicle)
+	streamWriteUIntN(streamId, self.state, Cover.SEND_NUM_BITS)
+end
+
+function SetCoverStateEvent:run(connection)
+	if not connection:getIsServer() then
+		g_server:broadcastEvent(self, false, connection, self.vehicle)
+	end
+	if self.vehicle ~= nil and (self.vehicle ~= nil and self.vehicle:getIsSynchronized()) then
+		self.vehicle:setCoverState(self.state, true)
+	end
+end
+
+function SetCoverStateEvent.sendEvent(vehicle, state, noEventSend)
+	if vehicle.spec_cover.state ~= state and (noEventSend == nil or noEventSend == false) then
+		if g_server ~= nil then
+			g_server:broadcastEvent(SetCoverStateEvent.new(vehicle, state), nil, nil, vehicle)
+			return
+		end
+		g_client:getServerConnection():sendEvent(SetCoverStateEvent.new(vehicle, state))
+	end
+end

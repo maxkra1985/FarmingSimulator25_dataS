@@ -1,0 +1,48 @@
+-- Local values: HusbandryMeadowCreateEvent_mt
+HusbandryMeadowCreateEvent = {}
+local HusbandryMeadowCreateEvent_mt = Class(HusbandryMeadowCreateEvent, Event)
+InitStaticEventClass(HusbandryMeadowCreateEvent, "HusbandryMeadowCreateEvent")
+function HusbandryMeadowCreateEvent.emptyNew()
+	-- upvalues: (copy) HusbandryMeadowCreateEvent_mt
+	return Event.new(HusbandryMeadowCreateEvent_mt)
+end
+
+-- Local values: self
+function HusbandryMeadowCreateEvent.new(placeable, createMeadow)
+	local v4_ = HusbandryMeadowCreateEvent.emptyNew()
+	v4_.placeable = placeable
+	v4_.createMeadow = createMeadow
+	return v4_
+end
+
+function HusbandryMeadowCreateEvent:readStream(streamId, connection)
+	self.placeable = NetworkUtil.readNodeObject(streamId)
+	self.createMeadow = streamReadBool(streamId)
+	self:run(connection)
+end
+
+function HusbandryMeadowCreateEvent:writeStream(streamId, connection)
+	NetworkUtil.writeNodeObject(streamId, self.placeable)
+	streamWriteBool(streamId, self.createMeadow)
+end
+
+function HusbandryMeadowCreateEvent:run(connection)
+	if self.placeable ~= nil then
+		if not connection:getIsServer() then
+			g_server:broadcastEvent(self, false, connection, self.placeable)
+		end
+		if self.placeable:getIsSynchronized() then
+			self.placeable:createMeadow(self.createMeadow, true)
+		end
+	end
+end
+
+function HusbandryMeadowCreateEvent.sendEvent(placeable, createMeadow, noEventSend)
+	if noEventSend == nil or noEventSend == false then
+		if g_server ~= nil then
+			g_server:broadcastEvent(HusbandryMeadowCreateEvent.new(placeable, createMeadow), nil, nil, placeable)
+			return
+		end
+		g_client:getServerConnection():sendEvent(HusbandryMeadowCreateEvent.new(placeable, createMeadow))
+	end
+end

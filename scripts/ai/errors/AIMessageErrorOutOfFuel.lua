@@ -1,0 +1,14 @@
+-- Local values: AIMessageErrorOutOfFuel_mt
+AIMessageErrorOutOfFuel = {}
+local AIMessageErrorOutOfFuel_mt = Class(AIMessageErrorOutOfFuel, AIMessage)
+
+-- Upvalues: AIMessageErrorOutOfFuel_mt
+-- Local values: self
+function AIMessageErrorOutOfFuel.new(customMt)
+	-- upvalues: (copy) AIMessageErrorOutOfFuel_mt
+	return AIMessage.new(customMt or AIMessageErrorOutOfFuel_mt)
+end
+
+function AIMessageErrorOutOfFuel:getI18NText()
+	return g_i18n:getText("ai_messageErrorOutOfFuel")
+end

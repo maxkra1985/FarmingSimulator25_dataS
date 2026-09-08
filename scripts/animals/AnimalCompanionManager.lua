@@ -1,0 +1,67 @@
+AnimalCompanionManager = {}
+
+
+
+
+function AnimalCompanionManager.registerXMLPaths(schema, basePath)
+	schema:register(XMLValueType.FLOAT, basePath .. "#randomSpawnRadius", "", 1)
+	schema:register(XMLValueType.STRING, basePath .. ".asset#filename", "I3d filename of the animal", nil, true)
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".asset#skeletonNode", "Skeleton node", nil, false)
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".asset#meshNode", "Mesh node", nil, false)
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".asset#playerInteractionTriggerNode", "Player Trigger node", nil, false)
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".asset#fetchAttachNode", "Fetch attach node", nil, false)
+	schema:register(XMLValueType.BOOL, basePath .. ".asset.texture#multi", "If texture is a multi texture atlas", nil, false)
+	schema:register(XMLValueType.BOOL, basePath .. ".asset.texture#mirrorV", "If texture should be mirrored in V", nil, false)
+	schema:register(XMLValueType.INT, basePath .. ".asset.texture#tileU", "Texture tile U", nil, false)
+	schema:register(XMLValueType.INT, basePath .. ".asset.texture#tileV", "Texture tile V", nil, false)
+	schema:register(XMLValueType.INT, basePath .. ".asset.texture#numTilesU", "Texture num tiles U", nil, false)
+	schema:register(XMLValueType.INT, basePath .. ".asset.texture#numTilesV", "Texture num tiles V", nil, false)
+	AnimalAnimationSystemSource.registerXMLPaths(schema, basePath .. ".animation")
+	AnimalSoundSource.registerXMLPaths(schema, basePath .. ".sound")
+	BehaviorDataSource.registerXMLPaths(schema, basePath .. ".behavior")
+end
+AnimalAnimationSystemSource = {}
+function AnimalAnimationSystemSource.registerXMLPaths(p3_, p4_)
+	p3_:register(XMLValueType.STRING, p4_ .. ".states.state(?)#id", "", nil, true)
+	p3_:register(XMLValueType.STRING, p4_ .. ".states.state(?).animation(?)#id", "", nil, true)
+	p3_:register(XMLValueType.STRING, p4_ .. ".states.state(?).animation(?)#clip", "", nil, false)
+	p3_:register(XMLValueType.STRING, p4_ .. ".states.state(?).animation(?)#clipLeft", "", nil, false)
+	p3_:register(XMLValueType.STRING, p4_ .. ".states.state(?).animation(?)#clipRight", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".states.state(?).animation(?)#startTime", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".states.state(?).animation(?)#distance", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".states.state(?).animation(?)#rotation", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".states.state(?).animation(?)#speed", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".states.state(?).animation(?)#weight", "", nil, false)
+	p3_:register(XMLValueType.STRING, p4_ .. ".states.state(?).animation(?).trigger(?)#type", "", nil, false)
+	p3_:register(XMLValueType.STRING, p4_ .. ".states.state(?).animation(?).trigger(?)#name", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".states.state(?).animation(?).trigger(?)#t", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".transitions#defaultBlendTime", "", nil, false)
+	p3_:register(XMLValueType.STRING, p4_ .. ".transitions.transition(?)#animationIdFrom", "", nil, false)
+	p3_:register(XMLValueType.STRING, p4_ .. ".transitions.transition(?)#animationIdTo", "", nil, false)
+	p3_:register(XMLValueType.STRING, p4_ .. ".transitions.transition(?)#clip", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".transitions.transition(?)#sourceTime", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".transitions.transition(?)#targetTime", "", nil, false)
+	p3_:register(XMLValueType.FLOAT, p4_ .. ".transitions.transition(?)#blendTime", "", nil, false)
+end
+BehaviorDataSource = {}
+function BehaviorDataSource.registerXMLPaths(p5_, p6_)
+	p5_:register(XMLValueType.STRING, p6_ .. ".values.value(?)#name", "", nil, false)
+	p5_:register(XMLValueType.FLOAT, p6_ .. ".values.value(?)#value", "", nil, false)
+	p5_:register(XMLValueType.STRING, p6_ .. ".ranges.range(?)#name", "", nil, false)
+	p5_:register(XMLValueType.FLOAT, p6_ .. ".ranges.range(?)#min", "", nil, false)
+	p5_:register(XMLValueType.FLOAT, p6_ .. ".ranges.range(?)#max", "", nil, false)
+end
+AnimalSoundSource = {}
+function AnimalSoundSource.registerXMLPaths(p7_, p8_)
+	p7_:register(XMLValueType.STRING, p8_ .. ".soundGroup(?)#name", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#volume", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#indoorVolume", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#range", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#innerRange", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#volumeRandMin", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#volumeRandMax", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#pitch", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#pitchRandMin", "", nil, false)
+	p7_:register(XMLValueType.FLOAT, p8_ .. ".soundGroup(?)#pitchRandMax", "", nil, false)
+	p7_:register(XMLValueType.STRING, p8_ .. ".soundGroup(?).sample(?)#filename", "", nil, false)
+end
