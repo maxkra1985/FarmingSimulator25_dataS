@@ -1,20 +1,16 @@
--- Local values: TreeDetachEvent_mt
 TreeDetachEvent = {}
 local TreeDetachEvent_mt = Class(TreeDetachEvent, Event)
 InitStaticEventClass(TreeDetachEvent, "TreeDetachEvent")
 function TreeDetachEvent.emptyNew()
-	-- upvalues: (copy) TreeDetachEvent_mt
-	return Event.new(TreeDetachEvent_mt)
+	local self = Event.new(TreeDetachEvent_mt)
+	return self
 end
-
--- Local values: self
 function TreeDetachEvent.new(object, ropeIndex)
-	local v4_ = TreeDetachEvent.emptyNew()
-	v4_.object = object
-	v4_.ropeIndex = ropeIndex
-	return v4_
+	local self = TreeDetachEvent.emptyNew()
+	self.object = object
+	self.ropeIndex = ropeIndex
+	return self
 end
-
 function TreeDetachEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	if streamReadBool(streamId) then
@@ -22,14 +18,12 @@ function TreeDetachEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function TreeDetachEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	if streamWriteBool(streamId, self.ropeIndex ~= nil) then
 		streamWriteUIntN(streamId, self.ropeIndex, 4)
 	end
 end
-
 function TreeDetachEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -44,7 +38,6 @@ function TreeDetachEvent:run(connection)
 		end
 	end
 end
-
 function TreeDetachEvent.sendEvent(vehicle, ropeIndex, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

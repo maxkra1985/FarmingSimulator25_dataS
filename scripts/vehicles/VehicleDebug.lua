@@ -1,13 +1,5 @@
 VehicleDebug = {}
-VehicleDebug.DEBUG_COLORS = {
-	Color.new(1, 0, 0, 1),
-	Color.new(0, 1, 0, 1),
-	Color.new(0, 0, 1, 1),
-	Color.new(1, 1, 0, 1),
-	Color.new(1, 0, 1, 1),
-	Color.new(0, 1, 1, 1),
-	Color.new(1, 1, 1, 1)
-}
+VehicleDebug.DEBUG_COLORS = { Color.new(1, 0, 0, 1), Color.new(0, 1, 0, 1), Color.new(0, 0, 1, 1), Color.new(1, 1, 0, 1), Color.new(1, 0, 1, 1), Color.new(0, 1, 1, 1), Color.new(1, 1, 1, 1) }
 VehicleDebug.COLOR = {}
 VehicleDebug.COLOR.ACTIVE = Color.new(0.5, 1, 0.5, 1)
 VehicleDebug.COLOR.INACTIVE = Color.new(1, 0.1, 0.1, 1)
@@ -39,49 +31,44 @@ VehicleDebug.selectedAnimation = 0
 if g_isDevelopmentVersion then
 	VehicleDebug.state = 0
 end
-
--- Local values: newState, n, stateIndex, stateName
 function VehicleDebug.consoleCommandVehicleDebug(unusedSelf, stateStr)
-	local v2_ = VehicleDebug.DEBUG
+	local newState = VehicleDebug.DEBUG
 	if stateStr ~= nil then
-		local v3_ = tonumber(stateStr)
-		if v3_ == nil then
-			for v4_, v5_ in pairs(VehicleDebug.STATE_NAMES) do
-				if string.startsWith(string.lower(v5_), string.lower(stateStr)) then
-					v2_ = v4_
+		local n = tonumber(stateStr)
+		if n == nil then
+			for stateIndex, stateName in pairs(VehicleDebug.STATE_NAMES) do
+				if string.startsWith(string.lower(stateName), string.lower(stateStr)) then
+					newState = stateIndex
 				end
 			end
 		else
-			v2_ = v3_
+			newState = n
 		end
 	end
-	VehicleDebug.setState(v2_)
-	return string.format("VehicleDebug set to \'%s\'", VehicleDebug.STATE_NAMES[VehicleDebug.state])
+	VehicleDebug.setState(newState)
+	return string.format("VehicleDebug set to '%s'", VehicleDebug.STATE_NAMES[VehicleDebug.state])
 end
-
--- Local values: i, _, actionEventId, i, _, upperEventId, _, lowerEventId, _, vehicle, wheelMaskUpdated, _, vehicle, i, wheel, ret, _, vehicle
 function VehicleDebug.setState(state)
 	if VehicleDebug.state == 0 then
 		VehicleDebug.debugActionEvents = {}
-		for v7_ = 1, VehicleDebug.NUM_STATES do
-			local _, v8_ = g_inputBinding:registerActionEvent(InputAction["DEBUG_VEHICLE_" .. v7_], VehicleDebug, VehicleDebug.debugActionCallback, false, true, false, true, v7_)
-			g_inputBinding:setActionEventTextVisibility(v8_, false)
-			local v9_ = VehicleDebug.debugActionEvents
-			table.insert(v9_, v8_)
+		for i = 1, VehicleDebug.NUM_STATES do
+			local _, actionEventId = g_inputBinding:registerActionEvent(InputAction["DEBUG_VEHICLE_" .. i], VehicleDebug, VehicleDebug.debugActionCallback, false, true, false, true, i)
+			g_inputBinding:setActionEventTextVisibility(actionEventId, false)
+			table.insert(VehicleDebug.debugActionEvents, actionEventId)
 		end
 	elseif state == 0 then
-		for v10_ = 1, #VehicleDebug.debugActionEvents do
-			g_inputBinding:removeActionEvent(VehicleDebug.debugActionEvents[v10_])
+		for i = 1, #VehicleDebug.debugActionEvents do
+			g_inputBinding:removeActionEvent(VehicleDebug.debugActionEvents[i])
 		end
 	end
 	if state == VehicleDebug.DEBUG_ATTACHER_JOINTS then
 		if VehicleDebug.attacherJointUpperEventId == nil and VehicleDebug.attacherJointLowerEventId == nil then
-			local _, v11_ = g_inputBinding:registerActionEvent(InputAction.AXIS_FRONTLOADER_ARM, VehicleDebug, VehicleDebug.moveUpperRotation, false, false, true, true)
-			g_inputBinding:setActionEventTextVisibility(v11_, false)
-			VehicleDebug.attacherJointUpperEventId = v11_
-			local _, v12_ = g_inputBinding:registerActionEvent(InputAction.AXIS_FRONTLOADER_TOOL, VehicleDebug, VehicleDebug.moveLowerRotation, false, false, true, true)
-			g_inputBinding:setActionEventTextVisibility(v12_, false)
-			VehicleDebug.attacherJointLowerEventId = v12_
+			local _, upperEventId = g_inputBinding:registerActionEvent(InputAction.AXIS_FRONTLOADER_ARM, VehicleDebug, VehicleDebug.moveUpperRotation, false, false, true, true)
+			g_inputBinding:setActionEventTextVisibility(upperEventId, false)
+			VehicleDebug.attacherJointUpperEventId = upperEventId
+			local _, lowerEventId = g_inputBinding:registerActionEvent(InputAction.AXIS_FRONTLOADER_TOOL, VehicleDebug, VehicleDebug.moveLowerRotation, false, false, true, true)
+			g_inputBinding:setActionEventTextVisibility(lowerEventId, false)
+			VehicleDebug.attacherJointLowerEventId = lowerEventId
 		end
 	else
 		g_inputBinding:removeActionEvent(VehicleDebug.attacherJointUpperEventId)
@@ -90,100 +77,105 @@ function VehicleDebug.setState(state)
 		VehicleDebug.attacherJointLowerEventId = nil
 	end
 	if state == VehicleDebug.DEBUG_AI and g_currentMission ~= nil then
-		for _, v13_ in pairs(g_currentMission.vehicleSystem.vehicles) do
-			if v13_.spec_aiDrivable ~= nil and (v13_:getIsActiveForInput(true, true) and v13_.spec_aiDrivable.agentId ~= nil) then
-				enableVehicleNavigationAgentDebugRendering(v13_.spec_aiDrivable.agentId, true)
+		for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+			if vehicle.spec_aiDrivable == nil then
+				continue
+			end
+			if vehicle:getIsActiveForInput(true, true) then
+				if vehicle.spec_aiDrivable.agentId == nil then
+					continue
+				end
+				enableVehicleNavigationAgentDebugRendering(vehicle.spec_aiDrivable.agentId, true)
 			end
 		end
 	end
-	local v14_ = false
+	local wheelMaskUpdated = false
 	if state == VehicleDebug.DEBUG_TUNING then
 		WheelPhysics.COLLISION_MASK = CollisionMask.ALL - CollisionFlag.TERRAIN_DISPLACEMENT
-		v14_ = true
-	elseif VehicleDebug.state == VehicleDebug.DEBUG_TUNING and WheelPhysics.COLLISION_MASK ~= CollisionMask.ALL then
-		WheelPhysics.COLLISION_MASK = CollisionMask.ALL
-		v14_ = true
+		wheelMaskUpdated = true
+	elseif VehicleDebug.state == VehicleDebug.DEBUG_TUNING then
+		if WheelPhysics.COLLISION_MASK ~= CollisionMask.ALL then
+			WheelPhysics.COLLISION_MASK = CollisionMask.ALL
+			wheelMaskUpdated = true
+		end
 	end
-	if v14_ then
-		for _, v15_ in pairs(g_currentMission.vehicleSystem.vehicles) do
-			if v15_.getWheels ~= nil then
-				for _, v16_ in ipairs(v15_:getWheels()) do
-					v16_.physics:updateBase()
-				end
+	if wheelMaskUpdated then
+		for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+			if vehicle.getWheels == nil then
+				continue
+			end
+			for i, wheel in ipairs(vehicle:getWheels()) do
+				wheel.physics:updateBase()
 			end
 		end
 	end
-	local v17_ = false
+	local ret = false
 	if VehicleDebug.state == state then
 		VehicleDebug.state = 0
 	else
 		VehicleDebug.state = state
-		v17_ = true
+		ret = true
 	end
 	if g_currentMission ~= nil then
-		for _, v18_ in pairs(g_currentMission.vehicleSystem.vehicles) do
-			v18_:updateSelectableObjects()
-			v18_:updateActionEvents()
-			v18_:setSelectedVehicle(v18_)
+		for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+			vehicle:updateSelectableObjects()
+			vehicle:updateActionEvents()
+			vehicle:setSelectedVehicle(vehicle)
 		end
 	end
-	return v17_
+	return ret
 end
-
--- Local values: motorSpec, motor, _, graph
 function VehicleDebug:delete()
 	if self.isServer then
-		local v20_ = self.spec_motorized
-		if v20_ ~= nil then
-			local v21_ = v20_.motor
-			if v21_ ~= nil then
-				if v21_.debugCurveOverlay ~= nil then
-					delete(v21_.debugCurveOverlay)
+		local motorSpec = self.spec_motorized
+		if motorSpec ~= nil then
+			local motor = motorSpec.motor
+			if motor ~= nil then
+				if motor.debugCurveOverlay ~= nil then
+					delete(motor.debugCurveOverlay)
 				end
-				if v21_.debugTorqueGraph ~= nil then
-					v21_.debugTorqueGraph:delete()
+				if motor.debugTorqueGraph ~= nil then
+					motor.debugTorqueGraph:delete()
 				end
-				if v21_.debugPowerGraph ~= nil then
-					v21_.debugPowerGraph:delete()
+				if motor.debugPowerGraph ~= nil then
+					motor.debugPowerGraph:delete()
 				end
-				if v21_.debugGraphs ~= nil then
-					for _, v22_ in ipairs(v21_.debugGraphs) do
-						v22_:delete()
+				if motor.debugGraphs ~= nil then
+					for _, graph in ipairs(motor.debugGraphs) do
+						graph:delete()
 					end
 				end
-				if v21_.debugLoadGraph ~= nil then
-					v21_.debugLoadGraph:delete()
+				if motor.debugLoadGraph ~= nil then
+					motor.debugLoadGraph:delete()
 				end
-				if v21_.debugLoadGraphSmooth ~= nil then
-					v21_.debugLoadGraphSmooth:delete()
+				if motor.debugLoadGraphSmooth ~= nil then
+					motor.debugLoadGraphSmooth:delete()
 				end
-				if v21_.debugLoadGraphSound ~= nil then
-					v21_.debugLoadGraphSound:delete()
+				if motor.debugLoadGraphSound ~= nil then
+					motor.debugLoadGraphSound:delete()
 				end
-				if v21_.debugRPMGraphSmooth ~= nil then
-					v21_.debugRPMGraphSmooth:delete()
+				if motor.debugRPMGraphSmooth ~= nil then
+					motor.debugRPMGraphSmooth:delete()
 				end
-				if v21_.debugRPMGraphSound ~= nil then
-					v21_.debugRPMGraphSound:delete()
+				if motor.debugRPMGraphSound ~= nil then
+					motor.debugRPMGraphSound:delete()
 				end
-				if v21_.debugRPMGraph ~= nil then
-					v21_.debugRPMGraph:delete()
+				if motor.debugRPMGraph ~= nil then
+					motor.debugRPMGraph:delete()
 				end
-				if v21_.debugAccelerationGraph ~= nil then
-					v21_.debugAccelerationGraph:delete()
+				if motor.debugAccelerationGraph ~= nil then
+					motor.debugAccelerationGraph:delete()
 				end
 			end
 		end
 	end
 end
-
 function VehicleDebug:debugActionCallback(actionName, inputValue, callbackState, isAnalog)
 	if VehicleDebug.state ~= callbackState then
 		VehicleDebug.setState(callbackState)
-		log(string.format("VehicleDebug set to \'%s\'", VehicleDebug.STATE_NAMES[VehicleDebug.state]))
+		log(string.format("VehicleDebug set to '%s'", VehicleDebug.STATE_NAMES[VehicleDebug.state]))
 	end
 end
-
 function VehicleDebug.updateDebug(vehicle, dt)
 	if VehicleDebug.state == VehicleDebug.DEBUG_ATTRIBUTES then
 		VehicleDebug.drawDebugAttributeRendering(vehicle)
@@ -198,35 +190,34 @@ function VehicleDebug.updateDebug(vehicle, dt)
 		VehicleDebug.drawDebugValues(vehicle)
 	end
 end
-
--- Local values: v, i, partSize, x
 function VehicleDebug.drawDebug(vehicle)
 	if vehicle.getIsEntered ~= nil and vehicle:getIsEntered() then
-		local v27_ = vehicle:getSelectedVehicle()
-		if v27_ ~= nil then
-			vehicle = v27_
+		local v = vehicle:getSelectedVehicle()
+		if v == nil then
+			v = vehicle
 		end
 		if VehicleDebug.state == VehicleDebug.DEBUG_PHYSICS then
-			VehicleDebug.drawDebugRendering(vehicle)
+			VehicleDebug.drawDebugRendering(v)
 		elseif VehicleDebug.state == VehicleDebug.DEBUG_SOUNDS then
-			VehicleDebug.drawSoundDebugValues(vehicle)
+			VehicleDebug.drawSoundDebugValues(v)
 		elseif VehicleDebug.state == VehicleDebug.DEBUG_ANIMATIONS then
-			VehicleDebug.drawAnimationDebug(vehicle)
+			VehicleDebug.drawAnimationDebug(v)
 		elseif VehicleDebug.state == VehicleDebug.DEBUG_TRANSMISSION then
-			VehicleDebug.drawTransmissionDebug(vehicle)
+			VehicleDebug.drawTransmissionDebug(v)
 		elseif VehicleDebug.state == VehicleDebug.DEBUG_TUNING then
-			VehicleDebug.drawTuningDebug(vehicle)
+			VehicleDebug.drawTuningDebug(v)
 		end
-		if VehicleDebug.state > 0 then
+		if 0 < VehicleDebug.state then
 			setTextAlignment(RenderText.ALIGN_CENTER)
-			for v28_ = 1, VehicleDebug.NUM_STATES do
-				local v29_ = 1 / (VehicleDebug.NUM_STATES + 1) * v28_
-				if VehicleDebug.state == v28_ then
+			for i = 1, VehicleDebug.NUM_STATES do
+				local partSize = 1 / (VehicleDebug.NUM_STATES + 1)
+				local x = partSize * i
+				if VehicleDebug.state == i then
 					setTextColor(0, 1, 0, 1)
-					renderText(v29_, 0.01, 0.03, string.format("%s", VehicleDebug.STATE_NAMES[v28_]))
+					renderText(x, 0.01, 0.03, string.format("%s", VehicleDebug.STATE_NAMES[i]))
 				else
 					setTextColor(1, 1, 0, 1)
-					renderText(v29_, 0.01, 0.015, string.format("SHIFT + %d: \'%s\'", v28_, VehicleDebug.STATE_NAMES[v28_]))
+					renderText(x, 0.01, 0.015, string.format("SHIFT + %d: '%s'", i, VehicleDebug.STATE_NAMES[i]))
 				end
 			end
 			setTextColor(1, 1, 1, 1)
@@ -234,366 +225,340 @@ function VehicleDebug.drawDebug(vehicle)
 		end
 	end
 end
-
--- Local values: i, i, _, actionEventId
 function VehicleDebug.registerActionEvents(vehicle)
 	if vehicle.getIsEntered ~= nil and (vehicle:getIsEntered() and VehicleDebug.state == VehicleDebug.DEBUG_ANIMATIONS) then
 		vehicle:addActionEvent(vehicle.actionEvents, InputAction.DEBUG_PLAYER_ENABLE, vehicle, function()
 			VehicleDebug.selectedAnimation = VehicleDebug.selectedAnimation + 1
 		end, false, true, false, true, nil)
 	end
-	if VehicleDebug.state > 0 then
+	if 0 < VehicleDebug.state then
 		if VehicleDebug.debugActionEvents ~= nil then
-			for v31_ = 1, #VehicleDebug.debugActionEvents do
-				g_inputBinding:removeActionEvent(VehicleDebug.debugActionEvents[v31_])
+			for i = 1, #VehicleDebug.debugActionEvents do
+				g_inputBinding:removeActionEvent(VehicleDebug.debugActionEvents[i])
 			end
 		end
 		VehicleDebug.debugActionEvents = {}
-		for v32_ = 1, 9 do
-			local _, v33_ = g_inputBinding:registerActionEvent(InputAction["DEBUG_VEHICLE_" .. v32_], VehicleDebug, VehicleDebug.debugActionCallback, false, true, false, true, v32_)
-			g_inputBinding:setActionEventTextVisibility(v33_, false)
-			local v34_ = VehicleDebug.debugActionEvents
-			table.insert(v34_, v33_)
+		for i = 1, 9 do
+			local _, actionEventId = g_inputBinding:registerActionEvent(InputAction["DEBUG_VEHICLE_" .. i], VehicleDebug, VehicleDebug.debugActionCallback, false, true, false, true, i)
+			g_inputBinding:setActionEventTextVisibility(actionEventId, false)
+			table.insert(VehicleDebug.debugActionEvents, actionEventId)
 		end
 	end
 end
-
--- Local values: vx, _, vz, fieldOwned, str1, str2, str3, str4, motorSpec, diffSpeed, motor, torque, neededPtoTorque, motorPower, ptoPower, ptoLoad, fuelFillUnitIndex, fillLevel, fillType, unit, defFillUnitIndex, fillLevel, airFillUnitIndex, fillLevel, lastSpeedReal, slip, brakePedal, force, textSize
 function VehicleDebug:drawBaseDebugRendering(x, y)
-	local v38_, _, v39_ = getWorldTranslation(self.components[1].node)
-	local v40_ = g_farmlandManager:getIsOwnedByFarmAtWorldPosition(g_currentMission:getFarmId(), v38_, v39_)
-	local v41_ = ""
-	local v42_ = ""
-	local v43_ = ""
-	local v44_ = ""
-	local v45_ = self.spec_motorized
-	local v46_
-	if v45_ == nil then
-		v46_ = nil
-	else
-		local v47_ = v45_.motor
-		local v48_ = v47_:getMotorAvailableTorque()
-		local v49_ = v47_:getMotorExternalTorque()
-		local v50_ = v47_:getMotorRotSpeed() * (v48_ - v49_) * 1000
-		local v51_ = v41_ .. "motor:\n"
-		local v52_ = v42_ .. string.format("%1.2frpm\n", v47_:getNonClampedMotorRpm())
-		local v53_ = v51_ .. "clutch:\n"
-		local v54_ = v52_ .. string.format("%1.2frpm\n", v47_:getClutchRotSpeed() * 30 / 3.141592653589793)
-		local v55_ = v53_ .. "available power:\n"
-		local v56_ = v54_ .. string.format("%1.2fhp %1.2fkW\n", v50_ / 735.49875, v50_ / 1000)
-		local v57_ = v55_ .. "gear:\n"
-		local v58_ = v56_ .. string.format("%d %d (%d, %1.2f)\n", v47_.gear, v47_.targetGear * v47_.currentDirection, v47_.activeGearGroupIndex or 0, v47_:getGearRatio())
-		v41_ = v57_ .. "motor load:\n"
-		v42_ = v58_ .. string.format("%1.2fkN %1.2fkN\n", v48_, v47_:getMotorAppliedTorque())
-		local v59_ = v47_:getNonClampedMotorRpm() * 3.141592653589793 / 30 * v49_
-		local v60_ = v49_ / v47_:getPeakTorque()
-		local v61_ = v43_ .. "pto load:\n"
-		local v62_ = v44_ .. string.format("%.2f%% %.2fhp %.2fkW %1.2fkN\n", v60_ * 100, v59_ * 1.359621, v59_, v49_)
-		local v63_ = v61_ .. "motor load:\n"
-		local v64_ = v62_ .. string.format("%.2f%%\n", v45_.smoothedLoadPercentage * 100)
-		local v65_ = v63_ .. "motor rpm for sounds:\n"
-		local v66_ = v64_ .. string.format("%drpm\n", v47_:getLastMotorRpm())
-		v43_ = v65_ .. "brakeForce:\n"
-		v44_ = v66_ .. string.format("%.2f (max. %.2f)\n", (self.spec_wheels or {
-			["brakePedal"] = 0
-		}).brakePedal, self:getBrakeForce() * 0.5)
-		local v67_ = self:getConsumerFillUnitIndex(FillType.DIESEL) or (self:getConsumerFillUnitIndex(FillType.ELECTRICCHARGE) or self:getConsumerFillUnitIndex(FillType.METHANE))
-		if v67_ ~= nil then
-			local v68_ = self:getFillUnitFillLevel(v67_)
-			local v69_ = self:getFillUnitFillType(v67_)
-			local v70_ = v69_ == FillType.ELECTRICCHARGE and "kw" or (v69_ == FillType.METHANE and "kg" or "l")
-			v43_ = v43_ .. string.format("%s:\n", g_fillTypeManager:getFillTypeNameByIndex(v69_))
-			v44_ = v44_ .. string.format("%.2f%s/h (%.2f%s)\n", v45_.lastFuelUsage, v70_, v68_, v70_)
+	local vx, _, vz = getWorldTranslation(self.components[1].node)
+	local fieldOwned = g_farmlandManager:getIsOwnedByFarmAtWorldPosition(g_currentMission:getFarmId(), vx, vz)
+	local str1 = ""
+	local str2 = ""
+	local str3 = ""
+	local str4 = ""
+	local motorSpec = self.spec_motorized
+	local diffSpeed = nil
+	if motorSpec ~= nil then
+		local motor = motorSpec.motor
+		local torque = motor:getMotorAvailableTorque()
+		local neededPtoTorque = motor:getMotorExternalTorque()
+		local motorPower = motor:getMotorRotSpeed() * (torque - neededPtoTorque) * 1000
+		str1 = str1 .. "motor:\n"
+		str2 = str2 .. string.format("%1.2frpm\n", motor:getNonClampedMotorRpm())
+		str1 = str1 .. "clutch:\n"
+		str2 = str2 .. string.format("%1.2frpm\n", motor:getClutchRotSpeed() * 30 / 3.141592653589793)
+		str1 = str1 .. "available power:\n"
+		str2 = str2 .. string.format("%1.2fhp %1.2fkW\n", motorPower / 735.49875, motorPower / 1000)
+		str1 = str1 .. "gear:\n"
+		str2 = str2 .. string.format("%d %d (%d, %1.2f)\n", motor.gear, motor.targetGear * motor.currentDirection, motor.activeGearGroupIndex or 0, motor:getGearRatio())
+		str1 = str1 .. "motor load:\n"
+		str2 = str2 .. string.format("%1.2fkN %1.2fkN\n", torque, motor:getMotorAppliedTorque())
+		local ptoPower = motor:getNonClampedMotorRpm() * 3.141592653589793 / 30 * neededPtoTorque
+		local ptoLoad = neededPtoTorque / motor:getPeakTorque()
+		str3 = str3 .. "pto load:\n"
+		str4 = str4 .. string.format("%.2f%% %.2fhp %.2fkW %1.2fkN\n", ptoLoad * 100, ptoPower * 1.359621, ptoPower, neededPtoTorque)
+		str3 = str3 .. "motor load:\n"
+		str4 = str4 .. string.format("%.2f%%\n", motorSpec.smoothedLoadPercentage * 100)
+		str3 = str3 .. "motor rpm for sounds:\n"
+		str4 = str4 .. string.format("%drpm\n", motor:getLastMotorRpm())
+		str3 = str3 .. "brakeForce:\n"
+		str4 = str4 .. string.format("%.2f (max. %.2f)\n", (self.spec_wheels or { brakePedal = 0 }).brakePedal, self:getBrakeForce() * 0.5)
+		local fuelFillUnitIndex = self:getConsumerFillUnitIndex(FillType.DIESEL) or self:getConsumerFillUnitIndex(FillType.ELECTRICCHARGE) or self:getConsumerFillUnitIndex(FillType.METHANE)
+		if fuelFillUnitIndex ~= nil then
+			local fillLevel = self:getFillUnitFillLevel(fuelFillUnitIndex)
+			local fillType = self:getFillUnitFillType(fuelFillUnitIndex)
+			local unit = fillType == FillType.ELECTRICCHARGE and "kw" or (fillType == FillType.METHANE and "kg" or "l")
+			str3 = str3 .. string.format("%s:\n", g_fillTypeManager:getFillTypeNameByIndex(fillType))
+			str4 = str4 .. string.format("%.2f%s/h (%.2f%s)\n", motorSpec.lastFuelUsage, unit, fillLevel, unit)
 		end
-		local v71_ = self:getConsumerFillUnitIndex(FillType.DEF)
-		if v71_ ~= nil then
-			local v72_ = self:getFillUnitFillLevel(v71_)
-			v43_ = v43_ .. "DEF:\n"
-			v44_ = v44_ .. string.format("%.2fl/h (%.2fl)\n", v45_.lastDefUsage, v72_)
+		local defFillUnitIndex = self:getConsumerFillUnitIndex(FillType.DEF)
+		if defFillUnitIndex ~= nil then
+			local fillLevel = self:getFillUnitFillLevel(defFillUnitIndex)
+			str3 = str3 .. "DEF:\n"
+			str4 = str4 .. string.format("%.2fl/h (%.2fl)\n", motorSpec.lastDefUsage, fillLevel)
 		end
-		local v73_ = self:getConsumerFillUnitIndex(FillType.AIR)
-		if v73_ ~= nil then
-			local v74_ = self:getFillUnitFillLevel(v73_)
-			v43_ = v43_ .. "AIR:\n"
-			v44_ = v44_ .. string.format("%.2fl/sec (%.2fl)\n", v45_.lastAirUsage, v74_)
+		local airFillUnitIndex = self:getConsumerFillUnitIndex(FillType.AIR)
+		if airFillUnitIndex ~= nil then
+			local fillLevel = self:getFillUnitFillLevel(airFillUnitIndex)
+			str3 = str3 .. "AIR:\n"
+			str4 = str4 .. string.format("%.2fl/sec (%.2fl)\n", motorSpec.lastAirUsage, fillLevel)
 		end
-		v46_ = v47_.differentialRotSpeed * 3.6
+		diffSpeed = motor.differentialRotSpeed * 3.6
 	end
-	local v75_ = v41_ .. "vel acc[m/s2]:\n"
-	local v76_ = v42_ .. string.format("%1.4f\n", self.lastSpeedAcceleration * 1000 * 1000)
-	local v77_, v78_
-	if v46_ == nil then
-		v77_ = v75_ .. "vel[km/h]:\n"
-		v78_ = v76_ .. string.format("%1.3f\n", self:getLastSpeed())
+	str1 = str1 .. "vel acc[m/s2]:\n"
+	str2 = str2 .. string.format("%1.4f\n", self.lastSpeedAcceleration * 1000 * 1000)
+	if diffSpeed ~= nil then
+		str1 = str1 .. "vel[km/h]:\n"
+		str2 = str2 .. string.format("%1.3f\n", self:getLastSpeed())
+		local lastSpeedReal = self.lastSpeedReal * 3600
+		local slip = 0
+		if 0.01 < diffSpeed and 0.01 < lastSpeedReal then
+			slip = (diffSpeed / lastSpeedReal - 1) * 100
+		end
+		str1 = str1 .. "differential[km/h]:\n"
+		str2 = str2 .. string.format("%1.3f (slip: %d%%)\n", diffSpeed, slip)
 	else
-		local v79_ = v75_ .. "vel[km/h]:\n"
-		local v80_ = v76_ .. string.format("%1.3f\n", self:getLastSpeed())
-		local v81_ = self.lastSpeedReal * 3600
-		local v82_ = (v46_ <= 0.01 or v81_ <= 0.01) and 0 or (v46_ / v81_ - 1) * 100
-		v77_ = v79_ .. "differential[km/h]:\n"
-		v78_ = v80_ .. string.format("%1.3f (slip: %d%%)\n", v46_, v82_)
+		str1 = str1 .. "vel[km/h]:\n"
+		str2 = str2 .. string.format("%1.3f\n", self:getLastSpeed())
 	end
-	local v83_ = v77_ .. "field owned:\n"
-	local v84_ = v78_ .. tostring(v40_) .. "\n"
-	local v85_ = v83_ .. "mass:\n"
-	local v86_ = v84_ .. string.format("%1.1fkg\n", self:getTotalMass(true) * 1000)
-	local v87_ = v85_ .. "mass incl. attach:\n"
-	local v88_ = v86_ .. string.format("%1.1fkg\n", self:getTotalMass() * 1000)
+	str1 = str1 .. "field owned:\n"
+	str2 = str2 .. tostring(fieldOwned) .. "\n"
+	str1 = str1 .. "mass:\n"
+	str2 = str2 .. string.format("%1.1fkg\n", self:getTotalMass(true) * 1000)
+	str1 = str1 .. "mass incl. attach:\n"
+	str2 = str2 .. string.format("%1.1fkg\n", self:getTotalMass() * 1000)
 	if self.spec_attachable ~= nil then
-		local v89_ = self.spec_wheels == nil and 0 or self.spec_wheels.brakePedal
-		local v90_ = self:getBrakeForce() / 10
-		v87_ = v87_ .. "brakeForce:\n"
-		v88_ = v88_ .. string.format("%1.2f / %1.2f\n", v90_ * v89_, v90_)
+		local brakePedal = 0
+		if self.spec_wheels ~= nil then
+			brakePedal = self.spec_wheels.brakePedal
+		end
+		local force = self:getBrakeForce() / 10
+		str1 = str1 .. "brakeForce:\n"
+		str2 = str2 .. string.format("%1.2f / %1.2f\n", force * brakePedal, force)
 	end
-	local v91_ = getCorrectTextSize(0.02)
-	Utils.renderMultiColumnText(x, y, v91_, { v87_, v88_ }, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
-	Utils.renderMultiColumnText(x + 0.22, y, v91_, { v43_, v44_ }, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
-	return getTextHeight(v91_, v87_), getTextHeight(v91_, v43_)
+	local textSize = getCorrectTextSize(0.02)
+	Utils.renderMultiColumnText(x, y, textSize, { str1, str2 }, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
+	Utils.renderMultiColumnText(x + 0.22, y, textSize, { str3, str4 }, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
+	return getTextHeight(textSize, str1), getTextHeight(textSize, str3)
 end
-
--- Local values: specWheels, debugTable, i, wheel, wx, wy, wz, textSize
 function VehicleDebug:drawWheelInfoRendering(x, y)
 	if self.isServer then
-		local v95_ = self.spec_wheels
-		if v95_ ~= nil and #v95_.wheels > 0 then
-			local v96_ = WheelDebug.getDebugValueHeader()
-			for v97_, v98_ in ipairs(v95_.wheels) do
-				v98_.debug:fillDebugValues(v96_)
-				if #v95_.wheels > 4 and DebugUtil.isNodeInCameraRange(v98_.repr, 30) then
-					local v99_, v100_, v101_ = getWorldTranslation(v98_.repr)
-					Utils.renderTextAtWorldPosition(v99_, v100_, v101_, string.format("%d\n%s", v97_, getName(v98_.driveNode or v98_.linkNode)), getCorrectTextSize(0.008))
+		local specWheels = self.spec_wheels
+		if specWheels ~= nil and 0 < #specWheels.wheels then
+			local debugTable = WheelDebug.getDebugValueHeader()
+			for i, wheel in ipairs(specWheels.wheels) do
+				wheel.debug:fillDebugValues(debugTable)
+				if 4 < #specWheels.wheels and DebugUtil.isNodeInCameraRange(wheel.repr, 30) then
+					local wx, wy, wz = getWorldTranslation(wheel.repr)
+					Utils.renderTextAtWorldPosition(wx, wy, wz, string.format("%d\n%s", i, getName(wheel.driveNode or wheel.linkNode)), getCorrectTextSize(0.008))
 				end
 			end
-			local v102_ = getCorrectTextSize(0.02)
-			Utils.renderMultiColumnText(x, y, v102_, v96_, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
-			return getTextHeight(v102_, v96_[1])
+			local textSize = getCorrectTextSize(0.02)
+			Utils.renderMultiColumnText(x, y, textSize, debugTable, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
+			return getTextHeight(textSize, debugTable[1])
 		end
 	end
 	return 0
 end
-
--- Local values: specWheels, debugTable, _, axle, _, numLines, textSize
 function VehicleDebug:drawAxleInfoRendering(x, y)
 	if self.isServer then
-		local v106_ = self.spec_wheels
-		if v106_ ~= nil and #v106_.axles > 0 then
-			local v107_ = WheelAxle.getDebugValueHeader()
-			for _, v108_ in ipairs(v106_.axles) do
-				v108_:fillDebugValues(v107_)
+		local specWheels = self.spec_wheels
+		if specWheels ~= nil and 0 < #specWheels.axles then
+			local debugTable = WheelAxle.getDebugValueHeader()
+			for _, axle in ipairs(specWheels.axles) do
+				axle:fillDebugValues(debugTable)
 			end
-			local _, v109_ = string.gsub(v107_[1], "\n", "")
-			if v109_ > 1 then
-				local v110_ = getCorrectTextSize(0.02)
-				Utils.renderMultiColumnText(x, y, v110_, v107_, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
-				return getTextHeight(v110_, v107_[1])
+			local _, numLines = string.gsub(debugTable[1], "\n", "")
+			if 1 < numLines then
+				local textSize = getCorrectTextSize(0.02)
+				Utils.renderMultiColumnText(x, y, textSize, debugTable, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
+				return getTextHeight(textSize, debugTable[1])
 			end
 		end
 	end
 	return 0
 end
-
--- Local values: specWheels, i, wheel
 function VehicleDebug:drawWheelSlipGraphs()
 	if self.isServer then
-		local v112_ = self.spec_wheels
-		if v112_ ~= nil then
-			for _, v113_ in ipairs(v112_.wheels) do
-				v113_.debug:drawSlipGraphs()
+		local specWheels = self.spec_wheels
+		if specWheels ~= nil then
+			for i, wheel in ipairs(specWheels.wheels) do
+				wheel.debug:drawSlipGraphs()
 			end
 		end
 	end
 end
-
--- Local values: motorSpec, getSpeedsOfDifferential, getRatioOfDifferential, diffStrs, i, diff, speed1, speed2, speed1, speed2, ratio, ratio
 function VehicleDebug:drawDifferentialInfoRendering(x, y)
-	local v_u_117_ = self.spec_motorized
-	if v_u_117_ ~= nil and v_u_117_.differentials ~= nil then
-		local function v_u_128_(p118_)
-			-- upvalues: (copy) self, (ref) v_u_128_, (copy) v_u_117_
-			local v119_ = self.spec_wheels
-			local v120_
-			if p118_.diffIndex1IsWheel then
-				local v121_ = v119_.wheels[p118_.diffIndex1]
-				v120_ = not v121_.physics.wheelShapeCreated and 0 or getWheelShapeAxleSpeed(v121_.node, v121_.physics.wheelShape) * v121_.physics.radius
-			else
-				local v122_, v123_ = v_u_128_(v_u_117_.differentials[p118_.diffIndex1 + 1])
-				v120_ = (v122_ + v123_) / 2
-			end
-			local v124_
-			if p118_.diffIndex2IsWheel then
-				local v125_ = v119_.wheels[p118_.diffIndex2]
-				if v125_.physics.wheelShapeCreated then
-					return v120_, getWheelShapeAxleSpeed(v125_.node, v125_.physics.wheelShape) * v125_.physics.radius
+	local motorSpec = self.spec_motorized
+	if motorSpec ~= nil and motorSpec.differentials ~= nil then
+		local getSpeedsOfDifferential = nil
+		function getSpeedsOfDifferential(diff)
+			local specWheels = self.spec_wheels
+			local speed1 = nil
+			local speed2 = nil
+			if diff.diffIndex1IsWheel then
+				local wheel = specWheels.wheels[diff.diffIndex1]
+				speed1 = 0
+				if wheel.physics.wheelShapeCreated then
+					speed1 = getWheelShapeAxleSpeed(wheel.node, wheel.physics.wheelShape) * wheel.physics.radius
 				end
-				v124_ = 0
 			else
-				local v126_, v127_ = v_u_128_(v_u_117_.differentials[p118_.diffIndex2 + 1])
-				v124_ = (v126_ + v127_) / 2
+				local s1, s2 = getSpeedsOfDifferential(motorSpec.differentials[diff.diffIndex1 + 1])
+				speed1 = (s1 + s2) / 2
 			end
-			return v120_, v124_
+			if diff.diffIndex2IsWheel then
+				local wheel = specWheels.wheels[diff.diffIndex2]
+				speed2 = 0
+				if wheel.physics.wheelShapeCreated then
+					speed2 = getWheelShapeAxleSpeed(wheel.node, wheel.physics.wheelShape) * wheel.physics.radius
+					return speed1, speed2
+				end
+			else
+				local s1, s2 = getSpeedsOfDifferential(motorSpec.differentials[diff.diffIndex2 + 1])
+				speed2 = (s1 + s2) / 2
+			end
+			return speed1, speed2
 		end
-		local v129_ = v_u_128_
-		local v130_ = {
-			"\n",
-			"torqueRatio\n",
-			"maxSpeedRatio\n",
-			"actualSpeedRatio\n"
-		}
-		for v131_, v132_ in pairs(v_u_117_.differentials) do
-			v130_[1] = v130_[1] .. string.format("%d:\n", v131_)
-			v130_[2] = v130_[2] .. string.format("%2.2f\n", v132_.torqueRatio)
-			v130_[3] = v130_[3] .. string.format("%2.2f\n", v132_.maxSpeedRatio)
-			local v133_, v134_ = v129_(v132_)
-			local v135_ = math.abs(v133_)
-			local v136_ = math.abs(v134_)
-			local v137_ = math.max(v135_, v136_)
-			local v138_ = math.abs(v133_)
-			local v139_ = math.abs(v134_)
-			local v140_ = math.min(v138_, v139_)
-			local v141_ = v137_ / math.max(v140_, 0.001)
-			v130_[4] = v130_[4] .. string.format("%2.2f\n", v141_)
+		local getRatioOfDifferential = function(speed1, speed2)
+			local ratio = math.max(math.abs(speed1), math.abs(speed2)) / math.max(math.min(math.abs(speed1), math.abs(speed2)), 0.001)
+			return ratio
 		end
-		Utils.renderMultiColumnText(x, y, getCorrectTextSize(0.02), v130_, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
+		local diffStrs = { "\n", "torqueRatio\n", "maxSpeedRatio\n", "actualSpeedRatio\n" }
+		for i, diff in pairs(motorSpec.differentials) do
+			diffStrs[1] = diffStrs[1] .. string.format("%d:\n", i)
+			diffStrs[2] = diffStrs[2] .. string.format("%2.2f\n", diff.torqueRatio)
+			diffStrs[3] = diffStrs[3] .. string.format("%2.2f\n", diff.maxSpeedRatio)
+			local speed1, speed2 = getSpeedsOfDifferential(diff)
+			local ratio = math.max(math.abs(speed1), math.abs(speed2)) / math.max(math.min(math.abs(speed1), math.abs(speed2)), 0.001)
+			local ratio = ratio
+			diffStrs[4] = diffStrs[4] .. string.format("%2.2f\n", ratio)
+		end
+		Utils.renderMultiColumnText(x, y, getCorrectTextSize(0.02), diffStrs, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
 	end
 end
-
--- Local values: motorSpec, motor, curveOverlay, torqueCurve, numTorqueValues, minRpm, maxRpm, torqueGraph, powerGraph, numValues, s, rpm, torque, power, hpPower, posX, maxSpeed, debugGraphs, numVelocityValues, numGears, gears, gear, effTorqueGraph, effPowerGraph, effGearRatioGraph, effRpmGraph, s, speed, _, gearRatio, gearRpm, torque, power, hpPower, i, graph, _, graph
 function VehicleDebug:drawMotorGraphs(x, y, sizeX, sizeY, horizontal)
 	if self.isServer then
-		local v148_ = self.spec_motorized
-		if v148_ ~= nil then
-			local v149_ = v148_.motor
-			local v150_ = v149_.debugCurveOverlay
-			if v150_ == nil then
-				v150_ = createImageOverlay("dataS/menu/base/graph_pixel.png")
-				setOverlayColor(v150_, 0, 1, 0, 0.2)
-				v149_.debugCurveOverlay = v150_
+		local motorSpec = self.spec_motorized
+		if motorSpec ~= nil then
+			local motor = motorSpec.motor
+			local curveOverlay = motor.debugCurveOverlay
+			if curveOverlay == nil then
+				curveOverlay = createImageOverlay("dataS/menu/base/graph_pixel.png")
+				setOverlayColor(curveOverlay, 0, 1, 0, 0.2)
+				motor.debugCurveOverlay = curveOverlay
 			end
-			local v151_ = v149_:getTorqueCurve()
-			local v152_ = #v151_.keyframes
-			local v153_ = v149_:getMinRpm()
-			local v154_ = v151_.keyframes[1].time
-			local v155_ = math.min(v153_, v154_)
-			local v156_ = v149_:getMaxRpm()
-			local v157_ = v151_.keyframes[v152_].time
-			local v158_ = math.max(v156_, v157_)
-			local v159_ = v149_.debugTorqueGraph
-			local v160_ = v149_.debugPowerGraph
-			if v159_ == nil then
-				local v161_ = v152_ * 32
-				v159_ = Graph.new(v161_, x, y, sizeX, sizeY, 0, 0.0001, true, "kN", Graph.STYLE_LINES)
-				v159_:setColor(1, 1, 1, 1)
-				v149_.debugTorqueGraph = v159_
-				v160_ = Graph.new(v161_, x, y, sizeX, sizeY, 0, 0.0001, false, "", Graph.STYLE_LINES)
-				v160_:setColor(1, 0, 0, 1)
-				v149_.debugPowerGraph = v160_
-				v159_.maxValue = 0.01
-				v160_.maxValue = 0.01
-				for v162_ = 1, v161_ do
-					local v163_ = (v162_ - 1) / (v161_ - 1) * (v151_.keyframes[v152_].time - v151_.keyframes[1].time) + v151_.keyframes[1].time
-					local v164_ = v149_:getTorqueCurveValue(v163_)
-					local v165_ = v164_ * 1000 * v163_ * 3.141592653589793 / 30 / 735.49875
-					local v166_ = (v163_ - v155_) / (v158_ - v155_)
-					v159_:setValue(v162_, v164_)
-					local v167_ = v159_.maxValue
-					v159_.maxValue = math.max(v167_, v164_)
-					v159_:setXPosition(v162_, v166_)
-					v160_:setValue(v162_, v165_)
-					local v168_ = v160_.maxValue
-					v160_.maxValue = math.max(v168_, v165_)
-					v160_:setXPosition(v162_, v166_)
+			local torqueCurve = motor:getTorqueCurve()
+			local numTorqueValues = #torqueCurve.keyframes
+			local minRpm = math.min(motor:getMinRpm(), torqueCurve.keyframes[1].time)
+			local maxRpm = math.max(motor:getMaxRpm(), torqueCurve.keyframes[numTorqueValues].time)
+			local torqueGraph = motor.debugTorqueGraph
+			local powerGraph = motor.debugPowerGraph
+			if torqueGraph == nil then
+				local numValues = numTorqueValues * 32
+				torqueGraph = Graph.new(numValues, x, y, sizeX, sizeY, 0, 0.0001, true, "kN", Graph.STYLE_LINES)
+				torqueGraph:setColor(1, 1, 1, 1)
+				motor.debugTorqueGraph = torqueGraph
+				powerGraph = Graph.new(numValues, x, y, sizeX, sizeY, 0, 0.0001, false, "", Graph.STYLE_LINES)
+				powerGraph:setColor(1, 0, 0, 1)
+				motor.debugPowerGraph = powerGraph
+				torqueGraph.maxValue = 0.01
+				powerGraph.maxValue = 0.01
+				for s = 1, numValues do
+					local rpm = (s - 1) / (numValues - 1) * (torqueCurve.keyframes[numTorqueValues].time - torqueCurve.keyframes[1].time) + torqueCurve.keyframes[1].time
+					local torque = motor:getTorqueCurveValue(rpm)
+					local power = torque * 1000 * rpm * 3.141592653589793 / 30
+					local hpPower = power / 735.49875
+					local posX = (rpm - minRpm) / (maxRpm - minRpm)
+					torqueGraph:setValue(s, torque)
+					torqueGraph.maxValue = math.max(torqueGraph.maxValue, torque)
+					torqueGraph:setXPosition(s, posX)
+					powerGraph:setValue(s, hpPower)
+					powerGraph.maxValue = math.max(powerGraph.maxValue, hpPower)
+					powerGraph:setXPosition(s, posX)
 				end
 			else
-				v159_.left = x
-				v159_.bottom = y
-				v159_.width = sizeX
-				v159_.height = sizeY
-				v160_.left = x
-				v160_.bottom = y
-				v160_.width = sizeX
-				v160_.height = sizeY
+				torqueGraph.left = x
+				torqueGraph.bottom = y
+				torqueGraph.width = sizeX
+				torqueGraph.height = sizeY
+				powerGraph.left = x
+				powerGraph.bottom = y
+				powerGraph.width = sizeX
+				powerGraph.height = sizeY
 			end
-			v159_:draw()
-			v160_:draw()
-			local v169_ = renderOverlay
-			local v170_ = (v149_:getNonClampedMotorRpm() - v155_) / (v158_ - v155_)
-			v169_(v150_, x, y, sizeX * math.clamp(v170_, 0, 1), sizeY)
+			torqueGraph:draw()
+			powerGraph:draw()
+			renderOverlay(curveOverlay, x, y, sizeX * math.clamp((motor:getNonClampedMotorRpm() - minRpm) / (maxRpm - minRpm), 0, 1), sizeY)
 			if horizontal then
 				x = x + sizeX + 0.013
 			else
 				y = y - sizeY - 0.013
 			end
-			local v171_ = v149_:getMaximumForwardSpeed()
-			local v172_ = v149_.debugGraphs
-			if v172_ == nil then
-				local v173_ = 1
-				local v174_ = v149_.forwardGears
-				if v149_.currentDirection < 0 then
-					v174_ = v149_.backwardGears or v174_
+			local maxSpeed = motor:getMaximumForwardSpeed()
+			local debugGraphs = motor.debugGraphs
+			if debugGraphs == nil then
+				local numVelocityValues = 20
+				local numGears = 1
+				local gears = motor.forwardGears
+				if motor.currentDirection < 0 then
+					gears = motor.backwardGears or gears
 				end
-				local v175_ = v149_.minForwardGearRatio == nil and v174_ ~= nil and #v174_ or v173_
-				v172_ = {}
-				v149_.debugGraphs = v172_
-				for v176_ = 1, v175_ do
-					local v177_ = Graph.new(20, x, y, sizeX, sizeY, 0, 0.0001, true, "kN", Graph.STYLE_LINES)
-					v177_:setColor(1, 1, 1, 1)
-					table.insert(v172_, v177_)
-					local v178_ = Graph.new(20, x, y, sizeX, sizeY, 0, 0.0001, false, "", Graph.STYLE_LINES)
-					v178_:setColor(1, 0, 0, 1)
-					table.insert(v172_, v178_)
-					local v179_ = Graph.new(20, x, y, sizeX, sizeY, 0, 0.0001, false, "", Graph.STYLE_LINES)
-					v179_:setColor(0.35, 1, 0.85, 1)
-					table.insert(v172_, v179_)
-					local v180_ = Graph.new(20, x, y, sizeX, sizeY, 0, 0.0001, false, "", Graph.STYLE_LINES)
-					v180_:setColor(0.18, 0.18, 1, 1)
-					table.insert(v172_, v180_)
-					v177_.maxValue = 0.01
-					v178_.maxValue = 0.01
-					v179_.maxValue = 0.01
-					v180_.maxValue = 0.01
-					for v181_ = 1, 20 do
-						local v182_ = (v181_ - 1) / 19 * v171_
-						local v183_
-						if v175_ == 1 then
-							local v184_
-							v184_, v183_ = v149_:getBestGear(1, v182_ * 30 / 3.141592653589793, 0, math.huge, 0)
+				if motor.minForwardGearRatio == nil and gears ~= nil then
+					numGears = #gears
+				end
+				debugGraphs = {}
+				motor.debugGraphs = debugGraphs
+				for gear = 1, numGears do
+					local effTorqueGraph = Graph.new(20, x, y, sizeX, sizeY, 0, 0.0001, true, "kN", Graph.STYLE_LINES)
+					effTorqueGraph:setColor(1, 1, 1, 1)
+					table.insert(debugGraphs, effTorqueGraph)
+					local effPowerGraph = Graph.new(20, x, y, sizeX, sizeY, 0, 0.0001, false, "", Graph.STYLE_LINES)
+					effPowerGraph:setColor(1, 0, 0, 1)
+					table.insert(debugGraphs, effPowerGraph)
+					local effGearRatioGraph = Graph.new(20, x, y, sizeX, sizeY, 0, 0.0001, false, "", Graph.STYLE_LINES)
+					effGearRatioGraph:setColor(0.35, 1, 0.85, 1)
+					table.insert(debugGraphs, effGearRatioGraph)
+					local effRpmGraph = Graph.new(20, x, y, sizeX, sizeY, 0, 0.0001, false, "", Graph.STYLE_LINES)
+					effRpmGraph:setColor(0.18, 0.18, 1, 1)
+					table.insert(debugGraphs, effRpmGraph)
+					effTorqueGraph.maxValue = 0.01
+					effPowerGraph.maxValue = 0.01
+					effGearRatioGraph.maxValue = 0.01
+					effRpmGraph.maxValue = 0.01
+					for s = 1, 20 do
+						local speed = (s - 1) / 19 * maxSpeed
+						local _ = nil
+						local gearRatio = nil
+						if numGears == 1 then
+							_, gearRatio = motor:getBestGear(1, speed * 30 / 3.141592653589793, 0, math.huge, 0)
 						else
-							v183_ = v174_[v176_].ratio
+							gearRatio = gears[gear].ratio
 						end
-						local v185_ = v182_ * 30 / 3.141592653589793 * v183_
-						local v186_ = v151_:get(v185_)
-						local v187_ = v186_ * 1000 * v185_ * 3.141592653589793 / 30 / 735.49875
-						if v155_ <= v185_ and v185_ <= v158_ then
-							v177_:setValue(v181_, v186_)
-							local v188_ = v177_.maxValue
-							v177_.maxValue = math.max(v188_, v186_)
-							v178_:setValue(v181_, v187_)
-							local v189_ = v178_.maxValue
-							v178_.maxValue = math.max(v189_, v187_)
-							v179_:setValue(v181_, v183_)
-							local v190_ = v179_.maxValue
-							v179_.maxValue = math.max(v190_, v183_)
-							v180_:setValue(v181_, v185_)
-							local v191_ = v180_.maxValue
-							v180_.maxValue = math.max(v191_, v185_)
+						local gearRpm = speed * 30 / 3.141592653589793 * gearRatio
+						local torque = torqueCurve:get(gearRpm)
+						local power = torque * 1000 * gearRpm * 3.141592653589793 / 30
+						local hpPower = power / 735.49875
+						if minRpm <= gearRpm and gearRpm <= maxRpm then
+							effTorqueGraph:setValue(s, torque)
+							effTorqueGraph.maxValue = math.max(effTorqueGraph.maxValue, torque)
+							effPowerGraph:setValue(s, hpPower)
+							effPowerGraph.maxValue = math.max(effPowerGraph.maxValue, hpPower)
+							effGearRatioGraph:setValue(s, gearRatio)
+							effGearRatioGraph.maxValue = math.max(effGearRatioGraph.maxValue, gearRatio)
+							effRpmGraph:setValue(s, gearRpm)
+							effRpmGraph.maxValue = math.max(effRpmGraph.maxValue, gearRpm)
 						end
 					end
 				end
 			else
-				for v192_ = 1, #v172_ do
-					local v193_ = v172_[v192_]
-					v193_.left = x
-					v193_.bottom = y
-					v193_.width = sizeX
-					v193_.height = sizeY
+				for i = 1, #debugGraphs do
+					local graph = debugGraphs[i]
+					graph.left = x
+					graph.bottom = y
+					graph.width = sizeX
+					graph.height = sizeY
 				end
 			end
-			for _, v194_ in pairs(v172_) do
-				v194_:draw()
+			for _, graph in pairs(debugGraphs) do
+				graph:draw()
 			end
-			local v195_ = renderOverlay
-			local v196_ = self.lastSpeedReal * 1000 / v171_
-			v195_(v150_, x, y, sizeX * math.clamp(v196_, 0, 1), sizeY)
+			renderOverlay(curveOverlay, x, y, sizeX * math.clamp(self.lastSpeedReal * 1000 / maxSpeed, 0, 1), sizeY)
 			if horizontal then
 				x = x + sizeX + 0.013
 			else
@@ -603,640 +568,662 @@ function VehicleDebug:drawMotorGraphs(x, y, sizeX, sizeY, horizontal)
 		end
 	end
 end
-
--- Local values: motorSpec, motor, numValues, loadGraph, loadGraphSmooth, loadGraphSound, rawLoad, i, sample
 function VehicleDebug:drawMotorLoadGraph(x, y, sizeX, sizeY)
 	if self.isServer then
-		local v202_ = self.spec_motorized
-		if v202_ ~= nil then
-			local v203_ = v202_.motor
-			local v204_ = v203_.debugLoadGraph
-			local v205_ = v203_.debugLoadGraphSmooth
-			local v206_ = v203_.debugLoadGraphSound
-			if v204_ == nil then
-				v204_ = Graph.new(500, x, y, sizeX, sizeY, 0, 100, true, "%", Graph.STYLE_LINES, 0.1, "time")
-				v204_:setColor(1, 1, 1, 0.3)
-				v203_.debugLoadGraph = v204_
-				v205_ = Graph.new(500, x, y, sizeX, sizeY, 0, 100, false, "", Graph.STYLE_LINES)
-				v205_:setColor(0, 1, 0, 1)
-				v203_.debugLoadGraphSmooth = v205_
-				v206_ = Graph.new(500, x, y, sizeX, sizeY, 0, 100, false, "", Graph.STYLE_LINES)
-				v206_:setColor(0, 1, 1, 1)
-				v203_.debugLoadGraphSound = v206_
+		local motorSpec = self.spec_motorized
+		if motorSpec ~= nil then
+			local motor = motorSpec.motor
+			local numValues = 500
+			local loadGraph = motor.debugLoadGraph
+			local loadGraphSmooth = motor.debugLoadGraphSmooth
+			local loadGraphSound = motor.debugLoadGraphSound
+			if loadGraph == nil then
+				loadGraph = Graph.new(500, x, y, sizeX, sizeY, 0, 100, true, "%", Graph.STYLE_LINES, 0.1, "time")
+				loadGraph:setColor(1, 1, 1, 0.3)
+				motor.debugLoadGraph = loadGraph
+				loadGraphSmooth = Graph.new(500, x, y, sizeX, sizeY, 0, 100, false, "", Graph.STYLE_LINES)
+				loadGraphSmooth:setColor(0, 1, 0, 1)
+				motor.debugLoadGraphSmooth = loadGraphSmooth
+				loadGraphSound = Graph.new(500, x, y, sizeX, sizeY, 0, 100, false, "", Graph.STYLE_LINES)
+				loadGraphSound:setColor(0, 1, 1, 1)
+				motor.debugLoadGraphSound = loadGraphSound
 			else
-				v204_.left = x
-				v204_.bottom = y
-				v204_.width = sizeX
-				v204_.height = sizeY
-				v205_.left = x
-				v205_.bottom = y
-				v205_.width = sizeX
-				v205_.height = sizeY
-				v206_.left = x
-				v206_.bottom = y
-				v206_.width = sizeX
-				v206_.height = sizeY
+				loadGraph.left = x
+				loadGraph.bottom = y
+				loadGraph.width = sizeX
+				loadGraph.height = sizeY
+				loadGraphSmooth.left = x
+				loadGraphSmooth.bottom = y
+				loadGraphSmooth.width = sizeX
+				loadGraphSmooth.height = sizeY
+				loadGraphSound.left = x
+				loadGraphSound.bottom = y
+				loadGraphSound.width = sizeX
+				loadGraphSound.height = sizeY
 			end
-			if v204_ ~= nil and (v205_ ~= nil and v206_ ~= nil) then
-				local v207_ = v203_:getMotorAppliedTorque()
-				local v208_ = v203_:getMotorAvailableTorque()
-				v204_:addValue(v207_ / math.max(v208_, 0.0001) * 100, nil, true)
-				v205_:addValue(v202_.smoothedLoadPercentage * 100, nil, true)
-				for v209_ = 1, #v202_.motorSamples do
-					local v210_ = v202_.motorSamples[v209_]
-					if v210_.isGlsFile then
-						v206_:addValue(getSampleLoopSynthesisLoadFactor(v210_.soundSample) * 100, nil, true)
+			if loadGraph ~= nil and (loadGraphSmooth ~= nil and loadGraphSound ~= nil) then
+				local rawLoad = motor:getMotorAppliedTorque() / math.max(motor:getMotorAvailableTorque(), 0.0001)
+				loadGraph:addValue(rawLoad * 100, nil, true)
+				loadGraphSmooth:addValue(motorSpec.smoothedLoadPercentage * 100, nil, true)
+				for i = 1, #motorSpec.motorSamples do
+					local sample = motorSpec.motorSamples[i]
+					if sample.isGlsFile then
+						loadGraphSound:addValue(getSampleLoopSynthesisLoadFactor(sample.soundSample) * 100, nil, true)
 						break
 					end
 				end
 			end
-			v204_:draw()
-			v205_:draw()
-			v206_:draw()
+			loadGraph:draw()
+			loadGraphSmooth:draw()
+			loadGraphSound:draw()
 		end
 	end
 end
-
--- Local values: motorSpec, motor, numValues, rpmGraph, rpmGraphSmooth, rpmGraphSound, minSoundRpm, maxSoundRpm, i, sample, i, sample
 function VehicleDebug:drawMotorRPMGraph(x, y, sizeX, sizeY)
 	if self.isServer then
-		local v216_ = self.spec_motorized
-		if v216_ ~= nil then
-			local v217_ = v216_.motor
-			local v218_ = v217_.debugRPMGraph
-			local v219_ = v217_.debugRPMGraphSmooth
-			local v220_ = v217_.debugRPMGraphSound
-			if v218_ == nil then
-				v218_ = Graph.new(500, x, y, sizeX, sizeY, v217_:getMinRpm(), v217_:getMaxRpm(), true, " RPM", Graph.STYLE_LINES, 0.1, "")
-				v218_:setColor(1, 1, 1, 0.3)
-				v217_.debugRPMGraph = v218_
-				v219_ = Graph.new(500, x, y, sizeX, sizeY, v217_:getMinRpm(), v217_:getMaxRpm(), false, "", Graph.STYLE_LINES)
-				v219_:setColor(0, 1, 0, 1)
-				v217_.debugRPMGraphSmooth = v219_
-				local v221_ = v217_:getMinRpm()
-				local v222_ = v217_:getMaxRpm()
-				for v223_ = 1, #v216_.motorSamples do
-					local v224_ = v216_.motorSamples[v223_]
-					if v224_.isGlsFile then
-						v221_ = getSampleLoopSynthesisMinRPM(v224_.soundSample)
-						v222_ = getSampleLoopSynthesisMaxRPM(v224_.soundSample)
+		local motorSpec = self.spec_motorized
+		if motorSpec ~= nil then
+			local motor = motorSpec.motor
+			local numValues = 500
+			local rpmGraph = motor.debugRPMGraph
+			local rpmGraphSmooth = motor.debugRPMGraphSmooth
+			local rpmGraphSound = motor.debugRPMGraphSound
+			if rpmGraph == nil then
+				rpmGraph = Graph.new(500, x, y, sizeX, sizeY, motor:getMinRpm(), motor:getMaxRpm(), true, " RPM", Graph.STYLE_LINES, 0.1, "")
+				rpmGraph:setColor(1, 1, 1, 0.3)
+				motor.debugRPMGraph = rpmGraph
+				rpmGraphSmooth = Graph.new(500, x, y, sizeX, sizeY, motor:getMinRpm(), motor:getMaxRpm(), false, "", Graph.STYLE_LINES)
+				rpmGraphSmooth:setColor(0, 1, 0, 1)
+				motor.debugRPMGraphSmooth = rpmGraphSmooth
+				local minSoundRpm = motor:getMinRpm()
+				local maxSoundRpm = motor:getMaxRpm()
+				for i = 1, #motorSpec.motorSamples do
+					local sample = motorSpec.motorSamples[i]
+					if sample.isGlsFile then
+						minSoundRpm = getSampleLoopSynthesisMinRPM(sample.soundSample)
+						maxSoundRpm = getSampleLoopSynthesisMaxRPM(sample.soundSample)
 						break
 					end
 				end
-				v220_ = Graph.new(500, x, y, sizeX, sizeY, v221_, v222_, false, "", Graph.STYLE_LINES)
-				v220_:setColor(0, 1, 1, 1)
-				v217_.debugRPMGraphSound = v220_
+				rpmGraphSound = Graph.new(500, x, y, sizeX, sizeY, minSoundRpm, maxSoundRpm, false, "", Graph.STYLE_LINES)
+				rpmGraphSound:setColor(0, 1, 1, 1)
+				motor.debugRPMGraphSound = rpmGraphSound
 			else
-				v218_.left = x
-				v218_.bottom = y
-				v218_.width = sizeX
-				v218_.height = sizeY
-				v219_.left = x
-				v219_.bottom = y
-				v219_.width = sizeX
-				v219_.height = sizeY
-				v220_.left = x
-				v220_.bottom = y
-				v220_.width = sizeX
-				v220_.height = sizeY
+				rpmGraph.left = x
+				rpmGraph.bottom = y
+				rpmGraph.width = sizeX
+				rpmGraph.height = sizeY
+				rpmGraphSmooth.left = x
+				rpmGraphSmooth.bottom = y
+				rpmGraphSmooth.width = sizeX
+				rpmGraphSmooth.height = sizeY
+				rpmGraphSound.left = x
+				rpmGraphSound.bottom = y
+				rpmGraphSound.width = sizeX
+				rpmGraphSound.height = sizeY
 			end
-			if v218_ ~= nil and (v219_ ~= nil and v220_ ~= nil) then
-				v218_:addValue(v217_:getLastRealMotorRpm(), nil, true)
-				v219_:addValue(v217_:getLastModulatedMotorRpm(), nil, true)
-				for v225_ = 1, #v216_.motorSamples do
-					local v226_ = v216_.motorSamples[v225_]
-					if v226_.isGlsFile then
-						v220_:addValue(getSampleLoopSynthesisRPM(v226_.soundSample, false), nil, true)
+			if rpmGraph ~= nil and (rpmGraphSmooth ~= nil and rpmGraphSound ~= nil) then
+				rpmGraph:addValue(motor:getLastRealMotorRpm(), nil, true)
+				rpmGraphSmooth:addValue(motor:getLastModulatedMotorRpm(), nil, true)
+				for i = 1, #motorSpec.motorSamples do
+					local sample = motorSpec.motorSamples[i]
+					if sample.isGlsFile then
+						rpmGraphSound:addValue(getSampleLoopSynthesisRPM(sample.soundSample, false), nil, true)
 						break
 					end
 				end
 			end
-			v218_:draw()
-			v219_:draw()
-			v220_:draw()
+			rpmGraph:draw()
+			rpmGraphSmooth:draw()
+			rpmGraphSound:draw()
 		end
 	end
 end
-
--- Local values: motorSpec, motor, numValues, accGraph
 function VehicleDebug:drawMotorAccelerationGraph(x, y, sizeX, sizeY)
 	if self.isServer then
-		local v232_ = self.spec_motorized
-		if v232_ ~= nil then
-			local v233_ = v232_.motor
-			local v234_ = v233_.debugAccelerationGraph
-			if v234_ == nil then
-				v234_ = Graph.new(250, x, y, sizeX, sizeY, 0, 1, true, " Load Factor", Graph.STYLE_LINES, 0.1, "")
-				v234_:setColor(1, 1, 1, 0.3)
-				v233_.debugAccelerationGraph = v234_
-				v233_.debugAccelerationGraphAddValue = true
+		local motorSpec = self.spec_motorized
+		if motorSpec ~= nil then
+			local motor = motorSpec.motor
+			local numValues = 250
+			local accGraph = motor.debugAccelerationGraph
+			if accGraph == nil then
+				accGraph = Graph.new(250, x, y, sizeX, sizeY, 0, 1, true, " Load Factor", Graph.STYLE_LINES, 0.1, "")
+				accGraph:setColor(1, 1, 1, 0.3)
+				motor.debugAccelerationGraph = accGraph
+				motor.debugAccelerationGraphAddValue = true
 			else
-				v234_.left = x
-				v234_.bottom = y
-				v234_.width = sizeX
-				v234_.height = sizeY
+				accGraph.left = x
+				accGraph.bottom = y
+				accGraph.width = sizeX
+				accGraph.height = sizeY
 			end
-			if v234_ ~= nil then
-				if v233_.debugAccelerationGraphAddValue then
-					v234_:addValue(v233_.constantAccelerationCharge, nil, true)
+			if accGraph ~= nil then
+				if motor.debugAccelerationGraphAddValue then
+					accGraph:addValue(motor.constantAccelerationCharge, nil, true)
 				end
-				v233_.debugAccelerationGraphAddValue = not v233_.debugAccelerationGraphAddValue
+				motor.debugAccelerationGraphAddValue = not motor.debugAccelerationGraphAddValue
 			end
-			v234_:draw()
+			accGraph:draw()
 		end
 	end
 end
-
--- Local values: textHeight1, _, x, y, height
 function VehicleDebug:drawDebugRendering()
-	local v236_, _ = VehicleDebug.drawBaseDebugRendering(self, 0.015, 0.65)
-	local v237_ = 0.64 - v236_ - 0.005
-	local v238_ = VehicleDebug.drawWheelInfoRendering(self, 0.015, v237_)
-	VehicleDebug.drawDifferentialInfoRendering(self, 0.015, v237_ - (v238_ + getCorrectTextSize(0.02)))
-	VehicleDebug.drawAxleInfoRendering(self, 0.29500000000000004, v237_ - (v238_ + getCorrectTextSize(0.02)))
+	local textHeight1, _ = VehicleDebug.drawBaseDebugRendering(self, 0.015, 0.65)
+	local x = 0.015
+	local y = 0.64 - textHeight1 - 0.005
+	local height = VehicleDebug.drawWheelInfoRendering(self, 0.015, y)
+	VehicleDebug.drawDifferentialInfoRendering(self, 0.015, y - (height + getCorrectTextSize(0.02)))
+	VehicleDebug.drawAxleInfoRendering(self, 0.29500000000000004, y - (height + getCorrectTextSize(0.02)))
 	VehicleDebug.drawWheelSlipGraphs(self)
 	VehicleDebug.drawMotorGraphs(self, 0.65, 0.44, 0.25, 0.2, false)
 end
-
--- Local values: textHeight1, _, x, y, height
 function VehicleDebug:drawTuningDebug()
-	local v240_, _ = VehicleDebug.drawBaseDebugRendering(self, 0.015, 0.9)
-	local v241_ = 0.89 - v240_ - 0.005
-	local v242_ = VehicleDebug.drawWheelInfoRendering(self, 0.015, v241_)
-	VehicleDebug.drawDifferentialInfoRendering(self, 0.015, v241_ - (v242_ + getCorrectTextSize(0.02)))
-	VehicleDebug.drawAxleInfoRendering(self, 0.29500000000000004, v241_ - (v242_ + getCorrectTextSize(0.02)))
+	local textHeight1, _ = VehicleDebug.drawBaseDebugRendering(self, 0.015, 0.9)
+	local x = 0.015
+	local y = 0.89 - textHeight1 - 0.005
+	local height = VehicleDebug.drawWheelInfoRendering(self, 0.015, y)
+	VehicleDebug.drawDifferentialInfoRendering(self, 0.015, y - (height + getCorrectTextSize(0.02)))
+	VehicleDebug.drawAxleInfoRendering(self, 0.29500000000000004, y - (height + getCorrectTextSize(0.02)))
 end
-
--- Local values: textHeight1, _, str1, str2, motorSpec, motor, x, y, infoWidth, minWidthPerGear, gears, width, height, gearAreaWidth, groupRatioReal, groupRatio, numGears, gearWidth, gearMaxHeight, textOffset, maxDiffSpeed, i, numGearValues, offsetPerValue, lastDiffSpeedAfterChange, lastMaxPower, i, gear, minGearSpeed, maxGearSpeed, pos, h, gearX, posY, factor, bestGear, maxFactorGroup, diffSpeed, speedHeight
 function VehicleDebug:drawTransmissionDebug()
-	local v244_, _ = VehicleDebug.drawBaseDebugRendering(self, 0.015, 0.65)
+	local textHeight1, _ = VehicleDebug.drawBaseDebugRendering(self, 0.015, 0.65)
 	VehicleDebug.drawMotorGraphs(self, 0.01, 0.73, 0.25, 0.2, true)
-	local v245_ = ""
-	local v246_ = ""
-	local v247_ = self.spec_motorized
-	if v247_ ~= nil then
-		local v248_ = v247_.motor
-		local v249_ = v245_ .. "\ngear start values:\n"
-		local v250_ = v246_ .. "\n\n"
-		local v251_ = v249_ .. "peakPower:\n"
-		local v252_ = v250_ .. string.format("%d/%dkW\n", v248_.startGearValues.availablePower, v248_.peakMotorPower)
-		local v253_ = v251_ .. "maxForce:\n"
-		local v254_ = v252_ .. string.format("%.2fkN\n", v248_.startGearValues.maxForce)
-		local v255_ = v253_ .. "mass:\n"
-		local v256_ = v254_ .. string.format("%.2fto\n", v248_.startGearValues.mass)
-		local v257_ = v255_ .. "slope angle:\n"
-		local v258_ = string.format
-		local v259_ = v248_.startGearValues.slope
-		local v260_ = v256_ .. v258_("%.2f\194\176\n", (math.deg(v259_)))
-		local v261_ = v257_ .. "slope percentage:\n"
-		local v262_ = string.format
-		local v263_ = v248_.startGearValues.slope
-		local v264_ = v260_ .. v262_("%.2f%%\n", math.atan(v263_) * 100)
-		local v265_ = v261_ .. "dirDiffXZ:\n"
-		local v266_ = v264_ .. string.format("%.2f\n", v248_.startGearValues.massDirectionDifferenceXZ)
-		local v267_ = v265_ .. "dirDiffY:\n"
-		local v268_ = v266_ .. string.format("%.2f\n", v248_.startGearValues.massDirectionDifferenceY)
-		local v269_ = v267_ .. "dirFac:\n"
-		local v270_ = v268_ .. string.format("%.2f\n", v248_.startGearValues.massDirectionFactor)
-		local v271_ = v269_ .. "massFac:\n"
-		local v272_ = v270_ .. string.format("%.2f\n", v248_.startGearValues.massFactor)
-		local v273_ = v271_ .. "speedLimit:\n"
-		local v274_ = v272_ .. string.format("%.1f / %.1f \n", v248_.speedLimit, self:getSpeedLimit(true))
-		local v275_ = v273_ .. "auto shift allowed:\n"
-		local v276_ = v274_ .. string.format("%s\n", self:getIsAutomaticShiftingAllowed())
-		local v277_ = v275_ .. "gear/group change allowed:\n"
-		local v278_ = v276_ .. string.format("%s/%s\n", v248_:getIsGearChangeAllowed(), v248_:getIsGearGroupChangeAllowed())
-		local v279_ = v277_ .. "gear group shift timer:\n"
-		local v280_ = v278_ .. string.format("%.1f/%.1f sec\n", v248_.gearGroupUpShiftTimer / 1000, v248_.gearGroupUpShiftTime / 1000)
-		local v281_ = v279_ .. "clutch slipping simer:\n"
-		local v282_ = v280_ .. string.format("%d ms\n", v248_.clutchSlippingTimer)
-		local v283_ = v281_ .. "motor can run:\n"
-		local v284_ = v282_ .. string.format("%s\n", v248_:getCanMotorRun())
-		local v285_ = v283_ .. "stall timer:\n"
-		local v286_ = v284_ .. string.format("%.2f\n", v248_.stallTimer)
-		local v287_ = v285_ .. "turbo scale:\n"
-		local v288_ = v286_ .. string.format("%d%%\n", v248_.lastTurboScale * 100)
-		local v289_ = v287_ .. "blowOffValveState:\n"
-		local v290_ = v288_ .. string.format("%d%%\n", v248_.blowOffValveState * 100)
-		Utils.renderMultiColumnText(0.015, 0.65 - v244_, getCorrectTextSize(0.018), { v289_, v290_ }, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
-		if v248_.forwardGears or v248_.backwardGears then
-			local v291_ = v248_.forwardGears
-			if v248_.currentDirection < 0 then
-				v291_ = v248_.backwardGears or v291_
+	local str1 = ""
+	local str2 = ""
+	local motorSpec = self.spec_motorized
+	if motorSpec ~= nil then
+		local motor = motorSpec.motor
+		str1 = str1 .. "\ngear start values:\n"
+		str2 = str2 .. "\n\n"
+		str1 = str1 .. "peakPower:\n"
+		str2 = str2 .. string.format("%d/%dkW\n", motor.startGearValues.availablePower, motor.peakMotorPower)
+		str1 = str1 .. "maxForce:\n"
+		str2 = str2 .. string.format("%.2fkN\n", motor.startGearValues.maxForce)
+		str1 = str1 .. "mass:\n"
+		str2 = str2 .. string.format("%.2fto\n", motor.startGearValues.mass)
+		str1 = str1 .. "slope angle:\n"
+		str2 = str2 .. string.format("%.2f\194\176\n", math.deg(motor.startGearValues.slope))
+		str1 = str1 .. "slope percentage:\n"
+		str2 = str2 .. string.format("%.2f%%\n", math.atan(motor.startGearValues.slope) * 100)
+		str1 = str1 .. "dirDiffXZ:\n"
+		str2 = str2 .. string.format("%.2f\n", motor.startGearValues.massDirectionDifferenceXZ)
+		str1 = str1 .. "dirDiffY:\n"
+		str2 = str2 .. string.format("%.2f\n", motor.startGearValues.massDirectionDifferenceY)
+		str1 = str1 .. "dirFac:\n"
+		str2 = str2 .. string.format("%.2f\n", motor.startGearValues.massDirectionFactor)
+		str1 = str1 .. "massFac:\n"
+		str2 = str2 .. string.format("%.2f\n", motor.startGearValues.massFactor)
+		str1 = str1 .. "speedLimit:\n"
+		str2 = str2 .. string.format("%.1f / %.1f \n", motor.speedLimit, self:getSpeedLimit(true))
+		str1 = str1 .. "auto shift allowed:\n"
+		str2 = str2 .. string.format("%s\n", self:getIsAutomaticShiftingAllowed())
+		str1 = str1 .. "gear/group change allowed:\n"
+		str2 = str2 .. string.format("%s/%s\n", motor:getIsGearChangeAllowed(), motor:getIsGearGroupChangeAllowed())
+		str1 = str1 .. "gear group shift timer:\n"
+		str2 = str2 .. string.format("%.1f/%.1f sec\n", motor.gearGroupUpShiftTimer / 1000, motor.gearGroupUpShiftTime / 1000)
+		str1 = str1 .. "clutch slipping simer:\n"
+		str2 = str2 .. string.format("%d ms\n", motor.clutchSlippingTimer)
+		str1 = str1 .. "motor can run:\n"
+		str2 = str2 .. string.format("%s\n", motor:getCanMotorRun())
+		str1 = str1 .. "stall timer:\n"
+		str2 = str2 .. string.format("%.2f\n", motor.stallTimer)
+		str1 = str1 .. "turbo scale:\n"
+		str2 = str2 .. string.format("%d%%\n", motor.lastTurboScale * 100)
+		str1 = str1 .. "blowOffValveState:\n"
+		str2 = str2 .. string.format("%d%%\n", motor.blowOffValveState * 100)
+		Utils.renderMultiColumnText(0.015, 0.65 - textHeight1, getCorrectTextSize(0.018), { str1, str2 }, 0.008, { RenderText.ALIGN_RIGHT, RenderText.ALIGN_LEFT })
+		if motor.forwardGears or motor.backwardGears then
+			local x = 0.222
+			local y = 0.15
+			local infoWidth = 0.05
+			local minWidthPerGear = 0.035
+			local gears = motor.forwardGears
+			if motor.currentDirection < 0 then
+				gears = motor.backwardGears or gears
 			end
-			local v292_ = #v291_ * 0.035 + 0.05
-			drawOutlineRect(0.222, 0.15, v292_, 0.35, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
-			drawFilledRect(0.222, 0.15, v292_, 0.35, 0, 0, 0, 0.4)
-			local v293_ = v292_ - 0.05
+			local width = #gears * 0.035 + 0.05
+			local height = 0.35
+			drawOutlineRect(0.222, 0.15, width, 0.35, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
+			drawFilledRect(0.222, 0.15, width, 0.35, 0, 0, 0, 0.4)
+			local gearAreaWidth = width - 0.05
 			drawFilledRect(0.272, 0.15, g_pixelSizeX, 0.35, 0, 0, 0, 1)
-			drawFilledRect(0.272, 0.46499999999999997, v293_, g_pixelSizeY, 0, 0, 0, 1)
-			drawFilledRect(0.272, 0.255, v293_, g_pixelSizeY, 0, 0, 0, 1)
-			local v294_ = v248_:getGearRatioMultiplier()
-			local v295_ = v248_:getGearRatioMultiplier()
-			local v296_ = math.abs(v295_)
-			local v297_ = #v291_
-			local v298_ = v293_ / v297_
-			local v299_ = 1
-			for v300_ = 1, v297_ do
-				local v301_ = v248_.maxRpm * 3.141592653589793 / (30 * v291_[v300_].ratio * v296_) * 3.6
-				v299_ = math.max(v299_, v301_)
+			drawFilledRect(0.272, 0.46499999999999997, gearAreaWidth, g_pixelSizeY, 0, 0, 0, 1)
+			drawFilledRect(0.272, 0.255, gearAreaWidth, g_pixelSizeY, 0, 0, 0, 1)
+			local groupRatioReal = motor:getGearRatioMultiplier()
+			local groupRatio = math.abs(motor:getGearRatioMultiplier())
+			local numGears = #gears
+			local gearWidth = gearAreaWidth / numGears
+			local gearMaxHeight = 0.21
+			local textOffset = 0.0075
+			local maxDiffSpeed = 1
+			for i = 1, numGears do
+				maxDiffSpeed = math.max(maxDiffSpeed, motor.maxRpm * 3.141592653589793 / (30 * gears[i].ratio * groupRatio) * 3.6)
 			end
-			local v302_ = nil
-			local v303_ = nil
-			for v304_ = 1, v297_ do
-				local v305_ = v291_[v304_]
-				v302_ = v302_ or v305_.lastDiffSpeedAfterChange
-				v303_ = v303_ or v305_.lastMaxPower
-				local v306_ = v248_.minRpm * 3.141592653589793 / (30 * v305_.ratio * v296_) * 3.6
-				local v307_ = v248_.maxRpm * 3.141592653589793 / (30 * v305_.ratio * v296_) * 3.6
-				local v308_ = v306_ / v299_ * 0.21
-				local v309_ = (v307_ - v306_) / v299_ * 0.21
-				local v310_ = 0.272 + v298_ * (v304_ - 1)
-				local v311_ = 0.255 + g_pixelSizeY + v308_
-				drawFilledRect(v310_, v311_, v298_, v309_, (v248_.gear == v304_ or not v305_.lastHasPower) and 0.05 or 1, (v248_.gear == v304_ or v305_.lastHasPower) and 1 or 0.05, 0.05, 0.85)
-				setTextAlignment(RenderText.ALIGN_CENTER)
-				renderText(v310_ + v298_ * 0.5, v311_ + 0.00375, 0.015, string.format("%.2f", v305_.ratio * v296_))
-				local v312_ = v248_:getStartInGearFactor(v305_.ratio * v296_)
-				if v312_ < v248_.startGearThreshold then
-					setTextColor(0, 1, 0, 1)
-				else
-					setTextColor(1, 0, 0, 1)
-				end
-				renderText(v310_ + v298_ * 0.5, 0.255 + g_pixelSizeY + 0.21 - 0.015, 0.015, string.format("%.2f", v312_))
-				if v294_ ~= v296_ then
-					local v313_ = v248_:getStartInGearFactor(v305_.ratio * v294_)
-					if v313_ < v248_.startGearThreshold then
-						setTextColor(0, 1, 0, 1)
-					else
-						setTextColor(1, 0, 0, 1)
+			local numGearValues = 5
+			local offsetPerValue = 0.020999999999999998
+			local lastDiffSpeedAfterChange = nil
+			local lastMaxPower = nil
+			for i = 1, numGears do
+				local gear = gears[i]
+				lastDiffSpeedAfterChange = lastDiffSpeedAfterChange or gear.lastDiffSpeedAfterChange
+				lastMaxPower = lastMaxPower or gear.lastMaxPower
+				local minGearSpeed = motor.minRpm * 3.141592653589793 / (30 * gear.ratio * groupRatio) * 3.6
+				local maxGearSpeed = motor.maxRpm * 3.141592653589793 / (30 * gear.ratio * groupRatio) * 3.6
+				local pos = minGearSpeed / maxDiffSpeed * 0.21
+				local h = (maxGearSpeed - minGearSpeed) / maxDiffSpeed * 0.21
+				local gearX = 0.272 + gearWidth * (i - 1)
+				local posY = 0.255 + g_pixelSizeY + pos
+				if motor.gear ~= i then
+					if motor.gear ~= i then
+						drawFilledRect(gearX, posY, gearWidth, h, gear.lastHasPower and 1 or 0.05, gear.lastHasPower and 1 or 0.05, 0.05, 0.85)
+						setTextAlignment(RenderText.ALIGN_CENTER)
+						renderText(gearX + gearWidth * 0.5, posY + 0.00375, 0.015, string.format("%.2f", gear.ratio * groupRatio))
+						local factor = motor:getStartInGearFactor(gear.ratio * groupRatio)
+						if factor < motor.startGearThreshold then
+							setTextColor(0, 1, 0, 1)
+						else
+							setTextColor(1, 0, 0, 1)
+						end
+						renderText(gearX + gearWidth * 0.5, 0.255 + g_pixelSizeY + 0.21 - 0.015, 0.015, string.format("%.2f", factor))
+						if groupRatioReal ~= groupRatio then
+							factor = motor:getStartInGearFactor(gear.ratio * groupRatioReal)
+							if factor < motor.startGearThreshold then
+								setTextColor(0, 1, 0, 1)
+							else
+								setTextColor(1, 0, 0, 1)
+							end
+							renderText(gearX + gearWidth * 0.5, 0.255 + g_pixelSizeY + 0.21 - 0.03, 0.012, string.format("%.2f", factor))
+						end
+						setTextColor(1, 1, 1, 1)
+						renderText(gearX + gearWidth * 0.5, 0.1575, 0.0125, string.format("%.2f %.2f", gear.lastPowerFactor or 0, gear.lastRpmFactor or 0))
+						renderText(gearX + gearWidth * 0.5, 0.1785, 0.0125, string.format("%.2f %.2f", gear.lastGearChangeFactor or 0, gear.lastRpmPreferenceFactor or 0))
+						if gear.nextPowerValid then
+							setTextColor(0, 1, 0, 1)
+						else
+							setTextColor(1, 0, 0, 1)
+						end
+						renderText(gearX + gearWidth * 0.5, 0.1995, 0.015, string.format("%d", gear.lastNextPower or -1))
+						if gear.nextRpmValid then
+							setTextColor(0, 1, 0, 1)
+						else
+							setTextColor(1, 0, 0, 1)
+						end
+						renderText(gearX + gearWidth * 0.5, 0.2205, 0.015, string.format("%d", gear.lastNextRpm or -1))
+						setTextColor(1, 1, 1, 1)
+						renderText(gearX + gearWidth * 0.5, 0.2415, 0.015, string.format("%.2f", gear.lastTradeoff or 0))
 					end
-					renderText(v310_ + v298_ * 0.5, 0.255 + g_pixelSizeY + 0.21 - 0.03, 0.012, string.format("%.2f", v313_))
 				end
-				setTextColor(1, 1, 1, 1)
-				renderText(v310_ + v298_ * 0.5, 0.1575, 0.0125, string.format("%.2f %.2f", v305_.lastPowerFactor or 0, v305_.lastRpmFactor or 0))
-				renderText(v310_ + v298_ * 0.5, 0.1785, 0.0125, string.format("%.2f %.2f", v305_.lastGearChangeFactor or 0, v305_.lastRpmPreferenceFactor or 0))
-				if v305_.nextPowerValid then
-					setTextColor(0, 1, 0, 1)
-				else
-					setTextColor(1, 0, 0, 1)
-				end
-				renderText(v310_ + v298_ * 0.5, 0.1995, 0.015, string.format("%d", v305_.lastNextPower or -1))
-				if v305_.nextRpmValid then
-					setTextColor(0, 1, 0, 1)
-				else
-					setTextColor(1, 0, 0, 1)
-				end
-				renderText(v310_ + v298_ * 0.5, 0.2205, 0.015, string.format("%d", v305_.lastNextRpm or -1))
-				setTextColor(1, 1, 1, 1)
-				renderText(v310_ + v298_ * 0.5, 0.2415, 0.015, string.format("%.2f", v305_.lastTradeoff or 0))
 			end
 			setTextAlignment(RenderText.ALIGN_CENTER)
 			renderText(0.247, 0.255 + g_pixelSizeY + 0.21 - 0.015, 0.015, "startFactor")
-			local v314_, v315_ = v248_:getBestStartGear(v248_.currentGears)
-			renderText(0.247, 0.255 + g_pixelSizeY + 0.21 - 0.03, 0.015, string.format("best\ngroup %d\ngear %d", v315_, v314_))
+			local bestGear, maxFactorGroup = motor:getBestStartGear(motor.currentGears)
+			renderText(0.247, 0.255 + g_pixelSizeY + 0.21 - 0.03, 0.015, string.format("best\ngroup %d\ngear %d", maxFactorGroup, bestGear))
 			renderText(0.247, 0.1575, 0.01, "pwr/rpm")
 			renderText(0.247, 0.1785, 0.01, "gearC/rpmPref")
-			renderText(0.247, 0.1995, 0.01, string.format("nextPwr (%d)", v303_ or -1))
+			renderText(0.247, 0.1995, 0.01, string.format("nextPwr (%d)", lastMaxPower or -1))
 			renderText(0.247, 0.2205, 0.01, "nextRpm")
 			renderText(0.247, 0.2415, 0.01, "tradeoff")
-			local v316_ = v248_.differentialRotSpeed * 3.6
-			local v317_ = math.abs(v316_)
-			local v318_ = 0.255 + v317_ / v299_ * (0.21 - g_pixelSizeY) + g_pixelSizeY
+			local diffSpeed = math.abs(motor.differentialRotSpeed * 3.6)
+			local speedHeight = 0.255 + diffSpeed / maxDiffSpeed * (0.21 - g_pixelSizeY) + g_pixelSizeY
 			setTextBold(true)
 			setTextAlignment(RenderText.ALIGN_CENTER)
-			renderText(0.247, v318_ - 0.005, 0.015, string.format("%.2f", v317_))
+			renderText(0.247, speedHeight - 0.005, 0.015, string.format("%.2f", diffSpeed))
 			setTextBold(false)
-			if v302_ ~= nil then
+			if lastDiffSpeedAfterChange ~= nil then
 				setTextAlignment(RenderText.ALIGN_LEFT)
-				renderText(0.277, 0.4774999999999999, 0.01, string.format("Speed after change: %.2fkm/h (%.1f sec)", v302_ * 3.6, v248_.gearChangeTime / 1000))
+				renderText(0.277, 0.4774999999999999, 0.01, string.format("Speed after change: %.2fkm/h (%.1f sec)", lastDiffSpeedAfterChange * 3.6, motor.gearChangeTime / 1000))
 			end
-			drawFilledRect(0.272, v318_, v293_, g_pixelSizeY, 0, 1, 0, 0.5)
+			drawFilledRect(0.272, speedHeight, gearAreaWidth, g_pixelSizeY, 0, 1, 0, 0.5)
 		end
 	end
 end
-
--- Local values: storeItem, shopTransOffset, rotOffset, offsetX, offsetY, offsetZ, _, implement, attacherJoint, i, heightNode, hx, hy, hz, ht, _, attacherJoint, additionalName, index, width, color, r, g, b, x1, y1, z1, x2, y2, z2, radius, x, y, z, upX, upY, upZ, dirX, dirY, dirZ, attacherVehicle, activeInputAttacherJoint, _, inputAttacherJoint, _, width, nearestCategory, r, g, b, x1, y1, z1, x2, y2, z2, radius, x, y, z, groundRaycastResult, i, wheel, typedColor, numTypes, _, workArea, color, startX, startY, startZ, widthX, widthY, widthZ, heightX, heightY, heightZ, x1, _, z1, x2, _, z2, x3, _, z3, x, z, y, isActive, textColor, width, length, dir1X, dir1Z, dir2X, dir2Z, cx, cz, _, occlusionArea, offset, _, bendingNode, drawLine, _, licensePlate, top, right, bottom, left, fillUnits, i, fillUnit, autoAimTarget, startFillLevel, percent, curZ, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, x5, y5, z5, dischargeNodes, i, dischargeNode, info, sx, sy, sz, ex, ey, ez, spec, camera, name, x, y, z, rotationNode, rx, ry, rz, text, _, camera, x, y, z, dirX, dirY, dirZ, upX, upY, upZ, i, component, x, y, z, dirX, dirY, dirZ, upX, upY, upZ, i, powerTakeOffOutput, size, x, y, z, dirX, dirY, dirZ, upX, upY, upZ, x, y, z, upX, upY, upZ, dirX, dirY, dirZ, i, targetNode, size, x, y, z, dirX, dirY, dirZ, upX, upY, upZ
 function VehicleDebug.drawDebugAttributeRendering(vehicle)
 	if vehicle.debugSizeOffsetNode == nil then
 		vehicle.debugSizeOffsetNode = createTransformGroup("debugSizeOffsetNode")
 		link(vehicle.rootNode, vehicle.debugSizeOffsetNode)
-		local v320_ = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
-		if v320_ ~= nil then
-			local v321_ = v320_.shopTranslationOffset
-			if v321_ ~= nil then
-				setTranslation(vehicle.debugSizeOffsetNode, -v321_[1], -v321_[2], -v321_[3])
+		local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+		if storeItem ~= nil then
+			local shopTransOffset = storeItem.shopTranslationOffset
+			if shopTransOffset ~= nil then
+				setTranslation(vehicle.debugSizeOffsetNode, -shopTransOffset[1], -shopTransOffset[2], -shopTransOffset[3])
 			end
-			local v322_ = v320_.shopRotationOffset
-			if v322_ ~= nil then
-				setRotation(vehicle.debugSizeOffsetNode, -v322_[1], -v322_[2], -v322_[3])
+			local rotOffset = storeItem.shopRotationOffset
+			if rotOffset ~= nil then
+				setRotation(vehicle.debugSizeOffsetNode, -rotOffset[1], -rotOffset[2], -rotOffset[3])
 			end
 		end
 	end
-	local v323_ = vehicle.size.widthOffset
-	local v324_ = vehicle.size.heightOffset + vehicle.size.height / 2
-	local v325_ = vehicle.size.lengthOffset
-	DebugBox.renderAtNodeWithOffset(vehicle.debugSizeOffsetNode, v323_, v324_, v325_, vehicle.size.width, vehicle.size.height, vehicle.size.length, Color.PRESETS.BLUE, true, "size")
+	local offsetX = vehicle.size.widthOffset
+	local offsetY = vehicle.size.heightOffset + vehicle.size.height / 2
+	local offsetZ = vehicle.size.lengthOffset
+	DebugBox.renderAtNodeWithOffset(vehicle.debugSizeOffsetNode, offsetX, offsetY, offsetZ, vehicle.size.width, vehicle.size.height, vehicle.size.length, Color.PRESETS.BLUE, true, "size")
 	if vehicle.spec_attacherJoints ~= nil then
-		for _, v326_ in pairs(vehicle.spec_attacherJoints.attachedImplements) do
-			if v326_.object ~= nil then
-				local v327_ = v326_.object:getActiveInputAttacherJoint()
-				if #v327_.heightNodes > 0 then
-					for v328_ = 1, #v327_.heightNodes do
-						local v329_ = v327_.heightNodes[v328_]
-						local v330_, v331_, v332_ = getWorldTranslation(v329_.node)
-						local v333_ = getTerrainHeightAtWorldPos(g_terrainNode, v330_, v331_, v332_)
-						DebugGizmo.renderAtNode(v329_.node, string.format("HeightNode: %.3f", v331_ - v333_))
-					end
+		for _, implement in pairs(vehicle.spec_attacherJoints.attachedImplements) do
+			if implement.object == nil then
+				continue
+			end
+			local attacherJoint = implement.object:getActiveInputAttacherJoint()
+			if 0 < #attacherJoint.heightNodes then
+				for i = 1, #attacherJoint.heightNodes do
+					local heightNode = attacherJoint.heightNodes[i]
+					local hx, hy, hz = getWorldTranslation(heightNode.node)
+					local ht = getTerrainHeightAtWorldPos(g_terrainNode, hx, hy, hz)
+					DebugGizmo.renderAtNode(heightNode.node, string.format("HeightNode: %.3f", hy - ht))
 				end
 			end
 		end
-		for _, v334_ in pairs(vehicle:getAttacherJoints()) do
-			local v335_ = v334_.subTypes == nil and "" or (string.format(" (%s)", table.concat(v334_.subTypes, ", ")) or "")
-			DebugGizmo.renderAtNode(v334_.jointTransform, getName(v334_.jointTransform) .. v335_, false, 0.3)
-			if v334_.bottomArm ~= nil and v334_.bottomArm.referenceDistance ~= nil then
-				for v336_, v337_ in pairs(AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY) do
-					local v338_ = VehicleDebug.DEBUG_COLORS[v336_ + 1]
-					if v337_ < v334_.bottomArm.minWidth or v334_.bottomArm.maxWidth < v337_ then
-						v338_ = VehicleDebug.COLOR.GREY
+		for _, attacherJoint in pairs(vehicle:getAttacherJoints()) do
+			local additionalName = attacherJoint.subTypes ~= nil and string.format(" (%s)", table.concat(attacherJoint.subTypes, ", ")) or ""
+			DebugGizmo.renderAtNode(attacherJoint.jointTransform, getName(attacherJoint.jointTransform) .. additionalName, false, 0.3)
+			if attacherJoint.bottomArm ~= nil and attacherJoint.bottomArm.referenceDistance ~= nil then
+				for index, width in pairs(AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY) do
+					local color = VehicleDebug.DEBUG_COLORS[index + 1]
+					if width < attacherJoint.bottomArm.minWidth or attacherJoint.bottomArm.maxWidth < width then
+						color = VehicleDebug.COLOR.GREY
 					end
-					local v339_, v340_, v341_ = v338_:unpack()
-					local v342_, v343_, v344_ = localToWorld(v334_.bottomArm.translationNode, v337_ * 0.5, 0, v334_.bottomArm.referenceDistance * v334_.bottomArm.zScale)
-					local v345_, v346_, v347_ = localToWorld(v334_.bottomArm.translationNode, -v337_ * 0.5, 0, v334_.bottomArm.referenceDistance * v334_.bottomArm.zScale)
-					drawDebugLine(v342_, v343_ - 0.1, v344_, v339_, v340_, v341_, v342_, v343_ + 0.1, v344_, v339_, v340_, v341_, true)
-					drawDebugLine(v345_, v346_ - 0.1, v347_, v339_, v340_, v341_, v345_, v346_ + 0.1, v347_, v339_, v340_, v341_, true)
-					local v348_ = AttacherJoints.LOWER_LINK_BALL_SIZE_BY_CATEGORY[v336_] * 0.5
-					DebugSphere.renderAtPosition(v342_, v343_, v344_, v348_, v338_, 10, true, false, nil)
-					DebugSphere.renderAtPosition(v345_, v346_, v347_, v348_, v338_, 10, true, false, nil)
+					local r, g, b = color:unpack()
+					local x1, y1, z1 = localToWorld(attacherJoint.bottomArm.translationNode, width * 0.5, 0, attacherJoint.bottomArm.referenceDistance * attacherJoint.bottomArm.zScale)
+					local x2, y2, z2 = localToWorld(attacherJoint.bottomArm.translationNode, -width * 0.5, 0, attacherJoint.bottomArm.referenceDistance * attacherJoint.bottomArm.zScale)
+					drawDebugLine(x1, y1 - 0.1, z1, r, g, b, x1, y1 + 0.1, z1, r, g, b, true)
+					drawDebugLine(x2, y2 - 0.1, z2, r, g, b, x2, y2 + 0.1, z2, r, g, b, true)
+					local radius = AttacherJoints.LOWER_LINK_BALL_SIZE_BY_CATEGORY[index] * 0.5
+					DebugSphere.renderAtPosition(x1, y1, z1, radius, color, 10, true, false, nil)
+					DebugSphere.renderAtPosition(x2, y2, z2, radius, color, 10, true, false, nil)
 				end
 			end
-			if v334_.transNode ~= nil and getVisibility(v334_.transNode) then
-				local v349_, v350_, v351_ = getWorldTranslation(v334_.transNode)
-				local v352_, v353_, v354_ = localDirectionToWorld(v334_.jointTransform, 0, 1, 0)
-				local v355_, v356_, v357_ = localDirectionToWorld(v334_.jointTransform, 0, 0, 1)
-				local v358_ = v349_ - v357_ * 0.05
-				local v359_ = v350_ + v356_ * 0.05
-				local v360_ = v351_ + v355_ * 0.05
-				DebugBox.renderAtPosition(v358_, v359_, v360_, v352_, v353_, v354_, v355_, v356_, v357_, 0.2, v334_.transNodeHeight, 0.3, Color.PRESETS.GREEN, true, nil, false)
+			if attacherJoint.transNode == nil then
+				continue
+			end
+			if getVisibility(attacherJoint.transNode) then
+				local x, y, z = getWorldTranslation(attacherJoint.transNode)
+				local upX, upY, upZ = localDirectionToWorld(attacherJoint.jointTransform, 0, 1, 0)
+				local dirX, dirY, dirZ = localDirectionToWorld(attacherJoint.jointTransform, 0, 0, 1)
+				x = x - dirZ * 0.05
+				y = y + dirY * 0.05
+				z = z + dirX * 0.05
+				DebugBox.renderAtPosition(x, y, z, upX, upY, upZ, dirX, dirY, dirZ, 0.2, attacherJoint.transNodeHeight, 0.3, Color.PRESETS.GREEN, true, nil, false)
 			end
 		end
 	end
 	if vehicle.spec_attachable ~= nil then
-		local v_u_361_ = vehicle:getAttacherVehicle()
-		local v362_ = vehicle:getActiveInputAttacherJoint()
-		for _, v363_ in pairs(vehicle:getInputAttacherJoints()) do
-			if v363_.jointType == AttacherJoints.JOINTTYPE_IMPLEMENT and v363_.bottomArm ~= nil then
-				for _, v364_ in ipairs(v363_.bottomArm.widths) do
-					local v365_ = AttacherJoints.getClosestLowerLinkCategoryIndex(v364_)
-					local v366_, v367_, v368_ = VehicleDebug.DEBUG_COLORS[v365_ + 1]:unpack()
-					local v369_, v370_, v371_ = localToWorld(v363_.node, 0, 0, v364_ * 0.5)
-					local v372_, v373_, v374_ = localToWorld(v363_.node, 0, 0, -v364_ * 0.5)
-					drawDebugLine(v369_, v370_ - 0.1, v371_, v366_, v367_, v368_, v369_, v370_ + 0.1, v371_, v366_, v367_, v368_, true)
-					drawDebugLine(v372_, v373_ - 0.1, v374_, v366_, v367_, v368_, v372_, v373_ + 0.1, v374_, v366_, v367_, v368_, true)
-					local v375_ = AttacherJoints.LOWER_LINK_BALL_SIZE_BY_CATEGORY[v365_] * 0.5
-					DebugSphere.renderAtPosition(v369_, v370_, v371_, v375_, VehicleDebug.DEBUG_COLORS[v365_ + 1], 10, true, false, nil)
-					DebugSphere.renderAtPosition(v372_, v373_, v374_, v375_, VehicleDebug.DEBUG_COLORS[v365_ + 1], 10, true, false, nil)
+		local attacherVehicle = vehicle:getAttacherVehicle()
+		local activeInputAttacherJoint = vehicle:getActiveInputAttacherJoint()
+		for _, inputAttacherJoint in pairs(vehicle:getInputAttacherJoints()) do
+			if inputAttacherJoint.jointType == AttacherJoints.JOINTTYPE_IMPLEMENT and inputAttacherJoint.bottomArm ~= nil then
+				for _, width in ipairs(inputAttacherJoint.bottomArm.widths) do
+					local nearestCategory = AttacherJoints.getClosestLowerLinkCategoryIndex(width)
+					local r, g, b = VehicleDebug.DEBUG_COLORS[nearestCategory + 1]:unpack()
+					local x1, y1, z1 = localToWorld(inputAttacherJoint.node, 0, 0, width * 0.5)
+					local x2, y2, z2 = localToWorld(inputAttacherJoint.node, 0, 0, -width * 0.5)
+					drawDebugLine(x1, y1 - 0.1, z1, r, g, b, x1, y1 + 0.1, z1, r, g, b, true)
+					drawDebugLine(x2, y2 - 0.1, z2, r, g, b, x2, y2 + 0.1, z2, r, g, b, true)
+					local radius = AttacherJoints.LOWER_LINK_BALL_SIZE_BY_CATEGORY[nearestCategory] * 0.5
+					DebugSphere.renderAtPosition(x1, y1, z1, radius, VehicleDebug.DEBUG_COLORS[nearestCategory + 1], 10, true, false, nil)
+					DebugSphere.renderAtPosition(x2, y2, z2, radius, VehicleDebug.DEBUG_COLORS[nearestCategory + 1], 10, true, false, nil)
 				end
 			end
-			if v362_ == nil or v363_ == v362_ then
-				local v376_, v377_, v378_ = getWorldTranslation(v363_.node)
-				drawDebugPoint(v376_, v377_, v378_, 1, 0, 0, 1)
-				local v382_ = {
-					["raycastCallback"] = function(p379_, p380_, _, _, _, p381_)
-						-- upvalues: (copy) v_u_361_, (copy) vehicle
-						if v_u_361_ ~= nil and v_u_361_.vehicleNodes[p380_] ~= nil then
-							return true
-						end
-						if vehicle.vehicleNodes[p380_] ~= nil then
-							return true
-						end
-						p379_.groundDistance = p381_
+			if activeInputAttacherJoint == nil or inputAttacherJoint == activeInputAttacherJoint then
+				local x, y, z = getWorldTranslation(inputAttacherJoint.node)
+				drawDebugPoint(x, y, z, 1, 0, 0, 1)
+				local groundRaycastResult = {}
+				function groundRaycastResult:raycastCallback(transformId, x, y, z, distance)
+					if attacherVehicle ~= nil and attacherVehicle.vehicleNodes[transformId] ~= nil then
+						return true
+					end
+					if vehicle.vehicleNodes[transformId] == nil then
+						self.groundDistance = distance
 						return false
-					end,
-					["groundDistance"] = 0
-				}
-				raycastAll(v376_, v377_, v378_, 0, -1, 0, 4, "raycastCallback", v382_, CollisionFlag.TERRAIN + CollisionFlag.STATIC_OBJECT + CollisionFlag.BUILDING)
-				drawDebugLine(v376_, v377_, v378_, 0, 1, 0, v376_, v377_ - v382_.groundDistance, v378_, 0, 1, 0)
-				drawDebugPoint(v376_, v377_ - v382_.groundDistance, v378_, 1, 0, 0, 1)
-				Utils.renderTextAtWorldPosition(v376_, v377_ + 0.1, v378_, string.format("%.4f", v382_.groundDistance), getCorrectTextSize(0.02), 0)
+					else
+						return true
+					end
+				end
+				groundRaycastResult.groundDistance = 0
+				raycastAll(x, y, z, 0, -1, 0, 4, "raycastCallback", groundRaycastResult, CollisionFlag.TERRAIN + CollisionFlag.STATIC_OBJECT + CollisionFlag.BUILDING)
+				drawDebugLine(x, y, z, 0, 1, 0, x, y - groundRaycastResult.groundDistance, z, 0, 1, 0)
+				drawDebugPoint(x, y - groundRaycastResult.groundDistance, z, 1, 0, 0, 1)
+				Utils.renderTextAtWorldPosition(x, y + 0.1, z, string.format("%.4f", groundRaycastResult.groundDistance), getCorrectTextSize(0.02), 0)
 			end
 		end
 	end
 	if vehicle.spec_wheels ~= nil then
-		for _, v383_ in ipairs(vehicle:getWheels()) do
-			v383_.destruction:drawAreas()
+		for i, wheel in ipairs(vehicle:getWheels()) do
+			wheel.destruction:drawAreas()
 		end
 	end
 	if vehicle.spec_workArea ~= nil then
-		local v384_ = {}
-		local v385_ = 0
-		for _, v386_ in pairs(vehicle.spec_workArea.workAreas) do
-			local v387_ = v384_[v386_.type]
-			if v387_ == nil then
-				v385_ = v385_ + 1
-				v387_ = VehicleDebug.DEBUG_COLORS[v385_]
-				v384_[v386_.type] = v387_
+		local typedColor = {}
+		local numTypes = 0
+		for _, workArea in pairs(vehicle.spec_workArea.workAreas) do
+			local color = typedColor[workArea.type]
+			if color == nil then
+				numTypes = numTypes + 1
+				color = VehicleDebug.DEBUG_COLORS[numTypes]
+				typedColor[workArea.type] = color
 			end
-			local v388_, v389_, v390_ = getWorldTranslation(v386_.start)
-			local v391_ = v389_ < 0 and -100 or getTerrainHeightAtWorldPos(g_terrainNode, v388_, 0, v390_) + 0.1
-			local v392_, v393_, v394_ = getWorldTranslation(v386_.width)
-			local v395_ = v393_ < 0 and -100 or getTerrainHeightAtWorldPos(g_terrainNode, v392_, 0, v394_) + 0.1
-			local v396_, v397_, v398_ = getWorldTranslation(v386_.height)
-			local v399_ = v397_ < 0 and -100 or getTerrainHeightAtWorldPos(g_terrainNode, v396_, 0, v398_) + 0.1
-			DebugPlane.renderWithPositions(v388_, v391_, v390_, v392_, v395_, v394_, v396_, v399_, v398_, v387_, false)
-			local v400_, _, v401_ = getWorldTranslation(v386_.start)
-			local v402_, _, v403_ = getWorldTranslation(v386_.width)
-			local v404_, _, v405_ = getWorldTranslation(v386_.height)
-			local v406_ = v404_ + (v402_ - v404_) * 0.5
-			local v407_ = v405_ + (v403_ - v405_) * 0.5
-			local v408_ = getTerrainHeightAtWorldPos(g_terrainNode, v406_, 0, v407_) + 0.1
-			local v409_ = v408_ < 0 and -100 or v408_
-			local v410_ = vehicle:getIsWorkAreaActive(v386_) and VehicleDebug.COLOR.ACTIVE or VehicleDebug.COLOR.INACTIVE
-			local v411_ = Utils.renderTextAtWorldPosition
-			local v412_ = g_workAreaTypeManager
-			local v413_ = v386_.type
-			v411_(v406_, v409_, v407_, tostring(v412_:getWorkAreaTypeNameByIndex(v413_)), getCorrectTextSize(0.015), -getCorrectTextSize(0.015) * 0.5, v410_)
-			if vehicle.spec_ridgeMarker ~= nil and (#vehicle.spec_ridgeMarker.ridgeMarkers > 0 and v386_.type == WorkAreaType.SOWINGMACHINE) then
-				local v414_ = calcDistanceFrom(v386_.start, v386_.width)
-				local v415_ = calcDistanceFrom(v386_.start, v386_.height)
-				local v416_, v417_ = MathUtil.vector2Normalize(v400_ - v402_, v401_ - v403_)
-				local v418_, v419_ = MathUtil.vector2Normalize(v404_ - v400_, v405_ - v401_)
-				local v420_ = (v400_ + v402_) * 0.5
-				local v421_ = (v401_ + v403_) * 0.5
-				drawDebugLine(v420_ + v416_ * v414_, v409_, v421_ + v417_ * v414_, 0, 1, 1, v420_ + v416_ * v414_ + v418_ * v415_, v409_, v421_ + v417_ * v414_ + v419_ * v415_, 0, 1, 1, true)
-				drawDebugLine(v420_ - v416_ * v414_, v409_, v421_ - v417_ * v414_, 0, 1, 1, v420_ - v416_ * v414_ + v418_ * v415_, v409_, v421_ - v417_ * v414_ + v419_ * v415_, 0, 1, 1, true)
+			local startX, startY, startZ = getWorldTranslation(workArea.start)
+			if startY < 0 then
+				startY = -100
+			else
+				startY = getTerrainHeightAtWorldPos(g_terrainNode, startX, 0, startZ) + 0.1
+			end
+			local widthX, widthY, widthZ = getWorldTranslation(workArea.width)
+			if widthY < 0 then
+				widthY = -100
+			else
+				widthY = getTerrainHeightAtWorldPos(g_terrainNode, widthX, 0, widthZ) + 0.1
+			end
+			local heightX, heightY, heightZ = getWorldTranslation(workArea.height)
+			if heightY < 0 then
+				heightY = -100
+			else
+				heightY = getTerrainHeightAtWorldPos(g_terrainNode, heightX, 0, heightZ) + 0.1
+			end
+			DebugPlane.renderWithPositions(startX, startY, startZ, widthX, widthY, widthZ, heightX, heightY, heightZ, color, false)
+			local x1, _, z1 = getWorldTranslation(workArea.start)
+			local x2, _, z2 = getWorldTranslation(workArea.width)
+			local x3, _, z3 = getWorldTranslation(workArea.height)
+			local x = x3 + (x2 - x3) * 0.5
+			local z = z3 + (z2 - z3) * 0.5
+			local y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z) + 0.1
+			if y < 0 then
+				y = -100
+			end
+			local textColor = vehicle:getIsWorkAreaActive(workArea) and VehicleDebug.COLOR.ACTIVE or VehicleDebug.COLOR.INACTIVE
+			Utils.renderTextAtWorldPosition(x, y, z, tostring(g_workAreaTypeManager:getWorkAreaTypeNameByIndex(workArea.type)), getCorrectTextSize(0.015), -getCorrectTextSize(0.015) * 0.5, textColor)
+			if vehicle.spec_ridgeMarker == nil then
+				continue
+			end
+			if 0 < #vehicle.spec_ridgeMarker.ridgeMarkers and workArea.type == WorkAreaType.SOWINGMACHINE then
+				local width = calcDistanceFrom(workArea.start, workArea.width)
+				local length = calcDistanceFrom(workArea.start, workArea.height)
+				local dir1X, dir1Z = MathUtil.vector2Normalize(x1 - x2, z1 - z2)
+				local dir2X, dir2Z = MathUtil.vector2Normalize(x3 - x1, z3 - z1)
+				local cx = (x1 + x2) * 0.5
+				local cz = (z1 + z2) * 0.5
+				drawDebugLine(cx + dir1X * width, y, cz + dir1Z * width, 0, 1, 1, cx + dir1X * width + dir2X * length, y, cz + dir1Z * width + dir2Z * length, 0, 1, 1, true)
+				drawDebugLine(cx - dir1X * width, y, cz - dir1Z * width, 0, 1, 1, cx - dir1X * width + dir2X * length, y, cz - dir1Z * width + dir2Z * length, 0, 1, 1, true)
 			end
 		end
 	end
 	if vehicle.getTipOcclusionAreas ~= nil then
-		for _, v422_ in pairs(vehicle:getTipOcclusionAreas()) do
-			DebugPlane.renderWithNodes(v422_.start, v422_.width, v422_.height, Color.PRESETS.YELLOW, true)
+		for _, occlusionArea in pairs(vehicle:getTipOcclusionAreas()) do
+			DebugPlane.renderWithNodes(occlusionArea.start, occlusionArea.width, occlusionArea.height, Color.PRESETS.YELLOW, true)
 		end
 	end
 	if vehicle.spec_foliageBending ~= nil then
-		for _, v423_ in ipairs(vehicle.spec_foliageBending.bendingNodes) do
-			if v423_.isActive then
-				DebugUtil.drawDebugRectangle(v423_.node, v423_.minX, v423_.maxX, v423_.minZ, v423_.maxZ, v423_.yOffset, 1, 0, 0)
-				DebugUtil.drawDebugRectangle(v423_.node, v423_.minX - 0.25, v423_.maxX + 0.25, v423_.minZ - 0.25, v423_.maxZ + 0.25, v423_.yOffset, 0, 1, 0)
+		local offset = 0.25
+		for _, bendingNode in ipairs(vehicle.spec_foliageBending.bendingNodes) do
+			if bendingNode.isActive then
+				DebugUtil.drawDebugRectangle(bendingNode.node, bendingNode.minX, bendingNode.maxX, bendingNode.minZ, bendingNode.maxZ, bendingNode.yOffset, 1, 0, 0)
+				DebugUtil.drawDebugRectangle(bendingNode.node, bendingNode.minX - 0.25, bendingNode.maxX + 0.25, bendingNode.minZ - 0.25, bendingNode.maxZ + 0.25, bendingNode.yOffset, 0, 1, 0)
 			end
 		end
 	end
 	if vehicle.spec_licensePlates ~= nil then
-		local function v441_(p424_, p425_, p426_, p427_, p428_)
-			if math.abs(p425_) ~= math.huge then
-				local v429_, v430_, v431_
-				if p426_ == math.huge then
-					v429_ = 0
-					v430_ = 1
-					v431_ = 0
-					p426_ = 0.25
-				else
-					v429_ = 1
-					v430_ = 0
-					v431_ = 0
+		local drawLine = function(licensePlate, d1, d2, d3, leftRight)
+			if math.abs(d1) ~= math.huge then
+				local r1 = 1
+				local g1 = 0
+				local b1 = 0
+				local maxY = d2
+				if d2 == math.huge then
+					r1 = 0
+					g1 = 1
+					b1 = 0
+					maxY = 0.25
 				end
-				local v432_, v433_, v434_
-				if p427_ == math.huge then
-					p427_ = 0.25
-					v432_ = 0
-					v433_ = 1
-					v434_ = 0
-				else
-					v432_ = 1
-					v433_ = 0
-					v434_ = 0
+				local r2 = 1
+				local g2 = 0
+				local b2 = 0
+				local minY = d3
+				if d3 == math.huge then
+					r2 = 0
+					g2 = 1
+					b2 = 0
+					minY = 0.25
 				end
-				local v435_, v436_, v437_, v438_, v439_, v440_
-				if p428_ then
-					v435_, v436_, v437_ = localToWorld(p424_.node, p425_, p426_, 0)
-					v438_, v439_, v440_ = localToWorld(p424_.node, p425_, -p427_, 0)
+				local x1 = nil
+				local y1 = nil
+				local z1 = nil
+				local x2 = nil
+				local y2 = nil
+				local z2 = nil
+				if leftRight then
+					x1, y1, z1 = localToWorld(licensePlate.node, d1, maxY, 0)
+					x2, y2, z2 = localToWorld(licensePlate.node, d1, -minY, 0)
 				else
-					v435_, v436_, v437_ = localToWorld(p424_.node, p426_, p425_, 0)
-					v438_, v439_, v440_ = localToWorld(p424_.node, -p427_, p425_, 0)
+					x1, y1, z1 = localToWorld(licensePlate.node, maxY, d1, 0)
+					x2, y2, z2 = localToWorld(licensePlate.node, -minY, d1, 0)
 				end
-				drawDebugLine(v435_, v436_, v437_, v429_, v430_, v431_, v438_, v439_, v440_, v432_, v433_, v434_)
+				drawDebugLine(x1, y1, z1, r1, g1, b1, x2, y2, z2, r2, g2, b2)
 			end
 		end
-		for _, v442_ in ipairs(vehicle.spec_licensePlates.licensePlates) do
-			DebugGizmo.renderAtNode(v442_.node)
-			local v443_ = v442_.placementArea[1]
-			local v444_ = v442_.placementArea[2]
-			local v445_ = v442_.placementArea[3]
-			local v446_ = v442_.placementArea[4]
-			v441_(v442_, v444_, v443_, v445_, true)
-			v441_(v442_, -v446_, v443_, v445_, true)
-			v441_(v442_, v443_, v444_, v446_, false)
-			v441_(v442_, -v445_, v444_, v446_, false)
+		for _, licensePlate in ipairs(vehicle.spec_licensePlates.licensePlates) do
+			DebugGizmo.renderAtNode(licensePlate.node)
+			local top = licensePlate.placementArea[1]
+			local right = licensePlate.placementArea[2]
+			local bottom = licensePlate.placementArea[3]
+			local left = licensePlate.placementArea[4]
+			drawLine(licensePlate, right, top, bottom, true)
+			drawLine(licensePlate, -left, top, bottom, true)
+			drawLine(licensePlate, top, right, left, false)
+			drawLine(licensePlate, -bottom, right, left, false)
 		end
 	end
 	if vehicle.spec_fillUnit ~= nil then
-		local v447_ = vehicle:getFillUnits()
-		for v448_ = 1, #v447_ do
-			local v449_ = v447_[v448_]
-			local v450_ = v449_.autoAimTarget
-			if v450_.node ~= nil and (v450_.startZ ~= nil and v450_.endZ ~= nil) then
-				local v451_ = v449_.capacity * v450_.startPercentage
-				local v452_ = (v449_.fillLevel - v451_) / (v449_.capacity - v451_)
-				local v453_ = math.clamp(v452_, 0, 1)
-				if v450_.invert then
-					v453_ = 1 - v453_
-				end
-				local v454_ = (v450_.endZ - v450_.startZ) * v453_ + v450_.startZ
-				local v455_, v456_, v457_ = localToWorld(getParent(v450_.node), v450_.baseTrans[1], v450_.baseTrans[2], v450_.startZ)
-				local v458_, v459_, v460_ = localToWorld(getParent(v450_.node), v450_.baseTrans[1], v450_.baseTrans[2], v450_.endZ)
-				drawDebugLine(v455_, v456_, v457_, 0, 1, 0, v458_, v459_, v460_, 0, 1, 0, true)
-				drawDebugLine(v455_, v456_, v457_, 1, 0, 0, v455_, v456_ + 0.2, v457_, 1, 0, 0, true)
-				drawDebugLine(v458_, v459_, v460_, 1, 0, 0, v458_, v459_ + 0.2, v460_, 1, 0, 0, true)
-				local v461_, v462_, v463_ = localToWorld(getParent(v450_.node), v450_.baseTrans[1], v450_.baseTrans[2], v454_)
-				drawDebugLine(v461_, v462_, v463_, 0, 0, 1, v461_, v462_ - 0.5, v463_, 0, 0, 1, true)
-				local v464_, v465_, v466_ = localToWorld(getParent(v450_.node), v450_.baseTrans[1] - 0.5, v450_.baseTrans[2], v450_.startZ + 0.75)
-				local v467_, v468_, v469_ = localToWorld(getParent(v450_.node), v450_.baseTrans[1] + 0.5, v450_.baseTrans[2], v450_.startZ + 0.75)
-				drawDebugLine(v464_, v465_, v466_, 0, 1, 1, v467_, v468_, v469_, 0, 1, 1, true)
-				local v470_, v471_, v472_ = localToWorld(getParent(v450_.node), v450_.baseTrans[1] - 0.5, v450_.baseTrans[2], v450_.endZ - 0.75)
-				local v473_, v474_, v475_ = localToWorld(getParent(v450_.node), v450_.baseTrans[1] + 0.5, v450_.baseTrans[2], v450_.endZ - 0.75)
-				drawDebugLine(v470_, v471_, v472_, 0, 1, 1, v473_, v474_, v475_, 0, 1, 1, true)
+		local fillUnits = vehicle:getFillUnits()
+		for i = 1, #fillUnits do
+			local fillUnit = fillUnits[i]
+			local autoAimTarget = fillUnit.autoAimTarget
+			if autoAimTarget.node == nil or autoAimTarget.startZ == nil or autoAimTarget.endZ == nil then
+				continue
 			end
+			local startFillLevel = fillUnit.capacity * autoAimTarget.startPercentage
+			local percent = math.clamp((fillUnit.fillLevel - startFillLevel) / (fillUnit.capacity - startFillLevel), 0, 1)
+			if autoAimTarget.invert then
+				percent = 1 - percent
+			end
+			local curZ = (autoAimTarget.endZ - autoAimTarget.startZ) * percent + autoAimTarget.startZ
+			local x1, y1, z1 = localToWorld(getParent(autoAimTarget.node), autoAimTarget.baseTrans[1], autoAimTarget.baseTrans[2], autoAimTarget.startZ)
+			local x2, y2, z2 = localToWorld(getParent(autoAimTarget.node), autoAimTarget.baseTrans[1], autoAimTarget.baseTrans[2], autoAimTarget.endZ)
+			drawDebugLine(x1, y1, z1, 0, 1, 0, x2, y2, z2, 0, 1, 0, true)
+			drawDebugLine(x1, y1, z1, 1, 0, 0, x1, y1 + 0.2, z1, 1, 0, 0, true)
+			drawDebugLine(x2, y2, z2, 1, 0, 0, x2, y2 + 0.2, z2, 1, 0, 0, true)
+			local x3, y3, z3 = localToWorld(getParent(autoAimTarget.node), autoAimTarget.baseTrans[1], autoAimTarget.baseTrans[2], curZ)
+			drawDebugLine(x3, y3, z3, 0, 0, 1, x3, y3 - 0.5, z3, 0, 0, 1, true)
+			local x4, y4, z4 = localToWorld(getParent(autoAimTarget.node), autoAimTarget.baseTrans[1] - 0.5, autoAimTarget.baseTrans[2], autoAimTarget.startZ + 0.75)
+			local x5, y5, z5 = localToWorld(getParent(autoAimTarget.node), autoAimTarget.baseTrans[1] + 0.5, autoAimTarget.baseTrans[2], autoAimTarget.startZ + 0.75)
+			drawDebugLine(x4, y4, z4, 0, 1, 1, x5, y5, z5, 0, 1, 1, true)
+			x4, y4, z4 = localToWorld(getParent(autoAimTarget.node), autoAimTarget.baseTrans[1] - 0.5, autoAimTarget.baseTrans[2], autoAimTarget.endZ - 0.75)
+			x5, y5, z5 = localToWorld(getParent(autoAimTarget.node), autoAimTarget.baseTrans[1] + 0.5, autoAimTarget.baseTrans[2], autoAimTarget.endZ - 0.75)
+			drawDebugLine(x4, y4, z4, 0, 1, 1, x5, y5, z5, 0, 1, 1, true)
 		end
 	end
 	if vehicle.spec_dischargeable ~= nil then
-		local v476_ = vehicle.spec_dischargeable.dischargeNodes
-		for v477_ = 1, #v476_ do
-			local v478_ = v476_[v477_].info
-			local v479_, v480_, v481_ = localToWorld(v478_.node, -v478_.width, 0, v478_.zOffset)
-			local v482_, v483_, v484_ = localToWorld(v478_.node, v478_.width, 0, v478_.zOffset)
-			drawDebugLine(v479_, v480_, v481_, 1, 0, 1, v482_, v483_, v484_, 1, 0, 1)
+		local dischargeNodes = vehicle.spec_dischargeable.dischargeNodes
+		for i = 1, #dischargeNodes do
+			local dischargeNode = dischargeNodes[i]
+			local info = dischargeNode.info
+			local sx, sy, sz = localToWorld(info.node, -info.width, 0, info.zOffset)
+			local ex, ey, ez = localToWorld(info.node, info.width, 0, info.zOffset)
+			drawDebugLine(sx, sy, sz, 1, 0, 1, ex, ey, ez, 1, 0, 1)
 		end
 	end
 	if vehicle:getIsActiveForInput() and vehicle.spec_enterable ~= nil then
-		local v485_ = vehicle.spec_enterable
-		local v486_ = v485_.cameras[v485_.camIndex]
-		if v486_ ~= nil then
-			local v487_ = getName(v486_.cameraPositionNode)
-			local v488_, v489_, v490_ = getTranslation(v486_.cameraPositionNode)
-			local v491_ = v486_.cameraPositionNode
-			if v486_.rotateNode ~= nil then
-				v491_ = v486_.rotateNode
+		local spec = vehicle.spec_enterable
+		local camera = spec.cameras[spec.camIndex]
+		if camera ~= nil then
+			local name = getName(camera.cameraPositionNode)
+			local x, y, z = getTranslation(camera.cameraPositionNode)
+			local rotationNode = camera.cameraPositionNode
+			if camera.rotateNode ~= nil then
+				rotationNode = camera.rotateNode
 			end
-			local v492_, v493_, v494_ = getRotation(v491_)
-			if v486_.hasExtraRotationNode then
-				v492_ = -((3.141592653589793 - v492_) % 6.283185307179586)
-				v493_ = (v493_ + 3.141592653589793) % 6.283185307179586
-				v494_ = (v494_ - 3.141592653589793) % 6.283185307179586
+			local rx, ry, rz = getRotation(rotationNode)
+			if camera.hasExtraRotationNode then
+				rx = -((3.141592653589793 - rx) % 6.283185307179586)
+				ry = (ry + 3.141592653589793) % 6.283185307179586
+				rz = (rz - 3.141592653589793) % 6.283185307179586
 			end
-			local v495_ = string.format("camera \'%s\': translation: %.2f %.2f %.2f  rotation: %.2f %.2f %.2f", v487_, v488_, v489_, v490_, math.deg(v492_), math.deg(v493_), (math.deg(v494_)))
+			local text = string.format("camera '%s': translation: %.2f %.2f %.2f  rotation: %.2f %.2f %.2f", name, x, y, z, math.deg(rx), math.deg(ry), math.deg(rz))
 			setTextAlignment(RenderText.ALIGN_CENTER)
 			setTextColor(0, 0, 0, 1)
-			renderText(0.5 + g_pixelSizeX, 0.95 - g_pixelSizeY, 0.02, v495_)
+			renderText(0.5 + g_pixelSizeX, 0.95 - g_pixelSizeY, 0.02, text)
 			renderText(0.5 + g_pixelSizeX, 0.98 - g_pixelSizeY, 0.05, "______________________________________________________________________")
 			setTextColor(1, 1, 1, 1)
-			renderText(0.5, 0.95, 0.02, v495_)
+			renderText(0.5, 0.95, 0.02, text)
 			renderText(0.5, 0.98, 0.05, "______________________________________________________________________")
 			setTextAlignment(RenderText.ALIGN_LEFT)
 		end
-		for _, v496_ in ipairs(v485_.cameras) do
-			if v496_.isInside then
-				local v497_, v498_, v499_ = getWorldTranslation(v496_.cameraPositionNode)
-				local v500_, v501_, v502_ = localDirectionToWorld(v496_.cameraPositionNode, 0, 0, 1)
-				local v503_, v504_, v505_ = localDirectionToWorld(v496_.cameraPositionNode, 0, 1, 0)
-				DebugGizmo.renderAtPosition(v497_, v498_, v499_, v500_, v501_, v502_, v503_, v504_, v505_, "", false, 0.7)
+		for _, camera in ipairs(spec.cameras) do
+			if camera.isInside then
+				local x, y, z = getWorldTranslation(camera.cameraPositionNode)
+				local dirX, dirY, dirZ = localDirectionToWorld(camera.cameraPositionNode, 0, 0, 1)
+				local upX, upY, upZ = localDirectionToWorld(camera.cameraPositionNode, 0, 1, 0)
+				DebugGizmo.renderAtPosition(x, y, z, dirX, dirY, dirZ, upX, upY, upZ, "", false, 0.7)
 			end
 		end
 	end
-	for v506_, v507_ in pairs(vehicle.components) do
-		local v508_, v509_, v510_ = getCenterOfMass(v507_.node)
-		local v511_, v512_, v513_ = localToWorld(v507_.node, v508_, v509_, v510_)
-		local v514_, v515_, v516_ = localDirectionToWorld(v507_.node, 0, 0, 1)
-		local v517_, v518_, v519_ = localDirectionToWorld(v507_.node, 0, 1, 0)
-		DebugGizmo.renderAtPosition(v511_, v512_, v513_, v514_, v515_, v516_, v517_, v518_, v519_, "CoM comp" .. v506_, false, 0.7)
+	for i, component in pairs(vehicle.components) do
+		local x, y, z = getCenterOfMass(component.node)
+		x, y, z = localToWorld(component.node, x, y, z)
+		local dirX, dirY, dirZ = localDirectionToWorld(component.node, 0, 0, 1)
+		local upX, upY, upZ = localDirectionToWorld(component.node, 0, 1, 0)
+		DebugGizmo.renderAtPosition(x, y, z, dirX, dirY, dirZ, upX, upY, upZ, "CoM comp" .. i, false, 0.7)
 	end
 	if vehicle.spec_ikChains ~= nil then
 		IKUtil.debugDrawChains(vehicle.spec_ikChains.chains, true)
 	end
 	if vehicle.spec_powerTakeOffs ~= nil then
-		for v520_ = 1, #vehicle.spec_powerTakeOffs.outputPowerTakeOffs do
-			local v521_ = vehicle.spec_powerTakeOffs.outputPowerTakeOffs[v520_]
-			if v521_.outputNode ~= nil then
-				local v522_, v523_, v524_ = getWorldTranslation(v521_.outputNode)
-				local v525_, v526_, v527_ = localDirectionToWorld(v521_.outputNode, 0, 0, 1)
-				local v528_, v529_, v530_ = localDirectionToWorld(v521_.outputNode, 0, 1, 0)
-				drawDebugLine(v522_, v523_, v524_, 0, 1, 0, v522_ + v528_ * 0.25, v523_ + v529_ * 0.25, v524_ + v530_ * 0.25, 0, 1, 0)
-				drawDebugLine(v522_, v523_, v524_, 0, 0, 1, v522_ + v525_ * 0.25, v523_ + v526_ * 0.25, v524_ + v527_ * 0.25, 0, 0, 1)
-				if v521_.connectedInput ~= nil then
-					local v531_, v532_, v533_ = localToWorld(v521_.outputNode, 0, 0, -0.05)
-					local v534_, v535_, v536_ = localDirectionToWorld(v521_.outputNode, 0, 1, 0)
-					local v537_, v538_, v539_ = localDirectionToWorld(v521_.outputNode, 0, 0, -1)
-					DebugBox.renderAtPosition(v531_, v532_, v533_, v534_, v535_, v536_, v537_, v538_, v539_, v521_.connectedInput.size, v521_.connectedInput.size, 0.1, Color.PRESETS.YELLOW, true, nil, false)
-				end
+		for i = 1, #vehicle.spec_powerTakeOffs.outputPowerTakeOffs do
+			local powerTakeOffOutput = vehicle.spec_powerTakeOffs.outputPowerTakeOffs[i]
+			if powerTakeOffOutput.outputNode == nil then
+				continue
 			end
+			local size = 0.25
+			local x, y, z = getWorldTranslation(powerTakeOffOutput.outputNode)
+			local dirX, dirY, dirZ = localDirectionToWorld(powerTakeOffOutput.outputNode, 0, 0, 1)
+			local upX, upY, upZ = localDirectionToWorld(powerTakeOffOutput.outputNode, 0, 1, 0)
+			drawDebugLine(x, y, z, 0, 1, 0, x + upX * 0.25, y + upY * 0.25, z + upZ * 0.25, 0, 1, 0)
+			drawDebugLine(x, y, z, 0, 0, 1, x + dirX * 0.25, y + dirY * 0.25, z + dirZ * 0.25, 0, 0, 1)
+			if powerTakeOffOutput.connectedInput == nil then
+				continue
+			end
+			local x, y, z = localToWorld(powerTakeOffOutput.outputNode, 0, 0, -0.05)
+			local upX, upY, upZ = localDirectionToWorld(powerTakeOffOutput.outputNode, 0, 1, 0)
+			local dirX, dirY, dirZ = localDirectionToWorld(powerTakeOffOutput.outputNode, 0, 0, -1)
+			DebugBox.renderAtPosition(x, y, z, upX, upY, upZ, dirX, dirY, dirZ, powerTakeOffOutput.connectedInput.size, powerTakeOffOutput.connectedInput.size, 0.1, Color.PRESETS.YELLOW, true, nil, false)
 		end
 	end
 	if vehicle.spec_connectionHoses ~= nil then
-		for v540_ = 1, #vehicle.spec_connectionHoses.targetNodes do
-			local v541_ = vehicle.spec_connectionHoses.targetNodes[v540_]
-			local v542_, v543_, v544_ = getWorldTranslation(v541_.node)
-			local v545_, v546_, v547_ = localDirectionToWorld(v541_.node, 0, 0, -1)
-			local v548_, v549_, v550_ = localDirectionToWorld(v541_.node, 0, 1, 0)
-			drawDebugLine(v542_, v543_, v544_, 0, 1, 0, v542_ + v548_ * 0.1, v543_ + v549_ * 0.1, v544_ + v550_ * 0.1, 0, 1, 0)
-			drawDebugLine(v542_, v543_, v544_, 0, 0, 1, v542_ + v545_ * 0.1, v543_ + v546_ * 0.1, v544_ + v547_ * 0.1, 0, 0, 1)
+		for i = 1, #vehicle.spec_connectionHoses.targetNodes do
+			local targetNode = vehicle.spec_connectionHoses.targetNodes[i]
+			local size = 0.1
+			local x, y, z = getWorldTranslation(targetNode.node)
+			local dirX, dirY, dirZ = localDirectionToWorld(targetNode.node, 0, 0, -1)
+			local upX, upY, upZ = localDirectionToWorld(targetNode.node, 0, 1, 0)
+			drawDebugLine(x, y, z, 0, 1, 0, x + upX * 0.1, y + upY * 0.1, z + upZ * 0.1, 0, 1, 0)
+			drawDebugLine(x, y, z, 0, 0, 1, x + dirX * 0.1, y + dirY * 0.1, z + dirZ * 0.1, 0, 0, 1)
 		end
 	end
 	if vehicle.spec_mountable ~= nil then
@@ -1248,132 +1235,138 @@ function VehicleDebug.drawDebugAttributeRendering(vehicle)
 		end
 	end
 end
-
--- Local values: formatNumber, getClosestOffset, drawDebugNode, leftMarker, rightMarker, backMarker, reverserNode, sideOffset, _, aiRootNode, name, collisionTrigger, x, y, z, t, offsetY, IsOnlyAIImplement, _, vehicle2, root
 function VehicleDebug.drawDebugAIRendering(vehicle)
-	local function v_u_553_(p552_)
-		if math.abs(p552_) < 0.001 then
+	local formatNumber = function(value)
+		if math.abs(value) < 0.001 then
 			return "0.0"
-		elseif math.abs(p552_) < 0.01 then
-			return string.format("%.3f", p552_)
-		elseif math.abs(p552_) < 0.1 then
-			return string.format("%.2f", p552_)
+		elseif math.abs(value) < 0.01 then
+			return string.format("%.3f", value)
+		elseif math.abs(value) < 0.1 then
+			return string.format("%.2f", value)
 		else
-			return string.format("%.1f", p552_)
+			return string.format("%.1f", value)
 		end
 	end
-	local function v575_(p554_, p555_, p556_)
-		-- upvalues: (copy) vehicle, (copy) v_u_553_
-		local v557_
-		if vehicle.rootVehicle.getAIRootNode == nil then
-			v557_ = vehicle.rootNode
+	local getClosestOffset = function(node, useZOffset, useZOffsetFront)
+		local aiRootNode = nil
+		if vehicle.rootVehicle.getAIRootNode ~= nil then
+			aiRootNode = vehicle.rootVehicle:getAIRootNode()
 		else
-			v557_ = vehicle.rootVehicle:getAIRootNode()
+			aiRootNode = vehicle.rootNode
 		end
-		local v558_ = -math.huge
-		local v559_ = math.huge
+		local min = -math.huge
+		local max = math.huge
 		if vehicle.spec_workArea ~= nil then
-			local v560_, _, v561_ = localToLocal(p554_, v557_, 0, 0, 0)
-			for _, v562_ in pairs(vehicle.spec_workArea.workAreas) do
-				if p555_ == true then
-					local _, _, v563_ = localToLocal(v562_.height, v557_, 0, 0, 0)
-					local v564_ = v561_ - v563_
-					if v564_ > 0 then
-						v559_ = math.min(v559_, v564_)
+			local nodeOffset, _, nodeOffsetZ = localToLocal(node, aiRootNode, 0, 0, 0)
+			for _, workArea in pairs(vehicle.spec_workArea.workAreas) do
+				if useZOffset == true then
+					local _, _, offset = localToLocal(workArea.height, aiRootNode, 0, 0, 0)
+					offset = nodeOffsetZ - offset
+					if 0 < offset then
+						max = math.min(max, offset)
 					else
-						v558_ = math.max(v558_, v564_)
+						min = math.max(min, offset)
 					end
-				elseif p556_ == true then
-					local _, _, v565_ = localToLocal(v562_.start, v557_, 0, 0, 0)
-					local v566_ = v561_ - v565_
-					if v566_ > 0 then
-						v559_ = math.min(v559_, v566_)
+				elseif useZOffsetFront == true then
+					local _, _, offset1 = localToLocal(workArea.start, aiRootNode, 0, 0, 0)
+					offset1 = nodeOffsetZ - offset1
+					if 0 < offset1 then
+						max = math.min(max, offset1)
 					else
-						v558_ = math.max(v558_, v566_)
+						min = math.max(min, offset1)
 					end
-					local _, _, v567_ = localToLocal(v562_.width, v557_, 0, 0, 0)
-					local v568_ = v561_ - v567_
-					if v568_ > 0 then
-						v559_ = math.min(v559_, v568_)
+					local _, _, offset2 = localToLocal(workArea.width, aiRootNode, 0, 0, 0)
+					offset2 = nodeOffsetZ - offset2
+					if 0 < offset2 then
+						max = math.min(max, offset2)
 					else
-						v558_ = math.max(v558_, v568_)
+						min = math.max(min, offset2)
 					end
 				else
-					local v569_, _, _ = localToLocal(v562_.start, v557_, 0, 0, 0)
-					local v570_ = v560_ - v569_
-					if v570_ > 0 then
-						v559_ = math.min(v559_, v570_)
+					local offset1, _, _ = localToLocal(workArea.start, aiRootNode, 0, 0, 0)
+					offset1 = nodeOffset - offset1
+					if 0 < offset1 then
+						max = math.min(max, offset1)
 					else
-						v558_ = math.max(v558_, v570_)
+						min = math.max(min, offset1)
 					end
-					local v571_, _, _ = localToLocal(v562_.width, v557_, 0, 0, 0)
-					local v572_ = v560_ - v571_
-					if v572_ > 0 then
-						v559_ = math.min(v559_, v572_)
+					local offset2, _, _ = localToLocal(workArea.width, aiRootNode, 0, 0, 0)
+					offset2 = nodeOffset - offset2
+					if 0 < offset2 then
+						max = math.min(max, offset2)
 					else
-						v558_ = math.max(v558_, v572_)
+						min = math.max(min, offset2)
 					end
-					local v573_, _, _ = localToLocal(v562_.height, v557_, 0, 0, 0)
-					local v574_ = v560_ - v573_
-					if v574_ > 0 then
-						v559_ = math.min(v559_, v574_)
+					local offset3, _, _ = localToLocal(workArea.height, aiRootNode, 0, 0, 0)
+					offset3 = nodeOffset - offset3
+					if 0 < offset3 then
+						max = math.min(max, offset3)
 					else
-						v558_ = math.max(v558_, v574_)
+						min = math.max(min, offset3)
 					end
 				end
 			end
 		end
-		if math.abs(v558_) < math.abs(v559_) then
-			return v_u_553_(v558_)
+		if math.abs(min) < math.abs(max) then
+			return formatNumber(min)
 		else
-			return v_u_553_(v559_)
+			return formatNumber(max)
 		end
 	end
-	local function v590_(p576_, p577_, p578_)
-		local v579_, v580_, v581_ = getWorldTranslation(p576_)
-		local v582_ = getTerrainHeightAtWorldPos(g_terrainNode, v579_, 0, v581_)
-		local v583_ = v580_ < 0 and -100 or v582_
-		local v584_, v585_, v586_ = localDirectionToWorld(p576_, 0, 1, 0)
-		local v587_, v588_, v589_ = localDirectionToWorld(p576_, 0, 0, 1)
-		DebugGizmo.renderAtPosition(v579_, v583_ + (p578_ or 0), v581_, v587_, v588_, v589_, v584_, v585_, v586_, p577_, false, 0.5)
+	local drawDebugNode = function(node, text, yOffset)
+		local x, y, z = getWorldTranslation(node)
+		local t = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+		if y < 0 then
+			t = -100
+		end
+		local upX, upY, upZ = localDirectionToWorld(node, 0, 1, 0)
+		local dirX, dirY, dirZ = localDirectionToWorld(node, 0, 0, 1)
+		DebugGizmo.renderAtPosition(x, t + (yOffset or 0), z, dirX, dirY, dirZ, upX, upY, upZ, text, false, 0.5)
 	end
 	if vehicle.getAIMarkers ~= nil then
 		if vehicle:getCanImplementBeUsedForAI() then
-			local v591_, v592_, v593_ = vehicle:getAIMarkers()
-			v590_(v591_, string.format("%s (x%sm z%sm)", getName(v591_), v575_(v591_), v575_(v591_, false, true)))
-			v590_(v592_, string.format("%s (x%sm z%sm)", getName(v592_), v575_(v592_), v575_(v592_, false, true)))
-			v590_(v593_, string.format("%s (z%sm)", getName(v593_), v575_(v593_, true)))
-			local v594_ = vehicle:getAIToolReverserDirectionNode()
-			if v594_ ~= nil then
-				local v595_
-				if vehicle.rootVehicle.getAIRootNode == nil then
-					v595_ = nil
-				else
-					local v596_ = vehicle.rootVehicle:getAIRootNode()
-					local v597_, v598_
-					v595_, v597_, v598_ = localToLocal(v594_, v596_, 0, 0, 0)
+			local leftMarker, rightMarker, backMarker = vehicle:getAIMarkers()
+			drawDebugNode(leftMarker, string.format("%s (x%sm z%sm)", getName(leftMarker), getClosestOffset(leftMarker), getClosestOffset(leftMarker, false, true)))
+			drawDebugNode(rightMarker, string.format("%s (x%sm z%sm)", getName(rightMarker), getClosestOffset(rightMarker), getClosestOffset(rightMarker, false, true)))
+			drawDebugNode(backMarker, string.format("%s (z%sm)", getName(backMarker), getClosestOffset(backMarker, true)))
+			local reverserNode = vehicle:getAIToolReverserDirectionNode()
+			if reverserNode ~= nil then
+				local sideOffset = nil
+				local _ = nil
+				if vehicle.rootVehicle.getAIRootNode ~= nil then
+					local aiRootNode = vehicle.rootVehicle:getAIRootNode()
+					sideOffset, _, _ = localToLocal(reverserNode, aiRootNode, 0, 0, 0)
 				end
-				local v599_ = v594_ == v593_ and "" or " " .. getName(v594_)
-				v590_(v594_, string.format("reverser%s (x%sm)", v599_, v_u_553_(v595_ or 0)), 0.3)
+				local name = ""
+				if reverserNode ~= backMarker then
+					name = " " .. getName(reverserNode)
+				end
+				drawDebugNode(reverserNode, string.format("reverser%s (x%sm)", name, formatNumber(sideOffset or 0)), 0.3)
 			end
 		end
 		if not vehicle:getIsAIActive() then
-			local v600_ = vehicle:getAIImplementCollisionTrigger()
-			if v600_ ~= nil and v600_.node ~= nil then
-				local v601_, v602_, v603_ = getWorldTranslation(v600_.node)
-				local v604_ = getTerrainHeightAtWorldPos(g_terrainNode, v601_, 0, v603_)
-				local v605_ = v602_ - (v602_ < 0 and -100 or v604_) - v600_.height * 0.5
-				DebugUtil.drawDebugCube(v600_.node, v600_.width, v600_.height, v600_.length, 0, 0, 1, 0, -v605_, v600_.length * 0.5)
+			local collisionTrigger = vehicle:getAIImplementCollisionTrigger()
+			if collisionTrigger ~= nil and collisionTrigger.node ~= nil then
+				local x, y, z = getWorldTranslation(collisionTrigger.node)
+				local t = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+				if y < 0 then
+					t = -100
+				end
+				local offsetY = y - t - collisionTrigger.height * 0.5
+				DebugUtil.drawDebugCube(collisionTrigger.node, collisionTrigger.width, collisionTrigger.height, collisionTrigger.length, 0, 0, 1, 0, -offsetY, collisionTrigger.length * 0.5)
 			end
 		end
-		local v606_ = true
-		for _, v607_ in ipairs(vehicle.rootVehicle.childVehicles) do
-			if v607_ ~= vehicle and (v607_.getCanImplementBeUsedForAI ~= nil and v607_:getCanImplementBeUsedForAI()) then
-				v606_ = false
+		local IsOnlyAIImplement = true
+		for _, vehicle2 in ipairs(vehicle.rootVehicle.childVehicles) do
+			if vehicle2 == vehicle or vehicle2.getCanImplementBeUsedForAI == nil then
+				continue
+			end
+			if vehicle2:getCanImplementBeUsedForAI() then
+				IsOnlyAIImplement = false
 				break
 			end
 		end
-		if (v606_ or vehicle:getIsSelected()) and (vehicle.spec_aiImplement ~= nil and vehicle.spec_aiImplement.debugArea ~= nil) then
+		if (IsOnlyAIImplement or vehicle:getIsSelected()) and (vehicle.spec_aiImplement ~= nil and vehicle.spec_aiImplement.debugArea ~= nil) then
 			g_debugManager:addFrameElement(vehicle.spec_aiImplement.debugArea)
 		end
 	end
@@ -1384,959 +1377,871 @@ function VehicleDebug.drawDebugAIRendering(vehicle)
 		vehicle:drawAIAgentAttachments()
 	end
 	if Platform.gameplay.automaticVehicleControl then
-		local v608_ = vehicle.rootVehicle
-		if v608_.getIsControlled ~= nil and (v608_:getIsControlled() and v608_.actionController ~= nil) then
-			v608_.actionController:drawDebugRendering()
+		local root = vehicle.rootVehicle
+		if root.getIsControlled ~= nil and (root:getIsControlled() and root.actionController ~= nil) then
+			root.actionController:drawDebugRendering()
 		end
 	end
 end
-
--- Local values: information, k, v, values, info, d
 function VehicleDebug.drawDebugValues(vehicle)
-	local v610_ = {}
-	for v611_, v612_ in ipairs(vehicle.specializations) do
-		if v612_.updateDebugValues ~= nil then
-			local v613_ = {}
-			v612_.updateDebugValues(vehicle, v613_)
-			if #v613_ > 0 then
-				local v614_ = {
-					["title"] = vehicle.specializationNames[v611_],
-					["content"] = v613_
-				}
-				table.insert(v610_, v614_)
-			end
+	local information = {}
+	for k, v in ipairs(vehicle.specializations) do
+		if v.updateDebugValues == nil then
+			continue
+		end
+		local values = {}
+		v.updateDebugValues(vehicle, values)
+		if 0 < #values then
+			local info = {}
+			info.title = vehicle.specializationNames[k]
+			info.content = values
+			table.insert(information, info)
 		end
 	end
-	local v615_ = DebugInfoTable.new()
-	v615_:createWithNodeToCamera(vehicle.rootNode, v610_, 4, 0.05)
-	g_debugManager:addFrameElement(v615_)
+	local d = DebugInfoTable.new()
+	d:createWithNodeToCamera(vehicle.rootNode, information, 4, 0.05)
+	g_debugManager:addFrameElement(d)
 end
-
--- Local values: x, y, width, height, textSize, xSectionWidth, lineHeight, drawBar, drawModifiers, i, lineY, _, sample, isSurfaceSound, _, surfaceSound, showSample, typeIndex, type, _, attribute, _, _, available, modVolume, barX, barY, barW, barH, startX, modPitch, modLowPassGain, wheelsSpec, wx, wy, wz
 function VehicleDebug.drawSoundDebugValues(vehicle)
-	local v_u_617_ = 0.015
-	local v618_ = 0.1 + g_pixelSizeX
-	local function v_u_631_(p619_, p620_, p621_, p622_, p623_, p624_, p625_, p626_, p627_, p628_, p629_, p630_)
-		-- upvalues: (copy) v_u_617_
-		drawOutlineRect(p619_, p620_, p621_, p622_, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
-		drawFilledRect(p619_ + g_pixelSizeX, p620_ + g_pixelSizeY, p621_ - g_pixelSizeX * 2, p622_ - g_pixelSizeY * 2, 0, 0, 0, 0.4)
-		drawFilledRect(p619_ + g_pixelSizeX, p620_ + g_pixelSizeY, p621_ * p623_ - g_pixelSizeX * 2, p622_ - g_pixelSizeY * 2, p626_, p627_, p628_, p629_)
-		if p624_ ~= -1 then
-			drawFilledRect(p619_ + p621_ * p624_, p620_, g_pixelSizeX, p622_, 1, 0, 0, 1)
+	local x = 0.15
+	local y = 0.1
+	local width = 0.7
+	local height = 0.8
+	local textSize = 0.015
+	local xSectionWidth = 0.1 + g_pixelSizeX
+	local lineHeight = 0.06
+	local drawBar = function(x, y, w, h, value, fixedValue, text, r, g, b, a, textSizeFactor)
+		drawOutlineRect(x, y, w, h, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
+		drawFilledRect(x + g_pixelSizeX, y + g_pixelSizeY, w - g_pixelSizeX * 2, h - g_pixelSizeY * 2, 0, 0, 0, 0.4)
+		drawFilledRect(x + g_pixelSizeX, y + g_pixelSizeY, w * value - g_pixelSizeX * 2, h - g_pixelSizeY * 2, r, g, b, a)
+		if fixedValue ~= -1 then
+			drawFilledRect(x + w * fixedValue, y, g_pixelSizeX, h, 1, 0, 0, 1)
 		end
 		setTextAlignment(RenderText.ALIGN_CENTER)
-		renderText(p619_ + p621_ * 0.5, p620_ + p622_ - 0.0075 - g_pixelSizeY * 4, 0.012 * (p630_ or 1), p625_)
+		renderText(x + w * 0.5, y + h - 0.0075 - g_pixelSizeY * 4, 0.012 * (textSizeFactor or 1), text)
 	end
-	setTextColor(1, 1, 1, 1)
-	local v632_ = 0.15
-	local function v655_(p633_, p634_, p635_, p636_, p637_, p638_)
-		-- upvalues: (copy) v_u_631_
-		local v639_ = {}
-		for v640_, v641_ in pairs(g_soundManager.modifierTypeIndexToDesc) do
-			local v642_, v643_, v644_ = g_soundManager:getSampleModifierValue(p637_, p638_, v640_)
-			if v644_ then
-				local v645_ = {
-					["changeValue"] = v642_,
-					["t"] = v643_,
-					["name"] = v641_.name
-				}
-				table.insert(v639_, v645_)
+	local drawModifiers = function(x, y, w, h, sample, attribute)
+		local modifiers = {}
+		for typeIndex, type in pairs(g_soundManager.modifierTypeIndexToDesc) do
+			local changeValue, t, available = g_soundManager:getSampleModifierValue(sample, attribute, typeIndex)
+			if available then
+				table.insert(modifiers, { changeValue = changeValue, t = t, name = type.name })
 			end
 		end
-		if p637_.maxValuePerModifier == nil then
-			p637_.maxValuePerModifier = {}
-			for _, v646_ in pairs(g_soundManager.modifierTypeIndexToDesc) do
-				p637_.maxValuePerModifier[v646_.name] = 0
+		if sample.maxValuePerModifier == nil then
+			sample.maxValuePerModifier = {}
+			for typeIndex, type in pairs(g_soundManager.modifierTypeIndexToDesc) do
+				sample.maxValuePerModifier[type.name] = 0
 			end
 		end
-		local v647_ = #v639_
-		if v647_ > 0 then
-			local v648_ = p635_ / v647_
-			for v649_ = 1, v647_ do
-				local v650_ = v639_[v649_]
-				local v651_ = p637_.maxValuePerModifier
-				local v652_ = v650_.name
-				local v653_ = p637_.maxValuePerModifier[v650_.name]
-				local v654_ = v650_.changeValue
-				v651_[v652_] = math.max(v653_, v654_, 1)
-				v_u_631_(p633_ + v648_ * (v649_ - 1), p634_, v648_ * (v649_ < v647_ and 0.95 or 1), p636_, v650_.changeValue / p637_.maxValuePerModifier[v650_.name], -1, string.format("%s raw:%.2f mod:%.2f", v650_.name, v650_.t, v650_.changeValue), 0, 0.5, 0, 0.3, 0.7)
+		local numModifiers = #modifiers
+		if 0 < numModifiers then
+			local widthPerModifier = w / numModifiers
+			for i = 1, numModifiers do
+				local modifier = modifiers[i]
+				sample.maxValuePerModifier[modifier.name] = math.max(sample.maxValuePerModifier[modifier.name], modifier.changeValue, 1)
+				drawBar(x + widthPerModifier * (i - 1), y, widthPerModifier * (i < numModifiers and 0.95 or 1), h, modifier.changeValue / sample.maxValuePerModifier[modifier.name], -1, string.format("%s raw:%.2f mod:%.2f", modifier.name, modifier.t, modifier.changeValue), 0, 0.5, 0, 0.3, 0.7)
 			end
 		end
 	end
-	local v656_ = 0.9
-	local v657_ = 0.06
-	local v658_ = 1
-	for _, v659_ in pairs(g_soundManager.orderedSamples) do
-		local v660_ = false
-		for _, v661_ in pairs(g_currentMission.surfaceSounds) do
-			if v661_.name == v659_.sampleName then
-				v660_ = true
+	setTextColor(1, 1, 1, 1)
+	local i = 1
+	local lineY = 0.9
+	for _, sample in pairs(g_soundManager.orderedSamples) do
+		local isSurfaceSound = false
+		for _, surfaceSound in pairs(g_currentMission.surfaceSounds) do
+			if surfaceSound.name == sample.sampleName then
+				isSurfaceSound = true
 			end
 		end
-		if v659_.modifierTargetObject == vehicle and not v660_ then
-			local v662_ = v659_.isGlsFile
-			if not v662_ then
-				for v663_, _ in pairs(g_soundManager.modifierTypeIndexToDesc) do
-					for _, v664_ in pairs({ "volume", "pitch", "lowpassGain" }) do
-						local _, _, v665_ = g_soundManager:getSampleModifierValue(v659_, v664_, v663_)
-						v662_ = v662_ or v665_
-						if v662_ then
-							break
+		if sample.modifierTargetObject == vehicle then
+			if isSurfaceSound then
+				continue
+			end
+			local showSample = sample.isGlsFile
+			if not showSample then
+				for typeIndex, type in pairs(g_soundManager.modifierTypeIndexToDesc) do
+					for _, attribute in pairs({ "volume", "pitch", "lowpassGain" }) do
+						local _, _, available = g_soundManager:getSampleModifierValue(sample, attribute, typeIndex)
+						showSample = showSample or available
+						if not showSample then
+							continue
 						end
 					end
 				end
 			end
-			if v662_ then
-				v656_ = v656_ - 0.06
-				drawOutlineRect(0.15, v656_, v618_, v657_ + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
-				drawOutlineRect(0.15, v656_, 0.7, v657_ + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
-				drawFilledRect(0.15, v656_, v618_, 0.06, 0, g_soundManager:getIsSamplePlaying(v659_) and 1 or 0, 0, 0.4)
+			if showSample then
+				lineY = lineY - 0.06
+				drawOutlineRect(0.15, lineY, xSectionWidth, lineHeight + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
+				drawOutlineRect(0.15, lineY, 0.7, lineHeight + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
+				drawFilledRect(0.15, lineY, xSectionWidth, 0.06, 0, g_soundManager:getIsSamplePlaying(sample) and 1 or 0, 0, 0.4)
 				setTextAlignment(RenderText.ALIGN_CENTER)
-				renderText(v632_ + v618_ * 0.5, v656_ + 0.06 - 0.012 - 0.0075, 0.018, v659_.sampleName)
-				if v659_.isGlsFile then
-					renderText(v632_ + v618_ * 0.5, v656_ + 0.06 - 0.024 - 0.0075, 0.012, string.format("loopSyn: rpm=%d load=%d%%", getSampleLoopSynthesisRPM(v659_.soundSample, false), getSampleLoopSynthesisLoadFactor(v659_.soundSample) * 100))
+				renderText(x + xSectionWidth * 0.5, lineY + 0.06 - 0.012 - 0.0075, 0.018, sample.sampleName)
+				if sample.isGlsFile then
+					renderText(x + xSectionWidth * 0.5, lineY + 0.06 - 0.024 - 0.0075, 0.012, string.format("loopSyn: rpm=%d load=%d%%", getSampleLoopSynthesisRPM(sample.soundSample, false), getSampleLoopSynthesisLoadFactor(sample.soundSample) * 100))
 				end
 				setTextAlignment(RenderText.ALIGN_RIGHT)
-				renderText(v632_ + v618_ + v618_ * 0.6, v656_ + 0.06 - 0.015 - 0.0075, 0.015, "volume:")
-				renderText(v632_ + v618_ + v618_ * 0.6, v656_ + 0.06 - 0.03 - 0.0075, 0.015, "pitch:")
-				renderText(v632_ + v618_ + v618_ * 0.6, v656_ + 0.06 - 0.045 - 0.0075, 0.015, "lowpassGain:")
-				local v666_ = g_soundManager:getModifierFactor(v659_, "volume")
-				local v667_ = v659_.debugMaxVolume or 1
-				local v668_ = v659_.current.volume * v666_
-				local v669_ = v659_.current.volume
-				v659_.debugMaxVolume = math.max(v667_, v668_, v669_)
-				local v670_ = v632_ + v618_ + v618_ * 0.7
-				local v671_ = v656_ + 0.06 - 0.015 - 0.0075
-				local v672_ = 0.015
-				v_u_631_(v670_, v671_, v618_, v672_, v659_.current.volume * v666_ / v659_.debugMaxVolume, v659_.current.volume / v659_.debugMaxVolume, string.format("%.2f", v659_.current.volume * v666_), 0, 0.5, 0, 0.4)
-				local v673_ = v670_ + v618_ + v618_ * 0.1
-				v655_(v673_, v671_, 1 - v673_ - 0.15 - v618_ * 0.1, v672_, v659_, "volume")
-				local v674_ = g_soundManager:getModifierFactor(v659_, "pitch")
-				local v675_ = v659_.debugMaxPitch or 1
-				local v676_ = v659_.current.pitch * v674_
-				local v677_ = v659_.current.pitch
-				v659_.debugMaxPitch = math.max(v675_, v676_, v677_)
-				local v678_ = v632_ + v618_ + v618_ * 0.7
-				local v679_ = v656_ + 0.06 - 0.03 - 0.0075
-				local v680_ = 0.015
-				v_u_631_(v678_, v679_, v618_, v680_, v659_.current.pitch * v674_ / v659_.debugMaxPitch, v659_.current.pitch / v659_.debugMaxPitch, string.format("%.2f", v659_.current.pitch * v674_), 0.5, 0.5, 0, 0.4)
-				local v681_ = v678_ + v618_ + v618_ * 0.1
-				v655_(v681_, v679_, 1 - v681_ - 0.15, v680_, v659_, "pitch")
-				local v682_ = g_soundManager:getModifierFactor(v659_, "lowpassGain")
-				local v683_ = v659_.debugMaxLowPass or 1
-				local v684_ = v659_.current.lowpassGain * v682_
-				local v685_ = v659_.current.lowpassGain
-				v659_.debugMaxLowPass = math.max(v683_, v684_, v685_)
-				local v686_ = v632_ + v618_ + v618_ * 0.7
-				local v687_ = v656_ + 0.06 - 0.045 - 0.0075
-				local v688_ = 0.015
-				v_u_631_(v686_, v687_, v618_, v688_, v659_.current.lowpassGain * v682_ / v659_.debugMaxLowPass, v659_.current.lowpassGain / v659_.debugMaxLowPass, string.format("%.2f", v659_.current.lowpassGain * v682_), 0, 0.5, 0.5, 0.4)
-				local v689_ = v686_ + v618_ + v618_ * 0.1
-				v655_(v689_, v687_, 1 - v689_ - 0.15, v688_, v659_, "lowpassGain")
+				renderText(x + xSectionWidth + xSectionWidth * 0.6, lineY + 0.06 - 0.015 - 0.0075, 0.015, "volume:")
+				renderText(x + xSectionWidth + xSectionWidth * 0.6, lineY + 0.06 - 0.03 - 0.0075, 0.015, "pitch:")
+				renderText(x + xSectionWidth + xSectionWidth * 0.6, lineY + 0.06 - 0.045 - 0.0075, 0.015, "lowpassGain:")
+				local modVolume = g_soundManager:getModifierFactor(sample, "volume")
+				sample.debugMaxVolume = math.max(sample.debugMaxVolume or 1, sample.current.volume * modVolume, sample.current.volume)
+				local barX = x + xSectionWidth + xSectionWidth * 0.7
+				local barY = lineY + 0.06 - 0.015 - 0.0075
+				local barW = xSectionWidth
+				local barH = 0.015
+				drawBar(barX, barY, barW, barH, sample.current.volume * modVolume / sample.debugMaxVolume, sample.current.volume / sample.debugMaxVolume, string.format("%.2f", sample.current.volume * modVolume), 0, 0.5, 0, 0.4)
+				local startX = barX + barW + xSectionWidth * 0.1
+				drawModifiers(startX, barY, 1 - startX - 0.15 - xSectionWidth * 0.1, barH, sample, "volume")
+				local modPitch = g_soundManager:getModifierFactor(sample, "pitch")
+				sample.debugMaxPitch = math.max(sample.debugMaxPitch or 1, sample.current.pitch * modPitch, sample.current.pitch)
+				barX = x + xSectionWidth + xSectionWidth * 0.7
+				barY = lineY + 0.06 - 0.03 - 0.0075
+				barW = xSectionWidth
+				barH = 0.015
+				drawBar(barX, barY, barW, barH, sample.current.pitch * modPitch / sample.debugMaxPitch, sample.current.pitch / sample.debugMaxPitch, string.format("%.2f", sample.current.pitch * modPitch), 0.5, 0.5, 0, 0.4)
+				startX = barX + barW + xSectionWidth * 0.1
+				drawModifiers(startX, barY, 1 - startX - 0.15, barH, sample, "pitch")
+				local modLowPassGain = g_soundManager:getModifierFactor(sample, "lowpassGain")
+				sample.debugMaxLowPass = math.max(sample.debugMaxLowPass or 1, sample.current.lowpassGain * modLowPassGain, sample.current.lowpassGain)
+				barX = x + xSectionWidth + xSectionWidth * 0.7
+				barY = lineY + 0.06 - 0.045 - 0.0075
+				barW = xSectionWidth
+				barH = 0.015
+				drawBar(barX, barY, barW, barH, sample.current.lowpassGain * modLowPassGain / sample.debugMaxLowPass, sample.current.lowpassGain / sample.debugMaxLowPass, string.format("%.2f", sample.current.lowpassGain * modLowPassGain), 0, 0.5, 0.5, 0.4)
+				startX = barX + barW + xSectionWidth * 0.1
+				drawModifiers(startX, barY, 1 - startX - 0.15, barH, sample, "lowpassGain")
 			end
-			v658_ = v658_ + 1
+			i = i + 1
 		end
 	end
-	local v690_ = vehicle.spec_wheels
-	if v690_ then
-		local v691_, v692_, v693_ = getWorldTranslation(vehicle.rootNode)
-		Utils.renderTextAtWorldPosition(v691_, v692_, v693_, string.format("surfaceSound: %s", v690_.currentSurfaceSound and v690_.currentSurfaceSound.sampleName or "none"), 0.01)
+	local wheelsSpec = vehicle.spec_wheels
+	if wheelsSpec then
+		local wx, wy, wz = getWorldTranslation(vehicle.rootNode)
+		Utils.renderTextAtWorldPosition(wx, wy, wz, string.format("surfaceSound: %s", wheelsSpec.currentSurfaceSound and wheelsSpec.currentSurfaceSound.sampleName or "none"), 0.01)
 	end
 	setTextAlignment(RenderText.ALIGN_LEFT)
 	VehicleDebug.drawMotorLoadGraph(vehicle, 0.2, 0.05, 0.25, 0.2)
 	VehicleDebug.drawMotorRPMGraph(vehicle, 0.55, 0.05, 0.25, 0.2)
 	VehicleDebug.drawMotorAccelerationGraph(vehicle, 0.2, 0.28, 0.25, 0.1)
 end
-
--- Local values: x, y, width, height, textSize, textSize2, timeLineOffset, timeLineWidth, lineHeight, lineHeightPart, numAnims, spec, _, animation, selected, i, lineY, name, animation, widthPerMs, divider, j, startLineY, k, _, animPartIndex, part, animValue, index, partName, headTextSize, headLineHeight, sampleTimesPerSample, j, sample, filename, times, sampleName, timesIndex, timeData, r, g, b, a, minX, maxX, rx, ry, rwidth, rheight, animPartIndex, part, animValue, index
 function VehicleDebug.drawAnimationDebug(vehicle)
 	if vehicle.playAnimation ~= nil then
-		local v695_ = 0.1 + g_pixelSizeX
-		local v696_ = 0.7 - v695_ - g_pixelSizeX * 2
-		local v697_ = vehicle.spec_animatedVehicle
-		local v698_ = 0
-		local v699_ = 0.05
-		local v700_ = 0.15
-		local v701_ = 0.0125
-		for _, v702_ in pairs(v697_.animations) do
-			if #v702_.parts > 0 then
-				v698_ = v698_ + 1
+		local x = 0.15
+		local y = 0.1
+		local width = 0.7
+		local height = 0.8
+		local textSize = 0.015
+		local textSize2 = 0.01
+		local timeLineOffset = 0.1 + g_pixelSizeX
+		local timeLineWidth = 0.7 - timeLineOffset - g_pixelSizeX * 2
+		local lineHeight = 0.05
+		local lineHeightPart = 0.0125
+		local numAnims = 0
+		local spec = vehicle.spec_animatedVehicle
+		for _, animation in pairs(spec.animations) do
+			if 0 < #animation.parts then
+				numAnims = numAnims + 1
 			end
 		end
-		local v703_ = VehicleDebug.selectedAnimation % v698_ + 1
+		local selected = VehicleDebug.selectedAnimation % numAnims + 1
 		setTextColor(1, 1, 1, 1)
-		local v704_ = 1
-		local v705_ = 0.9
-		for v706_, v707_ in pairs(v697_.animations) do
-			if #v707_.parts > 0 then
-				local v708_ = v705_ - 0.05
-				drawOutlineRect(0.15, v708_, 0.7, v699_ + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
-				drawFilledRect(0.15, v708_, 0.7, 0.05, 0, 0, 0, 0.4)
-				drawFilledRect(v700_ + v695_ - g_pixelSizeX, v708_, g_pixelSizeX, 0.05, 0, 0, 0, 1)
-				local v709_ = v696_ / v707_.duration
-				local v710_ = v707_.duration < 2000 and 500 or 1000
-				local v711_ = v707_.duration < 1000 and 100 or v710_
-				local v712_ = v707_.duration / v711_
-				for v713_ = 1, math.floor(v712_) do
-					if v713_ * v711_ ~= v707_.duration then
-						setTextAlignment(RenderText.ALIGN_CENTER)
-						renderText(v700_ + v695_ + v709_ * v713_ * v711_, v708_ + 0.025 - 0.005, 0.01, string.format("%.1f", v713_ * v711_ / 1000))
-						drawFilledRect(v700_ + v695_ + v709_ * v713_ * v711_, v708_, g_pixelSizeX, 0.015, 0, 0, 0, 1)
-					end
+		local i = 1
+		local lineY = 0.9
+		for name, animation in pairs(spec.animations) do
+			if 0 < #animation.parts then
+				lineY = lineY - 0.05
+				drawOutlineRect(0.15, lineY, 0.7, lineHeight + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
+				drawFilledRect(0.15, lineY, 0.7, 0.05, 0, 0, 0, 0.4)
+				drawFilledRect(x + timeLineOffset - g_pixelSizeX, lineY, g_pixelSizeX, 0.05, 0, 0, 0, 1)
+				local widthPerMs = timeLineWidth / animation.duration
+				local divider = 1000
+				if animation.duration < 2000 then
+					divider = 500
 				end
-				setTextBold(v703_ == v704_)
+				if animation.duration < 1000 then
+					divider = 100
+				end
+				for j = 1, math.floor(animation.duration / divider) do
+					if j * divider == animation.duration then
+						continue
+					end
+					setTextAlignment(RenderText.ALIGN_CENTER)
+					renderText(x + timeLineOffset + widthPerMs * j * divider, lineY + 0.025 - 0.005, 0.01, string.format("%.1f", j * divider / 1000))
+					drawFilledRect(x + timeLineOffset + widthPerMs * j * divider, lineY, g_pixelSizeX, 0.015, 0, 0, 0, 1)
+				end
+				setTextBold(selected == i)
 				setTextAlignment(RenderText.ALIGN_CENTER)
-				renderText(v700_ + v695_ * 0.5, v708_ + 0.025 - 0.0075, 0.015, v706_)
+				renderText(x + timeLineOffset * 0.5, lineY + 0.025 - 0.0075, 0.015, name)
 				setTextBold(false)
-				if v703_ == v704_ then
-					if v707_.lineHeightByPart == nil then
-						v707_.lineHeightByPart = {}
-						v705_ = v708_
+				local startLineY = lineY
+				if selected == i then
+					if animation.lineHeightByPart == nil then
+						animation.lineHeightByPart = {}
 					else
-						v705_ = v708_
-						for v714_, _ in pairs(v707_.lineHeightByPart) do
-							v707_.lineHeightByPart[v714_] = nil
+						for k, _ in pairs(animation.lineHeightByPart) do
+							animation.lineHeightByPart[k] = nil
 						end
 					end
-					for v715_ = 1, #v707_.parts do
-						local v716_ = v707_.parts[v715_].animationValues[1]
-						local v717_ = v716_.node or v716_.componentJoint
-						if v717_ ~= nil and v707_.lineHeightByPart[v717_] == nil then
-							v705_ = v705_ - 0.0125
-							drawOutlineRect(0.15, v705_, 0.7, v701_ + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
-							drawFilledRect(0.15, v705_, 0.7, 0.0125, 0, 0, 0, 0.2)
-							drawFilledRect(v700_ + v695_ - g_pixelSizeX, v705_, g_pixelSizeX, 0.0125, 0, 0, 0, 1)
-							local v718_ = "unknown"
-							if v716_.node == nil then
-								if v716_.componentJoint ~= nil then
-									v718_ = string.format("compJoint \'%d\'", v716_.componentJoint.index)
-								end
-							else
-								v718_ = string.format("node \'%s\'", getName(v716_.node))
+					for animPartIndex = 1, #animation.parts do
+						local part = animation.parts[animPartIndex]
+						local animValue = part.animationValues[1]
+						local index = animValue.node or animValue.componentJoint
+						if index == nil then
+							continue
+						end
+						if animation.lineHeightByPart[index] == nil then
+							lineY = lineY - 0.0125
+							drawOutlineRect(0.15, lineY, 0.7, lineHeightPart + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
+							drawFilledRect(0.15, lineY, 0.7, 0.0125, 0, 0, 0, 0.2)
+							drawFilledRect(x + timeLineOffset - g_pixelSizeX, lineY, g_pixelSizeX, 0.0125, 0, 0, 0, 1)
+							local partName = "unknown"
+							if animValue.node ~= nil then
+								partName = string.format("node '%s'", getName(animValue.node))
+							elseif animValue.componentJoint ~= nil then
+								partName = string.format("compJoint '%d'", animValue.componentJoint.index)
 							end
 							setTextAlignment(RenderText.ALIGN_CENTER)
-							renderText(v700_ + v695_ * 0.5, v705_ + 0.00625 - 0.005 + g_pixelSizeY * 2, 0.01, v718_)
-							v707_.lineHeightByPart[v717_] = v705_
+							renderText(x + timeLineOffset * 0.5, lineY + 0.00625 - 0.005 + g_pixelSizeY * 2, 0.01, partName)
+							animation.lineHeightByPart[index] = lineY
 						end
 					end
-					if #v707_.samples > 0 then
-						v705_ = v705_ - 0.018750000000000003
-						drawOutlineRect(0.15, v705_, 0.7, 0.018750000000000003 + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
-						drawFilledRect(0.15, v705_, 0.7, 0.018750000000000003, 0, 0, 0, 0.2)
+					if 0 < #animation.samples then
+						local headTextSize = 0.015
+						local headLineHeight = 0.018750000000000003
+						lineY = lineY - 0.018750000000000003
+						drawOutlineRect(0.15, lineY, 0.7, headLineHeight + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
+						drawFilledRect(0.15, lineY, 0.7, 0.018750000000000003, 0, 0, 0, 0.2)
 						setTextAlignment(RenderText.ALIGN_CENTER)
-						renderText(0.5, v705_ + 0.009375000000000001 - 0.0075 + g_pixelSizeY * 2, 0.015, "Sounds:")
+						renderText(0.5, lineY + 0.009375000000000001 - 0.0075 + g_pixelSizeY * 2, 0.015, "Sounds:")
 					end
-					local v719_ = {}
-					for v720_ = 1, #v707_.samples do
-						local v721_ = v707_.samples[v720_]
-						if v719_[v721_.filename] == nil then
-							v719_[v721_.filename] = {}
+					local sampleTimesPerSample = {}
+					for j = 1, #animation.samples do
+						local sample = animation.samples[j]
+						if sampleTimesPerSample[sample.filename] == nil then
+							sampleTimesPerSample[sample.filename] = {}
 						end
-						local v722_ = v719_[v721_.filename]
-						local v723_ = {
-							["sample"] = v721_,
-							["startTime"] = v721_.startTime,
-							["endTime"] = v721_.endTime,
-							["loops"] = v721_.loops,
-							["direction"] = v721_.direction
-						}
-						table.insert(v722_, v723_)
+						table.insert(sampleTimesPerSample[sample.filename], { sample = sample, startTime = sample.startTime, endTime = sample.endTime, loops = sample.loops, direction = sample.direction })
 					end
-					for _, v724_ in pairs(v719_) do
-						v705_ = v705_ - 0.0125
-						drawOutlineRect(0.15, v705_, 0.7, v701_ + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
-						drawFilledRect(0.15, v705_, 0.7, 0.0125, 0, 0, 0, 0.2)
-						drawFilledRect(v700_ + v695_ - g_pixelSizeX, v705_, g_pixelSizeX, 0.0125, 0, 0, 0, 1)
-						local v725_ = "unknown"
-						for v726_ = 1, #v724_ do
-							local v727_ = v724_[v726_]
-							v725_ = v727_.sample.templateName or v727_.sample.sampleName
-							local v728_ = 0
-							local v729_
-							if g_soundManager:getIsSamplePlaying(v727_.sample) then
-								v729_ = 1
-								if v727_.loops == 1 then
-									v728_ = 1
+					for filename, times in pairs(sampleTimesPerSample) do
+						lineY = lineY - 0.0125
+						drawOutlineRect(0.15, lineY, 0.7, lineHeightPart + g_pixelSizeY, g_pixelSizeX, g_pixelSizeY, 0, 0, 0, 1)
+						drawFilledRect(0.15, lineY, 0.7, 0.0125, 0, 0, 0, 0.2)
+						drawFilledRect(x + timeLineOffset - g_pixelSizeX, lineY, g_pixelSizeX, 0.0125, 0, 0, 0, 1)
+						local sampleName = "unknown"
+						for timesIndex = 1, #times do
+							local timeData = times[timesIndex]
+							sampleName = timeData.sample.templateName or timeData.sample.sampleName
+							local r = 0
+							local g = 0
+							local b = 0
+							local a = 0.9
+							if g_soundManager:getIsSamplePlaying(timeData.sample) then
+								g = 1
+								if timeData.loops == 1 then
+									r = 1
 								end
-							else
-								v729_ = 0
 							end
-							local v730_ = v700_ + v695_
-							local v731_ = 0
-							local v732_ = v705_ + 0.0012500000000000002 + g_pixelSizeY
-							local v733_ = 0
-							local v734_ = 0.010000000000000002 - g_pixelSizeY
-							if v727_.startTime == nil or v727_.endTime ~= nil then
-								if v727_.startTime == nil or (v727_.endTime == nil or v727_.loops ~= 0) then
-									if v727_.startTime ~= nil and (v727_.endTime ~= nil and v727_.loops == 1) then
-										local v735_ = v700_ + v695_ + v709_ * v727_.startTime - v709_ * 25
-										local v736_ = math.max(v730_, v735_)
-										local v737_ = v709_ * 50
-										local v738_ = 0.85 - (v736_ + v737_)
-										local v739_ = v737_ + math.min(v738_, 0)
-										drawFilledRect(v736_, v732_, v739_, v734_, v728_, v729_, 0, 0.9)
-										local v740_ = v700_ + v695_ + v709_ * v727_.endTime - v709_ * 25
-										v731_ = math.max(v730_, v740_)
-										local v741_ = v709_ * 50
-										local v742_ = 0.85 - (v731_ + v741_)
-										v733_ = v741_ + math.min(v742_, 0)
+							local minX = x + timeLineOffset
+							local maxX = 0.85
+							local rx = 0
+							local ry = lineY + 0.0012500000000000002 + g_pixelSizeY
+							local rwidth = 0
+							local rheight = 0.010000000000000002 - g_pixelSizeY
+							if timeData.startTime ~= nil then
+								if timeData.endTime == nil then
+									rx = math.max(minX, x + timeLineOffset + widthPerMs * timeData.startTime - widthPerMs * 25)
+									rwidth = widthPerMs * 50
+									rwidth = rwidth + math.min(0.85 - (rx + rwidth), 0)
+								elseif timeData.startTime ~= nil then
+									if timeData.endTime ~= nil then
+										if timeData.loops == 0 then
+											rx = x + timeLineOffset + widthPerMs * timeData.startTime + widthPerMs * 5
+											rwidth = widthPerMs * (timeData.endTime - timeData.startTime) - widthPerMs * 10
+										elseif timeData.startTime ~= nil then
+											if timeData.endTime ~= nil and timeData.loops == 1 then
+												rx = math.max(minX, x + timeLineOffset + widthPerMs * timeData.startTime - widthPerMs * 25)
+												rwidth = widthPerMs * 50
+												rwidth = rwidth + math.min(0.85 - (rx + rwidth), 0)
+												drawFilledRect(rx, ry, rwidth, rheight, r, g, 0, 0.9)
+												rx = math.max(minX, x + timeLineOffset + widthPerMs * timeData.endTime - widthPerMs * 25)
+												rwidth = widthPerMs * 50
+												rwidth = rwidth + math.min(0.85 - (rx + rwidth), 0)
+											end
+										end
 									end
-								else
-									v731_ = v700_ + v695_ + v709_ * v727_.startTime + v709_ * 5
-									v733_ = v709_ * (v727_.endTime - v727_.startTime) - v709_ * 10
 								end
-							else
-								local v743_ = v700_ + v695_ + v709_ * v727_.startTime - v709_ * 25
-								v731_ = math.max(v730_, v743_)
-								local v744_ = v709_ * 50
-								local v745_ = 0.85 - (v731_ + v744_)
-								v733_ = v744_ + math.min(v745_, 0)
 							end
-							drawFilledRect(v731_, v732_, v733_, v734_, v728_, v729_, 0, 0.9)
+							drawFilledRect(rx, ry, rwidth, rheight, r, g, 0, 0.9)
 						end
 						setTextAlignment(RenderText.ALIGN_CENTER)
-						renderText(v700_ + v695_ * 0.5, v705_ + 0.00625 - 0.005 + g_pixelSizeY * 2, 0.01, v725_)
+						renderText(x + timeLineOffset * 0.5, lineY + 0.00625 - 0.005 + g_pixelSizeY * 2, 0.01, sampleName)
 					end
-					for v746_ = 1, #v707_.parts do
-						local v747_ = v707_.parts[v746_]
-						local v748_ = v747_.animationValues[1]
-						local v749_ = v748_.node or v748_.componentJoint
-						if v749_ ~= nil then
-							drawFilledRect(v700_ + v695_ + v709_ * v747_.startTime, v707_.lineHeightByPart[v749_] + 0.0012500000000000002 + g_pixelSizeY, v709_ * v747_.duration, 0.010000000000000002 - g_pixelSizeY, 0, 0, 0, 0.9)
+					for animPartIndex = 1, #animation.parts do
+						local part = animation.parts[animPartIndex]
+						local animValue = part.animationValues[1]
+						local index = animValue.node or animValue.componentJoint
+						if index == nil then
+							continue
 						end
+						drawFilledRect(x + timeLineOffset + widthPerMs * part.startTime, animation.lineHeightByPart[index] + 0.0012500000000000002 + g_pixelSizeY, widthPerMs * part.duration, 0.010000000000000002 - g_pixelSizeY, 0, 0, 0, 0.9)
 					end
-				else
-					v705_ = v708_
 				end
-				drawFilledRect(v700_ + v695_ + v709_ * v707_.currentTime, v705_, g_pixelSizeX, v708_ - v705_ + 0.034999999999999996, 0, 1, 0, 1)
+				drawFilledRect(x + timeLineOffset + widthPerMs * animation.currentTime, lineY, g_pixelSizeX, startLineY - lineY + 0.034999999999999996, 0, 1, 0, 1)
 				setTextAlignment(RenderText.ALIGN_CENTER)
-				renderText(v700_ + v695_ + v709_ * v707_.currentTime, v705_ + (v708_ - v705_) + 0.045000000000000005 - 0.005, 0.01, string.format("%.2f", v707_.currentTime / 1000))
-				v704_ = v704_ + 1
+				renderText(x + timeLineOffset + widthPerMs * animation.currentTime, lineY + (startLineY - lineY) + 0.045000000000000005 - 0.005, 0.01, string.format("%.2f", animation.currentTime / 1000))
+				i = i + 1
 			end
 		end
 		setTextAlignment(RenderText.ALIGN_LEFT)
 	end
 end
-
--- Local values: visualWheelIndex, wheels, i, wheel, x, y, z, offset, _, visualWheel, _, visualWheelPart, ox, oy, oz, wx, wy, wz, cx, cy, cz, widthOffset
 function VehicleDebug.updateTuningDebugRendering(vehicle, dt)
 	if vehicle.propertyState == VehiclePropertyState.SHOP_CONFIG then
-		local v751_ = vehicle:getWheels()
-		local v752_ = 0
-		for v753_ = 1, #v751_ do
-			local v754_ = v751_[v753_]
-			local v755_, v756_, v757_ = getWorldTranslation(v751_[v753_].driveNodeDirectionNode)
-			local v758_
-			if v756_ < 50 then
-				v758_ = v756_ + 100
-			else
-				v758_ = v756_ - getTerrainHeightAtWorldPos(g_terrainNode, v755_, 0, v757_)
-			end
-			drawDebugLine(v755_, v756_ - v754_.physics.radius, v757_, 0, 1, 0, v755_, v756_, v757_, 0, 1, 0, false)
-			Utils.renderTextAtWorldPosition(v755_, v756_ - v754_.physics.radius * 0.5, v757_, string.format("%.3f", v758_), getCorrectTextSize(0.012), 0, 0, 1, 0, 1)
-			for _, v759_ in ipairs(v754_.visualWheels) do
-				for _, v760_ in ipairs(v759_.visualParts) do
-					if v760_:isa(WheelVisualPartTire) then
-						local v761_, v762_, v763_ = localToLocal(v760_.node, v754_.node, 0, 0, 0)
-						local v764_, v765_, v766_ = localToWorld(v760_.node, 0, 0, 0)
-						local v767_, v768_, v769_ = localToWorld(v754_.node, 0, v762_, v763_)
-						drawDebugLine(v764_, v765_, v766_, 1, 0, 0, v767_, v768_, v769_, 1, 0, 0, false)
-						Utils.renderTextAtWorldPosition(v764_, v765_, v766_, string.format("%.3f", math.abs(v761_) * 2), getCorrectTextSize(0.012), 0, 1, 0, 0, 1)
-						local v770_ = v759_.width * 0.5 * (v754_.isLeft and 1 or -1)
-						local v771_, _, _ = localToLocal(v760_.node, v754_.node, v770_, 0, 0)
-						local v772_, v773_, v774_ = localToWorld(v760_.node, v770_, 0, 0)
-						drawDebugLine(v772_, v773_ - 0.1, v774_, 0, 1, 1, v772_, v773_ + 0.1, v774_, 0, 1, 1, false)
-						Utils.renderTextAtWorldPosition(v772_, v773_, v774_, string.format("%.3f", math.abs(v771_) * 2), getCorrectTextSize(0.012), 0, 0, 1, 1, 1)
+		local visualWheelIndex = 0
+		local wheels = vehicle:getWheels()
+		for i = 1, #wheels do
+			local wheel = wheels[i]
+			local x, y, z = getWorldTranslation(wheels[i].driveNodeDirectionNode)
+			local offset = nil
+			offset = y < 50 and y + 100 or y - getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+			drawDebugLine(x, y - wheel.physics.radius, z, 0, 1, 0, x, y, z, 0, 1, 0, false)
+			Utils.renderTextAtWorldPosition(x, y - wheel.physics.radius * 0.5, z, string.format("%.3f", offset), getCorrectTextSize(0.012), 0, 0, 1, 0, 1)
+			for _, visualWheel in ipairs(wheel.visualWheels) do
+				for _, visualWheelPart in ipairs(visualWheel.visualParts) do
+					if visualWheelPart:isa(WheelVisualPartTire) then
+						local ox, oy, oz = localToLocal(visualWheelPart.node, wheel.node, 0, 0, 0)
+						local wx, wy, wz = localToWorld(visualWheelPart.node, 0, 0, 0)
+						local cx, cy, cz = localToWorld(wheel.node, 0, oy, oz)
+						drawDebugLine(wx, wy, wz, 1, 0, 0, cx, cy, cz, 1, 0, 0, false)
+						Utils.renderTextAtWorldPosition(wx, wy, wz, string.format("%.3f", math.abs(ox) * 2), getCorrectTextSize(0.012), 0, 1, 0, 0, 1)
+						local widthOffset = visualWheel.width * 0.5 * (wheel.isLeft and 1 or -1)
+						ox, oy, oz = localToLocal(visualWheelPart.node, wheel.node, widthOffset, 0, 0)
+						wx, wy, wz = localToWorld(visualWheelPart.node, widthOffset, 0, 0)
+						drawDebugLine(wx, wy - 0.1, wz, 0, 1, 1, wx, wy + 0.1, wz, 0, 1, 1, false)
+						Utils.renderTextAtWorldPosition(wx, wy, wz, string.format("%.3f", math.abs(ox) * 2), getCorrectTextSize(0.012), 0, 0, 1, 1, 1)
 					end
 				end
-				renderText(0.25, 0.1 + 0.02 * v752_, 0.018, string.format("%d - %s (%s)", v753_, v759_.externalXMLFilename, v759_.externalConfigId))
-				v752_ = v752_ + 1
+				renderText(0.25, 0.1 + 0.02 * visualWheelIndex, 0.018, string.format("%d - %s (%s)", i, visualWheel.externalXMLFilename, visualWheel.externalConfigId))
+				visualWheelIndex = visualWheelIndex + 1
 			end
 		end
 	end
 end
-
--- Local values: self, groundRaycastResult, i, attacherJoint, trx, try, trz, rx, ry, rz, rx2, ry2, rz2, x, y, z, _, dy, _, angle, _, dxy, _, _, dy, _, angle, _, dxy, _, sx, sy, sz, _, y, _, wx, wy, wz, i, wheel, _, comY, _, forcePointY, tireLoad, nx, ny, nz, dx, dy, dz, gravity
 function VehicleDebug.consoleCommandAnalyze(unusedSelf)
-	if g_currentMission == nil or (g_localPlayer:getCurrentVehicle() == nil or not g_localPlayer:getCurrentVehicle().isServer) then
-		return "Failed to analyze vehicle. Invalid controlled vehicle"
-	end
-	local v775_ = g_localPlayer:getCurrentVehicle():getSelectedVehicle()
-	if v775_ == nil then
-		v775_ = g_localPlayer:getCurrentVehicle()
-	end
-	print("Analyzing vehicle \'" .. v775_.configFileName .. "\'. Make sure vehicle is standing on a flat plane parallel to xz-plane")
-	local v779_ = {
-		["raycastCallback"] = function(p776_, p777_, _, _, _, p778_, _, _, _)
-			if p776_.vehicle.vehicleNodes[p777_] ~= nil then
+	if g_currentMission ~= nil and (g_localPlayer:getCurrentVehicle() ~= nil and g_localPlayer:getCurrentVehicle().isServer) then
+		local self = g_localPlayer:getCurrentVehicle():getSelectedVehicle()
+		if self == nil then
+			self = g_localPlayer:getCurrentVehicle()
+		end
+		print("Analyzing vehicle '" .. self.configFileName .. "'. Make sure vehicle is standing on a flat plane parallel to xz-plane")
+		local groundRaycastResult = {}
+		function groundRaycastResult:raycastCallback(transformId, x, y, z, distance, nx, ny, nz)
+			if self.vehicle.vehicleNodes[transformId] ~= nil then
 				return true
-			end
-			if p776_.vehicle.aiTrafficCollisionTrigger == p777_ then
+			elseif self.vehicle.aiTrafficCollisionTrigger == transformId then
 				return true
-			end
-			if p777_ ~= g_terrainNode then
-				printWarning("Warning: Vehicle is not standing on ground! " .. getName(p777_))
-			end
-			p776_.groundDistance = p778_
-			return false
-		end
-	}
-	if v775_.spec_attacherJoints ~= nil then
-		for v780_, v781_ in ipairs(v775_.spec_attacherJoints.attacherJoints) do
-			local v782_, v783_, v784_ = getRotation(v781_.jointTransform)
-			local v785_ = setRotation
-			local v786_ = v781_.jointTransform
-			local v787_ = v781_.jointOrigRot
-			v785_(v786_, unpack(v787_))
-			if v781_.rotationNode ~= nil or v781_.rotationNode2 ~= nil then
-				local v788_, v789_, v790_
-				if v781_.rotationNode == nil then
-					v788_ = nil
-					v789_ = nil
-					v790_ = nil
-				else
-					v788_, v789_, v790_ = getRotation(v781_.rotationNode)
+			else
+				if transformId ~= g_terrainNode then
+					printWarning("Warning: Vehicle is not standing on ground! " .. getName(transformId))
 				end
-				local v791_, v792_, v793_
-				if v781_.rotationNode2 == nil then
-					v791_ = nil
-					v792_ = nil
-					v793_ = nil
-				else
-					v791_, v792_, v793_ = getRotation(v781_.rotationNode2)
-				end
-				if v781_.rotationNode ~= nil then
-					local v794_ = setRotation
-					local v795_ = v781_.rotationNode
-					local v796_ = v781_.lowerRotation
-					v794_(v795_, unpack(v796_))
-				end
-				if v781_.rotationNode2 ~= nil then
-					local v797_ = setRotation
-					local v798_ = v781_.rotationNode2
-					local v799_ = v781_.lowerRotation2
-					v797_(v798_, unpack(v799_))
-				end
-				local v800_, v801_, v802_ = getWorldTranslation(v781_.jointTransform)
-				v779_.groundDistance = 0
-				v779_.vehicle = v775_
-				raycastAll(v800_, v801_, v802_, 0, -1, 0, 4, "raycastCallback", v779_, 4294967295)
-				local v803_ = v779_.groundDistance - v781_.lowerDistanceToGround
-				if math.abs(v803_) > 0.01 then
-					print(string.format(" Issue found: Attacher joint %d has invalid lowerDistanceToGround. True value is: %.3f (Value in xml: %.3f)", v780_, MathUtil.round(v779_.groundDistance, 3), v781_.lowerDistanceToGround))
-				end
-				if v781_.rotationNode ~= nil and v781_.rotationNode2 ~= nil then
-					local _, v804_, _ = localDirectionToWorld(v781_.jointTransform, 0, 1, 0)
-					local v805_ = math.clamp(v804_, -1, 1)
-					local v806_ = math.acos(v805_)
-					local v807_ = math.deg(v806_)
-					local _, v808_, _ = localDirectionToWorld(v781_.jointTransform, 1, 0, 0)
-					if v808_ < 0 then
-						v807_ = -v807_
-					end
-					local v809_ = v781_.lowerRotationOffset
-					local v810_ = v807_ - math.deg(v809_)
-					if math.abs(v810_) > 0.05 then
-						local v811_ = print
-						local v812_ = string.format
-						local v813_ = v781_.lowerRotationOffset
-						v811_(v812_(" Issue found: Attacher joint %d has invalid lowerRotationOffset. True value is: %.2f\194\176 (Value in xml: %.2f\194\176)", v780_, v807_, (math.deg(v813_))))
-					end
-				end
-				if v781_.rotationNode ~= nil then
-					local v814_ = setRotation
-					local v815_ = v781_.rotationNode
-					local v816_ = v781_.upperRotation
-					v814_(v815_, unpack(v816_))
-				end
-				if v781_.rotationNode2 ~= nil then
-					local v817_ = setRotation
-					local v818_ = v781_.rotationNode2
-					local v819_ = v781_.upperRotation2
-					v817_(v818_, unpack(v819_))
-				end
-				local v820_, v821_, v822_ = getWorldTranslation(v781_.jointTransform)
-				v779_.groundDistance = 0
-				raycastAll(v820_, v821_, v822_, 0, -1, 0, 4, "raycastCallback", v779_, 4294967295)
-				local v823_ = v779_.groundDistance - v781_.upperDistanceToGround
-				if math.abs(v823_) > 0.01 then
-					print(string.format(" Issue found: Attacher joint %d has invalid upperDistanceToGround. True value is: %.3f (Value in xml: %.3f)", v780_, MathUtil.round(v779_.groundDistance, 3), v781_.upperDistanceToGround))
-				end
-				if v781_.rotationNode ~= nil and v781_.rotationNode2 ~= nil then
-					local _, v824_, _ = localDirectionToWorld(v781_.jointTransform, 0, 1, 0)
-					local v825_ = math.clamp(v824_, -1, 1)
-					local v826_ = math.acos(v825_)
-					local v827_ = math.deg(v826_)
-					local _, v828_, _ = localDirectionToWorld(v781_.jointTransform, 1, 0, 0)
-					if v828_ < 0 then
-						v827_ = -v827_
-					end
-					local v829_ = v781_.upperRotationOffset
-					local v830_ = v827_ - math.deg(v829_)
-					if math.abs(v830_) > 0.05 then
-						local v831_ = print
-						local v832_ = string.format
-						local v833_ = v781_.upperRotationOffset
-						v831_(v832_(" Issue found: Attacher joint %d has invalid upperRotationOffset. True value is: %.2f\194\176 (Value in xml: %.2f\194\176)", v780_, v827_, (math.deg(v833_))))
-					end
-				end
-				if v781_.rotationNode ~= nil then
-					setRotation(v781_.rotationNode, v788_, v789_, v790_)
-				end
-				if v781_.rotationNode2 ~= nil then
-					setRotation(v781_.rotationNode2, v791_, v792_, v793_)
-				end
-			end
-			setRotation(v781_.jointTransform, v782_, v783_, v784_)
-			if v781_.transNode ~= nil then
-				local v834_, v835_, v836_ = getTranslation(v781_.transNode)
-				local _, v837_, _ = localToLocal(v781_.rootNode, getParent(v781_.transNode), 0, v781_.transNodeMinY, 0)
-				setTranslation(v781_.transNode, v834_, v837_, v836_)
-				v779_.groundDistance = 0
-				v779_.vehicle = v775_
-				local v838_, v839_, v840_ = getWorldTranslation(v781_.transNode)
-				raycastAll(v838_, v839_, v840_, 0, -1, 0, 4, "raycastCallback", v779_, 4294967295)
-				local v841_ = v779_.groundDistance - v781_.lowerDistanceToGround
-				if math.abs(v841_) > 0.02 then
-					print(string.format(" Issue found: Attacher joint %d has invalid lowerDistanceToGround. True value is: %.3f (Value in xml: %.3f)", v780_, MathUtil.round(v779_.groundDistance, 3), v781_.lowerDistanceToGround))
-				end
-				local _, v842_, _ = localToLocal(v781_.rootNode, getParent(v781_.transNode), 0, v781_.transNodeMaxY, 0)
-				setTranslation(v781_.transNode, v834_, v842_, v836_)
-				v779_.groundDistance = 0
-				local v843_, v844_, v845_ = getWorldTranslation(v781_.transNode)
-				raycastAll(v843_, v844_, v845_, 0, -1, 0, 4, "raycastCallback", v779_, 4294967295)
-				local v846_ = v779_.groundDistance - v781_.upperDistanceToGround
-				if math.abs(v846_) > 0.02 then
-					print(string.format(" Issue found: Attacher joint %d has invalid upperDistanceToGround. True value is: %.3f (Value in xml: %.3f)", v780_, MathUtil.round(v779_.groundDistance, 3), v781_.upperDistanceToGround))
-				end
-				setTranslation(v781_.transNode, v834_, v835_, v836_)
+				self.groundDistance = distance
+				return false
 			end
 		end
+		if self.spec_attacherJoints ~= nil then
+			for i, attacherJoint in ipairs(self.spec_attacherJoints.attacherJoints) do
+				local trx, try, trz = getRotation(attacherJoint.jointTransform)
+				setRotation(attacherJoint.jointTransform, unpack(attacherJoint.jointOrigRot))
+				if attacherJoint.rotationNode ~= nil or attacherJoint.rotationNode2 ~= nil then
+					local rx = nil
+					local ry = nil
+					local rz = nil
+					if attacherJoint.rotationNode ~= nil then
+						rx, ry, rz = getRotation(attacherJoint.rotationNode)
+					end
+					local rx2 = nil
+					local ry2 = nil
+					local rz2 = nil
+					if attacherJoint.rotationNode2 ~= nil then
+						rx2, ry2, rz2 = getRotation(attacherJoint.rotationNode2)
+					end
+					if attacherJoint.rotationNode ~= nil then
+						setRotation(attacherJoint.rotationNode, unpack(attacherJoint.lowerRotation))
+					end
+					if attacherJoint.rotationNode2 ~= nil then
+						setRotation(attacherJoint.rotationNode2, unpack(attacherJoint.lowerRotation2))
+					end
+					local x, y, z = getWorldTranslation(attacherJoint.jointTransform)
+					groundRaycastResult.groundDistance = 0
+					groundRaycastResult.vehicle = self
+					raycastAll(x, y, z, 0, -1, 0, 4, "raycastCallback", groundRaycastResult, 4294967295)
+					if 0.01 < math.abs(groundRaycastResult.groundDistance - attacherJoint.lowerDistanceToGround) then
+						print(string.format(" Issue found: Attacher joint %d has invalid lowerDistanceToGround. True value is: %.3f (Value in xml: %.3f)", i, MathUtil.round(groundRaycastResult.groundDistance, 3), attacherJoint.lowerDistanceToGround))
+					end
+					if attacherJoint.rotationNode ~= nil and attacherJoint.rotationNode2 ~= nil then
+						local _, dy, _ = localDirectionToWorld(attacherJoint.jointTransform, 0, 1, 0)
+						local angle = math.deg(math.acos(math.clamp(dy, -1, 1)))
+						local _, dxy, _ = localDirectionToWorld(attacherJoint.jointTransform, 1, 0, 0)
+						if dxy < 0 then
+							angle = -angle
+						end
+						if 0.05 < math.abs(angle - math.deg(attacherJoint.lowerRotationOffset)) then
+							print(string.format(" Issue found: Attacher joint %d has invalid lowerRotationOffset. True value is: %.2f\194\176 (Value in xml: %.2f\194\176)", i, angle, math.deg(attacherJoint.lowerRotationOffset)))
+						end
+					end
+					if attacherJoint.rotationNode ~= nil then
+						setRotation(attacherJoint.rotationNode, unpack(attacherJoint.upperRotation))
+					end
+					if attacherJoint.rotationNode2 ~= nil then
+						setRotation(attacherJoint.rotationNode2, unpack(attacherJoint.upperRotation2))
+					end
+					x, y, z = getWorldTranslation(attacherJoint.jointTransform)
+					groundRaycastResult.groundDistance = 0
+					raycastAll(x, y, z, 0, -1, 0, 4, "raycastCallback", groundRaycastResult, 4294967295)
+					if 0.01 < math.abs(groundRaycastResult.groundDistance - attacherJoint.upperDistanceToGround) then
+						print(string.format(" Issue found: Attacher joint %d has invalid upperDistanceToGround. True value is: %.3f (Value in xml: %.3f)", i, MathUtil.round(groundRaycastResult.groundDistance, 3), attacherJoint.upperDistanceToGround))
+					end
+					if attacherJoint.rotationNode ~= nil and attacherJoint.rotationNode2 ~= nil then
+						local _, dy, _ = localDirectionToWorld(attacherJoint.jointTransform, 0, 1, 0)
+						local angle = math.deg(math.acos(math.clamp(dy, -1, 1)))
+						local _, dxy, _ = localDirectionToWorld(attacherJoint.jointTransform, 1, 0, 0)
+						if dxy < 0 then
+							angle = -angle
+						end
+						if 0.05 < math.abs(angle - math.deg(attacherJoint.upperRotationOffset)) then
+							print(string.format(" Issue found: Attacher joint %d has invalid upperRotationOffset. True value is: %.2f\194\176 (Value in xml: %.2f\194\176)", i, angle, math.deg(attacherJoint.upperRotationOffset)))
+						end
+					end
+					if attacherJoint.rotationNode ~= nil then
+						setRotation(attacherJoint.rotationNode, rx, ry, rz)
+					end
+					if attacherJoint.rotationNode2 ~= nil then
+						setRotation(attacherJoint.rotationNode2, rx2, ry2, rz2)
+					end
+				end
+				setRotation(attacherJoint.jointTransform, trx, try, trz)
+				if attacherJoint.transNode == nil then
+					continue
+				end
+				local sx, sy, sz = getTranslation(attacherJoint.transNode)
+				local _, y, _ = localToLocal(attacherJoint.rootNode, getParent(attacherJoint.transNode), 0, attacherJoint.transNodeMinY, 0)
+				setTranslation(attacherJoint.transNode, sx, y, sz)
+				groundRaycastResult.groundDistance = 0
+				groundRaycastResult.vehicle = self
+				local wx, wy, wz = getWorldTranslation(attacherJoint.transNode)
+				raycastAll(wx, wy, wz, 0, -1, 0, 4, "raycastCallback", groundRaycastResult, 4294967295)
+				if 0.02 < math.abs(groundRaycastResult.groundDistance - attacherJoint.lowerDistanceToGround) then
+					print(string.format(" Issue found: Attacher joint %d has invalid lowerDistanceToGround. True value is: %.3f (Value in xml: %.3f)", i, MathUtil.round(groundRaycastResult.groundDistance, 3), attacherJoint.lowerDistanceToGround))
+				end
+				_, y, _ = localToLocal(attacherJoint.rootNode, getParent(attacherJoint.transNode), 0, attacherJoint.transNodeMaxY, 0)
+				setTranslation(attacherJoint.transNode, sx, y, sz)
+				groundRaycastResult.groundDistance = 0
+				wx, wy, wz = getWorldTranslation(attacherJoint.transNode)
+				raycastAll(wx, wy, wz, 0, -1, 0, 4, "raycastCallback", groundRaycastResult, 4294967295)
+				if 0.02 < math.abs(groundRaycastResult.groundDistance - attacherJoint.upperDistanceToGround) then
+					print(string.format(" Issue found: Attacher joint %d has invalid upperDistanceToGround. True value is: %.3f (Value in xml: %.3f)", i, MathUtil.round(groundRaycastResult.groundDistance, 3), attacherJoint.upperDistanceToGround))
+				end
+				setTranslation(attacherJoint.transNode, sx, sy, sz)
+			end
+		end
+		if self.spec_wheels ~= nil then
+			for i, wheel in ipairs(self.spec_wheels.wheels) do
+				if wheel.physics.wheelShapeCreated then
+					local _, comY, _ = getCenterOfMass(wheel.node)
+					local forcePointY = wheel.physics.positionY + wheel.physics.deltaY - wheel.physics.radius * wheel.physics.forcePointRatio
+					if comY < forcePointY then
+						print(string.format(" Issue found: Wheel %d has force point higher than center of mass. %.2f > %.2f. This can lead to undesired driving behavior (inward-leaning).", i, forcePointY, comY))
+					end
+					local tireLoad = getWheelShapeContactForce(wheel.node, wheel.physics.wheelShape)
+					if tireLoad == nil then
+						continue
+					end
+					local nx, ny, nz = getWheelShapeContactNormal(wheel.node, wheel.physics.wheelShape)
+					local dx, dy, dz = localDirectionToWorld(wheel.node, 0, -1, 0)
+					tireLoad = -tireLoad * MathUtil.dotProduct(dx, dy, dz, nx, ny, nz)
+					local gravity = 9.81
+					tireLoad = tireLoad + math.max(ny * 9.81, 0) * wheel:getMass()
+					tireLoad = tireLoad / 9.81
+					if 0.2 < math.abs(tireLoad - wheel.physics.restLoad) then
+						print(string.format(" Issue found: Wheel %d has wrong restLoad. %.2f vs. %.2f in XML. Verify that this leads to the desired behavior.", i, tireLoad, wheel.physics.restLoad))
+					end
+				end
+			end
+		end
+		return "Analyzed vehicle"
 	end
-	if v775_.spec_wheels ~= nil then
-		for v847_, v848_ in ipairs(v775_.spec_wheels.wheels) do
-			if v848_.physics.wheelShapeCreated then
-				local _, v849_, _ = getCenterOfMass(v848_.node)
-				local v850_ = v848_.physics.positionY + v848_.physics.deltaY - v848_.physics.radius * v848_.physics.forcePointRatio
-				if v849_ < v850_ then
-					print(string.format(" Issue found: Wheel %d has force point higher than center of mass. %.2f > %.2f. This can lead to undesired driving behavior (inward-leaning).", v847_, v850_, v849_))
-				end
-				local v851_ = getWheelShapeContactForce(v848_.node, v848_.physics.wheelShape)
-				if v851_ ~= nil then
-					local v852_, v853_, v854_ = getWheelShapeContactNormal(v848_.node, v848_.physics.wheelShape)
-					local v855_, v856_, v857_ = localDirectionToWorld(v848_.node, 0, -1, 0)
-					local v858_ = -v851_ * MathUtil.dotProduct(v855_, v856_, v857_, v852_, v853_, v854_)
-					local v859_ = v853_ * 9.81
-					local v860_ = (v858_ + math.max(v859_, 0) * v848_:getMass()) / 9.81
-					local v861_ = v860_ - v848_.physics.restLoad
-					if math.abs(v861_) > 0.2 then
-						print(string.format(" Issue found: Wheel %d has wrong restLoad. %.2f vs. %.2f in XML. Verify that this leads to the desired behavior.", v847_, v860_, v848_.physics.restLoad))
-					end
-				end
-			end
-		end
-	end
-	return "Analyzed vehicle"
+	return "Failed to analyze vehicle. Invalid controlled vehicle"
 end
-
--- Local values: vehicle, attacherVehicle, implement, jointDescIndex, jointDesc
 function VehicleDebug:moveUpperRotation(actionName, inputValue, callbackState, isAnalog)
 	if VehicleDebug.currentAttacherJointVehicle ~= nil and inputValue ~= 0 then
-		local v863_ = VehicleDebug.currentAttacherJointVehicle
-		if v863_.getAttacherVehicle ~= nil then
-			local v864_ = v863_:getAttacherVehicle()
-			if v864_ ~= nil then
-				local v865_ = v864_:getImplementByObject(v863_)
-				if v865_ ~= nil then
-					local v866_ = v865_.jointDescIndex
-					local v867_ = v864_.spec_attacherJoints.attacherJoints[v866_]
-					if v867_.rotationNode ~= nil then
-						local v868_ = v867_.upperRotation
-						local v869_ = v867_.upperRotation[1]
-						local v870_ = inputValue * 0.002 * 16
-						v868_[1] = v869_ + math.rad(v870_)
-						v867_.moveAlpha = v867_.moveAlpha - 0.001
-						local v871_ = print
-						local v872_ = v867_.upperRotation[1]
-						v871_("upperRotation: " .. math.deg(v872_))
+		local vehicle = VehicleDebug.currentAttacherJointVehicle
+		if vehicle.getAttacherVehicle ~= nil then
+			local attacherVehicle = vehicle:getAttacherVehicle()
+			if attacherVehicle ~= nil then
+				local implement = attacherVehicle:getImplementByObject(vehicle)
+				if implement ~= nil then
+					local jointDescIndex = implement.jointDescIndex
+					local jointDesc = attacherVehicle.spec_attacherJoints.attacherJoints[jointDescIndex]
+					if jointDesc.rotationNode ~= nil then
+						jointDesc.upperRotation[1] = jointDesc.upperRotation[1] + math.rad(inputValue * 0.002 * 16)
+						jointDesc.moveAlpha = jointDesc.moveAlpha - 0.001
+						print("upperRotation: " .. math.deg(jointDesc.upperRotation[1]))
 					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: vehicle, attacherVehicle, implement, jointDescIndex, jointDesc
 function VehicleDebug:moveLowerRotation(actionName, inputValue, callbackState, isAnalog)
 	if VehicleDebug.currentAttacherJointVehicle ~= nil and inputValue ~= 0 then
-		local v874_ = VehicleDebug.currentAttacherJointVehicle
-		if v874_.getAttacherVehicle ~= nil then
-			local v875_ = v874_:getAttacherVehicle()
-			if v875_ ~= nil then
-				local v876_ = v875_:getImplementByObject(v874_)
-				if v876_ ~= nil then
-					local v877_ = v876_.jointDescIndex
-					local v878_ = v875_.spec_attacherJoints.attacherJoints[v877_]
-					if v878_.rotationNode ~= nil then
-						local v879_ = v878_.lowerRotation
-						local v880_ = v878_.lowerRotation[1]
-						local v881_ = inputValue * 0.002 * 16
-						v879_[1] = v880_ + math.rad(v881_)
-						v878_.moveAlpha = v878_.moveAlpha - 0.001
-						local v882_ = print
-						local v883_ = v878_.lowerRotation[1]
-						v882_("lowerRotation: " .. math.deg(v883_))
+		local vehicle = VehicleDebug.currentAttacherJointVehicle
+		if vehicle.getAttacherVehicle ~= nil then
+			local attacherVehicle = vehicle:getAttacherVehicle()
+			if attacherVehicle ~= nil then
+				local implement = attacherVehicle:getImplementByObject(vehicle)
+				if implement ~= nil then
+					local jointDescIndex = implement.jointDescIndex
+					local jointDesc = attacherVehicle.spec_attacherJoints.attacherJoints[jointDescIndex]
+					if jointDesc.rotationNode ~= nil then
+						jointDesc.lowerRotation[1] = jointDesc.lowerRotation[1] + math.rad(inputValue * 0.002 * 16)
+						jointDesc.moveAlpha = jointDesc.moveAlpha - 0.001
+						print("lowerRotation: " .. math.deg(jointDesc.lowerRotation[1]))
 					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: exportVehicleScenegraph, vehicle, i
 function VehicleDebug.consoleCommandExportScenegraph(unusedSelf, animationName, animationTime, additionalName)
-	local function v_u_923_(p_u_887_)
-		-- upvalues: (copy) additionalName
-		local v888_ = getTimeSec()
-		local v889_ = additionalName or ""
-		local v890_ = string.format(getUserProfileAppPath() .. "scenegraph_%s%s.xml", p_u_887_.configFileNameClean, (tostring(v889_)))
-		local v_u_891_ = XMLFile.create("scenegraph", v890_, "scenegraph", nil)
-		local function v_u_917_(p892_, p893_, p894_, p895_, p896_)
-			-- upvalues: (copy) v_u_891_, (copy) p_u_887_, (copy) v_u_917_
-			local v897_ = p894_ .. string.format("(%d)", p895_)
-			v_u_891_:setString(v897_ .. "#name", getName(p892_))
-			v_u_891_:setString(v897_ .. "#indexPath", p893_)
-			local v898_, v899_, v900_ = getTranslation(p892_)
-			v_u_891_:setString(v897_ .. "#translation", v898_ .. " " .. v899_ .. " " .. v900_)
-			local v901_, v902_, v903_ = getRotation(p892_)
-			v_u_891_:setString(v897_ .. "#rotation", math.deg(v901_) .. " " .. math.deg(v902_) .. " " .. math.deg(v903_))
-			if p896_ ~= nil then
-				v_u_891_:setFloat(v897_ .. "#mass", p_u_887_:getComponentMass(p896_))
+	local exportVehicleScenegraph = function(vehicle)
+		local startTime = getTimeSec()
+		local filename = string.format(getUserProfileAppPath() .. "scenegraph_%s%s.xml", vehicle.configFileNameClean, tostring(additionalName or ""))
+		local xmlFile = XMLFile.create("scenegraph", filename, "scenegraph", nil)
+		local function exportScenegraph(node, indexPath, key, index, component)
+			key = key .. string.format("(%d)", index)
+			xmlFile:setString(key .. "#name", getName(node))
+			xmlFile:setString(key .. "#indexPath", indexPath)
+			local x, y, z = getTranslation(node)
+			xmlFile:setString(key .. "#translation", x .. " " .. y .. " " .. z)
+			local rx, ry, rz = getRotation(node)
+			xmlFile:setString(key .. "#rotation", math.deg(rx) .. " " .. math.deg(ry) .. " " .. math.deg(rz))
+			if component ~= nil then
+				xmlFile:setFloat(key .. "#mass", vehicle:getComponentMass(component))
 			end
-			local v904_ = getNumOfChildren(p892_)
-			if v904_ > 0 then
-				local v905_ = 0
-				local v906_ = 0
-				local v907_ = 0
-				local v908_ = 0
-				for v909_ = 1, v904_ do
-					local v910_ = getChildAt(p892_, v909_ - 1)
-					local v911_
-					if p893_ == nil then
-						v911_ = "" .. v909_ - 1
+			local numChildren = getNumOfChildren(node)
+			if 0 < numChildren then
+				local indexNode = 0
+				local indexShape = 0
+				local indexLight = 0
+				local indexTransform = 0
+				for i = 1, numChildren do
+					local child = getChildAt(node, i - 1)
+					local childPath = nil
+					if indexPath == nil then
+						childPath = "" .. i - 1
 					else
-						v911_ = p893_ .. "|" .. v909_ - 1
+						childPath = indexPath .. "|" .. i - 1
 					end
-					local _ = v909_ - 1
-					local v912_ = ".Node"
-					local v913_
-					if getHasClassId(v910_, ClassIds.SHAPE) then
-						v913_ = v906_ + 1
-						v912_ = ".Shape"
-					elseif getHasClassId(v910_, ClassIds.LIGHT_SOURCE) then
-						local v914_ = v907_ + 1
-						v913_ = v906_
-						v906_ = v907_
-						v907_ = v914_
-						v912_ = ".Light"
-					elseif getHasClassId(v910_, ClassIds.TRANSFORM_GROUP) then
-						local v915_ = v908_ + 1
-						v913_ = v906_
-						v906_ = v908_
-						v908_ = v915_
-						v912_ = ".TransformGroup"
+					local keyIndex = i - 1
+					local keyName = ".Node"
+					if getHasClassId(child, ClassIds.SHAPE) then
+						keyName = ".Shape"
+						keyIndex = indexShape
+						indexShape = indexShape + 1
+					elseif getHasClassId(child, ClassIds.LIGHT_SOURCE) then
+						keyName = ".Light"
+						keyIndex = indexLight
+						indexLight = indexLight + 1
+					elseif getHasClassId(child, ClassIds.TRANSFORM_GROUP) then
+						keyName = ".TransformGroup"
+						keyIndex = indexTransform
+						indexTransform = indexTransform + 1
 					else
-						local v916_ = v905_ + 1
-						v913_ = v906_
-						v906_ = v905_
-						v905_ = v916_
+						keyIndex = indexNode
+						indexNode = indexNode + 1
 					end
-					v_u_917_(v910_, v911_, v897_ .. v912_, v906_, nil)
-					v906_ = v913_
+					exportScenegraph(child, childPath, key .. keyName, keyIndex, nil)
 				end
 			end
 		end
-		for v918_, v919_ in ipairs(p_u_887_.components) do
-			local v920_ = v919_.node
-			local v921_ = v918_ - 1
-			v_u_917_(v920_, tostring(v921_) .. ">", "scenegraph.Shape", v918_ - 1, v919_)
+		for i, component in ipairs(vehicle.components) do
+			exportScenegraph(component.node, tostring(i - 1) .. ">", "scenegraph.Shape", i - 1, component)
 		end
-		v_u_891_:save()
-		v_u_891_:delete()
-		local v922_ = getTimeSec()
-		Logging.info("Exported \'%s\' in %.1fms", v890_, (v922_ - v888_) * 1000)
+		xmlFile:save()
+		xmlFile:delete()
+		local endTime = getTimeSec()
+		Logging.info("Exported '%s' in %.1fms", filename, (endTime - startTime) * 1000)
 	end
-	if animationName == nil or animationTime == nil then
-		if g_currentMission ~= nil and g_localPlayer ~= nil then
-			local v924_ = g_localPlayer:getCurrentVehicle()
-			if v924_ == nil then
-				Logging.error("Please enter vehicle first!")
-			else
-				for v925_ = 1, #v924_.childVehicles do
-					v_u_923_(v924_.childVehicles[v925_])
+	if animationName ~= nil then
+		if animationTime ~= nil then
+			animationTime = tonumber(animationTime)
+			if VehicleDebug.defaultUpdateAnimationFunc == nil then
+				VehicleDebug.defaultUpdateAnimationFunc = AnimatedVehicle.updateAnimation
+			end
+			function AnimatedVehicle:updateAnimation(anim, dtToUse, stopAnim, fixedTimeUpdate, playSounds, ...)
+				VehicleDebug.defaultUpdateAnimationFunc(self, anim, dtToUse, stopAnim, fixedTimeUpdate, playSounds, ...)
+				if anim.name == animationName and ((0 >= anim.currentSpeed or not (animationTime < anim.currentTime)) and (anim.currentSpeed < 0 and anim.currentTime < animationTime)) then
+					exportVehicleScenegraph(self)
+					AnimatedVehicle.updateAnimation = VehicleDebug.defaultUpdateAnimationFunc
+					VehicleDebug.defaultUpdateAnimationFunc = nil
 				end
 			end
-		end
-	else
-		local v_u_926_ = tonumber(animationTime)
-		if VehicleDebug.defaultUpdateAnimationFunc == nil then
-			VehicleDebug.defaultUpdateAnimationFunc = AnimatedVehicle.updateAnimation
-		end
-		function AnimatedVehicle.updateAnimation(p927_, p928_, p929_, p930_, p931_, p932_, ...)
-			-- upvalues: (copy) animationName, (ref) v_u_926_, (copy) v_u_923_
-			VehicleDebug.defaultUpdateAnimationFunc(p927_, p928_, p929_, p930_, p931_, p932_, ...)
-			if p928_.name == animationName and (p928_.currentSpeed > 0 and v_u_926_ < p928_.currentTime or p928_.currentSpeed < 0 and p928_.currentTime < v_u_926_) then
-				v_u_923_(p927_)
-				AnimatedVehicle.updateAnimation = VehicleDebug.defaultUpdateAnimationFunc
-				VehicleDebug.defaultUpdateAnimationFunc = nil
+		elseif g_currentMission ~= nil then
+			if g_localPlayer ~= nil then
+				local vehicle = g_localPlayer:getCurrentVehicle()
+				if vehicle ~= nil then
+					for i = 1, #vehicle.childVehicles do
+						exportVehicleScenegraph(vehicle.childVehicles[i])
+					end
+				else
+					Logging.error("Please enter vehicle first!")
+				end
 			end
 		end
 	end
 end
-
 function VehicleDebug.drawDebugAttacherJoints(vehicle)
 	VehicleDebug.currentAttacherJointVehicle = vehicle
 end
 function VehicleDebug.consoleCommandMergeGroupDebug()
-	local function v_u_939_(p934_)
-		-- upvalues: (copy) v_u_939_
-		if getHasClassId(p934_, ClassIds.SHAPE) then
-			local _, v935_ = getShapeIsSkinned(p934_)
-			if v935_ then
-				if getHasShaderParameter(p934_, "colorScale") then
-					local v936_ = VehicleMaterial.new()
-					v936_:setTemplateName("plasticPainted")
-					v936_:setColor(0, math.random(), math.random())
-					v936_:apply(p934_)
+	local function visualizeMergeGroupsRec(node)
+		if getHasClassId(node, ClassIds.SHAPE) then
+			local _, isSkinnedSingleWeight = getShapeIsSkinned(node)
+			if isSkinnedSingleWeight then
+				if getHasShaderParameter(node, "colorScale") then
+					local material = VehicleMaterial.new()
+					material:setTemplateName("plasticPainted")
+					material:setColor(0, math.random(), math.random())
+					material:apply(node)
 				end
-			elseif getHasShaderParameter(p934_, "colorScale") then
-				local v937_ = VehicleMaterial.new()
-				v937_:setTemplateName("plasticPainted")
-				v937_:setColor(1, 0, 0)
-				v937_:apply(p934_)
+			elseif getHasShaderParameter(node, "colorScale") then
+				local material = VehicleMaterial.new()
+				material:setTemplateName("plasticPainted")
+				material:setColor(1, 0, 0)
+				material:apply(node)
 			end
 		end
-		for v938_ = 0, getNumOfChildren(p934_) - 1 do
-			v_u_939_(getChildAt(p934_, v938_))
+		local numChildren = getNumOfChildren(node)
+		for i = 0, numChildren - 1 do
+			visualizeMergeGroupsRec(getChildAt(node, i))
 		end
 	end
 	if g_gui.currentGuiName == "ShopConfigScreen" then
-		for _, v940_ in pairs(g_shopConfigScreen.previewVehicles) do
-			for _, v941_ in ipairs(v940_.components) do
-				v_u_939_(v941_.node)
+		for _, loadedVehicle in pairs(g_shopConfigScreen.previewVehicles) do
+			for _, component in ipairs(loadedVehicle.components) do
+				visualizeMergeGroupsRec(component.node)
 			end
 		end
 	end
 	if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-		local v942_ = g_localPlayer:getCurrentVehicle()
-		for v943_ = 1, #v942_.childVehicles do
-			for _, v944_ in ipairs(v942_.childVehicles[v943_].components) do
-				v_u_939_(v944_.node)
+		local vehicle = g_localPlayer:getCurrentVehicle()
+		for i = 1, #vehicle.childVehicles do
+			for _, component in ipairs(vehicle.childVehicles[i].components) do
+				visualizeMergeGroupsRec(component.node)
 			end
 		end
 	end
 end
 function VehicleDebug.consoleCommandCastShadow()
-	local function v_u_949_(p945_)
-		-- upvalues: (copy) v_u_949_
-		if getHasClassId(p945_, ClassIds.SHAPE) then
-			local v946_ = getMaterial(p945_, 0)
-			if v946_ ~= 0 and string.contains(getMaterialCustomShaderFilename(v946_), "vehicleShader.xml") then
-				local v947_ = VehicleMaterial.new()
-				v947_:setTemplateName("plasticPainted")
-				v947_:setColor(0, 0, 0)
-				if getShapeCastShadowmap(p945_) then
-					v947_:setColor(1, 1, 1)
+	local function visualizeCastShadowRec(node)
+		if getHasClassId(node, ClassIds.SHAPE) then
+			local materialId = getMaterial(node, 0)
+			if materialId ~= 0 and string.contains(getMaterialCustomShaderFilename(materialId), "vehicleShader.xml") then
+				local material = VehicleMaterial.new()
+				material:setTemplateName("plasticPainted")
+				material:setColor(0, 0, 0)
+				if getShapeCastShadowmap(node) then
+					material:setColor(1, 1, 1)
 				end
-				v947_.diffuseMap = "data/shared/white_diffuse.dds"
-				v947_:apply(p945_)
+				material.diffuseMap = "data/shared/white_diffuse.dds"
+				material:apply(node)
 			end
 		end
-		for v948_ = 0, getNumOfChildren(p945_) - 1 do
-			v_u_949_(getChildAt(p945_, v948_))
+		local numChildren = getNumOfChildren(node)
+		for i = 0, numChildren - 1 do
+			visualizeCastShadowRec(getChildAt(node, i))
 		end
 	end
 	if g_gui.currentGuiName == "ShopConfigScreen" then
-		for _, v950_ in pairs(g_shopConfigScreen.previewVehicles) do
-			for _, v951_ in ipairs(v950_.components) do
-				v_u_949_(v951_.node)
+		for _, loadedVehicle in pairs(g_shopConfigScreen.previewVehicles) do
+			for _, component in ipairs(loadedVehicle.components) do
+				visualizeCastShadowRec(component.node)
 			end
 		end
 	end
 	if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-		local v952_ = g_localPlayer:getCurrentVehicle()
-		for v953_ = 1, #v952_.childVehicles do
-			for _, v954_ in ipairs(v952_.childVehicles[v953_].components) do
-				v_u_949_(v954_.node)
+		local vehicle = g_localPlayer:getCurrentVehicle()
+		for i = 1, #vehicle.childVehicles do
+			for _, component in ipairs(vehicle.childVehicles[i].components) do
+				visualizeCastShadowRec(component.node)
 			end
 		end
 	end
 end
 function VehicleDebug.consoleCommandDecalLayer()
-	local function v_u_959_(p955_)
-		-- upvalues: (copy) v_u_959_
-		if getHasClassId(p955_, ClassIds.SHAPE) then
-			local v956_ = getShapeDecalLayer(p955_)
-			local v957_ = VehicleMaterial.new()
-			v957_:setTemplateName("plasticPainted")
-			v957_:setColor(1, 1, 1)
-			if v956_ == 1 then
-				v957_:setColor(1, 0, 0)
-			elseif v956_ == 2 then
-				v957_:setColor(0, 1, 0)
-			elseif v956_ > 2 then
-				v957_:setColor(0, 0, 1)
+	local function visualizeDecalLayer(node)
+		if getHasClassId(node, ClassIds.SHAPE) then
+			local decalLayer = getShapeDecalLayer(node)
+			local material = VehicleMaterial.new()
+			material:setTemplateName("plasticPainted")
+			material:setColor(1, 1, 1)
+			if decalLayer == 1 then
+				material:setColor(1, 0, 0)
+			elseif decalLayer == 2 then
+				material:setColor(0, 1, 0)
+			elseif 2 < decalLayer then
+				material:setColor(0, 0, 1)
 			end
-			v957_.diffuseMap = "data/shared/white_diffuse.dds"
-			v957_:apply(p955_)
+			material.diffuseMap = "data/shared/white_diffuse.dds"
+			material:apply(node)
 		end
-		for v958_ = 0, getNumOfChildren(p955_) - 1 do
-			v_u_959_(getChildAt(p955_, v958_))
+		local numChildren = getNumOfChildren(node)
+		for i = 0, numChildren - 1 do
+			visualizeDecalLayer(getChildAt(node, i))
 		end
 	end
 	if g_gui.currentGuiName == "ShopConfigScreen" then
-		for _, v960_ in pairs(g_shopConfigScreen.previewVehicles) do
-			for _, v961_ in ipairs(v960_.components) do
-				v_u_959_(v961_.node)
+		for _, loadedVehicle in pairs(g_shopConfigScreen.previewVehicles) do
+			for _, component in ipairs(loadedVehicle.components) do
+				visualizeDecalLayer(component.node)
 			end
 		end
 	end
 	if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-		local v962_ = g_localPlayer:getCurrentVehicle()
-		for v963_ = 1, #v962_.childVehicles do
-			for _, v964_ in ipairs(v962_.childVehicles[v963_].components) do
-				v_u_959_(v964_.node)
+		local vehicle = g_localPlayer:getCurrentVehicle()
+		for i = 1, #vehicle.childVehicles do
+			for _, component in ipairs(vehicle.childVehicles[i].components) do
+				visualizeDecalLayer(component.node)
 			end
 		end
 	end
 end
-
--- Local values: materialTemplate, targetMaterial, visualizeMaterialRec, _, loadedVehicle, _, component, vehicle, i, _, component
 function VehicleDebug.consoleCommandDebugMaterial(_, materialTemplateName)
-	if g_vehicleMaterialManager:getMaterialTemplateByName(materialTemplateName) == nil then
-		Logging.error("Material template \'%s\' not found", materialTemplateName)
+	local materialTemplate = g_vehicleMaterialManager:getMaterialTemplateByName(materialTemplateName)
+	if materialTemplate == nil then
+		Logging.error("Material template '%s' not found", materialTemplateName)
 	else
-		local v_u_966_ = VehicleMaterial.new()
-		v_u_966_:setTemplateName(materialTemplateName)
-		local function v_u_972_(p967_)
-			-- upvalues: (copy) v_u_966_, (copy) v_u_972_
-			if getHasClassId(p967_, ClassIds.SHAPE) then
-				for v968_ = 1, getNumOfMaterials(p967_) do
-					if v_u_966_:getIsApplied(p967_, getMaterial(p967_, v968_ - 1), false) then
-						local v969_ = VehicleMaterial.new()
-						v969_:setTemplateName("plasticPainted")
-						v969_:setColor(0, 1, 0)
-						v969_:applyToMaterial(p967_, v968_ - 1)
+		local targetMaterial = VehicleMaterial.new()
+		targetMaterial:setTemplateName(materialTemplateName)
+		local function visualizeMaterialRec(node)
+			if getHasClassId(node, ClassIds.SHAPE) then
+				local numMaterial = getNumOfMaterials(node)
+				for i = 1, numMaterial do
+					local materialId = getMaterial(node, i - 1)
+					if targetMaterial:getIsApplied(node, materialId, false) then
+						local material = VehicleMaterial.new()
+						material:setTemplateName("plasticPainted")
+						material:setColor(0, 1, 0)
+						material:applyToMaterial(node, i - 1)
 					else
-						local v970_ = VehicleMaterial.new()
-						v970_:setTemplateName("plasticPainted")
-						v970_:setColor(1, 0, 0)
-						v970_:applyToMaterial(p967_, v968_ - 1)
+						local material = VehicleMaterial.new()
+						material:setTemplateName("plasticPainted")
+						material:setColor(1, 0, 0)
+						material:applyToMaterial(node, i - 1)
 					end
 				end
 			end
-			for v971_ = 0, getNumOfChildren(p967_) - 1 do
-				v_u_972_(getChildAt(p967_, v971_))
+			local numChildren = getNumOfChildren(node)
+			for i = 0, numChildren - 1 do
+				visualizeMaterialRec(getChildAt(node, i))
 			end
 		end
 		if g_gui.currentGuiName == "ShopConfigScreen" then
-			for _, v973_ in pairs(g_shopConfigScreen.previewVehicles) do
-				for _, v974_ in ipairs(v973_.components) do
-					v_u_972_(v974_.node)
+			for _, loadedVehicle in pairs(g_shopConfigScreen.previewVehicles) do
+				for _, component in ipairs(loadedVehicle.components) do
+					visualizeMaterialRec(component.node)
 				end
 			end
 		end
 		if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-			local v975_ = g_localPlayer:getCurrentVehicle()
-			for v976_ = 1, #v975_.childVehicles do
-				for _, v977_ in ipairs(v975_.childVehicles[v976_].components) do
-					v_u_972_(v977_.node)
+			local vehicle = g_localPlayer:getCurrentVehicle()
+			for i = 1, #vehicle.childVehicles do
+				for _, component in ipairs(vehicle.childVehicles[i].components) do
+					visualizeMaterialRec(component.node)
 				end
 			end
 		end
 	end
 end
-
--- Local values: vehicle, i, childVehicle, str, index, attacherJointDesc, attacherJointDesc, j, node, j, node
 function VehicleDebug.consoleCommandAttacherJointConnections(_, attacherJointIndex)
-	local v979_ = tonumber(attacherJointIndex) or 1
-	if VehicleDebug.DEBUG_ATTACHER_JOINT_INDEX == v979_ then
-		Logging.info("Disconnect from attacher joint \'%s\'", v979_)
+	attacherJointIndex = tonumber(attacherJointIndex) or 1
+	if VehicleDebug.DEBUG_ATTACHER_JOINT_INDEX == attacherJointIndex then
+		Logging.info("Disconnect from attacher joint '%s'", attacherJointIndex)
+		attacherJointIndex = nil
 		VehicleDebug.DEBUG_ATTACHER_JOINT_INDEX = nil
-		v979_ = nil
 	else
-		Logging.info("Connect to attacher joint \'%s\'", v979_)
-		VehicleDebug.DEBUG_ATTACHER_JOINT_INDEX = v979_
+		Logging.info("Connect to attacher joint '%s'", attacherJointIndex)
+		VehicleDebug.DEBUG_ATTACHER_JOINT_INDEX = attacherJointIndex
 	end
 	if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-		local v980_ = g_localPlayer:getCurrentVehicle()
-		for v981_ = 1, #v980_.childVehicles do
-			local v982_ = v980_.childVehicles[v981_]
-			if v982_.getAttacherJoints ~= nil then
-				local v983_ = ""
-				for v984_, v985_ in ipairs(v982_:getAttacherJoints()) do
-					v983_ = v983_ .. string.format("%d-%s  ", v984_, getName(v985_.jointTransform))
-					ObjectChangeUtil.setObjectChanges(v985_.changeObjects, false, v982_, v982_.setMovingToolDirty)
+		local vehicle = g_localPlayer:getCurrentVehicle()
+		for i = 1, #vehicle.childVehicles do
+			local childVehicle = vehicle.childVehicles[i]
+			if childVehicle.getAttacherJoints ~= nil then
+				local str = ""
+				for index, attacherJointDesc in ipairs(childVehicle:getAttacherJoints()) do
+					str = str .. string.format("%d-%s  ", index, getName(attacherJointDesc.jointTransform))
+					ObjectChangeUtil.setObjectChanges(attacherJointDesc.changeObjects, false, childVehicle, childVehicle.setMovingToolDirty)
 				end
-				if v983_ ~= "" then
-					Logging.info(v982_:getFullName() .. ": " .. v983_)
-				end
-			end
-			if v982_.jointIndexDebugText ~= nil then
-				g_debugManager:removeElement(v982_.jointIndexDebugText)
-				v982_.jointIndexDebugText = nil
-			end
-			if v982_.steeringBarLeftDebugText ~= nil then
-				g_debugManager:removeElement(v982_.steeringBarLeftDebugText)
-				v982_.steeringBarLeftDebugText = nil
-			end
-			if v982_.steeringBarRightDebugText ~= nil then
-				g_debugManager:removeElement(v982_.steeringBarRightDebugText)
-				v982_.steeringBarRightDebugText = nil
-			end
-			local v986_ = v982_:getAttacherJointByJointDescIndex(v979_)
-			if v986_ ~= nil then
-				v982_.jointIndexDebugText = DebugGizmo.new():createWithNode(v986_.jointTransform, "j" .. tostring(v979_), nil, nil, 0.1, true)
-				g_debugManager:addElement(v982_.jointIndexDebugText, nil, nil, math.huge)
-				if v986_.steeringBarLeftNode ~= nil then
-					v982_.steeringBarLeftDebugText = DebugGizmo.new():createWithNode(v986_.steeringBarLeftNode, "sl", nil, nil, 0.1, true)
-					g_debugManager:addElement(v982_.steeringBarLeftDebugText, nil, nil, math.huge)
-				end
-				if v986_.steeringBarRightNode ~= nil then
-					v982_.steeringBarRightDebugText = DebugGizmo.new():createWithNode(v986_.steeringBarRightNode, "sr", nil, nil, 0.1, true)
-					g_debugManager:addElement(v982_.steeringBarRightDebugText, nil, nil, math.huge)
-				end
-				ObjectChangeUtil.setObjectChanges(v986_.changeObjects, true, v982_, v982_.setMovingToolDirty)
-				for v987_ = 1, #v986_.visualNodes do
-					local v988_ = v986_.visualNodes[v987_]
-					setVisibility(v988_, true)
-				end
-				for v989_ = 1, #v986_.hideVisuals do
-					local v990_ = v986_.hideVisuals[v989_]
-					setVisibility(v990_, false)
+				if str ~= "" then
+					Logging.info(childVehicle:getFullName() .. ": " .. str)
 				end
 			end
-			ConnectionHoses.consoleCommandTestSockets(v982_, v979_)
-			PowerTakeOffs.consoleCommandTestConnection(v982_, v979_)
+			if childVehicle.jointIndexDebugText ~= nil then
+				g_debugManager:removeElement(childVehicle.jointIndexDebugText)
+				childVehicle.jointIndexDebugText = nil
+			end
+			if childVehicle.steeringBarLeftDebugText ~= nil then
+				g_debugManager:removeElement(childVehicle.steeringBarLeftDebugText)
+				childVehicle.steeringBarLeftDebugText = nil
+			end
+			if childVehicle.steeringBarRightDebugText ~= nil then
+				g_debugManager:removeElement(childVehicle.steeringBarRightDebugText)
+				childVehicle.steeringBarRightDebugText = nil
+			end
+			local attacherJointDesc = childVehicle:getAttacherJointByJointDescIndex(attacherJointIndex)
+			if attacherJointDesc ~= nil then
+				childVehicle.jointIndexDebugText = DebugGizmo.new():createWithNode(attacherJointDesc.jointTransform, "j" .. tostring(attacherJointIndex), nil, nil, 0.1, true)
+				g_debugManager:addElement(childVehicle.jointIndexDebugText, nil, nil, math.huge)
+				if attacherJointDesc.steeringBarLeftNode ~= nil then
+					childVehicle.steeringBarLeftDebugText = DebugGizmo.new():createWithNode(attacherJointDesc.steeringBarLeftNode, "sl", nil, nil, 0.1, true)
+					g_debugManager:addElement(childVehicle.steeringBarLeftDebugText, nil, nil, math.huge)
+				end
+				if attacherJointDesc.steeringBarRightNode ~= nil then
+					childVehicle.steeringBarRightDebugText = DebugGizmo.new():createWithNode(attacherJointDesc.steeringBarRightNode, "sr", nil, nil, 0.1, true)
+					g_debugManager:addElement(childVehicle.steeringBarRightDebugText, nil, nil, math.huge)
+				end
+				ObjectChangeUtil.setObjectChanges(attacherJointDesc.changeObjects, true, childVehicle, childVehicle.setMovingToolDirty)
+				for j = 1, #attacherJointDesc.visualNodes do
+					local node = attacherJointDesc.visualNodes[j]
+					setVisibility(node, true)
+				end
+				for j = 1, #attacherJointDesc.hideVisuals do
+					local node = attacherJointDesc.hideVisuals[j]
+					setVisibility(node, false)
+				end
+			end
+			ConnectionHoses.consoleCommandTestSockets(childVehicle, attacherJointIndex)
+			PowerTakeOffs.consoleCommandTestConnection(childVehicle, attacherJointIndex)
 		end
 	end
 end
-
--- Local values: vehicle, i, childVehicle
 function VehicleDebug.consoleCommandToolConnections(_, toolConnectionIndex)
-	local v992_ = tonumber(toolConnectionIndex) or 1
-	if VehicleDebug.DEBUG_TOOL_CONNECTION_INDEX == v992_ then
-		Logging.info("Disconnect from tool connection \'%s\'", v992_)
+	toolConnectionIndex = tonumber(toolConnectionIndex) or 1
+	if VehicleDebug.DEBUG_TOOL_CONNECTION_INDEX == toolConnectionIndex then
+		Logging.info("Disconnect from tool connection '%s'", toolConnectionIndex)
+		toolConnectionIndex = nil
 		VehicleDebug.DEBUG_TOOL_CONNECTION_INDEX = nil
 	else
-		Logging.info("Connect to tool connection \'%s\'", v992_)
-		VehicleDebug.DEBUG_TOOL_CONNECTION_INDEX = v992_
+		Logging.info("Connect to tool connection '%s'", toolConnectionIndex)
+		VehicleDebug.DEBUG_TOOL_CONNECTION_INDEX = toolConnectionIndex
 	end
 	if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-		local v993_ = g_localPlayer:getCurrentVehicle()
-		for v994_ = 1, #v993_.childVehicles do
-			local v995_ = v993_.childVehicles[v994_]
-			ConnectionHoses.consoleCommandTestToolConnection(v995_, VehicleDebug.DEBUG_TOOL_CONNECTION_INDEX)
+		local vehicle = g_localPlayer:getCurrentVehicle()
+		for i = 1, #vehicle.childVehicles do
+			local childVehicle = vehicle.childVehicles[i]
+			ConnectionHoses.consoleCommandTestToolConnection(childVehicle, VehicleDebug.DEBUG_TOOL_CONNECTION_INDEX)
 		end
 	end
 end
@@ -2348,69 +2253,68 @@ function VehicleDebug.consoleCommandWheelDisplacement()
 		WheelPhysics.COLLISION_MASK = CollisionMask.ALL
 		Logging.info("Enabled wheel interaction with displacement collision")
 	end
-	for _, v996_ in pairs(g_currentMission.vehicleSystem.vehicles) do
-		if v996_.getWheels ~= nil then
-			for _, v997_ in ipairs(v996_:getWheels()) do
-				v997_.physics:updateBase()
-			end
+	for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+		if vehicle.getWheels == nil then
+			continue
+		end
+		for i, wheel in ipairs(vehicle:getWheels()) do
+			wheel.physics:updateBase()
 		end
 	end
 end
 VehicleDebug.cylinderedUpdateDebugState = false
 function VehicleDebug.consoleCommandCylinderedUpdate()
 	VehicleDebug.cylinderedUpdateDebugState = not VehicleDebug.cylinderedUpdateDebugState
-	local v998_ = print
-	local v999_ = VehicleDebug.cylinderedUpdateDebugState
-	v998_("Cylindered Update Debug: " .. tostring(v999_))
+	print("Cylindered Update Debug: " .. tostring(VehicleDebug.cylinderedUpdateDebugState))
 end
 VehicleDebug.wetnessDebugState = false
 function VehicleDebug.consoleCommandWetnessDebug()
 	VehicleDebug.wetnessDebugState = not VehicleDebug.wetnessDebugState
-	local v1000_ = print
-	local v1001_ = VehicleDebug.wetnessDebugState
-	v1000_("Wetness Debug: " .. tostring(v1001_))
-	local function v_u_1014_(p1002_)
-		local v1003_ = g_debugManager:getDebugMat()
-		local v1004_ = setMaterialCustomShaderVariation(v1003_, "wetnessDebug", false)
-		local v_u_1005_ = setMaterialDiffuseMapFromFile(v1004_, "data/shared/default_diffuse.dds", true, true, false)
-		local function v_u_1012_(p1006_, p1007_)
-			-- upvalues: (ref) v_u_1005_, (copy) v_u_1012_
-			if p1006_.spec_washable == nil or p1006_.spec_washable.wetnessIgnoreNodes[p1007_] ~= true then
-				if getHasClassId(p1007_, ClassIds.SHAPE) then
-					for v1008_ = 1, getNumOfMaterials(p1007_) do
-						local v1009_ = getMaterial(p1007_, v1008_ - 1)
-						local v1010_ = getMaterialCustomShaderFilename(v1009_)
-						if string.contains(v1010_, "vehicleShader.xml") then
-							setMaterial(p1007_, v_u_1005_, v1008_ - 1)
-							setShaderParameter(p1007_, "alpha", 1, 0, 0, 0, false, v1008_ - 1)
-						end
+	print("Wetness Debug: " .. tostring(VehicleDebug.wetnessDebugState))
+	local visualizeWetness = function(vehicle)
+		local debugMaterial = g_debugManager:getDebugMat()
+		debugMaterial = setMaterialCustomShaderVariation(debugMaterial, "wetnessDebug", false)
+		debugMaterial = setMaterialDiffuseMapFromFile(debugMaterial, "data/shared/default_diffuse.dds", true, true, false)
+		local function visualizeWetnessRec(vehicle, node)
+			if vehicle.spec_washable ~= nil and vehicle.spec_washable.wetnessIgnoreNodes[node] == true then
+				return
+			end
+			if getHasClassId(node, ClassIds.SHAPE) then
+				for i = 1, getNumOfMaterials(node) do
+					local material = getMaterial(node, i - 1)
+					local shaderFilename = getMaterialCustomShaderFilename(material)
+					if string.contains(shaderFilename, "vehicleShader.xml") then
+						setMaterial(node, debugMaterial, i - 1)
+						setShaderParameter(node, "alpha", 1, 0, 0, 0, false, i - 1)
 					end
 				end
-				for v1011_ = 0, getNumOfChildren(p1007_) - 1 do
-					v_u_1012_(p1006_, getChildAt(p1007_, v1011_))
-				end
+			end
+			local numChildren = getNumOfChildren(node)
+			for i = 0, numChildren - 1 do
+				visualizeWetnessRec(vehicle, getChildAt(node, i))
 			end
 		end
-		for _, v1013_ in ipairs(p1002_.components) do
-			v_u_1012_(p1002_, v1013_.node)
+		for _, component in ipairs(vehicle.components) do
+			visualizeWetnessRec(vehicle, component.node)
 		end
 	end
 	if VehicleDebug.wetnessDebugState then
 		if g_gui.currentGuiName == "ShopConfigScreen" then
-			for _, v1015_ in pairs(g_shopConfigScreen.previewVehicles) do
-				v_u_1014_(v1015_)
+			for _, loadedVehicle in pairs(g_shopConfigScreen.previewVehicles) do
+				visualizeWetness(loadedVehicle)
 			end
-		elseif g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-			local v1016_ = g_localPlayer:getCurrentVehicle()
-			for v1017_ = 1, #v1016_.childVehicles do
-				v_u_1014_(v1016_.childVehicles[v1017_])
+		elseif g_currentMission ~= nil then
+			if g_localPlayer:getCurrentVehicle() ~= nil then
+				local vehicle = g_localPlayer:getCurrentVehicle()
+				for i = 1, #vehicle.childVehicles do
+					visualizeWetness(vehicle.childVehicles[i])
+				end
 			end
 		end
 		VehicleDebug.vehicleOnFinishedLoading = Vehicle.onFinishedLoading
-		function Vehicle.onFinishedLoading(p1018_, ...)
-			-- upvalues: (copy) v_u_1014_
-			v_u_1014_(p1018_)
-			VehicleDebug.vehicleOnFinishedLoading(p1018_, ...)
+		function Vehicle:onFinishedLoading(...)
+			visualizeWetness(self)
+			VehicleDebug.vehicleOnFinishedLoading(self, ...)
 		end
 	else
 		if VehicleDebug.vehicleOnFinishedLoading ~= nil then
@@ -2426,34 +2330,36 @@ function VehicleDebug.consoleCommandWheelEffectsDebug()
 	print("Wheel Effects Debug: " .. (VehicleDebug.wheelEffectDebugState and "Enabled" or "Disabled"))
 end
 function VehicleDebug.consoleCommandAutomaticMotorStart()
-	local v1019_ = g_currentMission
-	if v1019_.missionInfo.automaticMotorStartEnabled then
-		v1019_:setAutomaticMotorStartEnabled(false, true)
+	local mission = g_currentMission
+	if mission.missionInfo.automaticMotorStartEnabled then
+		mission:setAutomaticMotorStartEnabled(false, true)
 		print("Automatic Motor Start: Disabled")
 		if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-			local v1020_ = g_localPlayer:getCurrentVehicle()
-			for _, v1021_ in ipairs(v1020_.childVehicles) do
-				if v1021_.setMotorState ~= nil then
-					v1021_:setMotorState(MotorState.OFF)
+			local vehicle = g_localPlayer:getCurrentVehicle()
+			for _, v in ipairs(vehicle.childVehicles) do
+				if v.setMotorState == nil then
+					continue
 				end
+				v:setMotorState(MotorState.OFF)
 			end
-			return
 		end
 	else
-		v1019_:setAutomaticMotorStartEnabled(true, true)
+		mission:setAutomaticMotorStartEnabled(true, true)
 		print("Automatic Motor Start: Enabled")
 	end
 end
 function VehicleDebug.consoleCommandCameraReset()
 	if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-		local v1022_ = g_localPlayer:getCurrentVehicle()
-		for _, v1023_ in ipairs(v1022_.childVehicles) do
-			if v1023_.getActiveCamera ~= nil then
-				local v1024_ = v1023_:getActiveCamera()
-				if v1024_ ~= nil then
-					v1024_:resetCamera()
-				end
+		local vehicle = g_localPlayer:getCurrentVehicle()
+		for _, v in ipairs(vehicle.childVehicles) do
+			if v.getActiveCamera == nil then
+				continue
 			end
+			local camera = v:getActiveCamera()
+			if camera == nil then
+				continue
+			end
+			camera:resetCamera()
 		end
 	end
 end

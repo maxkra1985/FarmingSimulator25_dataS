@@ -1,33 +1,28 @@
--- Local values: PlayerSetFarmEvent_mt
 source("dataS/scripts/player/events/PlayerSetFarmAnswerEvent.lua")
 PlayerSetFarmEvent = {}
 local PlayerSetFarmEvent_mt = Class(PlayerSetFarmEvent, Event)
 InitStaticEventClass(PlayerSetFarmEvent, "PlayerSetFarmEvent")
 function PlayerSetFarmEvent.emptyNew()
-	-- upvalues: (copy) PlayerSetFarmEvent_mt
-	return Event.new(PlayerSetFarmEvent_mt)
+	local self = Event.new(PlayerSetFarmEvent_mt)
+	return self
 end
-
--- Local values: self
 function PlayerSetFarmEvent.new(player, farmId, password)
-	local v5_ = PlayerSetFarmEvent.emptyNew()
-	v5_.player = player
-	v5_.farmId = farmId
-	v5_.password = password
-	return v5_
+	local self = PlayerSetFarmEvent.emptyNew()
+	self.player = player
+	self.farmId = farmId
+	self.password = password
+	return self
 end
-
 function PlayerSetFarmEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.player)
 	streamWriteUIntN(streamId, self.farmId, FarmManager.FARM_ID_SEND_NUM_BITS)
-	if self.password == nil then
-		streamWriteBool(streamId, false)
-	else
+	if self.password ~= nil then
 		streamWriteBool(streamId, true)
 		streamWriteString(streamId, self.password)
+	else
+		streamWriteBool(streamId, false)
 	end
 end
-
 function PlayerSetFarmEvent:readStream(streamId, connection)
 	self.player = NetworkUtil.readNodeObject(streamId)
 	self.farmId = streamReadUIntN(streamId, FarmManager.FARM_ID_SEND_NUM_BITS)
@@ -36,39 +31,36 @@ function PlayerSetFarmEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
--- Local values: oldFarmId, oldFarm, farm, user
 function PlayerSetFarmEvent:run(connection)
-	if connection:getIsServer() then
+	if not connection:getIsServer() then
+		local oldFarmId = self.player.farmId
+		local oldFarm = g_farmManager:getFarmById(oldFarmId)
+		local farm = g_farmManager:getFarmById(self.farmId)
+		if farm ~= nil then
+			local user = g_currentMission.userManager:getUserByUserId(self.player.userId)
+			if user:getIsMasterUser() or farm.password == nil or farm.password == self.password then
+				oldFarm:removeUser(user:getId())
+				self.player:setFarmId(self.farmId)
+				farm:addUser(user:getId(), user:getUniqueUserId(), user:getIsMasterUser())
+				if self.player.playerHotspot ~= nil then
+					self.player.playerHotspot:setOwnerFarmId(self.farmId)
+				end
+				g_messageCenter:publish(MessageType.PLAYER_FARM_CHANGED, self.player)
+				user:setFinancesVersionCounter(0)
+				connection:sendEvent(PlayerSetFarmAnswerEvent.new(PlayerSetFarmAnswerEvent.STATE.OK, self.farmId, self.password))
+				g_server:broadcastEvent(PlayerSwitchedFarmEvent.new(oldFarmId, self.farmId, user:getId()))
+				return
+			end
+			connection:sendEvent(PlayerSetFarmAnswerEvent.new(PlayerSetFarmAnswerEvent.STATE.PASSWORD_REQUIRED, self.farmId))
+		end
+	else
 		self.player.farmId = self.farmId
 		if self.player.playerHotspot ~= nil then
 			self.player.playerHotspot:setOwnerFarmId(self.farmId)
 		end
 		g_messageCenter:publish(MessageType.PLAYER_FARM_CHANGED, self.player)
-	else
-		local v13_ = self.player.farmId
-		local v14_ = g_farmManager:getFarmById(v13_)
-		local v15_ = g_farmManager:getFarmById(self.farmId)
-		if v15_ ~= nil then
-			local v16_ = g_currentMission.userManager:getUserByUserId(self.player.userId)
-			if v16_:getIsMasterUser() or (v15_.password == nil or v15_.password == self.password) then
-				v14_:removeUser(v16_:getId())
-				self.player:setFarmId(self.farmId)
-				v15_:addUser(v16_:getId(), v16_:getUniqueUserId(), v16_:getIsMasterUser())
-				if self.player.playerHotspot ~= nil then
-					self.player.playerHotspot:setOwnerFarmId(self.farmId)
-				end
-				g_messageCenter:publish(MessageType.PLAYER_FARM_CHANGED, self.player)
-				v16_:setFinancesVersionCounter(0)
-				connection:sendEvent(PlayerSetFarmAnswerEvent.new(PlayerSetFarmAnswerEvent.STATE.OK, self.farmId, self.password))
-				g_server:broadcastEvent(PlayerSwitchedFarmEvent.new(v13_, self.farmId, v16_:getId()))
-			else
-				connection:sendEvent(PlayerSetFarmAnswerEvent.new(PlayerSetFarmAnswerEvent.STATE.PASSWORD_REQUIRED, self.farmId))
-			end
-		end
 	end
 end
-
 function PlayerSetFarmEvent.sendEvent(player, farmId, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

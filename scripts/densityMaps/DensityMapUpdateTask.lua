@@ -1,7 +1,5 @@
--- Local values: DensityMapUpdateTask_mt
 DensityMapUpdateTask = {}
 local DensityMapUpdateTask_mt = Class(DensityMapUpdateTask)
-
 function DensityMapUpdateTask.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#customName", "Custom name of the task", nil, false)
 	schema:register(XMLValueType.STRING, basePath .. "#status", "Status of the task", nil, false)
@@ -11,25 +9,19 @@ function DensityMapUpdateTask.registerXMLPaths(schema, basePath)
 	DensityMapParallelogram.registerXMLPaths(schema, basePath .. ".area")
 	DensityMapPolygon.registerXMLPaths(schema, basePath .. ".area")
 end
-
--- Upvalues: DensityMapUpdateTask_mt
--- Local values: self
 function DensityMapUpdateTask.new(customMt)
-	-- upvalues: (copy) DensityMapUpdateTask_mt
-	local v5_ = customMt or DensityMapUpdateTask_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.customName = nil
-	v6_.area = nil
-	v6_.state = DensityMapUpdateTaskState.CREATED
-	v6_.minY = nil
-	v6_.maxY = nil
-	v6_.currentMinY = nil
-	v6_.currentMaxY = nil
-	v6_.needsSaving = nil
-	v6_.maxRegionPerFrame = 30
-	return v6_
+	local self = setmetatable({}, customMt or DensityMapUpdateTask_mt)
+	self.customName = nil
+	self.area = nil
+	self.state = DensityMapUpdateTaskState.CREATED
+	self.minY = nil
+	self.maxY = nil
+	self.currentMinY = nil
+	self.currentMaxY = nil
+	self.needsSaving = nil
+	self.maxRegionPerFrame = 30
+	return self
 end
-
 function DensityMapUpdateTask:saveToXMLFile(xmlFile, key)
 	if self.customName ~= nil then
 		xmlFile:setValue(key .. "#customName", self.customName)
@@ -43,12 +35,10 @@ function DensityMapUpdateTask:saveToXMLFile(xmlFile, key)
 		self.area:saveToXMLFile(xmlFile, key .. ".area")
 	end
 end
-
--- Local values: customName, area
 function DensityMapUpdateTask:loadFromXMLFile(xmlFile, key)
-	local v13_ = xmlFile:getValue(key .. "#customName")
-	if v13_ ~= nil then
-		self.customName = v13_
+	local customName = xmlFile:getValue(key .. "#customName")
+	if customName ~= nil then
+		self.customName = customName
 	end
 	self.state = DensityMapUpdateTaskState.getByName(xmlFile:getValue(key .. "#status")) or DensityMapUpdateTaskState.CREATED
 	if self.state == DensityMapUpdateTaskState.RUNNING then
@@ -56,50 +46,41 @@ function DensityMapUpdateTask:loadFromXMLFile(xmlFile, key)
 		self.currentMaxY = xmlFile:getValue(key .. ".area#currentMaxY")
 	end
 	if self.area == nil then
-		local v14_ = DensityMapParallelogram.createFromXMLFile(xmlFile, key .. ".area")
-		if v14_ == nil then
-			v14_ = DensityMapPolygon.createFromXMLFile(xmlFile, key .. ".area")
-			if v14_ == nil then
-				v14_ = DensityMapCircle.createFromXMLFile(xmlFile, key .. ".area")
+		local area = DensityMapParallelogram.createFromXMLFile(xmlFile, key .. ".area")
+		if area == nil then
+			area = DensityMapPolygon.createFromXMLFile(xmlFile, key .. ".area")
+			if area == nil then
+				area = DensityMapCircle.createFromXMLFile(xmlFile, key .. ".area")
 			end
 		end
-		self.area = v14_
+		self.area = area
 	end
 	return true
 end
-
 function DensityMapUpdateTask:setArea(area)
 	self.area = area
 end
-
 function DensityMapUpdateTask:getName()
 	return self.customName or tostring(self)
 end
-
 function DensityMapUpdateTask:setName(name)
 	self.customName = name
 end
-
--- Local values: taskName
 function DensityMapUpdateTask:cancel()
 	if self.state == DensityMapUpdateTaskState.RUNNING then
 		self.state = DensityMapUpdateTaskState.FINISHED
-		local v21_ = self:getName()
-		Logging.devInfo("Canceled DensityMapUpdateTask for %s", v21_)
+		local taskName = self:getName()
+		Logging.devInfo("Canceled DensityMapUpdateTask for %s", taskName)
 	end
 end
-
 function DensityMapUpdateTask:getIsFinished()
 	return self.state == DensityMapUpdateTaskState.FINISHED
 end
-
--- Local values: taskName
 function DensityMapUpdateTask:setFinished()
-	local v24_ = self:getName()
-	Logging.devInfo("Finished DensityMapUpdateTask for %s", v24_)
+	local taskName = self:getName()
+	Logging.devInfo("Finished DensityMapUpdateTask for %s", taskName)
 	self.state = DensityMapUpdateTaskState.FINISHED
 end
-
 function DensityMapUpdateTask:setNeedsSaving(needsSaving)
 	self.needsSaving = needsSaving
 end

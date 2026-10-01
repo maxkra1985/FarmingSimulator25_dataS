@@ -13,25 +13,18 @@ source("dataS/scripts/vehicles/specializations/events/AISetModeEvent.lua")
 source("dataS/scripts/vehicles/specializations/events/AIModeSelectionSettingsEvent.lua")
 source("dataS/scripts/vehicles/ai/settings/AIUserSettings.lua")
 source("dataS/scripts/gui/hud/extensions/AIModeHUDExtension.lua")
-
 function AIModeSelection.prerequisitesPresent(specializations)
-	local v2_ = SpecializationUtil.hasSpecialization(AIDrivable, specializations)
-	if v2_ then
-		v2_ = SpecializationUtil.hasSpecialization(AIAutomaticSteering, specializations)
-	end
-	return v2_
+	return SpecializationUtil.hasSpecialization(AIDrivable, specializations) and SpecializationUtil.hasSpecialization(AIAutomaticSteering, specializations)
 end
 function AIModeSelection.initSpecialization()
-	local v3_ = Vehicle.xmlSchemaSavegame
-	v3_:register(XMLValueType.STRING, "vehicles.vehicle(?).aiModeSelection#currentMode", "Currently selected AI mode")
-	AIUserSettings.registerXMLPaths(v3_, "vehicles.vehicle(?).aiModeSelection.settings")
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).aiModeSelection#currentMode", "Currently selected AI mode")
+	AIUserSettings.registerXMLPaths(schemaSavegame, "vehicles.vehicle(?).aiModeSelection.settings")
 end
-
 function AIModeSelection.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onAIModeChanged")
 	SpecializationUtil.registerEvent(vehicleType, "onAIModeSettingsChanged")
 end
-
 function AIModeSelection.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "setAIModeSelection", AIModeSelection.setAIModeSelection)
 	SpecializationUtil.registerFunction(vehicleType, "getAIModeSelection", AIModeSelection.getAIModeSelection)
@@ -42,9 +35,7 @@ function AIModeSelection.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "applyReadAIModeSettingsFromStream", AIModeSelection.applyReadAIModeSettingsFromStream)
 	SpecializationUtil.registerFunction(vehicleType, "writeAIModeSettingsToStream", AIModeSelection.writeAIModeSettingsToStream)
 end
-
 function AIModeSelection.registerOverwrittenFunctions(vehicleType) end
-
 function AIModeSelection.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AIModeSelection)
 	SpecializationUtil.registerEventListener(vehicleType, "onDelete", AIModeSelection)
@@ -55,255 +46,224 @@ function AIModeSelection.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onStateChange", AIModeSelection)
 	SpecializationUtil.registerEventListener(vehicleType, "onRegisterActionEvents", AIModeSelection)
 end
-
--- Local values: spec, currentModeName
 function AIModeSelection:onLoad(savegame)
-	local v9_ = self.spec_aiModeSelection
-	v9_.currentMode = AIModeSelection.MODE.WORKER
-	v9_.modeChangeStartTime = 0
-	v9_.lastModeChangeTime = -math.huge
-	v9_.hudExtension = AIModeHUDExtension.new(self)
-	v9_.texts = {}
-	v9_.texts.modeSelect = g_i18n:getText("ai_modeSelect")
+	local spec = self.spec_aiModeSelection
+	spec.currentMode = AIModeSelection.MODE.WORKER
+	spec.modeChangeStartTime = 0
+	spec.lastModeChangeTime = -math.huge
+	spec.hudExtension = AIModeHUDExtension.new(self)
+	spec.texts = {}
+	spec.texts.modeSelect = g_i18n:getText("ai_modeSelect")
 	if savegame ~= nil and not savegame.resetVehicles then
-		local v10_ = savegame.xmlFile:getValue(savegame.key .. ".aiModeSelection#currentMode")
-		if v10_ ~= nil then
-			v9_.currentMode = AIModeSelection.MODE[string.upper(v10_)] or v9_.currentMode
+		local currentModeName = savegame.xmlFile:getValue(savegame.key .. ".aiModeSelection#currentMode")
+		if currentModeName ~= nil then
+			spec.currentMode = AIModeSelection.MODE[string.upper(currentModeName)] or spec.currentMode
 		end
 		if savegame.xmlFile:hasProperty(savegame.key .. ".aiModeSelection.settings") then
-			v9_.loadedUserSettings = AIUserSettings.new()
-			v9_.loadedUserSettings:loadFromXML(savegame.xmlFile, savegame.key .. ".aiModeSelection.settings")
+			spec.loadedUserSettings = AIUserSettings.new()
+			spec.loadedUserSettings:loadFromXML(savegame.xmlFile, savegame.key .. ".aiModeSelection.settings")
 		end
 	end
 end
-
--- Local values: spec
 function AIModeSelection:onDelete()
-	local v12_ = self.spec_aiModeSelection
-	if v12_.hudExtension ~= nil then
-		v12_.hudExtension:delete()
+	local spec = self.spec_aiModeSelection
+	if spec.hudExtension ~= nil then
+		spec.hudExtension:delete()
 	end
 end
-
--- Local values: spec
 function AIModeSelection:saveToXMLFile(xmlFile, key, usedModNames)
-	local v16_ = self.spec_aiModeSelection
-	xmlFile:setValue(key .. "#currentMode", AIModeSelection.MODE.getName(v16_.currentMode))
-	if v16_.userSettings ~= nil then
-		v16_.userSettings:saveToXML(xmlFile, key .. ".settings")
+	local spec = self.spec_aiModeSelection
+	xmlFile:setValue(key .. "#currentMode", AIModeSelection.MODE.getName(spec.currentMode))
+	if spec.userSettings ~= nil then
+		spec.userSettings:saveToXML(xmlFile, key .. ".settings")
 	end
 end
-
--- Local values: spec
 function AIModeSelection:onReadStream(streamId, connection)
-	local v20_ = self.spec_aiModeSelection
-	v20_.currentMode = streamReadUIntN(streamId, AIModeSelection.NUM_BITS) + 1
+	local spec = self.spec_aiModeSelection
+	spec.currentMode = streamReadUIntN(streamId, AIModeSelection.NUM_BITS) + 1
 	if streamReadBool(streamId) then
-		v20_.receivedFieldCourseAttributes = FieldCourseSettings.readStream(streamId, connection)
+		spec.receivedFieldCourseAttributes = FieldCourseSettings.readStream(streamId, connection)
 	end
 end
-
--- Local values: spec
 function AIModeSelection:onWriteStream(streamId, connection)
-	local v24_ = self.spec_aiModeSelection
-	streamWriteUIntN(streamId, v24_.currentMode - 1, AIModeSelection.NUM_BITS)
-	if streamWriteBool(streamId, v24_.fieldCourseSettings ~= nil) then
-		v24_.fieldCourseSettings:writeStream(streamId, connection)
+	local spec = self.spec_aiModeSelection
+	streamWriteUIntN(streamId, spec.currentMode - 1, AIModeSelection.NUM_BITS)
+	if streamWriteBool(streamId, spec.fieldCourseSettings ~= nil) then
+		spec.fieldCourseSettings:writeStream(streamId, connection)
 	end
 end
-
--- Local values: spec
 function AIModeSelection:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	if self.isClient then
 		AIModeSelection.updateActionEvents(self, false)
 	end
 	if not g_currentMission.vehicleSystem.isReloadRunning then
-		local v26_ = self.spec_aiModeSelection
-		if v26_.loadedUserSettings ~= nil then
+		local spec = self.spec_aiModeSelection
+		if spec.loadedUserSettings ~= nil then
 			self:initializeLoadedAIModeUserSettings()
 		end
-		if v26_.receivedFieldCourseAttributes ~= nil then
-			v26_.fieldCourseSettings = FieldCourseSettings.generate(self)
-			v26_.userSettings = AIUserSettings.new(v26_.fieldCourseSettings)
-			v26_.fieldCourseSettings:applyAttributes(v26_.receivedFieldCourseAttributes)
-			v26_.receivedFieldCourseAttributes = nil
-			v26_.userSettings:reinitialize(v26_.fieldCourseSettings, false)
-			v26_.userSettings:apply(v26_.fieldCourseSettings, v26_.currentMode)
+		if spec.receivedFieldCourseAttributes ~= nil then
+			spec.fieldCourseSettings = FieldCourseSettings.generate(self)
+			spec.userSettings = AIUserSettings.new(spec.fieldCourseSettings)
+			spec.fieldCourseSettings:applyAttributes(spec.receivedFieldCourseAttributes)
+			spec.receivedFieldCourseAttributes = nil
+			spec.userSettings:reinitialize(spec.fieldCourseSettings, false)
+			spec.userSettings:apply(spec.fieldCourseSettings, spec.currentMode)
 		end
 	end
 end
-
--- Local values: spec, hud
 function AIModeSelection:onDraw(isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v28_ = self.spec_aiModeSelection
-	if v28_.hudExtension ~= nil then
-		g_currentMission.hud:addHelpExtension(v28_.hudExtension)
+	local spec = self.spec_aiModeSelection
+	if spec.hudExtension ~= nil then
+		local hud = g_currentMission.hud
+		hud:addHelpExtension(spec.hudExtension)
 	end
 end
-
--- Local values: spec
 function AIModeSelection:onStateChange(state, data)
 	if (state == VehicleStateChange.ATTACH or state == VehicleStateChange.DETACH) and not g_currentMission.vehicleSystem.isReloadRunning then
-		local v31_ = self.spec_aiModeSelection
-		v31_.fieldCourseSettings = nil
-		v31_.userSettings = nil
+		local spec = self.spec_aiModeSelection
+		spec.fieldCourseSettings = nil
+		spec.userSettings = nil
 	end
 end
-
--- Local values: spec, _, eventId
 function AIModeSelection:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v33_ = self.spec_aiModeSelection
-		self:clearActionEventsTable(v33_.actionEvents)
+		local spec = self.spec_aiModeSelection
+		self:clearActionEventsTable(spec.actionEvents)
 		if self:getIsActiveForInput(true, true) then
-			local _, v34_ = self:addActionEvent(v33_.actionEvents, InputAction.TOGGLE_AI, self, AIModeSelection.actionEventToggleAIState, true, true, true, true, nil)
-			g_inputBinding:setActionEventTextPriority(v34_, GS_PRIO_HIGH)
+			local _, eventId = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_AI, self, AIModeSelection.actionEventToggleAIState, true, true, true, true, nil)
+			g_inputBinding:setActionEventTextPriority(eventId, GS_PRIO_HIGH)
 			AIModeSelection.updateActionEvents(self, true)
 		end
 	end
 end
-
--- Local values: spec, _, fieldX, fieldZ, _, fieldCourseSettings, isAllowed, warning
 function AIModeSelection:actionEventToggleAIState(actionName, inputValue, callbackState, isAnalog, isMouse, deviceCategory, binding, isReset)
-	local v38_ = self.spec_aiModeSelection
+	local spec = self.spec_aiModeSelection
 	if inputValue == 1 then
-		if v38_.modeChangeStartTime == 0 then
-			v38_.modeChangeStartTime = g_time
+		if spec.modeChangeStartTime == 0 then
+			spec.modeChangeStartTime = g_time
 		end
-		if v38_.modeChangeStartTime + AIModeSelection.MODE_CHANGE_DURATION < g_time then
-			if v38_.fieldCourseSettings == nil then
-				local v39_, _ = FieldCourseSettings.generate(self.rootVehicle)
-				v38_.fieldCourseSettings = v39_
-				if v38_.userSettings ~= nil then
-					v38_.userSettings:reinitialize(v38_.fieldCourseSettings, true)
+		if spec.modeChangeStartTime + AIModeSelection.MODE_CHANGE_DURATION < g_time then
+			if spec.fieldCourseSettings == nil then
+				local _ = nil
+				spec.fieldCourseSettings, _ = FieldCourseSettings.generate(self.rootVehicle)
+				if spec.userSettings ~= nil then
+					spec.userSettings:reinitialize(spec.fieldCourseSettings, true)
 				end
 			end
-			if v38_.userSettings == nil then
-				v38_.userSettings = AIUserSettings.new(v38_.fieldCourseSettings)
+			if spec.userSettings == nil then
+				spec.userSettings = AIUserSettings.new(spec.fieldCourseSettings)
 			end
-			local v40_, v41_, _ = FieldCourse.findClosestField(nil, nil, nil, nil, self.rootVehicle:getActiveFarm(), self.rootVehicle, nil, v38_.fieldCourseSettings)
-			local v42_ = v38_.fieldCourseSettings:clone()
-			AISettingsDialog.show(v38_.userSettings, v42_, self, v38_.currentMode, v40_, v41_, self.aiModeSettingsChanged, self)
-			v38_.modeChangeStartTime = 0
-			return
+			local fieldX, fieldZ, _ = FieldCourse.findClosestField(nil, nil, nil, nil, self.rootVehicle:getActiveFarm(), self.rootVehicle, nil, spec.fieldCourseSettings)
+			local fieldCourseSettings = spec.fieldCourseSettings:clone()
+			AISettingsDialog.show(spec.userSettings, fieldCourseSettings, self, spec.currentMode, fieldX, fieldZ, self.aiModeSettingsChanged, self)
+			spec.modeChangeStartTime = 0
 		end
-	elseif v38_.modeChangeStartTime ~= 0 then
-		v38_.modeChangeStartTime = 0
+	elseif spec.modeChangeStartTime ~= 0 then
+		spec.modeChangeStartTime = 0
 		if not isReset then
-			if v38_.currentMode == AIModeSelection.MODE.WORKER then
+			if spec.currentMode == AIModeSelection.MODE.WORKER then
 				if g_currentMission:getHasPlayerPermission("hireAssistant") then
 					self:toggleAIVehicle()
+					return
 				else
 					g_currentMission:showBlinkingWarning(g_i18n:getText("ai_startStateNoPermission"), 2000)
+					return
 				end
 			end
-			if v38_.currentMode == AIModeSelection.MODE.STEERING_ASSIST then
-				local v43_, v44_ = self:getIsAIAutomaticSteeringAllowed()
-				if v43_ then
+			if spec.currentMode == AIModeSelection.MODE.STEERING_ASSIST then
+				local isAllowed, warning = self:getIsAIAutomaticSteeringAllowed()
+				if isAllowed then
 					self:setAIAutomaticSteeringEnabled()
 					return
 				end
-				g_currentMission:showBlinkingWarning(v44_, 2000)
+				g_currentMission:showBlinkingWarning(warning, 2000)
 			end
 		end
 	end
 end
-
--- Local values: spec, actionEvent
 function AIModeSelection:updateActionEvents(updateText)
-	local v47_ = self.spec_aiModeSelection
-	local v48_ = v47_.actionEvents[InputAction.TOGGLE_AI]
-	if v48_ ~= nil and self.isActiveForInputIgnoreSelectionIgnoreAI then
+	local spec = self.spec_aiModeSelection
+	local actionEvent = spec.actionEvents[InputAction.TOGGLE_AI]
+	if actionEvent ~= nil and self.isActiveForInputIgnoreSelectionIgnoreAI then
 		if updateText then
-			g_inputBinding:setActionEventText(v48_.actionEventId, string.format(v47_.texts.modeSelect, g_i18n:getText(AIModeSelection.MODE_TEXTS[v47_.currentMode])))
+			g_inputBinding:setActionEventText(actionEvent.actionEventId, string.format(spec.texts.modeSelect, g_i18n:getText(AIModeSelection.MODE_TEXTS[spec.currentMode])))
 		end
-		g_inputBinding:setActionEventActive(v48_.actionEventId, self:getCanToggleAIVehicle())
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, self:getCanToggleAIVehicle())
 	end
 end
-
--- Local values: spec
 function AIModeSelection:setAIModeSelection(aiMode, noEventSend)
-	local v52_ = self.spec_aiModeSelection
+	local spec = self.spec_aiModeSelection
 	if aiMode == nil then
-		local v53_ = v52_.currentMode + 1
-		aiMode = AIModeSelection.NUM_MODES < v53_ and 1 or v53_
+		aiMode = spec.currentMode + 1
+		if AIModeSelection.NUM_MODES < aiMode then
+			aiMode = 1
+		end
 	end
-	v52_.lastModeChangeTime = g_time
-	if aiMode ~= v52_.currentMode then
-		v52_.currentMode = aiMode
+	spec.lastModeChangeTime = g_time
+	if aiMode ~= spec.currentMode then
+		spec.currentMode = aiMode
 		SpecializationUtil.raiseEvent(self, "onAIModeChanged", aiMode)
 		AIModeSelection.updateActionEvents(self, true)
 		AISetModeEvent.sendEvent(self, aiMode, noEventSend)
 	end
 end
-
 function AIModeSelection:getAIModeSelection()
 	return self.spec_aiModeSelection.currentMode
 end
-
--- Local values: spec
 function AIModeSelection:aiModeSettingsChanged(aiMode, fieldCourseSettings)
-	local v58_ = self.spec_aiModeSelection
-	v58_.fieldCourseSettings = fieldCourseSettings
-	AIModeSelectionSettingsEvent.sendEvent(self, v58_.fieldCourseSettings, false)
+	local spec = self.spec_aiModeSelection
+	spec.fieldCourseSettings = fieldCourseSettings
+	AIModeSelectionSettingsEvent.sendEvent(self, spec.fieldCourseSettings, false)
 	self:setAIModeSelection(aiMode)
 	SpecializationUtil.raiseEvent(self, "onAIModeSettingsChanged", aiMode)
 end
-
--- Local values: spec, _
 function AIModeSelection:initializeLoadedAIModeUserSettings()
-	local v60_ = self.spec_aiModeSelection
-	if v60_.loadedUserSettings ~= nil then
-		if v60_.fieldCourseSettings == nil then
-			local v61_, _ = FieldCourseSettings.generate(self.rootVehicle)
-			v60_.fieldCourseSettings = v61_
+	local spec = self.spec_aiModeSelection
+	if spec.loadedUserSettings ~= nil then
+		if spec.fieldCourseSettings == nil then
+			local _ = nil
+			spec.fieldCourseSettings, _ = FieldCourseSettings.generate(self.rootVehicle)
 		end
-		v60_.userSettings = v60_.loadedUserSettings
-		v60_.loadedUserSettings = nil
-		v60_.userSettings:reinitialize(v60_.fieldCourseSettings, true)
-		v60_.userSettings:apply(v60_.fieldCourseSettings, v60_.currentMode)
+		spec.userSettings = spec.loadedUserSettings
+		spec.loadedUserSettings = nil
+		spec.userSettings:reinitialize(spec.fieldCourseSettings, true)
+		spec.userSettings:apply(spec.fieldCourseSettings, spec.currentMode)
 	end
 end
-
 function AIModeSelection:getAIModeFieldCourseSettings()
 	return self.spec_aiModeSelection.fieldCourseSettings
 end
-
--- Local values: spec, defaultFieldCourseSettings, _
 function AIModeSelection:setAIModeFieldCourseSettings(fieldCourseSettings)
-	local v65_ = self.spec_aiModeSelection
-	v65_.fieldCourseSettings = fieldCourseSettings
-	if v65_.userSettings == nil then
-		local v66_, _ = FieldCourseSettings.generate(self.rootVehicle)
-		v65_.userSettings = AIUserSettings.new(v66_)
+	local spec = self.spec_aiModeSelection
+	spec.fieldCourseSettings = fieldCourseSettings
+	if spec.userSettings == nil then
+		local defaultFieldCourseSettings, _ = FieldCourseSettings.generate(self.rootVehicle)
+		spec.userSettings = AIUserSettings.new(defaultFieldCourseSettings)
 	end
-	v65_.userSettings:reinitialize(v65_.fieldCourseSettings, false)
-	v65_.userSettings:apply(v65_.fieldCourseSettings, v65_.currentMode)
-	SpecializationUtil.raiseEvent(self, "onAIModeSettingsChanged", v65_.currentMode)
+	spec.userSettings:reinitialize(spec.fieldCourseSettings, false)
+	spec.userSettings:apply(spec.fieldCourseSettings, spec.currentMode)
+	SpecializationUtil.raiseEvent(self, "onAIModeSettingsChanged", spec.currentMode)
 end
-
--- Local values: data
 function AIModeSelection.readAIModeSettingsFromStream(streamId, connection)
-	return streamReadBool(streamId) and {
-		["attributes"] = FieldCourseSettings.readStream(streamId, connection)
-	} or nil
-end
-
--- Local values: spec
-function AIModeSelection:applyReadAIModeSettingsFromStream(data)
-	local v71_ = self.spec_aiModeSelection
-	if data ~= nil then
-		v71_.fieldCourseSettings = FieldCourseSettings.generate(self)
-		v71_.fieldCourseSettings:applyAttributes(data.attributes)
-		v71_.loadedUserSettings = nil
+	if streamReadBool(streamId) then
+		local data = { ["attributes"] = FieldCourseSettings.readStream(streamId, connection) }
+		return data
+	else
+		return nil
 	end
 end
-
--- Local values: spec
+function AIModeSelection:applyReadAIModeSettingsFromStream(data)
+	local spec = self.spec_aiModeSelection
+	if data ~= nil then
+		spec.fieldCourseSettings = FieldCourseSettings.generate(self)
+		spec.fieldCourseSettings:applyAttributes(data.attributes)
+		spec.loadedUserSettings = nil
+	end
+end
 function AIModeSelection:writeAIModeSettingsToStream(streamId, connection)
 	self:initializeLoadedAIModeUserSettings()
-	local v75_ = self.spec_aiModeSelection
-	if streamWriteBool(streamId, v75_.fieldCourseSettings ~= nil) then
-		v75_.fieldCourseSettings:writeStream(streamId, connection)
+	local spec = self.spec_aiModeSelection
+	if streamWriteBool(streamId, spec.fieldCourseSettings ~= nil) then
+		spec.fieldCourseSettings:writeStream(streamId, connection)
 	end
 end

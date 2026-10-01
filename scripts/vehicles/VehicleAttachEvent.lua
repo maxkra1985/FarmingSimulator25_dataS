@@ -1,30 +1,20 @@
--- Local values: VehicleAttachEvent_mt
 VehicleAttachEvent = {}
 local VehicleAttachEvent_mt = Class(VehicleAttachEvent, Event)
 InitStaticEventClass(VehicleAttachEvent, "VehicleAttachEvent")
 function VehicleAttachEvent.emptyNew()
-	-- upvalues: (copy) VehicleAttachEvent_mt
-	return Event.new(VehicleAttachEvent_mt)
+	local self = Event.new(VehicleAttachEvent_mt)
+	return self
 end
-
--- Local values: self
 function VehicleAttachEvent.new(vehicle, implement, inputJointIndex, jointIndex, startLowered)
-	local v7_ = VehicleAttachEvent.emptyNew()
-	v7_.jointIndex = jointIndex
-	v7_.inputJointIndex = inputJointIndex
-	v7_.vehicle = vehicle
-	v7_.implement = implement
-	v7_.startLowered = startLowered
-	local v8_
-	if v7_.jointIndex >= 0 then
-		v8_ = v7_.jointIndex < 127
-	else
-		v8_ = false
-	end
-	assert(v8_)
-	return v7_
+	local self = VehicleAttachEvent.emptyNew()
+	self.jointIndex = jointIndex
+	self.inputJointIndex = inputJointIndex
+	self.vehicle = vehicle
+	self.implement = implement
+	self.startLowered = startLowered
+	assert(0 <= self.jointIndex and self.jointIndex < 127)
+	return self
 end
-
 function VehicleAttachEvent:readStream(streamId, connection)
 	self.vehicle = NetworkUtil.readNodeObject(streamId)
 	self.implement = NetworkUtil.readNodeObject(streamId)
@@ -33,7 +23,6 @@ function VehicleAttachEvent:readStream(streamId, connection)
 	self.startLowered = streamReadBool(streamId)
 	self:run(connection)
 end
-
 function VehicleAttachEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.vehicle)
 	NetworkUtil.writeNodeObject(streamId, self.implement)
@@ -41,11 +30,10 @@ function VehicleAttachEvent:writeStream(streamId, connection)
 	streamWriteUIntN(streamId, self.inputJointIndex, 7)
 	streamWriteBool(streamId, self.startLowered)
 end
-
 function VehicleAttachEvent:run(connection)
 	if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
 		if self.implement == nil then
-			Logging.error("Failed to attach unknown implement to vehicle \'%s\' between joints \'%d\' and \'%d\'", self.vehicle.configFileName, self.jointIndex, self.inputJointIndex)
+			Logging.error("Failed to attach unknown implement to vehicle '%s' between joints '%d' and '%d'", self.vehicle.configFileName, self.jointIndex, self.inputJointIndex)
 			return
 		end
 		self.vehicle:attachImplement(self.implement, self.inputJointIndex, self.jointIndex, true, nil, self.startLowered)

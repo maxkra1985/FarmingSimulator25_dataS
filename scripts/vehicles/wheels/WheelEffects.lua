@@ -33,39 +33,31 @@ WheelEffects.MAX_MUD_AMOUNT[FieldGroundType.HARVEST_READY] = 0.2
 WheelEffects.MAX_MUD_AMOUNT[FieldGroundType.HARVEST_READY_OTHER] = 1
 WheelEffects.MAX_MUD_AMOUNT[FieldGroundType.GRASS] = 0.2
 WheelEffects.MAX_MUD_AMOUNT[FieldGroundType.GRASS_CUT] = 0.2
-
--- Local values: self
 function WheelEffects.new(wheel)
-	local v2_ = {
-		["__index"] = WheelEffects
-	}
-	local v3_ = setmetatable({}, v2_)
-	v3_.wheel = wheel
-	v3_.vehicle = wheel.vehicle
-	v3_.sharedLoadRequestIds = {}
-	v3_.driveGroundParticleSystems = {}
-	v3_.waterEffects = {}
-	v3_.waterEffectsLoaded = false
-	v3_.waterEffectsActive = false
-	v3_.waterEffectScale = 0
-	v3_.waterEffectReferenceRadius = nil
-	v3_.speedSmooth = 0
-	v3_.wheelSpeedSmooth = 0
-	return v3_
+	local self = setmetatable({}, { __index = WheelEffects })
+	self.wheel = wheel
+	self.vehicle = wheel.vehicle
+	self.sharedLoadRequestIds = {}
+	self.driveGroundParticleSystems = {}
+	self.waterEffects = {}
+	self.waterEffectsLoaded = false
+	self.waterEffectsActive = false
+	self.waterEffectScale = 0
+	self.waterEffectReferenceRadius = nil
+	self.speedSmooth = 0
+	self.wheelSpeedSmooth = 0
+	return self
 end
-
--- Local values: _, particleSystem, _, sharedLoadRequestId
 function WheelEffects:delete()
-	for _, v5_ in pairs(self.driveGroundParticleSystems) do
-		ParticleUtil.deleteParticleSystem(v5_)
+	for _, particleSystem in pairs(self.driveGroundParticleSystems) do
+		ParticleUtil.deleteParticleSystem(particleSystem)
 	end
-	for _, v6_ in ipairs(self.sharedLoadRequestIds) do
-		g_i3DManager:releaseSharedI3DFile(v6_)
+	for _, sharedLoadRequestId in ipairs(self.sharedLoadRequestIds) do
+		g_i3DManager:releaseSharedI3DFile(sharedLoadRequestId)
 	end
 	self.sharedLoadRequestIds = {}
 	self:removeWaterEffects()
 end
-
 function WheelEffects:loadFromXML(xmlObject)
 	self.hasTireTracks = xmlObject:getValue("#hasTireTracks", false)
 	self.hasParticles = xmlObject:getValue("#hasParticles", false)
@@ -82,61 +74,55 @@ function WheelEffects:loadFromXML(xmlObject)
 	self.onlyActiveOnGroundContact = xmlObject:getValue(".wheelParticleSystem#onlyActiveOnGroundContact", true)
 	return true
 end
-
--- Local values: _, visualWheel, name, state, sourceParticleSystem, args, sharedLoadRequestId, args, sharedLoadRequestId, name, state, sourceParticleSystem, args, sharedLoadRequestId
 function WheelEffects:finalize()
-	for _, v10_ in ipairs(self.wheel.visualWheels) do
+	for _, visualWheel in ipairs(self.wheel.visualWheels) do
 		if self.hasParticles then
-			for v11_, v12_ in pairs(WheelEffects.PARTICLE_SYSTEM_STATES) do
-				local v13_ = g_particleSystemManager:getParticleSystem(v11_)
-				if v13_ ~= nil then
-					local v14_ = {
-						["name"] = v11_,
-						["state"] = v12_,
-						["wheelNode"] = v10_.node,
-						["width"] = v10_.width,
-						["radius"] = v10_.radius,
-						["sourceParticleSystem"] = v13_,
-						["sizeScale"] = 2 * v10_.width * v10_.radius
-					}
-					local v15_ = self.vehicle:loadSubSharedI3DFile(WheelEffects.PARTICLE_SYSTEM_PATH, false, false, self.onWheelParticleSystemI3DLoaded, self, v14_)
-					local v16_ = self.sharedLoadRequestIds
-					table.insert(v16_, v15_)
+			for name, state in pairs(WheelEffects.PARTICLE_SYSTEM_STATES) do
+				local sourceParticleSystem = g_particleSystemManager:getParticleSystem(name)
+				if sourceParticleSystem == nil then
+					continue
 				end
+				local args = {}
+				args.name = name
+				args.state = state
+				args.wheelNode = visualWheel.node
+				args.width = visualWheel.width
+				args.radius = visualWheel.radius
+				args.sourceParticleSystem = sourceParticleSystem
+				args.sizeScale = 2 * visualWheel.width * visualWheel.radius
+				local sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(WheelEffects.PARTICLE_SYSTEM_PATH, false, false, self.onWheelParticleSystemI3DLoaded, self, args)
+				table.insert(self.sharedLoadRequestIds, sharedLoadRequestId)
 			end
 		end
 		if self.hasWaterParticles ~= false then
-			local v17_ = {
-				["wheelNode"] = v10_.node,
-				["width"] = v10_.width,
-				["radius"] = v10_.radius
-			}
-			local v18_ = self.vehicle:loadSubSharedI3DFile(WheelEffects.WATER_EFFECTS, false, false, self.onWheelWaterEffectI3DLoaded, self, v17_)
-			local v19_ = self.sharedLoadRequestIds
-			table.insert(v19_, v18_)
+			local args = {}
+			args.wheelNode = visualWheel.node
+			args.width = visualWheel.width
+			args.radius = visualWheel.radius
+			local sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(WheelEffects.WATER_EFFECTS, false, false, self.onWheelWaterEffectI3DLoaded, self, args)
+			table.insert(self.sharedLoadRequestIds, sharedLoadRequestId)
 		end
 		if self.isShallowWaterObstacle then
-			v10_:addShallowWaterObstacle()
+			visualWheel:addShallowWaterObstacle()
 		end
 	end
 	if #self.wheel.visualWheels == 0 then
 		if self.hasParticles then
-			for v20_, v21_ in pairs(WheelEffects.PARTICLE_SYSTEM_STATES) do
-				local v22_ = g_particleSystemManager:getParticleSystem(v20_)
-				if v22_ ~= nil then
-					local v23_ = {
-						["name"] = v20_,
-						["state"] = v21_,
-						["wheelNode"] = self.wheel.driveNode,
-						["width"] = self.wheel.physics.width,
-						["radius"] = self.wheel.physics.radius,
-						["sourceParticleSystem"] = v22_,
-						["sizeScale"] = 2 * self.wheel.physics.width * self.wheel.physics.radius
-					}
-					local v24_ = self.vehicle:loadSubSharedI3DFile(WheelEffects.PARTICLE_SYSTEM_PATH, false, false, self.onWheelParticleSystemI3DLoaded, self, v23_)
-					local v25_ = self.sharedLoadRequestIds
-					table.insert(v25_, v24_)
+			for name, state in pairs(WheelEffects.PARTICLE_SYSTEM_STATES) do
+				local sourceParticleSystem = g_particleSystemManager:getParticleSystem(name)
+				if sourceParticleSystem == nil then
+					continue
 				end
+				local args = {}
+				args.name = name
+				args.state = state
+				args.wheelNode = self.wheel.driveNode
+				args.width = self.wheel.physics.width
+				args.radius = self.wheel.physics.radius
+				args.sourceParticleSystem = sourceParticleSystem
+				args.sizeScale = 2 * self.wheel.physics.width * self.wheel.physics.radius
+				local sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(WheelEffects.PARTICLE_SYSTEM_PATH, false, false, self.onWheelParticleSystemI3DLoaded, self, args)
+				table.insert(self.sharedLoadRequestIds, sharedLoadRequestId)
 			end
 		end
 		if self.hasWaterParticles == true then
@@ -148,334 +134,293 @@ function WheelEffects:finalize()
 		end
 	end
 end
-
--- Local values: _, visualWheel
 function WheelEffects:postLoad()
-	for _, v27_ in ipairs(self.wheel.visualWheels) do
+	for _, visualWheel in ipairs(self.wheel.visualWheels) do
 		if self.hasTireTracks and Platform.gameplay.wheelTireTracks then
-			self.tireTrackNodeIndex = self.vehicle:addTireTrackNode(self.wheel, self.wheel.driveNodeDirectionNode, v27_:getTireNode() or v27_.node, self.tireTrackAtlasIndex, v27_.width, v27_.radius, v27_:getIsTireInverted())
+			self.tireTrackNodeIndex = self.vehicle:addTireTrackNode(self.wheel, self.wheel.driveNodeDirectionNode, visualWheel:getTireNode() or visualWheel.node, self.tireTrackAtlasIndex, visualWheel.width, visualWheel.radius, visualWheel:getIsTireInverted())
 			self.wheel.syncContactState = true
 		end
 	end
 end
-
--- Local values: emitterShape, particleSystem, wx, wy, wz
 function WheelEffects:onWheelParticleSystemI3DLoaded(i3dNode, failedReason, args)
 	if i3dNode ~= 0 then
-		local v31_ = getChildAt(i3dNode, 0)
-		link(self.wheel.repr, v31_)
+		local emitterShape = getChildAt(i3dNode, 0)
+		link(self.wheel.repr, emitterShape)
 		delete(i3dNode)
-		local v32_ = ParticleUtil.copyParticleSystem(nil, nil, args.sourceParticleSystem, v31_)
-		v32_.state = args.state
-		v32_.i3dFilename = args.i3dFilename
-		v32_.particleSpeed = ParticleUtil.getParticleSystemSpeed(v32_)
-		v32_.particleRandomSpeed = ParticleUtil.getParticleSystemSpeedRandom(v32_)
-		v32_.sizeScale = args.sizeScale
-		v32_.alpha = 0
-		v32_.isTintable = Utils.getNoNil(getUserAttribute(v32_.shape, "tintable"), true)
-		local v33_, v34_, v35_ = worldToLocal(self.wheel.repr, getWorldTranslation(args.wheelNode))
-		setTranslation(v32_.emitterShape, v33_ + self.offset[1], v34_ + self.offset[2], v35_ + self.offset[3])
-		setRotation(v32_.emitterShape, localRotationToLocal(args.wheelNode, getParent(v32_.emitterShape), 0, 0, 0))
-		setScale(v32_.emitterShape, args.width, args.radius * 2, args.radius * 2)
-		local v36_ = self.driveGroundParticleSystems
-		table.insert(v36_, v32_)
+		local particleSystem = ParticleUtil.copyParticleSystem(nil, nil, args.sourceParticleSystem, emitterShape)
+		particleSystem.state = args.state
+		particleSystem.i3dFilename = args.i3dFilename
+		particleSystem.particleSpeed = ParticleUtil.getParticleSystemSpeed(particleSystem)
+		particleSystem.particleRandomSpeed = ParticleUtil.getParticleSystemSpeedRandom(particleSystem)
+		particleSystem.sizeScale = args.sizeScale
+		particleSystem.alpha = 0
+		particleSystem.isTintable = Utils.getNoNil(getUserAttribute(particleSystem.shape, "tintable"), true)
+		local wx, wy, wz = worldToLocal(self.wheel.repr, getWorldTranslation(args.wheelNode))
+		setTranslation(particleSystem.emitterShape, wx + self.offset[1], wy + self.offset[2], wz + self.offset[3])
+		setRotation(particleSystem.emitterShape, localRotationToLocal(args.wheelNode, getParent(particleSystem.emitterShape), 0, 0, 0))
+		setScale(particleSystem.emitterShape, args.width, args.radius * 2, args.radius * 2)
+		table.insert(self.driveGroundParticleSystems, particleSystem)
 	end
 end
-
--- Local values: waterFront, waterFrontFoam, waterBack, waterBackFoam, waterEffectNode, waterEffect, baseDensity
 function WheelEffects:onWheelWaterEffectI3DLoaded(i3dNode, failedReason, wheelData)
 	if i3dNode ~= 0 and self.hasWaterParticles ~= false then
-		local v40_ = getChildAt(i3dNode, 0)
-		local v41_ = getChildAt(i3dNode, 1)
-		local v42_ = getChildAt(i3dNode, 2)
-		local v43_ = getChildAt(i3dNode, 3)
-		local v44_ = createTransformGroup("waterEffectNode")
-		link(self.wheel.node, v44_)
-		setWorldTranslation(v44_, getWorldTranslation(wheelData.wheelNode))
-		setWorldRotation(v44_, getWorldRotation(wheelData.wheelNode))
-		link(v44_, v40_)
-		link(v44_, v41_)
-		link(v44_, v42_)
-		link(v44_, v43_)
-		setTranslation(v40_, 0, 0, wheelData.radius * 0.65)
-		setTranslation(v41_, 0, 0, wheelData.radius * 0.65)
-		setTranslation(v42_, 0, 0, -wheelData.radius * 0.35)
-		setTranslation(v43_, 0, 0, -wheelData.radius * 0.35)
-		local v45_ = wheelData.radius * wheelData.width
-		local v46_ = math.min(v45_, 1)
-		setShaderParameter(v40_, "fadeProgress", nil, nil, v46_, 0, false)
-		setShaderParameter(v41_, "fadeProgress", nil, nil, v46_, 0, false)
-		setShaderParameter(v42_, "fadeProgress", nil, nil, v46_, 0, false)
-		setShaderParameter(v43_, "fadeProgress", nil, nil, v46_, 0, false)
-		setVisibility(v44_, false)
+		local waterFront = getChildAt(i3dNode, 0)
+		local waterFrontFoam = getChildAt(i3dNode, 1)
+		local waterBack = getChildAt(i3dNode, 2)
+		local waterBackFoam = getChildAt(i3dNode, 3)
+		local waterEffectNode = createTransformGroup("waterEffectNode")
+		link(self.wheel.node, waterEffectNode)
+		setWorldTranslation(waterEffectNode, getWorldTranslation(wheelData.wheelNode))
+		setWorldRotation(waterEffectNode, getWorldRotation(wheelData.wheelNode))
+		local waterEffect = {}
+		waterEffect.wheelData = wheelData
+		waterEffect.waterEffectNode = waterEffectNode
+		waterEffect.waterFront = waterFront
+		waterEffect.waterFrontFoam = waterFrontFoam
+		waterEffect.waterBack = waterBack
+		waterEffect.waterBackFoam = waterBackFoam
+		link(waterEffectNode, waterFront)
+		link(waterEffectNode, waterFrontFoam)
+		link(waterEffectNode, waterBack)
+		link(waterEffectNode, waterBackFoam)
+		setTranslation(waterFront, 0, 0, wheelData.radius * 0.65)
+		setTranslation(waterFrontFoam, 0, 0, wheelData.radius * 0.65)
+		setTranslation(waterBack, 0, 0, -wheelData.radius * 0.35)
+		setTranslation(waterBackFoam, 0, 0, -wheelData.radius * 0.35)
+		local baseDensity = math.min(wheelData.radius * wheelData.width, 1)
+		setShaderParameter(waterFront, "fadeProgress", nil, nil, baseDensity, 0, false)
+		setShaderParameter(waterFrontFoam, "fadeProgress", nil, nil, baseDensity, 0, false)
+		setShaderParameter(waterBack, "fadeProgress", nil, nil, baseDensity, 0, false)
+		setShaderParameter(waterBackFoam, "fadeProgress", nil, nil, baseDensity, 0, false)
+		setVisibility(waterEffectNode, false)
 		self.waterEffectsActive = false
-		local v47_ = self.waterEffects
-		table.insert(v47_, {
-			["wheelData"] = wheelData,
-			["waterEffectNode"] = v44_,
-			["waterFront"] = v40_,
-			["waterFrontFoam"] = v41_,
-			["waterBack"] = v42_,
-			["waterBackFoam"] = v43_
-		})
+		table.insert(self.waterEffects, waterEffect)
 		self.waterEffectsLoaded = true
 		delete(i3dNode)
 	end
 end
-
--- Local values: args, sharedLoadRequestId
 function WheelEffects:addWaterEffectsToPhysicsData()
 	self.hasWaterParticles = true
-	local v49_ = {
-		["wheelNode"] = self.wheel.driveNode,
-		["width"] = self.wheel.physics.width,
-		["radius"] = self.wheel.physics.radius
-	}
-	local v50_ = self.vehicle:loadSubSharedI3DFile(WheelEffects.WATER_EFFECTS, false, false, self.onWheelWaterEffectI3DLoaded, self, v49_)
-	local v51_ = self.sharedLoadRequestIds
-	table.insert(v51_, v50_)
+	local args = {}
+	args.wheelNode = self.wheel.driveNode
+	args.width = self.wheel.physics.width
+	args.radius = self.wheel.physics.radius
+	local sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(WheelEffects.WATER_EFFECTS, false, false, self.onWheelWaterEffectI3DLoaded, self, args)
+	table.insert(self.sharedLoadRequestIds, sharedLoadRequestId)
 end
-
--- Local values: _, waterEffect
 function WheelEffects:removeWaterEffects()
-	for _, v53_ in ipairs(self.waterEffects) do
-		delete(v53_.waterEffectNode)
+	for _, waterEffect in ipairs(self.waterEffects) do
+		delete(waterEffect.waterEffectNode)
 	end
 	self.waterEffects = {}
 	self.waterEffectsLoaded = false
 	self.hasWaterParticles = false
 end
-
--- Local values: wheel, minSpeed, direction, maxSpeed, alpha, scale
 function WheelEffects:getDriveGroundParticleSystemsScale(particleSystem, speed)
-	local v56_ = self.wheel
-	if not v56_.physics.hasSnowContact then
-		if self.onlyActiveOnGroundContact and v56_.physics.contact ~= WheelContactType.GROUND then
+	local wheel = self.wheel
+	if not wheel.physics.hasSnowContact then
+		if self.onlyActiveOnGroundContact and wheel.physics.contact ~= WheelContactType.GROUND then
 			return 0
 		end
-		if not WheelEffects.GROUND_PARTICLES[v56_.physics.lastTerrainAttribute] then
+		if not WheelEffects.GROUND_PARTICLES[wheel.physics.lastTerrainAttribute] then
 			return 0
 		end
-		if v56_.physics.densityType == FieldGroundType.GRASS then
+		if wheel.physics.densityType == FieldGroundType.GRASS then
 			return 0
 		end
 	end
-	local v57_ = self.minSpeed
-	local v58_ = self.direction
-	if v57_ >= speed or v58_ ~= 0 and v58_ > 0 ~= (self.vehicle.movingDirection > 0) then
-		return 0
+	local minSpeed = self.minSpeed
+	local direction = self.direction
+	if minSpeed < speed and (direction == 0 or 0 < direction == (0 < self.vehicle.movingDirection)) then
+		local maxSpeed = self.maxSpeed
+		local alpha = math.min((speed - minSpeed) / (maxSpeed - minSpeed), 1)
+		local scale = MathUtil.lerp(self.minScale, self.maxScale, alpha)
+		return scale
 	end
-	local v59_ = self.maxSpeed
-	local v60_ = (speed - v57_) / (v59_ - v57_)
-	local v61_ = math.min(v60_, 1)
-	return MathUtil.lerp(self.minScale, self.maxScale, v61_)
+	return 0
 end
-
--- Local values: physics, isActive, contactX, contactY, contactZ, terrainHeight, direction, speed, wheelSpeed, slipScale, densityFront, densityFrontFoam, densityBack, densityBackFoam, _, waterEffect, offsetX, _, offsetZ, _, offsetY, _, nx, _, nz, tx, tz, offsetX, offsetY, offsetZ, offsetX, offsetY, offsetZ, dx, dz, length, dy, upX, upY, upZ, _, ny, _, radius, scaleFront, scaleBack, scaleX, _, waterEffect
 function WheelEffects:update(dt, groundWetness, currentUpdateIndex)
-	if self.waterEffectsLoaded then
-		local v64_ = self.wheel.physics
+	if not self.waterEffectsLoaded then
+		return
+	else
+		local physics = self.wheel.physics
 		if VehicleDebug.wheelEffectDebugState then
-			v64_.hasWaterContact = true
-			v64_.netInfo.lastSpeedSmoothed = 0.005555555555555556
+			physics.hasWaterContact = true
+			physics.netInfo.lastSpeedSmoothed = 0.005555555555555556
 			self.waterEffectScale = 1
 			self.vehicle.lastSpeedSmoothed = 0.005555555555555556
 		end
-		if v64_.hasWaterContact then
-			local v65_ = self.waterEffectScale + dt * WheelEffects.WATER_EFFECT_FADE_IN_TIME
-			self.waterEffectScale = math.min(v65_, 1)
+		if physics.hasWaterContact then
+			self.waterEffectScale = math.min(self.waterEffectScale + dt * WheelEffects.WATER_EFFECT_FADE_IN_TIME, 1)
 		else
-			local v66_ = self.waterEffectScale - dt * WheelEffects.WATER_EFFECT_FADE_OUT_TIME
-			self.waterEffectScale = math.max(v66_, 0)
+			self.waterEffectScale = math.max(self.waterEffectScale - dt * WheelEffects.WATER_EFFECT_FADE_OUT_TIME, 0)
 		end
-		local v67_
-		if self.waterEffectScale > 0 then
-			v67_ = v64_.lastContactX ~= nil
-		else
-			v67_ = false
-		end
-		if v67_ then
-			local v68_ = v64_.lastContactX
-			local v69_ = v64_.lastContactY
-			local v70_ = v64_.lastContactZ
-			if v69_ > 0 then
-				local v71_ = getTerrainHeightAtWorldPos(g_terrainNode, v68_, 0, v70_)
-				v69_ = math.max(v69_, v71_)
+		local isActive = 0 < self.waterEffectScale and physics.lastContactX ~= nil
+		if isActive then
+			local contactX = physics.lastContactX
+			local contactY = physics.lastContactY
+			local contactZ = physics.lastContactZ
+			if 0 < contactY then
+				local terrainHeight = getTerrainHeightAtWorldPos(g_terrainNode, contactX, 0, contactZ)
+				contactY = math.max(contactY, terrainHeight)
 			end
-			local v72_ = v64_.netInfo.lastSpeedSmoothed < -0.000277 and -1 or 1
-			local v73_ = self.vehicle.lastSpeedSmoothed * 3600
-			local v74_ = v64_.netInfo.lastSpeedSmoothed
-			local v75_ = math.abs(v74_) * 3600
-			local v76_ = 1 + v64_.netInfo.slip
-			local v77_ = (v73_ - 1) / 11
-			local v78_ = math.min(v77_, 1)
-			local v79_ = math.max(v78_, 0) * self.waterEffectScale
-			local v80_ = (v73_ - 11) / 21 * math.min(v76_, 2)
-			local v81_ = math.min(v80_, 1)
-			local v82_ = math.max(v81_, 0) * self.waterEffectScale
-			local v83_ = (v75_ - 1) / 11
-			local v84_ = math.min(v83_, 1)
-			local v85_ = math.max(v84_, 0) * self.waterEffectScale
-			local v86_ = (v75_ - 11) / 21 * math.min(v76_, 2)
-			local v87_ = math.min(v86_, 1)
-			local v88_ = math.max(v87_, 0) * self.waterEffectScale
+			local direction = 1
+			if physics.netInfo.lastSpeedSmoothed < -0.000277 then
+				direction = -1
+			end
+			local speed = self.vehicle.lastSpeedSmoothed * 3600
+			local wheelSpeed = math.abs(physics.netInfo.lastSpeedSmoothed) * 3600
+			local slipScale = 1 + physics.netInfo.slip
+			local densityFront = math.max(math.min((speed - 1) / 11, 1), 0) * self.waterEffectScale
+			local densityFrontFoam = math.max(math.min((speed - 11) / 21 * math.min(slipScale, 2), 1), 0) * self.waterEffectScale
+			local densityBack = math.max(math.min((wheelSpeed - 1) / 11, 1), 0) * self.waterEffectScale
+			local densityBackFoam = math.max(math.min((wheelSpeed - 11) / 21 * math.min(slipScale, 2), 1), 0) * self.waterEffectScale
 			if self.waterParticleDirection ~= 0 then
-				if self.waterParticleDirection > 0 == (v72_ > 0) then
-					v85_ = 0
-					v88_ = 0
+				if 0 < self.waterParticleDirection == (0 < direction) then
+					densityBack = 0
+					densityBackFoam = 0
 				else
-					v82_ = 0
-					v79_ = 0
+					densityFront = 0
+					densityFrontFoam = 0
 				end
 			end
-			for _, v89_ in ipairs(self.waterEffects) do
+			for _, waterEffect in ipairs(self.waterEffects) do
 				if not self.waterEffectsActive then
-					setVisibility(v89_.waterEffectNode, true)
+					setVisibility(waterEffect.waterEffectNode, true)
 				end
-				local v90_, _, v91_ = localToLocal(v89_.wheelData.wheelNode, self.wheel.node, 0, 0, 0)
-				local _, v92_, _ = worldToLocal(self.wheel.node, v68_, v69_, v70_)
-				setTranslation(v89_.waterEffectNode, v90_, v92_, v91_)
-				local v93_, _, v94_ = getWorldTranslation(v89_.waterEffectNode)
-				local v95_, v96_
-				if v64_.useReprDirection or (v64_.useDriveNodeDirection or v64_.rotSpeed ~= 0) then
-					local v97_, v98_, v99_ = localToLocal(v89_.waterEffectNode, self.wheel.driveNodeDirectionNode, 0, 0, 0)
-					local v100_
-					v95_, v100_, v96_ = localToWorld(self.wheel.driveNodeDirectionNode, v97_, v98_, v99_ - v72_ * 0.25)
+				local offsetX, _, offsetZ = localToLocal(waterEffect.wheelData.wheelNode, self.wheel.node, 0, 0, 0)
+				local _, offsetY, _ = worldToLocal(self.wheel.node, contactX, contactY, contactZ)
+				setTranslation(waterEffect.waterEffectNode, offsetX, offsetY, offsetZ)
+				local nx, _, nz = getWorldTranslation(waterEffect.waterEffectNode)
+				local tx = nil
+				local tz = nil
+				if physics.useReprDirection or physics.useDriveNodeDirection or physics.rotSpeed ~= 0 then
+					local offsetX, offsetY, offsetZ = localToLocal(waterEffect.waterEffectNode, self.wheel.driveNodeDirectionNode, 0, 0, 0)
+					tx, _, tz = localToWorld(self.wheel.driveNodeDirectionNode, offsetX, offsetY, offsetZ - direction * 0.25)
 				else
-					local v101_, v102_, v103_ = localToLocal(v89_.waterEffectNode, self.wheel.node, 0, 0, 0)
-					local v104_
-					v95_, v104_, v96_ = localToWorld(self.wheel.node, v101_, v102_, v103_ - v72_ * 0.25)
+					local offsetX, offsetY, offsetZ = localToLocal(waterEffect.waterEffectNode, self.wheel.node, 0, 0, 0)
+					tx, _, tz = localToWorld(self.wheel.node, offsetX, offsetY, offsetZ - direction * 0.25)
 				end
-				if v89_.worldTargetPosition == nil then
-					v89_.worldTargetPosition = { v95_, v96_ }
+				if waterEffect.worldTargetPosition == nil then
+					waterEffect.worldTargetPosition = { tx, tz }
 				end
-				v89_.worldTargetPosition[1] = v89_.worldTargetPosition[1] * 0.8 + v95_ * 0.2
-				v89_.worldTargetPosition[2] = v89_.worldTargetPosition[2] * 0.8 + v96_ * 0.2
-				local v105_ = v93_ - v89_.worldTargetPosition[1]
-				local v106_ = v94_ - v89_.worldTargetPosition[2]
-				local v107_ = MathUtil.vector3Length(v105_, 0, v106_)
-				if v107_ > 0 then
-					local v108_ = v105_ / v107_
-					local v109_ = v106_ / v107_
-					local v110_, v111_, v112_ = worldDirectionToLocal(getParent(v89_.waterEffectNode), v108_, 0, v109_)
-					local v113_, v114_, v115_ = worldDirectionToLocal(getParent(v89_.waterEffectNode), 0, 1, 0)
-					setDirection(v89_.waterEffectNode, v110_, v111_, v112_, v113_, v114_, v115_)
+				waterEffect.worldTargetPosition[1] = waterEffect.worldTargetPosition[1] * 0.8 + tx * 0.2
+				waterEffect.worldTargetPosition[2] = waterEffect.worldTargetPosition[2] * 0.8 + tz * 0.2
+				local dx = nx - waterEffect.worldTargetPosition[1]
+				local dz = nz - waterEffect.worldTargetPosition[2]
+				local length = MathUtil.vector3Length(dx, 0, dz)
+				if 0 < length then
+					dx = dx / length
+					dz = dz / length
+					local dy = nil
+					dx, dy, dz = worldDirectionToLocal(getParent(waterEffect.waterEffectNode), dx, 0, dz)
+					local upX, upY, upZ = worldDirectionToLocal(getParent(waterEffect.waterEffectNode), 0, 1, 0)
+					setDirection(waterEffect.waterEffectNode, dx, dy, dz, upX, upY, upZ)
 				end
 				if VehicleDebug.wheelEffectDebugState then
-					local _, v116_, _ = getWorldTranslation(v89_.waterEffectNode)
-					drawDebugLine(v93_, v116_ + 2, v94_, 1, 0, 0, v89_.worldTargetPosition[1], v116_ + 2, v89_.worldTargetPosition[2], 1, 0, 0, true)
+					local _, ny, _ = getWorldTranslation(waterEffect.waterEffectNode)
+					drawDebugLine(nx, ny + 2, nz, 1, 0, 0, waterEffect.worldTargetPosition[1], ny + 2, waterEffect.worldTargetPosition[2], 1, 0, 0, true)
 				end
-				local v117_ = self.waterEffectReferenceRadius or v89_.wheelData.radius
-				local v118_ = v73_ / 25
-				local v119_ = math.min(v118_, 1)
-				local v120_ = v117_ * math.max(v119_, 0.25)
-				local v121_ = v75_ * math.min(v76_, 3) / 25
-				local v122_ = math.min(v121_, 1)
-				local v123_ = v117_ * math.max(v122_, 0.25)
-				local v124_ = v89_.wheelData.width * 1.2
-				setScale(v89_.waterFront, v124_, v120_, v120_)
-				setScale(v89_.waterFrontFoam, v124_, v120_, v120_)
-				setScale(v89_.waterBack, v124_, v123_, v123_)
-				setScale(v89_.waterBackFoam, v124_, v123_, v123_)
-				setShaderParameter(v89_.waterFront, "density", v79_, nil, nil, nil, false)
-				setShaderParameter(v89_.waterFrontFoam, "density", v82_, nil, nil, nil, false)
-				setShaderParameter(v89_.waterBack, "density", v85_, nil, nil, nil, false)
-				setShaderParameter(v89_.waterBackFoam, "density", v88_, nil, nil, nil, false)
+				local radius = self.waterEffectReferenceRadius or waterEffect.wheelData.radius
+				local scaleFront = radius * math.max(math.min(speed / 25, 1), 0.25)
+				local scaleBack = radius * math.max(math.min(wheelSpeed * math.min(slipScale, 3) / 25, 1), 0.25)
+				local scaleX = waterEffect.wheelData.width * 1.2
+				setScale(waterEffect.waterFront, scaleX, scaleFront, scaleFront)
+				setScale(waterEffect.waterFrontFoam, scaleX, scaleFront, scaleFront)
+				setScale(waterEffect.waterBack, scaleX, scaleBack, scaleBack)
+				setScale(waterEffect.waterBackFoam, scaleX, scaleBack, scaleBack)
+				setShaderParameter(waterEffect.waterFront, "density", densityFront, nil, nil, nil, false)
+				setShaderParameter(waterEffect.waterFrontFoam, "density", densityFrontFoam, nil, nil, nil, false)
+				setShaderParameter(waterEffect.waterBack, "density", densityBack, nil, nil, nil, false)
+				setShaderParameter(waterEffect.waterBackFoam, "density", densityBackFoam, nil, nil, nil, false)
 			end
 		elseif self.waterEffectsActive then
-			for _, v125_ in ipairs(self.waterEffects) do
-				setVisibility(v125_.waterEffectNode, false)
+			for _, waterEffect in ipairs(self.waterEffects) do
+				setVisibility(waterEffect.waterEffectNode, false)
 			end
 		end
-		self.waterEffectsActive = v67_
+		self.waterEffectsActive = isActive
 	end
 end
-
--- Local values: physics, groundColor, enableSoilPS, hasSnowContact, state, wheelSpeed, wheelSlip, _, particleSystem, scale, r, g, b, maxSpeed, circum, maxWheelRpm, wheelRotFactor, emitScale
 function WheelEffects:updateTick(dt, groundWetness, currentUpdateDistance)
-	if WheelEffects.MAX_UPDATE_DISTANCE >= currentUpdateDistance then
-		local v130_ = self.wheel.physics
-		local v131_ = v130_.groundColor
-		local v132_ = v130_.hasSoilContact
-		local v133_ = 0
-		if v130_.hasSnowContact then
-			v133_ = WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_SNOW
-		elseif v132_ then
-			if groundWetness > 0.2 then
-				v133_ = WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_WET
+	if WheelEffects.MAX_UPDATE_DISTANCE < currentUpdateDistance then
+		return
+	else
+		local physics = self.wheel.physics
+		local groundColor = physics.groundColor
+		local enableSoilPS = physics.hasSoilContact
+		local hasSnowContact = physics.hasSnowContact
+		local state = 0
+		if hasSnowContact then
+			state = WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_SNOW
+		elseif enableSoilPS then
+			if 0.2 < groundWetness then
+				state = WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_WET
 			else
-				v133_ = WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_DRY
+				state = WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_DRY
 			end
 		elseif groundWetness <= 0.2 then
-			v133_ = WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_DUST
+			state = WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_DUST
 		end
-		local v134_ = v130_.netInfo.lastSpeedSmoothed
-		local v135_ = 1 + v130_.netInfo.slip
-		for _, v136_ in ipairs(self.driveGroundParticleSystems) do
-			if v136_.state == v133_ then
-				local v137_
-				if v136_.state == WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_DUST then
-					v137_ = self:getDriveGroundParticleSystemsScale(v136_, self.vehicle.lastSpeedSmoothed)
-				else
-					v137_ = self:getDriveGroundParticleSystemsScale(v136_, v134_) * v135_
-				end
-				if v136_.isTintable then
-					if v136_.lastColor == nil then
-						v136_.lastColor = { v131_[1], v131_[2], v131_[3] }
-						v136_.targetColor = { v131_[1], v131_[2], v131_[3] }
-						v136_.currentColor = { v131_[1], v131_[2], v131_[3] }
-						v136_.alpha = 1
+		local wheelSpeed = physics.netInfo.lastSpeedSmoothed
+		local wheelSlip = 1 + physics.netInfo.slip
+		for _, particleSystem in ipairs(self.driveGroundParticleSystems) do
+			if particleSystem.state == state then
+				local scale = 0
+				scale = particleSystem.state ~= WheelEffects.PARTICLE_SYSTEM_STATES.WHEEL_DUST and self:getDriveGroundParticleSystemsScale(particleSystem, wheelSpeed) * wheelSlip or self:getDriveGroundParticleSystemsScale(particleSystem, self.vehicle.lastSpeedSmoothed)
+				if particleSystem.isTintable then
+					if particleSystem.lastColor == nil then
+						particleSystem.lastColor = { groundColor[1], groundColor[2], groundColor[3] }
+						particleSystem.targetColor = { groundColor[1], groundColor[2], groundColor[3] }
+						particleSystem.currentColor = { groundColor[1], groundColor[2], groundColor[3] }
+						particleSystem.alpha = 1
 					end
-					if v136_.alpha ~= 1 then
-						local v138_ = v136_.alpha + dt * 0.001
-						v136_.alpha = math.min(v138_, 1)
-						local v139_, v140_, v141_ = MathUtil.vector3ArrayLerp(v136_.lastColor, v136_.targetColor, v136_.alpha)
-						v136_.currentColor[1] = v139_
-						v136_.currentColor[2] = v140_
-						v136_.currentColor[3] = v141_
-						if v136_.alpha == 1 then
-							v136_.lastColor[1] = v136_.currentColor[1]
-							v136_.lastColor[2] = v136_.currentColor[2]
-							v136_.lastColor[3] = v136_.currentColor[3]
+					if particleSystem.alpha ~= 1 then
+						particleSystem.alpha = math.min(particleSystem.alpha + dt * 0.001, 1)
+						local r, g, b = MathUtil.vector3ArrayLerp(particleSystem.lastColor, particleSystem.targetColor, particleSystem.alpha)
+						particleSystem.currentColor[1] = r
+						particleSystem.currentColor[2] = g
+						particleSystem.currentColor[3] = b
+						if particleSystem.alpha == 1 then
+							particleSystem.lastColor[1] = particleSystem.currentColor[1]
+							particleSystem.lastColor[2] = particleSystem.currentColor[2]
+							particleSystem.lastColor[3] = particleSystem.currentColor[3]
 						end
 					end
-					if v136_.alpha == 1 and (v131_[1] ~= v136_.targetColor[1] and (v131_[2] ~= v136_.targetColor[2] and v131_[3] ~= v136_.targetColor[3])) then
-						v136_.alpha = 0
-						v136_.targetColor[1] = v131_[1]
-						v136_.targetColor[2] = v131_[2]
-						v136_.targetColor[3] = v131_[3]
+					if particleSystem.alpha == 1 and (groundColor[1] ~= particleSystem.targetColor[1] and (groundColor[2] ~= particleSystem.targetColor[2] and groundColor[3] ~= particleSystem.targetColor[3])) then
+						particleSystem.alpha = 0
+						particleSystem.targetColor[1] = groundColor[1]
+						particleSystem.targetColor[2] = groundColor[2]
+						particleSystem.targetColor[3] = groundColor[3]
 					end
 				end
-				if v137_ > 0 then
-					ParticleUtil.setEmittingState(v136_, true)
-					if v136_.isTintable then
-						I3DUtil.setShaderParameterRec(v136_.shape, "colorAlpha", v136_.currentColor[1], v136_.currentColor[2], v136_.currentColor[3], 1)
+				if 0 < scale then
+					ParticleUtil.setEmittingState(particleSystem, true)
+					if particleSystem.isTintable then
+						I3DUtil.setShaderParameterRec(particleSystem.shape, "colorAlpha", particleSystem.currentColor[1], particleSystem.currentColor[2], particleSystem.currentColor[3], 1)
 					end
 				else
-					ParticleUtil.setEmittingState(v136_, false)
+					ParticleUtil.setEmittingState(particleSystem, false)
 				end
-				local v142_ = 13.88888888888889 / v130_.radiusOriginal
-				local v143_ = v137_ * ((v130_.netInfo.xDriveSpeed or 0) / v142_) * v136_.sizeScale
-				local v144_ = ParticleUtil.setEmitCountScale
-				local v145_ = self.minScale
-				local v146_ = self.maxScale
-				v144_(v136_, (math.clamp(v143_, v145_, v146_)))
-				ParticleUtil.setParticleSystemSpeed(v136_, v136_.particleSpeed)
-				ParticleUtil.setParticleSystemSpeedRandom(v136_, v136_.particleRandomSpeed)
+				local maxSpeed = 13.88888888888889
+				local circum = physics.radiusOriginal
+				local maxWheelRpm = 13.88888888888889 / circum
+				local wheelRotFactor = (physics.netInfo.xDriveSpeed or 0) / maxWheelRpm
+				local emitScale = scale * wheelRotFactor * particleSystem.sizeScale
+				ParticleUtil.setEmitCountScale(particleSystem, math.clamp(emitScale, self.minScale, self.maxScale))
+				ParticleUtil.setParticleSystemSpeed(particleSystem, particleSystem.particleSpeed)
+				ParticleUtil.setParticleSystemSpeedRandom(particleSystem, particleSystem.particleRandomSpeed)
 			else
-				ParticleUtil.setEmittingState(v136_, false)
+				ParticleUtil.setEmittingState(particleSystem, false)
 			end
 		end
 	end
 end
-
--- Local values: _, particleSystem
 function WheelEffects:onUpdateEnd(dt)
-	for _, v148_ in ipairs(self.driveGroundParticleSystems) do
-		ParticleUtil.setEmittingState(v148_, false)
+	for _, particleSystem in ipairs(self.driveGroundParticleSystems) do
+		ParticleUtil.setEmittingState(particleSystem, false)
 	end
 end
-
 function WheelEffects.registerXMLPaths(schema, key)
 	schema:register(XMLValueType.BOOL, key .. "#hasTireTracks", "Has tire tracks", false)
 	schema:register(XMLValueType.BOOL, key .. "#hasParticles", "Has particles", false)

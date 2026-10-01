@@ -1,39 +1,13 @@
--- Local values: Environment_mt
 Environment = {}
 local Environment_mt = Class(Environment)
 Environment.SEASONS_IN_YEAR = 4
 Environment.PERIODS_IN_YEAR = 12
-Environment.JULIAN_DAYS_NORTH = {
-	[Season.SPRING] = 60,
-	[Season.SUMMER] = 152,
-	[Season.AUTUMN] = 244,
-	[Season.WINTER] = 335
-}
-Environment.JULIAN_DAYS_SOUTH = {
-	[Season.SPRING] = 244,
-	[Season.SUMMER] = 335,
-	[Season.AUTUMN] = 60,
-	[Season.WINTER] = 152
-}
-Environment.DAYTIME_TO_HOURS_MULT = 1.1574074074074074e-8
+Environment.JULIAN_DAYS_NORTH = { [Season.SPRING] = 60, [Season.SUMMER] = 152, [Season.AUTUMN] = 244, [Season.WINTER] = 335 }
+Environment.JULIAN_DAYS_SOUTH = { [Season.SPRING] = 244, [Season.SUMMER] = 335, [Season.AUTUMN] = 60, [Season.WINTER] = 152 }
+Environment.DAYTIME_TO_HOURS_MULT = 0.000000011574074074074074
 Environment.INITIAL_DAY = 6
 Environment.MAX_DAYS_PER_PERIOD = 28
-Environment.PERIOD_DAY_MAPPING = {
-	[SeasonPeriod.EARLY_SPRING] = 80,
-	[SeasonPeriod.MID_SPRING] = 110,
-	[SeasonPeriod.LATE_SPRING] = 140,
-	[SeasonPeriod.EARLY_SUMMER] = 170,
-	[SeasonPeriod.MID_SUMMER] = 200,
-	[SeasonPeriod.LATE_SUMMER] = 230,
-	[SeasonPeriod.EARLY_AUTUMN] = 260,
-	[SeasonPeriod.MID_AUTUMN] = 290,
-	[SeasonPeriod.LATE_AUTUMN] = 320,
-	[SeasonPeriod.EARLY_WINTER] = 350,
-	[SeasonPeriod.MID_WINTER] = 20,
-	[SeasonPeriod.LATE_WINTER] = 50
-}
-
--- Local values: sunPath, sunChildIndex, secondSunPath, secondSunChildIndex
+Environment.PERIOD_DAY_MAPPING = { [SeasonPeriod.EARLY_SPRING] = 80, [SeasonPeriod.MID_SPRING] = 110, [SeasonPeriod.LATE_SPRING] = 140, [SeasonPeriod.EARLY_SUMMER] = 170, [SeasonPeriod.MID_SUMMER] = 200, [SeasonPeriod.LATE_SUMMER] = 230, [SeasonPeriod.EARLY_AUTUMN] = 260, [SeasonPeriod.MID_AUTUMN] = 290, [SeasonPeriod.LATE_AUTUMN] = 320, [SeasonPeriod.EARLY_WINTER] = 350, [SeasonPeriod.MID_WINTER] = 20, [SeasonPeriod.LATE_WINTER] = 50 }
 function Environment:onCreateSunLight(node)
 	if g_currentMission ~= nil and g_currentMission.environment ~= nil then
 		if g_currentMission.environment.baseLighting.sunLightId == nil then
@@ -41,23 +15,20 @@ function Environment:onCreateSunLight(node)
 			g_currentMission.environment.baseLighting.sunColor = { getLightColor(node) }
 			return
 		end
-		local v3_ = I3DUtil.getNodePath(g_currentMission.environment.lighting.sunLightId)
-		local v4_ = getChildIndex(g_currentMission.environment.lighting.sunLightId)
-		local v5_ = I3DUtil.getNodePath(node)
-		local v6_ = getChildIndex(node)
-		Logging.error("Environment:onCreateSunLight(): Sun light source was already registered \'%s\'(child %d). Please remove \'%s\' (child %d)", v3_, v4_, v5_, v6_)
+		local sunPath = I3DUtil.getNodePath(g_currentMission.environment.lighting.sunLightId)
+		local sunChildIndex = getChildIndex(g_currentMission.environment.lighting.sunLightId)
+		local secondSunPath = I3DUtil.getNodePath(node)
+		local secondSunChildIndex = getChildIndex(node)
+		Logging.error("Environment:onCreateSunLight(): Sun light source was already registered '%s'(child %d). Please remove '%s' (child %d)", sunPath, sunChildIndex, secondSunPath, secondSunChildIndex)
 	end
 end
-
--- Local values: newMask, profileId
 function Environment:onCreateWater(id)
-	if getHasClassId(id, ClassIds.SHAPE) then
+	if not getHasClassId(id, ClassIds.SHAPE) then
+		Logging.i3dError(id, "Environment:onCreateWater(): Given node is not a shape, ignoring")
+	else
 		if not Utils.getNoNil(getUserAttribute(id, "useShapeObjectMask"), false) then
-			local v8_ = getObjectMask(id)
-			local v9_ = ObjectMask.SHAPE_VIS_MIRROR
-			local v10_ = bit32.bnot(v9_)
-			local v11_ = bit32.band(v8_, v10_)
-			setObjectMask(id, v11_)
+			local newMask = bit32.band(getObjectMask(id), bit32.bnot(ObjectMask.SHAPE_VIS_MIRROR))
+			setObjectMask(id, newMask)
 		end
 		if getShapeCastShadowmap(id) then
 			Logging.i3dWarning(id, "Environment:onCreateWater(): Water plane has shadow casting active")
@@ -65,13 +36,15 @@ function Environment:onCreateWater(id)
 		if not getShapeReceiveShadowmap(id) then
 			Logging.i3dWarning(id, "Environment:onCreateWater(): Water plane is missing shadow receive")
 		end
-		local v12_ = Utils.getPerformanceClassId()
-		if v12_ <= GS_PROFILE_MEDIUM or GS_IS_CONSOLE_VERSION then
+		local profileId = Utils.getPerformanceClassId()
+		if profileId <= GS_PROFILE_MEDIUM or GS_IS_CONSOLE_VERSION then
 			setReflectionMapScaling(id, 0, true)
-		elseif v12_ <= GS_PROFILE_HIGH then
-			setReflectionMapObjectMasks(id, ObjectMask.SHAPE_VIS_WATER_REFL, ObjectMask.LIGHT_VIS_WATER_REFL, true)
 		else
-			setReflectionMapObjectMasks(id, ObjectMask.SHAPE_VIS_WATER_REFL_VERYHIGH, ObjectMask.LIGHT_VIS_WATER_REFL_VERYHIGH, true)
+			if profileId <= GS_PROFILE_HIGH then
+				setReflectionMapObjectMasks(id, ObjectMask.SHAPE_VIS_WATER_REFL, ObjectMask.LIGHT_VIS_WATER_REFL, true)
+			else
+				setReflectionMapObjectMasks(id, ObjectMask.SHAPE_VIS_WATER_REFL_VERYHIGH, ObjectMask.LIGHT_VIS_WATER_REFL_VERYHIGH, true)
+			end
 		end
 		if getRigidBodyType(id) ~= RigidBodyType.NONE then
 			if not CollisionFlag.getHasGroupFlagSet(id, CollisionFlag.WATER) then
@@ -79,65 +52,57 @@ function Environment:onCreateWater(id)
 			end
 			if g_currentMission.shallowWaterSimulation ~= nil then
 				if not g_currentMission.isLoadingMap then
-					Logging.i3dWarning(id, "Environment:onCreateWater(): Cannot add shallow water simulation planes using onCreate for meshes outside the map itself, use xml config \'placeable.shallowWaterSimulation\' instead")
+					Logging.i3dWarning(id, "Environment:onCreateWater(): Cannot add shallow water simulation planes using onCreate for meshes outside the map itself, use xml config 'placeable.shallowWaterSimulation' instead")
 					return
 				end
 				g_currentMission.shallowWaterSimulation:addWaterPlane(id)
 				g_currentMission.shallowWaterSimulation:addAreaGeometry(id)
 			end
 		end
-	else
-		Logging.i3dError(id, "Environment:onCreateWater(): Given node is not a shape, ignoring")
 	end
 end
-
--- Upvalues: Environment_mt
--- Local values: self, skyNode
 function Environment.new(mission)
-	-- upvalues: (copy) Environment_mt
-	local v14_ = Environment_mt
-	local v15_ = setmetatable({}, v14_)
-	local v16_ = g_i3DManager:loadI3DFile("data/sky/sky.i3d", false, false)
-	if v16_ ~= 0 then
-		link(getRootNode(), v16_)
-		v15_.skyNode = v16_
+	local self = setmetatable({}, Environment_mt)
+	local skyNode = g_i3DManager:loadI3DFile("data/sky/sky.i3d", false, false)
+	if skyNode ~= 0 then
+		link(getRootNode(), skyNode)
+		self.skyNode = skyNode
 	end
-	v15_.mission = mission
-	v15_.daylight = Daylight.new()
-	v15_.lighting = Lighting.new()
-	v15_.baseLighting = v15_.lighting
-	v15_.weather = Weather.new(v15_)
-	v15_.environmentMaskSystem = EnvironmentMaskSystem.new(v15_.mission)
-	v15_.currentDay = nil
-	v15_.currentMonotonicDay = nil
-	v15_.dayTime = nil
-	v15_.timeUpdateInterval = 60000
-	v15_.timeUpdateTime = 0
-	v15_.isSunOn = true
-	v15_.debugSeasonalShaderParameter = false
-	if v15_.mission:getIsServer() then
-		addConsoleCommand("gsTimeSet", "Sets the day time in hours", "consoleCommandSetDayTime", v15_, "timeHours; [skipDayOnly]")
-		addConsoleCommand("gsEnvironmentReload", "Reloads environment", "consoleCommandReloadEnvironment", v15_)
+	self.mission = mission
+	self.daylight = Daylight.new()
+	self.lighting = Lighting.new()
+	self.baseLighting = self.lighting
+	self.weather = Weather.new(self)
+	self.environmentMaskSystem = EnvironmentMaskSystem.new(self.mission)
+	self.currentDay = nil
+	self.currentMonotonicDay = nil
+	self.dayTime = nil
+	self.timeUpdateInterval = 60000
+	self.timeUpdateTime = 0
+	self.isSunOn = true
+	self.debugSeasonalShaderParameter = false
+	if self.mission:getIsServer() then
+		addConsoleCommand("gsTimeSet", "Sets the day time in hours", "consoleCommandSetDayTime", self, "timeHours; [skipDayOnly]")
+		addConsoleCommand("gsEnvironmentReload", "Reloads environment", "consoleCommandReloadEnvironment", self)
 		if g_addCheatCommands then
-			addConsoleCommand("gsTakeEnvProbes", "Takes env. probes from current camera position", "consoleCommandTakeEnvProbes", v15_)
+			addConsoleCommand("gsTakeEnvProbes", "Takes env. probes from current camera position", "consoleCommandTakeEnvProbes", self)
 		end
 	end
-	addConsoleCommand("gsSetFixedExposureSettings", "Sets fixed exposure settings", "consoleCommandSetFixedExposureSettings", v15_, "keyValue; minExposure; maxExposure")
-	addConsoleCommand("gsEnvironmentAutoExposureToggle", "Toggles auto exposure", "consoleCommandToggleAutoExposure", v15_)
-	addConsoleCommand("gsEnvironmentExposureFixedLuminance", "Set exposure fixed luminance", "consoleCommandSetExposureFixedLuminance", v15_, "luminance")
-	addConsoleCommand("gsEnvironmentSeasonalShaderSet", "Sets the seasonal shader to a forced value", "consoleCommandSetSeasonalShader", v15_)
-	addConsoleCommand("gsEnvironmentSeasonalShaderDebug", "Shows the current seasonal shader parameter", "consoleCommandSeasonalShaderDebug", v15_)
-	addConsoleCommand("gsEnvironmentFixedVisualsSet", "Sets the visual seasons to a fixed period", "consoleCommandSetFixedVisuals", v15_, "periodIndex")
-	return v15_
+	addConsoleCommand("gsSetFixedExposureSettings", "Sets fixed exposure settings", "consoleCommandSetFixedExposureSettings", self, "keyValue; minExposure; maxExposure")
+	addConsoleCommand("gsEnvironmentAutoExposureToggle", "Toggles auto exposure", "consoleCommandToggleAutoExposure", self)
+	addConsoleCommand("gsEnvironmentExposureFixedLuminance", "Set exposure fixed luminance", "consoleCommandSetExposureFixedLuminance", self, "luminance")
+	addConsoleCommand("gsEnvironmentSeasonalShaderSet", "Sets the seasonal shader to a forced value", "consoleCommandSetSeasonalShader", self)
+	addConsoleCommand("gsEnvironmentSeasonalShaderDebug", "Shows the current seasonal shader parameter", "consoleCommandSeasonalShaderDebug", self)
+	addConsoleCommand("gsEnvironmentFixedVisualsSet", "Sets the visual seasons to a fixed period", "consoleCommandSetFixedVisuals", self, "periodIndex")
+	return self
 end
-
--- Local values: xmlFile, baseKey, startHour, dayTime
 function Environment:load(filename)
 	self.xmlFilename = filename
-	local v19_ = XMLFile.load("Environment", filename)
-	if v19_ == nil then
-		Logging.fatal("Could not load environment \'%s\'", filename)
+	local xmlFile = XMLFile.load("Environment", filename)
+	if xmlFile == nil then
+		Logging.fatal("Could not load environment '%s'", filename)
 	end
+	local baseKey = "environment"
 	self.currentDay = 1
 	self.currentMonotonicDay = 1
 	self.currentDayInPeriod = 1
@@ -155,27 +120,29 @@ function Environment:load(filename)
 	self.dayLength = 86400000
 	self.realHourLength = 3600000
 	self.realHourTimer = self.realHourLength
-	self.daylight:load(v19_, "environment")
+	self.daylight:load(xmlFile, "environment")
 	self:updateJulianDay()
-	local v20_ = v19_:getFloat("environment#startHour", 8)
-	local v21_ = v20_ == nil and 0 or v20_ * 60 * 60 * 1000
-	self:setEnvironmentTime(Environment.INITIAL_DAY, Environment.INITIAL_DAY, v21_, self.daysPerPeriod, false)
-	self.dayNightCycle = v19_:getBool("environment#dayNightCycle", true)
-	self.lighting:load(v19_, "environment.lighting", g_currentMission.baseDirectory)
+	local startHour = xmlFile:getFloat("environment" .. "#startHour", 8)
+	local dayTime = 0
+	if startHour ~= nil then
+		dayTime = startHour * 60 * 60 * 1000
+	end
+	self:setEnvironmentTime(Environment.INITIAL_DAY, Environment.INITIAL_DAY, dayTime, self.daysPerPeriod, false)
+	self.dayNightCycle = xmlFile:getBool("environment" .. "#dayNightCycle", true)
+	self.lighting:load(xmlFile, "environment" .. ".lighting", g_currentMission.baseDirectory)
 	self.lighting:setSnowHeightThreshold(SnowSystem.MIN_LAYER_HEIGHT)
 	self.lighting:apply()
 	self.weather:setIsRainAllowed(true)
-	self.weather:load(v19_, "environment", g_currentMission.baseDirectory)
+	self.weather:load(xmlFile, "environment", g_currentMission.baseDirectory)
 	self.environmentMaskSystem:setDayOfYear(Environment.PERIOD_DAY_MAPPING[self.currentVisualPeriod], self.currentVisualSeason)
 	self.environmentMaskSystem:setIsSunOn(self.isSunOn)
-	self.nightTimeScale = v19_:getFloat("environment#nightTimeScale", 2)
-	self.dirtColorDefault = v19_:getVector("environment.dirtColors#default", { 0.2, 0.14, 0.08 }, 3)
-	self.dirtColorSnow = v19_:getVector("environment.dirtColors#snow", { 0.95, 0.95, 0.95 }, 3)
-	v19_:delete()
+	self.nightTimeScale = xmlFile:getFloat("environment" .. "#nightTimeScale", 2)
+	self.dirtColorDefault = xmlFile:getVector("environment" .. ".dirtColors#default", { 0.2, 0.14, 0.08 }, 3)
+	self.dirtColorSnow = xmlFile:getVector("environment" .. ".dirtColors#snow", { 0.95, 0.95, 0.95 }, 3)
+	xmlFile:delete()
 	g_messageCenter:unsubscribeAll(self)
 	return self
 end
-
 function Environment:delete()
 	if self.skyNode ~= nil then
 		delete(self.skyNode)
@@ -201,7 +168,6 @@ function Environment:delete()
 	removeConsoleCommand("gsEnvironmentFixedVisualsSet")
 	removeConsoleCommand("gsTakeEnvProbes")
 end
-
 function Environment:saveToXMLFile(xmlFile, key)
 	setXMLFloat(xmlFile, key .. ".dayTime", self.dayTime / 60000)
 	setXMLInt(xmlFile, key .. ".currentDay", self.currentDay)
@@ -216,86 +182,80 @@ function Environment:saveToXMLFile(xmlFile, key)
 	self.daylight:saveToXMLFile(xmlFile, key .. ".daylight")
 	self.weather:saveToXMLFile(xmlFile, key .. ".weather")
 end
-
--- Local values: dayTime, currentDay, currentMonotonicDay, fixedPeriod
 function Environment:loadFromXMLFile(xmlFile, key)
-	local v29_ = Utils.getNoNil(getXMLFloat(xmlFile, key .. ".dayTime"), 400)
-	local v30_ = Utils.getNoNil(getXMLInt(xmlFile, key .. ".currentDay"), self.currentDay)
-	local v31_ = Utils.getNoNil(getXMLInt(xmlFile, key .. ".currentMonotonicDay"), v30_)
+	local dayTime = Utils.getNoNil(getXMLFloat(xmlFile, key .. ".dayTime"), 400)
+	local currentDay = Utils.getNoNil(getXMLInt(xmlFile, key .. ".currentDay"), self.currentDay)
+	local currentMonotonicDay = Utils.getNoNil(getXMLInt(xmlFile, key .. ".currentMonotonicDay"), currentDay)
 	self.daysPerPeriod = Utils.getNoNil(getXMLInt(xmlFile, key .. ".daysPerPeriod"), self.daysPerPeriod)
 	self.timeAdjustment = 1 / self.daysPerPeriod
 	self.plannedDaysPerPeriod = self.mission.missionInfo.plannedDaysPerPeriod
-	local v32_ = self.mission.missionInfo.fixedSeasonalVisuals
-	if v32_ ~= nil then
-		self.currentVisualPeriod = v32_
-		self.currentVisualSeason = SeasonPeriod.getSeason(v32_)
+	local fixedPeriod = self.mission.missionInfo.fixedSeasonalVisuals
+	if fixedPeriod ~= nil then
+		self.currentVisualPeriod = fixedPeriod
+		self.currentVisualSeason = SeasonPeriod.getSeason(fixedPeriod)
 		self.visualPeriodLocked = true
 	end
 	self.realHourTimer = Utils.getNoNil(getXMLInt(xmlFile, key .. ".realHourTimer"), 3600000)
 	self.daylight:loadFromXMLFile(xmlFile, key .. ".daylight")
 	self.weather:loadFromXMLFile(xmlFile, key .. ".weather")
-	self:setEnvironmentTime(v31_, v30_, v29_ * 1000 * 60, self.daysPerPeriod, false)
+	self:setEnvironmentTime(currentMonotonicDay, currentDay, dayTime * 1000 * 60, self.daysPerPeriod, false)
 end
-
--- Local values: task, newDayTime, newDay, rainScale, timeTillRain, filename, renderResolution, outputResolution, ssaoQuality, numIterations, renderSun, currentData, cloudUpdater, cloudEnvMapIndex1, cloudEnvMapIndex2, alpha, dayMinutes, isNight
 function Environment:update(dt)
 	if self.envMapGeneration ~= nil then
-		local v35_ = self.envMapGeneration.tasks[1]
-		if v35_ ~= nil then
-			if v35_.dayTime ~= nil then
-				local v36_ = v35_.dayTime * 1000 * 60 * 60
-				local v37_ = math.floor(v36_)
-				local v38_ = self.currentDay
-				self:setEnvironmentTime(v38_, v38_, v37_, self.daysPerPeriod, false)
+		local task = self.envMapGeneration.tasks[1]
+		if task ~= nil then
+			if task.dayTime ~= nil then
+				local newDayTime = math.floor(task.dayTime * 1000 * 60 * 60)
+				local newDay = self.currentDay
+				self:setEnvironmentTime(newDay, newDay, newDayTime, self.daysPerPeriod, false)
 				self.lighting:setDayTime(self.dayTime, true)
 			end
-			if v35_.cloudData ~= nil then
-				self.weather.cloudUpdater:setTargetClouds(v35_.cloudData, 0)
-				self.weather.cloudUpdater:setWindValues(v35_.windDirX, v35_.windDirZ, v35_.windVelocity, v35_.cirrusCloudSpeedFactor)
+			if task.cloudData ~= nil then
+				self.weather.cloudUpdater:setTargetClouds(task.cloudData, 0)
+				self.weather.cloudUpdater:setWindValues(task.windDirX, task.windDirZ, task.windVelocity, task.cirrusCloudSpeedFactor)
 				self.weather.cloudUpdater:update(10000)
 				if self.weather.skyBoxUpdater ~= nil then
-					local v39_, v40_
-					if v35_.cloudData.precipitation > 0.5 then
-						v39_ = 1
-						v40_ = -1000
-					else
-						v39_ = 0
-						v40_ = math.huge
+					local rainScale = 0
+					local timeTillRain = math.huge
+					if 0.5 < task.cloudData.precipitation then
+						rainScale = 1
+						timeTillRain = -1000
 					end
-					self.weather.skyBoxUpdater:update(10000, self.dayTime, v39_, v40_)
+					self.weather.skyBoxUpdater:update(10000, self.dayTime, rainScale, timeTillRain)
 				end
 			end
-			if v35_.setDefaultValues then
+			if task.setDefaultValues then
 				setSharedShaderParameter(Shader.PARAM_SHARED_SEASON, 0)
 				self.baseLighting:setDaylightTimes(7, 19, 6, 20)
 				self.baseLighting.envMapRenderingMode = true
 				self.baseLighting:setDayTime(self.dayTime, true)
 				self.baseLighting.envMapRenderingMode = false
 			end
-			local v41_ = v35_.filename
-			if v41_ ~= nil then
-				local v42_ = v35_.renderResolution
-				local v43_ = v35_.outputResolution
-				local v44_ = v35_.ssaoQuality
-				local v45_ = v35_.numIterations
-				renderEnvProbe(v42_, v43_, v44_, false, v45_, v41_)
+			local filename = task.filename
+			if filename ~= nil then
+				local renderResolution = task.renderResolution
+				local outputResolution = task.outputResolution
+				local ssaoQuality = task.ssaoQuality
+				local numIterations = task.numIterations
+				local renderSun = false
+				renderEnvProbe(renderResolution, outputResolution, ssaoQuality, false, numIterations, filename)
 			end
 			table.remove(self.envMapGeneration.tasks, 1)
 			return
 		end
-		local v46_ = self.envMapGeneration.currentData
-		local v47_ = self.weather.cloudUpdater
-		v47_.lastClouds = v46_.lastClouds
-		v47_.targetClouds = v46_.targetClouds
-		v47_.alpha = v46_.alpha
-		v47_.duration = v46_.duration
-		v47_.windDirX = v46_.windDirX
-		v47_.windDirZ = v46_.windDirZ
-		v47_.windVelocity = v46_.windVelocity
-		v47_.cirrusCloudSpeedFactor = v46_.cirrusCloudSpeedFactor
-		v47_.isDirty = true
-		g_currentMission.growthSystem:setGrowthMode(v46_.growthMode, true)
-		self:setEnvironmentTime(v46_.currentMonotonicDay + 12 * self.daysPerPeriod, v46_.currentDay + 12 * self.daysPerPeriod, v46_.dayTime, self.daysPerPeriod, false)
+		local currentData = self.envMapGeneration.currentData
+		local cloudUpdater = self.weather.cloudUpdater
+		cloudUpdater.lastClouds = currentData.lastClouds
+		cloudUpdater.targetClouds = currentData.targetClouds
+		cloudUpdater.alpha = currentData.alpha
+		cloudUpdater.duration = currentData.duration
+		cloudUpdater.windDirX = currentData.windDirX
+		cloudUpdater.windDirZ = currentData.windDirZ
+		cloudUpdater.windVelocity = currentData.windVelocity
+		cloudUpdater.cirrusCloudSpeedFactor = currentData.cirrusCloudSpeedFactor
+		cloudUpdater.isDirty = true
+		g_currentMission.growthSystem:setGrowthMode(currentData.growthMode, true)
+		self:setEnvironmentTime(currentData.currentMonotonicDay + 12 * self.daysPerPeriod, currentData.currentDay + 12 * self.daysPerPeriod, currentData.dayTime, self.daysPerPeriod, false)
 		self.envMapGeneration = nil
 		print("Finished environment map generation")
 	end
@@ -309,8 +269,8 @@ function Environment:update(dt)
 		self.realHourTimer = self.realHourLength
 	end
 	if self.lighting ~= nil then
-		local v48_, v49_, v50_ = self.weather:getCloudEnvMapInfo()
-		self.lighting:setCloudEnvMapInfo(v48_, v49_, v50_)
+		local cloudEnvMapIndex1, cloudEnvMapIndex2, alpha = self.weather:getCloudEnvMapInfo()
+		self.lighting:setCloudEnvMapInfo(cloudEnvMapIndex1, cloudEnvMapIndex2, alpha)
 		self.lighting:setSunHeightAngle(self.daylight:getSunHeightAngle())
 		self.lighting:setDaylightTimes(self.daylight:getDaylightTimes())
 		self.lighting:setSnowHeight(self.weather.snowHeight)
@@ -327,147 +287,130 @@ function Environment:update(dt)
 	end
 	if g_server ~= nil then
 		self.timeUpdateTime = self.timeUpdateTime + dt
-		if self.timeUpdateTime > self.timeUpdateInterval then
+		if self.timeUpdateInterval < self.timeUpdateTime then
 			EnvironmentTimeEvent.broadcastEvent()
 			self.timeUpdateTime = 0
 		end
 		if Platform.gameplay.hasShortNights and not g_sleepManager:getIsSleeping() then
-			local v51_ = self.dayTime / 60000
-			local v52_ = self.daylight.logicalNightStartMinutes <= v51_ and true or v51_ < self.daylight.logicalNightEndMinutes
-			if v52_ ~= self.lastNightState then
-				self.mission:setTimeScaleMultiplier(v52_ and (self.nightTimeScale or 1) or 1)
+			local dayMinutes = self.dayTime / 60000
+			local isNight = self.daylight.logicalNightStartMinutes <= dayMinutes or dayMinutes < self.daylight.logicalNightEndMinutes
+			if isNight ~= self.lastNightState then
+				self.mission:setTimeScaleMultiplier(isNight and self.nightTimeScale or 1)
 			end
-			self.lastNightState = v52_
+			self.lastNightState = isNight
 		end
 	end
 end
-
--- Local values: timeHoursF, timeHours, timeMinutes, hourChanged, dayChanged, periodChanged, seasonChanged, yearChanged, periodLengthChanged, period, season, oldDaysPerPeriod, year, currentVisualPeriod
 function Environment:updateTimeValues(isInitialState)
-	local v55_ = self.dayTime / 3600000 + 0.0001
-	local v56_ = math.floor(v55_)
-	local v57_ = (v55_ - v56_) * 60
-	local v58_ = math.floor(v57_)
+	local timeHoursF = self.dayTime / 3600000 + 0.0001
+	local timeHours = math.floor(timeHoursF)
+	local timeMinutes = math.floor((timeHoursF - timeHours) * 60)
 	self.environmentMaskSystem:setDayTime(self.dayTime)
-	local v59_ = false
-	local v60_ = false
-	local v61_ = false
-	local v62_ = false
-	local v63_ = false
-	local v64_ = false
-	if v58_ ~= self.currentMinute then
-		while v58_ ~= self.currentMinute do
+	local hourChanged = false
+	local dayChanged = false
+	local periodChanged = false
+	local seasonChanged = false
+	local yearChanged = false
+	local periodLengthChanged = false
+	if timeMinutes ~= self.currentMinute then
+		while timeMinutes ~= self.currentMinute do
 			self.currentMinute = self.currentMinute + 1
-			if self.currentMinute >= 60 then
+			if 60 <= self.currentMinute then
 				self.currentMinute = 0
 			end
-			if not isInitialState then
-				g_messageCenter:publish(MessageType.MINUTE_CHANGED, self.currentMinute)
-				self.mission:onMinuteChanged(self.currentMinute)
+			if isInitialState then
+				continue
 			end
+			g_messageCenter:publish(MessageType.MINUTE_CHANGED, self.currentMinute)
+			self.mission:onMinuteChanged(self.currentMinute)
 		end
 	end
-	if v56_ ~= self.currentHour then
-		self.currentHour = v56_
+	if timeHours ~= self.currentHour then
+		self.currentHour = timeHours
 		if self.currentHour == 24 then
 			self.currentHour = 0
-			v59_ = true
-		else
-			v59_ = true
 		end
+		hourChanged = true
 	end
-	if self.dayTime > 86400000 then
+	if 86400000 < self.dayTime then
 		self.dayTime = self.dayTime - 86400000
 		self.currentDay = self.currentDay + 1
 		self.currentMonotonicDay = self.currentMonotonicDay + 1
-		v60_ = true
+		dayChanged = true
 	end
-	if v60_ or isInitialState then
+	if dayChanged or isInitialState then
 		self.currentDayInPeriod = (self.currentDay - 1) % self.daysPerPeriod + 1
-		local v65_ = ((self.currentDay - 1) % (self.daysPerPeriod * Environment.PERIODS_IN_YEAR) + 1) / self.daysPerPeriod
-		local v66_ = math.ceil(v65_)
-		if v66_ ~= self.currentPeriod then
-			self.currentPeriod = v66_
-			if self.visualPeriodLocked then
-				v61_ = true
-			else
-				self.currentVisualPeriod = self.currentPeriod
-				v61_ = true
-			end
-		end
-		local v67_ = (self.currentDay - 1) / self:getDaysPerSeason()
-		local v68_ = math.floor(v67_)
-		local v69_ = Environment.SEASONS_IN_YEAR
-		local v70_ = math.fmod(v68_, v69_) + 1
-		if v70_ ~= self.currentSeason then
-			self.currentSeason = v70_
+		local period = math.ceil(((self.currentDay - 1) % (self.daysPerPeriod * Environment.PERIODS_IN_YEAR) + 1) / self.daysPerPeriod)
+		if period ~= self.currentPeriod then
+			self.currentPeriod = period
 			if not self.visualPeriodLocked then
-				self.currentVisualSeason = v70_
+				self.currentVisualPeriod = self.currentPeriod
 			end
-			v62_ = true
+			periodChanged = true
+		end
+		local season = math.fmod(math.floor((self.currentDay - 1) / self:getDaysPerSeason()), Environment.SEASONS_IN_YEAR) + 1
+		if season ~= self.currentSeason then
+			self.currentSeason = season
+			if not self.visualPeriodLocked then
+				self.currentVisualSeason = season
+			end
+			seasonChanged = true
 			if self.daysPerPeriod ~= self.plannedDaysPerPeriod then
-				local v71_ = self.daysPerPeriod
+				local oldDaysPerPeriod = self.daysPerPeriod
 				self.daysPerPeriod = self.plannedDaysPerPeriod
 				self.timeAdjustment = 1 / self.daysPerPeriod
-				local v72_ = (self.currentDay - 1) / v71_ * self.daysPerPeriod
-				self.currentDay = math.floor(v72_) + 1
+				self.currentDay = math.floor((self.currentDay - 1) / oldDaysPerPeriod * self.daysPerPeriod) + 1
 				self.currentDayInPeriod = (self.currentDay - 1) % self.daysPerPeriod + 1
-				v64_ = true
+				periodLengthChanged = true
 			end
 		end
-		local v73_ = self.currentDay - 1
-		local v74_ = self.daysPerPeriod * 3
-		self.currentDayInSeason = math.fmod(v73_, v74_) + 1
+		self.currentDayInSeason = math.fmod(self.currentDay - 1, self.daysPerPeriod * 3) + 1
 		if self.visualPeriodLocked then
-			local v75_ = (self.currentVisualPeriod - 1) % 1.5 * self.daysPerPeriod + 1
-			self.currentVisualDayInSeason = math.floor(v75_)
+			self.currentVisualDayInSeason = math.floor((self.currentVisualPeriod - 1) % 1.5 * self.daysPerPeriod + 1)
 		else
 			self.currentVisualDayInSeason = self.currentDayInSeason
 		end
-		local v76_ = (self.currentDay - 1) / (self.daysPerPeriod * Environment.PERIODS_IN_YEAR)
-		local v77_ = math.floor(v76_) + 1
-		if v77_ ~= self.currentYear then
-			self.currentYear = v77_
-			v63_ = true
+		local year = math.floor((self.currentDay - 1) / (self.daysPerPeriod * Environment.PERIODS_IN_YEAR)) + 1
+		if year ~= self.currentYear then
+			self.currentYear = year
+			yearChanged = true
 		end
 	end
-	if v60_ or isInitialState then
+	if dayChanged or isInitialState then
 		self:updateJulianDay()
 	end
-	if v61_ or isInitialState then
-		local v78_ = self.currentVisualPeriod
-		self.environmentMaskSystem:setDayOfYear(Environment.PERIOD_DAY_MAPPING[v78_], self.currentVisualSeason)
+	if periodChanged or isInitialState then
+		local currentVisualPeriod = self.currentVisualPeriod
+		self.environmentMaskSystem:setDayOfYear(Environment.PERIOD_DAY_MAPPING[currentVisualPeriod], self.currentVisualSeason)
 	end
-	if v59_ and not isInitialState then
+	if hourChanged and not isInitialState then
 		g_messageCenter:publish(MessageType.HOUR_CHANGED, self.currentHour)
 		self.mission:onHourChanged()
 	end
-	if v60_ and not isInitialState then
+	if dayChanged and not isInitialState then
 		g_messageCenter:publish(MessageType.DAY_CHANGED, self.currentDay)
 		self.mission:onDayChanged()
-		if v64_ then
+		if periodLengthChanged then
 			g_messageCenter:publish(MessageType.PERIOD_LENGTH_CHANGED, self.daysPerPeriod, self.timeAdjustment)
 		end
-		if v61_ then
+		if periodChanged then
 			g_messageCenter:publish(MessageType.PERIOD_CHANGED, self.currentPeriod, self.currentVisualPeriod)
 		end
-		if v62_ then
+		if seasonChanged then
 			g_messageCenter:publish(MessageType.SEASON_CHANGED, self.currentSeason)
 		end
-		if v63_ then
+		if yearChanged then
 			g_messageCenter:publish(MessageType.YEAR_CHANGED, self.currentYear)
 		end
 	end
 end
-
--- Local values: dayMinutes, newIsSunOn
 function Environment:updateSceneParameters()
 	if self.dayNightCycle and self.lighting.sunLightId ~= nil then
-		local v80_ = self.dayTime / 60000
-		local v81_ = self.daylight.logicalNightStartMinutes > v80_ and v80_ >= self.daylight.logicalNightEndMinutes
-		if self.isSunOn ~= v81_ then
-			self.isSunOn = v81_
-			self.environmentMaskSystem:setIsSunOn(v81_)
+		local dayMinutes = self.dayTime / 60000
+		local newIsSunOn = not (self.daylight.logicalNightStartMinutes <= dayMinutes or dayMinutes < self.daylight.logicalNightEndMinutes)
+		if self.isSunOn ~= newIsSunOn then
+			self.isSunOn = newIsSunOn
+			self.environmentMaskSystem:setIsSunOn(newIsSunOn)
 			g_messageCenter:publish(MessageType.DAY_NIGHT_CHANGED)
 		end
 	end
@@ -475,23 +418,22 @@ function Environment:updateSceneParameters()
 		setSharedShaderParameter(Shader.PARAM_SHARED_SEASON, self:getSeasonShaderValue())
 	end
 end
-
 function Environment:resetSceneParameters()
 	setSharedShaderParameter(Shader.PARAM_SHARED_SEASON, 0)
 end
-
--- Local values: pInDay, shaderSeason, day, daysPerSeason, pInSeason, alpha
 function Environment:getSeasonShaderValue()
 	if self.visualPeriodLocked then
 		return (self.currentVisualSeason - 2) % 4 + 0.5
+	else
+		local pInDay = self.dayTime * Environment.DAYTIME_TO_HOURS_MULT + 0.0001
+		local shaderSeason = (self.currentSeason - 2) % 4
+		local day = self.currentDay
+		local daysPerSeason = 3 * self.daysPerPeriod
+		local pInSeason = (day - 1) % daysPerSeason / daysPerSeason
+		local alpha = pInSeason + pInDay / daysPerSeason
+		return shaderSeason + alpha
 	end
-	local v83_ = self.dayTime * Environment.DAYTIME_TO_HOURS_MULT + 0.0001
-	local v84_ = (self.currentSeason - 2) % 4
-	local v85_ = self.currentDay
-	local v86_ = 3 * self.daysPerPeriod
-	return v84_ + ((v85_ - 1) % v86_ / v86_ + v83_ / v86_)
 end
-
 function Environment:setCustomLighting(lighting)
 	if self.lighting ~= nil then
 		self.lighting:reset()
@@ -503,53 +445,36 @@ function Environment:setCustomLighting(lighting)
 	self.lighting:setDayTime(self.dayTime, true)
 	self.lighting:apply()
 end
-
--- Local values: r, g, b
 function Environment:setSunVisibility(isVisible)
 	if isVisible then
-		local v91_ = self.baseLighting.sunColor
-		local v92_, v93_, v94_ = unpack(v91_)
-		setLightColor(self.baseLighting.sunLightId, v92_, v93_, v94_)
+		local r, g, b = unpack(self.baseLighting.sunColor)
+		setLightColor(self.baseLighting.sunLightId, r, g, b)
 	else
 		setLightColor(self.baseLighting.sunLightId, 0, 0, 0)
 	end
 end
-
 function Environment:getMinuteOfDay()
-	local v96_ = self.dayTime / 1000 / 60
-	return math.floor(v96_)
+	return math.floor(self.dayTime / 1000 / 60)
 end
-
 function Environment:getDayOfYear()
 	return Environment.PERIOD_DAY_MAPPING[self.currentVisualPeriod]
 end
-
--- Local values: newDayOffset, newDayTime, newDayTimeInteger
 function Environment:getDayAndDayTime(dayTime, dayOffset)
-	local v101_ = dayTime / self.dayLength
-	local v102_, v103_ = math.modf(v101_)
-	local v104_ = v103_ * self.dayLength
-	local v105_ = math.round(v104_)
-	return dayOffset + v102_, v105_
+	local newDayOffset, newDayTime = math.modf(dayTime / self.dayLength)
+	local newDayTimeInteger = math.round(newDayTime * self.dayLength)
+	return dayOffset + newDayOffset, newDayTimeInteger
 end
-
 function Environment:getDaysPerSeason()
 	return self.daysPerPeriod * 3
 end
-
--- Local values: diff, seasonalDay
 function Environment:getSeasonAtDay(day)
-	local v109_ = day - self.currentMonotonicDay
-	local v110_ = (self.currentDay + v109_ - 1) / self:getDaysPerSeason()
-	local v111_ = math.floor(v110_)
-	local v112_ = Environment.SEASONS_IN_YEAR
-	return math.fmod(v111_, v112_) + 1
+	local diff = day - self.currentMonotonicDay
+	local seasonalDay = self.currentDay + diff
+	return math.fmod(math.floor((seasonalDay - 1) / self:getDaysPerSeason()), Environment.SEASONS_IN_YEAR) + 1
 end
-
 function Environment:getDaysPlayed()
 	return self.currentMonotonicDay - Environment.INITIAL_DAY
 end
-
 function Environment:getVisualSeasonAtDay(day)
 	if self.visualPeriodLocked then
 		return self.currentVisualSeason
@@ -557,148 +482,122 @@ function Environment:getVisualSeasonAtDay(day)
 		return self:getSeasonAtDay(day)
 	end
 end
-
--- Local values: timeHoursF
 function Environment:setEnvironmentTime(currentMonotonicDay, currentDay, dayTime, daysPerPeriod, isDelta)
 	self.currentDay = currentDay
 	self.currentMonotonicDay = currentMonotonicDay
 	self.dayTime = dayTime
 	self.daysPerPeriod = daysPerPeriod
 	if not isDelta then
-		while self.dayTime > 86400000 do
+		while 86400000 < self.dayTime do
 			self.dayTime = self.dayTime - 86400000
 			self.currentDay = self.currentDay + 1
 			self.currentMonotonicDay = self.currentMonotonicDay + 1
 		end
-		local v122_ = self.dayTime / 3600000 + 0.0001
-		self.currentHour = math.floor(v122_)
-		local v123_ = (v122_ - self.currentHour) * 60
-		self.currentMinute = math.floor(v123_)
+		local timeHoursF = self.dayTime / 3600000 + 0.0001
+		self.currentHour = math.floor(timeHoursF)
+		self.currentMinute = math.floor((timeHoursF - self.currentHour) * 60)
 	end
 	self:updateTimeValues(true)
 end
-
 function Environment:getEnvironmentTime()
 	return self.currentHour + self.currentMinute / 100
 end
-
--- Local values: startDays, partInSeason
 function Environment:getJulianDay()
-	local v126_ = Environment.JULIAN_DAYS_NORTH
+	local startDays = Environment.JULIAN_DAYS_NORTH
 	if self.daylight.latitude < 0 then
-		v126_ = Environment.JULIAN_DAYS_SOUTH
+		startDays = Environment.JULIAN_DAYS_SOUTH
 	end
-	local v127_ = self.currentVisualDayInSeason / (3 * self.daysPerPeriod)
-	local v128_ = v126_[self.currentVisualSeason] + v127_ * 91
-	local v129_ = math.floor(v128_)
-	return math.fmod(v129_, 365)
+	local partInSeason = self.currentVisualDayInSeason / (3 * self.daysPerPeriod)
+	return math.fmod(math.floor(startDays[self.currentVisualSeason] + partInSeason * 91), 365)
 end
-
 function Environment:getMonotonicHour()
 	return self.currentMonotonicDay * 24 + self.dayTime / 3600000
 end
-
 function Environment:updateJulianDay()
 	if self.daylight ~= nil then
 		self.daylight:setJulianDay(self:getJulianDay())
 	end
 end
-
--- Local values: base, time
 function Environment:getPeriodAndAlphaIntoPeriod()
-	local v133_ = self.currentDayInPeriod - 1
-	local v134_ = self.dayTime * Environment.DAYTIME_TO_HOURS_MULT
-	return self.currentPeriod, (v133_ + v134_) / self.daysPerPeriod
+	local base = self.currentDayInPeriod - 1
+	local time = self.dayTime * Environment.DAYTIME_TO_HOURS_MULT
+	return self.currentPeriod, (base + time) / self.daysPerPeriod
 end
-
 function Environment:getDirtColors()
 	return self.dirtColorDefault, self.dirtColorSnow
 end
-
--- Local values: diff, seasonalDay
 function Environment:getPeriodFromDay(day)
-	local v138_ = day - self.currentMonotonicDay
-	local v139_ = ((self.currentDay + v138_ - 1) % (self.daysPerPeriod * Environment.PERIODS_IN_YEAR) + 1) / self.daysPerPeriod
-	return math.ceil(v139_)
+	local diff = day - self.currentMonotonicDay
+	local seasonalDay = self.currentDay + diff
+	return math.ceil(((seasonalDay - 1) % (self.daysPerPeriod * Environment.PERIODS_IN_YEAR) + 1) / self.daysPerPeriod)
 end
-
--- Local values: diff, seasonalDay
 function Environment:getDayInPeriodFromDay(day)
-	local v142_ = day - self.currentMonotonicDay
-	return (self.currentDay + v142_ - 1) % self.daysPerPeriod + 1
+	local diff = day - self.currentMonotonicDay
+	local seasonalDay = self.currentDay + diff
+	return (seasonalDay - 1) % self.daysPerPeriod + 1
 end
-
 function Environment:setFixedPeriod(period)
 	if period == nil and self.visualPeriodLocked == true then
 		self.visualPeriodLocked = false
 		self.currentVisualPeriod = self.currentPeriod
 		self.currentVisualSeason = self.currentSeason
-		local v145_ = self.currentDay - 1
-		local v146_ = self.daysPerPeriod * 3
-		self.currentDayInSeason = math.fmod(v145_, v146_) + 1
+		self.currentDayInSeason = math.fmod(self.currentDay - 1, self.daysPerPeriod * 3) + 1
 		self.currentVisualDayInSeason = self.currentDayInSeason
 		self.mission.missionInfo.fixedSeasonalVisuals = nil
 		self:updateJulianDay()
 		self.weather:rebuild()
-	elseif period ~= nil and (self.visualPeriodLocked == false or self.currentVisualPeriod ~= period) then
-		local v147_ = math.clamp(period, 1, 12)
+		return
+	end
+	if period ~= nil and (self.visualPeriodLocked == false or self.currentVisualPeriod ~= period) then
+		period = math.clamp(period, 1, 12)
 		self.visualPeriodLocked = true
-		self.currentVisualPeriod = v147_
-		self.currentVisualSeason = SeasonPeriod.getSeason(v147_)
-		local v148_ = self.currentDay - 1
-		local v149_ = self.daysPerPeriod * 3
-		self.currentDayInSeason = math.fmod(v148_, v149_) + 1
-		local v150_ = (self.currentVisualPeriod - 1) % 1.5 * self.daysPerPeriod + 1
-		self.currentVisualDayInSeason = math.floor(v150_)
-		self.mission.missionInfo.fixedSeasonalVisuals = v147_
+		self.currentVisualPeriod = period
+		self.currentVisualSeason = SeasonPeriod.getSeason(period)
+		self.currentDayInSeason = math.fmod(self.currentDay - 1, self.daysPerPeriod * 3) + 1
+		self.currentVisualDayInSeason = math.floor((self.currentVisualPeriod - 1) % 1.5 * self.daysPerPeriod + 1)
+		self.mission.missionInfo.fixedSeasonalVisuals = period
 		self:updateJulianDay()
 		self.weather:rebuild()
 	end
 end
-
 function Environment:setPlannedDaysPerPeriod(numDays)
-	local v153_ = Environment.MAX_DAYS_PER_PERIOD
-	self.plannedDaysPerPeriod = math.clamp(numDays, 1, v153_)
+	self.plannedDaysPerPeriod = math.clamp(numDays, 1, Environment.MAX_DAYS_PER_PERIOD)
 	self.mission.missionInfo.plannedDaysPerPeriod = self.plannedDaysPerPeriod
 end
-
--- Local values: newDayTime, newDay, newMonotonicDay
 function Environment:consoleCommandSetDayTime(dayTime, skipDayOnly)
-	if not self.mission:getIsServer() then
-		return "Error: Server only command"
-	end
-	local v157_ = tonumber(dayTime)
-	if v157_ == nil then
-		return "Error: Invalid arguments. Arguments: dayTime[h] skipDayOnly[true|false]"
-	end
-	local v158_ = v157_ * 1000 * 60 * 60
-	local v159_ = math.floor(v158_)
-	local v160_ = self.currentDay
-	local v161_ = self.currentMonotonicDay
-	if v159_ < self.dayTime then
-		if skipDayOnly then
-			v160_ = v160_ + 1
-			v161_ = v161_ + 1
+	if self.mission:getIsServer() then
+		dayTime = tonumber(dayTime)
+		if dayTime ~= nil then
+			local newDayTime = math.floor(dayTime * 1000 * 60 * 60)
+			local newDay = self.currentDay
+			local newMonotonicDay = self.currentMonotonicDay
+			if newDayTime < self.dayTime then
+				if skipDayOnly then
+					newDay = newDay + 1
+					newMonotonicDay = newMonotonicDay + 1
+				else
+					newDay = newDay + 12
+					newMonotonicDay = newMonotonicDay + 12
+				end
+			end
+			self:setEnvironmentTime(newMonotonicDay, newDay, newDayTime, self.daysPerPeriod, false)
+			self.lighting:setDayTime(self.dayTime, true)
+			self.weather.cheatedTime = true
+			EnvironmentTimeEvent.broadcastEvent()
+			return "DayTime = " .. dayTime .. ", Day = " .. newDay .. "[" .. newMonotonicDay .. "]"
 		else
-			v160_ = v160_ + 12
-			v161_ = v161_ + 12
+			return "Error: Invalid arguments. Arguments: dayTime[h] skipDayOnly[true|false]"
 		end
 	end
-	self:setEnvironmentTime(v161_, v160_, v159_, self.daysPerPeriod, false)
-	self.lighting:setDayTime(self.dayTime, true)
-	self.weather.cheatedTime = true
-	EnvironmentTimeEvent.broadcastEvent()
-	return "DayTime = " .. v157_ .. ", Day = " .. v160_ .. "[" .. v161_ .. "]"
+	return "Error: Server only command"
 end
-
 function Environment:consoleCommandSetFixedVisuals(period)
 	if period == nil then
 		self:setFixedPeriod(nil)
 	else
-		self:setFixedPeriod((tonumber(period)))
+		self:setFixedPeriod(tonumber(period))
 	end
 end
-
 function Environment:consoleCommandReloadEnvironment()
 	g_messageCenter:unsubscribeAll(self)
 	self:load(self.xmlFilename)
@@ -708,36 +607,32 @@ function Environment:consoleCommandReloadEnvironment()
 	self.lighting:setDayTime(self.dayTime, true)
 	return "reloaded environment"
 end
-
--- Local values: ret, minLuminance, maxLuminance
 function Environment:consoleCommandSetFixedExposureSettings(keyValue, minExposure, maxExposure)
-	local v169_ = tonumber(keyValue)
-	local v170_ = tonumber(minExposure)
-	local v171_ = tonumber(maxExposure)
-	local v172_
-	if v169_ == nil then
-		v170_ = nil
-		v171_ = nil
-		v172_ = "Disabled fixed exposure settings"
-	elseif v170_ == nil then
-		v172_ = string.format("Enabled fixed exposure key %.2f", v169_)
-		v171_ = nil
+	keyValue = tonumber(keyValue)
+	minExposure = tonumber(minExposure)
+	maxExposure = tonumber(maxExposure)
+	local ret = nil
+	if keyValue == nil then
+		minExposure = nil
+		maxExposure = nil
+		ret = "Disabled fixed exposure settings"
+	elseif minExposure == nil then
+		maxExposure = nil
+		ret = string.format("Enabled fixed exposure key %.2f", keyValue)
 	else
-		if v171_ == nil then
-			v171_ = v170_
+		if maxExposure == nil then
+			maxExposure = minExposure
 		end
-		local v173_ = v169_ / math.pow(2, v171_)
-		local v174_ = v169_ / math.pow(2, v170_)
-		v172_ = string.format("Enabled fixed exposure settings (key %.2f exposure [%.2f %.2f] [%.4f %.4f])", v169_, v170_, v171_, v173_, v174_)
+		local minLuminance = keyValue / math.pow(2, maxExposure)
+		local maxLuminance = keyValue / math.pow(2, minExposure)
+		ret = string.format("Enabled fixed exposure settings (key %.2f exposure [%.2f %.2f] [%.4f %.4f])", keyValue, minExposure, maxExposure, minLuminance, maxLuminance)
 	end
-	self.baseLighting:setFixedExposureSettings(v169_, v170_, v171_)
+	self.baseLighting:setFixedExposureSettings(keyValue, minExposure, maxExposure)
 	if self.lighting == self.baseLighting then
 		self.baseLighting:updateExposureSettings()
 	end
-	return v172_
+	return ret
 end
-
--- Local values: setExposureRange_new
 function Environment:consoleCommandToggleAutoExposure(reset)
 	if self.setExposureRange_backup ~= nil then
 		setExposureRange = self.setExposureRange_backup
@@ -745,135 +640,113 @@ function Environment:consoleCommandToggleAutoExposure(reset)
 		return "Reenabled auto exposure"
 	end
 	self.setExposureRange_backup = setExposureRange
-	function setExposureRange() end
-	if not Utils.stringToBoolean(reset) then
+	local setExposureRange_new = function() end
+	setExposureRange = setExposureRange_new
+	if Utils.stringToBoolean(reset) then
+		resetAutoExposure()
+		return string.format("Disabled + reset auto exposure, current settings: middleGrayValue=%.4f  min=%.4f  max=%.4f", getExposureRange())
+	else
 		return string.format("Paused exposure at current settings: middleGrayValue=%.4f  min=%.4f  max=%.4f", getExposureRange())
 	end
-	resetAutoExposure()
-	return string.format("Disabled + reset auto exposure, current settings: middleGrayValue=%.4f  min=%.4f  max=%.4f", getExposureRange())
 end
-
 function Environment:consoleCommandSetExposureFixedLuminance(luminance)
-	local v178_ = tonumber(luminance)
-	if v178_ == nil or v178_ < 0 then
+	luminance = tonumber(luminance)
+	if luminance == nil or luminance < 0 then
 		setFixedLuminanceForExposure(-1)
 		return "Disabled fixed luminance for exposure"
-	else
-		setFixedLuminanceForExposure(v178_)
-		return string.format("Set fixed luminance for exposure to %.3f. Use -1 to reset", v178_)
 	end
+	setFixedLuminanceForExposure(luminance)
+	return string.format("Set fixed luminance for exposure to %.3f. Use -1 to reset", luminance)
 end
-
 function Environment:consoleCommandSetSeasonalShader(val)
 	if val == nil or tonumber(val) == nil then
 		self.forcedSeasonShaderValue = nil
 		self:updateSceneParameters()
 		return "Reset the value to match the environment"
 	end
-	local v181_ = tonumber(val)
-	local v182_ = math.max(v181_, 0)
-	local v183_ = math.min(v182_, 4)
-	self.forcedSeasonShaderValue = v183_
-	setSharedShaderParameter(Shader.PARAM_SHARED_SEASON, v183_)
-	return "Set shader parameter to " .. tostring(v183_)
+	val = tonumber(val)
+	val = math.min(math.max(val, 0), 4)
+	self.forcedSeasonShaderValue = val
+	setSharedShaderParameter(Shader.PARAM_SHARED_SEASON, val)
+	return "Set shader parameter to " .. tostring(val)
 end
-
 function Environment:consoleCommandSeasonalShaderDebug()
 	self.debugSeasonalShaderParameter = not self.debugSeasonalShaderParameter
 end
-
--- Local values: renderResolution, outputResolution, envMapTimes, baseDirectory, k, cloudData, data, _, dayTime, renderData, cloudUpdater, currentData
 function Environment:consoleCommandTakeEnvProbes(numIterations, mobile, outputDirectory)
-	local v189_ = tonumber(numIterations)
-	if v189_ == nil then
+	numIterations = tonumber(numIterations)
+	if numIterations == nil then
 		return "Arguments: numIterations (required), mobile(optional, default: false), outputDirectory (optional, default: [map xml-path])"
 	end
 	if mobile == nil then
 		mobile = false
 	end
-	local v190_ = 512
-	local v191_ = mobile and 128 or 256
-	local v192_, v193_
-	if self.baseLighting.envMapBasePath == nil then
-		v192_ = g_screenshotsDirectory .. "envProbes/"
-		v193_ = { 0 }
+	local renderResolution = 512
+	local outputResolution = 256
+	if mobile then
+		outputResolution = 128
+	end
+	local envMapTimes = nil
+	local baseDirectory = nil
+	if self.baseLighting.envMapBasePath ~= nil then
+		envMapTimes = self.baseLighting.envMapTimes
+		baseDirectory = self.baseLighting.envMapBasePath
 	else
-		v193_ = self.baseLighting.envMapTimes
-		v192_ = self.baseLighting.envMapBasePath
+		envMapTimes = { 0 }
+		baseDirectory = g_screenshotsDirectory .. "envProbes/"
 	end
-	if outputDirectory == nil then
-		outputDirectory = v192_
+	if outputDirectory ~= nil then
+		baseDirectory = outputDirectory
 	end
-	if outputDirectory:sub(outputDirectory:len()) ~= "/" then
-		outputDirectory = outputDirectory .. "/"
+	if baseDirectory:sub(baseDirectory:len()) ~= "/" then
+		baseDirectory = baseDirectory .. "/"
 	end
-	createFolder(outputDirectory)
-	print("Writing env maps to " .. outputDirectory)
-	if #v193_ <= 0 then
+	createFolder(baseDirectory)
+	print("Writing env maps to " .. baseDirectory)
+	if 0 < #envMapTimes then
+		self.envMapGeneration = {}
+		self.envMapGeneration.tasks = {}
+		for k, cloudData in ipairs(self.weather.envMapCloudProbes) do
+			local data = {}
+			data.cloudData = cloudData
+			data.setDefaultValues = true
+			data.windDirX = 0
+			data.windDirZ = 1
+			data.windVelocity = 0
+			data.cirrusCloudSpeedFactor = 0
+			table.insert(self.envMapGeneration.tasks, data)
+			table.insert(self.envMapGeneration.tasks, {})
+			table.insert(self.envMapGeneration.tasks, {})
+			table.insert(self.envMapGeneration.tasks, {})
+			table.insert(self.envMapGeneration.tasks, {})
+			table.insert(self.envMapGeneration.tasks, {})
+			table.insert(self.envMapGeneration.tasks, {})
+			for _, dayTime in ipairs(envMapTimes) do
+				local renderData = {}
+				renderData.dayTime = dayTime
+				renderData.renderResolution = renderResolution
+				renderData.outputResolution = outputResolution
+				renderData.numIterations = numIterations
+				if mobile then
+					renderData.cloudData = cloudData
+					renderData.windDirX = 0
+					renderData.windDirZ = 1
+					renderData.windVelocity = 0
+					renderData.cirrusCloudSpeedFactor = 0
+					renderData.ssaoQuality = 0
+				else
+					renderData.ssaoQuality = 15
+				end
+				renderData.filename = baseDirectory .. Lighting.getEnvMapBaseFilename(dayTime, k)
+				table.insert(self.envMapGeneration.tasks, renderData)
+			end
+		end
+		local cloudUpdater = self.weather.cloudUpdater
+		local currentData = { ["lastClouds"] = cloudUpdater.lastClouds:clone(), ["targetClouds"] = cloudUpdater.targetClouds:clone(), ["alpha"] = cloudUpdater.alpha, ["duration"] = cloudUpdater.duration, ["windDirX"] = cloudUpdater.windDirX, ["windDirZ"] = cloudUpdater.windDirZ, ["windVelocity"] = cloudUpdater.windVelocity, ["cirrusCloudSpeedFactor"] = cloudUpdater.cirrusCloudSpeedFactor, ["growthMode"] = g_currentMission.growthSystem:getGrowthMode(), ["dayTime"] = self.dayTime, ["currentMonotonicDay"] = self.currentMonotonicDay, ["currentDay"] = self.currentDay }
+		self.envMapGeneration.currentData = currentData
+		g_currentMission.growthSystem:setGrowthMode(GrowthMode.DISABLED, true)
+		return "Starting env map generation"
+	else
 		return "Error: no envMapTimes defined in Lighting"
 	end
-	self.envMapGeneration = {}
-	self.envMapGeneration.tasks = {}
-	for v194_, v195_ in ipairs(self.weather.envMapCloudProbes) do
-		local v196_ = self.envMapGeneration.tasks
-		table.insert(v196_, {
-			["cloudData"] = v195_,
-			["setDefaultValues"] = true,
-			["windDirX"] = 0,
-			["windDirZ"] = 1,
-			["windVelocity"] = 0,
-			["cirrusCloudSpeedFactor"] = 0
-		})
-		local v197_ = self.envMapGeneration.tasks
-		table.insert(v197_, {})
-		local v198_ = self.envMapGeneration.tasks
-		table.insert(v198_, {})
-		local v199_ = self.envMapGeneration.tasks
-		table.insert(v199_, {})
-		local v200_ = self.envMapGeneration.tasks
-		table.insert(v200_, {})
-		local v201_ = self.envMapGeneration.tasks
-		table.insert(v201_, {})
-		local v202_ = self.envMapGeneration.tasks
-		table.insert(v202_, {})
-		for _, v203_ in ipairs(v193_) do
-			local v204_ = {
-				["dayTime"] = v203_,
-				["renderResolution"] = v190_,
-				["outputResolution"] = v191_,
-				["numIterations"] = v189_
-			}
-			if mobile then
-				v204_.cloudData = v195_
-				v204_.windDirX = 0
-				v204_.windDirZ = 1
-				v204_.windVelocity = 0
-				v204_.cirrusCloudSpeedFactor = 0
-				v204_.ssaoQuality = 0
-			else
-				v204_.ssaoQuality = 15
-			end
-			v204_.filename = outputDirectory .. Lighting.getEnvMapBaseFilename(v203_, v194_)
-			local v205_ = self.envMapGeneration.tasks
-			table.insert(v205_, v204_)
-		end
-	end
-	local v206_ = self.weather.cloudUpdater
-	local v207_ = {
-		["lastClouds"] = v206_.lastClouds:clone(),
-		["targetClouds"] = v206_.targetClouds:clone(),
-		["alpha"] = v206_.alpha,
-		["duration"] = v206_.duration,
-		["windDirX"] = v206_.windDirX,
-		["windDirZ"] = v206_.windDirZ,
-		["windVelocity"] = v206_.windVelocity,
-		["cirrusCloudSpeedFactor"] = v206_.cirrusCloudSpeedFactor,
-		["growthMode"] = g_currentMission.growthSystem:getGrowthMode(),
-		["dayTime"] = self.dayTime,
-		["currentMonotonicDay"] = self.currentMonotonicDay,
-		["currentDay"] = self.currentDay
-	}
-	self.envMapGeneration.currentData = v207_
-	g_currentMission.growthSystem:setGrowthMode(GrowthMode.DISABLED, true)
-	return "Starting env map generation"
 end

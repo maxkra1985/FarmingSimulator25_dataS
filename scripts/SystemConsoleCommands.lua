@@ -1,4 +1,3 @@
--- Local values: DEBUG_RENDERING_ALIASES, mode, v, customEnvMaps, setEnvMapFunc
 SystemConsoleCommands = {}
 function SystemConsoleCommands.init()
 	addConsoleCommand("gsGuiDrawHelper", "", "drawGuiHelper", SystemConsoleCommands, "[lineSpacing [0..1]]")
@@ -48,279 +47,259 @@ function SystemConsoleCommands.delete()
 	removeConsoleCommand("gsRenderingFidelityFxSRSet")
 	removeConsoleCommand("gsSoftRestart")
 end
-
 function SystemConsoleCommands:drawGuiHelper(steps)
-	local v2_ = tonumber(steps)
-	if v2_ == nil then
+	steps = tonumber(steps)
+	if steps ~= nil then
+		g_guiHelperSteps = math.max(steps, 0.001)
+		g_drawGuiHelper = true
+	else
 		g_guiHelperSteps = 0.1
 		g_drawGuiHelper = false
-	else
-		g_guiHelperSteps = math.max(v2_, 0.001)
-		g_drawGuiHelper = true
 	end
-	return not g_drawGuiHelper and "DrawGuiHelper = false" or "DrawGuiHelper = true (step = " .. g_guiHelperSteps .. ")"
+	if g_drawGuiHelper then
+		return "DrawGuiHelper = true (step = " .. g_guiHelperSteps .. ")"
+	else
+		return "DrawGuiHelper = false"
+	end
 end
-
 function SystemConsoleCommands:showSafeFrame()
 	g_showSafeFrame = not g_showSafeFrame
 	return string.format("showSafeFrame = %s", g_showSafeFrame)
 end
-
 function SystemConsoleCommands:drawRawInput()
 	g_showRawInput = not g_showRawInput
 	return string.format("showRawInput = %s", g_showRawInput)
 end
-
 function SystemConsoleCommands:setTextureStreamingBudget(sizeInMB)
-	local v4_ = tonumber(sizeInMB)
-	if v4_ == nil then
+	sizeInMB = tonumber(sizeInMB)
+	if sizeInMB == nil then
 		setTextureStreamingMemoryBudget(0)
 		return "Reset Texture Streaming Memory Budget to default"
 	else
-		setTextureStreamingMemoryBudget(v4_)
-		return "Set Texture Streaming Memory Budget to " .. v4_ .. " MB"
+		setTextureStreamingMemoryBudget(sizeInMB)
+		return "Set Texture Streaming Memory Budget to " .. sizeInMB .. " MB"
 	end
 end
-
--- Local values: ret
 function SystemConsoleCommands:cleanI3DCache(verbose)
-	local v6_ = Utils.stringToBoolean(verbose)
-	g_i3DManager:clearEntireSharedI3DFileCache(v6_)
-	local v7_ = "I3D cache cleaned."
-	if not v6_ then
-		v7_ = v7_ .. " Use \'true\' parameter for verbose output"
+	verbose = Utils.stringToBoolean(verbose)
+	g_i3DManager:clearEntireSharedI3DFileCache(verbose)
+	local ret = "I3D cache cleaned."
+	if not verbose then
+		ret = ret .. " Use 'true' parameter for verbose output"
 	end
-	return v7_
+	return ret
 end
-
--- Local values: minValue, maxValue, default, usage, coeff
 function SystemConsoleCommands:setHighQuality(coeffOverride, foliageCoeff)
-	local v10_ = string.format("Usage \'gsSetHighQuality <factor (default=%d)>\'", 5)
-	local v11_ = tonumber(coeffOverride) or 5
-	local v12_ = math.clamp(v11_, 1e-6, 10)
-	local v13_ = tonumber(foliageCoeff) or v12_ * 0.5
-	setViewDistanceCoeff(v12_)
-	setLODDistanceCoeff(v12_)
-	setTerrainLODDistanceCoeff((math.clamp(v12_, 0, 2.5)))
-	setFoliageViewDistanceCoeff((math.max(1, v13_)))
-	return string.format("High quality activated, used factor=%f\n%s", MathUtil.round(v12_, 8), coeffOverride == nil and (" " .. v10_ or "") or "")
+	local minValue = 0.000001
+	local maxValue = 10
+	local default = 5
+	local usage = string.format("Usage 'gsSetHighQuality <factor (default=%d)>'", 5)
+	local coeff = math.clamp(tonumber(coeffOverride) or default, minValue, maxValue)
+	foliageCoeff = tonumber(foliageCoeff) or coeff * 0.5
+	setViewDistanceCoeff(coeff)
+	setLODDistanceCoeff(coeff)
+	setTerrainLODDistanceCoeff(math.clamp(coeff, 0, 2.5))
+	setFoliageViewDistanceCoeff(math.max(1, foliageCoeff))
+	return string.format("High quality activated, used factor=%f\n%s", MathUtil.round(coeff, 8), coeffOverride == nil and " " .. usage or "")
 end
-
--- Local values: width, height, curScrMode, strDate, colorScreenShot, depthScreenShot
 function SystemConsoleCommands:renderColorAndDepthScreenShot(inWidth, inHeight)
-	local v16_, v17_
+	local width = nil
+	local height = nil
 	if inWidth == nil or inHeight == nil then
-		local v18_ = getScreenMode()
-		v16_, v17_ = getScreenModeInfo(v18_)
+		local curScrMode = getScreenMode()
+		width, height = getScreenModeInfo(curScrMode)
 	else
-		v16_ = tonumber(inWidth)
-		v17_ = tonumber(inHeight)
+		width = tonumber(inWidth)
+		height = tonumber(inHeight)
 	end
 	setDebugRenderingMode(DebugRendering.NONE)
-	local v19_ = getDate("%Y_%m_%d_%H_%M_%S") .. ".hdr"
-	local v20_ = g_screenshotsDirectory .. "fsScreen_color_" .. v19_
-	print("Saving color screenshot: " .. v20_)
-	renderScreenshot(v20_, v16_, v17_, v16_ / v17_, "raw_hdr", 1, 0, 0, 0, 0, 0, 15, false)
+	local strDate = getDate("%Y_%m_%d_%H_%M_%S") .. ".hdr"
+	local colorScreenShot = g_screenshotsDirectory .. "fsScreen_color_" .. strDate
+	print("Saving color screenshot: " .. colorScreenShot)
+	renderScreenshot(colorScreenShot, width, height, width / height, "raw_hdr", 1, 0, 0, 0, 0, 0, 15, false)
 	setDebugRenderingMode(DebugRendering.DEPTH)
-	local v21_ = g_screenshotsDirectory .. "fsScreen_depth_" .. v19_
-	print("Saving depth screenshot: " .. v21_)
-	renderScreenshot(v21_, v16_, v17_, v16_ / v17_, "raw_hdr", 1, 0, 0, 0, 0, 0, 15, false)
+	local depthScreenShot = g_screenshotsDirectory .. "fsScreen_depth_" .. strDate
+	print("Saving depth screenshot: " .. depthScreenShot)
+	renderScreenshot(depthScreenShot, width, height, width / height, "raw_hdr", 1, 0, 0, 0, 0, 0, 15, false)
 	setDebugRenderingMode(DebugRendering.NONE)
 end
-local v_u_22_ = {
-	["AO"] = DebugRendering.AMBIENT_OCCLUSION,
-	["BAKEDAO"] = DebugRendering.BAKED_AMBIENT_OCCLUSION,
-	["SSAO"] = DebugRendering.SCREEN_SPACE_AMBIENT_OCCLUSION,
-	["DIFFUSE"] = DebugRendering.DIFFUSE_LIGHTING,
-	["SPECULAR"] = DebugRendering.SPECULAR_LIGHTING,
-	["INDIRECT"] = DebugRendering.INDIRECT_LIGHTING,
-	["DEPTH"] = DebugRendering.DEPTH_SCALED,
-	["MIPS"] = DebugRendering.MIP_LEVELS,
-	["VRS"] = DebugRendering.SHADING_RATE,
-	["LOD"] = DebugRendering.MESH_LOD
-}
-for v23_, v24_ in pairs(DebugRendering) do
-	if string.contains(v23_, "_") then
-		v_u_22_[string.gsub(v23_, "_", "")] = v24_
+local DEBUG_RENDERING_ALIASES = { AO = DebugRendering.AMBIENT_OCCLUSION, BAKEDAO = DebugRendering.BAKED_AMBIENT_OCCLUSION, SSAO = DebugRendering.SCREEN_SPACE_AMBIENT_OCCLUSION, DIFFUSE = DebugRendering.DIFFUSE_LIGHTING, SPECULAR = DebugRendering.SPECULAR_LIGHTING, INDIRECT = DebugRendering.INDIRECT_LIGHTING, DEPTH = DebugRendering.DEPTH_SCALED, MIPS = DebugRendering.MIP_LEVELS, VRS = DebugRendering.SHADING_RATE, LOD = DebugRendering.MESH_LOD }
+for mode, v in pairs(DebugRendering) do
+	if string.contains(mode, "_") then
+		DEBUG_RENDERING_ALIASES[string.gsub(mode, "_", "")] = v
 	end
 end
-
--- Upvalues: DEBUG_RENDERING_ALIASES
--- Local values: listModes, newModeStrNoUnderscore, debugMode, modeName, name, mode
 function SystemConsoleCommands:setDebugRenderingMode(newModeStr)
-	-- upvalues: (copy) v_u_22_
-	local function v32_()
-		-- upvalues: (ref) v_u_22_
-		local v26_ = {}
-		for v27_, v28_ in pairs(DebugRendering) do
-			v26_[v27_] = true
-			for v29_, v30_ in pairs(v_u_22_) do
-				if v28_ == v30_ then
-					v26_[v27_] = nil
-					v26_[v29_] = true
+	local listModes = function()
+		local modesWithAliases = {}
+		for name, mode in pairs(DebugRendering) do
+			modesWithAliases[name] = true
+			for alias, modeAlias in pairs(DEBUG_RENDERING_ALIASES) do
+				if mode == modeAlias then
+					modesWithAliases[name] = nil
+					modesWithAliases[alias] = true
 				end
 			end
 		end
-		local v31_ = table.toList(v26_)
-		table.sort(v31_)
-		return "Possible modes: " .. table.concat(v31_, ", ")
+		local modesSorted = table.toList(modesWithAliases)
+		table.sort(modesSorted)
+		return "Possible modes: " .. table.concat(modesSorted, ", ")
 	end
 	if newModeStr == nil or newModeStr == "" then
 		if getDebugRenderingMode() == DebugRendering.NONE then
 			printError("Error: No debug mode given")
-			return v32_()
+			return listModes()
 		else
 			setDebugRenderingMode(DebugRendering.NONE)
 			return "Changed debug rendering mode to NONE"
 		end
 	end
-	local v33_ = string.upper(newModeStr)
-	local v34_ = string.gsub(v33_, "_", "")
-	local v35_ = DebugRendering[v33_] or DebugRendering[v34_] or (v_u_22_[v33_] or v_u_22_[v34_])
-	if v35_ == nil then
-		printError(string.format("Error: Unknown DebugRendering mode %q", v33_))
-		return v32_()
-	end
-	setDebugRenderingMode(v35_)
-	local v36_ = ""
-	for v37_, v38_ in pairs(DebugRendering) do
-		if v38_ == v35_ then
-			v36_ = v37_
-			break
-		end
-	end
-	return "Changed debug rendering mode to " .. v36_
-end
-
--- Local values: numLanguages, newLang, newIndex, i, xmlFile
-function SystemConsoleCommands:changeLanguage(newCode)
-	local v40_ = getNumOfLanguages()
-	local v41_ = -1
-	if newCode == nil then
-		local v42_ = g_settingsLanguageGUI + 1
-		local v43_ = #g_availableLanguagesTable <= v42_ and 0 or v42_
-		v41_ = g_availableLanguagesTable[v43_ + 1]
+	newModeStr = string.upper(newModeStr)
+	local newModeStrNoUnderscore = string.gsub(newModeStr, "_", "")
+	local debugMode = DebugRendering[newModeStr] or DebugRendering[newModeStrNoUnderscore] or DEBUG_RENDERING_ALIASES[newModeStr] or DEBUG_RENDERING_ALIASES[newModeStrNoUnderscore]
+	if debugMode == nil then
+		printError(string.format("Error: Unknown DebugRendering mode %q", newModeStr))
+		return listModes()
 	else
-		for v44_ = 0, v40_ - 1 do
-			if getLanguageCode(v44_) == newCode then
-				v41_ = v44_
+		setDebugRenderingMode(debugMode)
+		local modeName = ""
+		for name, mode in pairs(DebugRendering) do
+			if mode == debugMode then
+				modeName = name
 				break
 			end
 		end
-		if v41_ < 0 then
+		return "Changed debug rendering mode to " .. modeName
+	end
+end
+function SystemConsoleCommands:changeLanguage(newCode)
+	local numLanguages = getNumOfLanguages()
+	local newLang = -1
+	if newCode == nil then
+		local newIndex = g_settingsLanguageGUI + 1
+		if #g_availableLanguagesTable <= newIndex then
+			newIndex = 0
+		end
+		newLang = g_availableLanguagesTable[newIndex + 1]
+	else
+		for i = 0, numLanguages - 1 do
+			if getLanguageCode(i) == newCode then
+				newLang = i
+				break
+			end
+		end
+		if newLang < 0 then
 			return "Invalid language parameter " .. tostring(newCode)
 		end
 	end
-	if not setLanguage(v41_) then
+	if setLanguage(newLang) then
+		local xmlFile = XMLFile.load("SettingsFile", "dataS/settings.xml")
+		loadLanguageSettings(xmlFile)
+		xmlFile:delete()
+		g_i18n:load()
+		return string.format("Changed language to '%s'. Note that many texts are loaded on game start and need a reboot to be updated.", getLanguageCode(newLang))
+	else
 		return "Invalid language parameter " .. tostring(newCode)
 	end
-	local v45_ = XMLFile.load("SettingsFile", "dataS/settings.xml")
-	loadLanguageSettings(v45_)
-	v45_:delete()
-	g_i18n:load()
-	return string.format("Changed language to \'%s\'. Note that many texts are loaded on game start and need a reboot to be updated.", getLanguageCode(v41_))
 end
-
--- Local values: guiName, guiController, success, class, customEnv, _, k, v
 function SystemConsoleCommands:reloadCurrentGui()
-	if g_gui.currentGuiName == nil or g_gui.currentGuiName == "" then
-		return "No GUI active!"
-	end
-	g_gui.currentlyReloading = true
-	local v46_ = g_gui.currentGuiName
-	local v47_ = g_gui.currentGui.target
-	g_gui:showGui("")
-	g_i18n:delete()
-	g_i18n:load()
-	if not g_gui:loadProfiles("dataS/guiProfiles.xml") then
-		g_gui.currentlyReloading = false
-		return "Failed to reload profiles"
-	end
-	local v48_ = ClassUtil.getClassObject(v46_)
-	if v48_ == nil then
-		for v49_, _ in pairs(g_modIsLoaded) do
-			for v50_, v51_ in pairs(_G[v49_]) do
-				if v50_ == v46_ then
-					v48_ = v51_
+	if g_gui.currentGuiName ~= nil and g_gui.currentGuiName ~= "" then
+		g_gui.currentlyReloading = true
+		local guiName = g_gui.currentGuiName
+		local guiController = g_gui.currentGui.target
+		g_gui:showGui("")
+		g_i18n:delete()
+		g_i18n:load()
+		local success = g_gui:loadProfiles("dataS/guiProfiles.xml")
+		if not success then
+			g_gui.currentlyReloading = false
+			return "Failed to reload profiles"
+		end
+		local class = ClassUtil.getClassObject(guiName)
+		if class == nil then
+			for customEnv, _ in pairs(g_modIsLoaded) do
+				for k, v in pairs(_G[customEnv]) do
+					if k == guiName then
+						class = v
+					end
 				end
 			end
 		end
+		if class == nil then
+			return "Given GUI class not found"
+		else
+			g_dummyGui = nil
+			if class.createFromExistingGui ~= nil then
+				g_dummyGui = class.createFromExistingGui(guiController, guiName)
+			else
+				g_dummyGui = class.new()
+				g_gui.guis[guiName]:delete()
+				g_gui.guis[guiName].target:delete()
+				g_gui:loadGui(guiController.xmlFilename, guiName, g_dummyGui)
+			end
+			g_gui:showGui(guiName)
+			g_gui.currentlyReloading = false
+			return "Reloaded gui " .. tostring(guiName)
+		end
 	end
-	if v48_ == nil then
-		return "Given GUI class not found"
-	end
-	g_dummyGui = nil
-	if v48_.createFromExistingGui == nil then
-		g_dummyGui = v48_.new()
-		g_gui.guis[v46_]:delete()
-		g_gui.guis[v46_].target:delete()
-		g_gui:loadGui(v47_.xmlFilename, v46_, g_dummyGui)
-	else
-		g_dummyGui = v48_.createFromExistingGui(v47_, v46_)
-	end
-	g_gui:showGui(v46_)
-	g_gui.currentlyReloading = false
-	return "Reloaded gui " .. tostring(v46_)
+	return "No GUI active!"
 end
-
--- Local values: guiName, currentListener, guiController, success, class, customEnv, _, k, v
 function SystemConsoleCommands:reloadCurrentDialog()
-	if g_gui.currentDialogName == nil or g_gui.currentDialogName == "" then
-		return "No Dialog active!"
-	end
-	g_gui.currentlyReloading = true
-	local v52_ = g_gui.currentDialogName
-	local v53_ = g_gui.currentListener
-	local v54_ = v53_.target
-	g_gui:closeDialog(v53_)
-	g_i18n:delete()
-	g_i18n:load()
-	if not g_gui:loadProfiles("dataS/guiProfiles.xml") then
-		g_gui.currentlyReloading = false
-		return "Failed to reload profiles"
-	end
-	local v55_ = ClassUtil.getClassObject(v52_)
-	if v55_ == nil then
-		for v56_, _ in pairs(g_modIsLoaded) do
-			for v57_, v58_ in pairs(_G[v56_]) do
-				if v57_ == v52_ then
-					v55_ = v58_
+	if g_gui.currentDialogName ~= nil and g_gui.currentDialogName ~= "" then
+		g_gui.currentlyReloading = true
+		local guiName = g_gui.currentDialogName
+		local currentListener = g_gui.currentListener
+		local guiController = currentListener.target
+		g_gui:closeDialog(currentListener)
+		g_i18n:delete()
+		g_i18n:load()
+		local success = g_gui:loadProfiles("dataS/guiProfiles.xml")
+		if not success then
+			g_gui.currentlyReloading = false
+			return "Failed to reload profiles"
+		end
+		local class = ClassUtil.getClassObject(guiName)
+		if class == nil then
+			for customEnv, _ in pairs(g_modIsLoaded) do
+				for k, v in pairs(_G[customEnv]) do
+					if k == guiName then
+						class = v
+					end
 				end
 			end
 		end
+		if class == nil then
+			return "Given GUI Dialog class not found"
+		else
+			g_dummyGui = nil
+			if class.createFromExistingGui ~= nil then
+				g_dummyGui = class.createFromExistingGui(guiController, guiName)
+			else
+				g_dummyGui = class.new()
+				g_gui.guis[guiName]:delete()
+				g_gui.guis[guiName].target:delete()
+				g_gui:loadGui(guiController.xmlFilename, guiName, g_dummyGui)
+			end
+			g_gui.currentlyReloading = false
+			return "Reloaded dialog " .. tostring(guiName)
+		end
 	end
-	if v55_ == nil then
-		return "Given GUI Dialog class not found"
-	end
-	g_dummyGui = nil
-	if v55_.createFromExistingGui == nil then
-		g_dummyGui = v55_.new()
-		g_gui.guis[v52_]:delete()
-		g_gui.guis[v52_].target:delete()
-		g_gui:loadGui(v54_.xmlFilename, v52_, g_dummyGui)
-	else
-		g_dummyGui = v55_.createFromExistingGui(v54_, v52_)
-	end
-	g_gui.currentlyReloading = false
-	return "Reloaded dialog " .. tostring(v52_)
+	return "No Dialog active!"
 end
-
 function SystemConsoleCommands:resetHelpSystem()
-	if g_currentMission == nil or g_currentMission.introductionHelpSystem == nil then
-		return "Not currently in a mission"
+	if g_currentMission ~= nil and g_currentMission.introductionHelpSystem ~= nil then
+		g_currentMission.introductionHelpSystem:resetHelpSystem()
+		return "Reset Introduction Help System"
 	end
-	g_currentMission.introductionHelpSystem:resetHelpSystem()
-	return "Reset Introduction Help System"
+	return "Not currently in a mission"
 end
-
 function SystemConsoleCommands:resetHelpSystemWithDraw()
-	if g_currentMission == nil or g_currentMission.introductionHelpSystem == nil then
-		return "Not currently in a mission"
+	if g_currentMission ~= nil and g_currentMission.introductionHelpSystem ~= nil then
+		g_currentMission.introductionHelpSystem:resetHelpSystemWithDraw()
+		return "Reset Introduction Help System"
 	end
-	g_currentMission.introductionHelpSystem:resetHelpSystemWithDraw()
-	return "Reset Introduction Help System"
+	return "Not currently in a mission"
 end
-
 function SystemConsoleCommands:toggleUiDebug()
 	if g_uiDebugEnabled then
 		g_uiDebugEnabled = false
@@ -330,7 +309,6 @@ function SystemConsoleCommands:toggleUiDebug()
 		return "UI Debug enabled"
 	end
 end
-
 function SystemConsoleCommands:toggleUiFocusDebug()
 	if g_uiFocusDebugEnabled then
 		g_uiFocusDebugEnabled = false
@@ -340,98 +318,79 @@ function SystemConsoleCommands:toggleUiFocusDebug()
 		return "UI Focus Debug enabled"
 	end
 end
-
 function SystemConsoleCommands:suspendApp()
 	if g_appIsSuspended then
 		notifyAppResumed()
 	else
 		notifyAppSuspended()
 	end
-	local v59_ = g_appIsSuspended
-	return "App Suspended: " .. tostring(v59_)
+	return "App Suspended: " .. tostring(g_appIsSuspended)
 end
-
 function SystemConsoleCommands:softRestart()
-	if g_currentMission == nil then
+	if g_currentMission ~= nil then
+		OnInGameMenuMenu()
+	else
 		RestartManager:setStartScreen(RestartManager.START_SCREEN_MAIN)
 		doRestart(false, "")
-	else
-		OnInGameMenuMenu()
 	end
 end
-
 function SystemConsoleCommands:updateDownloadFinished()
 	g_updateDownloadFinished = true
 	log("g_updateDownloadFinished = true")
 end
-
--- Local values: usage, currentQuality, i, name, effectiveQuality
 function SystemConsoleCommands:setFidelityFxSR(newQuality)
-	local v61_ = tonumber(newQuality)
-	local v62_ = getFidelityFxSRQuality()
-	print(string.format("current setting: %s (%d)", getFidelityFxSRQualityName(v62_), v62_))
+	local usage = "Usage: gsRenderingFidelityFxSRSet <qualityNumber>"
+	newQuality = tonumber(newQuality)
+	local currentQuality = getFidelityFxSRQuality()
+	print(string.format("current setting: %s (%d)", getFidelityFxSRQualityName(currentQuality), currentQuality))
 	print("Available settings:")
-	local v63_ = "Usage: gsRenderingFidelityFxSRSet <qualityNumber>"
-	for v64_ = 0, FidelityFxSRQuality.NUM - 1 do
-		local v65_ = getFidelityFxSRQualityName(v64_)
-		local v66_ = print
-		local v67_ = string.format
-		local v68_ = getSupportsFidelityFxSRQuality
-		v66_(v67_("    %d | %s | supported=%s", v64_, v65_, (tostring(v68_(v64_)))))
+	for i = 0, FidelityFxSRQuality.NUM - 1 do
+		local name = getFidelityFxSRQualityName(i)
+		print(string.format("    %d | %s | supported=%s", i, name, tostring(getSupportsFidelityFxSRQuality(i))))
 	end
-	if v61_ == nil then
-		return v63_
+	if newQuality ~= nil then
+		if 0 <= newQuality and (newQuality < FidelityFxSRQuality.NUM and getSupportsFidelityFxSRQuality(newQuality)) then
+			setFidelityFxSRQuality(newQuality)
+			local effectiveQuality = getFidelityFxSRQuality()
+			return string.format("new setting: %s (%d)", getFidelityFxSRQualityName(effectiveQuality), effectiveQuality)
+		end
+		return string.format("Error: Given quality '%d' not supported\n%s", newQuality, "Usage: gsRenderingFidelityFxSRSet <qualityNumber>")
+	else
+		return usage
 	end
-	if v61_ < 0 or (v61_ >= FidelityFxSRQuality.NUM or not getSupportsFidelityFxSRQuality(v61_)) then
-		return string.format("Error: Given quality \'%d\' not supported\n%s", v61_, "Usage: gsRenderingFidelityFxSRSet <qualityNumber>")
-	end
-	setFidelityFxSRQuality(v61_)
-	local v69_ = getFidelityFxSRQuality()
-	return string.format("new setting: %s (%d)", getFidelityFxSRQualityName(v69_), v69_)
 end
-local v_u_70_ = {}
-local v_u_71_ = setEnvMap
-
--- Upvalues: customEnvMaps
+local customEnvMaps = {}
+local setEnvMapFunc = setEnvMap
 function SystemConsoleCommands.registerCustomEnvMap(filepath)
-	-- upvalues: (copy) v_u_70_
-	table.addElement(v_u_70_, filepath)
+	table.addElement(customEnvMaps, filepath)
 end
-
--- Upvalues: customEnvMaps
--- Local values: index, path
 function SystemConsoleCommands:listCustomEnvMaps()
-	-- upvalues: (copy) v_u_70_
-	if #v_u_70_ == 0 then
+	if #customEnvMaps == 0 then
 		print("No custom env maps registered")
 	else
-		for v73_, v74_ in ipairs(v_u_70_) do
-			print(string.format("%d - %s", v73_, v74_))
+		for index, path in ipairs(customEnvMaps) do
+			print(string.format("%d - %s", index, path))
 		end
 	end
 end
-
--- Upvalues: setEnvMapFunc, customEnvMaps
--- Local values: filename, setEnvMapOverride
 function SystemConsoleCommands:setCustomEnvMap(index, weight)
-	-- upvalues: (copy) v_u_71_, (copy) v_u_70_
-	local v77_ = tonumber(index)
-	if v77_ == 0 then
-		setEnvMap = v_u_71_
+	index = tonumber(index)
+	if index == 0 then
+		setEnvMap = setEnvMapFunc
 		print("reset custom env map")
-		return
-	elseif v77_ == nil then
+	elseif index == nil then
 		printError("Error: no index given")
 		print("Usage: gsCustomEnvMapSet index")
 		print("Use gsCustomEnvMapList to see available env maps")
 	else
-		local v78_ = v_u_70_[v77_]
-		if v78_ == nil then
-			printError("Error: no env map for index %d", v77_)
+		local filename = customEnvMaps[index]
+		if filename == nil then
+			printError("Error: no env map for index %d", index)
 		end
-		local v79_ = tonumber(weight) or 1
-		function setEnvMap() end
-		v_u_71_(v78_, v78_, v78_, v78_, v79_, 0, 0, 0, true, true)
-		print(string.format("set custom env map to %q with a weight of %.2f", v78_, v79_))
+		weight = tonumber(weight) or 1
+		local setEnvMapOverride = function() end
+		setEnvMap = setEnvMapOverride
+		setEnvMapFunc(filename, filename, filename, filename, weight, 0, 0, 0, true, true)
+		print(string.format("set custom env map to %q with a weight of %.2f", filename, weight))
 	end
 end

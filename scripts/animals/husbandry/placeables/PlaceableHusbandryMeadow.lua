@@ -2,15 +2,9 @@ PlaceableHusbandryMeadow = {}
 PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS = 22
 source("dataS/scripts/animals/husbandry/placeables/events/HusbandryMeadowCreateEvent.lua")
 source("dataS/scripts/animals/husbandry/placeables/MeadowCreationTask.lua")
-
 function PlaceableHusbandryMeadow.prerequisitesPresent(specializations)
-	local v2_ = SpecializationUtil.hasSpecialization(PlaceableHusbandryFood, specializations) and SpecializationUtil.hasSpecialization(PlaceableHusbandryFence, specializations)
-	if v2_ then
-		v2_ = SpecializationUtil.hasSpecialization(PlaceableHusbandryAnimals, specializations)
-	end
-	return v2_
+	return SpecializationUtil.hasSpecialization(PlaceableHusbandryFood, specializations) and SpecializationUtil.hasSpecialization(PlaceableHusbandryFence, specializations) and SpecializationUtil.hasSpecialization(PlaceableHusbandryAnimals, specializations)
 end
-
 function PlaceableHusbandryMeadow.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "startMeadowGrowthUpdate", PlaceableHusbandryMeadow.startMeadowGrowthUpdate)
 	SpecializationUtil.registerFunction(placeableType, "finishMeadowGrowthUpdate", PlaceableHusbandryMeadow.finishMeadowGrowthUpdate)
@@ -21,14 +15,12 @@ function PlaceableHusbandryMeadow.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "updateMeadowVisuals", PlaceableHusbandryMeadow.updateMeadowVisuals)
 	SpecializationUtil.registerFunction(placeableType, "updateMeadowInfo", PlaceableHusbandryMeadow.updateMeadowInfo)
 end
-
 function PlaceableHusbandryMeadow.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "updateInfo", PlaceableHusbandryMeadow.updateInfo)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getFoodInfos", PlaceableHusbandryMeadow.getFoodInfos)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getAvailableFood", PlaceableHusbandryMeadow.getAvailableFood)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "removeFood", PlaceableHusbandryMeadow.removeFood)
 end
-
 function PlaceableHusbandryMeadow.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableHusbandryMeadow)
 	SpecializationUtil.registerEventListener(placeableType, "onPostLoad", PlaceableHusbandryMeadow)
@@ -42,20 +34,18 @@ function PlaceableHusbandryMeadow.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onHusbandryAnimalsCreated", PlaceableHusbandryMeadow)
 	SpecializationUtil.registerEventListener(placeableType, "onHusbandryFenceCustomizingUserLeft", PlaceableHusbandryMeadow)
 end
-
 function PlaceableHusbandryMeadow.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Husbandry")
-	local v8_ = basePath .. ".husbandry.meadow"
-	schema:register(XMLValueType.STRING, v8_ .. ".fruitType(?)#name", "Name of the supported fruitType")
-	schema:register(XMLValueType.STRING, v8_ .. ".fruitType(?)#eatableStartGrowthState", "Fruit type eatable start growth state name")
-	schema:register(XMLValueType.STRING, v8_ .. ".fruitType(?)#eatableEndGrowthState", "Fruit type eatable end growth state name")
-	schema:register(XMLValueType.STRING, v8_ .. ".fruitType(?)#eatenGrowthState", "Fruit type eaten growth state name")
-	MeadowCreationTask.registerXMLPaths(schema, v8_ .. ".createTask")
-	MeadowCreationTask.registerXMLPaths(schema, v8_ .. ".clearTask")
-	schema:register(XMLValueType.NODE_INDEX, v8_ .. ".clearTask.polygon.node(?)#node", "Polygon node", nil, false)
+	basePath = basePath .. ".husbandry.meadow"
+	schema:register(XMLValueType.STRING, basePath .. ".fruitType(?)#name", "Name of the supported fruitType")
+	schema:register(XMLValueType.STRING, basePath .. ".fruitType(?)#eatableStartGrowthState", "Fruit type eatable start growth state name")
+	schema:register(XMLValueType.STRING, basePath .. ".fruitType(?)#eatableEndGrowthState", "Fruit type eatable end growth state name")
+	schema:register(XMLValueType.STRING, basePath .. ".fruitType(?)#eatenGrowthState", "Fruit type eaten growth state name")
+	MeadowCreationTask.registerXMLPaths(schema, basePath .. ".createTask")
+	MeadowCreationTask.registerXMLPaths(schema, basePath .. ".clearTask")
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".clearTask.polygon.node(?)#node", "Polygon node", nil, false)
 	schema:setXMLSpecializationType()
 end
-
 function PlaceableHusbandryMeadow.registerSavegameXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Husbandry")
 	MeadowCreationTask.registerXMLPaths(schema, basePath .. ".createTask")
@@ -65,72 +55,54 @@ function PlaceableHusbandryMeadow.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".fillType(?)#capacity", "Meadow capacity")
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec, _, fruitTypeKey, name, fruitTypeDesc, windrowFillTypeIndex, eatableStartGrowthStateName, eatableStartGrowthState, eatableEndGrowthStateName, eatableEndGrowthState, eatenGrowthStateName, eatenGrowthState, fruitTypeInfo, createTask, nodes, _, nodeKey, node, area, clearTask
 function PlaceableHusbandryMeadow:onLoad(savegame)
-	local v12_ = self.spec_husbandryMeadow
-	v12_.canCreateMeadow = false
-	v12_.foodInfo = {
-		["title"] = "",
-		["value"] = 0,
-		["capacity"] = 0,
-		["ratio"] = 0,
-		["ignoreCapacity"] = true
-	}
-	v12_.info = {
-		["title"] = g_i18n:getText("animals_husbandryMeadowFood"),
-		["value"] = 0,
-		["capacity"] = 0,
-		["ratio"] = 0
-	}
-	v12_.fillLevels = {}
-	v12_.dirtyFillLevels = {}
-	v12_.capacities = {}
-	v12_.productionWeight = 0
-	v12_.dirtyFlag = self:getNextDirtyFlag()
-	v12_.fruitTypeInfos = {}
-	v12_.fruitTypeEatFilters = {}
-	v12_.eatFilterMaxValue = 10000
-	for _, v13_ in self.xmlFile:iterator("placeable.husbandry.meadow.fruitType") do
-		local v14_ = self.xmlFile:getValue(v13_ .. "#name")
-		local v15_ = g_fruitTypeManager:getFruitTypeByName(v14_)
-		if v15_ ~= nil then
-			local v16_ = g_fruitTypeManager:getWindrowFillTypeIndexByFruitTypeIndex(v15_.index)
-			v12_.fillLevels[v16_] = 0
-			v12_.capacities[v16_] = 0
-			local v17_ = self.xmlFile:getValue(v13_ .. "#eatableStartGrowthState")
-			if v17_ == nil then
-				Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatableStartGrowthState missing!")
+	local spec = self.spec_husbandryMeadow
+	spec.canCreateMeadow = false
+	spec.foodInfo = { title = "", value = 0, capacity = 0, ratio = 0, ignoreCapacity = true }
+	spec.info = { title = g_i18n:getText("animals_husbandryMeadowFood"), value = 0, capacity = 0, ratio = 0 }
+	spec.fillLevels = {}
+	spec.dirtyFillLevels = {}
+	spec.capacities = {}
+	spec.productionWeight = 0
+	spec.dirtyFlag = self:getNextDirtyFlag()
+	spec.fruitTypeInfos = {}
+	spec.fruitTypeEatFilters = {}
+	spec.eatFilterMaxValue = 10000
+	for _, fruitTypeKey in self.xmlFile:iterator("placeable.husbandry.meadow.fruitType") do
+		local name = self.xmlFile:getValue(fruitTypeKey .. "#name")
+		local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByName(name)
+		if fruitTypeDesc == nil then
+			continue
+		end
+		local windrowFillTypeIndex = g_fruitTypeManager:getWindrowFillTypeIndexByFruitTypeIndex(fruitTypeDesc.index)
+		spec.fillLevels[windrowFillTypeIndex] = 0
+		spec.capacities[windrowFillTypeIndex] = 0
+		local eatableStartGrowthStateName = self.xmlFile:getValue(fruitTypeKey .. "#eatableStartGrowthState")
+		if eatableStartGrowthStateName == nil then
+			Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatableStartGrowthState missing!")
+		else
+			local eatableStartGrowthState = fruitTypeDesc:getGrowthStateByName(eatableStartGrowthStateName)
+			if eatableStartGrowthState == nil then
+				Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatableStartGrowthState '%s' not defined!", eatableStartGrowthStateName)
 			else
-				local v18_ = v15_:getGrowthStateByName(v17_)
-				if v18_ == nil then
-					Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatableStartGrowthState \'%s\' not defined!", v17_)
+				local eatableEndGrowthStateName = self.xmlFile:getValue(fruitTypeKey .. "#eatableEndGrowthState")
+				if eatableEndGrowthStateName == nil then
+					Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatableEndGrowthState missing!")
 				else
-					local v19_ = self.xmlFile:getValue(v13_ .. "#eatableEndGrowthState")
-					if v19_ == nil then
-						Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatableEndGrowthState missing!")
+					local eatableEndGrowthState = fruitTypeDesc:getGrowthStateByName(eatableEndGrowthStateName)
+					if eatableEndGrowthState == nil then
+						Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatableEndGrowthState '%s' not defined!", eatableEndGrowthStateName)
 					else
-						local v20_ = v15_:getGrowthStateByName(v19_)
-						if v20_ == nil then
-							Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatableEndGrowthState \'%s\' not defined!", v19_)
+						local eatenGrowthStateName = self.xmlFile:getValue(fruitTypeKey .. "#eatenGrowthState")
+						if eatenGrowthStateName == nil then
+							Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatenGrowthState missing!")
 						else
-							local v21_ = self.xmlFile:getValue(v13_ .. "#eatenGrowthState")
-							if v21_ == nil then
-								Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatenGrowthState missing!")
+							local eatenGrowthState = fruitTypeDesc:getGrowthStateByName(eatenGrowthStateName)
+							if eatenGrowthState == nil then
+								Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatenGrowthState '%s' not defined!", eatenGrowthStateName)
 							else
-								local v22_ = v15_:getGrowthStateByName(v21_)
-								if v22_ == nil then
-									Logging.xmlWarning(self.xmlFile, "Husbandry meadow fruit type eatenGrowthState \'%s\' not defined!", v21_)
-								else
-									local v23_ = v12_.fruitTypeInfos
-									table.insert(v23_, {
-										["fruitType"] = v15_,
-										["eatableStartGrowthState"] = v18_,
-										["eatableEndGrowthState"] = v20_,
-										["eatenGrowthState"] = v22_,
-										["fillTypeIndex"] = v16_
-									})
-								end
+								local fruitTypeInfo = { fruitType = fruitTypeDesc, eatableStartGrowthState = eatableStartGrowthState, eatableEndGrowthState = eatableEndGrowthState, eatenGrowthState = eatenGrowthState, fillTypeIndex = windrowFillTypeIndex }
+								table.insert(spec.fruitTypeInfos, fruitTypeInfo)
 							end
 						end
 					end
@@ -139,493 +111,450 @@ function PlaceableHusbandryMeadow:onLoad(savegame)
 		end
 	end
 	if self.xmlFile:hasProperty("placeable.husbandry.meadow.createTask") then
-		local v24_ = MeadowCreationTask.new()
-		if v24_:loadFromXMLFile(self.xmlFile, "placeable.husbandry.meadow.createTask") then
-			v24_:setName("HusbandryMeadowCreate")
-			v24_:setNeedsSaving(false)
-			v12_.createTask = v24_
+		local createTask = MeadowCreationTask.new()
+		if createTask:loadFromXMLFile(self.xmlFile, "placeable.husbandry.meadow.createTask") then
+			createTask:setName("HusbandryMeadowCreate")
+			createTask:setNeedsSaving(false)
+			spec.createTask = createTask
 		end
-		v12_.canCreateMeadow = true
+		spec.canCreateMeadow = true
 	end
 	if self.xmlFile:hasProperty("placeable.husbandry.meadow.clearTask") then
-		local v25_ = {}
-		for _, v26_ in self.xmlFile:iterator("placeable.husbandry.meadow.clearTask.polygon.node") do
-			local v27_ = self.xmlFile:getValue(v26_ .. "#node", nil, self.components, self.i3dMappings)
-			if v27_ ~= nil then
-				table.insert(v25_, v27_)
+		local nodes = {}
+		for _, nodeKey in self.xmlFile:iterator("placeable.husbandry.meadow.clearTask.polygon.node") do
+			local node = self.xmlFile:getValue(nodeKey .. "#node", nil, self.components, self.i3dMappings)
+			if node == nil then
+				continue
 			end
+			table.insert(nodes, node)
 		end
-		local v28_ = DensityMapPolygon.createFromNodes(v25_)
-		if v28_ ~= nil then
-			local v29_ = MeadowCreationTask.new()
-			v29_:setArea(v28_)
-			if v29_:loadFromXMLFile(self.xmlFile, "placeable.husbandry.meadow.clearTask") then
-				v29_:setName("HusbandryMeadowClear")
-				v29_:setNeedsSaving(false)
-				v12_.clearTask = v29_
-				v12_.canCreateMeadow = true
+		local area = DensityMapPolygon.createFromNodes(nodes)
+		if area ~= nil then
+			local clearTask = MeadowCreationTask.new()
+			clearTask:setArea(area)
+			if clearTask:loadFromXMLFile(self.xmlFile, "placeable.husbandry.meadow.clearTask") then
+				clearTask:setName("HusbandryMeadowClear")
+				clearTask:setNeedsSaving(false)
+				spec.clearTask = clearTask
+				spec.canCreateMeadow = true
 			end
 		end
 	end
 end
-
--- Local values: spec, productionWeight, animalTypeIndex, animalType, animalFood, i, fruitTypeInfo, found, _, foodGroup, _, fillTypeIndex
 function PlaceableHusbandryMeadow:onPostLoad()
-	local v31_ = self.spec_husbandryMeadow
-	local v32_ = nil
-	local v33_ = self:getAnimalTypeIndex()
-	local v34_ = g_currentMission.animalSystem:getTypeByIndex(v33_)
-	local v35_ = g_currentMission.animalFoodSystem:getAnimalFood(v33_)
-	if v35_ ~= nil then
-		for v36_ = #v31_.fruitTypeInfos, 1, -1 do
-			local v37_ = v31_.fruitTypeInfos[v36_]
-			local v38_ = false
-			for _, v39_ in pairs(v35_.groups) do
-				for _, v40_ in pairs(v39_.fillTypes) do
-					if v40_ == v37_.fillTypeIndex then
-						if v32_ == nil then
-							v32_ = v39_.productionWeight
+	local spec = self.spec_husbandryMeadow
+	local productionWeight = nil
+	local animalTypeIndex = self:getAnimalTypeIndex()
+	local animalType = g_currentMission.animalSystem:getTypeByIndex(animalTypeIndex)
+	local animalFood = g_currentMission.animalFoodSystem:getAnimalFood(animalTypeIndex)
+	if animalFood ~= nil then
+		for i = #spec.fruitTypeInfos, 1, -1 do
+			local fruitTypeInfo = spec.fruitTypeInfos[i]
+			local found = false
+			for _, foodGroup in pairs(animalFood.groups) do
+				for _, fillTypeIndex in pairs(foodGroup.fillTypes) do
+					if fillTypeIndex == fruitTypeInfo.fillTypeIndex then
+						if productionWeight == nil then
+							productionWeight = foodGroup.productionWeight
 						end
-						local v41_ = v39_.productionWeight
-						v32_ = math.min(v32_, v41_)
-						v38_ = true
+						productionWeight = math.min(productionWeight, foodGroup.productionWeight)
+						found = true
 					end
 				end
-				if v38_ then
-					break
+				if not found then
+					continue
 				end
-			end
-			if not v38_ then
-				Logging.devWarning("FruitType \'%s\' is not supported by animal type \'%s\'", g_fillTypeManager:getFillTypeNameByIndex(v37_.fillTypeIndex), v34_.groupTitle)
-				table.remove(v31_.fruitTypes, v36_)
+				if not found then
+					Logging.devWarning("FruitType '%s' is not supported by animal type '%s'", g_fillTypeManager:getFillTypeNameByIndex(fruitTypeInfo.fillTypeIndex), animalType.groupTitle)
+					table.remove(spec.fruitTypes, i)
+				end
 			end
 		end
 	end
-	if v32_ ~= nil and v32_ > 0 then
-		v31_.productionWeight = v32_
-		v31_.foodInfo.title = string.format("%s (%d%%)", g_i18n:getText("animals_husbandryMeadowFood"), MathUtil.round(v31_.productionWeight * 100))
+	if productionWeight ~= nil and 0 < productionWeight then
+		spec.productionWeight = productionWeight
+		spec.foodInfo.title = string.format("%s (%d%%)", g_i18n:getText("animals_husbandryMeadowFood"), MathUtil.round(spec.productionWeight * 100))
 	end
 end
-
--- Local values: spec
 function PlaceableHusbandryMeadow:onDelete()
-	local v43_ = self.spec_husbandryMeadow
-	if v43_.pendingCreateTask ~= nil then
-		v43_.pendingCreateTask:cancel()
+	local spec = self.spec_husbandryMeadow
+	if spec.pendingCreateTask ~= nil then
+		spec.pendingCreateTask:cancel()
 	end
-	if v43_.pendingClearTask ~= nil then
-		v43_.pendingClearTask:cancel()
+	if spec.pendingClearTask ~= nil then
+		spec.pendingClearTask:cancel()
 	end
 	g_messageCenter:unsubscribe(MessageType.START_GROWTH_PERIOD, self)
 	g_messageCenter:unsubscribe(MessageType.FINISHED_GROWTH_PERIOD, self)
 end
-
--- Local values: spec, numBits, fillTypeIndex, filLLevel
 function PlaceableHusbandryMeadow:onReadStream(streamId, connection)
-	local v46_ = self.spec_husbandryMeadow
-	local v47_ = PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS
-	for v48_, _ in pairs(v46_.fillLevels) do
-		v46_.fillLevels[v48_] = streamReadUIntN(streamId, v47_)
-		v46_.capacities[v48_] = streamReadUIntN(streamId, v47_)
+	local spec = self.spec_husbandryMeadow
+	local numBits = PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS
+	for fillTypeIndex, filLLevel in pairs(spec.fillLevels) do
+		spec.fillLevels[fillTypeIndex] = streamReadUIntN(streamId, numBits)
+		spec.capacities[fillTypeIndex] = streamReadUIntN(streamId, numBits)
 	end
 	self:updateMeadowInfo()
 end
-
--- Local values: spec, numBits, fillTypeIndex, fillLevel
 function PlaceableHusbandryMeadow:onWriteStream(streamId, connection)
-	local v51_ = self.spec_husbandryMeadow
-	local v52_ = PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS
-	for v53_, v54_ in pairs(v51_.fillLevels) do
-		streamWriteUIntN(streamId, v54_, v52_)
-		streamWriteUIntN(streamId, v51_.capacities[v53_], v52_)
+	local spec = self.spec_husbandryMeadow
+	local numBits = PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS
+	for fillTypeIndex, fillLevel in pairs(spec.fillLevels) do
+		streamWriteUIntN(streamId, fillLevel, numBits)
+		streamWriteUIntN(streamId, spec.capacities[fillTypeIndex], numBits)
 	end
 end
-
--- Local values: spec, numBits, fillTypeIndex, filLLevel
 function PlaceableHusbandryMeadow:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
-		local v58_ = self.spec_husbandryMeadow
+		local spec = self.spec_husbandryMeadow
 		if streamReadBool(streamId) then
-			local v59_ = PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS
-			for v60_, _ in pairs(v58_.fillLevels) do
-				v58_.fillLevels[v60_] = streamReadUIntN(streamId, v59_)
-				v58_.capacities[v60_] = streamReadUIntN(streamId, v59_)
+			local numBits = PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS
+			for fillTypeIndex, filLLevel in pairs(spec.fillLevels) do
+				spec.fillLevels[fillTypeIndex] = streamReadUIntN(streamId, numBits)
+				spec.capacities[fillTypeIndex] = streamReadUIntN(streamId, numBits)
 			end
 			self:updateMeadowInfo()
 		end
 	end
 end
-
--- Local values: spec, numBits, fillTypeIndex, fillLevel
 function PlaceableHusbandryMeadow:onWriteUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
-		local v65_ = self.spec_husbandryMeadow
-		local v66_ = streamWriteBool
-		local v67_ = v65_.dirtyFlag
-		if v66_(streamId, bit32.band(dirtyMask, v67_) ~= 0) then
-			local v68_ = PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS
-			for v69_, v70_ in pairs(v65_.fillLevels) do
-				streamWriteUIntN(streamId, v70_, v68_)
-				streamWriteUIntN(streamId, v65_.capacities[v69_], v68_)
+		local spec = self.spec_husbandryMeadow
+		if streamWriteBool(streamId, bit32.band(dirtyMask, spec.dirtyFlag) ~= 0) then
+			local numBits = PlaceableHusbandryMeadow.FILLLEVEL_NUM_BITS
+			for fillTypeIndex, fillLevel in pairs(spec.fillLevels) do
+				streamWriteUIntN(streamId, fillLevel, numBits)
+				streamWriteUIntN(streamId, spec.capacities[fillTypeIndex], numBits)
 			end
 		end
 	end
 end
-
--- Local values: spec, found, _, fillLevelKey, fillTypeName, fillTypeIndex, fillLevel, capacity, fieldTaskKey, createTask, clearTaskKey, clearTask
 function PlaceableHusbandryMeadow:loadFromXMLFile(xmlFile, key)
-	local v74_ = self.spec_husbandryMeadow
-	local v75_ = false
-	for _, v76_ in xmlFile:iterator(key .. ".fillType") do
-		local v77_ = xmlFile:getValue(v76_ .. "#name")
-		if v77_ ~= nil then
-			local v78_ = g_fillTypeManager:getFillTypeIndexByName(v77_)
-			if v78_ ~= nil and v74_.fillLevels[v78_] ~= nil then
-				local v79_ = xmlFile:getValue(v76_ .. "#fillLevel")
-				local v80_ = xmlFile:getValue(v76_ .. "#capacity")
-				v74_.fillLevels[v78_] = v79_ or v74_.fillLevels[v78_]
-				v74_.capacities[v78_] = v80_ or v74_.capacities[v78_]
-				v75_ = true
-			end
+	local spec = self.spec_husbandryMeadow
+	local found = false
+	for _, fillLevelKey in xmlFile:iterator(key .. ".fillType") do
+		local fillTypeName = xmlFile:getValue(fillLevelKey .. "#name")
+		if fillTypeName == nil then
+			continue
 		end
+		local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
+		if fillTypeIndex == nil or spec.fillLevels[fillTypeIndex] == nil then
+			continue
+		end
+		local fillLevel = xmlFile:getValue(fillLevelKey .. "#fillLevel")
+		local capacity = xmlFile:getValue(fillLevelKey .. "#capacity")
+		spec.fillLevels[fillTypeIndex] = fillLevel or spec.fillLevels[fillTypeIndex]
+		spec.capacities[fillTypeIndex] = capacity or spec.capacities[fillTypeIndex]
+		found = true
 	end
-	v74_.isMeadowInfoDirty = not v75_
+	spec.isMeadowInfoDirty = not found
 	self:updateMeadowInfo()
-	local v81_ = key .. ".createTask"
-	if xmlFile:hasProperty(v81_) then
-		local v82_ = MeadowCreationTask.new()
-		if v82_:loadFromXMLFile(xmlFile, v81_) then
-			v82_:setNeedsSaving(false)
-			v82_:enqueue()
-			v74_.pendingCreateTask = v82_
+	local fieldTaskKey = key .. ".createTask"
+	if xmlFile:hasProperty(fieldTaskKey) then
+		local createTask = MeadowCreationTask.new()
+		if createTask:loadFromXMLFile(xmlFile, fieldTaskKey) then
+			createTask:setNeedsSaving(false)
+			createTask:enqueue()
+			spec.pendingCreateTask = createTask
 		end
 	end
-	local v83_ = key .. ".clearTask"
-	if xmlFile:hasProperty(v83_) then
-		local v84_ = MeadowCreationTask.new()
-		if v84_:loadFromXMLFile(xmlFile, v83_) then
-			v84_:setNeedsSaving(false)
-			v84_:enqueue()
-			v74_.pendingClearTask = v84_
+	local clearTaskKey = key .. ".clearTask"
+	if xmlFile:hasProperty(clearTaskKey) then
+		local clearTask = MeadowCreationTask.new()
+		if clearTask:loadFromXMLFile(xmlFile, clearTaskKey) then
+			clearTask:setNeedsSaving(false)
+			clearTask:enqueue()
+			spec.pendingClearTask = clearTask
 		end
 	end
-	if v74_.pendingCreateTask == nil and v74_.pendingClearTask == nil then
+	if spec.pendingCreateTask == nil and spec.pendingClearTask == nil then
 		g_messageCenter:subscribe(MessageType.START_GROWTH_PERIOD, self.startMeadowGrowthUpdate, self)
 		g_messageCenter:subscribe(MessageType.FINISHED_GROWTH_PERIOD, self.finishMeadowGrowthUpdate, self)
 	end
 end
-
--- Local values: spec, index, fillTypeIndex, fillLevel, fillTypeName, fillLevelKey
 function PlaceableHusbandryMeadow:saveToXMLFile(xmlFile, key, usedModNames)
-	local v88_ = self.spec_husbandryMeadow
-	local v89_ = 0
-	for v90_, v91_ in pairs(v88_.fillLevels) do
-		local v92_ = g_fillTypeManager:getFillTypeNameByIndex(v90_)
-		if v92_ ~= nil then
-			local v93_ = string.format("%s.fillType(%d)", key, v89_)
-			xmlFile:setValue(v93_ .. "#name", v92_)
-			xmlFile:setValue(v93_ .. "#fillLevel", v91_)
-			xmlFile:setValue(v93_ .. "#capacity", v88_.capacities[v90_] or 0)
-			v89_ = v89_ + 1
+	local spec = self.spec_husbandryMeadow
+	local index = 0
+	for fillTypeIndex, fillLevel in pairs(spec.fillLevels) do
+		local fillTypeName = g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex)
+		if fillTypeName == nil then
+			continue
 		end
+		local fillLevelKey = string.format("%s.fillType(%d)", key, index)
+		xmlFile:setValue(fillLevelKey .. "#name", fillTypeName)
+		xmlFile:setValue(fillLevelKey .. "#fillLevel", fillLevel)
+		xmlFile:setValue(fillLevelKey .. "#capacity", spec.capacities[fillTypeIndex] or 0)
+		index = index + 1
 	end
-	if v88_.pendingCreateTask ~= nil then
-		v88_.pendingCreateTask:saveToXMLFile(xmlFile, key .. ".createTask")
+	if spec.pendingCreateTask ~= nil then
+		spec.pendingCreateTask:saveToXMLFile(xmlFile, key .. ".createTask")
 	end
-	if v88_.pendingClearTask ~= nil then
-		v88_.pendingClearTask:saveToXMLFile(xmlFile, key .. ".clearTask")
+	if spec.pendingClearTask ~= nil then
+		spec.pendingClearTask:saveToXMLFile(xmlFile, key .. ".clearTask")
 	end
 end
-
--- Local values: spec
 function PlaceableHusbandryMeadow:onUpdate(dt)
 	if self.isServer then
-		local v95_ = self.spec_husbandryMeadow
-		if v95_.pendingCreateTask ~= nil then
-			if v95_.pendingCreateTask:getIsFinished() then
-				v95_.pendingCreateTask = nil
-				if v95_.clearTask == nil then
-					self:finishedMeadow()
+		local spec = self.spec_husbandryMeadow
+		if spec.pendingCreateTask ~= nil then
+			if spec.pendingCreateTask:getIsFinished() then
+				spec.pendingCreateTask = nil
+				if spec.clearTask ~= nil then
+					spec.pendingClearTask = spec.clearTask
+					spec.pendingClearTask:enqueue()
 				else
-					v95_.pendingClearTask = v95_.clearTask
-					v95_.pendingClearTask:enqueue()
+					self:finishedMeadow()
 				end
 			end
 			self:raiseActive()
 		end
-		if v95_.pendingClearTask ~= nil then
-			if v95_.pendingClearTask:getIsFinished() then
-				v95_.pendingClearTask = nil
+		if spec.pendingClearTask ~= nil then
+			if spec.pendingClearTask:getIsFinished() then
+				spec.pendingClearTask = nil
 				self:finishedMeadow()
 			end
 			self:raiseActive()
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableHusbandryMeadow:getCanCreateMeadow()
-	return self.spec_husbandryMeadow.canCreateMeadow
+	local spec = self.spec_husbandryMeadow
+	return spec.canCreateMeadow
 end
-
--- Local values: spec, polygon, createTask, enlargedPolygon, densityMapPolygon, tipCollisionFilter
 function PlaceableHusbandryMeadow:createMeadow(doCreateMeadow, noEventSend)
 	HusbandryMeadowCreateEvent.sendEvent(self, doCreateMeadow, noEventSend)
-	if doCreateMeadow then
+	if not doCreateMeadow then
+		self:finishedMeadow()
+	else
 		if self.isServer then
-			local v100_ = self.spec_husbandryMeadow
-			local v101_ = self:getOutdoorContourPolygon()
-			local v102_ = v100_.createTask
-			if v101_ ~= nil and v102_ ~= nil then
-				local v103_ = v101_:getOffsetPolygon(0.5)
-				if v103_ == nil then
-					Logging.warning("PlaceableHusbandryMeadow.createMeadow: Could not shrink polygon for creation task. Please double check order of fence segments and direction")
-				else
-					local v104_ = DensityMapPolygon.new()
-					v104_:updateFromPolygon2D(v103_)
-					DensityMapFilter.new(g_densityMapHeightManager.tipCollisionMap, 0, 2):setValueCompareParams(DensityValueCompareType.EQUAL, 0)
-					v102_:setArea(v104_)
+			local spec = self.spec_husbandryMeadow
+			local polygon = self:getOutdoorContourPolygon()
+			local createTask = spec.createTask
+			if polygon ~= nil and createTask ~= nil then
+				local enlargedPolygon = polygon:getOffsetPolygon(0.5)
+				if enlargedPolygon ~= nil then
+					local densityMapPolygon = DensityMapPolygon.new()
+					densityMapPolygon:updateFromPolygon2D(enlargedPolygon)
+					local tipCollisionFilter = DensityMapFilter.new(g_densityMapHeightManager.tipCollisionMap, 0, 2)
+					tipCollisionFilter:setValueCompareParams(DensityValueCompareType.EQUAL, 0)
+					createTask:setArea(densityMapPolygon)
 					if PlaceableHusbandryAnimals and PlaceableHusbandryAnimals.debugEnabled then
-						v104_:visualize(120000, "PlaceableHusbandryMeadow")
+						densityMapPolygon:visualize(120000, "PlaceableHusbandryMeadow")
 					end
-					v102_:enqueue()
-					v100_.pendingCreateTask = v102_
+					createTask:enqueue()
+					spec.pendingCreateTask = createTask
 					self:raiseActive()
+					return
+				else
+					Logging.warning("PlaceableHusbandryMeadow.createMeadow: Could not shrink polygon for creation task. Please double check order of fence segments and direction")
+					return
 				end
 			end
 			self:finishedMeadow()
 		end
-	else
-		self:finishedMeadow()
 	end
 end
-
--- Local values: spec, fillLevels, capacities, fillTypeIndex, fillLevel
 function PlaceableHusbandryMeadow:finishedMeadow()
 	if self.isServer then
-		local v106_ = self.spec_husbandryMeadow
-		local v107_, v108_ = self:getMeadowVisualFillLevels()
-		if v107_ ~= nil then
-			for v109_, v110_ in pairs(v107_) do
-				v106_.fillLevels[v109_] = v110_
-				v106_.capacities[v109_] = v108_[v109_]
+		local spec = self.spec_husbandryMeadow
+		local fillLevels, capacities = self:getMeadowVisualFillLevels()
+		if fillLevels ~= nil then
+			for fillTypeIndex, fillLevel in pairs(fillLevels) do
+				spec.fillLevels[fillTypeIndex] = fillLevel
+				spec.capacities[fillTypeIndex] = capacities[fillTypeIndex]
 			end
 		end
 		self:updateMeadowInfo()
-		self:raiseDirtyFlags(v106_.dirtyFlag)
+		self:raiseDirtyFlags(spec.dirtyFlag)
 		g_messageCenter:subscribe(MessageType.START_GROWTH_PERIOD, self.startMeadowGrowthUpdate, self)
 		g_messageCenter:subscribe(MessageType.FINISHED_GROWTH_PERIOD, self.finishMeadowGrowthUpdate, self)
 	end
 end
-
--- Local values: spec, fillLevels, capacities, fillTypeIndex, fillLevel
 function PlaceableHusbandryMeadow:onHusbandryAnimalsCreated()
-	local v112_ = self.spec_husbandryMeadow
-	if v112_.isMeadowInfoDirty then
-		local v113_, v114_ = self:getMeadowVisualFillLevels()
-		if v113_ ~= nil then
-			for v115_, v116_ in pairs(v113_) do
-				v112_.fillLevels[v115_] = v116_
-				v112_.capacities[v115_] = v114_[v115_]
+	local spec = self.spec_husbandryMeadow
+	if spec.isMeadowInfoDirty then
+		local fillLevels, capacities = self:getMeadowVisualFillLevels()
+		if fillLevels ~= nil then
+			for fillTypeIndex, fillLevel in pairs(fillLevels) do
+				spec.fillLevels[fillTypeIndex] = fillLevel
+				spec.capacities[fillTypeIndex] = capacities[fillTypeIndex]
 			end
 			self:updateMeadowInfo()
 		end
 	end
 end
-
 function PlaceableHusbandryMeadow:onHusbandryFenceCustomizingUserLeft()
 	self:createMeadow(true)
 end
-
--- Local values: spec
 function PlaceableHusbandryMeadow:startMeadowGrowthUpdate()
 	if self.isServer then
-		local v119_ = self.spec_husbandryMeadow
-		local v120_, v121_ = self:getMeadowVisualFillLevels()
-		v119_.growthStartFillLevels = v120_
-		v119_.growthStartCapacities = v121_
+		local spec = self.spec_husbandryMeadow
+		spec.growthStartFillLevels, spec.growthStartCapacities = self:getMeadowVisualFillLevels()
 	end
 end
-
--- Local values: spec, growthEndFillLevels, growthEndCapacities, fillTypeIndex, fillLevel, delta
 function PlaceableHusbandryMeadow:finishMeadowGrowthUpdate()
 	if self.isServer then
-		local v123_ = self.spec_husbandryMeadow
-		local v124_, v125_ = self:getMeadowVisualFillLevels()
-		if v123_.growthStartFillLevels ~= nil and v124_ ~= nil then
-			for v126_, v127_ in pairs(v124_) do
-				local v128_ = v127_ - v123_.growthStartFillLevels[v126_]
-				if v127_ == v125_[v126_] then
-					v128_ = v125_[v126_]
+		local spec = self.spec_husbandryMeadow
+		local growthEndFillLevels, growthEndCapacities = self:getMeadowVisualFillLevels()
+		if spec.growthStartFillLevels ~= nil and growthEndFillLevels ~= nil then
+			for fillTypeIndex, fillLevel in pairs(growthEndFillLevels) do
+				local delta = fillLevel - spec.growthStartFillLevels[fillTypeIndex]
+				if fillLevel == growthEndCapacities[fillTypeIndex] then
+					delta = growthEndCapacities[fillTypeIndex]
 				end
-				local v129_ = v123_.fillLevels
-				local v130_ = v123_.fillLevels[v126_] + v128_
-				local v131_ = v125_[v126_]
-				v129_[v126_] = math.clamp(v130_, 0, v131_)
+				spec.fillLevels[fillTypeIndex] = math.clamp(spec.fillLevels[fillTypeIndex] + delta, 0, growthEndCapacities[fillTypeIndex])
 			end
 			self:updateMeadowInfo()
 		end
 	end
 end
-
--- Local values: spec, polygon, densityMapPolygon, capacities, fillLevels, _, fruitTypeInfo, fruitType, fillTypeIndex, modifier, filter, _, pixels, _, fruitCapacity, fruitFillLevel, _, eatablePixels, _
 function PlaceableHusbandryMeadow:getMeadowVisualFillLevels()
-	local v133_ = self.spec_husbandryMeadow
-	local v134_ = self:getOutdoorContourPolygon()
-	if v134_ == nil then
+	local spec = self.spec_husbandryMeadow
+	local polygon = self:getOutdoorContourPolygon()
+	if polygon == nil then
 		return nil, nil
-	end
-	local v135_ = DensityMapPolygon.new()
-	v135_:updateFromPolygon2D(v134_)
-	local v136_ = {}
-	local v137_ = {}
-	for _, v138_ in ipairs(v133_.fruitTypeInfos) do
-		local v139_ = v138_.fruitType
-		local v140_ = v138_.fillTypeIndex
-		if v136_[v140_] == nil then
-			v136_[v140_] = 0
-			v137_[v140_] = 0
-		end
-		local v141_ = v139_:getModifier()
-		if v141_ ~= nil then
-			local v142_ = DensityMapFilter.new(v141_)
-			v142_:setValueCompareParams(DensityValueCompareType.BETWEEN, 1, v138_.eatableEndGrowthState)
-			v135_:applyToModifier(v141_)
-			local _, v143_, _ = v141_:executeGet(v142_)
-			local v144_ = g_fruitTypeManager:getFruitTypeAreaLiters(v139_.index, v143_, true)
-			v137_[v140_] = v137_[v140_] + v144_
-			local v145_
-			if v144_ > 0 then
-				v142_:setValueCompareParams(DensityValueCompareType.BETWEEN, v138_.eatableStartGrowthState, v138_.eatableEndGrowthState)
-				local _, v146_, _ = v141_:executeGet(v142_)
-				v145_ = g_fruitTypeManager:getFruitTypeAreaLiters(v139_.index, v146_, true)
-			else
-				v145_ = 0
+	else
+		local densityMapPolygon = DensityMapPolygon.new()
+		densityMapPolygon:updateFromPolygon2D(polygon)
+		local capacities = {}
+		local fillLevels = {}
+		for _, fruitTypeInfo in ipairs(spec.fruitTypeInfos) do
+			local fruitType = fruitTypeInfo.fruitType
+			local fillTypeIndex = fruitTypeInfo.fillTypeIndex
+			if fillLevels[fillTypeIndex] == nil then
+				fillLevels[fillTypeIndex] = 0
+				capacities[fillTypeIndex] = 0
 			end
-			v136_[v140_] = v136_[v140_] + v145_
+			local modifier = fruitType:getModifier()
+			if modifier == nil then
+				continue
+			end
+			local filter = DensityMapFilter.new(modifier)
+			filter:setValueCompareParams(DensityValueCompareType.BETWEEN, 1, fruitTypeInfo.eatableEndGrowthState)
+			densityMapPolygon:applyToModifier(modifier)
+			local _, pixels, _ = modifier:executeGet(filter)
+			local fruitCapacity = g_fruitTypeManager:getFruitTypeAreaLiters(fruitType.index, pixels, true)
+			capacities[fillTypeIndex] = capacities[fillTypeIndex] + fruitCapacity
+			local fruitFillLevel = 0
+			if 0 < fruitCapacity then
+				filter:setValueCompareParams(DensityValueCompareType.BETWEEN, fruitTypeInfo.eatableStartGrowthState, fruitTypeInfo.eatableEndGrowthState)
+				local _, eatablePixels, _ = modifier:executeGet(filter)
+				fruitFillLevel = g_fruitTypeManager:getFruitTypeAreaLiters(fruitType.index, eatablePixels, true)
+			end
+			fillLevels[fillTypeIndex] = fillLevels[fillTypeIndex] + fruitFillLevel
 		end
+		return fillLevels, capacities
 	end
-	return v136_, v137_
 end
-
 function PlaceableHusbandryMeadow:onMeadowFinishedGrowthPeriod()
 	self:updateMeadowCapacity()
 end
-function PlaceableHusbandryMeadow.removeFood(p148_, p149_, p150_, p151_)
-	local v152_ = p149_(p148_, p150_, p151_)
-	local v153_ = p150_ - v152_
-	if v153_ > 0 then
-		local v154_ = p148_.spec_husbandryMeadow
-		local v155_ = v154_.fillLevels[p151_]
-		if v155_ ~= nil then
-			local v156_ = math.min(v155_, v153_)
-			v154_.fillLevels[p151_] = v155_ - v156_
-			v152_ = v152_ + v156_
-			v154_.dirtyFillLevels[p151_] = true
-			p148_:raiseDirtyFlags(v154_.dirtyFlag)
-			p148_:updateMeadowInfo()
+function PlaceableHusbandryMeadow:removeFood(superFunc, absDeltaFillLevel, fillTypeIndex)
+	local deltaRemoved = superFunc(self, absDeltaFillLevel, fillTypeIndex)
+	local deltaRemaining = absDeltaFillLevel - deltaRemoved
+	if 0 < deltaRemaining then
+		local spec = self.spec_husbandryMeadow
+		local fillLevel = spec.fillLevels[fillTypeIndex]
+		if fillLevel ~= nil then
+			local removed = math.min(fillLevel, deltaRemaining)
+			spec.fillLevels[fillTypeIndex] = fillLevel - removed
+			deltaRemoved = deltaRemoved + removed
+			spec.dirtyFillLevels[fillTypeIndex] = true
+			self:raiseDirtyFlags(spec.dirtyFlag)
+			self:updateMeadowInfo()
 		end
 	end
-	return v152_
+	return deltaRemoved
 end
-
--- Local values: spec, fillLevel, capacity, fillTypeIndex, level, ratio, foodInfo, info
 function PlaceableHusbandryMeadow:updateMeadowInfo()
-	local v158_ = self.spec_husbandryMeadow
-	local v159_ = 0
-	local v160_ = 0
-	for v161_, v162_ in pairs(v158_.fillLevels) do
-		v159_ = v159_ + v162_
-		v160_ = v160_ + v158_.capacities[v161_]
+	local spec = self.spec_husbandryMeadow
+	local fillLevel = 0
+	local capacity = 0
+	for fillTypeIndex, level in pairs(spec.fillLevels) do
+		fillLevel = fillLevel + level
+		capacity = capacity + spec.capacities[fillTypeIndex]
 	end
-	local v163_ = v160_ <= 0 and 0 or v159_ / v160_
-	local v164_ = v158_.foodInfo
-	v164_.value = v159_
-	v164_.capacity = v160_
-	v164_.ratio = v163_
-	local v165_ = v158_.info
-	v165_.value = v159_
-	v165_.capacity = v160_
-	v165_.ratio = v163_
-	v165_.text = string.format("%d l", v159_)
+	local ratio = 0
+	if 0 < capacity then
+		ratio = fillLevel / capacity
+	end
+	local foodInfo = spec.foodInfo
+	foodInfo.value = fillLevel
+	foodInfo.capacity = capacity
+	foodInfo.ratio = ratio
+	local info = spec.info
+	info.value = fillLevel
+	info.capacity = capacity
+	info.ratio = ratio
+	info.text = string.format("%d l", fillLevel)
 end
-
 function PlaceableHusbandryMeadow:onFinishedFeeding()
 	if self.isServer then
 		self:updateMeadowVisuals()
 	end
 end
-
--- Local values: polygon, densityMapPolygon, updatedFillTypes, spec, _, fruitTypeInfo, fruitType, fruitTypeIndex, fillTypeIndex, fillLevel, capacity, ratio, modifier, filter, eatFilter, maxFilterValue, fillTypeIndex, _
 function PlaceableHusbandryMeadow:updateMeadowVisuals()
-	local v168_ = self:getOutdoorContourPolygon()
-	if v168_ ~= nil then
-		local v169_ = DensityMapPolygon.new()
-		v169_:updateFromPolygon2D(v168_)
-		local v170_ = self.spec_husbandryMeadow
-		local v171_ = {}
-		for _, v172_ in ipairs(v170_.fruitTypeInfos) do
-			local v173_ = v172_.fruitType
-			local v174_ = v173_.index
-			local v175_ = v172_.fillTypeIndex
-			if v170_.dirtyFillLevels[v175_] then
-				local v176_ = v170_.fillLevels[v175_]
-				local v177_ = v170_.capacities[v175_]
-				if v177_ > 0 then
-					local v178_ = 1 - v176_ / v177_
-					local v179_ = v173_:getModifier()
-					v169_:applyToModifier(v179_)
-					if v179_ ~= nil then
-						local v180_ = DensityMapFilter.new(v179_)
-						v180_:setValueCompareParams(DensityValueCompareType.BETWEEN, v172_.eatableStartGrowthState, v172_.eatableEndGrowthState)
-						local v181_ = v170_.fruitTypeEatFilters[v174_]
-						if v181_ == nil then
-							v181_ = PerlinNoiseFilter.new(v179_, 11, 1, 0.5, math.random(0, 10000))
-							v170_.fruitTypeEatFilters[v174_] = v181_
+	local polygon = self:getOutdoorContourPolygon()
+	if polygon == nil then
+		return
+	else
+		local densityMapPolygon = DensityMapPolygon.new()
+		densityMapPolygon:updateFromPolygon2D(polygon)
+		local updatedFillTypes = {}
+		local spec = self.spec_husbandryMeadow
+		for _, fruitTypeInfo in ipairs(spec.fruitTypeInfos) do
+			local fruitType = fruitTypeInfo.fruitType
+			local fruitTypeIndex = fruitType.index
+			local fillTypeIndex = fruitTypeInfo.fillTypeIndex
+			if spec.dirtyFillLevels[fillTypeIndex] then
+				local fillLevel = spec.fillLevels[fillTypeIndex]
+				local capacity = spec.capacities[fillTypeIndex]
+				if 0 < capacity then
+					local ratio = 1 - fillLevel / capacity
+					local modifier = fruitType:getModifier()
+					densityMapPolygon:applyToModifier(modifier)
+					if modifier ~= nil then
+						local filter = DensityMapFilter.new(modifier)
+						filter:setValueCompareParams(DensityValueCompareType.BETWEEN, fruitTypeInfo.eatableStartGrowthState, fruitTypeInfo.eatableEndGrowthState)
+						local eatFilter = spec.fruitTypeEatFilters[fruitTypeIndex]
+						if eatFilter == nil then
+							eatFilter = PerlinNoiseFilter.new(modifier, 11, 1, 0.5, math.random(0, 10000))
+							spec.fruitTypeEatFilters[fruitTypeIndex] = eatFilter
 						end
-						local v182_ = v178_ * v170_.eatFilterMaxValue
-						local v183_ = math.ceil(v182_)
-						v181_:setValueCompareParams(DensityValueCompareType.BETWEEN, 1, v183_)
-						v179_:executeSet(v172_.eatenGrowthState, v180_, v181_)
+						local maxFilterValue = math.ceil(ratio * spec.eatFilterMaxValue)
+						eatFilter:setValueCompareParams(DensityValueCompareType.BETWEEN, 1, maxFilterValue)
+						modifier:executeSet(fruitTypeInfo.eatenGrowthState, filter, eatFilter)
 					end
 				end
-				v171_[v175_] = true
+				updatedFillTypes[fillTypeIndex] = true
 			end
 		end
-		for v184_, _ in pairs(v171_) do
-			v170_.dirtyFillLevels[v184_] = nil
+		for fillTypeIndex, _ in pairs(updatedFillTypes) do
+			spec.dirtyFillLevels[fillTypeIndex] = nil
 		end
 	end
 end
-
--- Local values: spec, fillLevel, meadowFillLevel
 function PlaceableHusbandryMeadow:getAvailableFood(superFunc, fillTypeIndex)
-	local v188_ = self.spec_husbandryMeadow
-	local v189_ = superFunc(self, fillTypeIndex)
-	local v190_ = v188_.fillLevels[fillTypeIndex]
-	if v190_ ~= nil then
-		v189_ = (v189_ or 0) + v190_
+	local spec = self.spec_husbandryMeadow
+	local fillLevel = superFunc(self, fillTypeIndex)
+	local meadowFillLevel = spec.fillLevels[fillTypeIndex]
+	if meadowFillLevel ~= nil then
+		fillLevel = (fillLevel or 0) + meadowFillLevel
 	end
-	return v189_
+	return fillLevel
 end
-
--- Local values: foodInfos, spec
 function PlaceableHusbandryMeadow:getFoodInfos(superFunc)
-	local v193_ = superFunc(self)
-	local v194_ = self.spec_husbandryMeadow
-	if #v194_.fruitTypeInfos > 0 then
-		local v195_ = v194_.foodInfo
-		table.insert(v193_, v195_)
+	local foodInfos = superFunc(self)
+	local spec = self.spec_husbandryMeadow
+	if 0 < #spec.fruitTypeInfos then
+		table.insert(foodInfos, spec.foodInfo)
 	end
-	return v193_
+	return foodInfos
 end
-
--- Local values: spec
 function PlaceableHusbandryMeadow:updateInfo(superFunc, infoTable)
 	superFunc(self, infoTable)
-	local v199_ = self.spec_husbandryMeadow
-	if #v199_.fruitTypeInfos > 0 then
-		local v200_ = v199_.info
-		table.insert(infoTable, v200_)
+	local spec = self.spec_husbandryMeadow
+	if 0 < #spec.fruitTypeInfos then
+		table.insert(infoTable, spec.info)
 	end
 end

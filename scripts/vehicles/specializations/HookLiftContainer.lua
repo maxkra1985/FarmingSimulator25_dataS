@@ -1,26 +1,19 @@
 HookLiftContainer = {}
-
 function HookLiftContainer.prerequisitesPresent(specializations)
-	local v2_ = SpecializationUtil.hasSpecialization(AnimatedVehicle, specializations)
-	if v2_ then
-		v2_ = SpecializationUtil.hasSpecialization(Attachable, specializations)
-	end
-	return v2_
+	return SpecializationUtil.hasSpecialization(AnimatedVehicle, specializations) and SpecializationUtil.hasSpecialization(Attachable, specializations)
 end
 function HookLiftContainer.initSpecialization()
-	local v3_ = Vehicle.xmlSchema
-	v3_:setXMLSpecializationType("HookLiftContainer")
-	v3_:register(XMLValueType.BOOL, "vehicle.hookLiftContainer#tiltContainerOnDischarge", "Tilt container on discharge", true)
-	v3_:register(XMLValueType.NODE_INDEX, "vehicle.hookLiftContainer.visualRollReference#startNode", "Reference nodes that represent the bottom of the container")
-	v3_:register(XMLValueType.NODE_INDEX, "vehicle.hookLiftContainer.visualRollReference#endNode", "Reference nodes that represent the bottom of the container")
-	ObjectChangeUtil.registerObjectChangeXMLPaths(v3_, "vehicle.hookLiftContainer.containerLock")
-	v3_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("HookLiftContainer")
+	schema:register(XMLValueType.BOOL, "vehicle.hookLiftContainer#tiltContainerOnDischarge", "Tilt container on discharge", true)
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.hookLiftContainer.visualRollReference#startNode", "Reference nodes that represent the bottom of the container")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.hookLiftContainer.visualRollReference#endNode", "Reference nodes that represent the bottom of the container")
+	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, "vehicle.hookLiftContainer.containerLock")
+	schema:setXMLSpecializationType()
 end
-
 function HookLiftContainer.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "onHookLiftContainerLockChanged", HookLiftContainer.onHookLiftContainerLockChanged)
 end
-
 function HookLiftContainer.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getCanDischargeToObject", HookLiftContainer.getCanDischargeToObject)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getCanDischargeToGround", HookLiftContainer.getCanDischargeToGround)
@@ -29,105 +22,95 @@ function HookLiftContainer.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "removeFromPhysics", HookLiftContainer.removeFromPhysics)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getBrakeForce", HookLiftContainer.getBrakeForce)
 end
-
 function HookLiftContainer.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", HookLiftContainer)
 	SpecializationUtil.registerEventListener(vehicleType, "onStartTipping", HookLiftContainer)
 	SpecializationUtil.registerEventListener(vehicleType, "onStopTipping", HookLiftContainer)
 end
-
--- Local values: spec
 function HookLiftContainer:onLoad(savegame)
-	local v8_ = self.spec_hookLiftContainer
-	v8_.tiltContainerOnDischarge = self.xmlFile:getValue("vehicle.hookLiftContainer#tiltContainerOnDischarge", true)
-	v8_.visualReferenceNodeStart = self.xmlFile:getValue("vehicle.hookLiftContainer.visualRollReference#startNode", nil, self.components, self.i3dMappings)
-	v8_.visualReferenceNodeEnd = self.xmlFile:getValue("vehicle.hookLiftContainer.visualRollReference#endNode", nil, self.components, self.i3dMappings)
-	v8_.containerLockChangeObjects = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, "vehicle.hookLiftContainer.containerLock", v8_.containerLockChangeObjects, self.components, self)
-	ObjectChangeUtil.setObjectChanges(v8_.containerLockChangeObjects, false, self, self.setMovingToolDirty)
+	local spec = self.spec_hookLiftContainer
+	spec.tiltContainerOnDischarge = self.xmlFile:getValue("vehicle.hookLiftContainer#tiltContainerOnDischarge", true)
+	spec.visualReferenceNodeStart = self.xmlFile:getValue("vehicle.hookLiftContainer.visualRollReference#startNode", nil, self.components, self.i3dMappings)
+	spec.visualReferenceNodeEnd = self.xmlFile:getValue("vehicle.hookLiftContainer.visualRollReference#endNode", nil, self.components, self.i3dMappings)
+	spec.containerLockChangeObjects = {}
+	ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, "vehicle.hookLiftContainer.containerLock", spec.containerLockChangeObjects, self.components, self)
+	ObjectChangeUtil.setObjectChanges(spec.containerLockChangeObjects, false, self, self.setMovingToolDirty)
 	if self.setConnectionHosesActive ~= nil then
 		self:setConnectionHosesActive(false)
 	end
 end
-
--- Local values: attacherVehicle
 function HookLiftContainer:getCanDischargeToObject(superFunc, dischargeNode)
-	local v12_ = self:getAttacherVehicle()
-	if v12_ == nil or (v12_.getIsTippingAllowed == nil or v12_:getIsTippingAllowed()) then
-		return superFunc(self, dischargeNode)
-	else
+	local attacherVehicle = self:getAttacherVehicle()
+	if attacherVehicle ~= nil and (attacherVehicle.getIsTippingAllowed ~= nil and not attacherVehicle:getIsTippingAllowed()) then
 		return false
 	end
+	return superFunc(self, dischargeNode)
 end
-
--- Local values: attacherVehicle
 function HookLiftContainer:getCanDischargeToGround(superFunc, dischargeNode)
-	local v16_ = self:getAttacherVehicle()
-	if v16_ == nil or (v16_.getIsTippingAllowed == nil or v16_:getIsTippingAllowed()) then
-		return superFunc(self, dischargeNode)
-	else
+	local attacherVehicle = self:getAttacherVehicle()
+	if attacherVehicle ~= nil and (attacherVehicle.getIsTippingAllowed ~= nil and not attacherVehicle:getIsTippingAllowed()) then
 		return false
 	end
+	return superFunc(self, dischargeNode)
 end
-
--- Local values: attacherVehicle
 function HookLiftContainer:isDetachAllowed(superFunc)
-	local v19_ = self:getAttacherVehicle()
-	if v19_ == nil or (v19_.getCanDetachContainer == nil or v19_:getCanDetachContainer()) then
-		return superFunc(self)
-	else
+	local attacherVehicle = self:getAttacherVehicle()
+	if attacherVehicle ~= nil and (attacherVehicle.getCanDetachContainer ~= nil and not attacherVehicle:getCanDetachContainer()) then
 		return false, nil
 	end
+	return superFunc(self)
 end
-
--- Local values: spec, attacherVehicle
 function HookLiftContainer:onStartTipping(tipSideIndex)
-	local v21_ = self.spec_hookLiftContainer
-	local v22_ = self:getAttacherVehicle()
-	if v22_ ~= nil and (v22_.startTipping ~= nil and v21_.tiltContainerOnDischarge) then
-		v22_:startTipping()
+	local spec = self.spec_hookLiftContainer
+	local attacherVehicle = self:getAttacherVehicle()
+	if attacherVehicle ~= nil and (attacherVehicle.startTipping ~= nil and spec.tiltContainerOnDischarge) then
+		attacherVehicle:startTipping()
 	end
 end
-
--- Local values: spec, attacherVehicle
 function HookLiftContainer:onStopTipping()
-	local v24_ = self.spec_hookLiftContainer
-	local v25_ = self:getAttacherVehicle()
-	if v25_ ~= nil and (v25_.stopTipping ~= nil and v24_.tiltContainerOnDischarge) then
-		v25_:stopTipping()
+	local spec = self.spec_hookLiftContainer
+	local attacherVehicle = self:getAttacherVehicle()
+	if attacherVehicle ~= nil and (attacherVehicle.stopTipping ~= nil and spec.tiltContainerOnDischarge) then
+		attacherVehicle:stopTipping()
 	end
 end
-
--- Local values: spec, attacherVehicle, implement
 function HookLiftContainer:onHookLiftContainerLockChanged(state)
-	local v28_ = self.spec_hookLiftContainer
-	if self.setConnectionHosesActive ~= nil and self:getAttacherVehicle():getImplementByObject(self) ~= nil then
-		self:setConnectionHosesActive(state)
+	local spec = self.spec_hookLiftContainer
+	if self.setConnectionHosesActive ~= nil then
+		local attacherVehicle = self:getAttacherVehicle()
+		local implement = attacherVehicle:getImplementByObject(self)
+		if implement ~= nil then
+			self:setConnectionHosesActive(state)
+		end
 	end
-	ObjectChangeUtil.setObjectChanges(v28_.containerLockChangeObjects, state, self, self.setMovingToolDirty)
+	ObjectChangeUtil.setObjectChanges(spec.containerLockChangeObjects, state, self, self.setMovingToolDirty)
 end
-
--- Local values: attacherVehicle
 function HookLiftContainer:addToPhysics(superFunc)
 	if not superFunc(self) then
 		return false
+	else
+		local attacherVehicle = self:getAttacherVehicle()
+		if attacherVehicle ~= nil and attacherVehicle.setHookLiftContainerPhysicsState ~= nil then
+			attacherVehicle:setHookLiftContainerPhysicsState(self, true)
+		end
+		return true
 	end
-	local v31_ = self:getAttacherVehicle()
-	if v31_ ~= nil and v31_.setHookLiftContainerPhysicsState ~= nil then
-		v31_:setHookLiftContainerPhysicsState(self, true)
-	end
-	return true
 end
-
--- Local values: attacherVehicle
 function HookLiftContainer:removeFromPhysics(superFunc)
-	local v34_ = self:getAttacherVehicle()
-	if v34_ ~= nil and v34_.setHookLiftContainerPhysicsState ~= nil then
-		v34_:setHookLiftContainerPhysicsState(self, false)
+	local attacherVehicle = self:getAttacherVehicle()
+	if attacherVehicle ~= nil and attacherVehicle.setHookLiftContainerPhysicsState ~= nil then
+		attacherVehicle:setHookLiftContainerPhysicsState(self, false)
 	end
-	return superFunc(self) and true or false
+	if not superFunc(self) then
+		return false
+	else
+		return true
+	end
 end
-
 function HookLiftContainer:getBrakeForce(superFunc)
-	return self:getAttacherVehicle() ~= nil and 0 or superFunc(self)
+	if self:getAttacherVehicle() ~= nil then
+		return 0
+	else
+		return superFunc(self)
+	end
 end

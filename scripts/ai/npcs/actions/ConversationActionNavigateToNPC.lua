@@ -1,44 +1,35 @@
--- Local values: ConversationActionNavigateToNPC_mt
 ConversationActionNavigateToNPC = {}
 ConversationActionNavigateToNPC.NAME = "navigateToNPC"
 local ConversationActionNavigateToNPC_mt = Class(ConversationActionNavigateToNPC)
-
 function ConversationActionNavigateToNPC.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#npcName", "Name of the npc", nil, true)
 end
-
--- Upvalues: ConversationActionNavigateToNPC_mt
--- Local values: self
 function ConversationActionNavigateToNPC.new(npcName, customMt)
-	-- upvalues: (copy) ConversationActionNavigateToNPC_mt
-	local v6_ = customMt or ConversationActionNavigateToNPC_mt
-	local v7_ = setmetatable({}, v6_)
-	v7_.npcName = npcName
-	return v7_
+	local self = setmetatable({}, customMt or ConversationActionNavigateToNPC_mt)
+	self.npcName = npcName
+	return self
 end
-
--- Local values: npc, mapHotspot
 function ConversationActionNavigateToNPC:run()
-	local v9_ = g_npcManager:getNPCByName(self.npcName)
-	if v9_ == nil then
-		Logging.error("ConversationActionNavigateToNPC.run: NPC \'%s\' not defined", self.npcName)
+	local npc = g_npcManager:getNPCByName(self.npcName)
+	if npc == nil then
+		Logging.error("ConversationActionNavigateToNPC.run: NPC '%s' not defined", self.npcName)
 		return false
 	end
-	local v10_ = v9_:getMapHotspot()
-	if v10_ == nil then
+	local mapHotspot = npc:getMapHotspot()
+	if mapHotspot == nil then
 		return false
+	else
+		g_currentMission:setMapTargetHotspot(mapHotspot)
+		return true
 	end
-	g_currentMission:setMapTargetHotspot(v10_)
-	return true
 end
-
--- Local values: npcName
 function ConversationActionNavigateToNPC.createFromXML(xmlFile, key, conversation, baseDirectory, customEnvironment)
-	local v13_ = xmlFile:getValue(key .. "#npcName")
-	if v13_ ~= nil then
-		return ConversationActionNavigateToNPC.new(v13_)
+	local npcName = xmlFile:getValue(key .. "#npcName")
+	if npcName == nil then
+		Logging.xmlWarning(xmlFile, "Missing 'npcName' for '%s'", key)
+		return nil
+	else
+		return ConversationActionNavigateToNPC.new(npcName)
 	end
-	Logging.xmlWarning(xmlFile, "Missing \'npcName\' for \'%s\'", key)
-	return nil
 end
 g_npcManager:registerConversationActionClass(ConversationActionNavigateToNPC.NAME, ConversationActionNavigateToNPC)

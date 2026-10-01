@@ -1,16 +1,12 @@
 BaseMaterial = {}
-
-function BaseMaterial.prerequisitesPresent(vehicleType)
+function BaseMaterial.prerequisitesPresent(specializations)
 	return true
 end
 function BaseMaterial.initSpecialization() end
-
 function BaseMaterial.registerFunctions(vehicleType) end
-
 function BaseMaterial.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", BaseMaterial)
 end
-
 function BaseMaterial:onLoad(savegame)
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baseMaterial")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baseMaterialConfigurations", "vehicle.designColorConfigurations")

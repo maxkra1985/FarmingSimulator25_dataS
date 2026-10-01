@@ -1,18 +1,14 @@
 PlaceableFoliageAreas = {}
-
 function PlaceableFoliageAreas.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableFoliageAreas.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "loadFoliageArea", PlaceableFoliageAreas.loadFoliageArea)
 end
-
 function PlaceableFoliageAreas.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableFoliageAreas)
 	SpecializationUtil.registerEventListener(placeableType, "onPostFinalizePlacement", PlaceableFoliageAreas)
 end
-
 function PlaceableFoliageAreas.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("FoliageAreas")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".foliageAreas.foliageArea(?)#startNode", "Start node")
@@ -24,94 +20,85 @@ function PlaceableFoliageAreas.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. ".foliageAreas.foliageArea(?)#state", "Fruit type state")
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec
 function PlaceableFoliageAreas:onLoad(savegame)
-	local v_u_6_ = self.spec_foliageAreas
-	v_u_6_.areas = {}
-	self.xmlFile:iterate("placeable.foliageAreas.foliageArea", function(_, p7_)
-		-- upvalues: (copy) self, (copy) v_u_6_
-		local v8_ = {}
-		if self:loadFoliageArea(self.xmlFile, p7_, v8_) then
-			local v9_ = v_u_6_.areas
-			table.insert(v9_, v8_)
+	local spec = self.spec_foliageAreas
+	spec.areas = {}
+	self.xmlFile:iterate("placeable.foliageAreas.foliageArea", function(_, key)
+		local area = {}
+		if self:loadFoliageArea(self.xmlFile, key, area) then
+			table.insert(spec.areas, area)
 		end
 	end)
 end
-
--- Local values: fruitTypeName, decoFoliage, fruitTypeDesc, fruitGrowthState, growthStateName, start, width, height
 function PlaceableFoliageAreas:loadFoliageArea(xmlFile, key, area)
-	local v14_ = xmlFile:getValue(key .. "#fruitType")
-	local v15_ = xmlFile:getValue(key .. "#decoFoliage")
-	if v14_ ~= nil and v15_ ~= nil then
-		Logging.xmlInfo(xmlFile, "foliage area has both \'fruitType\' and \'decoFoliage\' defined for \'%s\'. Ignoring decoFoliage", key)
-		v15_ = nil
+	local fruitTypeName = xmlFile:getValue(key .. "#fruitType")
+	local decoFoliage = xmlFile:getValue(key .. "#decoFoliage")
+	if fruitTypeName ~= nil and decoFoliage ~= nil then
+		Logging.xmlInfo(xmlFile, "foliage area has both 'fruitType' and 'decoFoliage' defined for '%s'. Ignoring decoFoliage", key)
+		decoFoliage = nil
 	end
-	local v16_ = nil
-	local v17_
-	if v14_ == nil then
-		v17_ = nil
-	else
-		v17_ = g_fruitTypeManager:getFruitTypeByName(v14_)
-		if v17_ == nil then
-			Logging.xmlWarning(xmlFile, "Foliage area fruit type \'%s\' not defined for \'%s\'", v14_, key)
+	local fruitTypeDesc = nil
+	local fruitGrowthState = nil
+	if fruitTypeName ~= nil then
+		fruitTypeDesc = g_fruitTypeManager:getFruitTypeByName(fruitTypeName)
+		if fruitTypeDesc == nil then
+			Logging.xmlWarning(xmlFile, "Foliage area fruit type '%s' not defined for '%s'", fruitTypeName, key)
 			return false
 		end
-		local v18_ = xmlFile:getValue(key .. "#growthStateName")
-		if v18_ ~= nil then
-			v16_ = v17_:getGrowthStateByName(v18_)
-			if v16_ == nil then
-				Logging.xmlWarning(xmlFile, "Foliage area fruit type growth state name \'%s\' not defined for \'%s\'", v18_, key)
+		local growthStateName = xmlFile:getValue(key .. "#growthStateName")
+		if growthStateName ~= nil then
+			fruitGrowthState = fruitTypeDesc:getGrowthStateByName(growthStateName)
+			if fruitGrowthState == nil then
+				Logging.xmlWarning(xmlFile, "Foliage area fruit type growth state name '%s' not defined for '%s'", growthStateName, key)
 			end
 		end
-		if v16_ == nil then
-			v16_ = xmlFile:getValue(key .. "#state", v17_.maxHarvestingGrowthState - 1)
+		if fruitGrowthState == nil then
+			fruitGrowthState = xmlFile:getValue(key .. "#state", fruitTypeDesc.maxHarvestingGrowthState - 1)
 		end
 	end
-	if v15_ ~= nil and not g_currentMission.foliageSystem:getIsDecoLayerDefined(v15_) then
-		Logging.xmlInfo(xmlFile, "Foliage area decoFoliage \'%s\' not defined on current map for \'%s\'", v15_, key)
+	if decoFoliage ~= nil and not g_currentMission.foliageSystem:getIsDecoLayerDefined(decoFoliage) then
+		Logging.xmlInfo(xmlFile, "Foliage area decoFoliage '%s' not defined on current map for '%s'", decoFoliage, key)
 		return false
 	end
-	local v19_ = xmlFile:getValue(key .. "#startNode", nil, self.components, self.i3dMappings)
-	if v19_ == nil then
-		Logging.xmlWarning(xmlFile, "Foliage area start node not defined for \'%s\'", key)
+	local start = xmlFile:getValue(key .. "#startNode", nil, self.components, self.i3dMappings)
+	if start == nil then
+		Logging.xmlWarning(xmlFile, "Foliage area start node not defined for '%s'", key)
 		return false
 	end
-	local v20_ = xmlFile:getValue(key .. "#widthNode", nil, self.components, self.i3dMappings)
-	if v20_ == nil then
-		Logging.xmlWarning(xmlFile, "Foliage area width node not defined for \'%s\'", key)
+	local width = xmlFile:getValue(key .. "#widthNode", nil, self.components, self.i3dMappings)
+	if width == nil then
+		Logging.xmlWarning(xmlFile, "Foliage area width node not defined for '%s'", key)
 		return false
 	end
-	local v21_ = xmlFile:getValue(key .. "#heightNode", nil, self.components, self.i3dMappings)
-	if v21_ == nil then
-		Logging.xmlWarning(xmlFile, "Foliage area height node not defined for \'%s\'", key)
+	local height = xmlFile:getValue(key .. "#heightNode", nil, self.components, self.i3dMappings)
+	if height == nil then
+		Logging.xmlWarning(xmlFile, "Foliage area height node not defined for '%s'", key)
 		return false
+	else
+		area.start = start
+		area.width = width
+		area.height = height
+		area.fruitGrowthState = fruitGrowthState
+		area.fruitTypeDesc = fruitTypeDesc
+		area.decoFoliage = decoFoliage
+		return true
 	end
-	area.start = v19_
-	area.width = v20_
-	area.height = v21_
-	area.fruitGrowthState = v16_
-	area.fruitTypeDesc = v17_
-	area.decoFoliage = v15_
-	return true
 end
-
--- Local values: spec, _, area, fieldArea, fieldUpdateTask, x, _, z, xWidth, _, zWidth, xHeight, _, zHeight
 function PlaceableFoliageAreas:onPostFinalizePlacement()
 	if self.isServer then
-		local v23_ = self.spec_foliageAreas
-		for _, v24_ in pairs(v23_.areas) do
-			if v24_.fruitTypeDesc == nil then
-				local v25_, _, v26_ = getWorldTranslation(v24_.start)
-				local v27_, _, v28_ = getWorldTranslation(v24_.width)
-				local v29_, _, v30_ = getWorldTranslation(v24_.height)
-				g_currentMission.foliageSystem:applyDecoFoliage(v24_.decoFoliage, v25_, v26_, v27_, v28_, v29_, v30_)
+		local spec = self.spec_foliageAreas
+		for _, area in pairs(spec.areas) do
+			if area.fruitTypeDesc ~= nil then
+				local fieldArea = DensityMapParallelogram.createFromNodes(area.start, area.width, area.height)
+				local fieldUpdateTask = FieldUpdateTask.new()
+				fieldUpdateTask:setArea(fieldArea)
+				fieldUpdateTask:setFruit(area.fruitTypeDesc.index, area.fruitGrowthState)
+				g_fieldManager:addFieldUpdateTask(fieldUpdateTask)
 			else
-				local v31_ = DensityMapParallelogram.createFromNodes(v24_.start, v24_.width, v24_.height)
-				local v32_ = FieldUpdateTask.new()
-				v32_:setArea(v31_)
-				v32_:setFruit(v24_.fruitTypeDesc.index, v24_.fruitGrowthState)
-				g_fieldManager:addFieldUpdateTask(v32_)
+				local x, _, z = getWorldTranslation(area.start)
+				local xWidth, _, zWidth = getWorldTranslation(area.width)
+				local xHeight, _, zHeight = getWorldTranslation(area.height)
+				g_currentMission.foliageSystem:applyDecoFoliage(area.decoFoliage, x, z, xWidth, zWidth, xHeight, zHeight)
 			end
 		end
 	end

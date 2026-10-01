@@ -3,56 +3,55 @@ Crawlers.VRAM_PER_CRAWLER = 1572864
 Crawlers.MAX_UPDATE_DISTANCE = 300
 Crawlers.MAX_UPDATE_DISTANCE_ALIGNMENT = 50
 Crawlers.xmlSchema = nil
-
 function Crawlers.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(Wheels, specializations)
 end
 function Crawlers.initSpecialization()
 	g_storeManager:addVRamUsageFunction(Crawlers.getVRamUsageFromXML)
-	local v2_ = Vehicle.xmlSchema
-	v2_:setXMLSpecializationType("Crawlers")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#linkNode", "Link node")
-	v2_:register(XMLValueType.NODE_INDICES, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#linkWheelNodes", "Back and front wheels which are used to link the crawler. Wheels are also used for speed reference.")
-	v2_:register(XMLValueType.BOOL, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#isLeft", "Is left crawler", false)
-	v2_:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#trackWidth", "Track width", 1)
-	v2_:register(XMLValueType.BOOL, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#hasShallowWaterObstacle", "Crawler has a shallow water obstacle between the defined wheels")
-	v2_:register(XMLValueType.STRING, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#filename", "Crawler filename")
-	v2_:register(XMLValueType.VECTOR_TRANS, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#offset", "Crawler position offset")
-	v2_:register(XMLValueType.INT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#wheelIndex", "Speed reference wheel index")
-	v2_:register(XMLValueType.VECTOR_N, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#wheelIndices", "Multiple speed reference wheels. The average speed of the wheels WITH ground contact is used")
-	v2_:register(XMLValueType.NODE_INDICES, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#wheelNodes", "Multiple speed reference wheels (defined by any node of the wheel). The average speed of the wheels WITH ground contact is used")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#speedReferenceNode", "Speed reference node")
-	v2_:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#fieldDirtMultiplier", "Field dirt multiplier", 75)
-	v2_:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#streetDirtMultiplier", "Street dirt multiplier", -150)
-	v2_:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#waterWetnessFactor", "Factor for crawler wetness while driving in water", 20)
-	v2_:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#minDirtPercentage", "Min. dirt while getting clean on non field ground", 0.35)
-	v2_:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#maxDirtOffset", "Max. dirt amount offset to global dirt node", 0.5)
-	v2_:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)#dirtColorChangeSpeed", "Defines speed to change the dirt color (sec)", 20)
-	VehicleMaterial.registerXMLPaths(v2_, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?).rimMaterial")
-	v2_:setXMLSpecializationType()
-	local v3_ = XMLSchema.new("crawler")
-	v3_:shareDelayedRegistrationFuncs(v2_)
-	v3_:register(XMLValueType.STRING, "crawler.file#name", "Crawler i3d filename")
-	v3_:register(XMLValueType.NODE_INDEX, "crawler.file#leftNode", "Crawler left node in i3d")
-	v3_:register(XMLValueType.NODE_INDEX, "crawler.file#rightNode", "Crawler right node in i3d")
-	v3_:register(XMLValueType.NODE_INDEX, "crawler.scrollerNodes.scrollerNode(?)#node", "Scroller node")
-	v3_:register(XMLValueType.FLOAT, "crawler.scrollerNodes.scrollerNode(?)#scrollSpeed", "Scroll speed", 1)
-	v3_:register(XMLValueType.FLOAT, "crawler.scrollerNodes.scrollerNode(?)#scrollLength", "Scroll length", 1)
-	v3_:register(XMLValueType.STRING, "crawler.scrollerNodes.scrollerNode(?)#shaderParameterName", "Shader parameter name", "offsetUV")
-	v3_:register(XMLValueType.STRING, "crawler.scrollerNodes.scrollerNode(?)#shaderParameterNamePrev", "Shader parameter name (Prev)", "#shaderParameterName prefixed with \'prev\'")
-	v3_:register(XMLValueType.INT, "crawler.scrollerNodes.scrollerNode(?)#shaderParameterComponent", "Shader paramater component", 1)
-	v3_:register(XMLValueType.FLOAT, "crawler.scrollerNodes.scrollerNode(?)#maxSpeed", "Max. speed in m/s", "unlimited")
-	v3_:register(XMLValueType.FLOAT, "crawler.scrollerNodes.scrollerNode(?)#isTrackPart", "Is part of track (Track width is set as scale X)")
-	v3_:register(XMLValueType.NODE_INDEX, "crawler.rotatingParts.rotatingPart(?)#node", "Rotating node")
-	v3_:register(XMLValueType.FLOAT, "crawler.rotatingParts.rotatingPart(?)#radius", "Radius")
-	v3_:register(XMLValueType.FLOAT, "crawler.rotatingParts.rotatingPart(?)#speedScale", "Speed scale")
-	v3_:register(XMLValueType.NODE_INDEX, "crawler.dirtNodes.dirtNode(?)#node", "Nodes that act the same way as wheels and get dirty faster when on field. If not defined everything gets dirty faster.")
-	v3_:register(XMLValueType.BOOL, "crawler.animations.animation(?)#isLeft", "Load for left crawler", false)
-	AnimatedVehicle.registerAnimationXMLPaths(v3_, "crawler.animations.animation(?)")
-	ObjectChangeUtil.registerObjectChangeSingleXMLPaths(v3_, "crawler")
-	Crawlers.xmlSchema = v3_
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Crawlers")
+	local crawlerKey = "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)"
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#linkNode", "Link node")
+	schema:register(XMLValueType.NODE_INDICES, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#linkWheelNodes", "Back and front wheels which are used to link the crawler. Wheels are also used for speed reference.")
+	schema:register(XMLValueType.BOOL, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#isLeft", "Is left crawler", false)
+	schema:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#trackWidth", "Track width", 1)
+	schema:register(XMLValueType.BOOL, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#hasShallowWaterObstacle", "Crawler has a shallow water obstacle between the defined wheels")
+	schema:register(XMLValueType.STRING, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#filename", "Crawler filename")
+	schema:register(XMLValueType.VECTOR_TRANS, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#offset", "Crawler position offset")
+	schema:register(XMLValueType.INT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#wheelIndex", "Speed reference wheel index")
+	schema:register(XMLValueType.VECTOR_N, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#wheelIndices", "Multiple speed reference wheels. The average speed of the wheels WITH ground contact is used")
+	schema:register(XMLValueType.NODE_INDICES, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#wheelNodes", "Multiple speed reference wheels (defined by any node of the wheel). The average speed of the wheels WITH ground contact is used")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#speedReferenceNode", "Speed reference node")
+	schema:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#fieldDirtMultiplier", "Field dirt multiplier", 75)
+	schema:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#streetDirtMultiplier", "Street dirt multiplier", -150)
+	schema:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#waterWetnessFactor", "Factor for crawler wetness while driving in water", 20)
+	schema:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#minDirtPercentage", "Min. dirt while getting clean on non field ground", 0.35)
+	schema:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#maxDirtOffset", "Max. dirt amount offset to global dirt node", 0.5)
+	schema:register(XMLValueType.FLOAT, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. "#dirtColorChangeSpeed", "Defines speed to change the dirt color (sec)", 20)
+	VehicleMaterial.registerXMLPaths(schema, "vehicle.wheels.wheelConfigurations.wheelConfiguration(?).crawlers.crawler(?)" .. ".rimMaterial")
+	schema:setXMLSpecializationType()
+	local crawlerSchema = XMLSchema.new("crawler")
+	crawlerSchema:shareDelayedRegistrationFuncs(schema)
+	crawlerSchema:register(XMLValueType.STRING, "crawler.file#name", "Crawler i3d filename")
+	crawlerSchema:register(XMLValueType.NODE_INDEX, "crawler.file#leftNode", "Crawler left node in i3d")
+	crawlerSchema:register(XMLValueType.NODE_INDEX, "crawler.file#rightNode", "Crawler right node in i3d")
+	crawlerSchema:register(XMLValueType.NODE_INDEX, "crawler.scrollerNodes.scrollerNode(?)#node", "Scroller node")
+	crawlerSchema:register(XMLValueType.FLOAT, "crawler.scrollerNodes.scrollerNode(?)#scrollSpeed", "Scroll speed", 1)
+	crawlerSchema:register(XMLValueType.FLOAT, "crawler.scrollerNodes.scrollerNode(?)#scrollLength", "Scroll length", 1)
+	crawlerSchema:register(XMLValueType.STRING, "crawler.scrollerNodes.scrollerNode(?)#shaderParameterName", "Shader parameter name", "offsetUV")
+	crawlerSchema:register(XMLValueType.STRING, "crawler.scrollerNodes.scrollerNode(?)#shaderParameterNamePrev", "Shader parameter name (Prev)", "#shaderParameterName prefixed with 'prev'")
+	crawlerSchema:register(XMLValueType.INT, "crawler.scrollerNodes.scrollerNode(?)#shaderParameterComponent", "Shader paramater component", 1)
+	crawlerSchema:register(XMLValueType.FLOAT, "crawler.scrollerNodes.scrollerNode(?)#maxSpeed", "Max. speed in m/s", "unlimited")
+	crawlerSchema:register(XMLValueType.FLOAT, "crawler.scrollerNodes.scrollerNode(?)#isTrackPart", "Is part of track (Track width is set as scale X)")
+	crawlerSchema:register(XMLValueType.NODE_INDEX, "crawler.rotatingParts.rotatingPart(?)#node", "Rotating node")
+	crawlerSchema:register(XMLValueType.FLOAT, "crawler.rotatingParts.rotatingPart(?)#radius", "Radius")
+	crawlerSchema:register(XMLValueType.FLOAT, "crawler.rotatingParts.rotatingPart(?)#speedScale", "Speed scale")
+	crawlerSchema:register(XMLValueType.NODE_INDEX, "crawler.dirtNodes.dirtNode(?)#node", "Nodes that act the same way as wheels and get dirty faster when on field. If not defined everything gets dirty faster.")
+	crawlerSchema:register(XMLValueType.BOOL, "crawler.animations.animation(?)#isLeft", "Load for left crawler", false)
+	AnimatedVehicle.registerAnimationXMLPaths(crawlerSchema, "crawler.animations.animation(?)")
+	ObjectChangeUtil.registerObjectChangeSingleXMLPaths(crawlerSchema, "crawler")
+	Crawlers.xmlSchema = crawlerSchema
 end
-
 function Crawlers.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "updateCrawler", Crawlers.updateCrawler)
 	SpecializationUtil.registerFunction(vehicleType, "loadCrawlerFromXML", Crawlers.loadCrawlerFromXML)
@@ -60,11 +59,9 @@ function Crawlers.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "onCrawlerI3DLoaded", Crawlers.onCrawlerI3DLoaded)
 	SpecializationUtil.registerFunction(vehicleType, "getCrawlerWheelMovedDistance", Crawlers.getCrawlerWheelMovedDistance)
 end
-
 function Crawlers.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "validateWashableNode", Crawlers.validateWashableNode)
 end
-
 function Crawlers.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Crawlers)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoadFinished", Crawlers)
@@ -72,133 +69,131 @@ function Crawlers.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", Crawlers)
 	SpecializationUtil.registerEventListener(vehicleType, "onWheelConfigurationChanged", Crawlers)
 end
-
--- Local values: spec, wheelConfigId, wheelKey
 function Crawlers:onLoad(savegame)
-	local v8_ = self.spec_crawlers
-	local v9_ = Utils.getNoNil(self.configurations.wheel, 1)
-	local v10_ = string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d)", v9_ - 1)
-	v8_.crawlers = {}
-	v8_.sharedLoadRequestIds = {}
-	v8_.xmlLoadingHandles = {}
-	self.xmlFile:iterate(v10_ .. ".crawlers.crawler", function(_, p11_)
-		-- upvalues: (copy) self
-		self:loadCrawlerFromXML(self.xmlFile, p11_)
+	local spec = self.spec_crawlers
+	local wheelConfigId = Utils.getNoNil(self.configurations.wheel, 1)
+	local wheelKey = string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d)", wheelConfigId - 1)
+	spec.crawlers = {}
+	spec.sharedLoadRequestIds = {}
+	spec.xmlLoadingHandles = {}
+	self.xmlFile:iterate(wheelKey .. ".crawlers.crawler", function(_, key)
+		self:loadCrawlerFromXML(self.xmlFile, key)
 	end)
 end
-
--- Local values: spec, i, crawler
 function Crawlers:onLoadFinished(savegame)
-	local v13_ = self.spec_crawlers
-	if #v13_.crawlers == 0 then
+	local spec = self.spec_crawlers
+	if #spec.crawlers == 0 then
 		SpecializationUtil.removeEventListener(self, "onUpdate", Crawlers)
 	else
-		for _, v14_ in ipairs(v13_.crawlers) do
-			if v14_.rimMaterial ~= nil then
-				v14_.rimMaterial:apply(v14_.loadedCrawler, "rim_inner_mat")
-				v14_.rimMaterial:apply(v14_.loadedCrawler, "rim_outer_mat")
+		for i, crawler in ipairs(spec.crawlers) do
+			if crawler.rimMaterial ~= nil then
+				crawler.rimMaterial:apply(crawler.loadedCrawler, "rim_inner_mat")
+				crawler.rimMaterial:apply(crawler.loadedCrawler, "rim_outer_mat")
 			end
-			self:updateCrawler(v14_, 999)
+			self:updateCrawler(crawler, 999)
 		end
 	end
 end
-
--- Local values: spec, xmlFile, _, _, crawler, _, sharedLoadRequestId
 function Crawlers:onDelete()
-	local v16_ = self.spec_crawlers
-	if v16_.xmlLoadingHandles ~= nil then
-		for v17_, _ in pairs(v16_.xmlLoadingHandles) do
-			v17_:delete()
+	local spec = self.spec_crawlers
+	if spec.xmlLoadingHandles ~= nil then
+		for xmlFile, _ in pairs(spec.xmlLoadingHandles) do
+			xmlFile:delete()
 		end
-		table.clear(v16_.xmlLoadingHandles)
+		table.clear(spec.xmlLoadingHandles)
 	end
-	if v16_.crawlers ~= nil then
-		for _, v18_ in pairs(v16_.crawlers) do
-			if v18_.shallowWaterObstacle ~= nil then
-				g_currentMission.shallowWaterSimulation:removeObstacle(v18_.shallowWaterObstacle)
-				v18_.shallowWaterObstacle = nil
+	if spec.crawlers ~= nil then
+		for _, crawler in pairs(spec.crawlers) do
+			if crawler.shallowWaterObstacle == nil then
+				continue
 			end
+			g_currentMission.shallowWaterSimulation:removeObstacle(crawler.shallowWaterObstacle)
+			crawler.shallowWaterObstacle = nil
 		end
-		table.clear(v16_.crawlers)
+		table.clear(spec.crawlers)
 	end
-	if v16_.sharedLoadRequestIds ~= nil then
-		for _, v19_ in ipairs(v16_.sharedLoadRequestIds) do
-			g_i3DManager:releaseSharedI3DFile(v19_)
+	if spec.sharedLoadRequestIds ~= nil then
+		for _, sharedLoadRequestId in ipairs(spec.sharedLoadRequestIds) do
+			g_i3DManager:releaseSharedI3DFile(sharedLoadRequestId)
 		end
-		v16_.sharedLoadRequestIds = nil
+		spec.sharedLoadRequestIds = nil
 	end
 end
-
--- Local values: spec, updateCrawlers, _, crawler
 function Crawlers:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v22_ = self.spec_crawlers
-	local v23_ = self.currentUpdateDistance < Crawlers.MAX_UPDATE_DISTANCE
-	for _, v24_ in pairs(v22_.crawlers) do
-		if v23_ then
-			self:updateCrawler(v24_, dt)
-		elseif v24_.lastPosition ~= nil then
-			v24_.lastPosition = nil
+	local spec = self.spec_crawlers
+	local updateCrawlers = self.currentUpdateDistance < Crawlers.MAX_UPDATE_DISTANCE
+	for _, crawler in pairs(spec.crawlers) do
+		if updateCrawlers then
+			self:updateCrawler(crawler, dt)
+		else
+			if crawler.lastPosition == nil then
+				continue
+			end
+			crawler.lastPosition = nil
 		end
 	end
 end
-
--- Local values: spec, _, crawler, washableNode
 function Crawlers:onWheelConfigurationChanged()
-	local v26_ = self.spec_crawlers
-	for _, v27_ in pairs(v26_.crawlers) do
-		local v28_ = self:getWashableNodeByCustomIndex(v27_)
-		if v28_ ~= nil then
-			self:setNodeDirtAmount(v28_, 0, true)
+	local spec = self.spec_crawlers
+	for _, crawler in pairs(spec.crawlers) do
+		local washableNode = self:getWashableNodeByCustomIndex(crawler)
+		if washableNode == nil then
+			continue
 		end
+		self:setNodeDirtAmount(washableNode, 0, true)
 	end
 end
-
--- Local values: newX, newY, newZ, dx, dy, dz, movingDirection, _, scrollerNode, movedDistance, moveDirection, _, node, x, y, z, w, rotationDifference, _, rotatingPart, x, y, z, refX, refY, refZ, dx, dy, dz, upX, upY, upZ
 function Crawlers:updateCrawler(crawler, dt)
 	crawler.movedDistance = 0
-	if crawler.speedReferenceNode == nil then
-		crawler.movedDistance = self:getCrawlerWheelMovedDistance(crawler, "lastRotationScroll", false)
-	else
-		local v31_, v32_, v33_ = getWorldTranslation(crawler.speedReferenceNode)
+	if crawler.speedReferenceNode ~= nil then
+		local newX, newY, newZ = getWorldTranslation(crawler.speedReferenceNode)
 		if crawler.lastPosition == nil then
-			crawler.lastPosition = { v31_, v32_, v33_ }
+			crawler.lastPosition = { newX, newY, newZ }
 		end
-		local v34_, v35_, v36_ = worldDirectionToLocal(crawler.speedReferenceNode, v31_ - crawler.lastPosition[1], v32_ - crawler.lastPosition[2], v33_ - crawler.lastPosition[3])
-		local v37_ = v36_ > 0.0001 and 1 or (v36_ < -0.0001 and -1 or 0)
-		crawler.movedDistance = MathUtil.vector3Length(v34_, v35_, v36_) * v37_
-		crawler.lastPosition[1] = v31_
-		crawler.lastPosition[2] = v32_
-		crawler.lastPosition[3] = v33_
+		local dx, dy, dz = worldDirectionToLocal(crawler.speedReferenceNode, newX - crawler.lastPosition[1], newY - crawler.lastPosition[2], newZ - crawler.lastPosition[3])
+		local movingDirection = 0
+		if 0.0001 < dz then
+			movingDirection = 1
+		elseif dz < -0.0001 then
+			movingDirection = -1
+		end
+		crawler.movedDistance = MathUtil.vector3Length(dx, dy, dz) * movingDirection
+		crawler.lastPosition[1] = newX
+		crawler.lastPosition[2] = newY
+		crawler.lastPosition[3] = newZ
+	else
+		crawler.movedDistance = self:getCrawlerWheelMovedDistance(crawler, "lastRotationScroll", false)
 	end
-	for _, v38_ in pairs(crawler.scrollerNodes) do
-		local v39_ = crawler.movedDistance * v38_.scrollSpeed
-		local v40_ = math.sign(v39_)
-		local v41_ = math.abs(v39_)
-		local v42_ = v38_.maxSpeed
-		local v43_ = math.min(v41_, v42_) * v40_
-		v38_.scrollPosition = (v38_.scrollPosition + v43_) % v38_.scrollLength
-		for _, v44_ in pairs(v38_.nodes) do
-			local v45_, v46_, v47_, v48_ = getShaderParameter(v44_, v38_.shaderParameterName)
-			if v38_.shaderParameterComponent == 1 then
-				v45_ = v38_.scrollPosition
+	for _, scrollerNode in pairs(crawler.scrollerNodes) do
+		local movedDistance = crawler.movedDistance * scrollerNode.scrollSpeed
+		local moveDirection = math.sign(movedDistance)
+		movedDistance = math.min(math.abs(movedDistance), scrollerNode.maxSpeed) * moveDirection
+		scrollerNode.scrollPosition = (scrollerNode.scrollPosition + movedDistance) % scrollerNode.scrollLength
+		for _, node in pairs(scrollerNode.nodes) do
+			local x, y, z, w = getShaderParameter(node, scrollerNode.shaderParameterName)
+			if scrollerNode.shaderParameterComponent == 1 then
+				x = scrollerNode.scrollPosition
 			else
-				v46_ = v38_.scrollPosition
+				y = scrollerNode.scrollPosition
 			end
-			if v38_.shaderParameterNamePrev == nil then
-				setShaderParameter(v44_, v38_.shaderParameterName, v45_, v46_, v47_, v48_, false)
+			if scrollerNode.shaderParameterNamePrev ~= nil then
+				g_animationManager:setPrevShaderParameter(node, scrollerNode.shaderParameterName, x, y, z, w, false, scrollerNode.shaderParameterNamePrev)
 			else
-				g_animationManager:setPrevShaderParameter(v44_, v38_.shaderParameterName, v45_, v46_, v47_, v48_, false, v38_.shaderParameterNamePrev)
+				setShaderParameter(node, scrollerNode.shaderParameterName, x, y, z, w, false)
 			end
 		end
 	end
-	local v49_ = self:getCrawlerWheelMovedDistance(crawler, "lastRotationRot", true)
-	for _, v50_ in pairs(crawler.rotatingParts) do
-		if crawler.wheel == nil or v50_.speedScale ~= nil then
-			if v50_.speedScale ~= nil then
-				rotate(v50_.node, v50_.speedScale * crawler.movedDistance, 0, 0)
+	local rotationDifference = self:getCrawlerWheelMovedDistance(crawler, "lastRotationRot", true)
+	for _, rotatingPart in pairs(crawler.rotatingParts) do
+		if crawler.wheel ~= nil then
+			if rotatingPart.speedScale == nil then
+				rotate(rotatingPart.node, rotationDifference, 0, 0)
+			else
+				if rotatingPart.speedScale == nil then
+					continue
+				end
+				rotate(rotatingPart.node, rotatingPart.speedScale * crawler.movedDistance, 0, 0)
 			end
-		else
-			rotate(v50_.node, v49_, 0, 0)
 		end
 	end
 	if crawler.referenceNode ~= nil then
@@ -211,17 +206,15 @@ function Crawlers:updateCrawler(crawler, dt)
 			crawler.referenceWheel = nil
 		end
 		if self.currentUpdateDistance < Crawlers.MAX_UPDATE_DISTANCE_ALIGNMENT then
-			local v51_, v52_, v53_ = getWorldTranslation(crawler.positionReferenceNode)
-			local v54_, v55_, v56_ = getWorldTranslation(crawler.referenceNode)
-			local v57_, v58_, v59_ = MathUtil.vector3Normalize(v54_ - v51_, v55_ - v52_, v56_ - v53_)
-			local v60_, v61_, v62_ = localDirectionToWorld(crawler.referenceFrame, 0, 1, 0)
-			setWorldTranslation(crawler.linkNode, v51_, v52_, v53_)
-			setWorldDirection(crawler.linkNode, v57_, v58_, v59_, v60_, v61_, v62_)
+			local x, y, z = getWorldTranslation(crawler.positionReferenceNode)
+			local refX, refY, refZ = getWorldTranslation(crawler.referenceNode)
+			local dx, dy, dz = MathUtil.vector3Normalize(refX - x, refY - y, refZ - z)
+			local upX, upY, upZ = localDirectionToWorld(crawler.referenceFrame, 0, 1, 0)
+			setWorldTranslation(crawler.linkNode, x, y, z)
+			setWorldDirection(crawler.linkNode, dx, dy, dz, upX, upY, upZ)
 		end
 	end
 end
-
--- Local values: crawler, linkNode, linkWheelNodes, numLinkWheelNodes, backWheel, frontWheel, wheelIndex, wheelIndices, wheelNodes, _, wheelIndex, wheel, _, wheelNode, wheel, numWheels, crawlerLength, _, wheelData, _, otherWheelData, distance, wheelIndex, wheelData, hasWaterEffects, minX, minY, minZ, maxX, maxY, maxZ, _, wheelData, wheel, x1, y1, z1, x2, y2, z2, sizeX, sizeY, sizeZ, cx, cy, cz, rimMaterial, filename
 function Crawlers:loadCrawlerFromXML(xmlFile, key)
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#crawlerIndex", "Moved to external crawler config file")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#length", "Moved to external crawler config file")
@@ -231,465 +224,438 @@ function Crawlers:loadCrawlerFromXML(xmlFile, key)
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#scrollSpeed", "Moved to external crawler config file")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#index", "Moved to external crawler config file")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. ".rotatingPart", "Moved to external crawler config file")
-	local v66_ = {
-		["vehicle"] = self,
-		["wheels"] = {}
-	}
+	local crawler = {}
+	crawler.vehicle = self
+	crawler.wheels = {}
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#linkIndex", key .. "#linkNode")
-	local v67_ = xmlFile:getValue(key .. "#linkNode", nil, self.components, self.i3dMappings)
-	local v68_ = xmlFile:getValue(key .. "#linkWheelNodes", nil, self.components, self.i3dMappings, true)
-	if v68_ ~= nil then
-		local v69_ = #v68_
-		if v69_ == 2 then
-			local v70_ = self:getWheelByWheelNode(v68_[1])
-			local v71_ = self:getWheelByWheelNode(v68_[2])
-			if v70_ == nil or v71_ == nil then
-				Logging.xmlWarning(self.xmlFile, "Unknown link wheel nodes found in \'%s\'", key)
-			else
-				if v67_ == nil then
-					v67_ = createTransformGroup("crawlerLinkNode")
+	local linkNode = xmlFile:getValue(key .. "#linkNode", nil, self.components, self.i3dMappings)
+	local linkWheelNodes = xmlFile:getValue(key .. "#linkWheelNodes", nil, self.components, self.i3dMappings, true)
+	if linkWheelNodes ~= nil then
+		local numLinkWheelNodes = #linkWheelNodes
+		if numLinkWheelNodes == 2 then
+			local backWheel = self:getWheelByWheelNode(linkWheelNodes[1])
+			local frontWheel = self:getWheelByWheelNode(linkWheelNodes[2])
+			if backWheel ~= nil then
+				if frontWheel ~= nil then
+					if linkNode == nil then
+						linkNode = createTransformGroup("crawlerLinkNode")
+					end
+					link(backWheel.repr, linkNode)
+					setWorldTranslation(linkNode, getWorldTranslation(backWheel.driveNode))
+					setWorldRotation(linkNode, getWorldRotation(backWheel.driveNode))
+					crawler.positionReferenceNode = backWheel.driveNode
+					crawler.referenceNode = frontWheel.driveNode
+					crawler.referenceFrame = backWheel.repr
+					crawler.positionReferenceWheel = backWheel
+					crawler.referenceWheel = frontWheel
+					table.insert(crawler.wheels, { wheel = backWheel })
+					table.insert(crawler.wheels, { wheel = frontWheel })
+				else
+					Logging.xmlWarning(self.xmlFile, "Unknown link wheel nodes found in '%s'", key)
 				end
-				link(v70_.repr, v67_)
-				setWorldTranslation(v67_, getWorldTranslation(v70_.driveNode))
-				setWorldRotation(v67_, getWorldRotation(v70_.driveNode))
-				v66_.positionReferenceNode = v70_.driveNode
-				v66_.referenceNode = v71_.driveNode
-				v66_.referenceFrame = v70_.repr
-				v66_.positionReferenceWheel = v70_
-				v66_.referenceWheel = v71_
-				local v72_ = v66_.wheels
-				table.insert(v72_, {
-					["wheel"] = v70_
-				})
-				local v73_ = v66_.wheels
-				table.insert(v73_, {
-					["wheel"] = v71_
-				})
 			end
-		elseif v69_ ~= 0 then
-			Logging.xmlWarning(self.xmlFile, "The \'linkWheelNodes\' attribute in crawlers requires exactly two nodes! \'%s\'", key)
+		elseif numLinkWheelNodes ~= 0 then
+			Logging.xmlWarning(self.xmlFile, "The 'linkWheelNodes' attribute in crawlers requires exactly two nodes! '%s'", key)
 		end
 	end
-	if v67_ == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing link node for crawler \'%s\'", key)
+	if linkNode == nil then
+		Logging.xmlWarning(self.xmlFile, "Missing link node for crawler '%s'", key)
 	else
-		v66_.linkNode = v67_
-		v66_.isLeft = xmlFile:getValue(key .. "#isLeft", false)
-		v66_.trackWidth = xmlFile:getValue(key .. "#trackWidth", 1)
-		v66_.translationOffset = xmlFile:getValue(key .. "#offset", "0 0 0", true)
+		crawler.linkNode = linkNode
+		crawler.isLeft = xmlFile:getValue(key .. "#isLeft", false)
+		crawler.trackWidth = xmlFile:getValue(key .. "#trackWidth", 1)
+		crawler.translationOffset = xmlFile:getValue(key .. "#offset", "0 0 0", true)
 		XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#speedRefWheel", key .. "#wheelIndex")
-		local v74_ = xmlFile:getValue(key .. "#wheelIndex")
-		local v75_ = xmlFile:getValue(key .. "#wheelIndices", nil, true)
-		local v76_ = xmlFile:getValue(key .. "#wheelNodes", nil, self.components, self.i3dMappings, true)
-		if v74_ ~= nil or (v75_ ~= nil or #v76_ > 0) then
-			if v74_ ~= nil then
-				v75_ = v75_ or {}
-				table.insert(v75_, v74_)
+		local wheelIndex = xmlFile:getValue(key .. "#wheelIndex")
+		local wheelIndices = xmlFile:getValue(key .. "#wheelIndices", nil, true)
+		local wheelNodes = xmlFile:getValue(key .. "#wheelNodes", nil, self.components, self.i3dMappings, true)
+		if wheelIndex ~= nil or wheelIndices ~= nil or 0 < #wheelNodes then
+			if wheelIndex ~= nil then
+				wheelIndices = wheelIndices or {}
+				table.insert(wheelIndices, wheelIndex)
 			end
-			if v75_ ~= nil then
-				for _, v77_ in ipairs(v75_) do
-					local v78_ = self:getWheelFromWheelIndex(v77_)
-					if v78_ ~= nil then
-						local v79_ = v66_.wheels
-						table.insert(v79_, {
-							["wheel"] = v78_
-						})
+			if wheelIndices ~= nil then
+				for _, wheelIndex in ipairs(wheelIndices) do
+					local wheel = self:getWheelFromWheelIndex(wheelIndex)
+					if wheel == nil then
+						continue
 					end
+					table.insert(crawler.wheels, { wheel = wheel })
 				end
 			end
-			if v76_ ~= nil then
-				for _, v80_ in ipairs(v76_) do
-					local v81_ = self:getWheelByWheelNode(v80_)
-					if v81_ ~= nil then
-						local v82_ = v66_.wheels
-						table.insert(v82_, {
-							["wheel"] = v81_
-						})
+			if wheelNodes ~= nil then
+				for _, wheelNode in ipairs(wheelNodes) do
+					local wheel = self:getWheelByWheelNode(wheelNode)
+					if wheel == nil then
+						continue
 					end
+					table.insert(crawler.wheels, { wheel = wheel })
 				end
 			end
 		end
-		local v83_ = #v66_.wheels
-		if v83_ > 0 then
-			local v84_ = 0
-			for _, v85_ in ipairs(v66_.wheels) do
-				for _, v86_ in ipairs(v66_.wheels) do
-					if v85_ ~= v86_ then
-						local v87_ = calcDistanceFrom(v85_.wheel.driveNode, v86_.wheel.driveNode)
-						v84_ = math.max(v84_, v87_)
+		local numWheels = #crawler.wheels
+		if 0 < numWheels then
+			local crawlerLength = 0
+			for _, wheelData in ipairs(crawler.wheels) do
+				for _, otherWheelData in ipairs(crawler.wheels) do
+					if wheelData == otherWheelData then
+						continue
 					end
+					local distance = calcDistanceFrom(wheelData.wheel.driveNode, otherWheelData.wheel.driveNode)
+					crawlerLength = math.max(crawlerLength, distance)
 				end
 			end
-			for v88_, v89_ in ipairs(v66_.wheels) do
-				v89_.wheel.syncContactState = true
-				v89_.wheel.transRatio = 1
-				if v89_.wheel.physics.showSteeringAngle == nil then
-					v89_.wheel.physics.showSteeringAngle = false
+			for wheelIndex, wheelData in ipairs(crawler.wheels) do
+				wheelData.wheel.syncContactState = true
+				wheelData.wheel.transRatio = 1
+				if wheelData.wheel.physics.showSteeringAngle == nil then
+					wheelData.wheel.physics.showSteeringAngle = false
 				end
-				local v90_ = false
-				if v83_ > 1 then
-					if v88_ == 1 then
-						v89_.wheel.effects.waterParticleDirection = -1
-						v90_ = true
-					elseif v88_ == 2 then
-						v89_.wheel.effects.waterParticleDirection = 1
-						v90_ = true
+				local hasWaterEffects = false
+				if 1 < numWheels then
+					if wheelIndex == 1 then
+						wheelData.wheel.effects.waterParticleDirection = -1
+						hasWaterEffects = true
+					elseif wheelIndex == 2 then
+						wheelData.wheel.effects.waterParticleDirection = 1
+						hasWaterEffects = true
 					end
-					local v91_ = v89_.wheel.effects
-					local v92_ = v84_ * 0.5
-					v91_.waterEffectReferenceRadius = math.min(v92_, 1)
+					wheelData.wheel.effects.waterEffectReferenceRadius = math.min(crawlerLength * 0.5, 1)
 				else
-					v90_ = true
+					hasWaterEffects = true
 				end
-				if v90_ then
-					if v89_.wheel.effects.hasWaterParticles == nil then
-						v89_.wheel.effects:addWaterEffectsToPhysicsData()
+				if hasWaterEffects then
+					if wheelData.wheel.effects.hasWaterParticles == nil then
+						wheelData.wheel.effects:addWaterEffectsToPhysicsData()
 					end
 				else
-					v89_.wheel.effects:removeWaterEffects()
+					wheelData.wheel.effects:removeWaterEffects()
 				end
-				if not v89_.wheel.physics.isSynchronized then
-					Logging.xmlWarning(self.xmlFile, "Wheel \'%s\' for crawler \'%s\' in not synchronized! It won\'t rotate on the client side.", getName(v89_.wheel.repr), key)
+				if wheelData.wheel.physics.isSynchronized then
+					continue
 				end
+				Logging.xmlWarning(self.xmlFile, "Wheel '%s' for crawler '%s' in not synchronized! It won't rotate on the client side.", getName(wheelData.wheel.repr), key)
 			end
-			v66_.wheel = v66_.wheels[1].wheel
-			v66_.hasShallowWaterObstacle = xmlFile:getValue(key .. "#hasShallowWaterObstacle", true)
-			if v66_.hasShallowWaterObstacle and self.propertyState ~= VehiclePropertyState.SHOP_CONFIG then
-				local v93_ = math.huge
-				local v94_ = math.huge
-				local v95_ = math.huge
-				local v96_ = -math.huge
-				local v97_ = -math.huge
-				local v98_ = -math.huge
-				for _, v99_ in ipairs(v66_.wheels) do
-					local v100_ = v99_.wheel
-					local v101_, v102_, v103_ = localToLocal(v100_.driveNode, v67_, v100_.physics.wheelShapeWidth * 0.5 + v100_.physics.wheelShapeWidthOffset, v100_.physics.radius, v100_.physics.radius)
-					local v104_, v105_, v106_ = localToLocal(v100_.driveNode, v67_, -(v100_.physics.wheelShapeWidth * 0.5 - v100_.physics.wheelShapeWidthOffset), -v100_.physics.radius, -v100_.physics.radius)
-					v93_ = math.min(v93_, v101_, v104_)
-					v94_ = math.min(v94_, v102_, v105_)
-					v95_ = math.min(v95_, v103_, v106_)
-					v96_ = math.max(v96_, v101_, v104_)
-					v97_ = math.max(v97_, v102_, v105_)
-					v98_ = math.max(v98_, v103_, v106_)
+			crawler.wheel = crawler.wheels[1].wheel
+			crawler.hasShallowWaterObstacle = xmlFile:getValue(key .. "#hasShallowWaterObstacle", true)
+			if crawler.hasShallowWaterObstacle and self.propertyState ~= VehiclePropertyState.SHOP_CONFIG then
+				local minX = math.huge
+				local minY = math.huge
+				local minZ = math.huge
+				local maxX = -math.huge
+				local maxY = -math.huge
+				local maxZ = -math.huge
+				for _, wheelData in ipairs(crawler.wheels) do
+					local wheel = wheelData.wheel
+					local x1, y1, z1 = localToLocal(wheel.driveNode, linkNode, wheel.physics.wheelShapeWidth * 0.5 + wheel.physics.wheelShapeWidthOffset, wheel.physics.radius, wheel.physics.radius)
+					local x2, y2, z2 = localToLocal(wheel.driveNode, linkNode, -(wheel.physics.wheelShapeWidth * 0.5 - wheel.physics.wheelShapeWidthOffset), -wheel.physics.radius, -wheel.physics.radius)
+					minX = math.min(minX, x1, x2)
+					minY = math.min(minY, y1, y2)
+					minZ = math.min(minZ, z1, z2)
+					maxX = math.max(maxX, x1, x2)
+					maxY = math.max(maxY, y1, y2)
+					maxZ = math.max(maxZ, z1, z2)
 				end
-				local v107_ = v96_ - v93_
-				local v108_ = v97_ - v94_
-				local v109_ = v98_ - v95_
-				local v110_ = { (v93_ + v96_) * 0.5, (v94_ + v97_) * 0.5, (v95_ + v98_) * 0.5 }
-				v66_.shallowWaterObstacle = g_currentMission.shallowWaterSimulation:addObstacle(v67_, v107_, v108_, v109_, Crawlers.getShallowWaterParameters, v66_, v110_)
+				local sizeX = maxX - minX
+				local sizeY = maxY - minY
+				local sizeZ = maxZ - minZ
+				local cx = (minX + maxX) * 0.5
+				local cy = (minY + maxY) * 0.5
+				local cz = (minZ + maxZ) * 0.5
+				crawler.shallowWaterObstacle = g_currentMission.shallowWaterSimulation:addObstacle(linkNode, sizeX, sizeY, sizeZ, Crawlers.getShallowWaterParameters, crawler, { cx, cy, cz })
 			end
 		end
 		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, self.configFileName, key .. "#speedRefNode", key .. "#speedReferenceNode")
-		v66_.speedReferenceNode = xmlFile:getValue(key .. "#speedReferenceNode", nil, self.components, self.i3dMappings)
-		v66_.movedDistance = 0
-		v66_.fieldDirtMultiplier = xmlFile:getValue(key .. "#fieldDirtMultiplier", 75)
-		v66_.streetDirtMultiplier = xmlFile:getValue(key .. "#streetDirtMultiplier", -150)
-		v66_.waterWetnessFactor = xmlFile:getValue(key .. "#waterWetnessFactor", 20)
-		v66_.minDirtPercentage = xmlFile:getValue(key .. "#minDirtPercentage", 0.35)
-		v66_.maxDirtOffset = xmlFile:getValue(key .. "#maxDirtOffset", 0.5)
-		v66_.dirtColorChangeSpeed = 1 / (xmlFile:getValue(key .. "#dirtColorChangeSpeed", 20) * 1000)
-		local v111_ = VehicleMaterial.new(self.baseDirectory)
-		if v111_:loadFromXML(xmlFile, key .. ".rimMaterial", self.customEnvironment) then
-			v66_.rimMaterial = v111_
+		crawler.speedReferenceNode = xmlFile:getValue(key .. "#speedReferenceNode", nil, self.components, self.i3dMappings)
+		crawler.movedDistance = 0
+		crawler.fieldDirtMultiplier = xmlFile:getValue(key .. "#fieldDirtMultiplier", 75)
+		crawler.streetDirtMultiplier = xmlFile:getValue(key .. "#streetDirtMultiplier", -150)
+		crawler.waterWetnessFactor = xmlFile:getValue(key .. "#waterWetnessFactor", 20)
+		crawler.minDirtPercentage = xmlFile:getValue(key .. "#minDirtPercentage", 0.35)
+		crawler.maxDirtOffset = xmlFile:getValue(key .. "#maxDirtOffset", 0.5)
+		crawler.dirtColorChangeSpeed = 1 / (xmlFile:getValue(key .. "#dirtColorChangeSpeed", 20) * 1000)
+		local rimMaterial = VehicleMaterial.new(self.baseDirectory)
+		if rimMaterial:loadFromXML(xmlFile, key .. ".rimMaterial", self.customEnvironment) then
+			crawler.rimMaterial = rimMaterial
 		end
-		self:loadCrawlerFromConfigFile(v66_, xmlFile:getValue(key .. "#filename"), v67_)
+		local filename = xmlFile:getValue(key .. "#filename")
+		self:loadCrawlerFromConfigFile(crawler, filename, linkNode)
 	end
 end
-
--- Local values: xmlFile, filename, spec, arguments, sharedLoadRequestId
 function Crawlers:loadCrawlerFromConfigFile(crawler, xmlFilename, linkNode)
-	local v115_ = Utils.getFilename(xmlFilename, self.baseDirectory)
-	local v116_ = XMLFile.load("crawlerXml", v115_, Crawlers.xmlSchema)
-	if v116_ == nil then
-		Logging.xmlWarning(self.xmlFile, "Failed to open crawler config file \'%s\'", v115_)
-		return
-	else
-		local v117_ = v116_:getValue("crawler.file#name")
-		if v117_ == nil then
-			Logging.xmlWarning(v116_, "Failed to open crawler i3d file \'%s\' in \'%s\'", v117_, v115_)
-			v116_:delete()
+	xmlFilename = Utils.getFilename(xmlFilename, self.baseDirectory)
+	local xmlFile = XMLFile.load("crawlerXml", xmlFilename, Crawlers.xmlSchema)
+	if xmlFile ~= nil then
+		local filename = xmlFile:getValue("crawler.file#name")
+		if filename ~= nil then
+			local spec = self.spec_crawlers
+			spec.xmlLoadingHandles[xmlFile] = true
+			crawler.filename = Utils.getFilename(filename, self.baseDirectory)
+			local arguments = { xmlFile = xmlFile, crawler = crawler }
+			local sharedLoadRequestId = self:loadSubSharedI3DFile(crawler.filename, false, false, self.onCrawlerI3DLoaded, self, arguments)
+			table.insert(spec.sharedLoadRequestIds, sharedLoadRequestId)
+			return
 		else
-			local v118_ = self.spec_crawlers
-			v118_.xmlLoadingHandles[v116_] = true
-			crawler.filename = Utils.getFilename(v117_, self.baseDirectory)
-			local v119_ = self:loadSubSharedI3DFile(crawler.filename, false, false, self.onCrawlerI3DLoaded, self, {
-				["xmlFile"] = v116_,
-				["crawler"] = crawler
-			})
-			local v120_ = v118_.sharedLoadRequestIds
-			table.insert(v120_, v119_)
+			Logging.xmlWarning(xmlFile, "Failed to open crawler i3d file '%s' in '%s'", filename, xmlFilename)
+			xmlFile:delete()
+			return
 		end
 	end
+	Logging.xmlWarning(self.xmlFile, "Failed to open crawler config file '%s'", xmlFilename)
 end
-
--- Local values: xmlFile, crawler, spec, leftRightKey, j, key, entry, prevName, key, entry, key, node, i, key, animation
 function Crawlers:onCrawlerI3DLoaded(i3dNode, failedReason, args)
-	local v124_ = args.xmlFile
-	local v125_ = args.crawler
-	local v126_ = self.spec_crawlers
-	if i3dNode == 0 then
-		if not (self.isDeleted or self.isDeleting) then
-			Logging.xmlWarning(v124_, "Failed to find crawler in i3d file \'%s\'", v125_.filename)
-		end
-	else
-		v125_.loadedCrawler = v124_:getValue("crawler.file#" .. (v125_.isLeft and "leftNode" or "rightNode"), nil, i3dNode)
-		if v125_.loadedCrawler ~= nil then
-			link(v125_.linkNode, v125_.loadedCrawler)
-			if v125_.translationOffset ~= nil then
-				local v127_ = setTranslation
-				local v128_ = v125_.loadedCrawler
-				local v129_ = v125_.translationOffset
-				v127_(v128_, unpack(v129_))
+	local xmlFile = args.xmlFile
+	local crawler = args.crawler
+	local spec = self.spec_crawlers
+	if i3dNode ~= 0 then
+		local leftRightKey = crawler.isLeft and "leftNode" or "rightNode"
+		crawler.loadedCrawler = xmlFile:getValue("crawler.file#" .. leftRightKey, nil, i3dNode)
+		if crawler.loadedCrawler ~= nil then
+			link(crawler.linkNode, crawler.loadedCrawler)
+			if crawler.translationOffset ~= nil then
+				setTranslation(crawler.loadedCrawler, unpack(crawler.translationOffset))
 			end
-			setRotation(v125_.loadedCrawler, 0, 0, 0)
-			v125_.scrollerNodes = {}
-			local v130_ = 0
+			setRotation(crawler.loadedCrawler, 0, 0, 0)
+			crawler.scrollerNodes = {}
+			local j = 0
 			while true do
-				local v131_ = string.format("crawler.scrollerNodes.scrollerNode(%d)", v130_)
-				if not v124_:hasProperty(v131_) then
+				local key = string.format("crawler.scrollerNodes.scrollerNode(%d)", j)
+				if not xmlFile:hasProperty(key) then
 					break
 				end
-				local v132_ = {
-					["node"] = v124_:getValue(v131_ .. "#node", nil, v125_.loadedCrawler)
-				}
-				if v132_.node ~= nil then
-					v132_.scrollSpeed = v124_:getValue(v131_ .. "#scrollSpeed", 1)
-					v132_.scrollLength = v124_:getValue(v131_ .. "#scrollLength", 1)
-					v132_.shaderParameterName = v124_:getValue(v131_ .. "#shaderParameterName", "offsetUV")
-					v132_.shaderParameterNamePrev = v124_:getValue(v131_ .. "#shaderParameterNamePrev")
-					if v132_.shaderParameterNamePrev == nil then
-						local v133_ = string.upper
-						local v134_ = v132_.shaderParameterName
-						local v135_ = v133_((string.sub(v134_, 1, 1)))
-						local v136_ = v132_.shaderParameterName
-						local v137_ = "prev" .. v135_ .. string.sub(v136_, 2)
-						if getHasShaderParameter(v132_.node, v137_) then
-							v132_.shaderParameterNamePrev = v137_
+				local entry = {}
+				entry.node = xmlFile:getValue(key .. "#node", nil, crawler.loadedCrawler)
+				if entry.node ~= nil then
+					entry.scrollSpeed = xmlFile:getValue(key .. "#scrollSpeed", 1)
+					entry.scrollLength = xmlFile:getValue(key .. "#scrollLength", 1)
+					entry.shaderParameterName = xmlFile:getValue(key .. "#shaderParameterName", "offsetUV")
+					entry.shaderParameterNamePrev = xmlFile:getValue(key .. "#shaderParameterNamePrev")
+					if entry.shaderParameterNamePrev ~= nil then
+						if not getHasShaderParameter(entry.node, entry.shaderParameterNamePrev) then
+							Logging.xmlWarning(xmlFile, "Node '%s' has no shader parameter '%s' (prev) for crawler node '%s'!", getName(entry.node), entry.shaderParameterNamePrev, key)
+							return
 						end
-					elseif not getHasShaderParameter(v132_.node, v132_.shaderParameterNamePrev) then
-						Logging.xmlWarning(v124_, "Node \'%s\' has no shader parameter \'%s\' (prev) for crawler node \'%s\'!", getName(v132_.node), v132_.shaderParameterNamePrev, v131_)
-						return
+					else
+						local prevName = "prev" .. string.upper(string.sub(entry.shaderParameterName, 1, 1)) .. string.sub(entry.shaderParameterName, 2)
+						if getHasShaderParameter(entry.node, prevName) then
+							entry.shaderParameterNamePrev = prevName
+						end
 					end
-					v132_.nodes = {}
-					I3DUtil.getNodesByShaderParam(v125_.loadedCrawler, v132_.shaderParameterName, v132_.nodes)
-					v132_.shaderParameterComponent = v124_:getValue(v131_ .. "#shaderParameterComponent", 1)
-					v132_.maxSpeed = v124_:getValue(v131_ .. "#maxSpeed", math.huge) / 1000
-					v132_.scrollPosition = 0
-					if v125_.trackWidth ~= 1 and v124_:getValue(v131_ .. "#isTrackPart", true) then
-						setScale(v132_.node, v125_.trackWidth, 1, 1)
+					entry.nodes = {}
+					I3DUtil.getNodesByShaderParam(crawler.loadedCrawler, entry.shaderParameterName, entry.nodes)
+					entry.shaderParameterComponent = xmlFile:getValue(key .. "#shaderParameterComponent", 1)
+					entry.maxSpeed = xmlFile:getValue(key .. "#maxSpeed", math.huge) / 1000
+					entry.scrollPosition = 0
+					if crawler.trackWidth ~= 1 and xmlFile:getValue(key .. "#isTrackPart", true) then
+						setScale(entry.node, crawler.trackWidth, 1, 1)
 					end
-					local v138_ = v125_.scrollerNodes
-					table.insert(v138_, v132_)
+					table.insert(crawler.scrollerNodes, entry)
 				end
-				v130_ = v130_ + 1
+				j = j + 1
 			end
-			v125_.rotatingParts = {}
-			local v139_ = 0
+			crawler.rotatingParts = {}
+			j = 0
 			while true do
-				local v140_ = string.format("crawler.rotatingParts.rotatingPart(%d)", v139_)
-				if not v124_:hasProperty(v140_) then
+				local key = string.format("crawler.rotatingParts.rotatingPart(%d)", j)
+				if not xmlFile:hasProperty(key) then
 					break
 				end
-				local v141_ = {
-					["node"] = v124_:getValue(v140_ .. "#node", nil, v125_.loadedCrawler)
-				}
-				if v141_.node ~= nil then
-					v141_.radius = v124_:getValue(v140_ .. "#radius")
-					v141_.speedScale = v124_:getValue(v140_ .. "#speedScale")
-					if v141_.speedScale == nil and v141_.radius ~= nil then
-						v141_.speedScale = 1 / v141_.radius
+				local entry = {}
+				entry.node = xmlFile:getValue(key .. "#node", nil, crawler.loadedCrawler)
+				if entry.node ~= nil then
+					entry.radius = xmlFile:getValue(key .. "#radius")
+					entry.speedScale = xmlFile:getValue(key .. "#speedScale")
+					if entry.speedScale == nil and entry.radius ~= nil then
+						entry.speedScale = 1 / entry.radius
 					end
-					local v142_ = v125_.rotatingParts
-					table.insert(v142_, v141_)
+					table.insert(crawler.rotatingParts, entry)
 				end
-				v139_ = v139_ + 1
+				j = j + 1
 			end
-			v125_.hasDirtNodes = false
-			v125_.dirtNodes = {}
-			local v143_ = 0
+			crawler.hasDirtNodes = false
+			crawler.dirtNodes = {}
+			j = 0
 			while true do
-				local v144_ = string.format("crawler.dirtNodes.dirtNode(%d)", v143_)
-				if not v124_:hasProperty(v144_) then
+				local key = string.format("crawler.dirtNodes.dirtNode(%d)", j)
+				if not xmlFile:hasProperty(key) then
 					break
 				end
-				local v145_ = v124_:getValue(v144_ .. "#node", nil, v125_.loadedCrawler)
-				if v145_ ~= nil then
-					v125_.dirtNodes[v145_] = v145_
-					v125_.hasDirtNodes = true
+				local node = xmlFile:getValue(key .. "#node", nil, crawler.loadedCrawler)
+				if node ~= nil then
+					crawler.dirtNodes[node] = node
+					crawler.hasDirtNodes = true
 				end
-				v143_ = v143_ + 1
+				j = j + 1
 			end
-			v125_.objectChanges = {}
-			ObjectChangeUtil.loadObjectChangeFromXML(v124_, "crawler", v125_.objectChanges, v125_.loadedCrawler, self)
-			ObjectChangeUtil.setObjectChanges(v125_.objectChanges, true)
-			local v146_ = 0
+			crawler.objectChanges = {}
+			ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, "crawler", crawler.objectChanges, crawler.loadedCrawler, self)
+			ObjectChangeUtil.setObjectChanges(crawler.objectChanges, true)
+			local i = 0
 			while true do
-				local v147_ = string.format("crawler.animations.animation(%d)", v146_)
-				if not v124_:hasProperty(v147_) then
+				local key = string.format("crawler.animations.animation(%d)", i)
+				if not xmlFile:hasProperty(key) then
 					break
 				end
-				if v125_.isLeft == v124_:getValue(v147_ .. "#isLeft", false) then
-					local v148_ = {}
-					if self:loadAnimation(v124_, v147_, v148_, v125_.loadedCrawler) then
-						self.spec_animatedVehicle.animations[v148_.name] = v148_
+				if crawler.isLeft == xmlFile:getValue(key .. "#isLeft", false) then
+					local animation = {}
+					if self:loadAnimation(xmlFile, key, animation, crawler.loadedCrawler) then
+						self.spec_animatedVehicle.animations[animation.name] = animation
 					end
 				end
-				v146_ = v146_ + 1
+				i = i + 1
 			end
-			local v149_ = self.spec_crawlers.crawlers
-			table.insert(v149_, v125_)
+			table.insert(self.spec_crawlers.crawlers, crawler)
 		end
 		delete(i3dNode)
+	elseif not self.isDeleted then
+		if not self.isDeleting then
+			Logging.xmlWarning(xmlFile, "Failed to find crawler in i3d file '%s'", crawler.filename)
+		end
 	end
-	v124_:delete()
-	v126_.xmlLoadingHandles[v124_] = nil
+	xmlFile:delete()
+	spec.xmlLoadingHandles[xmlFile] = nil
 end
-
--- Local values: minMovedDistance, direction, i, wheelData, newX, _, _, lastRotation, distance
 function Crawlers:getCrawlerWheelMovedDistance(crawler, lastName, useOnlyRotation)
-	local v153_ = math.huge
-	local v154_ = 1
-	for v155_ = 1, #crawler.wheels do
-		local v156_ = crawler.wheels[v155_]
-		if v156_.wheel.physics.contact ~= WheelContactType.NONE or #crawler.wheels == 1 then
-			local v157_, _, _ = getRotation(v156_.wheel.driveNode)
-			if v156_[lastName] == nil then
-				v156_[lastName] = v157_
+	local minMovedDistance = math.huge
+	local direction = 1
+	for i = 1, #crawler.wheels do
+		local wheelData = crawler.wheels[i]
+		if wheelData.wheel.physics.contact ~= WheelContactType.NONE or #crawler.wheels == 1 then
+			local newX, _, _ = getRotation(wheelData.wheel.driveNode)
+			if wheelData[lastName] == nil then
+				wheelData[lastName] = newX
 			end
-			local v158_ = v156_[lastName]
-			if v157_ - v158_ < -3.141592653589793 then
-				v158_ = v158_ - 6.283185307179586
-			elseif v157_ - v158_ > 3.141592653589793 then
-				v158_ = v158_ + 6.283185307179586
+			local lastRotation = wheelData[lastName]
+			if newX - lastRotation < -3.141592653589793 then
+				lastRotation = lastRotation - 6.283185307179586
+			elseif 3.141592653589793 < newX - lastRotation then
+				lastRotation = lastRotation + 6.283185307179586
 			end
-			local v159_ = v156_.wheel.physics.radius * (v157_ - v158_)
-			local v160_ = v156_.wheel.physics.steeringAngle
-			if math.abs(v160_) > 1.5707963267948966 then
-				v159_ = -v159_
+			local distance = wheelData.wheel.physics.radius * (newX - lastRotation)
+			if 1.5707963267948966 < math.abs(wheelData.wheel.physics.steeringAngle) then
+				distance = -distance
 			end
 			if useOnlyRotation then
-				v159_ = v157_ - v158_
+				distance = newX - lastRotation
 			end
-			if v159_ < 0 then
-				if -v153_ < v159_ then
-					v153_ = -v159_
-					v154_ = -1
+			if distance < 0 then
+				if -minMovedDistance < distance then
+					minMovedDistance = -distance
+					direction = -1
 				end
-			elseif v159_ < v153_ then
-				v153_ = v159_
-				v154_ = 1
+			elseif distance < minMovedDistance then
+				minMovedDistance = distance
+				direction = 1
 			end
-			v156_[lastName] = v157_
+			wheelData[lastName] = newX
 		end
 	end
-	return v153_ == math.huge and 0 or v153_ * v154_
+	if minMovedDistance ~= math.huge then
+		return minMovedDistance * direction
+	else
+		return 0
+	end
 end
-
--- Local values: spec, _, crawler, crawlerNodes, nodeData, nodeData
 function Crawlers:validateWashableNode(superFunc, node)
-	local v164_ = self.spec_crawlers
-	for _, v_u_165_ in pairs(v164_.crawlers) do
-		if v_u_165_.wheel ~= nil then
-			local v166_ = v_u_165_.dirtNodes
-			if not v_u_165_.hasDirtNodes then
-				I3DUtil.getNodesByShaderParam(v_u_165_.loadedCrawler, "scratches_dirt_snow_wetness", v166_)
-			end
-			if v_u_165_.crawlerMudMeshes == nil then
-				v_u_165_.crawlerMudMeshes = {}
-				I3DUtil.getNodesByShaderParam(v_u_165_.loadedCrawler, "mudAmount", v_u_165_.crawlerMudMeshes)
-			end
-			if v166_[node] ~= nil then
-				local v_u_176_ = {
-					["wheel"] = v_u_165_.wheel,
-					["fieldDirtMultiplier"] = v_u_165_.fieldDirtMultiplier,
-					["streetDirtMultiplier"] = v_u_165_.streetDirtMultiplier,
-					["minDirtPercentage"] = v_u_165_.minDirtPercentage,
-					["maxDirtOffset"] = v_u_165_.maxDirtOffset,
-					["dirtColorChangeSpeed"] = v_u_165_.dirtColorChangeSpeed,
-					["waterWetnessFactor"] = v_u_165_.waterWetnessFactor,
-					["isSnowNode"] = true,
-					["loadFromSavegameFunc"] = function(p167_, p168_)
-						-- upvalues: (copy) v_u_176_, (copy) self, (copy) v_u_165_
-						v_u_176_.wheel.physics.snowScale = p167_:getValue(p168_ .. "#snowScale", 0)
-						local v169_, v170_ = g_currentMission.environment:getDirtColors()
-						local v171_, v172_, v173_ = MathUtil.vector3ArrayLerp(v169_, v170_, v_u_176_.wheel.physics.snowScale)
-						self:setNodeDirtColor(self:getWashableNodeByCustomIndex(v_u_165_), v171_, v172_, v173_, true)
-					end,
-					["saveToSavegameFunc"] = function(p174_, p175_)
-						-- upvalues: (copy) v_u_176_
-						p174_:setValue(p175_ .. "#snowScale", v_u_176_.wheel.physics.snowScale)
-					end
-				}
-				return false, self.updateWheelDirtAmount, v_u_165_, v_u_176_
-			end
-			if v_u_165_.crawlerMudMeshes[node] ~= nil then
-				local v177_ = {
-					["wheel"] = v_u_165_.wheel,
-					["fieldDirtMultiplier"] = v_u_165_.fieldDirtMultiplier,
-					["streetDirtMultiplier"] = v_u_165_.streetDirtMultiplier,
-					["minDirtPercentage"] = v_u_165_.minDirtPercentage,
-					["maxDirtOffset"] = v_u_165_.maxDirtOffset,
-					["dirtColorChangeSpeed"] = v_u_165_.dirtColorChangeSpeed,
-					["waterWetnessFactor"] = v_u_165_.waterWetnessFactor,
-					["isSnowNode"] = true,
-					["cleaningMultiplier"] = 4
-				}
-				return false, self.updateWheelMudAmount, v_u_165_.crawlerMudMeshes, v177_
-			end
+	local spec = self.spec_crawlers
+	for _, crawler in pairs(spec.crawlers) do
+		if crawler.wheel == nil then
+			continue
 		end
+		local crawlerNodes = crawler.dirtNodes
+		if not crawler.hasDirtNodes then
+			I3DUtil.getNodesByShaderParam(crawler.loadedCrawler, "scratches_dirt_snow_wetness", crawlerNodes)
+		end
+		if crawler.crawlerMudMeshes == nil then
+			crawler.crawlerMudMeshes = {}
+			I3DUtil.getNodesByShaderParam(crawler.loadedCrawler, "mudAmount", crawler.crawlerMudMeshes)
+		end
+		if crawlerNodes[node] ~= nil then
+			local nodeData = {}
+			nodeData.wheel = crawler.wheel
+			nodeData.fieldDirtMultiplier = crawler.fieldDirtMultiplier
+			nodeData.streetDirtMultiplier = crawler.streetDirtMultiplier
+			nodeData.minDirtPercentage = crawler.minDirtPercentage
+			nodeData.maxDirtOffset = crawler.maxDirtOffset
+			nodeData.dirtColorChangeSpeed = crawler.dirtColorChangeSpeed
+			nodeData.waterWetnessFactor = crawler.waterWetnessFactor
+			nodeData.isSnowNode = true
+			function nodeData.loadFromSavegameFunc(xmlFile, key)
+				nodeData.wheel.physics.snowScale = xmlFile:getValue(key .. "#snowScale", 0)
+				local defaultColor, snowColor = g_currentMission.environment:getDirtColors()
+				local r, g, b = MathUtil.vector3ArrayLerp(defaultColor, snowColor, nodeData.wheel.physics.snowScale)
+				local washableNode = self:getWashableNodeByCustomIndex(crawler)
+				self:setNodeDirtColor(washableNode, r, g, b, true)
+			end
+			function nodeData.saveToSavegameFunc(xmlFile, key)
+				xmlFile:setValue(key .. "#snowScale", nodeData.wheel.physics.snowScale)
+			end
+			return false, self.updateWheelDirtAmount, crawler, nodeData
+		end
+		if crawler.crawlerMudMeshes[node] == nil then
+			continue
+		end
+		local nodeData = {}
+		nodeData.wheel = crawler.wheel
+		nodeData.fieldDirtMultiplier = crawler.fieldDirtMultiplier
+		nodeData.streetDirtMultiplier = crawler.streetDirtMultiplier
+		nodeData.minDirtPercentage = crawler.minDirtPercentage
+		nodeData.maxDirtOffset = crawler.maxDirtOffset
+		nodeData.dirtColorChangeSpeed = crawler.dirtColorChangeSpeed
+		nodeData.waterWetnessFactor = crawler.waterWetnessFactor
+		nodeData.isSnowNode = true
+		nodeData.cleaningMultiplier = 4
+		return false, self.updateWheelMudAmount, crawler.crawlerMudMeshes, nodeData
 	end
 	return superFunc(self, node)
 end
-
--- Local values: defaultConfigKey, visualCrawlerCount, usedCrawlers
 function Crawlers.getVRamUsageFromXML(xmlFile)
 	if not xmlFile:hasProperty("vehicle.wheels") then
 		return 0, 0
 	end
-	local v_u_179_ = nil
-	xmlFile:iterate("vehicle.wheels.wheelConfigurations.wheelConfiguration", function(_, p180_)
-		-- upvalues: (copy) xmlFile, (ref) v_u_179_
-		local v181_ = p180_ .. ".crawlers"
-		if xmlFile:hasProperty(v181_) then
-			v_u_179_ = v181_
+	local defaultConfigKey = nil
+	xmlFile:iterate("vehicle.wheels.wheelConfigurations.wheelConfiguration", function(configIndex, wheelConfigKey)
+		local crawlerKey = wheelConfigKey .. ".crawlers"
+		if xmlFile:hasProperty(crawlerKey) then
+			defaultConfigKey = crawlerKey
 			return false
+		else
+			return
 		end
 	end)
-	if v_u_179_ == nil then
+	if defaultConfigKey == nil then
 		return 0, 0
+	else
+		local visualCrawlerCount = 0
+		local usedCrawlers = {}
+		xmlFile:iterate(defaultConfigKey .. ".crawler", function(index, key)
+			local filename = xmlFile:getString(key .. "#filename")
+			if filename ~= nil and usedCrawlers[filename] == nil then
+				visualCrawlerCount = visualCrawlerCount + 1
+				usedCrawlers[filename] = true
+			end
+		end)
+		return visualCrawlerCount * Crawlers.VRAM_PER_CRAWLER, 0
 	end
-	local v_u_182_ = 0
-	local v_u_183_ = {}
-	xmlFile:iterate(v_u_179_ .. ".crawler", function(_, p184_)
-		-- upvalues: (copy) xmlFile, (copy) v_u_183_, (ref) v_u_182_
-		local v185_ = xmlFile:getString(p184_ .. "#filename")
-		if v185_ ~= nil and v_u_183_[v185_] == nil then
-			v_u_182_ = v_u_182_ + 1
-			v_u_183_[v185_] = true
-		end
-	end)
-	return v_u_182_ * Crawlers.VRAM_PER_CRAWLER, 0
 end
-
--- Local values: velocity, ox, oz, slip, dx, _, dz, yRot
 function Crawlers.getShallowWaterParameters(crawler)
-	local v187_ = crawler.vehicle.lastSignedSpeed * 1000
-	local v188_ = 0
-	local v189_ = 0
+	local velocity = crawler.vehicle.lastSignedSpeed * 1000
+	local ox = 0
+	local oz = 0
 	if crawler.wheel.physics ~= nil then
-		local v190_ = crawler.wheel.physics.netInfo.slip
-		if v190_ > 0.1 then
-			v188_ = math.random() * 2 - 1 * v190_
-			v189_ = math.random() * 2 - 1 * v190_
+		local slip = crawler.wheel.physics.netInfo.slip
+		if 0.1 < slip then
+			ox = math.random() * 2 - 1 * slip
+			oz = math.random() * 2 - 1 * slip
 		end
 	end
-	if v188_ == 0 and math.abs(v187_) > 0.27 then
-		v188_ = math.random() * 2 - 1
-		v189_ = math.random() * 2 - 1
+	if ox == 0 and 0.27 < math.abs(velocity) then
+		ox = math.random() * 2 - 1
+		oz = math.random() * 2 - 1
 	end
-	local v191_, _, v192_ = localDirectionToWorld(crawler.linkNode, 0, 0, 1)
-	local v193_ = MathUtil.getYRotationFromDirection(v191_, v192_)
-	local v194_ = v191_ * v187_
-	local v195_ = v192_ * v187_
-	return v194_ + v188_, v195_ + v189_, v193_
+	local dx, _, dz = localDirectionToWorld(crawler.linkNode, 0, 0, 1)
+	local yRot = MathUtil.getYRotationFromDirection(dx, dz)
+	dx = dx * velocity
+	dz = dz * velocity
+	return dx + ox, dz + oz, yRot
 end

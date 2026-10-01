@@ -1,45 +1,40 @@
 VehicleConfigurationDataSize = {}
-
--- Local values: sizeKey
 function VehicleConfigurationDataSize.registerXMLPaths(schema, rootPath, configPath)
 	schema:setXMLSharedRegistration("VehicleConfigurationDataSize", configPath)
-	local v3_ = configPath .. ".size"
-	schema:register(XMLValueType.FLOAT, v3_ .. "#width", "occupied width of the vehicle when loaded in this configuration")
-	schema:register(XMLValueType.FLOAT, v3_ .. "#length", "occupied length of the vehicle when loaded in this configuration")
-	schema:register(XMLValueType.FLOAT, v3_ .. "#height", "occupied height of the vehicle when loaded in this configuration")
-	schema:register(XMLValueType.FLOAT, v3_ .. "#minWidth", "Minimum width of the vehicle when loaded in this configuration")
-	schema:register(XMLValueType.FLOAT, v3_ .. "#minLength", "Minimum length of the vehicle when loaded in this configuration")
-	schema:register(XMLValueType.FLOAT, v3_ .. "#minHeight", "Minimum height of the vehicle when loaded in this configuration")
-	schema:register(XMLValueType.FLOAT, v3_ .. "#widthOffset", "width offset")
-	schema:register(XMLValueType.FLOAT, v3_ .. "#lengthOffset", "length offset")
-	schema:register(XMLValueType.FLOAT, v3_ .. "#heightOffset", "height offset")
+	local sizeKey = configPath .. ".size"
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#width", "occupied width of the vehicle when loaded in this configuration")
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#length", "occupied length of the vehicle when loaded in this configuration")
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#height", "occupied height of the vehicle when loaded in this configuration")
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#minWidth", "Minimum width of the vehicle when loaded in this configuration")
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#minLength", "Minimum length of the vehicle when loaded in this configuration")
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#minHeight", "Minimum height of the vehicle when loaded in this configuration")
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#widthOffset", "width offset")
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#lengthOffset", "length offset")
+	schema:register(XMLValueType.FLOAT, sizeKey .. "#heightOffset", "height offset")
 	schema:resetXMLSharedRegistration("VehicleConfigurationDataSize", configPath)
 end
-
--- Local values: key, minWidth, minLength, minHeight
 function VehicleConfigurationDataSize.onSizeLoad(configItem, xmlFile, sizeData)
-	if configItem.configKey ~= "" then
-		local v7_ = configItem.configKey .. ".size"
-		sizeData.width = xmlFile:getValue(v7_ .. "#width", sizeData.width)
-		sizeData.length = xmlFile:getValue(v7_ .. "#length", sizeData.length)
-		sizeData.height = xmlFile:getValue(v7_ .. "#height", sizeData.height)
-		sizeData.widthOffset = xmlFile:getValue(v7_ .. "#widthOffset", sizeData.widthOffset)
-		sizeData.lengthOffset = xmlFile:getValue(v7_ .. "#lengthOffset", sizeData.lengthOffset)
-		sizeData.heightOffset = xmlFile:getValue(v7_ .. "#heightOffset", sizeData.heightOffset)
-		local v8_ = xmlFile:getValue(v7_ .. "#minWidth")
-		if v8_ ~= nil then
-			local v9_ = sizeData.minWidth or 0
-			sizeData.minWidth = math.max(v8_, v9_)
+	if configItem.configKey == "" then
+		return
+	else
+		local key = configItem.configKey .. ".size"
+		sizeData.width = xmlFile:getValue(key .. "#width", sizeData.width)
+		sizeData.length = xmlFile:getValue(key .. "#length", sizeData.length)
+		sizeData.height = xmlFile:getValue(key .. "#height", sizeData.height)
+		sizeData.widthOffset = xmlFile:getValue(key .. "#widthOffset", sizeData.widthOffset)
+		sizeData.lengthOffset = xmlFile:getValue(key .. "#lengthOffset", sizeData.lengthOffset)
+		sizeData.heightOffset = xmlFile:getValue(key .. "#heightOffset", sizeData.heightOffset)
+		local minWidth = xmlFile:getValue(key .. "#minWidth")
+		if minWidth ~= nil then
+			sizeData.minWidth = math.max(minWidth, sizeData.minWidth or 0)
 		end
-		local v10_ = xmlFile:getValue(v7_ .. "#minLength")
-		if v10_ ~= nil then
-			local v11_ = sizeData.minLength or 0
-			sizeData.minLength = math.max(v10_, v11_)
+		local minLength = xmlFile:getValue(key .. "#minLength")
+		if minLength ~= nil then
+			sizeData.minLength = math.max(minLength, sizeData.minLength or 0)
 		end
-		local v12_ = xmlFile:getValue(v7_ .. "#minHeight")
-		if v12_ ~= nil then
-			local v13_ = sizeData.minHeight or 0
-			sizeData.minHeight = math.max(v12_, v13_)
+		local minHeight = xmlFile:getValue(key .. "#minHeight")
+		if minHeight ~= nil then
+			sizeData.minHeight = math.max(minHeight, sizeData.minHeight or 0)
 		end
 	end
 end

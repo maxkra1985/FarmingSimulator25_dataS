@@ -1,191 +1,186 @@
--- Local values: HerbicideMission_mt
 HerbicideMission = {}
 HerbicideMission.NAME = "herbicideMission"
 local HerbicideMission_mt = Class(HerbicideMission, AbstractFieldMission)
 InitStaticObjectClass(HerbicideMission, "HerbicideMission")
-
 function HerbicideMission.registerXMLPaths(schema, key)
 	HerbicideMission:superClass().registerXMLPaths(schema, key)
 	schema:register(XMLValueType.INT, key .. "#rewardPerHa", "Reward per ha")
 end
-
 function HerbicideMission.registerSavegameXMLPaths(schema, key)
 	HerbicideMission:superClass().registerSavegameXMLPaths(schema, key)
 	schema:register(XMLValueType.INT, key .. "#targetWeedState", "Target weed state")
 end
-
--- Upvalues: HerbicideMission_mt
--- Local values: title, description, self
 function HerbicideMission.new(isServer, isClient, customMt)
-	-- upvalues: (copy) HerbicideMission_mt
-	local v9_ = g_i18n:getText("contract_field_herbicide_title")
-	local v10_ = g_i18n:getText("contract_field_herbicide_description")
-	local v11_ = AbstractFieldMission.new(isServer, isClient, v9_, v10_, customMt or HerbicideMission_mt)
-	v11_.workAreaTypes = {
-		[WorkAreaType.SPRAYER] = true
-	}
-	v11_.fillTypeTitle = g_fillTypeManager:getFillTypeTitleByIndex(FillType.HERBICIDE)
-	return v11_
+	local title = g_i18n:getText("contract_field_herbicide_title")
+	local description = g_i18n:getText("contract_field_herbicide_description")
+	local self = AbstractFieldMission.new(isServer, isClient, title, description, customMt or HerbicideMission_mt)
+	self.workAreaTypes = { [WorkAreaType.SPRAYER] = true }
+	self.fillTypeTitle = g_fillTypeManager:getFillTypeTitleByIndex(FillType.HERBICIDE)
+	return self
 end
-
 function HerbicideMission:init(field, targetWeedState)
 	self.targetWeedState = targetWeedState
 	return HerbicideMission:superClass().init(self, field)
 end
-
 function HerbicideMission:saveToXMLFile(xmlFile, key)
 	HerbicideMission:superClass().saveToXMLFile(self, xmlFile, key)
 	xmlFile:setValue(key .. "#targetWeedState", self.targetWeedState)
 end
-
 function HerbicideMission:loadFromXMLFile(xmlFile, key)
 	self.targetWeedState = xmlFile:getValue(key .. "#targetWeedState", self.targetWeedState)
 	return HerbicideMission:superClass().loadFromXMLFile(self, xmlFile, key)
 end
-
--- Local values: mission, weedMapId, weedFirstChannel, weedNumChannels, modifier, filter
 function HerbicideMission:createModifier()
-	local v22_, v23_, v24_ = g_currentMission.weedSystem:getDensityMapData()
-	local v25_ = DensityMapModifier.new(v22_, v23_, v24_, g_terrainNode)
-	local v26_ = DensityMapFilter.new(v25_)
-	v26_:setValueCompareParams(DensityValueCompareType.EQUAL, self.targetWeedState)
+	local mission = g_currentMission
+	local weedMapId, weedFirstChannel, weedNumChannels = mission.weedSystem:getDensityMapData()
+	local modifier = DensityMapModifier.new(weedMapId, weedFirstChannel, weedNumChannels, g_terrainNode)
+	local filter = DensityMapFilter.new(modifier)
+	filter:setValueCompareParams(DensityValueCompareType.EQUAL, self.targetWeedState)
 	self.completionModifier = DensityMapMultiModifier.new()
-	self.completionModifier:addExecuteGet("targetState", v25_, v26_)
-	v26_:setValueCompareParams(DensityValueCompareType.GREATER, 0)
-	self.completionModifier:addExecuteGet("totalArea", v25_, v26_)
+	self.completionModifier:addExecuteGet("targetState", modifier, filter)
+	filter:setValueCompareParams(DensityValueCompareType.GREATER, 0)
+	self.completionModifier:addExecuteGet("totalArea", modifier, filter)
 	self.matchingPixels = {}
 end
-
--- Local values: area, totalArea
 function HerbicideMission:getPartitionCompletion(partitionIndex)
 	self:setPartitionRegion(partitionIndex)
-	if self.completionModifier == nil then
+	if self.completionModifier ~= nil then
+		self.completionModifier:resetStats()
+		self.completionModifier:execute(nil, self.matchingPixels, nil)
+		local area = self.matchingPixels.targetState
+		local totalArea = self.matchingPixels.totalArea
+		return 0, area, totalArea
+	else
 		return 0, 0, 0
 	end
-	self.completionModifier:resetStats()
-	self.completionModifier:execute(nil, self.matchingPixels, nil)
-	return 0, self.matchingPixels.targetState, self.matchingPixels.totalArea
 end
-
--- Local values: fieldState
 function HerbicideMission:getFieldFinishTask()
-	self.field:getFieldState().weedState = self.targetWeedState
+	local fieldState = self.field:getFieldState()
+	fieldState.weedState = self.targetWeedState
 	return HerbicideMission:superClass().getFieldFinishTask(self)
 end
-
--- Local values: totalWorth, _, vehicle, fillUnitIndex, _, fillType, level, fillDesc
 function HerbicideMission:calculateReimbursement()
 	HerbicideMission:superClass().calculateReimbursement(self)
-	local v31_ = 0
-	for _, v32_ in pairs(self.vehicles) do
-		if v32_.spec_fillUnit ~= nil then
-			for v33_, _ in pairs(v32_:getFillUnits()) do
-				local v34_ = v32_:getFillUnitFillType(v33_)
-				if v34_ == FillType.HERBICIDE then
-					v31_ = v31_ + v32_:getFillUnitFillLevel(v33_) * g_fillTypeManager:getFillTypeByIndex(v34_).pricePerLiter
-				end
+	local totalWorth = 0
+	for _, vehicle in pairs(self.vehicles) do
+		if vehicle.spec_fillUnit == nil then
+			continue
+		end
+		for fillUnitIndex, _ in pairs(vehicle:getFillUnits()) do
+			local fillType = vehicle:getFillUnitFillType(fillUnitIndex)
+			if fillType == FillType.HERBICIDE then
+				local level = vehicle:getFillUnitFillLevel(fillUnitIndex)
+				local fillDesc = g_fillTypeManager:getFillTypeByIndex(fillType)
+				totalWorth = totalWorth + level * fillDesc.pricePerLiter
 			end
 		end
 	end
-	self.reimbursement = self.reimbursement + v31_ * AbstractMission.REIMBURSEMENT_FACTOR
+	self.reimbursement = self.reimbursement + totalWorth * AbstractMission.REIMBURSEMENT_FACTOR
 end
-
--- Local values: data
 function HerbicideMission:getRewardPerHa()
-	return g_missionManager:getMissionTypeDataByName(HerbicideMission.NAME).rewardPerHa
+	local data = g_missionManager:getMissionTypeDataByName(HerbicideMission.NAME)
+	return data.rewardPerHa
 end
-
 function HerbicideMission:getMissionTypeName()
 	return HerbicideMission.NAME
 end
-
 function HerbicideMission:validate(event)
-	if HerbicideMission:superClass().validate(self, event) then
-		return (self:getIsFinished() or HerbicideMission.isAvailableForField(self.field, self)) and true or false
-	else
+	if not HerbicideMission:superClass().validate(self, event) then
 		return false
+	elseif not self:getIsFinished() and not HerbicideMission.isAvailableForField(self.field, self) then
+		return false
+	else
+		return true
 	end
 end
-
--- Local values: data
 function HerbicideMission.loadMapData(xmlFile, key, baseDirectory)
-	g_missionManager:getMissionTypeDataByName(HerbicideMission.NAME).rewardPerHa = xmlFile:getFloat(key .. "#rewardPerHa", 1500)
+	local data = g_missionManager:getMissionTypeDataByName(HerbicideMission.NAME)
+	data.rewardPerHa = xmlFile:getFloat(key .. "#rewardPerHa", 1500)
 	return true
 end
 function HerbicideMission.tryGenerateMission()
 	if HerbicideMission.canRun() then
-		local v39_ = g_fieldManager:getFieldForMission()
-		if v39_ == nil then
+		local field = g_fieldManager:getFieldForMission()
+		if field == nil then
 			return
 		end
-		if v39_.currentMission ~= nil then
+		if field.currentMission ~= nil then
 			return
 		end
-		if not HerbicideMission.isAvailableForField(v39_, nil) then
+		if not HerbicideMission.isAvailableForField(field, nil) then
 			return
 		end
-		local v40_ = v39_:getFieldState().weedState
-		local v41_ = g_currentMission.weedSystem:getHerbicideReplacements().weed.replacements[v40_]
-		local v42_ = HerbicideMission.new(true, g_client ~= nil)
-		if v42_:init(v39_, v41_) then
-			v42_:setDefaultEndDate()
-			return v42_
+		local fieldState = field:getFieldState()
+		local weedState = fieldState.weedState
+		local replacements = g_currentMission.weedSystem:getHerbicideReplacements().weed.replacements
+		local replacement = replacements[weedState]
+		local mission = HerbicideMission.new(true, g_client ~= nil)
+		if mission:init(field, replacement) then
+			mission:setDefaultEndDate()
+			return mission
 		end
-		v42_:delete()
+		mission:delete()
 	end
 	return nil
 end
-
--- Local values: fieldState, fruitTypeIndex, fruitTypeDesc, growthState, weedState, replacements, replacement, environment
 function HerbicideMission.isAvailableForField(field, mission)
 	if mission == nil then
-		local v45_ = field:getFieldState()
-		if not v45_.isValid then
+		local fieldState = field:getFieldState()
+		if not fieldState.isValid then
 			return false
 		end
-		local v46_ = v45_.fruitTypeIndex
-		if v46_ == FruitType.UNKNOWN then
+		local fruitTypeIndex = fieldState.fruitTypeIndex
+		if fruitTypeIndex == FruitType.UNKNOWN then
 			return false
 		end
-		if v46_ == FruitType.GRASS or v46_ == FruitType.MEADOW then
+		if fruitTypeIndex == FruitType.GRASS or fruitTypeIndex == FruitType.MEADOW then
 			return false
 		end
-		local v47_ = g_fruitTypeManager:getFruitTypeByIndex(v46_)
-		if v47_:getIsCatchCrop() then
+		local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
+		if fruitTypeDesc:getIsCatchCrop() then
 			return false
 		end
-		if v45_.weedState == 0 then
+		if fieldState.weedState == 0 then
 			return false
 		end
-		local v48_ = v45_.growthState
-		if v47_:getIsHarvestable(v48_) then
+		local growthState = fieldState.growthState
+		if fruitTypeDesc:getIsHarvestable(growthState) then
 			return false
 		end
-		if v47_:getIsWeedable(v48_) then
+		if fruitTypeDesc:getIsWeedable(growthState) then
 			return false
 		end
-		if v47_:getIsHoeable(v48_) then
+		if fruitTypeDesc:getIsHoeable(growthState) then
 			return false
 		end
-		local v49_ = v45_.weedState
-		local v50_ = g_currentMission.weedSystem:getHerbicideReplacements().weed.replacements[v49_]
-		if v50_ == nil or v50_ == 0 then
+		local weedState = fieldState.weedState
+		local replacements = g_currentMission.weedSystem:getHerbicideReplacements().weed.replacements
+		local replacement = replacements[weedState]
+		if replacement == nil or replacement == 0 then
 			return false
 		end
 	end
-	local v51_ = g_currentMission.environment
-	return v51_ == nil or v51_.currentSeason ~= Season.WINTER
+	local environment = g_currentMission.environment
+	if environment ~= nil and environment.currentSeason == Season.WINTER then
+		return false
+	end
+	return true
 end
 function HerbicideMission.canRun()
-	local v52_ = g_missionManager:getMissionTypeDataByName(HerbicideMission.NAME)
-	if v52_.numInstances >= v52_.maxNumInstances then
+	local data = g_missionManager:getMissionTypeDataByName(HerbicideMission.NAME)
+	if data.maxNumInstances <= data.numInstances then
 		return false
-	elseif g_currentMission.growthSystem:getIsGrowingInProgress() then
+	end
+	if g_currentMission.growthSystem:getIsGrowingInProgress() then
 		return false
-	elseif g_currentMission.weedSystem:getMapHasWeed() then
-		return g_currentMission.missionInfo.weedsEnabled and true or false
+	end
+	local weedSystem = g_currentMission.weedSystem
+	if not weedSystem:getMapHasWeed() then
+		return false
+	elseif not g_currentMission.missionInfo.weedsEnabled then
+		return false
 	else
-		return false
+		return true
 	end
 end
 g_missionManager:registerMissionType(HerbicideMission, HerbicideMission.NAME, 2)

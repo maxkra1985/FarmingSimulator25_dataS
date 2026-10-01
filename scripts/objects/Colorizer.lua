@@ -1,49 +1,39 @@
--- Local values: Colorizer_mt
 Colorizer = {}
 local Colorizer_mt = Class(Colorizer)
-
 function Colorizer:onCreate(id)
 	g_currentMission:addNonUpdateable(Colorizer.new(id))
 	print("function Colorizer:onCreate(id)")
 end
-
--- Upvalues: Colorizer_mt
--- Local values: self, colors, xmlFileName, xmlFile, i, key, colorName, rgb, color, numberOfColorObjects, objectIndex, currentColorObject, colorIndex
 function Colorizer.new(name)
-	-- upvalues: (copy) Colorizer_mt
-	local v4_ = Colorizer_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.me = name
-	local v6_ = {}
-	local v7_ = Utils.getNoNil(getUserAttribute(name, "xmlFile"), "")
-	local v8_ = Utils.getFilename(v7_, g_currentMission.loadingMapBaseDirectory)
-	if v8_ ~= "" then
-		local v9_ = loadXMLFile("colors.xml", v8_)
-		local v10_ = 0
+	local self = setmetatable({}, Colorizer_mt)
+	self.me = name
+	local colors = {}
+	local xmlFileName = Utils.getNoNil(getUserAttribute(name, "xmlFile"), "")
+	xmlFileName = Utils.getFilename(xmlFileName, g_currentMission.loadingMapBaseDirectory)
+	if xmlFileName ~= "" then
+		local xmlFile = loadXMLFile("colors.xml", xmlFileName)
+		local i = 0
 		while true do
-			local v11_ = string.format("colors.color(%d)", v10_)
-			local v12_ = getXMLString(v9_, v11_ .. "#colorName")
-			local v13_ = getXMLString(v9_, v11_ .. "#color")
-			if v13_ == nil then
+			local key = string.format("colors.color(%d)", i)
+			local colorName = getXMLString(xmlFile, key .. "#colorName")
+			local rgb = getXMLString(xmlFile, key .. "#color")
+			if rgb == nil then
 				break
 			end
-			local v14_ = string.getVector(v13_, 3)
-			if v14_ ~= nil then
-				table.insert(v6_, {
-					["color"] = v14_,
-					["colorName"] = v12_
-				})
+			local color = string.getVector(rgb, 3)
+			if color ~= nil then
+				table.insert(colors, { color = color, colorName = colorName })
 			end
-			v10_ = v10_ + 1
+			i = i + 1
 		end
-		delete(v9_)
-		for v15_ = 1, getNumOfChildren(name) do
-			local v16_ = getChildAt(name, v15_ - 1)
-			local v17_ = math.random(1, #v6_)
-			setShaderParameter(v16_, "colorTint", v6_[v17_][1], v6_[v17_][2], v6_[v17_][3], 1, false)
+		delete(xmlFile)
+		local numberOfColorObjects = getNumOfChildren(name)
+		for objectIndex = 1, numberOfColorObjects do
+			local currentColorObject = getChildAt(name, objectIndex - 1)
+			local colorIndex = math.random(1, #colors)
+			setShaderParameter(currentColorObject, "colorTint", colors[colorIndex][1], colors[colorIndex][2], colors[colorIndex][3], 1, false)
 		end
 	end
-	return v5_
+	return self
 end
-
 function Colorizer:delete() end

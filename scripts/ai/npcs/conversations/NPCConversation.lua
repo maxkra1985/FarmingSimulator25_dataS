@@ -1,268 +1,237 @@
--- Local values: NPCConversation_mt
 NPCConversation = {}
 local NPCConversation_mt = Class(NPCConversation)
 g_xmlManager:addCreateSchemaFunction(function()
 	NPCConversation.xmlSchema = XMLSchema.new("npcConversation")
 end)
 g_xmlManager:addInitSchemaFunction(function()
-	local v2_ = NPCConversation.xmlSchema
-	v2_:register(XMLValueType.BOOL, "conversation.isActive", "If conversation is active", nil, false)
-	v2_:register(XMLValueType.STRING, "conversation.class", "Class name of the npc conversation controller", "NPCConversation", false)
-	NPCConversationType.registerXMLPath(v2_, "conversation.type", "Type of the conversation", "DEFAULT", false)
-	v2_:register(XMLValueType.INT, "conversation.probability", "Default probability of the conversation", 1, false)
-	v2_:register(XMLValueType.STRING, "conversation.textFlow#startId", "Start unique id of the conversation", nil, false)
-	local v3_ = g_npcManager:getAllConverationPrerequisiteClasses()
-	for v4_, v5_ in pairs(v3_) do
-		v5_.registerXMLPaths(v2_, string.format("conversation.prerequisites.%s(?)", v4_))
+	local schema = NPCConversation.xmlSchema
+	schema:register(XMLValueType.BOOL, "conversation.isActive", "If conversation is active", nil, false)
+	schema:register(XMLValueType.STRING, "conversation.class", "Class name of the npc conversation controller", "NPCConversation", false)
+	NPCConversationType.registerXMLPath(schema, "conversation.type", "Type of the conversation", "DEFAULT", false)
+	schema:register(XMLValueType.INT, "conversation.probability", "Default probability of the conversation", 1, false)
+	schema:register(XMLValueType.STRING, "conversation.textFlow#startId", "Start unique id of the conversation", nil, false)
+	local prerequisiteClasses = g_npcManager:getAllConverationPrerequisiteClasses()
+	for name, class in pairs(prerequisiteClasses) do
+		class.registerXMLPaths(schema, string.format("conversation.prerequisites.%s(?)", name))
 	end
-	NPCConversationItem.registerXMLPaths(v2_, "conversation.textFlow.item(?)")
+	NPCConversationItem.registerXMLPaths(schema, "conversation.textFlow.item(?)")
 end)
-
--- Local values: prerequisiteClasses, name, class
 function NPCConversation.registerSavegameXMLPaths(xmlSchema, key)
 	xmlSchema:register(XMLValueType.INT, key .. "#numTriggered", "How often this conversation was trigged")
 	xmlSchema:register(XMLValueType.INT, key .. "#lastMonotonicDay", "Last ingame monotonic day since last occurrence")
 	xmlSchema:register(XMLValueType.STRING, key .. "#lastDate", "Real date since last occurrence")
-	local v8_ = g_npcManager:getAllConverationPrerequisiteClasses()
-	for v9_, v10_ in pairs(v8_) do
-		if v10_.registerSavegameXMLPaths ~= nil then
-			v10_.registerSavegameXMLPaths(xmlSchema, string.format("%s.%s", key, v9_))
+	local prerequisiteClasses = g_npcManager:getAllConverationPrerequisiteClasses()
+	for name, class in pairs(prerequisiteClasses) do
+		if class.registerSavegameXMLPaths == nil then
+			continue
 		end
+		class.registerSavegameXMLPaths(xmlSchema, string.format("%s.%s", key, name))
 	end
 end
-
--- Upvalues: NPCConversation_mt
--- Local values: self
 function NPCConversation.new(npc, uniqueId, customMt)
-	-- upvalues: (copy) NPCConversation_mt
-	local v14_ = customMt or NPCConversation_mt
-	local v15_ = setmetatable({}, v14_)
-	v15_.isActive = nil
-	v15_.npc = npc
-	v15_.uniqueId = uniqueId
-	v15_.typeId = nil
-	v15_.probability = 1
-	v15_.index = 0
-	v15_.conversationItems = {}
-	v15_.idToConversationItem = {}
-	v15_.isLoaded = false
-	return v15_
+	local self = setmetatable({}, customMt or NPCConversation_mt)
+	self.isActive = nil
+	self.npc = npc
+	self.uniqueId = uniqueId
+	self.typeId = nil
+	self.probability = 1
+	self.index = 0
+	self.conversationItems = {}
+	self.idToConversationItem = {}
+	self.isLoaded = false
+	return self
 end
-
--- Local values: xmlFile, customEnv, baseDirectory
 function NPCConversation:load(xmlFilename)
-	local v18_ = XMLFile.load("NPCConversation", xmlFilename, NPCConversation.xmlSchema)
-	if v18_ == nil then
+	local xmlFile = XMLFile.load("NPCConversation", xmlFilename, NPCConversation.xmlSchema)
+	if xmlFile == nil then
 		return nil
-	end
-	local v19_, v20_ = Utils.getModNameAndBaseDirectory(v18_:getFilename())
-	self.xmlFilename = xmlFilename
-	self.baseDirectory = v20_
-	self.customEnvironment = v19_
-	self.isActive = v18_:getValue("conversation.isActive", nil)
-	self.typeId = NPCConversationType.loadFromXMLFile(v18_, "conversation.type")
-	if self.typeId == nil then
-		Logging.xmlWarning(v18_, "Invalid converation type! Resetting to DEFAULT")
-		self.typeId = NPCConversationType.DEFAULT
-	end
-	self.probability = v18_:getValue("conversation.probability", 1)
-	if not self.isActive or self:loadPrerequisites(v18_) then
-		v18_:delete()
+	else
+		local customEnv, baseDirectory = Utils.getModNameAndBaseDirectory(xmlFile:getFilename())
+		self.xmlFilename = xmlFilename
+		self.baseDirectory = baseDirectory
+		self.customEnvironment = customEnv
+		self.isActive = xmlFile:getValue("conversation.isActive", nil)
+		self.typeId = NPCConversationType.loadFromXMLFile(xmlFile, "conversation.type")
+		if self.typeId == nil then
+			Logging.xmlWarning(xmlFile, "Invalid converation type! Resetting to DEFAULT")
+			self.typeId = NPCConversationType.DEFAULT
+		end
+		self.probability = xmlFile:getValue("conversation.probability", 1)
+		if self.isActive and not self:loadPrerequisites(xmlFile) then
+			Logging.xmlWarning(xmlFile, "Could not load prerequisites")
+			xmlFile:delete()
+			return false
+		end
+		xmlFile:delete()
 		return true
 	end
-	Logging.xmlWarning(v18_, "Could not load prerequisites")
-	v18_:delete()
-	return false
 end
-
--- Local values: prerequisiteClasses, name, prerequisiteClass, prerequisiteIteratorKey, _, prerequisiteKey, prerequisite
 function NPCConversation:loadPrerequisites(xmlFile)
-	local v23_ = g_npcManager:getAllConverationPrerequisiteClasses()
-	for v24_, v25_ in pairs(v23_) do
-		for _, v26_ in xmlFile:iterator("conversation.prerequisites." .. v24_) do
-			local v27_ = v25_.createFromXML(xmlFile, v26_, self, self.baseDirectory, self.customEnvironment)
-			if v27_ == nil then
-				Logging.xmlWarning(xmlFile, "Could not create conversation prerequisite in \'%s\'", v26_)
-			else
+	local prerequisiteClasses = g_npcManager:getAllConverationPrerequisiteClasses()
+	for name, prerequisiteClass in pairs(prerequisiteClasses) do
+		local prerequisiteIteratorKey = "conversation.prerequisites." .. name
+		for _, prerequisiteKey in xmlFile:iterator(prerequisiteIteratorKey) do
+			local prerequisite = prerequisiteClass.createFromXML(xmlFile, prerequisiteKey, self, self.baseDirectory, self.customEnvironment)
+			if prerequisite ~= nil then
 				if self.prerequisites == nil then
 					self.prerequisites = {}
 				end
-				local v28_ = self.prerequisites
-				table.insert(v28_, v27_)
+				table.insert(self.prerequisites, prerequisite)
+			else
+				Logging.xmlWarning(xmlFile, "Could not create conversation prerequisite in '%s'", prerequisiteKey)
 			end
 		end
 	end
 	return true
 end
-
--- Local values: xmlFile
 function NPCConversation:loadTexts()
 	if self.isLoaded then
 		return
+	end
+	local xmlFile = XMLFile.load("NPCConversation", self.xmlFilename, NPCConversation.xmlSchema)
+	if xmlFile == nil then
+		return nil
+	elseif not self:loadConversationItems(xmlFile, "conversation.textFlow") then
+		Logging.xmlWarning(xmlFile, "Could not load textFlow")
+		xmlFile:delete()
+		return false
 	else
-		local v30_ = XMLFile.load("NPCConversation", self.xmlFilename, NPCConversation.xmlSchema)
-		if v30_ == nil then
-			return nil
-		elseif self:loadConversationItems(v30_, "conversation.textFlow") then
-			v30_:delete()
-			self.isLoaded = true
-			return true
-		else
-			Logging.xmlWarning(v30_, "Could not load textFlow")
-			v30_:delete()
-			return false
-		end
+		xmlFile:delete()
+		self.isLoaded = true
+		return true
 	end
 end
-
--- Local values: _, conversationItem
 function NPCConversation:unloadTexts()
-	for _, v32_ in pairs(self.idToConversationItem) do
-		v32_:delete()
+	for _, conversationItem in pairs(self.idToConversationItem) do
+		conversationItem:delete()
 	end
 	self.idToConversationItem = {}
 	self.conversationItems = {}
 	self.isLoaded = false
 end
-
--- Local values: _, itemKey, conversationItem, id, startId, _, conversationItem
 function NPCConversation:loadConversationItems(xmlFile, key)
-	for _, v36_ in xmlFile:iterator(key .. ".item") do
-		local v37_ = NPCConversationItem.new(self)
-		if not v37_:loadFromXML(xmlFile, v36_, self.baseDirectory, self.customEnvironment) then
+	for _, itemKey in xmlFile:iterator(key .. ".item") do
+		local conversationItem = NPCConversationItem.new(self)
+		if not conversationItem:loadFromXML(xmlFile, itemKey, self.baseDirectory, self.customEnvironment) then
 			return false
 		end
-		local v38_ = v37_:getId()
-		if self.idToConversationItem[v38_] ~= nil then
-			Logging.xmlWarning(xmlFile, "Item with id \'%s\' already exists in text flow for \'%s\'", v38_, v36_)
+		local id = conversationItem:getId()
+		if self.idToConversationItem[id] ~= nil then
+			Logging.xmlWarning(xmlFile, "Item with id '%s' already exists in text flow for '%s'", id, itemKey)
 			return false
 		end
-		self.idToConversationItem[v38_] = v37_
-		local v39_ = self.conversationItems
-		table.insert(v39_, v37_)
-		v37_:setIndex(#self.conversationItems)
+		self.idToConversationItem[id] = conversationItem
+		table.insert(self.conversationItems, conversationItem)
+		conversationItem:setIndex(#self.conversationItems)
 		if self.startId == nil then
-			self.startId = v38_
+			self.startId = id
 		end
 	end
-	local v40_ = xmlFile:getValue(key .. "#startId")
-	if v40_ ~= nil then
-		if self.idToConversationItem[v40_] == nil then
-			Logging.xmlWarning(xmlFile, "Given startId \'%s\' is not defined", v40_)
+	local startId = xmlFile:getValue(key .. "#startId")
+	if startId ~= nil then
+		if self.idToConversationItem[startId] ~= nil then
+			self.startId = startId
 		else
-			self.startId = v40_
+			Logging.xmlWarning(xmlFile, "Given startId '%s' is not defined", startId)
 		end
 	end
-	for _, v41_ in pairs(self.idToConversationItem) do
-		if not v41_:validateXML(xmlFile) then
-			return false
+	for _, conversationItem in pairs(self.idToConversationItem) do
+		if conversationItem:validateXML(xmlFile) then
+			continue
 		end
+		return false
 	end
 	return true
 end
-
 function NPCConversation:delete()
 	self:unloadTexts()
 end
-
 function NPCConversation:getUniqueId()
 	return self.uniqueId
 end
-
 function NPCConversation:setIndex(index)
 	self.index = index
 end
-
 function NPCConversation:getIndex()
 	return self.index
 end
-
 function NPCConversation:getType()
 	return self.typeId
 end
-
 function NPCConversation:getNPC()
 	return self.npc
 end
-
 function NPCConversation:getConversationItemById(id)
 	return self.idToConversationItem[id]
 end
-
 function NPCConversation:getConversationItemByIndex(index)
 	return self.conversationItems[index]
 end
-
 function NPCConversation:compare(conversation)
-	return self:getWeight() < conversation:getWeight()
+	if self:getWeight() < conversation:getWeight() then
+		return true
+	else
+		return false
+	end
 end
-
 function NPCConversation:getWeight()
 	return 1
 end
-
 function NPCConversation:getProbability()
 	return self.probability
 end
-
--- Local values: _, prerequisite
 function NPCConversation:getIsAvailable(player, userData)
 	if not self.isActive then
 		return false
-	end
-	if self.prerequisites ~= nil then
-		for _, v59_ in ipairs(self.prerequisites) do
-			if not v59_:getIsValid(player, userData) then
+	else
+		if self.prerequisites ~= nil then
+			for _, prerequisite in ipairs(self.prerequisites) do
+				if prerequisite:getIsValid(player, userData) then
+					continue
+				end
 				return false
 			end
 		end
+		return true
 	end
-	return true
 end
-
 function NPCConversation:getCanBeCanceled()
 	return false
 end
-
 function NPCConversation:init(player) end
-
--- Local values: _, prerequisite
 function NPCConversation:start(player, userData)
-	local v62_ = g_server ~= nil
-	assert(v62_, "NPCConversation:start is a server only function")
+	assert(g_server ~= nil, "NPCConversation:start is a server only function")
 	self:updateUserData(userData)
 	if self.prerequisites ~= nil then
-		for _, v63_ in ipairs(self.prerequisites) do
-			if v63_.onConversationStart ~= nil then
-				v63_:onConversationStart()
+		for _, prerequisite in ipairs(self.prerequisites) do
+			if prerequisite.onConversationStart == nil then
+				continue
 			end
+			prerequisite:onConversationStart()
 		end
 	end
 end
-
 function NPCConversation:reset()
 	self:unloadTexts()
 end
-
--- Local values: _, prerequisite, prerequisiteData
 function NPCConversation:updateUserData(userData)
 	userData.lastTriggedMonotonicDay = g_currentMission.environment.currentMonotonicDay
 	userData.lastTriggedDate = getDate("%Y/%m/%d %H:%M")
 	userData.numTriggered = (userData.numTriggered or 0) + 1
 	if self.prerequisites ~= nil then
-		for _, v67_ in ipairs(self.prerequisites) do
-			if v67_.updateUserData ~= nil then
-				local v68_ = userData[v67_.NAME] or {}
-				v67_:updateUserData(v68_)
-				if next(v68_) ~= nil then
-					userData[v67_.NAME] = v68_
-				end
+		for _, prerequisite in ipairs(self.prerequisites) do
+			if prerequisite.updateUserData == nil then
+				continue
 			end
+			local prerequisiteData = userData[prerequisite.NAME] or {}
+			prerequisite:updateUserData(prerequisiteData)
+			if next(prerequisiteData) == nil then
+				continue
+			end
+			userData[prerequisite.NAME] = prerequisiteData
 		end
 	end
 end
-
--- Local values: _, prerequisite, prerequisiteKey
 function NPCConversation:saveToSavegameXMLFile(xmlFile, key, userData)
 	if userData.numTriggered ~= nil then
 		xmlFile:setValue(key .. "#numTriggered", userData.numTriggered)
@@ -274,41 +243,41 @@ function NPCConversation:saveToSavegameXMLFile(xmlFile, key, userData)
 		xmlFile:setValue(key .. "#lastDate", userData.lastTriggedDate)
 	end
 	if self.prerequisites ~= nil then
-		for _, v73_ in ipairs(self.prerequisites) do
-			if v73_.saveToSavegameXMLFile ~= nil then
-				v73_:saveToSavegameXMLFile(xmlFile, string.format("%s.%s", key, v73_.NAME), userData[v73_.NAME])
+		for _, prerequisite in ipairs(self.prerequisites) do
+			if prerequisite.saveToSavegameXMLFile == nil then
+				continue
 			end
+			local prerequisiteKey = string.format("%s.%s", key, prerequisite.NAME)
+			prerequisite:saveToSavegameXMLFile(xmlFile, prerequisiteKey, userData[prerequisite.NAME])
 		end
 	end
 end
-
--- Local values: _, prerequisite, prerequisiteKey, prerequisiteData
 function NPCConversation:loadFromSavegameXMLFile(xmlFile, key, userData)
 	userData.numTriggered = xmlFile:getValue(key .. "#numTriggered")
 	userData.lastTriggedMonotonicDay = xmlFile:getValue(key .. "#lastMonotonicDay")
 	userData.lastTriggedDate = xmlFile:getValue(key .. "#lastDate")
 	if self.prerequisites ~= nil then
-		for _, v78_ in ipairs(self.prerequisites) do
-			if v78_.loadFromSavegameXMLFile ~= nil then
-				local v79_ = {}
-				v78_:loadFromSavegameXMLFile(xmlFile, string.format("%s.%s", key, v78_.NAME), v79_)
-				if next(v79_) ~= nil then
-					userData[v78_.NAME] = v79_
-				end
+		for _, prerequisite in ipairs(self.prerequisites) do
+			if prerequisite.loadFromSavegameXMLFile == nil then
+				continue
 			end
+			local prerequisiteKey = string.format("%s.%s", key, prerequisite.NAME)
+			local prerequisiteData = {}
+			prerequisite:loadFromSavegameXMLFile(xmlFile, prerequisiteKey, prerequisiteData)
+			if next(prerequisiteData) == nil then
+				continue
+			end
+			userData[prerequisite.NAME] = prerequisiteData
 		end
 	end
 end
-
 function NPCConversation:getHasUserData()
 	return next(self.userData) ~= nil
 end
-
--- Local values: _, item
 function NPCConversation:validate()
 	self:loadTexts()
-	for _, v82_ in ipairs(self.conversationItems) do
-		v82_:validate()
+	for _, item in ipairs(self.conversationItems) do
+		item:validate()
 	end
 	self:unloadTexts()
 end

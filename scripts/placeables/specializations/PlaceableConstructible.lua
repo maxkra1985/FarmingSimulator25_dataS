@@ -3,11 +3,9 @@ source("dataS/scripts/placeables/specializations/constructible/ConstructibleStat
 source("dataS/scripts/placeables/specializations/constructible/ConstructibleState.lua")
 source("dataS/scripts/placeables/specializations/constructible/ConstructibleStateBuilding.lua")
 source("dataS/scripts/placeables/specializations/constructible/ConstructibleStateFinalize.lua")
-
 function PlaceableConstructible.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableConstructible.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "setConstructibleState", PlaceableConstructible.setConstructibleState)
 	SpecializationUtil.registerFunction(placeableType, "finalizeConstruction", PlaceableConstructible.finalizeConstruction)
@@ -21,13 +19,11 @@ function PlaceableConstructible.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "consoleCommandFinishConstructionState", PlaceableConstructible.consoleCommandFinishConstructionState)
 	SpecializationUtil.registerFunction(placeableType, "getNumFinishedConstructibleStates", PlaceableConstructible.getNumFinishedConstructibleStates)
 end
-
 function PlaceableConstructible.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "collectPickObjects", PlaceableConstructible.collectPickObjects)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "updateInfo", PlaceableConstructible.updateInfo)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "setOwnerFarmId", PlaceableConstructible.setOwnerFarmId)
 end
-
 function PlaceableConstructible.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableConstructible)
 	SpecializationUtil.registerEventListener(placeableType, "onFinalizePlacement", PlaceableConstructible)
@@ -40,7 +36,6 @@ function PlaceableConstructible.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onInfoTriggerEnter", PlaceableConstructible)
 	SpecializationUtil.registerEventListener(placeableType, "onInfoTriggerLeave", PlaceableConstructible)
 end
-
 function PlaceableConstructible.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Constructible")
 	schema:register(XMLValueType.STRING, basePath .. ".constructible.stateMachine.states.state(?)#name", "State name")
@@ -56,484 +51,419 @@ function PlaceableConstructible.registerXMLPaths(schema, basePath)
 	Storage.registerXMLPaths(schema, basePath .. ".constructible.storage")
 	schema:setXMLSpecializationType()
 end
-
 function PlaceableConstructible.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. ".state#index", "")
 	schema:register(XMLValueType.STRING, basePath .. ".state#name", "")
 	ConstructibleStateBuilding.registerSavegameXMLPaths(schema, basePath)
 	Storage.registerSavegameXMLPaths(schema, basePath .. ".storage")
 end
-
--- Local values: spec, maxNumStates, dirtyFlags, maxNumDirtyFlags, stateMachineNextIndex, _, stateKey, stateName, stateClassName, class, stateIndex, dirtyFlagIndex, dirtyFlag, state, _, transitionKey, stateFromName, stateFromIndex, stateToName, stateToIndex
 function PlaceableConstructible:onLoad(savegame)
-	local v9_ = self.spec_constructible
-	v9_.unloadingStation = SellingStation.new(self.isServer, self.isClient)
-	v9_.unloadingStation:load(self.components, self.xmlFile, "placeable.constructible.sellingStation", self.customEnvironment, self.i3dMappings, self.components[1].node)
-	v9_.unloadingStation.owningPlaceable = self
-	function v9_.unloadingStation.getStoreGoods(_, _, _)
+	local spec = self.spec_constructible
+	spec.unloadingStation = SellingStation.new(self.isServer, self.isClient)
+	spec.unloadingStation:load(self.components, self.xmlFile, "placeable.constructible.sellingStation", self.customEnvironment, self.i3dMappings, self.components[1].node)
+	spec.unloadingStation.owningPlaceable = self
+	function spec.unloadingStation.getStoreGoods(_, farmId, fillTypeIndex)
 		return true
 	end
-	function v9_.unloadingStation.getSkipSell(_, _, _)
-		-- upvalues: (copy) self
-		return self:getOwnerFarmId() ~= AccessHandler.EVERYONE
+	function spec.unloadingStation.getSkipSell(_, farmId, fillTypeIndex)
+		local ownerFarmId = self:getOwnerFarmId()
+		if ownerFarmId ~= AccessHandler.EVERYONE then
+			return true
+		else
+			return false
+		end
 	end
-	v9_.unloadingStation:register(true)
-	v9_.storage = Storage.new(self.isServer, self.isClient)
-	v9_.storage:load(self.components, self.xmlFile, "placeable.constructible.storage", self.i3dMappings, self.baseDirectory)
-	v9_.storage:register(true)
-	v9_.storage:addFillLevelChangedListeners(function()
-		-- upvalues: (copy) self
+	spec.unloadingStation:register(true)
+	spec.storage = Storage.new(self.isServer, self.isClient)
+	spec.storage:load(self.components, self.xmlFile, "placeable.constructible.storage", self.i3dMappings, self.baseDirectory)
+	spec.storage:register(true)
+	spec.storage:addFillLevelChangedListeners(function()
 		self:raiseActive()
 	end)
-	v9_.fillTypesAndLevelsAuxiliary = {}
-	v9_.fillTypeToFillTypeStorageTable = {}
-	v9_.infoTriggerFillTypesAndLevels = {}
-	v9_.infoTableEntryStorage = {
-		["title"] = g_i18n:getText("statistic_storage"),
-		["accentuate"] = true
-	}
-	v9_.unloadingStation:addTargetStorage(v9_.storage)
-	g_currentMission.storageSystem:addUnloadingStation(v9_.unloadingStation, self)
-	g_currentMission.economyManager:addSellingStation(v9_.unloadingStation)
-	v9_.stateMachine = {}
-	v9_.stateNameToIndex = {}
-	v9_.stateTransitions = {}
-	v9_.stateIndex = -1
-	v9_.startStateIndex = 1
-	v9_.previewStateIndex = 1
-	v9_.statesDirtyMask = 0
-	local v10_ = 255
-	local v11_ = 1
-	local v12_ = {}
-	local v13_ = 10
-	for _, v14_ in self.xmlFile:iterator("placeable.constructible.stateMachine.states.state") do
-		if v10_ < v11_ then
+	spec.fillTypesAndLevelsAuxiliary = {}
+	spec.fillTypeToFillTypeStorageTable = {}
+	spec.infoTriggerFillTypesAndLevels = {}
+	spec.infoTableEntryStorage = { title = g_i18n:getText("statistic_storage"), accentuate = true }
+	spec.unloadingStation:addTargetStorage(spec.storage)
+	g_currentMission.storageSystem:addUnloadingStation(spec.unloadingStation, self)
+	g_currentMission.economyManager:addSellingStation(spec.unloadingStation)
+	spec.stateMachine = {}
+	spec.stateNameToIndex = {}
+	spec.stateTransitions = {}
+	spec.stateIndex = -1
+	spec.startStateIndex = 1
+	spec.previewStateIndex = 1
+	spec.statesDirtyMask = 0
+	local maxNumStates = 255
+	local dirtyFlags = {}
+	local maxNumDirtyFlags = 10
+	local stateMachineNextIndex = 1
+	for _, stateKey in self.xmlFile:iterator("placeable.constructible.stateMachine.states.state") do
+		if maxNumStates < stateMachineNextIndex then
 			Logging.xmlWarning(self.xmlFile, "Maximum number of states reached (%d)", 255)
 			break
 		end
-		local v15_ = string.upper(self.xmlFile:getValue(v14_ .. "#name", ""))
-		if v9_.stateNameToIndex[v15_] ~= nil then
-			Logging.xmlError(self.xmlFile, "State \'%s\' already defined", v15_, v14_)
+		local stateName = string.upper(self.xmlFile:getValue(stateKey .. "#name", ""))
+		if spec.stateNameToIndex[stateName] ~= nil then
+			Logging.xmlError(self.xmlFile, "State '%s' already defined", stateName, stateKey)
 			break
 		end
-		local v16_ = self.xmlFile:getValue(v14_ .. "#class", "")
-		local v17_ = ClassUtil.getClassObject(v16_)
-		if v17_ == nil then
-			Logging.xmlError(self.xmlFile, "State class \'%s\' at \'%s\' not defined", v16_, v14_)
+		local stateClassName = self.xmlFile:getValue(stateKey .. "#class", "")
+		local class = ClassUtil.getClassObject(stateClassName)
+		if class == nil then
+			Logging.xmlError(self.xmlFile, "State class '%s' at '%s' not defined", stateClassName, stateKey)
 			break
 		end
-		if not v17_:isa(ConstructibleState) then
-			Logging.xmlError(self.xmlFile, "State class \'%s\' is not a ConstructibleState at \'%s\'", v16_, v14_)
+		if not class:isa(ConstructibleState) then
+			Logging.xmlError(self.xmlFile, "State class '%s' is not a ConstructibleState at '%s'", stateClassName, stateKey)
 			break
 		end
-		if #v12_ < v13_ then
-			table.insert(v12_, self:getNextDirtyFlag())
+		if #dirtyFlags < maxNumDirtyFlags then
+			table.insert(dirtyFlags, self:getNextDirtyFlag())
 		end
-		v9_.stateNameToIndex[v15_] = v11_
-		local v18_ = v12_[(v11_ - 1) % 10 + 1]
-		local v19_ = v17_.new(self, v18_)
-		v19_:load(self.xmlFile, v14_)
-		v9_.stateMachine[v11_] = v19_
-		local v20_ = v9_.statesDirtyMask
-		v9_.statesDirtyMask = bit32.bor(v20_, v18_)
-		if self.xmlFile:getValue(v14_ .. "#isStartState") then
-			v9_.startStateIndex = v11_
+		local stateIndex = stateMachineNextIndex
+		spec.stateNameToIndex[stateName] = stateIndex
+		local dirtyFlagIndex = (stateMachineNextIndex - 1) % 10 + 1
+		local dirtyFlag = dirtyFlags[dirtyFlagIndex]
+		local state = class.new(self, dirtyFlag)
+		state:load(self.xmlFile, stateKey)
+		spec.stateMachine[stateIndex] = state
+		spec.statesDirtyMask = bit32.bor(spec.statesDirtyMask, dirtyFlag)
+		if self.xmlFile:getValue(stateKey .. "#isStartState") then
+			spec.startStateIndex = stateIndex
 		end
-		if self.xmlFile:getValue(v14_ .. "#isPreviewState") then
-			v9_.previewStateIndex = v11_
+		if self.xmlFile:getValue(stateKey .. "#isPreviewState") then
+			spec.previewStateIndex = stateIndex
 		end
-		v11_ = v11_ + 1
+		stateMachineNextIndex = stateMachineNextIndex + 1
 	end
-	for _, v21_ in self.xmlFile:iterator("placeable.constructible.stateMachine.transitions.transition") do
-		local v22_ = string.upper(self.xmlFile:getValue(v21_ .. "#from", ""))
-		local v23_ = v9_.stateNameToIndex[v22_]
-		if v23_ == nil then
-			Logging.xmlError(self.xmlFile, "Invalid state. Transition from name \'%s\' not defined for \'%s\'", v22_, v21_)
+	for _, transitionKey in self.xmlFile:iterator("placeable.constructible.stateMachine.transitions.transition") do
+		local stateFromName = string.upper(self.xmlFile:getValue(transitionKey .. "#from", ""))
+		local stateFromIndex = spec.stateNameToIndex[stateFromName]
+		if stateFromIndex == nil then
+			Logging.xmlError(self.xmlFile, "Invalid state. Transition from name '%s' not defined for '%s'", stateFromName, transitionKey)
 			break
 		end
-		local v24_ = string.upper(self.xmlFile:getValue(v21_ .. "#to", ""))
-		local v25_ = v9_.stateNameToIndex[v24_]
-		if v25_ == nil then
-			Logging.xmlError(self.xmlFile, "Invalid state. Transition to name \'%s\' not defined for \'%s\'", v24_, v21_)
+		local stateToName = string.upper(self.xmlFile:getValue(transitionKey .. "#to", ""))
+		local stateToIndex = spec.stateNameToIndex[stateToName]
+		if stateToIndex == nil then
+			Logging.xmlError(self.xmlFile, "Invalid state. Transition to name '%s' not defined for '%s'", stateToName, transitionKey)
 			break
 		end
-		v9_.stateTransitions[v23_] = v25_
+		spec.stateTransitions[stateFromIndex] = stateToIndex
 	end
 	if self.propertyState == PlaceablePropertyState.CONSTRUCTION_PREVIEW then
 		self:setConstructiblePreviewState()
 	end
 end
-
--- Local values: spec, farmId, i
 function PlaceableConstructible:onFinalizePlacement(savegame)
-	local v27_ = self.spec_constructible
-	local v28_ = self:getOwnerFarmId()
-	if v27_.unloadingStation ~= nil then
-		v27_.unloadingStation:setOwnerFarmId(v28_, true)
+	local spec = self.spec_constructible
+	local farmId = self:getOwnerFarmId()
+	if spec.unloadingStation ~= nil then
+		spec.unloadingStation:setOwnerFarmId(farmId, true)
 	end
-	if v27_.storage ~= nil then
-		v27_.storage:setOwnerFarmId(v28_, true)
+	if spec.storage ~= nil then
+		spec.storage:setOwnerFarmId(farmId, true)
 	end
 	if self.isServer then
-		if v27_.stateIndexPending == nil then
-			self:setConstructibleState(v27_.startStateIndex)
+		if spec.stateIndexPending ~= nil then
+			for i = 1, spec.stateIndexPending do
+				self:setConstructibleState(i)
+			end
+			if spec.postFinalize ~= nil then
+				spec.postFinalize()
+			end
+			spec.stateIndexPending = nil
+			spec.postFinalize = nil
 		else
-			for v29_ = 1, v27_.stateIndexPending do
-				self:setConstructibleState(v29_)
-			end
-			if v27_.postFinalize ~= nil then
-				v27_.postFinalize()
-			end
-			v27_.stateIndexPending = nil
-			v27_.postFinalize = nil
+			self:setConstructibleState(spec.startStateIndex)
 		end
 		self:raiseActive()
 	end
 end
-
--- Local values: spec, _, state
 function PlaceableConstructible:onDelete()
-	local v31_ = self.spec_constructible
+	local spec = self.spec_constructible
 	removeConsoleCommand("gsConstructibleFinishState")
 	g_messageCenter:unsubscribeAll(self)
-	if v31_.unloadingStation ~= nil then
-		g_currentMission.storageSystem:removeUnloadingStation(v31_.unloadingStation, self)
-		g_currentMission.economyManager:removeSellingStation(v31_.unloadingStation)
-		v31_.unloadingStation:delete()
-		v31_.unloadingStation = nil
+	if spec.unloadingStation ~= nil then
+		g_currentMission.storageSystem:removeUnloadingStation(spec.unloadingStation, self)
+		g_currentMission.economyManager:removeSellingStation(spec.unloadingStation)
+		spec.unloadingStation:delete()
+		spec.unloadingStation = nil
 	end
-	if v31_.storage ~= nil then
-		v31_.storage:delete()
-		v31_.storage = nil
+	if spec.storage ~= nil then
+		spec.storage:delete()
+		spec.storage = nil
 	end
-	if v31_.stateMachine ~= nil then
-		for _, v32_ in ipairs(v31_.stateMachine) do
-			v32_:delete()
+	if spec.stateMachine ~= nil then
+		for _, state in ipairs(spec.stateMachine) do
+			state:delete()
 		end
-		v31_.stateMachine = nil
+		spec.stateMachine = nil
 	end
 end
-
--- Local values: spec, i, unloadTrigger
 function PlaceableConstructible:collectPickObjects(superFunc, node)
-	local v36_ = self.spec_constructible
-	for v37_ = 1, #v36_.unloadingStation.unloadTriggers do
-		if node == v36_.unloadingStation.unloadTriggers[v37_].exactFillRootNode then
+	local spec = self.spec_constructible
+	for i = 1, #spec.unloadingStation.unloadTriggers do
+		local unloadTrigger = spec.unloadingStation.unloadTriggers[i]
+		if node == unloadTrigger.exactFillRootNode then
 			return
 		end
 	end
 	superFunc(self, node)
 end
-
--- Local values: spec, state
 function PlaceableConstructible:saveToXMLFile(xmlFile, key, usedModNames)
-	local v42_ = self.spec_constructible
-	if v42_.stateIndex ~= nil and v42_.stateIndex > 0 then
-		local v43_ = v42_.stateMachine[v42_.stateIndex]
-		xmlFile:setValue(key .. ".state#name", v43_.name)
-		v43_:saveToXMLFile(xmlFile, key, usedModNames)
+	local spec = self.spec_constructible
+	if spec.stateIndex ~= nil and 0 < spec.stateIndex then
+		local state = spec.stateMachine[spec.stateIndex]
+		xmlFile:setValue(key .. ".state#name", state.name)
+		state:saveToXMLFile(xmlFile, key, usedModNames)
 	end
-	v42_.storage:saveToXMLFile(xmlFile, key .. ".storage")
+	spec.storage:saveToXMLFile(xmlFile, key .. ".storage")
 end
-
--- Local values: spec, stateName
 function PlaceableConstructible:loadFromXMLFile(xmlFile, key)
-	local v_u_47_ = self.spec_constructible
-	local v48_ = xmlFile:getValue(key .. ".state#name")
-	v_u_47_.stateIndexPending = v_u_47_.stateNameToIndex[v48_] or 1
-	function v_u_47_.postFinalize()
-		-- upvalues: (copy) v_u_47_, (copy) xmlFile, (copy) key
-		v_u_47_.stateMachine[v_u_47_.stateIndexPending]:loadFromXMLFile(xmlFile, key)
+	local spec = self.spec_constructible
+	local stateName = xmlFile:getValue(key .. ".state#name")
+	spec.stateIndexPending = spec.stateNameToIndex[stateName] or 1
+	function spec.postFinalize()
+		local state = spec.stateMachine[spec.stateIndexPending]
+		state:loadFromXMLFile(xmlFile, key)
 	end
-	v_u_47_.storage:loadFromXMLFile(xmlFile, key .. ".storage")
+	spec.storage:loadFromXMLFile(xmlFile, key .. ".storage")
 end
-
--- Local values: spec, unloadingStationId, storageId, stateIndex, i, state
 function PlaceableConstructible:onReadStream(streamId, connection)
-	local v52_ = self.spec_constructible
-	local v53_ = NetworkUtil.readNodeObjectId(streamId)
-	v52_.unloadingStation:readStream(streamId, connection)
-	g_client:finishRegisterObject(v52_.unloadingStation, v53_)
-	local v54_ = NetworkUtil.readNodeObjectId(streamId)
-	v52_.storage:readStream(streamId, connection)
-	g_client:finishRegisterObject(v52_.storage, v54_)
-	local v55_ = streamReadUInt8(streamId)
-	for v56_ = 1, v55_ do
-		self:setConstructibleState(v56_)
+	local spec = self.spec_constructible
+	local unloadingStationId = NetworkUtil.readNodeObjectId(streamId)
+	spec.unloadingStation:readStream(streamId, connection)
+	g_client:finishRegisterObject(spec.unloadingStation, unloadingStationId)
+	local storageId = NetworkUtil.readNodeObjectId(streamId)
+	spec.storage:readStream(streamId, connection)
+	g_client:finishRegisterObject(spec.storage, storageId)
+	local stateIndex = streamReadUInt8(streamId)
+	for i = 1, stateIndex do
+		self:setConstructibleState(i)
 	end
-	v52_.stateMachine[v55_]:onReadStream(streamId, connection)
+	local state = spec.stateMachine[stateIndex]
+	state:onReadStream(streamId, connection)
 end
-
--- Local values: spec, state
 function PlaceableConstructible:onWriteStream(streamId, connection)
-	local v60_ = self.spec_constructible
-	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v60_.unloadingStation))
-	v60_.unloadingStation:writeStream(streamId, connection)
-	g_server:registerObjectInStream(connection, v60_.unloadingStation)
-	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v60_.storage))
-	v60_.storage:writeStream(streamId, connection)
-	g_server:registerObjectInStream(connection, v60_.storage)
-	streamWriteUInt8(streamId, v60_.stateIndex)
-	v60_.stateMachine[v60_.stateIndex]:onWriteStream(streamId, connection)
+	local spec = self.spec_constructible
+	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(spec.unloadingStation))
+	spec.unloadingStation:writeStream(streamId, connection)
+	g_server:registerObjectInStream(connection, spec.unloadingStation)
+	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(spec.storage))
+	spec.storage:writeStream(streamId, connection)
+	g_server:registerObjectInStream(connection, spec.storage)
+	streamWriteUInt8(streamId, spec.stateIndex)
+	local state = spec.stateMachine[spec.stateIndex]
+	state:onWriteStream(streamId, connection)
 end
-
--- Local values: spec, _, state
 function PlaceableConstructible:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
-		local v65_ = self.spec_constructible
+		local spec = self.spec_constructible
 		if streamReadBool(streamId) then
-			for _, v66_ in ipairs(v65_.stateMachine) do
+			for _, state in ipairs(spec.stateMachine) do
 				if streamReadBool(streamId) then
-					v66_:onReadUpdateStream(streamId, timestamp, connection)
+					state:onReadUpdateStream(streamId, timestamp, connection)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, _, state
 function PlaceableConstructible:onWriteUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
-		local v71_ = self.spec_constructible
-		local v72_ = streamWriteBool
-		local v73_ = v71_.statesDirtyMask
-		if v72_(streamId, bit32.band(dirtyMask, v73_) ~= 0) then
-			for _, v74_ in ipairs(v71_.stateMachine) do
-				local v75_ = streamWriteBool
-				local v76_ = v74_.dirtyFlag
-				if v75_(streamId, bit32.band(dirtyMask, v76_) ~= 0) then
-					v74_:onWriteUpdateStream(streamId, connection, dirtyMask)
+		local spec = self.spec_constructible
+		if streamWriteBool(streamId, bit32.band(dirtyMask, spec.statesDirtyMask) ~= 0) then
+			for _, state in ipairs(spec.stateMachine) do
+				if streamWriteBool(streamId, bit32.band(dirtyMask, state.dirtyFlag) ~= 0) then
+					state:onWriteUpdateStream(streamId, connection, dirtyMask)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, state, nextStateIndex
 function PlaceableConstructible:onUpdate(dt)
-	local v79_ = self.spec_constructible
+	local spec = self.spec_constructible
 	if self.isServer then
-		local v80_ = v79_.stateMachine[v79_.stateIndex]
-		if v80_ ~= nil then
-			if v80_:isDone() then
-				self:setConstructibleState(v79_.stateTransitions[v79_.stateIndex])
-				v80_ = v79_.stateMachine[v79_.stateIndex]
+		local state = spec.stateMachine[spec.stateIndex]
+		if state ~= nil then
+			if state:isDone() then
+				local nextStateIndex = spec.stateTransitions[spec.stateIndex]
+				self:setConstructibleState(nextStateIndex)
+				state = spec.stateMachine[spec.stateIndex]
 				self:raiseActive()
-			elseif v80_:raiseActive() then
+			elseif state:raiseActive() then
 				self:raiseActive()
 			end
-			if v80_ ~= nil then
-				v80_:update(dt)
+			if state ~= nil then
+				state:update(dt)
 			end
 		end
 	end
 end
-
--- Local values: spec, i, state
 function PlaceableConstructible:resetConstructibleToState(stateIndex)
-	local v83_ = self.spec_constructible
-	for v84_ = v83_.stateIndex, stateIndex, -1 do
-		v83_.stateMachine[v84_]:reset()
+	local spec = self.spec_constructible
+	for i = spec.stateIndex, stateIndex, -1 do
+		local state = spec.stateMachine[i]
+		state:reset()
 	end
 	self:setConstructibleState(stateIndex)
-	v83_.storage:empty()
-	g_currentMission.storageSystem:addUnloadingStation(v83_.unloadingStation, self)
-	g_currentMission.economyManager:addSellingStation(v83_.unloadingStation)
+	spec.storage:empty()
+	g_currentMission.storageSystem:addUnloadingStation(spec.unloadingStation, self)
+	g_currentMission.economyManager:addSellingStation(spec.unloadingStation)
 end
-
--- Local values: spec
 function PlaceableConstructible:getConstructibleStateIndex()
-	return self.spec_constructible.stateIndex
+	local spec = self.spec_constructible
+	return spec.stateIndex
 end
-
--- Local values: spec
 function PlaceableConstructible:getConstructibleStateIndexByName(name)
-	return self.spec_constructible.stateNameToIndex[string.upper(name)]
+	local spec = self.spec_constructible
+	return spec.stateNameToIndex[string.upper(name)]
 end
-
--- Local values: i
 function PlaceableConstructible:setConstructiblePreviewState()
-	for v89_ = 1, self.spec_constructible.previewStateIndex do
-		self:setConstructibleState(v89_)
+	for i = 1, self.spec_constructible.previewStateIndex do
+		self:setConstructibleState(i)
 	end
 end
-
--- Local values: spec, oldStateIndex, oldState, state
 function PlaceableConstructible:setConstructibleState(newStateIndex)
-	local v92_ = self.spec_constructible
+	local spec = self.spec_constructible
 	if self.isServer and self.propertyState ~= PlaceablePropertyState.CONSTRUCTION_PREVIEW then
 		g_server:broadcastEvent(ConstructibleStateEvent.new(self, newStateIndex), false)
 	end
-	if newStateIndex ~= v92_.stateIndex then
-		local v93_ = v92_.stateIndex
-		v92_.stateIndex = newStateIndex
-		local v94_ = v92_.stateMachine[v93_]
-		local v95_ = v92_.stateMachine[newStateIndex]
-		if v94_ ~= nil then
-			v94_:deactivate()
+	if newStateIndex ~= spec.stateIndex then
+		local oldStateIndex = spec.stateIndex
+		spec.stateIndex = newStateIndex
+		local oldState = spec.stateMachine[oldStateIndex]
+		local state = spec.stateMachine[newStateIndex]
+		if oldState ~= nil then
+			oldState:deactivate()
 		end
-		if v95_ ~= nil then
-			v95_:activate()
+		if state ~= nil then
+			state:activate()
 			return
 		end
 		Logging.devWarning("PlaceableConstructible:setConstructibleState(): unable to get state for given state index %s for %q", newStateIndex, self.configFileName)
 	end
 end
-
--- Local values: spec
 function PlaceableConstructible:finalizeConstruction()
-	local v97_ = self.spec_constructible
-	v97_.storage:empty()
-	g_currentMission.storageSystem:removeUnloadingStation(v97_.unloadingStation, self)
-	g_currentMission.economyManager:removeSellingStation(v97_.unloadingStation)
+	local spec = self.spec_constructible
+	spec.storage:empty()
+	g_currentMission.storageSystem:removeUnloadingStation(spec.unloadingStation, self)
+	g_currentMission.economyManager:removeSellingStation(spec.unloadingStation)
 end
-
--- Local values: spec, finishedStates, numConstructibleStates, fillType, fillLevel, fillType, fillLevel, numEntries, i, fillTypeAndLevel, state
 function PlaceableConstructible:updateInfo(superFunc, infoTable)
 	superFunc(self, infoTable)
-	local v101_ = self.spec_constructible
-	local v102_, v103_ = self:getNumFinishedConstructibleStates()
-	if v102_ < v103_ then
-		local v104_ = {
-			["title"] = g_i18n:getText("ui_construction_state"),
-			["text"] = string.format("(%d / %d)", v102_, v103_)
-		}
-		table.insert(infoTable, v104_)
+	local spec = self.spec_constructible
+	local finishedStates, numConstructibleStates = self:getNumFinishedConstructibleStates()
+	if finishedStates < numConstructibleStates then
+		table.insert(infoTable, { title = g_i18n:getText("ui_construction_state"), text = string.format("(%d / %d)", finishedStates, numConstructibleStates) })
 	end
-	v101_.fillTypesAndLevelsAuxiliary = {}
-	for v105_, v106_ in pairs(v101_.storage:getFillLevels()) do
-		v101_.fillTypesAndLevelsAuxiliary[v105_] = (v101_.fillTypesAndLevelsAuxiliary[v105_] or 0) + v106_
+	spec.fillTypesAndLevelsAuxiliary = {}
+	for fillType, fillLevel in pairs(spec.storage:getFillLevels()) do
+		spec.fillTypesAndLevelsAuxiliary[fillType] = (spec.fillTypesAndLevelsAuxiliary[fillType] or 0) + fillLevel
 	end
-	table.clear(v101_.infoTriggerFillTypesAndLevels)
-	for v107_, v108_ in pairs(v101_.fillTypesAndLevelsAuxiliary) do
-		if v108_ > 0.1 then
-			local v109_ = v101_.fillTypeToFillTypeStorageTable
-			local v110_ = v101_.fillTypeToFillTypeStorageTable[v107_]
-			if not v110_ then
-				v110_ = {
-					["fillType"] = v107_,
-					["fillLevel"] = v108_
-				}
-			end
-			v109_[v107_] = v110_
-			v101_.fillTypeToFillTypeStorageTable[v107_].fillLevel = v108_
-			local v111_ = v101_.infoTriggerFillTypesAndLevels
-			local v112_ = v101_.fillTypeToFillTypeStorageTable[v107_]
-			table.insert(v111_, v112_)
+	table.clear(spec.infoTriggerFillTypesAndLevels)
+	for fillType, fillLevel in pairs(spec.fillTypesAndLevelsAuxiliary) do
+		if 0.1 < fillLevel then
+			spec.fillTypeToFillTypeStorageTable[fillType] = spec.fillTypeToFillTypeStorageTable[fillType] or { fillType = fillType, fillLevel = fillLevel }
+			spec.fillTypeToFillTypeStorageTable[fillType].fillLevel = fillLevel
+			table.insert(spec.infoTriggerFillTypesAndLevels, spec.fillTypeToFillTypeStorageTable[fillType])
 		end
 	end
-	table.clear(v101_.fillTypesAndLevelsAuxiliary)
-	table.sort(v101_.infoTriggerFillTypesAndLevels, function(p113_, p114_)
-		return p113_.fillLevel > p114_.fillLevel
+	table.clear(spec.fillTypesAndLevelsAuxiliary)
+	table.sort(spec.infoTriggerFillTypesAndLevels, function(a, b)
+		return b.fillLevel < a.fillLevel
 	end)
-	local v115_ = #v101_.infoTriggerFillTypesAndLevels
-	local v116_ = math.min(v115_, 7)
-	if v116_ > 0 then
-		local v117_ = v101_.infoTableEntryStorage
-		table.insert(infoTable, v117_)
-		for v118_ = 1, v116_ do
-			local v119_ = v101_.infoTriggerFillTypesAndLevels[v118_]
-			local v120_ = {
-				["title"] = g_fillTypeManager:getFillTypeTitleByIndex(v119_.fillType),
-				["text"] = g_i18n:formatVolume(v119_.fillLevel, 0)
-			}
-			table.insert(infoTable, v120_)
+	local numEntries = math.min(#spec.infoTriggerFillTypesAndLevels, 7)
+	if 0 < numEntries then
+		table.insert(infoTable, spec.infoTableEntryStorage)
+		for i = 1, numEntries do
+			local fillTypeAndLevel = spec.infoTriggerFillTypesAndLevels[i]
+			table.insert(infoTable, { title = g_fillTypeManager:getFillTypeTitleByIndex(fillTypeAndLevel.fillType), text = g_i18n:formatVolume(fillTypeAndLevel.fillLevel, 0) })
 		end
 	end
-	local v121_ = v101_.stateMachine[v101_.stateIndex]
-	if v121_.updateInfo ~= nil then
-		v121_:updateInfo(infoTable)
+	local state = spec.stateMachine[spec.stateIndex]
+	if state.updateInfo ~= nil then
+		state:updateInfo(infoTable)
 	end
 end
-
--- Local values: spec
 function PlaceableConstructible:getConstructibleFillLevel(fillType)
-	return self.spec_constructible.storage:getFillLevel(fillType)
+	local spec = self.spec_constructible
+	return spec.storage:getFillLevel(fillType)
 end
-
--- Local values: spec
 function PlaceableConstructible:getConstructibleSupportsFillType(fillType)
-	return self.spec_constructible.storage:getIsFillTypeSupported(fillType)
+	local spec = self.spec_constructible
+	return spec.storage:getIsFillTypeSupported(fillType)
 end
-
--- Local values: spec, previousFillLevel
 function PlaceableConstructible:removeConstructibleFillLevel(fillType, amount)
-	local v129_ = self.spec_constructible
-	local v130_ = v129_.storage:getFillLevel(fillType)
-	v129_.storage:setFillLevel(v130_ - amount, fillType)
-	return v130_ - v129_.storage:getFillLevel(fillType)
+	local spec = self.spec_constructible
+	local previousFillLevel = spec.storage:getFillLevel(fillType)
+	spec.storage:setFillLevel(previousFillLevel - amount, fillType)
+	return previousFillLevel - spec.storage:getFillLevel(fillType)
 end
-
--- Local values: spec
 function PlaceableConstructible:setOwnerFarmId(superFunc, farmId, noEventSend)
 	superFunc(self, farmId, noEventSend)
-	local v135_ = self.spec_constructible
-	if v135_ ~= nil then
-		if v135_.unloadingStation ~= nil then
-			v135_.unloadingStation:setOwnerFarmId(farmId, true)
+	local spec = self.spec_constructible
+	if spec ~= nil then
+		if spec.unloadingStation ~= nil then
+			spec.unloadingStation:setOwnerFarmId(farmId, true)
 		end
-		if v135_.storage ~= nil then
-			v135_.storage:setOwnerFarmId(farmId, true)
+		if spec.storage ~= nil then
+			spec.storage:setOwnerFarmId(farmId, true)
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableConstructible:onInfoTriggerEnter(nodeId)
-	if self.spec_constructible ~= nil then
+	local spec = self.spec_constructible
+	if spec ~= nil then
 		addConsoleCommand("gsConstructibleFinishState", "Finishes current construction state", "consoleCommandFinishConstructionState", self)
 	end
 end
-
--- Local values: spec
 function PlaceableConstructible:onInfoTriggerLeave(nodeId)
-	if self.spec_constructible ~= nil then
+	local spec = self.spec_constructible
+	if spec ~= nil then
 		removeConsoleCommand("gsConstructibleFinishState")
 	end
 end
-
--- Local values: spec, nextStateIndex
 function PlaceableConstructible:consoleCommandFinishConstructionState()
-	local v139_ = self.spec_constructible
-	if v139_ ~= nil then
-		local v140_ = v139_.stateTransitions[v139_.stateIndex]
-		if v140_ ~= nil then
-			self:setConstructibleState(v140_)
+	local spec = self.spec_constructible
+	if spec ~= nil then
+		local nextStateIndex = spec.stateTransitions[spec.stateIndex]
+		if nextStateIndex ~= nil then
+			self:setConstructibleState(nextStateIndex)
 			self:raiseActive()
 			return
 		end
 		Logging.info("No next state found")
 	end
 end
-
--- Local values: spec, numConstructibleStates, finishedStates, i, state
 function PlaceableConstructible:getNumFinishedConstructibleStates()
-	local v142_ = self.spec_constructible
-	local v143_ = 0
-	local v144_ = -2
-	for v145_, v146_ in ipairs(v142_.stateMachine) do
-		if v146_:getIsConstructibleState() then
-			if v145_ ~= v142_.isPreviewState then
-				v144_ = v144_ + 1
+	local spec = self.spec_constructible
+	local numConstructibleStates = -2
+	local finishedStates = 0
+	for i, state in ipairs(spec.stateMachine) do
+		if state:getIsConstructibleState() then
+			if i ~= spec.isPreviewState then
+				numConstructibleStates = numConstructibleStates + 1
 			end
-			if v145_ < v142_.stateIndex then
-				v143_ = v143_ + 1
+			if i < spec.stateIndex then
+				finishedStates = finishedStates + 1
 			end
 		end
 	end
-	return v143_, v144_
+	return finishedStates, numConstructibleStates
 end
-
--- Local values: fillTypeNames, _, stateKey, _, inputKey, fillTypeName
 function PlaceableConstructible.loadSpecValueFillTypes(xmlFile, customEnvironment, baseDir, resultTable)
 	if not xmlFile:hasProperty("placeable.constructible") then
 		return resultTable
-	end
-	local v149_ = resultTable or {}
-	for _, v150_ in xmlFile:iterator("placeable.constructible.stateMachine.states.state") do
-		for _, v151_ in xmlFile:iterator(v150_ .. ".input") do
-			v149_[xmlFile:getString(v151_ .. "#fillType")] = true
+	else
+		local fillTypeNames = resultTable or {}
+		for _, stateKey in xmlFile:iterator("placeable.constructible.stateMachine.states.state") do
+			for _, inputKey in xmlFile:iterator(stateKey .. ".input") do
+				local fillTypeName = xmlFile:getString(inputKey .. "#fillType")
+				fillTypeNames[fillTypeName] = true
+			end
 		end
+		return fillTypeNames
 	end
-	return v149_
 end

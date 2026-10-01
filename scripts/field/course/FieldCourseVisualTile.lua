@@ -1,90 +1,75 @@
--- Local values: FieldCourseVisualTile_mt
 FieldCourseVisualTile = {}
 FieldCourseVisualTile.TILE_SIZE = 32
 local FieldCourseVisualTile_mt = Class(FieldCourseVisualTile)
-
--- Upvalues: FieldCourseVisualTile_mt
--- Local values: self
 function FieldCourseVisualTile.new(fieldCourseVisual)
-	-- upvalues: (copy) FieldCourseVisualTile_mt
-	local v3_ = FieldCourseVisualTile_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.fieldCourseVisual = fieldCourseVisual
-	v4_.visualSegments = {}
-	v4_.toolSideSegments = {}
-	v4_.sideOffsetSegmentsLeft = {}
-	v4_.sideOffsetSegmentsRight = {}
-	v4_.index = -1
-	v4_.isValid = false
-	v4_.foliageDataPlaneId = g_fruitTypeManager:getDefaultDataPlaneId()
-	return v4_
+	local self = setmetatable({}, FieldCourseVisualTile_mt)
+	self.fieldCourseVisual = fieldCourseVisual
+	self.visualSegments = {}
+	self.toolSideSegments = {}
+	self.sideOffsetSegmentsLeft = {}
+	self.sideOffsetSegmentsRight = {}
+	self.index = -1
+	self.isValid = false
+	self.foliageDataPlaneId = g_fruitTypeManager:getDefaultDataPlaneId()
+	return self
 end
-
--- Local values: i, i, i, i
 function FieldCourseVisualTile:reset()
-	for v6_ = #self.visualSegments, 1, -1 do
-		self.fieldCourseVisual:releaseVisualSegment(self.visualSegments[v6_])
-		table.remove(self.visualSegments, v6_)
+	for i = #self.visualSegments, 1, -1 do
+		self.fieldCourseVisual:releaseVisualSegment(self.visualSegments[i])
+		table.remove(self.visualSegments, i)
 	end
-	for v7_ = #self.toolSideSegments, 1, -1 do
-		self.fieldCourseVisual:releaseVisualSegment(self.toolSideSegments[v7_])
-		table.remove(self.toolSideSegments, v7_)
+	for i = #self.toolSideSegments, 1, -1 do
+		self.fieldCourseVisual:releaseVisualSegment(self.toolSideSegments[i])
+		table.remove(self.toolSideSegments, i)
 	end
-	for v8_ = #self.sideOffsetSegmentsLeft, 1, -1 do
-		self.fieldCourseVisual:releaseVisualSegment(self.sideOffsetSegmentsLeft[v8_])
-		table.remove(self.sideOffsetSegmentsLeft, v8_)
+	for i = #self.sideOffsetSegmentsLeft, 1, -1 do
+		self.fieldCourseVisual:releaseVisualSegment(self.sideOffsetSegmentsLeft[i])
+		table.remove(self.sideOffsetSegmentsLeft, i)
 	end
-	for v9_ = #self.sideOffsetSegmentsRight, 1, -1 do
-		self.fieldCourseVisual:releaseVisualSegment(self.sideOffsetSegmentsRight[v9_])
-		table.remove(self.sideOffsetSegmentsRight, v9_)
+	for i = #self.sideOffsetSegmentsRight, 1, -1 do
+		self.fieldCourseVisual:releaseVisualSegment(self.sideOffsetSegmentsRight[i])
+		table.remove(self.sideOffsetSegmentsRight, i)
 	end
 	self.index = -1
 	self.isValid = false
 end
-
--- Local values: numRows, tilePositionZ, tilePositionX
 function FieldCourseVisualTile:init(index)
 	self.index = index
 	self.isValid = true
-	local v12_ = g_currentMission.terrainSize / FieldCourseVisualTile.TILE_SIZE
-	local v13_ = index / v12_
-	local v14_ = math.floor(v13_)
-	self.tileMinX = (index - v14_ * v12_) * FieldCourseVisualTile.TILE_SIZE - g_currentMission.terrainSize * 0.5
-	self.tileMinZ = v14_ * FieldCourseVisualTile.TILE_SIZE - g_currentMission.terrainSize * 0.5
+	local numRows = g_currentMission.terrainSize / FieldCourseVisualTile.TILE_SIZE
+	local tilePositionZ = math.floor(index / numRows)
+	local tilePositionX = index - tilePositionZ * numRows
+	self.tileMinX = tilePositionX * FieldCourseVisualTile.TILE_SIZE - g_currentMission.terrainSize * 0.5
+	self.tileMinZ = tilePositionZ * FieldCourseVisualTile.TILE_SIZE - g_currentMission.terrainSize * 0.5
 	self.tileMaxX = self.tileMinX + FieldCourseVisualTile.TILE_SIZE
 	self.tileMaxZ = self.tileMinZ + FieldCourseVisualTile.TILE_SIZE
 	self:fillTile(self.fieldCourseVisual.fieldCourse.segments, self.visualSegments, true)
 end
-
--- Local values: i, segmentIndex, segment
 function FieldCourseVisualTile:fillTile(segments, target, doReset)
 	if doReset then
-		for v19_ = #target, 1, -1 do
-			self.fieldCourseVisual:releaseVisualSegment(target[v19_])
-			table.remove(target, v19_)
+		for i = #target, 1, -1 do
+			self.fieldCourseVisual:releaseVisualSegment(target[i])
+			table.remove(target, i)
 		end
 	end
-	for v20_, v21_ in ipairs(segments) do
-		self:fillTileBySegment(v21_, v20_, target)
+	for segmentIndex, segment in ipairs(segments) do
+		self:fillTileBySegment(segment, segmentIndex, target)
 	end
 end
-
--- Local values: i, i, i
 function FieldCourseVisualTile:resetAdditionalSegments()
-	for v23_ = #self.toolSideSegments, 1, -1 do
-		self.fieldCourseVisual:releaseVisualSegment(self.toolSideSegments[v23_])
-		table.remove(self.toolSideSegments, v23_)
+	for i = #self.toolSideSegments, 1, -1 do
+		self.fieldCourseVisual:releaseVisualSegment(self.toolSideSegments[i])
+		table.remove(self.toolSideSegments, i)
 	end
-	for v24_ = #self.sideOffsetSegmentsLeft, 1, -1 do
-		self.fieldCourseVisual:releaseVisualSegment(self.sideOffsetSegmentsLeft[v24_])
-		table.remove(self.sideOffsetSegmentsLeft, v24_)
+	for i = #self.sideOffsetSegmentsLeft, 1, -1 do
+		self.fieldCourseVisual:releaseVisualSegment(self.sideOffsetSegmentsLeft[i])
+		table.remove(self.sideOffsetSegmentsLeft, i)
 	end
-	for v25_ = #self.sideOffsetSegmentsRight, 1, -1 do
-		self.fieldCourseVisual:releaseVisualSegment(self.sideOffsetSegmentsRight[v25_])
-		table.remove(self.sideOffsetSegmentsRight, v25_)
+	for i = #self.sideOffsetSegmentsRight, 1, -1 do
+		self.fieldCourseVisual:releaseVisualSegment(self.sideOffsetSegmentsRight[i])
+		table.remove(self.sideOffsetSegmentsRight, i)
 	end
 end
-
 function FieldCourseVisualTile:fillAdditionalTileSegment(segment, segmentIndex, isToolSideSegment, isSideOffsetSegmentLeft, isSideOffsetSegmentRight)
 	if segment ~= nil then
 		if isToolSideSegment then
@@ -100,255 +85,228 @@ function FieldCourseVisualTile:fillAdditionalTileSegment(segment, segmentIndex, 
 		end
 	end
 end
-
--- Local values: i, p1, p2, sx, sz, ex, ez, p1Inside, p2Inside, intersect, x, z, ix1, iz1, intersect, x, z, z1, z2, x1, x2
 function FieldCourseVisualTile:fillTileBySegment(segment, segmentIndex, target)
-	for v36_ = 1, #segment.positions - 1 do
-		local v37_ = segment.positions[v36_]
-		local v38_ = segment.positions[v36_ + 1]
-		local v39_ = v37_[1]
-		local v40_ = v37_[2]
-		local v41_ = v38_[1]
-		local v42_ = v38_[2]
-		local v43_
-		if self.tileMinX <= v39_ and (v39_ <= self.tileMaxX and self.tileMinZ <= v40_) then
-			v43_ = v40_ <= self.tileMaxZ
-		else
-			v43_ = false
-		end
-		local v44_
-		if self.tileMinX <= v41_ and (v41_ <= self.tileMaxX and self.tileMinZ <= v42_) then
-			v44_ = v42_ <= self.tileMaxZ
-		else
-			v44_ = false
-		end
-		if v43_ and v44_ then
-			self:addSegment(v39_, v40_, v41_, v42_, segmentIndex, target)
-			::l18::
-			if v39_ == self.tileMinX and v41_ == self.tileMinX then
-				local v45_ = self.tileMinZ
-				local v46_ = self.tileMaxZ
-				local v47_ = math.clamp(v40_, v45_, v46_)
-				local v48_ = self.tileMinZ
-				local v49_ = self.tileMaxZ
-				self:addSegment(v39_, v47_, v41_, math.clamp(v42_, v48_, v49_), segmentIndex, target)
-			end
-			if v40_ == self.tileMinZ and v42_ == self.tileMinZ then
-				local v50_ = self.tileMinX
-				local v51_ = self.tileMaxX
-				local v52_ = math.clamp(v39_, v50_, v51_)
-				local v53_ = self.tileMinX
-				local v54_ = self.tileMaxX
-				self:addSegment(v52_, v40_, math.clamp(v41_, v53_, v54_), v42_, segmentIndex, target)
-			end
-		else
-			if v43_ or v44_ then
-				local v55_, v56_, v57_ = MathUtil.getLineSegmentsIntersection(v39_, v40_, v41_, v42_, self.tileMinX, self.tileMinZ, self.tileMaxX, self.tileMinZ)
-				if v55_ then
-					if v43_ then
-						self:addSegment(v39_, v40_, v56_, v57_, segmentIndex, target)
+	for i = 1, #segment.positions - 1 do
+		local p1 = segment.positions[i]
+		local p2 = segment.positions[i + 1]
+		local sx = p1[1]
+		local sz = p1[2]
+		local ex = p2[1]
+		local ez = p2[2]
+		local p1Inside = self.tileMinX <= sx and sx <= self.tileMaxX and self.tileMinZ <= sz and sz <= self.tileMaxZ
+		local p2Inside = self.tileMinX <= ex and ex <= self.tileMaxX and self.tileMinZ <= ez and ez <= self.tileMaxZ
+		if p1Inside then
+			if p2Inside then
+				self:addSegment(sx, sz, ex, ez, segmentIndex, target)
+				if sx == self.tileMinX and ex == self.tileMinX then
+					local z1 = math.clamp(sz, self.tileMinZ, self.tileMaxZ)
+					local z2 = math.clamp(ez, self.tileMinZ, self.tileMaxZ)
+					self:addSegment(sx, z1, ex, z2, segmentIndex, target)
+				end
+				if sz == self.tileMinZ and ez == self.tileMinZ then
+					local x1 = math.clamp(sx, self.tileMinX, self.tileMaxX)
+					local x2 = math.clamp(ex, self.tileMinX, self.tileMaxX)
+					self:addSegment(x1, sz, x2, ez, segmentIndex, target)
+				end
+			elseif p1Inside or p2Inside then
+				local intersect, x, z = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, self.tileMinX, self.tileMinZ, self.tileMaxX, self.tileMinZ)
+				if intersect then
+					if p1Inside then
+						self:addSegment(sx, sz, x, z, segmentIndex, target)
 					else
-						self:addSegment(v56_, v57_, v41_, v42_, segmentIndex, target)
+						self:addSegment(x, z, ex, ez, segmentIndex, target)
 					end
 				else
-					local v58_, v59_, v60_ = MathUtil.getLineSegmentsIntersection(v39_, v40_, v41_, v42_, self.tileMinX, self.tileMaxZ, self.tileMaxX, self.tileMaxZ)
-					if v58_ then
-						if v43_ then
-							self:addSegment(v39_, v40_, v59_, v60_, segmentIndex, target)
+					intersect, x, z = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, self.tileMinX, self.tileMaxZ, self.tileMaxX, self.tileMaxZ)
+					if intersect then
+						if p1Inside then
+							self:addSegment(sx, sz, x, z, segmentIndex, target)
 						else
-							self:addSegment(v59_, v60_, v41_, v42_, segmentIndex, target)
+							self:addSegment(x, z, ex, ez, segmentIndex, target)
 						end
 					else
-						local v61_, v62_, v63_ = MathUtil.getLineSegmentsIntersection(v39_, v40_, v41_, v42_, self.tileMinX, self.tileMinZ, self.tileMinX, self.tileMaxZ)
-						if v61_ then
-							if v43_ then
-								self:addSegment(v39_, v40_, v62_, v63_, segmentIndex, target)
+						intersect, x, z = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, self.tileMinX, self.tileMinZ, self.tileMinX, self.tileMaxZ)
+						if intersect then
+							if p1Inside then
+								self:addSegment(sx, sz, x, z, segmentIndex, target)
 							else
-								self:addSegment(v62_, v63_, v41_, v42_, segmentIndex, target)
+								self:addSegment(x, z, ex, ez, segmentIndex, target)
 							end
 						else
-							local v64_, v65_, v66_ = MathUtil.getLineSegmentsIntersection(v39_, v40_, v41_, v42_, self.tileMaxX, self.tileMinZ, self.tileMaxX, self.tileMaxZ)
-							if v64_ then
-								if v43_ then
-									self:addSegment(v39_, v40_, v65_, v66_, segmentIndex, target)
+							intersect, x, z = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, self.tileMaxX, self.tileMinZ, self.tileMaxX, self.tileMaxZ)
+							if intersect then
+								if p1Inside then
+									self:addSegment(sx, sz, x, z, segmentIndex, target)
 								else
-									self:addSegment(v65_, v66_, v41_, v42_, segmentIndex, target)
+									self:addSegment(x, z, ex, ez, segmentIndex, target)
 								end
 							end
 						end
 					end
 				end
-				goto l18
-			end
-			local v67_, v68_, v69_ = MathUtil.getLineSegmentsIntersection(v39_, v40_, v41_, v42_, self.tileMinX, self.tileMinZ, self.tileMaxX, self.tileMinZ)
-			if not v67_ then
-				v68_ = nil
-				v69_ = nil
-			end
-			local v70_, v71_, v72_ = MathUtil.getLineSegmentsIntersection(v39_, v40_, v41_, v42_, self.tileMinX, self.tileMaxZ, self.tileMaxX, self.tileMaxZ)
-			if not v70_ then
-				v72_ = v69_
-				v71_ = v68_
-				goto l40
-			end
-			if v68_ == nil then
-				::l40::
-				local v73_, v74_, v75_ = MathUtil.getLineSegmentsIntersection(v39_, v40_, v41_, v42_, self.tileMinX, self.tileMinZ, self.tileMinX, self.tileMaxZ)
-				if not v73_ then
-					v75_ = v72_
-					v74_ = v71_
-					goto l45
-				end
-				if v71_ == nil then
-					::l45::
-					local v76_, v77_, v78_ = MathUtil.getLineSegmentsIntersection(v39_, v40_, v41_, v42_, self.tileMaxX, self.tileMinZ, self.tileMaxX, self.tileMaxZ)
-					if v76_ and v74_ ~= nil then
-						self:addSegment(v74_, v75_, v77_, v78_, segmentIndex, target)
-					end
-					goto l18
-				end
-				self:addSegment(v71_, v72_, v74_, v75_, segmentIndex, target)
 			else
-				self:addSegment(v68_, v69_, v71_, v72_, segmentIndex, target)
+				local ix1 = nil
+				local iz1 = nil
+				local intersect, x, z = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, self.tileMinX, self.tileMinZ, self.tileMaxX, self.tileMinZ)
+				if intersect then
+					ix1 = x
+					iz1 = z
+				end
+				intersect, x, z = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, self.tileMinX, self.tileMaxZ, self.tileMaxX, self.tileMaxZ)
+				if intersect then
+					if ix1 == nil then
+						ix1 = x
+						iz1 = z
+						intersect, x, z = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, self.tileMinX, self.tileMinZ, self.tileMinX, self.tileMaxZ)
+						if intersect then
+							if ix1 == nil then
+								ix1 = x
+								iz1 = z
+								intersect, x, z = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, self.tileMaxX, self.tileMinZ, self.tileMaxX, self.tileMaxZ)
+								if intersect and ix1 ~= nil then
+									self:addSegment(ix1, iz1, x, z, segmentIndex, target)
+								end
+							else
+								self:addSegment(ix1, iz1, x, z, segmentIndex, target)
+							end
+						end
+					else
+						self:addSegment(ix1, iz1, x, z, segmentIndex, target)
+					end
+				end
 			end
 		end
 	end
 end
-
--- Local values: maxLength, dirX, dirZ, length, offset, sx, sz, sy, l, segmentLength, lineSegment, yRot
 function FieldCourseVisualTile:addSegment(x1, z1, x2, z2, segmentIndex, target)
-	local v86_ = self.fieldCourseVisual:getMaxVisualLineLength()
-	local v87_ = x2 - x1
-	local v88_ = z2 - z1
-	local v89_ = MathUtil.vector2Length(v87_, v88_)
-	if v89_ > 0 then
-		local v90_ = v87_ / v89_
-		local v91_ = v88_ / v89_
-		for v92_ = 0, v89_ - 0.01, v86_ do
-			local v93_ = x1 + v90_ * v92_
-			local v94_ = z1 + v91_ * v92_
-			local v95_ = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, v93_, 0, v94_)
-			local v96_ = v89_ - v92_
-			local v97_ = math.min(v96_, v86_)
-			if v97_ > 0 then
-				local v98_ = math.ceil(v97_)
-				local v99_ = math.min(v98_, v86_)
-				local v100_ = self.fieldCourseVisual:getVisualSegment(v99_)
-				setTranslation(v100_, v93_, v95_, v94_)
-				local v101_ = MathUtil.getYRotationFromDirection(v90_, v91_)
-				setRotation(v100_, 0, v101_, 0)
-				setUserAttribute(v100_, "segmentIndex", UserAttributeType.INTEGER, segmentIndex)
-				setShaderParameter(v100_, "intensitySize", nil, v97_ / v99_, nil, v99_, false)
-				table.insert(target, v100_)
+	local maxLength = self.fieldCourseVisual:getMaxVisualLineLength()
+	local dirX = x2 - x1
+	local dirZ = z2 - z1
+	local length = MathUtil.vector2Length(dirX, dirZ)
+	if 0 < length then
+		dirX = dirX / length
+		dirZ = dirZ / length
+		for offset = 0, length - 0.01, maxLength do
+			local sx = x1 + dirX * offset
+			local sz = z1 + dirZ * offset
+			local sy = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, sx, 0, sz)
+			local l = math.min(length - offset, maxLength)
+			if 0 < l then
+				local segmentLength = math.min(math.ceil(l), maxLength)
+				local lineSegment = self.fieldCourseVisual:getVisualSegment(segmentLength)
+				setTranslation(lineSegment, sx, sy, sz)
+				local yRot = MathUtil.getYRotationFromDirection(dirX, dirZ)
+				setRotation(lineSegment, 0, yRot, 0)
+				setUserAttribute(lineSegment, "segmentIndex", UserAttributeType.INTEGER, segmentIndex)
+				setShaderParameter(lineSegment, "intensitySize", nil, l / segmentLength, nil, segmentLength, false)
+				table.insert(target, lineSegment)
 			end
 		end
 	end
 end
-
--- Local values: hasSideOffset, _, segment, segmentIndex, data, visibility, color, borderColor, dashNumLength, toolData, _, segment, color, borderColor, dashNumLength, _, segment, segmentIndex, data, visibility, color, borderColor, dashNumLength, _, segment, segmentIndex, data, visibility, color, borderColor, dashNumLength
 function FieldCourseVisualTile:setSegmentData(segmentToData, isEnabled, isLeft, activeSegmentIndex)
-	local v106_ = self.fieldCourseVisual.fieldCourseSettings.sideOffset ~= 0
-	for _, v107_ in ipairs(self.visualSegments) do
-		local v108_ = getUserAttribute(v107_, "segmentIndex")
-		local v109_ = segmentToData[v108_]
-		if v109_ ~= nil then
-			if v106_ and v108_ == activeSegmentIndex then
-				v109_ = FieldCourseVisual.VISUALS[self.fieldCourseVisual.isColorBlindMode].INACTIVE
-			end
-			local v110_ = v109_[4]
-			if v110_ then
-				local v111_ = v109_[1]
-				setShaderParameter(v107_, "emitColor", v111_[1], v111_[2], v111_[3], v111_[4], false)
-				setShaderParameter(v107_, "intensitySize", v109_[2], nil, v109_[3], nil, false)
-				local v112_ = v109_[5]
-				if v112_ == nil then
-					setShaderParameter(v107_, "borderColor", nil, nil, nil, 1, false)
-				else
-					setShaderParameter(v107_, "borderColor", v112_[1], v112_[2], v112_[3], v112_[4], false)
-				end
-				local v113_ = v109_[6]
-				if v113_ == nil then
-					setShaderParameter(v107_, "dashNumLength", 0, nil, nil, nil, false)
-				else
-					setShaderParameter(v107_, "dashNumLength", v113_[1], v113_[2], nil, nil, false)
-				end
-			end
-			setVisibility(v107_, v110_)
+	local hasSideOffset = self.fieldCourseVisual.fieldCourseSettings.sideOffset ~= 0
+	for _, segment in ipairs(self.visualSegments) do
+		local segmentIndex = getUserAttribute(segment, "segmentIndex")
+		local data = segmentToData[segmentIndex]
+		if data == nil then
+			continue
 		end
+		if hasSideOffset and segmentIndex == activeSegmentIndex then
+			data = FieldCourseVisual.VISUALS[self.fieldCourseVisual.isColorBlindMode].INACTIVE
+		end
+		local visibility = data[4]
+		if visibility then
+			local color = data[1]
+			setShaderParameter(segment, "emitColor", color[1], color[2], color[3], color[4], false)
+			setShaderParameter(segment, "intensitySize", data[2], nil, data[3], nil, false)
+			local borderColor = data[5]
+			if borderColor ~= nil then
+				setShaderParameter(segment, "borderColor", borderColor[1], borderColor[2], borderColor[3], borderColor[4], false)
+			else
+				setShaderParameter(segment, "borderColor", nil, nil, nil, 1, false)
+			end
+			local dashNumLength = data[6]
+			if dashNumLength ~= nil then
+				setShaderParameter(segment, "dashNumLength", dashNumLength[1], dashNumLength[2], nil, nil, false)
+			else
+				setShaderParameter(segment, "dashNumLength", 0, nil, nil, nil, false)
+			end
+		end
+		setVisibility(segment, visibility)
 	end
-	local v114_ = FieldCourseVisual.VISUALS[self.fieldCourseVisual.isColorBlindMode].TOOL_SIDE
-	for _, v115_ in ipairs(self.toolSideSegments) do
-		local v116_ = v114_[1]
-		setShaderParameter(v115_, "emitColor", v116_[1], v116_[2], v116_[3], v116_[4], false)
-		setShaderParameter(v115_, "intensitySize", v114_[2], nil, v114_[3], nil, false)
-		local v117_ = v114_[5]
-		if v117_ == nil then
-			setShaderParameter(v115_, "borderColor", nil, nil, nil, 1, false)
+	local toolData = FieldCourseVisual.VISUALS[self.fieldCourseVisual.isColorBlindMode].TOOL_SIDE
+	for _, segment in ipairs(self.toolSideSegments) do
+		local color = toolData[1]
+		setShaderParameter(segment, "emitColor", color[1], color[2], color[3], color[4], false)
+		setShaderParameter(segment, "intensitySize", toolData[2], nil, toolData[3], nil, false)
+		local borderColor = toolData[5]
+		if borderColor ~= nil then
+			setShaderParameter(segment, "borderColor", borderColor[1], borderColor[2], borderColor[3], borderColor[4], false)
 		else
-			setShaderParameter(v115_, "borderColor", v117_[1], v117_[2], v117_[3], v117_[4], false)
+			setShaderParameter(segment, "borderColor", nil, nil, nil, 1, false)
 		end
-		local v118_ = v114_[6]
-		if v118_ == nil then
-			setShaderParameter(v115_, "dashNumLength", 0, nil, nil, nil, false)
+		local dashNumLength = toolData[6]
+		if dashNumLength ~= nil then
+			setShaderParameter(segment, "dashNumLength", dashNumLength[1], dashNumLength[2], nil, nil, false)
 		else
-			setShaderParameter(v115_, "dashNumLength", v118_[1], v118_[2], nil, nil, false)
+			setShaderParameter(segment, "dashNumLength", 0, nil, nil, nil, false)
 		end
 	end
-	for _, v119_ in ipairs(self.sideOffsetSegmentsLeft) do
-		local v120_ = segmentToData[getUserAttribute(v119_, "segmentIndex")]
-		if v120_ ~= nil then
-			local v121_ = v120_[4] and isLeft
-			if v121_ then
-				local v122_ = v120_[1]
-				setShaderParameter(v119_, "emitColor", v122_[1], v122_[2], v122_[3], v122_[4], false)
-				setShaderParameter(v119_, "intensitySize", v120_[2], nil, v120_[3], nil, false)
-				local v123_ = v120_[5]
-				if v123_ == nil then
-					setShaderParameter(v119_, "borderColor", nil, nil, nil, 1, false)
-				else
-					setShaderParameter(v119_, "borderColor", v123_[1], v123_[2], v123_[3], v123_[4], false)
-				end
-				local v124_ = v120_[6]
-				if v124_ == nil then
-					setShaderParameter(v119_, "dashNumLength", 0, nil, nil, nil, false)
-				else
-					setShaderParameter(v119_, "dashNumLength", v124_[1], v124_[2], nil, nil, false)
-				end
-			end
-			setVisibility(v119_, v121_)
+	for _, segment in ipairs(self.sideOffsetSegmentsLeft) do
+		local segmentIndex = getUserAttribute(segment, "segmentIndex")
+		local data = segmentToData[segmentIndex]
+		if data == nil then
+			continue
 		end
+		local visibility = data[4] and isLeft
+		if visibility then
+			local color = data[1]
+			setShaderParameter(segment, "emitColor", color[1], color[2], color[3], color[4], false)
+			setShaderParameter(segment, "intensitySize", data[2], nil, data[3], nil, false)
+			local borderColor = data[5]
+			if borderColor ~= nil then
+				setShaderParameter(segment, "borderColor", borderColor[1], borderColor[2], borderColor[3], borderColor[4], false)
+			else
+				setShaderParameter(segment, "borderColor", nil, nil, nil, 1, false)
+			end
+			local dashNumLength = data[6]
+			if dashNumLength ~= nil then
+				setShaderParameter(segment, "dashNumLength", dashNumLength[1], dashNumLength[2], nil, nil, false)
+			else
+				setShaderParameter(segment, "dashNumLength", 0, nil, nil, nil, false)
+			end
+		end
+		setVisibility(segment, visibility)
 	end
-	for _, v125_ in ipairs(self.sideOffsetSegmentsRight) do
-		local v126_ = segmentToData[getUserAttribute(v125_, "segmentIndex")]
-		if v126_ ~= nil then
-			local v127_ = v126_[4]
-			if v127_ then
-				v127_ = not isLeft
-			end
-			if v127_ then
-				local v128_ = v126_[1]
-				setShaderParameter(v125_, "emitColor", v128_[1], v128_[2], v128_[3], v128_[4], false)
-				setShaderParameter(v125_, "intensitySize", v126_[2], nil, v126_[3], nil, false)
-				local v129_ = v126_[5]
-				if v129_ == nil then
-					setShaderParameter(v125_, "borderColor", nil, nil, nil, 1, false)
-				else
-					setShaderParameter(v125_, "borderColor", v129_[1], v129_[2], v129_[3], v129_[4], false)
-				end
-				local v130_ = v126_[6]
-				if v130_ == nil then
-					setShaderParameter(v125_, "dashNumLength", 0, nil, nil, nil, false)
-				else
-					setShaderParameter(v125_, "dashNumLength", v130_[1], v130_[2], nil, nil, false)
-				end
-			end
-			setVisibility(v125_, v127_)
+	for _, segment in ipairs(self.sideOffsetSegmentsRight) do
+		local segmentIndex = getUserAttribute(segment, "segmentIndex")
+		local data = segmentToData[segmentIndex]
+		if data == nil then
+			continue
 		end
+		local visibility = data[4] and not isLeft
+		if visibility then
+			local color = data[1]
+			setShaderParameter(segment, "emitColor", color[1], color[2], color[3], color[4], false)
+			setShaderParameter(segment, "intensitySize", data[2], nil, data[3], nil, false)
+			local borderColor = data[5]
+			if borderColor ~= nil then
+				setShaderParameter(segment, "borderColor", borderColor[1], borderColor[2], borderColor[3], borderColor[4], false)
+			else
+				setShaderParameter(segment, "borderColor", nil, nil, nil, 1, false)
+			end
+			local dashNumLength = data[6]
+			if dashNumLength ~= nil then
+				setShaderParameter(segment, "dashNumLength", dashNumLength[1], dashNumLength[2], nil, nil, false)
+			else
+				setShaderParameter(segment, "dashNumLength", 0, nil, nil, nil, false)
+			end
+		end
+		setVisibility(segment, visibility)
 	end
 end
-
--- Local values: title
 function FieldCourseVisualTile:debugDraw()
-	local v132_ = string.format("Tile %d\nNumSegments: %d\nSeg Data Update: %.5fms", self.index, #self.visualSegments, self.segmentDataTime or -1)
-	DebugPlane.renderWithPositions(self.tileMinX, 0, self.tileMinZ, self.tileMinX, 0, self.tileMaxZ, self.tileMaxX, 0, self.tileMinZ, self.color, true, false, true, false, v132_, nil)
+	local title = string.format("Tile %d\nNumSegments: %d\nSeg Data Update: %.5fms", self.index, #self.visualSegments, self.segmentDataTime or -1)
+	DebugPlane.renderWithPositions(self.tileMinX, 0, self.tileMinZ, self.tileMinX, 0, self.tileMaxZ, self.tileMaxX, 0, self.tileMinZ, self.color, true, false, true, false, title, nil)
 end

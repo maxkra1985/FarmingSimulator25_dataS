@@ -1,156 +1,132 @@
--- Local values: SpecializationManager_mt
 SpecializationManager = {}
 local SpecializationManager_mt = Class(SpecializationManager, AbstractManager)
 g_xmlManager:addEarlyCreateSchemaFunction(function()
 	SpecializationManager.xmlSchema = XMLSchema.new("specializations")
 	SpecializationManager.registerXMLPaths(SpecializationManager.xmlSchema, "specializations.specialization(?)")
 end)
-
 function SpecializationManager.registerXMLPaths(xmlSchema, baseKey)
 	xmlSchema:register(XMLValueType.STRING, baseKey .. "#name", "The name of the specialization", nil, true)
 	xmlSchema:register(XMLValueType.STRING, baseKey .. "#className", "The name of the specialization class", nil, true)
 	xmlSchema:register(XMLValueType.STRING, baseKey .. "#filename", "The path of the specialization file", nil, true)
 end
-
--- Upvalues: SpecializationManager_mt
--- Local values: self
 function SpecializationManager.new(typeName, xmlFilename, customMt)
-	-- upvalues: (copy) SpecializationManager_mt
-	local v7_ = AbstractManager.new(customMt or SpecializationManager_mt)
-	v7_.typeName = typeName
-	v7_.xmlFilename = xmlFilename
-	return v7_
+	local self = AbstractManager.new(customMt or SpecializationManager_mt)
+	self.typeName = typeName
+	self.xmlFilename = xmlFilename
+	return self
 end
-
 function SpecializationManager:initDataStructures()
 	self.specializations = {}
 	self.sortedSpecializations = {}
 end
-
--- Local values: xmlFile, nodeIndex, nodeKey, typeName, className, filename
 function SpecializationManager:loadMapData()
 	SpecializationManager:superClass().loadMapData(self)
-	local v10_ = XMLFile.loadIfExists("SpecializationsXML", self.xmlFilename, SpecializationManager.xmlSchema)
-	if v10_ == nil then
+	local xmlFile = XMLFile.loadIfExists("SpecializationsXML", self.xmlFilename, SpecializationManager.xmlSchema)
+	if xmlFile == nil then
 		Logging.error("Specializations XML for %q could not be loaded from %q!", self.typeName, self.xmlFilename)
 		return false
-	end
-	for _, v11_ in v10_:iterator("specializations.specialization") do
-		local v_u_12_ = v10_:getValue(v11_ .. "#name")
-		if string.isNilOrWhitespace(v_u_12_) then
-			Logging.xmlWarning(v10_, "Specialization node %q has missing name!", v11_)
-		else
-			local v_u_13_ = v10_:getValue(v11_ .. "#className")
-			if string.isNilOrWhitespace(v_u_13_) then
-				Logging.xmlWarning(v10_, "Specialization node %q has missing class name!", v11_)
+	else
+		for nodeIndex, nodeKey in xmlFile:iterator("specializations.specialization") do
+			local typeName = xmlFile:getValue(nodeKey .. "#name")
+			if string.isNilOrWhitespace(typeName) then
+				Logging.xmlWarning(xmlFile, "Specialization node %q has missing name!", nodeKey)
 			else
-				local v_u_14_ = v10_:getValue(v11_ .. "#filename")
-				if string.isNilOrWhitespace(v_u_14_) then
-					Logging.xmlWarning(v10_, "Specialization node %q has missing filename!", v11_)
+				local className = xmlFile:getValue(nodeKey .. "#className")
+				if string.isNilOrWhitespace(className) then
+					Logging.xmlWarning(xmlFile, "Specialization node %q has missing class name!", nodeKey)
 				else
-					g_asyncTaskManager:addSubtask(function()
-						-- upvalues: (copy) self, (copy) v_u_12_, (copy) v_u_13_, (copy) v_u_14_
-						self:addSpecialization(v_u_12_, v_u_13_, v_u_14_, "")
-					end, string.format("SpecializationManager - Add Specialization \'%s\'", v_u_13_))
+					local filename = xmlFile:getValue(nodeKey .. "#filename")
+					if string.isNilOrWhitespace(filename) then
+						Logging.xmlWarning(xmlFile, "Specialization node %q has missing filename!", nodeKey)
+					else
+						g_asyncTaskManager:addSubtask(function()
+							self:addSpecialization(typeName, className, filename, "")
+						end, string.format("SpecializationManager - Add Specialization '%s'", className))
+					end
 				end
 			end
 		end
+		xmlFile:delete()
+		g_asyncTaskManager:addSubtask(function()
+			Logging.info("Loaded %q specializations", self.typeName)
+		end)
+		return true
 	end
-	v10_:delete()
-	g_asyncTaskManager:addSubtask(function()
-		-- upvalues: (copy) self
-		Logging.info("Loaded %q specializations", self.typeName)
-	end)
-	return true
 end
-
--- Local values: i, specialization
 function SpecializationManager:unloadMapData()
-	for v16_ = #self.sortedSpecializations, 1, -1 do
-		local v17_ = self:getSpecializationObjectByName(self.sortedSpecializations[v16_].name)
-		if v17_ ~= nil and v17_.terminateSpecialization ~= nil then
-			v17_.terminateSpecialization()
+	for i = #self.sortedSpecializations, 1, -1 do
+		local specialization = self:getSpecializationObjectByName(self.sortedSpecializations[i].name)
+		if specialization == nil or specialization.terminateSpecialization == nil then
+			continue
 		end
+		specialization.terminateSpecialization()
 	end
 	SpecializationManager:superClass().unloadMapData(self)
 end
-
--- Local values: specialization, specializationObject
 function SpecializationManager:addSpecialization(name, className, filename, customEnvironment)
 	if self.specializations[name] ~= nil then
-		Logging.error("Specialization \'%s\' already exists. Ignoring it!", (tostring(name)))
+		Logging.error("Specialization '%s' already exists. Ignoring it!", tostring(name))
 		return false
-	end
-	if className == nil then
-		Logging.error("No className specified for specialization \'%s\'", (tostring(name)))
+	elseif className == nil then
+		Logging.error("No className specified for specialization '%s'", tostring(name))
 		return false
-	end
-	if filename == nil then
-		Logging.error("No filename specified for specialization \'%s\'", (tostring(name)))
+	elseif filename == nil then
+		Logging.error("No filename specified for specialization '%s'", tostring(name))
 		return false
-	end
-	local v23_ = {
-		["name"] = name,
-		["className"] = className,
-		["filename"] = filename
-	}
-	source(filename, customEnvironment)
-	local v24_ = ClassUtil.getClassObject(className)
-	if v24_ == nil then
-		Logging.warning("Specialization %q could not resolve its class! Filepath: %q", name, className)
 	else
-		v24_.className = className
+		local specialization = {}
+		specialization.name = name
+		specialization.className = className
+		specialization.filename = filename
+		source(filename, customEnvironment)
+		local specializationObject = ClassUtil.getClassObject(className)
+		if specializationObject ~= nil then
+			specializationObject.className = className
+		else
+			Logging.warning("Specialization %q could not resolve its class! Filepath: %q", name, className)
+		end
+		self.specializations[name] = specialization
+		table.insert(self.sortedSpecializations, specialization)
+		return true
 	end
-	self.specializations[name] = v23_
-	local v25_ = self.sortedSpecializations
-	table.insert(v25_, v23_)
-	return true
 end
-
--- Local values: i, specialization
 function SpecializationManager:initSpecializations()
-	for v27_ = 1, #self.sortedSpecializations do
-		local v_u_28_ = self:getSpecializationObjectByName(self.sortedSpecializations[v27_].name)
-		if v_u_28_ ~= nil and v_u_28_.initSpecialization ~= nil then
-			g_asyncTaskManager:addSubtask(function()
-				-- upvalues: (copy) v_u_28_
-				v_u_28_.initSpecialization()
-			end, string.format("SpecializationManager-initSpecializations - \'%s\'", self.sortedSpecializations[v27_].name))
+	for i = 1, #self.sortedSpecializations do
+		local specialization = self:getSpecializationObjectByName(self.sortedSpecializations[i].name)
+		if specialization == nil or specialization.initSpecialization == nil then
+			continue
 		end
+		g_asyncTaskManager:addSubtask(function()
+			specialization.initSpecialization()
+		end, string.format("SpecializationManager-initSpecializations - '%s'", self.sortedSpecializations[i].name))
 	end
 end
-
--- Local values: i, specialization
 function SpecializationManager:postInitSpecializations()
-	for v30_ = 1, #self.sortedSpecializations do
-		local v_u_31_ = self:getSpecializationObjectByName(self.sortedSpecializations[v30_].name)
-		if v_u_31_ ~= nil and v_u_31_.postInitSpecialization ~= nil then
-			g_asyncTaskManager:addSubtask(function()
-				-- upvalues: (copy) v_u_31_
-				v_u_31_.postInitSpecialization()
-			end, string.format("SpecializationManager-postInitSpecializations - \'%s\'", self.sortedSpecializations[v30_].name))
+	for i = 1, #self.sortedSpecializations do
+		local specialization = self:getSpecializationObjectByName(self.sortedSpecializations[i].name)
+		if specialization == nil or specialization.postInitSpecialization == nil then
+			continue
 		end
+		g_asyncTaskManager:addSubtask(function()
+			specialization.postInitSpecialization()
+		end, string.format("SpecializationManager-postInitSpecializations - '%s'", self.sortedSpecializations[i].name))
 	end
 end
-
 function SpecializationManager:getSpecializationByName(name)
-	if name == nil then
-		return nil
-	else
+	if name ~= nil then
 		return self.specializations[name]
+	else
+		return nil
 	end
 end
-
--- Local values: entry
 function SpecializationManager:getSpecializationObjectByName(name)
-	local v36_ = self.specializations[name]
-	if v36_ == nil then
+	local entry = self.specializations[name]
+	if entry == nil then
 		return nil
 	else
-		return ClassUtil.getClassObject(v36_.className)
+		return ClassUtil.getClassObject(entry.className)
 	end
 end
-
 function SpecializationManager:getSpecializations()
 	return self.specializations
 end

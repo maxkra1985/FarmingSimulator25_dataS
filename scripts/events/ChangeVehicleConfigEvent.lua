@@ -1,93 +1,137 @@
--- Local values: ChangeVehicleConfigEvent_mt
 ChangeVehicleConfigEvent = {}
 local ChangeVehicleConfigEvent_mt = Class(ChangeVehicleConfigEvent, Event)
+ChangeVehicleConfigEvent.STATE_SUCCESS = 0
+ChangeVehicleConfigEvent.STATE_FAILED = 1
+ChangeVehicleConfigEvent.STATE_NO_PERMISSION = 2
+ChangeVehicleConfigEvent.STATE_NOT_ENOUGH_MONEY = 3
+ChangeVehicleConfigEvent.STATE_SEND_NUM_BITS = 2
 InitStaticEventClass(ChangeVehicleConfigEvent, "ChangeVehicleConfigEvent")
 function ChangeVehicleConfigEvent.emptyNew()
-	-- upvalues: (copy) ChangeVehicleConfigEvent_mt
-	return Event.new(ChangeVehicleConfigEvent_mt)
+	local self = Event.new(ChangeVehicleConfigEvent_mt)
+	return self
 end
-
--- Local values: self
-function ChangeVehicleConfigEvent.new(vehicle, vehicleBuyData)
-	local v4_ = ChangeVehicleConfigEvent.emptyNew()
-	v4_.vehicle = vehicle
-	v4_.vehicleBuyData = vehicleBuyData
-	return v4_
+function ChangeVehicleConfigEvent.new(vehicle, vehicleBuyData, isOwnWorkshop)
+	local self = ChangeVehicleConfigEvent.emptyNew()
+	self.vehicle = vehicle
+	self.vehicleBuyData = vehicleBuyData
+	self.isOwnWorkshop = isOwnWorkshop == true
+	return self
 end
-
--- Local values: self
-function ChangeVehicleConfigEvent.newServerToClient(successful)
-	local v6_ = ChangeVehicleConfigEvent.emptyNew()
-	v6_.successful = successful
-	return v6_
+function ChangeVehicleConfigEvent.newServerToClient(errorCode)
+	local self = ChangeVehicleConfigEvent.emptyNew()
+	self.errorCode = errorCode
+	return self
 end
-
 function ChangeVehicleConfigEvent:readStream(streamId, connection)
-	if connection:getIsServer() then
-		self.successful = streamReadBool(streamId)
-	else
+	if not connection:getIsServer() then
 		self.vehicle = NetworkUtil.readNodeObject(streamId)
 		self.vehicleBuyData = BuyVehicleData.new()
 		self.vehicleBuyData:readStream(streamId, connection)
+		self.isOwnWorkshop = streamReadBool(streamId)
+	else
+		self.errorCode = streamReadUIntN(streamId, ChangeVehicleConfigEvent.STATE_SEND_NUM_BITS)
 	end
 	self:run(connection)
 end
-
 function ChangeVehicleConfigEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
 		NetworkUtil.writeNodeObject(streamId, self.vehicle)
 		self.vehicleBuyData:writeStream(streamId, connection)
+		streamWriteBool(streamId, self.isOwnWorkshop)
 	else
-		streamWriteBool(streamId, self.successful)
+		streamWriteUIntN(streamId, self.errorCode, ChangeVehicleConfigEvent.STATE_SEND_NUM_BITS)
 	end
 end
-
--- Local values: success, vehicle, vehicleSystem, spec, i, implement, xmlFile, asyncCallbackFunction
 function ChangeVehicleConfigEvent:run(connection)
 	if connection:getIsServer() then
-		g_workshopScreen:onVehicleChanged(self.successful)
-	else
-		local v_u_15_ = false
-		local v_u_16_ = self.vehicle
-		if v_u_16_ == nil or (not v_u_16_.isVehicleSaved or v_u_16_.getIsControlled ~= nil and v_u_16_:getIsControlled()) or not g_currentMission:getHasPlayerPermission("buyVehicle", connection) then
-			connection:sendEvent(ChangeVehicleConfigEvent.newServerToClient(false))
-		else
-			local v_u_17_ = g_currentMission.vehicleSystem
-			v_u_16_:setConfigurations(self.vehicleBuyData.configurations, self.vehicleBuyData.boughtConfigurations, self.vehicleBuyData.configurationData)
-			if v_u_16_.setLicensePlatesData ~= nil and (v_u_16_.getHasLicensePlates ~= nil and v_u_16_:getHasLicensePlates()) then
-				v_u_16_:setLicensePlatesData(self.vehicleBuyData.licensePlateData)
-			end
-			local v18_ = v_u_16_.spec_attacherJoints
-			if v18_ ~= nil and v18_.attachedImplements ~= nil then
-				for v19_ = #v18_.attachedImplements, 1, -1 do
-					local v20_ = v18_.attachedImplements[v19_]
-					if not v20_.object:getIsAdditionalAttachment() then
-						v_u_16_:detachImplementByObject(v20_.object, true)
-					end
-				end
-			end
-			v_u_16_.isReconfigurating = true
-			g_server:broadcastEvent(VehicleSetIsReconfiguratingEvent.new(v_u_16_), nil, nil, v_u_16_)
-			local v_u_21_ = v_u_16_:getReloadXML()
-			local function v_u_23_(_, p22_, _)
-				-- upvalues: (ref) v_u_15_, (copy) self, (copy) v_u_16_, (copy) v_u_17_, (copy) v_u_21_, (copy) connection
-				if #p22_ > 0 then
-					v_u_15_ = true
-					g_currentMission:addMoney(-self.vehicleBuyData.price, self.vehicleBuyData.ownerFarmId, MoneyType.SHOP_VEHICLE_BUY, true)
-					v_u_16_:removeFromPhysics()
-					v_u_16_:delete(true)
-				else
-					v_u_16_:addToPhysics()
-					v_u_17_.vehicleByUniqueId[v_u_16_:getUniqueId()] = v_u_16_
-				end
-				v_u_21_:delete()
-				connection:sendEvent(ChangeVehicleConfigEvent.newServerToClient(v_u_15_))
-			end
-			g_asyncTaskManager:addTask(function()
-				-- upvalues: (copy) v_u_17_, (copy) v_u_16_, (copy) v_u_21_, (copy) v_u_23_
-				v_u_17_.vehicleByUniqueId[v_u_16_:getUniqueId()] = nil
-				v_u_17_:loadFromXMLFile(v_u_21_, v_u_23_, nil, {})
-			end)
-		end
+		g_workshopScreen:onVehicleChanged(self.errorCode)
+		return
 	end
+	local vehicle = self.vehicle
+	if vehicle == nil then
+		connection:sendEvent(ChangeVehicleConfigEvent.newServerToClient(ChangeVehicleConfigEvent.STATE_FAILED))
+		return
+	end
+	local isControlled = false
+	if vehicle.getIsControlled ~= nil then
+		isControlled = vehicle:getIsControlled()
+	end
+	local isOwned = vehicle.propertyState == VehiclePropertyState.OWNED
+	if not vehicle.isVehicleSaved or not isOwned or isControlled then
+		connection:sendEvent(ChangeVehicleConfigEvent.newServerToClient(ChangeVehicleConfigEvent.STATE_FAILED))
+		return
+	end
+	if not g_currentMission:getHasPlayerPermission(Farm.PERMISSION.BUY_VEHICLE, connection) then
+		connection:sendEvent(ChangeVehicleConfigEvent.newServerToClient(ChangeVehicleConfigEvent.STATE_NO_PERMISSION))
+		return
+	end
+	local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+	if storeItem == nil then
+		connection:sendEvent(ChangeVehicleConfigEvent.newServerToClient(ChangeVehicleConfigEvent.STATE_FAILED))
+		return
+	end
+	local farmId = vehicle:getOwnerFarmId()
+	local price = self:getChangePrice(storeItem, vehicle)
+	local boughtConfigurations = self:getBoughtConfigurations(vehicle)
+	if g_currentMission:getMoney(farmId) < price then
+		connection:sendEvent(ChangeVehicleConfigEvent.newServerToClient(ChangeVehicleConfigEvent.STATE_NOT_ENOUGH_MONEY))
+	else
+		local vehicleSystem = g_currentMission.vehicleSystem
+		vehicle:setConfigurations(self.vehicleBuyData.configurations, boughtConfigurations, self.vehicleBuyData.configurationData)
+		if vehicle.setLicensePlatesData ~= nil and (vehicle.getHasLicensePlates ~= nil and vehicle:getHasLicensePlates()) then
+			vehicle:setLicensePlatesData(self.vehicleBuyData.licensePlateData)
+		end
+		local spec = vehicle.spec_attacherJoints
+		if spec ~= nil and spec.attachedImplements ~= nil then
+			for i = #spec.attachedImplements, 1, -1 do
+				local implement = spec.attachedImplements[i]
+				if implement.object:getIsAdditionalAttachment() then
+					continue
+				end
+				vehicle:detachImplementByObject(implement.object, true)
+			end
+		end
+		vehicle.isReconfigurating = true
+		g_server:broadcastEvent(VehicleSetIsReconfiguratingEvent.new(vehicle), nil, nil, vehicle)
+		local xmlFile = vehicle:getReloadXML()
+		local asyncCallbackFunction = function(_, vehicles)
+			local errorCode = ChangeVehicleConfigEvent.STATE_FAILED
+			if 0 < #vehicles then
+				errorCode = ChangeVehicleConfigEvent.STATE_SUCCESS
+				g_currentMission:addMoney(-price, farmId, MoneyType.SHOP_VEHICLE_BUY, true)
+				vehicle:removeFromPhysics()
+				vehicle:delete(true)
+			else
+				vehicle:addToPhysics()
+				vehicleSystem.vehicleByUniqueId[vehicle:getUniqueId()] = vehicle
+			end
+			xmlFile:delete()
+			connection:sendEvent(ChangeVehicleConfigEvent.newServerToClient(errorCode))
+		end
+		g_asyncTaskManager:addTask(function()
+			vehicleSystem.vehicleByUniqueId[vehicle:getUniqueId()] = nil
+			vehicleSystem:loadFromXMLFile(xmlFile, asyncCallbackFunction, nil, {})
+		end)
+	end
+end
+function ChangeVehicleConfigEvent:getChangePrice(storeItem, vehicle)
+	local serviceFee, upgradePrice, hasChanges = g_currentMission.economyManager:getConfigurationChangePrice(storeItem, vehicle, self.vehicleBuyData.configurations, self.isOwnWorkshop)
+	if not hasChanges and ConfigurationUtil.getConfigurationDataHasChanged(vehicle.configFileName, self.vehicleBuyData.configurationData, vehicle.configurationData) then
+		hasChanges = true
+	end
+	if not hasChanges then
+		return 0
+	else
+		return serviceFee + upgradePrice
+	end
+end
+function ChangeVehicleConfigEvent:getBoughtConfigurations(vehicle)
+	local boughtConfigurations = table.clone(vehicle.boughtConfigurations, math.huge)
+	for configName, configId in pairs(self.vehicleBuyData.configurations) do
+		if boughtConfigurations[configName] == nil then
+			boughtConfigurations[configName] = {}
+		end
+		boughtConfigurations[configName][configId] = true
+	end
+	return boughtConfigurations
 end

@@ -1,56 +1,36 @@
--- Local values: moneyTypeId, moneyTypeIdToType
 MoneyType = {}
 local moneyTypeId = 0
 local moneyTypeIdToType = {}
-local function v7_(p3_, p4_, p5_)
-	-- upvalues: (ref) moneyTypeId, (copy) moneyTypeIdToType
+function MoneyType.register(statistic, title, customEnv)
 	moneyTypeId = moneyTypeId + 1
-	local v6_ = {
-		["id"] = moneyTypeId,
-		["statistic"] = p3_,
-		["title"] = p4_,
-		["customEnv"] = p5_
-	}
-	moneyTypeIdToType[moneyTypeId] = v6_
-	return v6_
+	local value = { statistic = statistic, title = title, customEnv = customEnv }
+	value.id = moneyTypeId
+	moneyTypeIdToType[moneyTypeId] = value
+	return value
 end
-MoneyType.register = v7_
-local function v14_(p8_, p9_, p10_, p11_)
-	-- upvalues: (copy) moneyTypeIdToType, (ref) moneyTypeId
-	local v12_ = moneyTypeIdToType[p8_]
-	if v12_ == nil then
-		v12_ = {
-			["id"] = p8_,
-			["statistic"] = p9_,
-			["title"] = p10_,
-			["customEnv"] = p11_
-		}
-		moneyTypeIdToType[p8_] = v12_
+function MoneyType.registerWithId(id, statistic, title, customEnv)
+	local moneyType = moneyTypeIdToType[id]
+	if moneyType == nil then
+		moneyType = { id = id, statistic = statistic, title = title, customEnv = customEnv }
+		moneyTypeIdToType[id] = moneyType
 	end
-	local v13_ = moneyTypeId
-	moneyTypeId = math.max(v13_, p8_)
-	return v12_
+	moneyTypeId = math.max(moneyTypeId, id)
+	return moneyType
 end
-MoneyType.registerWithId = v14_
-
--- Upvalues: moneyTypeIdToType
 function MoneyType.getMoneyTypeById(id)
-	-- upvalues: (copy) moneyTypeIdToType
 	return moneyTypeIdToType[id]
 end
-
 function MoneyType.getMoneyTypeByName(name)
-	if name == nil then
+	if name ~= nil then
+		name = string.upper(name)
+		return MoneyType[name]
+	else
 		return nil
 	end
-	local v17_ = string.upper(name)
-	return MoneyType[v17_]
 end
-local function v18_()
-	-- upvalues: (ref) moneyTypeId
+function MoneyType.reset()
 	moneyTypeId = MoneyType.LAST_ID
 end
-MoneyType.reset = v18_
 MoneyType.OTHER = MoneyType.register("other", "finance_other")
 MoneyType.SHOP_VEHICLE_BUY = MoneyType.register("newVehiclesCost", "finance_newVehiclesCost")
 MoneyType.SHOP_VEHICLE_SELL = MoneyType.register("soldVehicles", "finance_soldVehicles")

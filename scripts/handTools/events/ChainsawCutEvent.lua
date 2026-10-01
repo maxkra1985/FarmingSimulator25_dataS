@@ -1,53 +1,47 @@
--- Local values: ChainsawCutEvent_mt
 ChainsawCutEvent = {}
 local ChainsawCutEvent_mt = Class(ChainsawCutEvent, Event)
 InitStaticEventClass(ChainsawCutEvent, "ChainsawCutEvent")
 function ChainsawCutEvent.emptyNew()
-	-- upvalues: (copy) ChainsawCutEvent_mt
-	return Event.new(ChainsawCutEvent_mt)
+	local self = Event.new(ChainsawCutEvent_mt)
+	return self
 end
-
--- Local values: self
 function ChainsawCutEvent.new(splitShapeId, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, farmId)
-	local v15_ = ChainsawCutEvent.emptyNew()
-	v15_.splitShapeId = splitShapeId
-	v15_.x = x
-	v15_.y = y
-	v15_.z = z
-	v15_.nx = nx
-	v15_.ny = ny
-	v15_.nz = nz
-	v15_.yx = yx
-	v15_.yy = yy
-	v15_.yz = yz
-	v15_.cutSizeY = cutSizeY
-	v15_.cutSizeZ = cutSizeZ
-	v15_.farmId = farmId
-	return v15_
+	local self = ChainsawCutEvent.emptyNew()
+	self.splitShapeId = splitShapeId
+	self.x = x
+	self.y = y
+	self.z = z
+	self.nx = nx
+	self.ny = ny
+	self.nz = nz
+	self.yx = yx
+	self.yy = yy
+	self.yz = yz
+	self.cutSizeY = cutSizeY
+	self.cutSizeZ = cutSizeZ
+	self.farmId = farmId
+	return self
 end
-
--- Local values: splitShapeId, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, farmId
 function ChainsawCutEvent:readStream(streamId, connection)
 	if not connection:getIsServer() then
-		local v18_ = readSplitShapeIdFromStream(streamId)
-		local v19_ = streamReadFloat32(streamId)
-		local v20_ = streamReadFloat32(streamId)
-		local v21_ = streamReadFloat32(streamId)
-		local v22_ = streamReadFloat32(streamId)
-		local v23_ = streamReadFloat32(streamId)
-		local v24_ = streamReadFloat32(streamId)
-		local v25_ = streamReadFloat32(streamId)
-		local v26_ = streamReadFloat32(streamId)
-		local v27_ = streamReadFloat32(streamId)
-		local v28_ = streamReadFloat32(streamId)
-		local v29_ = streamReadFloat32(streamId)
-		local v30_ = streamReadUIntN(streamId, FarmManager.FARM_ID_SEND_NUM_BITS)
-		if v18_ ~= 0 then
-			ChainsawUtil.cutSplitShape(v18_, v19_, v20_, v21_, v22_, v23_, v24_, v25_, v26_, v27_, v28_, v29_, v30_)
+		local splitShapeId = readSplitShapeIdFromStream(streamId)
+		local x = streamReadFloat32(streamId)
+		local y = streamReadFloat32(streamId)
+		local z = streamReadFloat32(streamId)
+		local nx = streamReadFloat32(streamId)
+		local ny = streamReadFloat32(streamId)
+		local nz = streamReadFloat32(streamId)
+		local yx = streamReadFloat32(streamId)
+		local yy = streamReadFloat32(streamId)
+		local yz = streamReadFloat32(streamId)
+		local cutSizeY = streamReadFloat32(streamId)
+		local cutSizeZ = streamReadFloat32(streamId)
+		local farmId = streamReadUIntN(streamId, FarmManager.FARM_ID_SEND_NUM_BITS)
+		if splitShapeId ~= 0 then
+			ChainsawUtil.cutSplitShape(splitShapeId, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, farmId)
 		end
 	end
 end
-
 function ChainsawCutEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
 		writeSplitShapeIdToStream(streamId, self.splitShapeId)
@@ -65,7 +59,6 @@ function ChainsawCutEvent:writeStream(streamId, connection)
 		streamWriteUIntN(streamId, self.farmId, FarmManager.FARM_ID_SEND_NUM_BITS)
 	end
 end
-
 function ChainsawCutEvent:run(connection)
 	print("Error: ChainsawCutEvent is not allowed to be executed on a local client")
 end

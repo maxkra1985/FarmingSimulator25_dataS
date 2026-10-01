@@ -1,25 +1,20 @@
--- Local values: VehicleConfigurationItemMotor_mt
 VehicleConfigurationItemMotor = {}
 VehicleConfigurationItemMotor.SELECTOR = ConfigurationUtil.SELECTOR_MULTIOPTION
 local VehicleConfigurationItemMotor_mt = Class(VehicleConfigurationItemMotor, VehicleConfigurationItem)
-
--- Upvalues: VehicleConfigurationItemMotor_mt
--- Local values: self
 function VehicleConfigurationItemMotor.new(configName, customMt)
-	-- upvalues: (copy) VehicleConfigurationItemMotor_mt
-	return VehicleConfigurationItemMotor:superClass().new(configName, VehicleConfigurationItemMotor_mt)
+	local self = VehicleConfigurationItemMotor:superClass().new(configName, VehicleConfigurationItemMotor_mt)
+	return self
 end
-
 function VehicleConfigurationItemMotor:loadFromXML(xmlFile, baseKey, configKey, baseDirectory, customEnvironment)
 	if not VehicleConfigurationItemMotor:superClass().loadFromXML(self, xmlFile, baseKey, configKey, baseDirectory, customEnvironment) then
 		return false
+	else
+		self.power = xmlFile:getValue(configKey .. "#hp")
+		self.maxSpeed = xmlFile:getValue(configKey .. "#maxSpeed")
+		self.consumerConfigurationIndex = xmlFile:getValue(configKey .. "#consumerConfigurationIndex")
+		return true
 	end
-	self.power = xmlFile:getValue(configKey .. "#hp")
-	self.maxSpeed = xmlFile:getValue(configKey .. "#maxSpeed")
-	self.consumerConfigurationIndex = xmlFile:getValue(configKey .. "#consumerConfigurationIndex")
-	return true
 end
-
 function VehicleConfigurationItemMotor.registerXMLPaths(schema, rootPath, configPath)
 	VehicleConfigurationItemMotor:superClass().registerXMLPaths(schema, rootPath, configPath)
 	schema:register(XMLValueType.FLOAT, configPath .. "#hp", "Horse power to be shown in the shop")

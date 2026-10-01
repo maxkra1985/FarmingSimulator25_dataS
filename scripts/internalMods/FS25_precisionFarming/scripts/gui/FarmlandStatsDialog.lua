@@ -1,185 +1,176 @@
--- Local values: FarmlandStatsDialog_mt
 FarmlandStatsDialog = {}
 FarmlandStatsDialog.MOD_NAME = g_currentModName
 FarmlandStatsDialog.MOD_DIR = g_currentModDirectory
 local FarmlandStatsDialog_mt = Class(FarmlandStatsDialog, MessageDialog)
 function FarmlandStatsDialog.register()
-	local v2_ = FarmlandStatsDialog.new()
-	g_gui:loadGui(FarmlandStatsDialog.MOD_DIR .. "gui/FarmlandStatsDialog.xml", "FarmlandStatsDialog", v2_)
-	FarmlandStatsDialog.INSTANCE = v2_
+	local instance = FarmlandStatsDialog.new()
+	g_gui:loadGui(FarmlandStatsDialog.MOD_DIR .. "gui/FarmlandStatsDialog.xml", "FarmlandStatsDialog", instance)
+	FarmlandStatsDialog.INSTANCE = instance
 end
-
--- Upvalues: FarmlandStatsDialog_mt
--- Local values: self
 function FarmlandStatsDialog.new(target, custom_mt)
-	-- upvalues: (copy) FarmlandStatsDialog_mt
-	local v5_ = FarmlandStatsDialog:superClass().new(target, custom_mt or FarmlandStatsDialog_mt)
-	v5_.farmlandId = 0
-	v5_.fieldNumber = 0
-	v5_.fieldArea = 0
-	v5_.statistic = nil
-	v5_.showTotal = false
-	return v5_
+	local self = FarmlandStatsDialog:superClass().new(target, custom_mt or FarmlandStatsDialog_mt)
+	self.farmlandId = 0
+	self.fieldNumber = 0
+	self.fieldArea = 0
+	self.statistic = nil
+	self.showTotal = false
+	return self
 end
-
--- Local values: farmlandStatistics, text, setChangePercentageElement, buildValueDisplay, totalCosts, totalRegularCosts, costs, regularCosts, subsidies, yieldWeight, yieldBestPrice, earningsIncreasePct, earningsIncrease, costIncrease, totalEarnings, result
 function FarmlandStatsDialog:setData(farmlandId, fieldNumber, fieldArea, statistic)
 	self.farmlandId = farmlandId
 	self.fieldNumber = fieldNumber
 	self.fieldArea = fieldArea
 	self.statistic = statistic
-	local v_u_11_ = g_precisionFarming.farmlandStatistics
-	local v12_
-	if fieldNumber == 0 then
-		v12_ = string.format(g_i18n:getText("ui_economicAnalysisHeaderAdditionalField"), fieldArea)
+	local farmlandStatistics = g_precisionFarming.farmlandStatistics
+	local text = nil
+	if fieldNumber ~= 0 then
+		text = string.format(g_i18n:getText("ui_economicAnalysisHeaderField"), fieldNumber, fieldArea)
 	else
-		v12_ = string.format(g_i18n:getText("ui_economicAnalysisHeaderField"), fieldNumber, fieldArea)
+		text = string.format(g_i18n:getText("ui_economicAnalysisHeaderAdditionalField"), fieldArea)
 	end
-	self.economicAnalysisHeaderField:setText(v12_)
+	self.economicAnalysisHeaderField:setText(text)
 	self.economicAnalysisHeaderValues:setText(g_i18n:getText(self.showTotal and "ui_economicAnalysisHeaderValuesTotal" or "ui_economicAnalysisHeaderValuesPeriod"))
-	local function v_u_23_(p13_, p14_, p15_, p16_, p17_)
-		local v18_ = 0
-		if p14_ == p15_ then
-			p13_:setText("")
-			return v18_
-		end
-		local v19_ = nil
-		local v20_ = ""
-		if p15_ == 0 then
-			if math.floor(p16_ or 0) == 0 then
-				v20_ = ""
+	local setChangePercentageElement = function(element, value, valueRegular, cost, inversePercentageColor)
+		local pct = 0
+		if value ~= valueRegular then
+			local direction = nil
+			local pctText = ""
+			if valueRegular ~= 0 then
+				pct = math.floor(-100 * (1 - value / valueRegular))
+				if pct ~= 0 then
+					local str = pct <= 0 and "(%d%%)" or "(+%d%%)"
+					pctText = string.format(str, pct)
+					direction = 0 < pct
+				end
+			elseif math.floor(cost or 0) ~= 0 then
+				pctText = string.format("(%s%s)", 0 < cost and "+" or "", g_i18n:formatMoney(cost))
+				pct = 100
+				direction = 0 < cost
 			else
-				v20_ = string.format("(%s%s)", p16_ > 0 and "+" or "", g_i18n:formatMoney(p16_))
-				v19_ = p16_ > 0
-				v18_ = 100
+				pctText = ""
 			end
+			if inversePercentageColor == true then
+				direction = not direction
+			end
+			element:applyProfile(direction and "farmlandStatsDialogChangeNeg" or "farmlandStatsDialogChangePos", true)
+			element:setText(pctText)
+			return pct
 		else
-			local v21_ = -100 * (1 - p14_ / p15_)
-			v18_ = math.floor(v21_)
-			if v18_ ~= 0 then
-				local v22_ = v18_ <= 0 and "(%d%%)" or "(+%d%%)"
-				v20_ = string.format(v22_, v18_)
-				v19_ = v18_ > 0
+			element:setText("")
+			return pct
+		end
+	end
+	local buildValueDisplay = function(statistic, index, showTotal, name, nameRegular, fillTypeIndex, showWeight, showValue, showCost, showDetailedLiters, unitStr, cost, weight, inversePercentageColor)
+		if unitStr == nil then
+			unitStr = " l"
+		elseif 0 < unitStr:len() then
+			unitStr = " " .. unitStr
+		end
+		local value = statistic:getValue(showTotal, name)
+		local valueRegular = value
+		if nameRegular ~= nil then
+			if type(nameRegular) == "string" then
+				valueRegular = statistic:getValue(showTotal, nameRegular)
+			elseif type(nameRegular) == "number" then
+				valueRegular = nameRegular
 			end
 		end
-		if p17_ == true then
-			v19_ = not v19_
-		end
-		p13_:applyProfile(v19_ and "farmlandStatsDialogChangeNeg" or "farmlandStatsDialogChangePos", true)
-		p13_:setText(v20_)
-		return v18_
-	end
-	local function v48_(p24_, p25_, p26_, p27_, p28_, p29_, p30_, p31_, p32_, p33_, p34_, p35_, p36_, p37_)
-		-- upvalues: (copy) v_u_11_, (copy) self, (copy) v_u_23_
-		if p34_ == nil then
-			p34_ = " l"
-		elseif p34_:len() > 0 then
-			p34_ = " " .. p34_
-		end
-		local v38_ = p24_:getValue(p26_, p27_)
-		if p28_ == nil then
-			p28_ = v38_
-		elseif type(p28_) == "string" then
-			p28_ = p24_:getValue(p26_, p28_)
-		elseif type(p28_) ~= "number" then
-			p28_ = v38_
-		end
-		local v39_ = p35_ or v_u_11_:getFillLevelPrice(v38_, p29_)
-		local v40_ = p36_ or v_u_11_:getFillLevelWeight(v38_, p29_)
-		if p31_ then
-			local v41_ = "%d" .. p34_
-			if p33_ then
-				v41_ = "%.1f" .. p34_
+		cost = cost or farmlandStatistics:getFillLevelPrice(value, fillTypeIndex)
+		weight = weight or farmlandStatistics:getFillLevelWeight(value, fillTypeIndex)
+		if showValue then
+			local valueText = "%d" .. unitStr
+			if showDetailedLiters then
+				valueText = "%.1f" .. unitStr
 			else
-				v38_ = MathUtil.round(v38_)
+				value = MathUtil.round(value)
 			end
-			if p30_ then
-				v41_ = v41_ .. " | %.1f t"
+			if showWeight then
+				valueText = valueText .. " | %.1f t"
 			end
-			self.statAmountText[p25_]:setText(string.format(v41_, v38_, v40_))
+			self.statAmountText[index]:setText(string.format(valueText, value, weight))
 		else
-			self.statAmountText[p25_]:setText("")
+			self.statAmountText[index]:setText("")
 		end
-		if p32_ == nil or p32_ then
-			self.statCostText[p25_]:setText(g_i18n:formatMoney(v39_))
+		if showCost == nil or showCost then
+			self.statCostText[index]:setText(g_i18n:formatMoney(cost))
 		else
-			self.statCostText[p25_]:setText("")
+			self.statCostText[index]:setText("")
 		end
-		local v42_ = v_u_23_(self.statPercentageText[p25_], v38_, p28_, v39_, p37_)
-		local v43_ = p32_ == false and 0 or v42_
-		local v44_ = math.floor(v39_)
-		local v45_ = math.max(v44_)
-		local v46_ = v39_ * (-v43_ * 0.01 + 1)
-		local v47_ = math.floor(v46_)
-		return v45_, math.max(v47_, 0)
+		local percentageIncrease = setChangePercentageElement(self.statPercentageText[index], value, valueRegular, cost, inversePercentageColor)
+		if showCost == false then
+			percentageIncrease = 0
+		end
+		return math.max(math.floor(cost)), math.max(math.floor(cost * (-percentageIncrease * 0.01 + 1)), 0)
 	end
-	local v49_, v50_ = v48_(statistic, 1, self.showTotal, "numSoilSamples", 0, "soilSamples", false, true, true, false, "", statistic:getValue(self.showTotal, "soilSampleCosts"))
-	local v51_ = 0 + v49_
-	local v52_ = 0 + v50_
-	local v53_, v54_ = v48_(statistic, 2, self.showTotal, "usedLime", "usedLimeRegular", FillType.LIME, true, true, true, false)
-	local v55_ = v51_ + v53_
-	local v56_ = v52_ + v54_
-	local v57_, v58_ = v48_(statistic, 3, self.showTotal, "usedMineralFertilizer", "usedMineralFertilizerRegular", FillType.FERTILIZER, true, true, true, false)
-	local v59_ = v55_ + v57_
-	local v60_ = v56_ + v58_
-	local v61_, v62_ = v48_(statistic, 4, self.showTotal, "usedLiquidFertilizer", "usedLiquidFertilizerRegular", FillType.LIQUIDFERTILIZER, false, true, true, false)
-	local v63_ = v59_ + v61_
-	local v64_ = v60_ + v62_
-	v48_(statistic, 5, self.showTotal, "usedManure", "usedManureRegular", FillType.MANURE, true, true, false, false)
-	v48_(statistic, 6, self.showTotal, "usedLiquidManure", "usedLiquidManureRegular", FillType.LIQUIDMANURE, false, true, false, false)
-	local v65_, v66_ = v48_(statistic, 7, self.showTotal, "usedSeeds", "usedSeedsRegular", FillType.SEEDS, true, true, true, false)
-	local v67_ = v63_ + v65_
-	local v68_ = v64_ + v66_
-	local v69_, v70_ = v48_(statistic, 8, self.showTotal, "usedHerbicide", "usedHerbicideRegular", FillType.HERBICIDE, false, true, true, false)
-	local v71_ = v67_ + v69_
-	local v72_ = v68_ + v70_
-	local v73_, v74_ = v48_(statistic, 9, self.showTotal, "usedFuel", nil, FillType.DIESEL, false, true, true, true)
-	local v75_ = v71_ + v73_
-	local v76_ = v72_ + v74_
-	local v77_, v78_ = v48_(statistic, 10, self.showTotal, "vehicleCosts", nil, 0, false, false, true, false)
-	local v79_ = v75_ + v77_
-	local v80_ = v76_ + v78_
-	local v81_, v82_ = v48_(statistic, 11, self.showTotal, "helperCosts", nil, 0, false, false, true, false)
-	local v83_ = v79_ + v81_
-	local v84_ = v80_ + v82_
-	local v85_ = statistic:getValue(self.showTotal, "subsidies")
-	v48_(statistic, 12, self.showTotal, v85_, 0, 0, false, false, true, false, nil, v85_, 0, false)
-	local v86_ = statistic:getValue(self.showTotal, "yieldWeight")
-	local v87_ = statistic:getValue(self.showTotal, "yieldBestPrice")
-	v48_(statistic, 13, self.showTotal, "yield", "yieldRegular", 0, true, true, true, false, nil, v87_, v86_, true)
-	local v88_ = statistic:getValue(self.showTotal, "yield")
-	local v89_ = statistic:getValue(self.showTotal, "yieldRegular")
-	local v90_ = v88_ / math.max(v89_, 0.01)
-	local v91_ = v90_ == 0 and 0 or v87_ - v87_ / v90_
-	local v92_ = v84_ - v83_
-	v_u_23_(self.statTotalCostPercentageText, v83_, 0, math.abs(v92_), false)
-	v_u_23_(self.statTotalEarningsPercentageText, v87_, 0, v91_, true)
-	v_u_23_(self.statTotalPercentageText, v87_, 0, v92_ + v91_, true)
-	local v93_ = v87_ + v85_
-	local v94_ = v93_ - v83_
-	self.statTotalCostText:setText(g_i18n:formatMoney(v83_))
-	self.statTotalEarningsText:setText(g_i18n:formatMoney(v93_))
-	self.statTotalText:setText(g_i18n:formatMoney(v94_))
+	local totalCosts = 0
+	local totalRegularCosts = 0
+	local costs = nil
+	local regularCosts = nil
+	costs, regularCosts = buildValueDisplay(statistic, 1, self.showTotal, "numSoilSamples", 0, "soilSamples", false, true, true, false, "", statistic:getValue(self.showTotal, "soilSampleCosts"))
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	costs, regularCosts = buildValueDisplay(statistic, 2, self.showTotal, "usedLime", "usedLimeRegular", FillType.LIME, true, true, true, false)
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	costs, regularCosts = buildValueDisplay(statistic, 3, self.showTotal, "usedMineralFertilizer", "usedMineralFertilizerRegular", FillType.FERTILIZER, true, true, true, false)
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	costs, regularCosts = buildValueDisplay(statistic, 4, self.showTotal, "usedLiquidFertilizer", "usedLiquidFertilizerRegular", FillType.LIQUIDFERTILIZER, false, true, true, false)
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	buildValueDisplay(statistic, 5, self.showTotal, "usedManure", "usedManureRegular", FillType.MANURE, true, true, false, false)
+	buildValueDisplay(statistic, 6, self.showTotal, "usedLiquidManure", "usedLiquidManureRegular", FillType.LIQUIDMANURE, false, true, false, false)
+	costs, regularCosts = buildValueDisplay(statistic, 7, self.showTotal, "usedSeeds", "usedSeedsRegular", FillType.SEEDS, true, true, true, false)
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	costs, regularCosts = buildValueDisplay(statistic, 8, self.showTotal, "usedHerbicide", "usedHerbicideRegular", FillType.HERBICIDE, false, true, true, false)
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	costs, regularCosts = buildValueDisplay(statistic, 9, self.showTotal, "usedFuel", nil, FillType.DIESEL, false, true, true, true)
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	costs, regularCosts = buildValueDisplay(statistic, 10, self.showTotal, "vehicleCosts", nil, 0, false, false, true, false)
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	costs, regularCosts = buildValueDisplay(statistic, 11, self.showTotal, "helperCosts", nil, 0, false, false, true, false)
+	totalCosts = totalCosts + costs
+	totalRegularCosts = totalRegularCosts + regularCosts
+	local subsidies = statistic:getValue(self.showTotal, "subsidies")
+	buildValueDisplay(statistic, 12, self.showTotal, subsidies, 0, 0, false, false, true, false, nil, subsidies, 0, false)
+	local yieldWeight = statistic:getValue(self.showTotal, "yieldWeight")
+	local yieldBestPrice = statistic:getValue(self.showTotal, "yieldBestPrice")
+	buildValueDisplay(statistic, 13, self.showTotal, "yield", "yieldRegular", 0, true, true, true, false, nil, yieldBestPrice, yieldWeight, true)
+	local earningsIncreasePct = statistic:getValue(self.showTotal, "yield") / math.max(statistic:getValue(self.showTotal, "yieldRegular"), 0.01)
+	local earningsIncrease = 0
+	if earningsIncreasePct ~= 0 then
+		earningsIncrease = yieldBestPrice - yieldBestPrice / earningsIncreasePct
+	end
+	local costIncrease = totalRegularCosts - totalCosts
+	setChangePercentageElement(self.statTotalCostPercentageText, totalCosts, 0, math.abs(costIncrease), false)
+	setChangePercentageElement(self.statTotalEarningsPercentageText, yieldBestPrice, 0, earningsIncrease, true)
+	setChangePercentageElement(self.statTotalPercentageText, yieldBestPrice, 0, costIncrease + earningsIncrease, true)
+	local totalEarnings = yieldBestPrice + subsidies
+	local result = totalEarnings - totalCosts
+	self.statTotalCostText:setText(g_i18n:formatMoney(totalCosts))
+	self.statTotalEarningsText:setText(g_i18n:formatMoney(totalEarnings))
+	self.statTotalText:setText(g_i18n:formatMoney(result))
 end
-
 function FarmlandStatsDialog:onSwitchMode()
 	self.showTotal = not self.showTotal
 	if self.farmlandId ~= 0 then
 		self:setData(self.farmlandId, self.fieldNumber, self.fieldArea, self.statistic)
 	end
 end
-
--- Local values: farmlandStatistics
 function FarmlandStatsDialog:onReset()
 	if self.farmlandId ~= 0 then
-		g_precisionFarming.farmlandStatistics:resetStatistic(self.farmlandId, false)
+		local farmlandStatistics = g_precisionFarming.farmlandStatistics
+		farmlandStatistics:resetStatistic(self.farmlandId, false)
 		self:setData(self.farmlandId, self.fieldNumber, self.fieldArea, self.statistic)
 		if g_server == nil and g_client ~= nil then
 			g_client:getServerConnection():sendEvent(FarmlandStatisticsResetEvent.new(self.farmlandId))
 		end
 	end
 end
-
 function FarmlandStatsDialog:onCloseButton()
 	self:close()
 	self.farmlandId = 0
@@ -188,23 +179,20 @@ function FarmlandStatsDialog:onCloseButton()
 	self.statistic = nil
 	self.showTotal = false
 end
-
--- Local values: dialog
 function FarmlandStatsDialog.show(farmlandId, fieldNumber, fieldArea, statistic)
 	if FarmlandStatsDialog.INSTANCE ~= nil then
-		FarmlandStatsDialog.INSTANCE:setData(farmlandId, fieldNumber, fieldArea, statistic)
+		local dialog = FarmlandStatsDialog.INSTANCE
+		dialog:setData(farmlandId, fieldNumber, fieldArea, statistic)
 		g_gui:showDialog("FarmlandStatsDialog")
 	end
 end
-
--- Local values: farmlandId, fieldNumber, fieldArea, statistic
 function FarmlandStatsDialog.createFromExistingGui(gui, guiName)
 	FarmlandStatsDialog.register()
-	local v103_ = gui.farmlandId
-	local v104_ = gui.fieldNumber
-	local v105_ = gui.fieldArea
-	local v106_ = gui.statistic
-	if v103_ ~= 0 then
-		FarmlandStatsDialog.show(v103_, v104_, v105_, v106_)
+	local farmlandId = gui.farmlandId
+	local fieldNumber = gui.fieldNumber
+	local fieldArea = gui.fieldArea
+	local statistic = gui.statistic
+	if farmlandId ~= 0 then
+		FarmlandStatsDialog.show(farmlandId, fieldNumber, fieldArea, statistic)
 	end
 end

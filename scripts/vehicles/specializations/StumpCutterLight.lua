@@ -1,30 +1,26 @@
 StumpCutterLight = {}
-
 function StumpCutterLight.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(TurnOnVehicle, specializations)
 end
 function StumpCutterLight.initSpecialization()
-	local v2_ = Vehicle.xmlSchema
-	v2_:setXMLSpecializationType("StumpCutterLight")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.stumpCutterLight#cutNode", "Cut nodes which is used as reference to detect the stumps")
-	v2_:register(XMLValueType.FLOAT, "vehicle.stumpCutterLight#cutRadius", "Stumps within this radius from the cut node will be removed", 1)
-	v2_:register(XMLValueType.TIME, "vehicle.stumpCutterLight#cutTime", "Time until the stump has been cut", 1)
-	EffectManager.registerEffectXMLPaths(v2_, "vehicle.stumpCutterLight.effects")
-	v2_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("StumpCutterLight")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.stumpCutterLight#cutNode", "Cut nodes which is used as reference to detect the stumps")
+	schema:register(XMLValueType.FLOAT, "vehicle.stumpCutterLight#cutRadius", "Stumps within this radius from the cut node will be removed", 1)
+	schema:register(XMLValueType.TIME, "vehicle.stumpCutterLight#cutTime", "Time until the stump has been cut", 1)
+	EffectManager.registerEffectXMLPaths(schema, "vehicle.stumpCutterLight.effects")
+	schema:setXMLSpecializationType()
 end
-
 function StumpCutterLight.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "removeTreeStump", StumpCutterLight.removeTreeStump)
 	SpecializationUtil.registerFunction(vehicleType, "stumpCutterLightOverlapCallback", StumpCutterLight.stumpCutterLightOverlapCallback)
 end
-
 function StumpCutterLight.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getAreControlledActionsAllowed", StumpCutterLight.getAreControlledActionsAllowed)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getDirtMultiplier", StumpCutterLight.getDirtMultiplier)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getWearMultiplier", StumpCutterLight.getWearMultiplier)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getConsumingLoad", StumpCutterLight.getConsumingLoad)
 end
-
 function StumpCutterLight.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", StumpCutterLight)
 	SpecializationUtil.registerEventListener(vehicleType, "onDelete", StumpCutterLight)
@@ -33,22 +29,21 @@ function StumpCutterLight.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOn", StumpCutterLight)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOff", StumpCutterLight)
 end
-
--- Local values: spec, baseKey
 function StumpCutterLight:onLoad(savegame)
-	local v7_ = self.spec_stumpCutterLight
-	v7_.cutNode = self.xmlFile:getValue("vehicle.stumpCutterLight#cutNode", nil, self.components, self.i3dMappings)
-	v7_.cutRadius = self.xmlFile:getValue("vehicle.stumpCutterLight#cutRadius", 1)
-	v7_.cutTime = self.xmlFile:getValue("vehicle.stumpCutterLight#cutTime", 1)
-	v7_.cutTimer = 0
-	v7_.foundStumps = {}
-	v7_.numFoundStumps = 0
-	v7_.overlapCheckActive = false
+	local spec = self.spec_stumpCutterLight
+	local baseKey = "vehicle.stumpCutterLight"
+	spec.cutNode = self.xmlFile:getValue("vehicle.stumpCutterLight" .. "#cutNode", nil, self.components, self.i3dMappings)
+	spec.cutRadius = self.xmlFile:getValue("vehicle.stumpCutterLight" .. "#cutRadius", 1)
+	spec.cutTime = self.xmlFile:getValue("vehicle.stumpCutterLight" .. "#cutTime", 1)
+	spec.cutTimer = 0
+	spec.foundStumps = {}
+	spec.numFoundStumps = 0
+	spec.overlapCheckActive = false
 	if self.isClient then
-		v7_.effects = g_effectManager:loadEffect(self.xmlFile, "vehicle.stumpCutterLight.effects", self.components, self, self.i3dMappings)
+		spec.effects = g_effectManager:loadEffect(self.xmlFile, "vehicle.stumpCutterLight" .. ".effects", self.components, self, self.i3dMappings)
 	end
-	v7_.texts = {}
-	v7_.texts.warning_stumpCutterNoStumpInRange = g_i18n:getText("warning_stumpCutterNoStumpInRange")
+	spec.texts = {}
+	spec.texts.warning_stumpCutterNoStumpInRange = g_i18n:getText("warning_stumpCutterNoStumpInRange")
 	if not self.isServer then
 		SpecializationUtil.removeEventListener(self, "onUpdate", StumpCutterLight)
 	end
@@ -59,31 +54,27 @@ function StumpCutterLight:onLoad(savegame)
 		SpecializationUtil.removeEventListener(self, "onTurnedOff", StumpCutterLight)
 	end
 end
-
--- Local values: spec
 function StumpCutterLight:onDelete()
-	local v9_ = self.spec_stumpCutterLight
-	g_effectManager:deleteEffects(v9_.effects)
+	local spec = self.spec_stumpCutterLight
+	g_effectManager:deleteEffects(spec.effects)
 end
-
--- Local values: spec, turnOffVehicle, i, i, x, y, z
 function StumpCutterLight:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v12_ = self.spec_stumpCutterLight
+	local spec = self.spec_stumpCutterLight
 	if self:getIsTurnedOn() then
-		local v13_ = false
-		if v12_.numFoundStumps > 0 then
-			v12_.cutTimer = v12_.cutTimer + dt
-			if v12_.cutTimer > v12_.cutTime and not v12_.overlapCheckActive then
-				for v14_ = 1, #v12_.foundStumps do
-					self:removeTreeStump(v12_.foundStumps[v14_])
+		local turnOffVehicle = false
+		if 0 < spec.numFoundStumps then
+			spec.cutTimer = spec.cutTimer + dt
+			if spec.cutTime < spec.cutTimer and not spec.overlapCheckActive then
+				for i = 1, #spec.foundStumps do
+					self:removeTreeStump(spec.foundStumps[i])
 				end
-				v12_.cutTimer = 0
-				v13_ = true
+				spec.cutTimer = 0
+				turnOffVehicle = true
 			end
 		else
-			v13_ = true
+			turnOffVehicle = true
 		end
-		if v13_ then
+		if turnOffVehicle then
 			if Platform.gameplay.automaticVehicleControl then
 				self.rootVehicle:playControlledActions()
 			else
@@ -91,88 +82,75 @@ function StumpCutterLight:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreS
 			end
 		end
 	end
-	if not v12_.overlapCheckActive then
-		v12_.numFoundStumps = #v12_.foundStumps
-		for v15_ = #v12_.foundStumps, 1, -1 do
-			v12_.foundStumps[v15_] = nil
+	if not spec.overlapCheckActive then
+		spec.numFoundStumps = #spec.foundStumps
+		for i = #spec.foundStumps, 1, -1 do
+			spec.foundStumps[i] = nil
 		end
-		v12_.overlapCheckActive = true
-		local v16_, v17_, v18_ = getWorldTranslation(v12_.cutNode)
-		overlapSphereAsync(v16_, v17_, v18_, v12_.cutRadius, "stumpCutterLightOverlapCallback", self, CollisionFlag.TREE, false, false, true, false)
+		spec.overlapCheckActive = true
+		local x, y, z = getWorldTranslation(spec.cutNode)
+		overlapSphereAsync(x, y, z, spec.cutRadius, "stumpCutterLightOverlapCallback", self, CollisionFlag.TREE, false, false, true, false)
 	end
 end
-
--- Local values: spec
 function StumpCutterLight:onDeactivate()
-	local v20_ = self.spec_stumpCutterLight
-	g_effectManager:stopEffects(v20_.effects)
+	local spec = self.spec_stumpCutterLight
+	g_effectManager:stopEffects(spec.effects)
 end
-
--- Local values: spec
 function StumpCutterLight:onTurnedOn()
-	local v22_ = self.spec_stumpCutterLight
-	g_effectManager:setEffectTypeInfo(v22_.effects, FillType.WOODCHIPS)
-	g_effectManager:startEffects(v22_.effects)
+	local spec = self.spec_stumpCutterLight
+	g_effectManager:setEffectTypeInfo(spec.effects, FillType.WOODCHIPS)
+	g_effectManager:startEffects(spec.effects)
 end
-
--- Local values: spec
 function StumpCutterLight:onTurnedOff()
-	local v24_ = self.spec_stumpCutterLight
-	g_effectManager:stopEffects(v24_.effects)
+	local spec = self.spec_stumpCutterLight
+	g_effectManager:stopEffects(spec.effects)
 end
-
--- Local values: splitTypeIndex, treeTypeDesc, x, _, z, y, yRot
 function StumpCutterLight:removeTreeStump(shapeId)
 	if self.isServer then
-		local v27_ = getSplitType(shapeId)
-		local v28_ = g_treePlantManager:getTreeTypeDescFromSplitType(v27_)
-		local v29_, _, v30_ = getWorldTranslation(shapeId)
-		local v31_ = getTerrainHeightAtWorldPos(g_terrainNode, v29_, 0, v30_)
-		local v32_ = math.random() * 2 * 3.141592653589793
-		g_treePlantManager:plantTree(v28_.index, v29_, v31_, v30_, 0, v32_, 0, 0)
+		local splitTypeIndex = getSplitType(shapeId)
+		local treeTypeDesc = g_treePlantManager:getTreeTypeDescFromSplitType(splitTypeIndex)
+		local x, _, z = getWorldTranslation(shapeId)
+		local y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+		local yRot = math.random() * 2 * 3.141592653589793
+		g_treePlantManager:plantTree(treeTypeDesc.index, x, y, z, 0, yRot, 0, 0)
 		g_farmManager:updateFarmStats(self:getActiveFarm(), "plantedTreeCount", 1)
 		delete(shapeId)
 	end
 end
-function StumpCutterLight.stumpCutterLightOverlapCallback(p33_, p34_, ...)
-	local v35_ = p33_.spec_stumpCutterLight
-	if not p33_.isDeleted and (p34_ ~= 0 and (p34_ ~= 0 and (getHasClassId(p34_, ClassIds.MESH_SPLIT_SHAPE) and getUserAttribute(p34_, "isTreeStump")))) then
-		local v36_ = v35_.foundStumps
-		table.insert(v36_, p34_)
+function StumpCutterLight:stumpCutterLightOverlapCallback(objectId, ...)
+	local spec = self.spec_stumpCutterLight
+	if not self.isDeleted and (objectId ~= 0 and (objectId ~= 0 and (getHasClassId(objectId, ClassIds.MESH_SPLIT_SHAPE) and getUserAttribute(objectId, "isTreeStump")))) then
+		table.insert(spec.foundStumps, objectId)
 	end
-	v35_.overlapCheckActive = false
+	spec.overlapCheckActive = false
 end
-
--- Local values: spec
 function StumpCutterLight:getAreControlledActionsAllowed(superFunc)
-	local v39_ = self.spec_stumpCutterLight
-	if v39_.numFoundStumps == 0 then
-		return false, v39_.texts.warning_stumpCutterNoStumpInRange
+	local spec = self.spec_stumpCutterLight
+	if spec.numFoundStumps == 0 then
+		return false, spec.texts.warning_stumpCutterNoStumpInRange
 	else
 		return superFunc(self)
 	end
 end
-
--- Local values: multiplier
 function StumpCutterLight:getDirtMultiplier(superFunc)
-	local v42_ = superFunc(self)
+	local multiplier = superFunc(self)
 	if self:getIsTurnedOn() then
-		v42_ = v42_ + self:getWorkDirtMultiplier()
+		multiplier = multiplier + self:getWorkDirtMultiplier()
 	end
-	return v42_
+	return multiplier
 end
-
--- Local values: multiplier
 function StumpCutterLight:getWearMultiplier(superFunc)
-	local v45_ = superFunc(self)
+	local multiplier = superFunc(self)
 	if self:getIsTurnedOn() then
-		v45_ = v45_ + self:getWorkWearMultiplier()
+		multiplier = multiplier + self:getWorkWearMultiplier()
 	end
-	return v45_
+	return multiplier
 end
-
--- Local values: value, count, loadPercentage
 function StumpCutterLight:getConsumingLoad(superFunc)
-	local v48_, v49_ = superFunc(self)
-	return v48_ + (self:getIsTurnedOn() and 1 or 0), v49_ + 1
+	local value, count = superFunc(self)
+	local loadPercentage = 0
+	if self:getIsTurnedOn() then
+		loadPercentage = 1
+	end
+	return value + loadPercentage, count + 1
 end

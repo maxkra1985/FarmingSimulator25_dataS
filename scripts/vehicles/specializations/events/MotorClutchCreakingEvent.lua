@@ -1,23 +1,19 @@
--- Local values: MotorClutchCreakingEvent_mt
 MotorClutchCreakingEvent = {}
 local MotorClutchCreakingEvent_mt = Class(MotorClutchCreakingEvent, Event)
 InitStaticEventClass(MotorClutchCreakingEvent, "MotorClutchCreakingEvent")
 function MotorClutchCreakingEvent.emptyNew()
-	-- upvalues: (copy) MotorClutchCreakingEvent_mt
-	return Event.new(MotorClutchCreakingEvent_mt)
+	local self = Event.new(MotorClutchCreakingEvent_mt)
+	return self
 end
-
--- Local values: self
 function MotorClutchCreakingEvent.new(vehicle, isEvent, groupTransmission, gearIndex, groupIndex)
-	local v7_ = MotorClutchCreakingEvent.emptyNew()
-	v7_.vehicle = vehicle
-	v7_.isEvent = isEvent
-	v7_.groupTransmission = groupTransmission
-	v7_.gearIndex = gearIndex
-	v7_.groupIndex = groupIndex
-	return v7_
+	local self = MotorClutchCreakingEvent.emptyNew()
+	self.vehicle = vehicle
+	self.isEvent = isEvent
+	self.groupTransmission = groupTransmission
+	self.gearIndex = gearIndex
+	self.groupIndex = groupIndex
+	return self
 end
-
 function MotorClutchCreakingEvent:readStream(streamId, connection)
 	self.vehicle = NetworkUtil.readNodeObject(streamId)
 	self.isEvent = streamReadBool(streamId)
@@ -30,7 +26,6 @@ function MotorClutchCreakingEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function MotorClutchCreakingEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.vehicle)
 	streamWriteBool(streamId, self.isEvent)
@@ -42,11 +37,9 @@ function MotorClutchCreakingEvent:writeStream(streamId, connection)
 		streamWriteUIntN(streamId, self.groupIndex, 5)
 	end
 end
-
--- Local values: vehicle
 function MotorClutchCreakingEvent:run(connection)
-	local v14_ = self.vehicle
-	if v14_ ~= nil and v14_:getIsSynchronized() then
+	local vehicle = self.vehicle
+	if vehicle ~= nil and vehicle:getIsSynchronized() then
 		SpecializationUtil.raiseEvent(self.vehicle, "onClutchCreaking", self.isEvent, self.groupTransmission, self.gearIndex, self.groupIndex)
 	end
 end

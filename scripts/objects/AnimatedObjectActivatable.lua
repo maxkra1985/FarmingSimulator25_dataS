@@ -1,138 +1,118 @@
--- Local values: AnimatedObjectActivatable_mt
 AnimatedObjectActivatable = {}
 local AnimatedObjectActivatable_mt = Class(AnimatedObjectActivatable)
-
--- Upvalues: AnimatedObjectActivatable_mt
--- Local values: self
 function AnimatedObjectActivatable.new(animatedObject)
-	-- upvalues: (copy) AnimatedObjectActivatable_mt
-	local v3_ = AnimatedObjectActivatable_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.animatedObject = animatedObject
-	v4_.activateText = ""
-	return v4_
+	local self = setmetatable({}, AnimatedObjectActivatable_mt)
+	self.animatedObject = animatedObject
+	self.activateText = ""
+	return self
 end
-
--- Local values: controls, _
 function AnimatedObjectActivatable:registerCustomInput(inputContext)
-	local v6_ = self.animatedObject.controls
-	if v6_.posAction then
-		if v6_.negAction then
-			if v6_.posAction == v6_.negAction then
-				local _, v7_ = g_inputBinding:registerActionEvent(v6_.posAction, self, self.onAnimationInputContinuous, false, false, true, true)
-				v6_.posActionEventId = v7_
-			else
-				local _, v8_ = g_inputBinding:registerActionEvent(v6_.posAction, self, self.onAnimationInputContinuous, false, false, true, true)
-				v6_.posActionEventId = v8_
-				local _, v9_ = g_inputBinding:registerActionEvent(v6_.negAction, self, self.onAnimationInputContinuous, false, false, true, true)
-				v6_.negActionEventId = v9_
-			end
+	local controls = self.animatedObject.controls
+	local _ = nil
+	if controls.posAction then
+		if not controls.negAction then
+			_, controls.posActionEventId = g_inputBinding:registerActionEvent(controls.posAction, self, self.onAnimationInputToggle, false, true, false, true)
+		elseif controls.posAction == controls.negAction then
+			_, controls.posActionEventId = g_inputBinding:registerActionEvent(controls.posAction, self, self.onAnimationInputContinuous, false, false, true, true)
 		else
-			local _, v10_ = g_inputBinding:registerActionEvent(v6_.posAction, self, self.onAnimationInputToggle, false, true, false, true)
-			v6_.posActionEventId = v10_
+			_, controls.posActionEventId = g_inputBinding:registerActionEvent(controls.posAction, self, self.onAnimationInputContinuous, false, false, true, true)
+			_, controls.negActionEventId = g_inputBinding:registerActionEvent(controls.negAction, self, self.onAnimationInputContinuous, false, false, true, true)
 		end
 	end
-	if v6_.posActionEventId then
-		g_inputBinding:setActionEventTextPriority(v6_.posActionEventId, GS_PRIO_VERY_HIGH)
-		g_inputBinding:setActionEventTextVisibility(v6_.posActionEventId, true)
-		if v6_.posActionText then
-			g_inputBinding:setActionEventText(v6_.posActionEventId, v6_.posActionText)
+	if controls.posActionEventId then
+		g_inputBinding:setActionEventTextPriority(controls.posActionEventId, GS_PRIO_VERY_HIGH)
+		g_inputBinding:setActionEventTextVisibility(controls.posActionEventId, true)
+		if controls.posActionText then
+			g_inputBinding:setActionEventText(controls.posActionEventId, controls.posActionText)
 		end
 	end
-	if v6_.negActionEventId then
-		g_inputBinding:setActionEventTextPriority(v6_.negActionEventId, GS_PRIO_VERY_HIGH)
-		g_inputBinding:setActionEventTextVisibility(v6_.negActionEventId, true)
-		if v6_.negActionText then
-			g_inputBinding:setActionEventText(v6_.negActionEventId, v6_.negActionText)
+	if controls.negActionEventId then
+		g_inputBinding:setActionEventTextPriority(controls.negActionEventId, GS_PRIO_VERY_HIGH)
+		g_inputBinding:setActionEventTextVisibility(controls.negActionEventId, true)
+		if controls.negActionText then
+			g_inputBinding:setActionEventText(controls.negActionEventId, controls.negActionText)
 		end
 	end
 	self:updateActionEventTexts()
 end
-
--- Local values: controls
 function AnimatedObjectActivatable:removeCustomInput(inputContext)
 	g_inputBinding:removeActionEventsByTarget(self)
-	local v12_ = self.animatedObject.controls
-	v12_.posActionEventId = nil
-	v12_.negActionEventId = nil
+	local controls = self.animatedObject.controls
+	controls.posActionEventId = nil
+	controls.negActionEventId = nil
 end
-
--- Local values: changed, animation, controls, direction
 function AnimatedObjectActivatable:onAnimationInputContinuous(actionName, inputValue)
-	local v16_ = false
-	local v17_ = self.animatedObject.animation
-	local v18_ = self.animatedObject.controls
-	local v19_ = 0
-	if inputValue == 0 then
-		if v17_.direction ~= 0 and v18_.wasPressed then
-			v16_ = true
-			v19_ = 0
+	local changed = false
+	local animation = self.animatedObject.animation
+	local controls = self.animatedObject.controls
+	local direction = 0
+	if inputValue ~= 0 then
+		if actionName == controls.posAction then
+			if 0 < inputValue then
+				controls.wasPressed = true
+				if animation.direction ~= 1 and animation.time ~= 1 then
+					direction = 1
+					changed = true
+				end
+			elseif actionName == controls.negAction or actionName == controls.posAction and inputValue < 0 then
+				controls.wasPressed = true
+				if animation.direction ~= -1 and animation.time ~= 0 then
+					direction = -1
+					changed = true
+				end
+			end
 		end
-	elseif actionName == v18_.posAction and inputValue > 0 then
-		v18_.wasPressed = true
-		if v17_.direction ~= 1 and v17_.time ~= 1 then
-			v16_ = true
-			v19_ = 1
-		end
-	elseif actionName == v18_.negAction or actionName == v18_.posAction and inputValue < 0 then
-		v18_.wasPressed = true
-		if v17_.direction ~= -1 and v17_.time ~= 0 then
-			v16_ = true
-			v19_ = -1
+	elseif animation.direction ~= 0 then
+		if controls.wasPressed then
+			direction = 0
+			changed = true
 		end
 	end
-	if v16_ then
-		self.animatedObject:setDirection(v19_)
+	if changed then
+		self.animatedObject:setDirection(direction)
 	end
 end
-
--- Local values: direction
 function AnimatedObjectActivatable:onAnimationInputToggle()
-	local v21_ = self.animatedObject.animation.direction * -1
-	self.animatedObject:setDirection(v21_)
+	local direction = self.animatedObject.animation.direction * -1
+	self.animatedObject:setDirection(direction)
 	self:updateActionEventTexts()
 end
-
--- Local values: controls, animation
 function AnimatedObjectActivatable:updateActionEventTexts()
-	local v23_ = self.animatedObject.controls
-	if v23_.posAction and (not v23_.negAction and (v23_.posActionText ~= nil and v23_.negActionText ~= nil)) then
-		local v24_ = self.animatedObject.animation
-		if v24_.direction == 0 and v24_.time == 0 or v24_.direction < 0 then
-			g_inputBinding:setActionEventText(v23_.posActionEventId, v23_.posActionText)
-			return
+	local controls = self.animatedObject.controls
+	if controls.posAction and (not controls.negAction and (controls.posActionText ~= nil and controls.negActionText ~= nil)) then
+		local animation = self.animatedObject.animation
+		if animation.direction ~= 0 or animation.time ~= 0 then
+			if animation.direction < 0 then
+			else
+				g_inputBinding:setActionEventText(controls.posActionEventId, controls.negActionText)
+				return
+			end
 		end
-		g_inputBinding:setActionEventText(v23_.posActionEventId, v23_.negActionText)
+		g_inputBinding:setActionEventText(controls.posActionEventId, controls.posActionText)
 	end
 end
-
 function AnimatedObjectActivatable:getIsActivatable()
 	return self.animatedObject:getCanBeTriggered()
 end
-
 function AnimatedObjectActivatable:activate()
 	g_currentMission:addDrawable(self)
 end
-
 function AnimatedObjectActivatable:deactivate()
 	g_currentMission:removeDrawable(self)
 end
-
--- Local values: tx, ty, tz
 function AnimatedObjectActivatable:getDistance(x, y, z)
-	if self.animatedObject.triggerNode == nil then
+	if self.animatedObject.triggerNode ~= nil then
+		local tx, ty, tz = getWorldTranslation(self.animatedObject.triggerNode)
+		return MathUtil.vector3Length(x - tx, y - ty, z - tz)
+	else
 		return math.huge
 	end
-	local v32_, v33_, v34_ = getWorldTranslation(self.animatedObject.triggerNode)
-	return MathUtil.vector3Length(x - v32_, y - v33_, z - v34_)
 end
-
 function AnimatedObjectActivatable:draw()
 	if self.animatedObject.openingHours ~= nil and self.animatedObject.openingHours.closedText ~= nil then
 		g_currentMission:addExtraPrintText(self.animatedObject.openingHours.closedText)
 	end
 end
-
 function AnimatedObjectActivatable:run()
 	self:onAnimationInputToggle()
 end

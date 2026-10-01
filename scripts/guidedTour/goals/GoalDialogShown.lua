@@ -1,8 +1,6 @@
--- Local values: GoalDialogShown_mt
 GoalDialogShown = {}
 GoalDialogShown.NAME = "dialogShown"
 local GoalDialogShown_mt = Class(GoalDialogShown)
-
 function GoalDialogShown.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.L10N_STRING, basePath .. "#text", "Text of the dialog", nil, true)
 	schema:register(XMLValueType.L10N_STRING, basePath .. "#title", "Title of the dialog", nil, false)
@@ -12,62 +10,53 @@ function GoalDialogShown.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. ".input(?)#keyboardOnly", "If the input should only be visible if keyboard input is active", false, false)
 	schema:register(XMLValueType.BOOL, basePath .. ".input(?)#gamepadOnly", "If the input should only be visible if gamepad input is active", false, false)
 end
-
--- Upvalues: GoalDialogShown_mt
--- Local values: self
 function GoalDialogShown.new(title, text, inputs, customMt)
-	-- upvalues: (copy) GoalDialogShown_mt
-	local v8_ = customMt or GoalDialogShown_mt
-	local v9_ = setmetatable({}, v8_)
-	v9_.title = title
-	v9_.text = text
-	v9_.inputs = inputs
-	v9_.wasShown = false
-	return v9_
+	local self = setmetatable({}, customMt or GoalDialogShown_mt)
+	self.title = title
+	self.text = text
+	self.inputs = inputs
+	self.wasShown = false
+	return self
 end
-
--- Local values: controls, useGamepadButtons, _, input, callback
 function GoalDialogShown:activate(tour, step)
 	self.wasShown = false
-	local v11_ = g_inputBinding:getInputHelpMode() == GS_INPUT_HELP_MODE_GAMEPAD
-	local v12_ = {}
-	for _, v13_ in ipairs(self.inputs) do
-		if not (v13_.keyboardOnly and v11_) and (Platform.isMobile or (not v13_.gamepadOnly or v11_)) then
-			table.insert(v12_, v13_)
+	local controls = {}
+	local useGamepadButtons = g_inputBinding:getInputHelpMode() == GS_INPUT_HELP_MODE_GAMEPAD
+	for _, input in ipairs(self.inputs) do
+		if (not input.keyboardOnly or not useGamepadButtons) and (Platform.isMobile or not input.gamepadOnly or useGamepadButtons) then
+			table.insert(controls, input)
 		end
 	end
-	g_currentMission.hud:showInGameMessage(self.title, self.text, -1, v12_, function(_)
-		-- upvalues: (copy) self
+	local callback = function(target)
 		self.wasShown = true
-	end, nil)
+	end
+	g_currentMission.hud:showInGameMessage(self.title, self.text, -1, controls, callback, nil)
 end
-
 function GoalDialogShown:isAchieved()
 	return self.wasShown
 end
-
--- Local values: text, title, inputs, _, inputKey, actionName, input
 function GoalDialogShown.createFromXML(xmlFile, key, baseDirectory, customEnvironment)
-	local v18_ = xmlFile:getValue(key .. "#text", nil, customEnvironment, false)
-	if v18_ == nil then
-		Logging.xmlWarning(xmlFile, "Missing \'text\' for \'%s\'", key)
+	local text = xmlFile:getValue(key .. "#text", nil, customEnvironment, false)
+	if text == nil then
+		Logging.xmlWarning(xmlFile, "Missing 'text' for '%s'", key)
 		return nil
-	end
-	local v19_ = xmlFile:getValue(key .. "#title", g_i18n:getText("ui_tour"), customEnvironment, false)
-	local v20_ = {}
-	for _, v21_ in xmlFile:iterator(key .. ".input") do
-		local v22_ = xmlFile:getValue(v21_ .. "#name")
-		if v22_ ~= nil then
-			local v23_ = {
-				["actionName"] = v22_,
-				["actionName2"] = xmlFile:getValue(v21_ .. "#name2"),
-				["text"] = xmlFile:getValue(v21_ .. "#text", nil, customEnvironment, false),
-				["keyboardOnly"] = xmlFile:getValue(v21_ .. "#keyboardOnly", false),
-				["gamepadOnly"] = xmlFile:getValue(v21_ .. "#gamepadOnly", false)
-			}
-			table.insert(v20_, v23_)
+	else
+		local title = xmlFile:getValue(key .. "#title", g_i18n:getText("ui_tour"), customEnvironment, false)
+		local inputs = {}
+		for _, inputKey in xmlFile:iterator(key .. ".input") do
+			local actionName = xmlFile:getValue(inputKey .. "#name")
+			if actionName == nil then
+				continue
+			end
+			local input = {}
+			input.actionName = actionName
+			input.actionName2 = xmlFile:getValue(inputKey .. "#name2")
+			input.text = xmlFile:getValue(inputKey .. "#text", nil, customEnvironment, false)
+			input.keyboardOnly = xmlFile:getValue(inputKey .. "#keyboardOnly", false)
+			input.gamepadOnly = xmlFile:getValue(inputKey .. "#gamepadOnly", false)
+			table.insert(inputs, input)
 		end
+		return GoalDialogShown.new(title, text, inputs)
 	end
-	return GoalDialogShown.new(v19_, v18_, v20_)
 end
 g_guidedTourManager:registerGoalClass(GoalDialogShown.NAME, GoalDialogShown)

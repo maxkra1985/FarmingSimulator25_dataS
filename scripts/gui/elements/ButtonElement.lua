@@ -1,68 +1,53 @@
--- Local values: ButtonElement_mt
 ButtonElement = {}
 local ButtonElement_mt = Class(ButtonElement, TextElement)
 Gui.registerGuiElement("Button", ButtonElement)
 Gui.registerGuiElementProcFunction("Button", Gui.assignPlaySampleCallback)
-
--- Upvalues: ButtonElement_mt
--- Local values: self
 function ButtonElement.new(target, custom_mt)
-	-- upvalues: (copy) ButtonElement_mt
-	local v4_ = TextElement.new(target, custom_mt or ButtonElement_mt)
-	v4_:include(PlaySampleMixin)
-	v4_.inputDown = false
-	v4_.forceFocus = false
-	v4_.overlay = {}
-	v4_.icon = {}
-	v4_.touchIcon = {}
-	v4_.iconSize = { 0, 0 }
-	v4_.touchIconSize = { 0, 0 }
-	v4_.gamepadIconSize = { getNormalizedScreenValues(60, 60) }
-	v4_.iconTextOffset = { 0, 0 }
-	v4_.focusedTextOffset = { 0, 0 }
-	v4_.needExternalClick = false
-	v4_.clickSoundName = GuiSoundPlayer.SOUND_SAMPLES.CLICK
-	v4_.fitToContent = false
-	v4_.fitExtraWidth = 0
-	v4_.hideKeyboardGlyph = false
-	v4_.isTouchButton = false
-	v4_.isTouchButtonWithBg = false
-	v4_.gamepadUsesTouchButton = false
-	v4_.addTouchArea = true
-	v4_.isTriggerableByGlobalAction = true
-	v4_.ignorePressedOverlayState = false
-	v4_.pressed = false
-	v4_.sendActionOnRelease = true
-	v4_.textAlignment = RenderText.ALIGN_CENTER
-	v4_.textSeparator = nil
-	v4_.inputActionName = nil
-	v4_.hasLoadedInputGlyph = false
-	v4_.isKeyboardMode = false
-	v4_.keyDisplayText = nil
-	v4_.keyOverlay = nil
-	v4_.keyGlyphOffsetX = 0
-	v4_.keyGlyphSize = { 0, 0 }
-	v4_.iconColors = {
-		["color"] = {
-			1,
-			1,
-			1,
-			1
-		}
-	}
-	v4_.iconImageSize = { 2048, 2048 }
-	v4_.drawChildrenLast = false
-	return v4_
+	local self = TextElement.new(target, custom_mt or ButtonElement_mt)
+	self:include(PlaySampleMixin)
+	self.inputDown = false
+	self.forceFocus = false
+	self.overlay = {}
+	self.icon = {}
+	self.touchIcon = {}
+	self.iconSize = { 0, 0 }
+	self.touchIconSize = { 0, 0 }
+	self.gamepadIconSize = { getNormalizedScreenValues(60, 60) }
+	self.iconTextOffset = { 0, 0 }
+	self.focusedTextOffset = { 0, 0 }
+	self.needExternalClick = false
+	self.clickSoundName = GuiSoundPlayer.SOUND_SAMPLES.CLICK
+	self.fitToContent = false
+	self.fitExtraWidth = 0
+	self.hideKeyboardGlyph = false
+	self.isTouchButton = false
+	self.isTouchButtonWithBg = false
+	self.gamepadUsesTouchButton = false
+	self.addTouchArea = true
+	self.isTriggerableByGlobalAction = true
+	self.ignorePressedOverlayState = false
+	self.pressed = false
+	self.sendActionOnRelease = true
+	self.textAlignment = RenderText.ALIGN_CENTER
+	self.textSeparator = nil
+	self.inputActionName = nil
+	self.hasLoadedInputGlyph = false
+	self.isKeyboardMode = false
+	self.keyDisplayText = nil
+	self.keyOverlay = nil
+	self.keyGlyphOffsetX = 0
+	self.keyGlyphSize = { 0, 0 }
+	self.iconColors = { color = { 1, 1, 1, 1 } }
+	self.iconImageSize = { 2048, 2048 }
+	self.drawChildrenLast = false
+	return self
 end
-
 function ButtonElement:delete()
 	GuiOverlay.deleteOverlay(self.touchIcon)
 	GuiOverlay.deleteOverlay(self.overlay)
 	GuiOverlay.deleteOverlay(self.icon)
 	ButtonElement:superClass().delete(self)
 end
-
--- Local values: inputActionName, sampleName, resolvedSampleName
 function ButtonElement:loadFromXML(xmlFile, key)
 	ButtonElement:superClass().loadFromXML(self, xmlFile, key)
 	self:addCallback(xmlFile, key .. "#onClick", "onClickCallback")
@@ -91,45 +76,47 @@ function ButtonElement:loadFromXML(xmlFile, key)
 	self.sendActionOnRelease = Utils.getNoNil(getXMLBool(xmlFile, key .. "#sendActionOnRelease"), self.sendActionOnRelease)
 	self.textSeparator = Utils.getNoNil(getXMLString(xmlFile, key .. "#textSeparator"), self.textSeparator)
 	self.drawChildrenLast = Utils.getNoNil(getXMLBool(xmlFile, key .. "#drawChildrenLast"), self.drawChildrenLast)
-	local v9_ = getXMLString(xmlFile, key .. "#inputAction")
-	if v9_ == nil or InputAction[v9_] == nil then
-		self.iconImageSize = string.getVector(getXMLString(xmlFile, key .. "#iconImageSize"), 2) or self.iconImageSize
-		GuiOverlay.loadOverlay(self, self.icon, "icon", self.iconImageSize, nil, xmlFile, key)
-		GuiOverlay.createOverlay(self.icon)
-	else
-		self.inputActionName = v9_
-		self:loadInputGlyphColors(nil, xmlFile, key)
+	local inputActionName = getXMLString(xmlFile, key .. "#inputAction")
+	if inputActionName ~= nil then
+		if InputAction[inputActionName] ~= nil then
+			self.inputActionName = inputActionName
+			self:loadInputGlyphColors(nil, xmlFile, key)
+		else
+			self.iconImageSize = string.getVector(getXMLString(xmlFile, key .. "#iconImageSize"), 2) or self.iconImageSize
+			GuiOverlay.loadOverlay(self, self.icon, "icon", self.iconImageSize, nil, xmlFile, key)
+			GuiOverlay.createOverlay(self.icon)
+		end
 	end
-	if (self.isTouchButton or (self.isTouchButtonWithBg or self.gamepadUsesTouchButton)) and Platform.isMobile then
+	if (self.isTouchButton or self.isTouchButtonWithBg or self.gamepadUsesTouchButton) and Platform.isMobile then
 		GuiOverlay.loadOverlay(self, self.touchIcon, "touchIcon", self.imageSize, nil, xmlFile, key)
 		GuiOverlay.createOverlay(self.touchIcon)
 	end
-	local v10_ = getXMLString(xmlFile, key .. "#clickSound") or self.clickSoundName
-	local v11_ = GuiSoundPlayer.SOUND_SAMPLES[v10_]
-	if v11_ ~= nil then
-		self.clickSoundName = v11_
+	local sampleName = getXMLString(xmlFile, key .. "#clickSound") or self.clickSoundName
+	local resolvedSampleName = GuiSoundPlayer.SOUND_SAMPLES[sampleName]
+	if resolvedSampleName ~= nil then
+		self.clickSoundName = resolvedSampleName
 	end
 	GuiOverlay.createOverlay(self.overlay)
 	self:updateSize()
 end
-
--- Local values: inputActionName, iconImageSizeStr, sampleName, resolvedSampleName
 function ButtonElement:loadProfile(profile, applyProfile)
 	ButtonElement:superClass().loadProfile(self, profile, applyProfile)
 	GuiOverlay.loadOverlay(self, self.overlay, "image", self.imageSize, profile, nil, nil)
-	local v15_ = profile:getValue("inputAction", self.inputActionName)
-	if v15_ == nil or InputAction[v15_] == nil then
-		local v16_ = profile:getValue("iconImageSize")
-		if not string.isNilOrWhitespace(v16_) then
-			self.iconImageSize = string.getVector(v16_, 2)
+	local inputActionName = profile:getValue("inputAction", self.inputActionName)
+	if inputActionName ~= nil then
+		if InputAction[inputActionName] ~= nil then
+			self.inputActionName = inputActionName
+			self:loadInputGlyphColors(profile, nil, nil)
+		else
+			local iconImageSizeStr = profile:getValue("iconImageSize")
+			if not string.isNilOrWhitespace(iconImageSizeStr) then
+				self.iconImageSize = string.getVector(iconImageSizeStr, 2)
+			end
+			GuiOverlay.loadOverlay(self, self.icon, "icon", self.iconImageSize, profile, nil, nil)
+			GuiOverlay.createOverlay(self.icon)
 		end
-		GuiOverlay.loadOverlay(self, self.icon, "icon", self.iconImageSize, profile, nil, nil)
-		GuiOverlay.createOverlay(self.icon)
-	else
-		self.inputActionName = v15_
-		self:loadInputGlyphColors(profile, nil, nil)
 	end
-	if (self.isTouchButton or (self.isTouchButtonWithBg or self.gamepadUsesTouchButton)) and Platform.isMobile then
+	if (self.isTouchButton or self.isTouchButtonWithBg or self.gamepadUsesTouchButton) and Platform.isMobile then
 		GuiOverlay.loadOverlay(self, self.touchIcon, "touchIcon", self.imageSize, profile, nil, nil)
 		GuiOverlay.createOverlay(self.touchIcon)
 	end
@@ -152,22 +139,21 @@ function ButtonElement:loadProfile(profile, applyProfile)
 	self.sendActionOnRelease = profile:getBool("sendActionOnRelease", self.sendActionOnRelease)
 	self.textSeparator = profile:getValue("textSeparator", self.textSeparator)
 	self.drawChildrenLast = profile:getBool("drawChildrenLast", self.drawChildrenLast)
-	local v17_ = profile:getValue("clickSound", self.clickSoundName)
-	local v18_ = GuiSoundPlayer.SOUND_SAMPLES[v17_]
-	if v18_ ~= nil then
-		self.clickSoundName = v18_
+	local sampleName = profile:getValue("clickSound", self.clickSoundName)
+	local resolvedSampleName = GuiSoundPlayer.SOUND_SAMPLES[sampleName]
+	if resolvedSampleName ~= nil then
+		self.clickSoundName = resolvedSampleName
 	end
 	GuiOverlay.createOverlay(self.overlay)
 	if applyProfile then
 		self:updateSize()
 	end
 end
-
 function ButtonElement:copyAttributes(src)
 	ButtonElement:superClass().copyAttributes(self, src)
 	GuiOverlay.copyOverlay(self.overlay, src.overlay)
 	GuiOverlay.copyOverlay(self.icon, src.icon)
-	if (src.isTouchButton or (src.isTouchButtonWithBg or self.gamepadUsesTouchButton)) and Platform.isMobile then
+	if (src.isTouchButton or src.isTouchButtonWithBg or self.gamepadUsesTouchButton) and Platform.isMobile then
 		GuiOverlay.copyOverlay(self.touchIcon, src.touchIcon)
 		self.touchIconSize = table.clone(src.touchIconSize)
 		self.gamepadIconSize = table.clone(src.gamepadIconSize)
@@ -201,71 +187,64 @@ function ButtonElement:copyAttributes(src)
 	self.onSizeChangedCallback = src.onSizeChangedCallback
 	GuiMixin.cloneMixin(PlaySampleMixin, src, self)
 end
-
 function ButtonElement:loadInputGlyphColors(profile, xmlFile, key)
-	if xmlFile == nil then
+	if xmlFile ~= nil then
+		GuiOverlay.loadXMLColors(xmlFile, key, self.icon, "icon")
+		GuiOverlay.loadXMLColors(xmlFile, key, self.iconColors, "iconBg")
+	else
 		if profile ~= nil then
 			GuiOverlay.loadProfileColors(profile, self.icon, "icon")
 			GuiOverlay.loadProfileColors(profile, self.iconColors, "iconBg")
 		end
-	else
-		GuiOverlay.loadXMLColors(xmlFile, key, self.icon, "icon")
-		GuiOverlay.loadXMLColors(xmlFile, key, self.iconColors, "iconBg")
 	end
 end
-
--- Local values: overlay, keyText, refWidth, newWidth, dynOffset
 function ButtonElement:loadInputGlyph(force)
 	if not self.icon.filename or force then
-		local v27_ = g_inputDisplayManager:getGamepadInputActionOverlay(self.inputActionName, Binding.AXIS_COMPONENT.POSITIVE)
-		if v27_ ~= nil then
-			GuiOverlay.copyColors(v27_, self.icon)
+		local overlay = g_inputDisplayManager:getGamepadInputActionOverlay(self.inputActionName, Binding.AXIS_COMPONENT.POSITIVE)
+		if overlay ~= nil then
+			GuiOverlay.copyColors(overlay, self.icon)
 			GuiOverlay.deleteOverlay(self.icon)
-			self.icon = v27_
+			self.icon = overlay
 			self.hasLoadedInputGlyph = true
 		end
 	end
-	if not (GS_IS_CONSOLE_VERSION or GS_IS_MOBILE_VERSION) then
-		local v28_ = g_inputDisplayManager:getKeyboardInputActionKey(self.inputActionName, Binding.AXIS_COMPONENT.POSITIVE)
-		if v28_ ~= nil then
-			self.keyDisplayText = v28_
+	if not GS_IS_CONSOLE_VERSION and not GS_IS_MOBILE_VERSION then
+		local keyText = g_inputDisplayManager:getKeyboardInputActionKey(self.inputActionName, Binding.AXIS_COMPONENT.POSITIVE)
+		if keyText ~= nil then
+			self.keyDisplayText = keyText
 			self.keyOverlay = g_inputDisplayManager:getKeyboardKeyOverlay()
-			local v29_ = self.iconSize[1]
-			local v30_ = self.keyOverlay:getButtonWidth(v28_, self.iconSize[2])
-			self.keyGlyphSize = { v30_, self.iconSize[2] }
-			self.keyGlyphOffsetX = v30_ - v29_
+			local refWidth = self.iconSize[1]
+			local newWidth = self.keyOverlay:getButtonWidth(keyText, self.iconSize[2])
+			self.keyGlyphSize = { newWidth, self.iconSize[2] }
+			local dynOffset = newWidth - refWidth
+			self.keyGlyphOffsetX = dynOffset
 		end
 	end
 end
-
--- Local values: didChange
 function ButtonElement:setInputMode(isKeyboardMode, isTouchMode, isGamepadMode)
-	local v35_
-	if self.isKeyboardMode == isKeyboardMode then
-		v35_ = false
-	else
+	local didChange = false
+	if self.isKeyboardMode ~= isKeyboardMode then
 		self.isKeyboardMode = isKeyboardMode
-		v35_ = true
+		didChange = true
 		if not self.hasLoadedInputGlyph then
 			self:loadInputGlyph()
 		end
 	end
 	if self.isGamepadMode ~= isGamepadMode then
 		self.isGamepadMode = isGamepadMode
-		v35_ = true
+		didChange = true
 		if not self.hasLoadedInputGlyph then
 			self:loadInputGlyph()
 		end
 	end
 	if self.isTouchMode ~= isTouchMode and (self.isTouchButton or self.isTouchButtonWithBg) then
 		self.isTouchMode = isTouchMode
-		v35_ = true
+		didChange = true
 	end
-	if v35_ then
+	if didChange then
 		self:updateSize()
 	end
 end
-
 function ButtonElement:setAlpha(alpha)
 	ButtonElement:superClass().setAlpha(self, alpha)
 	if self.overlay ~= nil then
@@ -275,7 +254,6 @@ function ButtonElement:setAlpha(alpha)
 		self.icon.alpha = self.alpha
 	end
 end
-
 function ButtonElement:setDisabled(disabled)
 	ButtonElement:superClass().setDisabled(self, disabled)
 	if disabled then
@@ -285,14 +263,12 @@ function ButtonElement:setDisabled(disabled)
 		self.inputDown = false
 	end
 end
-
 function ButtonElement:setInputAction(inputActionName)
 	if inputActionName ~= nil and InputAction[inputActionName] ~= nil then
 		self.inputActionName = inputActionName
 		self:loadInputGlyph(true)
 	end
 end
-
 function ButtonElement:onOpen()
 	ButtonElement:superClass().onOpen(self)
 	if self.inputActionName ~= nil then
@@ -300,12 +276,10 @@ function ButtonElement:onOpen()
 		self:loadInputGlyph(true)
 	end
 end
-
 function ButtonElement:onClose()
 	ButtonElement:superClass().onClose(self)
 	self:reset()
 end
-
 function ButtonElement:reset()
 	ButtonElement:superClass().reset(self)
 	self:setPressed(false)
@@ -313,7 +287,6 @@ function ButtonElement:reset()
 	self:setHighlighted(false)
 	self.inputDown = false
 end
-
 function ButtonElement:setImageFilename(filename, iconFilename)
 	if filename ~= nil then
 		self.overlay = GuiOverlay.createOverlay(self.overlay, filename)
@@ -322,7 +295,6 @@ function ButtonElement:setImageFilename(filename, iconFilename)
 		self.icon = GuiOverlay.createOverlay(self.icon, iconFilename)
 	end
 end
-
 function ButtonElement:setImageUVs(backgroundUVs, iconUVs)
 	if backgroundUVs ~= nil then
 		self.overlay.uvs = backgroundUVs
@@ -331,54 +303,31 @@ function ButtonElement:setImageUVs(backgroundUVs, iconUVs)
 		self.icon.uvs = iconUVs
 	end
 end
-
--- Local values: backgroundSlice, iconSlice, backgroundUVs, backgroundFilename, iconUVs, iconFilename
 function ButtonElement:setImageSlice(backgroundSliceId, iconSliceId)
-	local v54_ = g_overlayManager:getSliceInfoById(backgroundSliceId)
-	local v55_ = g_overlayManager:getSliceInfoById(iconSliceId)
-	local v56_
-	if v54_ == nil then
-		v56_ = nil
-	else
-		v56_ = v54_.uvs or nil
+	local backgroundSlice = g_overlayManager:getSliceInfoById(backgroundSliceId)
+	local iconSlice = g_overlayManager:getSliceInfoById(iconSliceId)
+	local backgroundUVs = backgroundSlice ~= nil and backgroundSlice.uvs or nil
+	if backgroundSlice ~= nil then
+		local backgroundFilename = backgroundSlice.filename or nil
 	end
-	local v57_
-	if v54_ == nil then
-		v57_ = nil
-	else
-		v57_ = v54_.filename or nil
+	local backgroundFilename = nil
+	local iconUVs = iconSlice ~= nil and iconSlice.uvs or nil
+	if iconSlice ~= nil then
+		local iconFilename = iconSlice.filename or nil
 	end
-	local v58_
-	if v55_ == nil then
-		v58_ = nil
-	else
-		v58_ = v55_.uvs or nil
-	end
-	local v59_
-	if v55_ == nil then
-		v59_ = nil
-	else
-		v59_ = v55_.filename or nil
-	end
-	self:setImageUVs(v56_, v58_)
-	self:setImageFilename(v57_, v59_)
+	local iconFilename = nil
+	self:setImageUVs(backgroundUVs, iconUVs)
+	self:setImageFilename(backgroundFilename, iconFilename)
 end
-
--- Local values: baseActive
 function ButtonElement:getIsActive()
-	local v61_ = ButtonElement:superClass().getIsActive(self)
-	if v61_ then
-		v61_ = self.onClickCallback ~= nil
-	end
-	return v61_
+	local baseActive = ButtonElement:superClass().getIsActive(self)
+	return baseActive and self.onClickCallback ~= nil
 end
-
--- Local values: clickInElement
 function ButtonElement:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 	if self:getIsActive() then
 		eventUsed = eventUsed or ButtonElement:superClass().mouseEvent(self, posX, posY, isDown, isUp, button, eventUsed)
-		local v69_ = GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.size[1], self.size[2], self.hotspot)
-		if v69_ then
+		local clickInElement = GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.size[1], self.size[2], self.hotspot)
+		if clickInElement then
 			if not self.inputEntered then
 				if self.handleFocus and not self:getIsHighlighted() then
 					FocusManager:setHighlight(self)
@@ -392,7 +341,7 @@ function ButtonElement:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 				FocusManager:unsetHighlight(self)
 			end
 		end
-		if not eventUsed and (v69_ and not FocusManager:isLocked()) then
+		if not eventUsed and (clickInElement and not FocusManager:isLocked()) then
 			if isDown and button == Input.MOUSE_BUTTON_LEFT then
 				if self.handleFocus and not self.forceFocus then
 					FocusManager:setFocus(self)
@@ -406,10 +355,8 @@ function ButtonElement:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 			if isUp and (button == Input.MOUSE_BUTTON_LEFT and self.inputDown) then
 				if self.sendActionOnRelease then
 					self:sendAction()
-					eventUsed = true
-				else
-					eventUsed = true
 				end
+				eventUsed = true
 			end
 			if self.inputDown then
 				self:setPressed(true)
@@ -422,13 +369,11 @@ function ButtonElement:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 	end
 	return eventUsed
 end
-
--- Local values: clickInElement
 function ButtonElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUsed)
 	if self:getIsActive() then
 		eventUsed = eventUsed or ButtonElement:superClass().touchEvent(self, posX, posY, isDown, isUp, touchId, eventUsed)
-		local v77_ = GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.size[1], self.size[2], self.hotspot)
-		if v77_ then
+		local clickInElement = GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.size[1], self.size[2], self.hotspot)
+		if clickInElement then
 			if not self.inputEntered then
 				if self.handleFocus and not self:getIsHighlighted() then
 					FocusManager:setHighlight(self)
@@ -442,7 +387,7 @@ function ButtonElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUsed)
 				FocusManager:unsetHighlight(self)
 			end
 		end
-		if not eventUsed and (v77_ and not FocusManager:isLocked()) then
+		if not eventUsed and (clickInElement and not FocusManager:isLocked()) then
 			if isDown then
 				if self.handleFocus and not self.forceFocus then
 					FocusManager:setFocus(self)
@@ -456,10 +401,8 @@ function ButtonElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUsed)
 			if isUp and self.inputDown then
 				if self.sendActionOnRelease then
 					self:sendAction()
-					eventUsed = true
-				else
-					eventUsed = true
 				end
+				eventUsed = true
 			end
 			if self.inputDown then
 				self:setPressed(true)
@@ -472,7 +415,6 @@ function ButtonElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUsed)
 	end
 	return eventUsed
 end
-
 function ButtonElement:keyEvent(unicode, sym, modifier, isDown, eventUsed)
 	if self:getIsActive() then
 		return ButtonElement:superClass().keyEvent(self, unicode, sym, modifier, isDown, eventUsed)
@@ -480,138 +422,120 @@ function ButtonElement:keyEvent(unicode, sym, modifier, isDown, eventUsed)
 		return false
 	end
 end
-
--- Local values: iconSizeX, iconSizeY, xOffset, yOffset
 function ButtonElement:getIconOffset(textWidth, textHeight)
-	local v87_, v88_ = self:getIconSize()
-	local v89_ = self.iconTextOffset[1]
-	local v90_ = self.iconTextOffset[2]
+	local iconSizeX, iconSizeY = self:getIconSize()
+	local xOffset = self.iconTextOffset[1]
+	local yOffset = self.iconTextOffset[2]
 	if self.textAlignment == RenderText.ALIGN_LEFT then
-		v89_ = v89_ - v87_
+		xOffset = xOffset - iconSizeX
 	elseif self.textAlignment == RenderText.ALIGN_CENTER then
-		v89_ = v89_ - textWidth * 0.5 - v87_
+		xOffset = xOffset - textWidth * 0.5 - iconSizeX
 	elseif self.textAlignment == RenderText.ALIGN_RIGHT then
-		v89_ = v89_ - textWidth - v87_
+		xOffset = xOffset - textWidth - iconSizeX
 	end
 	if self.textVerticalAlignment == TextElement.VERTICAL_ALIGNMENT.TOP then
-		return v89_, v90_ - textHeight
+		yOffset = yOffset - textHeight
+		return xOffset, yOffset
+	else
+		if self.textVerticalAlignment == TextElement.VERTICAL_ALIGNMENT.MIDDLE then
+			yOffset = yOffset + (textHeight - iconSizeY) * 0.5
+		end
+		return xOffset, yOffset
 	end
-	if self.textVerticalAlignment == TextElement.VERTICAL_ALIGNMENT.MIDDLE then
-		v90_ = v90_ + (textHeight - v88_) * 0.5
-	end
-	return v89_, v90_
 end
-
--- Local values: overlayState, lastInputMode, xPos, yPos, textOffsetX, textOffsetY, xOffset, yOffset, iconXPos, iconYPos, iconSizeX, iconSizeY, textColor, bgColor, r, g, b, a, r2, g2, b2, a2, r, g, b, a, icon, iconSize, touchIconYPos, posX1, posX2, posY1, posY2
 function ButtonElement:draw(clipX1, clipY1, clipX2, clipY2)
 	if not self.drawChildrenLast then
 		ButtonElement:superClass().draw(self, clipX1, clipY1, clipX2, clipY2)
 	end
-	local v96_ = self:getOverlayState()
-	local v97_ = g_inputBinding:getInputHelpMode()
-	local v98_
-	if self.keyDisplayText == nil then
-		v98_ = false
-	else
-		v98_ = g_inputBinding:getInputHelpMode() == GS_INPUT_HELP_MODE_KEYBOARD
-	end
-	local v99_ = ((not self.isTouchButton or v97_ ~= GS_INPUT_HELP_MODE_TOUCH) and true or false) and self.gamepadUsesTouchButton
-	if v99_ then
-		if v97_ == GS_INPUT_HELP_MODE_GAMEPAD then
-			v99_ = Platform.isMobile
-		else
-			v99_ = false
-		end
-	end
-	self:setInputMode(v98_, v99_, g_inputBinding:getInputHelpMode() == GS_INPUT_HELP_MODE_GAMEPAD)
-	GuiOverlay.renderOverlay(self.overlay, self.absPosition[1], self.absPosition[2], self.size[1], self.size[2], v96_, clipX1, clipY1, clipX2, clipY2)
-	local v100_, v101_ = self:getTextPosition(self.text)
-	local v102_, v103_ = self:getTextOffset()
-	local v104_, v105_ = self:getIconOffset(self:getTextWidth(), getTextHeight(self.textSize, self.text))
-	local v106_ = v100_ + v102_ + v104_
-	local v107_ = v101_ + v103_ + v105_
-	local v108_, v109_ = self:getIconSize()
-	if self.keyDisplayText == nil or not self.isKeyboardMode then
-		if self.isTouchMode then
+	local overlayState = self:getOverlayState()
+	local lastInputMode = g_inputBinding:getInputHelpMode()
+	local _v237 = g_inputBinding:getInputHelpMode()
+	self:setInputMode(self.keyDisplayText ~= nil and _v237 == GS_INPUT_HELP_MODE_KEYBOARD, _v237, g_inputBinding:getInputHelpMode() == GS_INPUT_HELP_MODE_GAMEPAD)
+	GuiOverlay.renderOverlay(self.overlay, self.absPosition[1], self.absPosition[2], self.size[1], self.size[2], overlayState, clipX1, clipY1, clipX2, clipY2)
+	local xPos, yPos = self:getTextPosition(self.text)
+	local textOffsetX, textOffsetY = self:getTextOffset()
+	local xOffset, yOffset = self:getIconOffset(self:getTextWidth(), getTextHeight(self.textSize, self.text))
+	local iconXPos = xPos + textOffsetX + xOffset
+	local iconYPos = yPos + textOffsetY + yOffset
+	local iconSizeX, iconSizeY = self:getIconSize()
+	if self.keyDisplayText ~= nil then
+		if self.isKeyboardMode then
+			if not self.hideKeyboardGlyph then
+				local textColor = GuiOverlay.getOverlayColor(self.icon, overlayState)
+				local bgColor = GuiOverlay.getOverlayColor(self.iconColors, overlayState)
+				local r, g, b, a = unpack(textColor)
+				local r2, g2, b2, a2 = unpack(bgColor)
+				self.keyOverlay:setColor(r, g, b, a, r2, g2, b2, a2)
+				self.keyOverlay:renderButton(self.keyDisplayText, iconXPos, iconYPos, iconSizeY, true, clipX1, clipY1, clipX2, clipY2)
+			end
+		elseif self.isTouchMode then
 			if self.addTouchArea then
-				local v110_, v111_, v112_, v113_
-				if self.touchAreaColor == nil then
-					v110_ = 1
-					v111_ = 1
-					v112_ = 1
-					v113_ = 1
-				else
-					v112_ = self.touchAreaColor[1]
-					v110_ = self.touchAreaColor[2]
-					v113_ = self.touchAreaColor[3]
-					v111_ = self.touchAreaColor[4]
+				local r = 1
+				local g = 1
+				local b = 1
+				local a = 1
+				if self.touchAreaColor ~= nil then
+					r = self.touchAreaColor[1]
+					g = self.touchAreaColor[2]
+					b = self.touchAreaColor[3]
+					a = self.touchAreaColor[4]
 				end
-				drawTouchButton(self.absPosition[1], self.absPosition[2] + self.absSize[2] / 2, self.absSize[1], v96_ == GuiOverlay.STATE_PRESSED, self.isTouchButtonWithBg, v112_, v110_, v113_, v111_, clipX1, clipY1, clipX2, clipY2)
+				drawTouchButton(self.absPosition[1], self.absPosition[2] + self.absSize[2] / 2, self.absSize[1], overlayState == GuiOverlay.STATE_PRESSED, self.isTouchButtonWithBg, r, g, b, a, clipX1, clipY1, clipX2, clipY2)
 			end
-			local v114_ = self.touchIcon
-			local v115_ = self.touchIconSize
+			local icon = self.touchIcon
+			local iconSize = self.touchIconSize
 			if self.isGamepadMode then
-				v114_ = self.icon
-				v106_ = v106_ - self.gamepadIconSize[1] * 0.25
-				v115_ = self.gamepadIconSize
+				icon = self.icon
+				iconXPos = iconXPos - self.gamepadIconSize[1] * 0.25
+				iconSize = self.gamepadIconSize
 			end
-			if v114_ ~= nil then
-				local v116_ = self.absPosition[2] + self.absSize[2] / 2 - v115_[2] / 2
-				GuiOverlay.renderOverlay(v114_, v106_, v116_, v115_[1], v115_[2], v96_, clipX1, clipY1, clipX2, clipY2)
+			if icon ~= nil then
+				local touchIconYPos = self.absPosition[2] + self.absSize[2] / 2 - iconSize[2] / 2
+				GuiOverlay.renderOverlay(icon, iconXPos, touchIconYPos, iconSize[1], iconSize[2], overlayState, clipX1, clipY1, clipX2, clipY2)
 			end
 		else
-			GuiOverlay.renderOverlay(self.icon, v106_, v107_, v108_, v109_, v96_, clipX1, clipY1, clipX2, clipY2)
+			GuiOverlay.renderOverlay(self.icon, iconXPos, iconYPos, iconSizeX, iconSizeY, overlayState, clipX1, clipY1, clipX2, clipY2)
 		end
-	elseif not self.hideKeyboardGlyph then
-		local v117_ = GuiOverlay.getOverlayColor(self.icon, v96_)
-		local v118_ = GuiOverlay.getOverlayColor(self.iconColors, v96_)
-		local v119_, v120_, v121_, v122_ = unpack(v117_)
-		local v123_, v124_, v125_, v126_ = unpack(v118_)
-		self.keyOverlay:setColor(v119_, v120_, v121_, v122_, v123_, v124_, v125_, v126_)
-		self.keyOverlay:renderButton(self.keyDisplayText, v106_, v107_, v109_, true, clipX1, clipY1, clipX2, clipY2)
 	end
 	if self.debugEnabled or g_uiDebugEnabled then
-		local v127_ = self.absPosition[1]
-		local v128_ = self.absPosition[1] + self.size[1] - g_pixelSizeX
-		local v129_ = self.absPosition[2]
-		local v130_ = self.absPosition[2] + self.size[2] - g_pixelSizeY
-		drawFilledRect(v127_, v129_, v128_ - v127_, g_pixelSizeY, 0, 1, 0, 0.7)
-		drawFilledRect(v127_, v130_, v128_ - v127_, g_pixelSizeY, 0, 1, 0, 0.7)
-		drawFilledRect(v127_, v129_, g_pixelSizeX, v130_ - v129_, 0, 1, 0, 0.7)
-		drawFilledRect(v127_ + v128_ - v127_, v129_, g_pixelSizeX, v130_ - v129_, 0, 1, 0, 0.7)
+		local posX1 = self.absPosition[1]
+		local posX2 = self.absPosition[1] + self.size[1] - g_pixelSizeX
+		local posY1 = self.absPosition[2]
+		local posY2 = self.absPosition[2] + self.size[2] - g_pixelSizeY
+		drawFilledRect(posX1, posY1, posX2 - posX1, g_pixelSizeY, 0, 1, 0, 0.7)
+		drawFilledRect(posX1, posY2, posX2 - posX1, g_pixelSizeY, 0, 1, 0, 0.7)
+		drawFilledRect(posX1, posY1, g_pixelSizeX, posY2 - posY1, 0, 1, 0, 0.7)
+		drawFilledRect(posX1 + posX2 - posX1, posY1, g_pixelSizeX, posY2 - posY1, 0, 1, 0, 0.7)
 	end
 	if self.drawChildrenLast then
 		ButtonElement:superClass().draw(self, clipX1, clipY1, clipX2, clipY2)
 	end
 end
-
--- Local values: xOffset, yOffset, iconWidth, _
 function ButtonElement:getIconModifiedTextOffset(textOffsetX, textOffsetY)
-	local v134_, _ = self:getIconSize()
+	local xOffset = textOffsetX
+	local yOffset = textOffsetY
+	local iconWidth, _ = self:getIconSize()
 	if self.textAlignment == RenderText.ALIGN_LEFT then
-		return textOffsetX - self.iconTextOffset[1] + v134_, textOffsetY
+		xOffset = xOffset - self.iconTextOffset[1] + iconWidth
+		return xOffset, yOffset
+	else
+		if self.textAlignment == RenderText.ALIGN_CENTER then
+			xOffset = xOffset + (iconWidth - self.iconTextOffset[1]) * 0.5
+		end
+		return xOffset, yOffset
 	end
-	if self.textAlignment == RenderText.ALIGN_CENTER then
-		textOffsetX = textOffsetX + (v134_ - self.iconTextOffset[1]) * 0.5
-	end
-	return textOffsetX, textOffsetY
 end
-
--- Local values: xOffset, yOffset
 function ButtonElement:getTextOffset()
-	local v136_, v137_ = ButtonElement:superClass().getTextOffset(self)
+	local xOffset, yOffset = ButtonElement:superClass().getTextOffset(self)
 	if self.isTouchMode and self.addTouchArea then
-		v136_ = v136_ + 0.020833333333333332
+		xOffset = xOffset + 0.020833333333333332
 	end
-	return self:getIconModifiedTextOffset(v136_, v137_)
+	return self:getIconModifiedTextOffset(xOffset, yOffset)
 end
-
--- Local values: xOffset, yOffset
 function ButtonElement:getText2Offset()
-	local v139_, v140_ = ButtonElement:superClass().getText2Offset(self)
-	return self:getIconModifiedTextOffset(v139_, v140_)
+	local xOffset, yOffset = ButtonElement:superClass().getText2Offset(self)
+	return self:getIconModifiedTextOffset(xOffset, yOffset)
 end
-
 function ButtonElement:getIconSize()
 	if self.isKeyboardMode then
 		return self.keyGlyphSize[1], self.keyGlyphSize[2]
@@ -619,69 +543,57 @@ function ButtonElement:getIconSize()
 		return self.iconSize[1], self.iconSize[2]
 	end
 end
-
 function ButtonElement:setIconSize(x, y)
 	self.iconSize[1] = Utils.getNoNil(x, self.iconSize[1])
 	self.iconSize[2] = Utils.getNoNil(y, self.iconSize[2])
 	self:updateSize()
 end
-
 function ButtonElement:canReceiveFocus()
-	local v146_ = not self.disabled and self:getIsVisible() and true or false
-	if v146_ then
-		v146_ = self:getHandleFocus()
-	end
-	return v146_
+	return not (self.disabled or not self:getIsVisible()) and self:getHandleFocus()
 end
-
 function ButtonElement:onFocusLeave()
 	ButtonElement:superClass().onFocusLeave(self)
 	self:raiseCallback("onLeaveCallback", self)
 end
-
 function ButtonElement:onFocusEnter()
 	ButtonElement:superClass().onFocusEnter(self)
 	self:raiseCallback("onFocusCallback", self)
 end
-
 function ButtonElement:onHighlight()
 	ButtonElement:superClass().onHighlight(self)
 	self:raiseCallback("onHighlightCallback", self)
 end
-
 function ButtonElement:onHighlightRemove()
 	ButtonElement:superClass().onHighlightRemove(self)
 	self:raiseCallback("onHighlightRemoveCallback", self)
 end
-
 function ButtonElement:onFocusActivate()
 	if self:getIsActive() then
 		self:sendAction()
 	end
 end
-
--- Local values: _, child
 function ButtonElement:setPressed(pressed)
 	self.pressed = pressed
 	if self.updateChildrenState then
-		for _, v154_ in pairs(self.elements) do
-			if v154_.setPressed ~= nil then
-				v154_:setPressed(pressed)
+		for _, child in pairs(self.elements) do
+			if child.setPressed == nil then
+				continue
 			end
+			child:setPressed(pressed)
 		end
 	end
 end
-
 function ButtonElement:getIsPressed()
 	return self.pressed
 end
-
 function ButtonElement:getOverlayState()
 	if self:getIsDisabled() then
 		return GuiOverlay.STATE_DISABLED
-	elseif self:getIsPressed() and not self.ignorePressedOverlayState then
+	end
+	if self:getIsPressed() and not self.ignorePressedOverlayState then
 		return GuiOverlay.STATE_PRESSED
-	elseif self:getIsSelected() then
+	end
+	if self:getIsSelected() then
 		return GuiOverlay.STATE_SELECTED
 	elseif self:getIsFocused() then
 		return GuiOverlay.STATE_FOCUSED
@@ -691,41 +603,37 @@ function ButtonElement:getOverlayState()
 		return GuiOverlay.STATE_NORMAL
 	end
 end
-
--- Local values: width, height, needsCallbackRaised, textHeight, _, iconWidth, iconHeight, textWidth
 function ButtonElement:updateSize(forceTextSize)
-	local v159_ = false
-	local v160_, _ = self:getTextHeight()
-	local v161_, v162_ = self:getIconSize()
-	local v163_, v164_
+	local width = nil
+	local height = nil
+	local needsCallbackRaised = false
+	local textHeight, _ = self:getTextHeight()
+	local iconWidth, iconHeight = self:getIconSize()
 	if (self.fitToContent or self.textAutoWidth) and not forceTextSize then
 		setTextBold(self.textBold)
-		local v165_ = getTextWidth(self.textSize, self.sourceText) + 0.001
+		local textWidth = getTextWidth(self.textSize, self.sourceText) + 0.001
 		setTextBold(false)
-		v163_ = v161_ + v165_ + self.fitExtraWidth
-		if (self.isTouchButton or (self.isTouchButtonWithBg or self.gamepadUsesTouchButton)) and (self.isTouchMode and self.addTouchArea) then
-			v163_ = v163_ + 0.030208333333333334
-			v164_ = 0.09375
-			if self.originalHeight == nil then
-				v159_ = true
+		width = iconWidth + textWidth + self.fitExtraWidth
+		if not self.isTouchButton and (not self.isTouchButtonWithBg and (self.gamepadUsesTouchButton and self.isTouchMode)) then
+			if self.addTouchArea then
+				width = width + 0.030208333333333334
+				height = 0.09375
+				if self.originalHeight ~= nil then
+					self.originalHeight = self.size[2]
+				end
+				needsCallbackRaised = true
 			else
-				self.originalHeight = self.size[2]
-				v159_ = true
+				height = self.originalHeight
+				self.originalHeight = nil
 			end
-		else
-			v164_ = self.originalHeight
-			self.originalHeight = nil
 		end
-	else
-		v163_ = nil
-		v164_ = nil
 	end
 	if (self.fitToContent or self.textAutoHeight) and not forceTextSize then
-		v164_ = math.max(v160_, v162_)
+		height = math.max(textHeight, iconHeight)
 	end
-	if v163_ ~= nil and not MathUtil.equalEpsilon(v163_, self.absSize[1]) or v164_ ~= nil and not MathUtil.equalEpsilon(v164_, self.absSize[2]) then
-		self:setSize(v163_, v164_)
-		if v159_ then
+	if width ~= nil and (MathUtil.equalEpsilon(width, self.absSize[1]) and (height ~= nil and not MathUtil.equalEpsilon(height, self.absSize[2]))) then
+		self:setSize(width, height)
+		if needsCallbackRaised then
 			self:raiseCallback("onSizeChangedCallback", self)
 		end
 		if self.parent ~= nil and (self.parent.invalidateLayout ~= nil and self.parent.autoValidateLayout) then
@@ -733,7 +641,6 @@ function ButtonElement:updateSize(forceTextSize)
 		end
 	end
 end
-
 function ButtonElement:setText(text, forceTextSize, isInitializing, forceScrollingParameterUpdate)
 	if self.textSeparator ~= nil then
 		text = self.textSeparator .. text
@@ -741,20 +648,16 @@ function ButtonElement:setText(text, forceTextSize, isInitializing, forceScrolli
 	ButtonElement:superClass().setText(self, text, forceTextSize, isInitializing, forceScrollingParameterUpdate)
 	self:updateSize()
 end
-
 function ButtonElement:setTextSize(size)
 	ButtonElement:superClass().setTextSize(self, size)
 	self:updateSize()
 end
-
 function ButtonElement:setClickSound(soundName)
 	self.clickSoundName = soundName
 end
-
--- Local values: eventUsed
 function ButtonElement:sendAction()
-	local v176_ = not self:raiseCallback("onClickCallback", self)
-	if not self.soundDisabled and v176_ then
+	local eventUsed = not self:raiseCallback("onClickCallback", self)
+	if not self.soundDisabled and eventUsed then
 		self:playSample(self.clickSoundName)
 	end
 end

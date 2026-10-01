@@ -1,7 +1,5 @@
--- Local values: FeedingRobotStateDriving_mt
 FeedingRobotStateDriving = {}
 local FeedingRobotStateDriving_mt = Class(FeedingRobotStateDriving, FeedingRobotState)
-
 function FeedingRobotStateDriving.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. "#resetRobot", "")
 	schema:register(XMLValueType.BOOL, basePath .. "#resetRobotOnDeactivate", "")
@@ -10,16 +8,11 @@ function FeedingRobotStateDriving.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. "#startDriving", "")
 	schema:register(XMLValueType.BOOL, basePath .. "#stopDriving", "")
 end
-
--- Upvalues: FeedingRobotStateDriving_mt
--- Local values: self
 function FeedingRobotStateDriving.new(feedingRobot, customMt)
-	-- upvalues: (copy) FeedingRobotStateDriving_mt
-	local v6_ = FeedingRobotState.new(feedingRobot, customMt or FeedingRobotStateDriving_mt)
-	v6_.startFillScale = 0
-	return v6_
+	local self = FeedingRobotState.new(feedingRobot, customMt or FeedingRobotStateDriving_mt)
+	self.startFillScale = 0
+	return self
 end
-
 function FeedingRobotStateDriving:load(xmlFile, key)
 	FeedingRobotStateDriving:superClass().load(self, xmlFile, key)
 	self.resetRobot = xmlFile:getBool(key .. "#resetRobot", true)
@@ -29,36 +22,29 @@ function FeedingRobotStateDriving:load(xmlFile, key)
 	self.startDriving = xmlFile:getBool(key .. "#startDriving", true)
 	self.stopDriving = xmlFile:getBool(key .. "#stopDriving", true)
 end
-
 function FeedingRobotStateDriving:isDone()
-	if self.feedingRobot.spline.time == 1 or self.feedingRobot.reachedStopPoint then
-		return FeedingRobotStateDriving:superClass().isDone(self)
-	else
+	if self.feedingRobot.spline.time ~= 1 and not self.feedingRobot.reachedStopPoint then
 		return false
 	end
+	return FeedingRobotStateDriving:superClass().isDone(self)
 end
-
--- Local values: robot, acc, feedingFactor, fillScale
 function FeedingRobotStateDriving:update(dt)
 	FeedingRobotStateDriving:superClass().update(self, dt)
 	if self.feedingRobot.isServer then
-		local v13_ = self.feedingRobot.robot
-		local v14_ = v13_.acceleration
-		if v13_.isBlocked then
-			v14_ = v13_.deceleration
+		local robot = self.feedingRobot.robot
+		local acc = robot.acceleration
+		if robot.isBlocked then
+			acc = robot.deceleration
 		end
-		local v15_ = v13_.speed + v14_ * g_physicsDt / 1000
-		local v16_ = v13_.maxSpeed
-		v13_.speed = math.clamp(v15_, 0, v16_)
-		if v13_.speed > 0 then
-			self.feedingRobot:addSplineDelta(dt * v13_.speed)
+		robot.speed = math.clamp(robot.speed + acc * g_physicsDt / 1000, 0, robot.maxSpeed)
+		if 0 < robot.speed then
+			self.feedingRobot:addSplineDelta(dt * robot.speed)
 		end
 	end
-	local v17_ = self.feedingRobot:getFeedingFactor()
-	local v18_ = self.startFillScale - self.startFillScale * v17_
-	self.feedingRobot:setFillScale(v18_)
+	local feedingFactor = self.feedingRobot:getFeedingFactor()
+	local fillScale = self.startFillScale - self.startFillScale * feedingFactor
+	self.feedingRobot:setFillScale(fillScale)
 end
-
 function FeedingRobotStateDriving:activate()
 	FeedingRobotStateDriving:superClass().activate(self)
 	if self.startMixingAnimation then
@@ -72,7 +58,6 @@ function FeedingRobotStateDriving:activate()
 		self.feedingRobot:setIsDriving(true)
 	end
 end
-
 function FeedingRobotStateDriving:deactivate()
 	if self.stopMixingAnimation then
 		self.feedingRobot:setMixingAnimationActive(false)

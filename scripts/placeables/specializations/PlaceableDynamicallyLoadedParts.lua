@@ -1,196 +1,177 @@
 PlaceableDynamicallyLoadedParts = {}
-
 function PlaceableDynamicallyLoadedParts.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableDynamicallyLoadedParts.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "onDynamicallyPartI3DLoaded", PlaceableDynamicallyLoadedParts.onDynamicallyPartI3DLoaded)
 end
-
 function PlaceableDynamicallyLoadedParts.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableDynamicallyLoadedParts)
 	SpecializationUtil.registerEventListener(placeableType, "onDelete", PlaceableDynamicallyLoadedParts)
 	SpecializationUtil.registerEventListener(placeableType, "onFinalizePlacement", PlaceableDynamicallyLoadedParts)
 end
-
 function PlaceableDynamicallyLoadedParts.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("DynamicallyLoadedParts")
-	local v5_ = basePath .. ".dynamicallyLoadedParts.dynamicallyLoadedPart(?)"
-	schema:register(XMLValueType.STRING, v5_ .. "#filename", "Filename to i3d file")
-	schema:register(XMLValueType.NODE_INDEX, v5_ .. "#node", "Node in external i3d file", "0")
-	schema:register(XMLValueType.NODE_INDEX, v5_ .. "#linkNode", "Link node", "0>")
-	schema:register(XMLValueType.VECTOR_TRANS, v5_ .. "#position", "Position")
-	schema:register(XMLValueType.NODE_INDEX, v5_ .. "#rotationNode", "Rotation node", "node")
-	schema:register(XMLValueType.VECTOR_ROT, v5_ .. "#rotation", "Rotation node rotation")
-	schema:register(XMLValueType.STRING, v5_ .. "#shaderParameterName", "Shader parameter name")
-	schema:register(XMLValueType.VECTOR_4, v5_ .. "#shaderParameter", "Shader parameter to apply")
-	ObjectChangeUtil.registerObjectChangeSingleXMLPaths(schema, v5_)
+	basePath = basePath .. ".dynamicallyLoadedParts.dynamicallyLoadedPart(?)"
+	schema:register(XMLValueType.STRING, basePath .. "#filename", "Filename to i3d file")
+	schema:register(XMLValueType.NODE_INDEX, basePath .. "#node", "Node in external i3d file", "0")
+	schema:register(XMLValueType.NODE_INDEX, basePath .. "#linkNode", "Link node", "0>")
+	schema:register(XMLValueType.VECTOR_TRANS, basePath .. "#position", "Position")
+	schema:register(XMLValueType.NODE_INDEX, basePath .. "#rotationNode", "Rotation node", "node")
+	schema:register(XMLValueType.VECTOR_ROT, basePath .. "#rotation", "Rotation node rotation")
+	schema:register(XMLValueType.STRING, basePath .. "#shaderParameterName", "Shader parameter name")
+	schema:register(XMLValueType.VECTOR_4, basePath .. "#shaderParameter", "Shader parameter to apply")
+	ObjectChangeUtil.registerObjectChangeSingleXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec
 function PlaceableDynamicallyLoadedParts:onLoad(savegame)
-	local v_u_7_ = self.spec_dynamicallyLoadedParts
-	v_u_7_.sharedLoadRequestIds = {}
-	v_u_7_.parts = {}
-	self.xmlFile:iterate("placeable.dynamicallyLoadedParts.dynamicallyLoadedPart", function(_, p8_)
-		-- upvalues: (copy) self, (copy) v_u_7_
-		local v9_ = self.xmlFile:getValue(p8_ .. "#filename")
-		if v9_ == nil then
-			Logging.xmlWarning(self.xmlFile, "Missing filename for dynamically loaded part \'%s\'", p8_)
+	local spec = self.spec_dynamicallyLoadedParts
+	spec.sharedLoadRequestIds = {}
+	spec.parts = {}
+	self.xmlFile:iterate("placeable.dynamicallyLoadedParts.dynamicallyLoadedPart", function(_, partKey)
+		local filename = self.xmlFile:getValue(partKey .. "#filename")
+		if filename ~= nil then
+			filename = Utils.getFilename(filename, self.baseDirectory)
+			local args = { key = partKey, filename = filename }
+			args.xmlFile = self.xmlFile
+			args.loadingTask = self:createLoadingTask(spec)
+			local sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(filename, true, true, self.onDynamicallyPartI3DLoaded, self, args)
+			table.insert(spec.sharedLoadRequestIds, sharedLoadRequestId)
 		else
-			local v10_ = Utils.getFilename(v9_, self.baseDirectory)
-			local v11_ = {
-				["xmlFile"] = self.xmlFile,
-				["key"] = p8_,
-				["loadingTask"] = self:createLoadingTask(v_u_7_),
-				["filename"] = v10_
-			}
-			local v12_ = g_i3DManager:loadSharedI3DFileAsync(v10_, true, true, self.onDynamicallyPartI3DLoaded, self, v11_)
-			local v13_ = v_u_7_.sharedLoadRequestIds
-			table.insert(v13_, v12_)
+			Logging.xmlWarning(self.xmlFile, "Missing filename for dynamically loaded part '%s'", partKey)
 		end
 	end)
 end
-
--- Local values: spec, loadingTask, filename, xmlFile, partKey, node, linkedSkinnedShapes, linkedBones, missingShapesForBones, shape, bone, bone, shape, bone2, shape2, linkNode, x, y, z, rotationNode, rotX, rotY, rotZ, shaderParameterName, sx, sy, sz, sw, objectChanges, dynamicallyLoadedPart
 function PlaceableDynamicallyLoadedParts:onDynamicallyPartI3DLoaded(i3dNode, failedReason, args)
-	local v17_ = self.spec_dynamicallyLoadedParts
-	local v18_ = args.loadingTask
-	local v19_ = args.filename
-	local v20_ = args.xmlFile
-	local v21_ = args.key
+	local spec = self.spec_dynamicallyLoadedParts
+	local loadingTask = args.loadingTask
+	local filename = args.filename
+	local xmlFile = args.xmlFile
+	local partKey = args.key
 	if i3dNode == 0 then
-		Logging.xmlError(v20_, "Could not load load part %q at %q!", v19_, v21_)
-		self:finishLoadingTask(v18_)
+		Logging.xmlError(xmlFile, "Could not load load part %q at %q!", filename, partKey)
+		self:finishLoadingTask(loadingTask)
 		return false
 	end
-	local v22_ = v20_:getValue(v21_ .. "#node", "0", i3dNode)
-	if v22_ == nil then
-		Logging.xmlWarning(v20_, "Failed to load dynamicallyLoadedPart \'%s\'. Unable to find node in loaded i3d", v21_)
-		self:finishLoadingTask(v18_)
+	local node = xmlFile:getValue(partKey .. "#node", "0", i3dNode)
+	if node == nil then
+		Logging.xmlWarning(xmlFile, "Failed to load dynamicallyLoadedPart '%s'. Unable to find node in loaded i3d", partKey)
+		self:finishLoadingTask(loadingTask)
 		delete(i3dNode)
 		return false
-	end
-	local v_u_23_ = nil
-	I3DUtil.iterateRecursively(v22_, function(p24_)
-		-- upvalues: (ref) v_u_23_
-		if getHasClassId(p24_, ClassIds.SHAPE) and getShapeIsSkinned(p24_) then
-			v_u_23_ = v_u_23_ or {}
-			v_u_23_[p24_] = true
-		end
-	end)
-	local v_u_25_ = nil
-	I3DUtil.iterateRecursively(i3dNode, function(p26_)
-		-- upvalues: (ref) v_u_25_
-		if getHasClassId(p26_, ClassIds.SHAPE) and getShapeIsSkinned(p26_) then
-			for v27_ = 0, getNumOfShapeBones(p26_) - 1 do
-				local v28_ = getShapeBone(p26_, v27_)
-				v_u_25_ = v_u_25_ or {}
-				v_u_25_[v28_] = p26_
+	else
+		local linkedSkinnedShapes = nil
+		I3DUtil.iterateRecursively(node, function(toBeLinkedNode)
+			if getHasClassId(toBeLinkedNode, ClassIds.SHAPE) and getShapeIsSkinned(toBeLinkedNode) then
+				linkedSkinnedShapes = linkedSkinnedShapes or {}
+				linkedSkinnedShapes[toBeLinkedNode] = true
 			end
-		end
-	end)
-	if v_u_23_ ~= nil or v_u_25_ ~= nil then
-		local v_u_29_ = nil
-		I3DUtil.iterateRecursively(v22_, function(p30_)
-			-- upvalues: (ref) v_u_25_, (ref) v_u_23_, (ref) v_u_29_
-			local v31_ = v_u_25_[p30_]
-			if v31_ ~= nil then
-				v_u_25_[p30_] = nil
-				if v_u_23_ == nil or v_u_23_[v31_] == nil then
-					v_u_29_ = v_u_29_ or {}
-					v_u_29_[v31_] = p30_
+		end)
+		local linkedBones = nil
+		I3DUtil.iterateRecursively(i3dNode, function(loadedNode)
+			if getHasClassId(loadedNode, ClassIds.SHAPE) and getShapeIsSkinned(loadedNode) then
+				local numBones = getNumOfShapeBones(loadedNode)
+				for boneIndex = 0, numBones - 1 do
+					local bone = getShapeBone(loadedNode, boneIndex)
+					linkedBones = linkedBones or {}
+					linkedBones[bone] = loadedNode
 				end
 			end
 		end)
-		if v_u_29_ ~= nil then
-			for v32_, v33_ in pairs(v_u_29_) do
-				Logging.xmlWarning(self.xmlFile, "Node %q at %q do not contain the skinned shape %q for bone %q, ignoring", getName(v22_), v21_ .. "#node", getName(v32_), getName(v33_))
-			end
-			self:finishLoadingTask(v18_)
-			delete(i3dNode)
-			return false
-		end
-		if next(v_u_25_) ~= nil then
-			local v34_ = v_u_25_
-			local v35_ = v_u_23_
-			for _, v36_ in pairs(v_u_25_) do
-				if v35_ == nil or v35_[v36_] ~= nil then
-					Logging.xmlWarning(self.xmlFile, "Node %q at %q does not contain all bones of the skinned shape %q and cannot be linked on their own, ignoring", getName(v22_), v21_ .. "#node", getName(v36_))
-					for v37_, v38_ in pairs(v34_) do
-						if v36_ == v38_ then
-							v34_[v37_] = nil
-						end
-					end
-					if v35_ ~= nil then
-						v35_[v36_] = nil
+		if linkedSkinnedShapes ~= nil or linkedBones ~= nil then
+			local missingShapesForBones = nil
+			I3DUtil.iterateRecursively(node, function(toBeLinkedNode)
+				local shape = linkedBones[toBeLinkedNode]
+				if shape ~= nil then
+					linkedBones[toBeLinkedNode] = nil
+					if linkedSkinnedShapes == nil or linkedSkinnedShapes[shape] == nil then
+						missingShapesForBones = missingShapesForBones or {}
+						missingShapesForBones[shape] = toBeLinkedNode
 					end
 				end
+			end)
+			if missingShapesForBones ~= nil then
+				for shape, bone in pairs(missingShapesForBones) do
+					Logging.xmlWarning(self.xmlFile, "Node %q at %q do not contain the skinned shape %q for bone %q, ignoring", getName(node), partKey .. "#node", getName(shape), getName(bone))
+				end
+				self:finishLoadingTask(loadingTask)
+				delete(i3dNode)
+				return false
 			end
-			self:finishLoadingTask(v18_)
+			if next(linkedBones) ~= nil then
+				for bone, shape in pairs(linkedBones) do
+					if linkedSkinnedShapes == nil or linkedSkinnedShapes[shape] ~= nil then
+						Logging.xmlWarning(self.xmlFile, "Node %q at %q does not contain all bones of the skinned shape %q and cannot be linked on their own, ignoring", getName(node), partKey .. "#node", getName(shape))
+						for bone2, shape2 in pairs(linkedBones) do
+							if shape == shape2 then
+								linkedBones[bone2] = nil
+							end
+						end
+						if linkedSkinnedShapes == nil then
+							continue
+						end
+						linkedSkinnedShapes[shape] = nil
+					end
+				end
+				self:finishLoadingTask(loadingTask)
+				delete(i3dNode)
+				return false
+			end
+		end
+		local linkNode = xmlFile:getValue(partKey .. "#linkNode", "0>", self.components, self.i3dMappings)
+		if linkNode == nil then
+			Logging.xmlWarning(xmlFile, "Failed to load dynamicallyLoadedPart '%s'. Unable to find linkNode", partKey)
+			self:finishLoadingTask(loadingTask)
 			delete(i3dNode)
 			return false
+		else
+			removeFromPhysics(node)
+			local x, y, z = xmlFile:getValue(partKey .. "#position")
+			if x ~= nil and (y ~= nil and z ~= nil) then
+				setTranslation(node, x, y, z)
+			end
+			local rotationNode = xmlFile:getValue(partKey .. "#rotationNode", node, i3dNode)
+			local rotX, rotY, rotZ = xmlFile:getValue(partKey .. "#rotation")
+			if rotX ~= nil and (rotY ~= nil and rotZ ~= nil) then
+				setRotation(rotationNode, rotX, rotY, rotZ)
+			end
+			local shaderParameterName = xmlFile:getValue(partKey .. "#shaderParameterName")
+			local sx, sy, sz, sw = xmlFile:getValue(partKey .. "#shaderParameter")
+			if shaderParameterName ~= nil and (sx ~= nil and (sy ~= nil and (sz ~= nil and sw ~= nil))) then
+				setShaderParameter(node, shaderParameterName, sx, sy, sz, sw, false)
+			end
+			local objectChanges = ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, partKey, nil, i3dNode, nil)
+			ObjectChangeUtil.setObjectChanges(objectChanges, true, nil)
+			link(linkNode, node)
+			delete(i3dNode)
+			local dynamicallyLoadedPart = {}
+			dynamicallyLoadedPart.filename = filename
+			dynamicallyLoadedPart.node = node
+			table.insert(spec.parts, dynamicallyLoadedPart)
+			self:finishLoadingTask(loadingTask)
+			return true
 		end
 	end
-	local v39_ = v20_:getValue(v21_ .. "#linkNode", "0>", self.components, self.i3dMappings)
-	if v39_ == nil then
-		Logging.xmlWarning(v20_, "Failed to load dynamicallyLoadedPart \'%s\'. Unable to find linkNode", v21_)
-		self:finishLoadingTask(v18_)
-		delete(i3dNode)
-		return false
-	end
-	removeFromPhysics(v22_)
-	local v40_, v41_, v42_ = v20_:getValue(v21_ .. "#position")
-	if v40_ ~= nil and (v41_ ~= nil and v42_ ~= nil) then
-		setTranslation(v22_, v40_, v41_, v42_)
-	end
-	local v43_ = v20_:getValue(v21_ .. "#rotationNode", v22_, i3dNode)
-	local v44_, v45_, v46_ = v20_:getValue(v21_ .. "#rotation")
-	if v44_ ~= nil and (v45_ ~= nil and v46_ ~= nil) then
-		setRotation(v43_, v44_, v45_, v46_)
-	end
-	local v47_ = v20_:getValue(v21_ .. "#shaderParameterName")
-	local v48_, v49_, v50_, v51_ = v20_:getValue(v21_ .. "#shaderParameter")
-	if v47_ ~= nil and (v48_ ~= nil and (v49_ ~= nil and (v50_ ~= nil and v51_ ~= nil))) then
-		setShaderParameter(v22_, v47_, v48_, v49_, v50_, v51_, false)
-	end
-	local v52_ = ObjectChangeUtil.loadObjectChangeFromXML(v20_, v21_, nil, i3dNode, nil)
-	ObjectChangeUtil.setObjectChanges(v52_, true, nil)
-	link(v39_, v22_)
-	delete(i3dNode)
-	local v53_ = v17_.parts
-	table.insert(v53_, {
-		["filename"] = v19_,
-		["node"] = v22_
-	})
-	self:finishLoadingTask(v18_)
-	return true
 end
-
--- Local values: spec, _, sharedLoadRequestId, _, part
 function PlaceableDynamicallyLoadedParts:onDelete()
-	local v55_ = self.spec_dynamicallyLoadedParts
-	if v55_.sharedLoadRequestIds ~= nil then
-		for _, v56_ in ipairs(v55_.sharedLoadRequestIds) do
-			g_i3DManager:releaseSharedI3DFile(v56_)
+	local spec = self.spec_dynamicallyLoadedParts
+	if spec.sharedLoadRequestIds ~= nil then
+		for _, sharedLoadRequestId in ipairs(spec.sharedLoadRequestIds) do
+			g_i3DManager:releaseSharedI3DFile(sharedLoadRequestId)
 		end
-		v55_.sharedLoadRequestIds = nil
+		spec.sharedLoadRequestIds = nil
 	end
-	if v55_.parts ~= nil then
-		for _, v57_ in pairs(v55_.parts) do
-			delete(v57_.node)
+	if spec.parts ~= nil then
+		for _, part in pairs(spec.parts) do
+			delete(part.node)
 		end
 	end
 end
-
--- Local values: spec, _, part
 function PlaceableDynamicallyLoadedParts:onFinalizePlacement()
-	local v59_ = self.spec_dynamicallyLoadedParts
-	if v59_.parts ~= nil then
-		for _, v60_ in pairs(v59_.parts) do
-			addToPhysics(v60_.node)
+	local spec = self.spec_dynamicallyLoadedParts
+	if spec.parts ~= nil then
+		for _, part in pairs(spec.parts) do
+			addToPhysics(part.node)
 		end
 	end
 end

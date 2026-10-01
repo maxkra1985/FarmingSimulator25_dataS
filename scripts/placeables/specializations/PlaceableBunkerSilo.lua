@@ -1,9 +1,7 @@
 PlaceableBunkerSilo = {}
-
 function PlaceableBunkerSilo.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableBunkerSilo.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableBunkerSilo)
 	SpecializationUtil.registerEventListener(placeableType, "onDelete", PlaceableBunkerSilo)
@@ -12,13 +10,11 @@ function PlaceableBunkerSilo.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onWriteStream", PlaceableBunkerSilo)
 	SpecializationUtil.registerEventListener(placeableType, "onSell", PlaceableBunkerSilo)
 end
-
 function PlaceableBunkerSilo.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "updateBunkerSiloWalls", PlaceableBunkerSilo.updateBunkerSiloWalls)
 	SpecializationUtil.registerFunction(placeableType, "setWallVisibility", PlaceableBunkerSilo.setWallVisibility)
 	SpecializationUtil.registerFunction(placeableType, "getIsBunkerSiloExtendable", PlaceableBunkerSilo.getIsBunkerSiloExtendable)
 end
-
 function PlaceableBunkerSilo.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getPlacementPosition", PlaceableBunkerSilo.getPlacementPosition)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getPlacementRotation", PlaceableBunkerSilo.getPlacementRotation)
@@ -27,209 +23,190 @@ function PlaceableBunkerSilo.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "canBeSold", PlaceableBunkerSilo.canBeSold)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "setOwnerFarmId", PlaceableBunkerSilo.setOwnerFarmId)
 end
-
 function PlaceableBunkerSilo.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("BunkerSilo")
 	BunkerSilo.registerXMLPaths(schema, basePath .. ".bunkerSilo")
-	schema:register(XMLValueType.BOOL, basePath .. ".bunkerSilo#isExtendable", "Checks if silo is extendable. If set \'siloToSiloDistance\' needs to be provided as well", false)
+	schema:register(XMLValueType.BOOL, basePath .. ".bunkerSilo#isExtendable", "Checks if silo is extendable. If set 'siloToSiloDistance' needs to be provided as well", false)
 	schema:register(XMLValueType.FLOAT, basePath .. ".bunkerSilo#siloToSiloDistance", "Silo to silo distance required for aligning multiple silos of the same type next to each other")
 	schema:register(XMLValueType.FLOAT, basePath .. ".bunkerSilo#snapDistance", "Snap distance for building an array of the same silo", "siloToSiloDistance * 1.1")
 	schema:register(XMLValueType.STRING, basePath .. ".bunkerSilo#sellWarningText", "Sell warning text")
 	schema:setXMLSpecializationType()
 end
-
 function PlaceableBunkerSilo.registerSavegameXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("BunkerSilo")
 	BunkerSilo.registerSavegameXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:onLoad(savegame)
-	local v9_ = self.spec_bunkerSilo
-	v9_.bunkerSilo = BunkerSilo.new(self.isServer, self.isClient)
-	if not v9_.bunkerSilo:load(self.components, self.xmlFile, "placeable.bunkerSilo", self.i3dMappings) then
-		v9_.bunkerSilo:delete()
+	local spec = self.spec_bunkerSilo
+	spec.bunkerSilo = BunkerSilo.new(self.isServer, self.isClient)
+	if not spec.bunkerSilo:load(self.components, self.xmlFile, "placeable.bunkerSilo", self.i3dMappings) then
+		spec.bunkerSilo:delete()
 	end
-	v9_.isExtendable = self.xmlFile:getValue("placeable.bunkerSilo#isExtendable", false)
-	if v9_.isExtendable then
-		v9_.siloSiloDistance = self.xmlFile:getValue("placeable.bunkerSilo#siloToSiloDistance")
-		if v9_.siloSiloDistance == nil then
-			Logging.xmlError(self.xmlFile, "Bunker Silo is marked as extendable but \'placeable.bunkerSilo#siloToSiloDistance\' is not set")
+	spec.isExtendable = self.xmlFile:getValue("placeable.bunkerSilo#isExtendable", false)
+	if spec.isExtendable then
+		spec.siloSiloDistance = self.xmlFile:getValue("placeable.bunkerSilo#siloToSiloDistance")
+		if spec.siloSiloDistance == nil then
+			Logging.xmlError(self.xmlFile, "Bunker Silo is marked as extendable but 'placeable.bunkerSilo#siloToSiloDistance' is not set")
 			self:setLoadingState(PlaceableLoadingState.ERROR)
 			return
 		end
-		v9_.snapDistance = self.xmlFile:getValue("placeable.bunkerSilo#snapDistance") or v9_.siloSiloDistance * 1.1
+		spec.snapDistance = self.xmlFile:getValue("placeable.bunkerSilo#snapDistance") or spec.siloSiloDistance * 1.1
 	end
-	v9_.sellWarningText = g_i18n:convertText(self.xmlFile:getValue("placeable.bunkerSilo#sellWarningText", "$l10n_info_bunkerSiloNotEmpty"))
+	spec.sellWarningText = g_i18n:convertText(self.xmlFile:getValue("placeable.bunkerSilo#sellWarningText", "$l10n_info_bunkerSiloNotEmpty"))
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:onDelete()
-	local v11_ = self.spec_bunkerSilo
+	local spec = self.spec_bunkerSilo
 	self:updateBunkerSiloWalls(true)
-	if v11_.bunkerSilo ~= nil then
-		v11_.bunkerSilo:delete()
+	if spec.bunkerSilo ~= nil then
+		spec.bunkerSilo:delete()
 	end
 	g_currentMission.placeableSystem:removeBunkerSilo(self)
 end
-
--- Local values: spec, ownerFarmId
 function PlaceableBunkerSilo:onFinalizePlacement()
-	local v13_ = self.spec_bunkerSilo
-	local v14_ = self:getOwnerFarmId()
+	local spec = self.spec_bunkerSilo
+	local ownerFarmId = self:getOwnerFarmId()
 	self:updateBunkerSiloWalls(false)
-	v13_.bunkerSilo:register(true)
-	v13_.bunkerSilo:setOwnerFarmId(v14_, true)
+	spec.bunkerSilo:register(true)
+	spec.bunkerSilo:setOwnerFarmId(ownerFarmId, true)
 	g_currentMission.placeableSystem:addBunkerSilo(self)
 end
-
--- Local values: spec, bunkerSiloId
 function PlaceableBunkerSilo:onReadStream(streamId, connection)
-	local v18_ = self.spec_bunkerSilo
-	local v19_ = NetworkUtil.readNodeObjectId(streamId)
-	v18_.bunkerSilo:readStream(streamId, connection)
-	g_client:finishRegisterObject(v18_.bunkerSilo, v19_)
+	local spec = self.spec_bunkerSilo
+	local bunkerSiloId = NetworkUtil.readNodeObjectId(streamId)
+	spec.bunkerSilo:readStream(streamId, connection)
+	g_client:finishRegisterObject(spec.bunkerSilo, bunkerSiloId)
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:onWriteStream(streamId, connection)
-	local v23_ = self.spec_bunkerSilo
-	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v23_.bunkerSilo))
-	v23_.bunkerSilo:writeStream(streamId, connection)
-	g_server:registerObjectInStream(connection, v23_.bunkerSilo)
+	local spec = self.spec_bunkerSilo
+	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(spec.bunkerSilo))
+	spec.bunkerSilo:writeStream(streamId, connection)
+	g_server:registerObjectInStream(connection, spec.bunkerSilo)
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:loadFromXMLFile(xmlFile, key)
-	return self.spec_bunkerSilo.bunkerSilo:loadFromXMLFile(xmlFile, key)
+	local spec = self.spec_bunkerSilo
+	return spec.bunkerSilo:loadFromXMLFile(xmlFile, key)
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:saveToXMLFile(xmlFile, key, usedModNames)
-	self.spec_bunkerSilo.bunkerSilo:saveToXMLFile(xmlFile, key, usedModNames)
+	local spec = self.spec_bunkerSilo
+	spec.bunkerSilo:saveToXMLFile(xmlFile, key, usedModNames)
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:setWallVisibility(isLeftVisible, isRightVisible)
-	self.spec_bunkerSilo.bunkerSilo:setWallVisibility(isLeftVisible, isRightVisible)
+	local spec = self.spec_bunkerSilo
+	spec.bunkerSilo:setWallVisibility(isLeftVisible, isRightVisible)
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:getIsBunkerSiloExtendable()
-	return self.spec_bunkerSilo.isExtendable
+	local spec = self.spec_bunkerSilo
+	return spec.isExtendable
 end
-
--- Local values: spec, x, y, z, placeableSystem, _, placeable, lx, _, lz, distance, isLeft
 function PlaceableBunkerSilo:updateBunkerSiloWalls(isDeleting)
-	local v37_ = self.spec_bunkerSilo
+	local spec = self.spec_bunkerSilo
 	if self.rootNode ~= nil then
-		local v38_, v39_, v40_ = getWorldTranslation(self.rootNode)
-		local v41_ = g_currentMission.placeableSystem
-		for _, v42_ in ipairs(v41_:getBunkerSilos()) do
-			if v42_:getIsBunkerSiloExtendable() and (v42_ ~= self and (v42_:getOwnerFarmId() == self:getOwnerFarmId() and v42_.configFileName == self.configFileName)) then
-				local v43_, _, v44_ = worldToLocal(v42_.rootNode, v38_, v39_, v40_)
-				if MathUtil.vector2Length(v43_, v44_) < v37_.siloSiloDistance + 0.5 then
-					local v45_ = v43_ > 0
-					if isDeleting then
-						if v45_ then
-							v42_:setWallVisibility(true, nil)
+		local x, y, z = getWorldTranslation(self.rootNode)
+		local placeableSystem = g_currentMission.placeableSystem
+		for _, placeable in ipairs(placeableSystem:getBunkerSilos()) do
+			if placeable:getIsBunkerSiloExtendable() then
+				if placeable == self then
+					continue
+				end
+				if placeable:getOwnerFarmId() == self:getOwnerFarmId() and placeable.configFileName == self.configFileName then
+					local lx, _, lz = worldToLocal(placeable.rootNode, x, y, z)
+					local distance = MathUtil.vector2Length(lx, lz)
+					if distance < spec.siloSiloDistance + 0.5 then
+						local isLeft = 0 < lx
+						if isDeleting then
+							if isLeft then
+								placeable:setWallVisibility(true, nil)
+							else
+								placeable:setWallVisibility(nil, true)
+							end
+						elseif isLeft then
+							placeable:setWallVisibility(false, nil)
 						else
-							v42_:setWallVisibility(nil, true)
+							placeable:setWallVisibility(nil, false)
 						end
-					elseif v45_ then
-						v42_:setWallVisibility(false, nil)
-					else
-						v42_:setWallVisibility(nil, false)
 					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:setOwnerFarmId(superFunc, farmId, noEventSend)
-	local v50_ = self.spec_bunkerSilo
+	local spec = self.spec_bunkerSilo
 	superFunc(self, farmId, noEventSend)
-	if v50_.bunkerSilo ~= nil then
-		v50_.bunkerSilo:setOwnerFarmId(farmId, true)
+	if spec.bunkerSilo ~= nil then
+		spec.bunkerSilo:setOwnerFarmId(farmId, true)
 	end
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:onSell()
-	self.spec_bunkerSilo.bunkerSilo:clearSiloArea()
+	local spec = self.spec_bunkerSilo
+	spec.bunkerSilo:clearSiloArea()
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:canBeSold(superFunc)
-	local v53_ = self.spec_bunkerSilo
-	if v53_.bunkerSilo.fillLevel > 0 then
-		return true, v53_.sellWarningText
+	local spec = self.spec_bunkerSilo
+	if 0 < spec.bunkerSilo.fillLevel then
+		return true, spec.sellWarningText
 	else
 		return true, nil
 	end
 end
-
--- Local values: spec, nearestDistance, _, placeable, lx, _, lz, distance
 function PlaceableBunkerSilo:startPlacementCheck(superFunc, x, y, z, rotY)
-	local v60_ = self.spec_bunkerSilo
+	local spec = self.spec_bunkerSilo
 	superFunc(self, x, y, z, rotY)
 	if x == nil then
 		return
-	elseif v60_.isExtendable then
-		v60_.foundSnappingSilo = nil
-		v60_.foundSnappingSiloSide = 0
-		local v61_ = v60_.snapDistance
-		for _, v62_ in ipairs(g_currentMission.placeableSystem:getBunkerSilos()) do
-			if v62_:getOwnerFarmId() == g_localPlayer.farmId and v62_.configFileName == self.configFileName then
-				local v63_, _, v64_ = worldToLocal(v62_.rootNode, x, y, z)
-				local v65_ = MathUtil.vector2Length(v63_, v64_)
-				if v65_ < v61_ then
-					v60_.foundSnappingSilo = v62_
-					v60_.foundSnappingSiloSide = math.sign(v63_)
-					v61_ = v65_
-				end
+	end
+	if not spec.isExtendable then
+		return
+	end
+	spec.foundSnappingSilo = nil
+	spec.foundSnappingSiloSide = 0
+	local nearestDistance = spec.snapDistance
+	for _, placeable in ipairs(g_currentMission.placeableSystem:getBunkerSilos()) do
+		if placeable:getOwnerFarmId() == g_localPlayer.farmId and placeable.configFileName == self.configFileName then
+			local lx, _, lz = worldToLocal(placeable.rootNode, x, y, z)
+			local distance = MathUtil.vector2Length(lx, lz)
+			if distance < nearestDistance then
+				nearestDistance = distance
+				spec.foundSnappingSilo = placeable
+				spec.foundSnappingSiloSide = math.sign(lx)
 			end
 		end
 	end
 end
-
--- Local values: spec, overwrittenCheckFunc
 function PlaceableBunkerSilo:getHasOverlap(superFunc, x, y, z, rotY, checkFunc)
-	local v_u_73_ = self.spec_bunkerSilo
-	return superFunc(self, x, y, z, rotY, v_u_73_.foundSnappingSilo ~= nil and function(p74_)
-		-- upvalues: (copy) v_u_73_, (copy) checkFunc
-		if g_currentMission:getNodeObject(p74_) == v_u_73_.foundSnappingSilo then
-			return false
-		elseif checkFunc == nil then
-			return p74_ ~= g_terrainNode
-		else
-			return checkFunc(p74_)
+	local spec = self.spec_bunkerSilo
+	local overwrittenCheckFunc = checkFunc
+	if spec.foundSnappingSilo ~= nil then
+		function overwrittenCheckFunc(hitObjectId)
+			local object = g_currentMission:getNodeObject(hitObjectId)
+			if object == spec.foundSnappingSilo then
+				return false
+			elseif checkFunc ~= nil then
+				return checkFunc(hitObjectId)
+			else
+				return hitObjectId ~= g_terrainNode
+			end
 		end
-	end or checkFunc)
+	end
+	return superFunc(self, x, y, z, rotY, overwrittenCheckFunc)
 end
-
--- Local values: spec, dx, _, dz
 function PlaceableBunkerSilo:getPlacementRotation(superFunc, x, y, z)
-	local v80_, v81_, v82_ = superFunc(self, x, y, z)
-	local v83_ = self.spec_bunkerSilo
-	if v83_.foundSnappingSilo ~= nil then
-		local v84_, _, v85_ = localDirectionToWorld(v83_.foundSnappingSilo.rootNode, 0, 0, 1)
-		v81_ = MathUtil.getYRotationFromDirection(v84_, v85_)
-		v80_ = 0
-		v82_ = 0
+	x, y, z = superFunc(self, x, y, z)
+	local spec = self.spec_bunkerSilo
+	if spec.foundSnappingSilo ~= nil then
+		local dx, _, dz = localDirectionToWorld(spec.foundSnappingSilo.rootNode, 0, 0, 1)
+		x = 0
+		y = MathUtil.getYRotationFromDirection(dx, dz)
+		z = 0
 	end
-	return v80_, v81_, v82_
+	return x, y, z
 end
-
--- Local values: spec
 function PlaceableBunkerSilo:getPlacementPosition(superFunc, x, y, z)
-	local v91_, v92_, v93_ = superFunc(self, x, y, z)
-	local v94_ = self.spec_bunkerSilo
-	if v94_.foundSnappingSilo ~= nil then
-		v91_, v92_, v93_ = localToWorld(v94_.foundSnappingSilo.rootNode, v94_.siloSiloDistance * v94_.foundSnappingSiloSide, 0, 0)
+	x, y, z = superFunc(self, x, y, z)
+	local spec = self.spec_bunkerSilo
+	if spec.foundSnappingSilo ~= nil then
+		x, y, z = localToWorld(spec.foundSnappingSilo.rootNode, spec.siloSiloDistance * spec.foundSnappingSiloSide, 0, 0)
 	end
-	return v91_, v92_, v93_
+	return x, y, z
 end

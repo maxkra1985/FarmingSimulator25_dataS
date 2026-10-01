@@ -1,196 +1,158 @@
--- Local values: InputAction_mt
 InputAction = {}
 local InputAction_mt = Class(InputAction)
-InputAction.AXIS_TYPE = {
-	["HALF"] = "HALF",
-	["FULL"] = "FULL"
-}
-InputAction.CATEGORY = {
-	["SYSTEM"] = 1,
-	["ONFOOT"] = 2,
-	["VEHICLE"] = 3
-}
-
--- Upvalues: InputAction_mt
--- Local values: self
+InputAction.AXIS_TYPE = { HALF = "HALF", FULL = "FULL" }
+InputAction.CATEGORY = { SYSTEM = 1, ONFOOT = 2, VEHICLE = 3 }
 function InputAction.new(name, categories, displayCategory, axisType, isLocked, ignoreComboMask, displayNamePositive, displayNameNegative, isBaseAction, isConsoleAction, isMobileAction)
-	-- upvalues: (copy) InputAction_mt
-	local v13_ = InputAction_mt
-	local v14_ = setmetatable({}, v13_)
-	v14_.name = name
-	v14_.displayNamePositive = displayNamePositive
-	v14_.displayNameNegative = displayNameNegative
-	v14_.categories = categories
-	v14_.axisType = axisType
-	v14_.isLocked = isLocked
-	v14_.ignoreComboMask = ignoreComboMask
-	v14_.displayCategory = displayCategory
-	v14_.isBaseAction = Utils.getNoNil(isBaseAction, true)
-	v14_.isConsoleAction = Utils.getNoNil(isConsoleAction, true)
-	v14_.isMobileAction = Utils.getNoNil(isMobileAction, true)
-	v14_.bindingsKnown = false
-	v14_.bindings = {}
-	v14_.activeBindings = {}
-	v14_.isConsumed = false
-	v14_.comboMaskGamepad = 0
-	v14_.comboMaskMouse = 0
-	v14_.primaryKeyboardInput = nil
-	return v14_
+	local self = setmetatable({}, InputAction_mt)
+	self.name = name
+	self.displayNamePositive = displayNamePositive
+	self.displayNameNegative = displayNameNegative
+	self.categories = categories
+	self.axisType = axisType
+	self.isLocked = isLocked
+	self.ignoreComboMask = ignoreComboMask
+	self.displayCategory = displayCategory
+	self.isBaseAction = Utils.getNoNil(isBaseAction, true)
+	self.isConsoleAction = Utils.getNoNil(isConsoleAction, true)
+	self.isMobileAction = Utils.getNoNil(isMobileAction, true)
+	self.bindingsKnown = false
+	self.bindings = {}
+	self.activeBindings = {}
+	self.isConsumed = false
+	self.comboMaskGamepad = 0
+	self.comboMaskMouse = 0
+	self.primaryKeyboardInput = nil
+	return self
 end
-
--- Local values: name, categoryValue, categoryNames, categories, _, categoryName, cat, displayCategory, axisType, isLocked, ignoreComboMask, isBaseAction, isConsoleAction, isMobileAction
 function InputAction.createFromXML(xmlFile, elementTag)
-	local v17_ = getXMLString(xmlFile, elementTag .. "#name")
-	local v18_ = (getXMLString(xmlFile, elementTag .. "#category") or ""):split(" ")
-	local v19_ = {}
-	for _, v20_ in ipairs(v18_) do
-		local v21_ = InputAction.CATEGORY[v20_]
-		if v21_ ~= nil then
-			v19_[v21_] = v21_
+	local name = getXMLString(xmlFile, elementTag .. "#name")
+	local categoryValue = getXMLString(xmlFile, elementTag .. "#category") or ""
+	local categoryNames = categoryValue:split(" ")
+	local categories = {}
+	for _, categoryName in ipairs(categoryNames) do
+		local cat = InputAction.CATEGORY[categoryName]
+		if cat == nil then
+			continue
 		end
+		categories[cat] = cat
 	end
-	local v22_ = getXMLString(xmlFile, elementTag .. "#displayCategory")
-	if v22_ ~= nil then
-		v22_ = "$l10n_inputCategory_" .. v22_
+	local displayCategory = getXMLString(xmlFile, elementTag .. "#displayCategory")
+	if displayCategory ~= nil then
+		displayCategory = "$l10n_inputCategory_" .. displayCategory
 	end
-	local v23_ = getXMLString(xmlFile, elementTag .. "#axisType")
-	if v23_ ~= InputAction.AXIS_TYPE.FULL and v23_ ~= InputAction.AXIS_TYPE.HALF then
-		v23_ = InputAction.AXIS_TYPE.HALF
+	local axisType = getXMLString(xmlFile, elementTag .. "#axisType")
+	if axisType ~= InputAction.AXIS_TYPE.FULL and axisType ~= InputAction.AXIS_TYPE.HALF then
+		axisType = InputAction.AXIS_TYPE.HALF
 	end
-	local v24_ = Utils.getNoNil(getXMLBool(xmlFile, elementTag .. "#locked"), false)
-	local v25_ = Utils.getNoNil(getXMLBool(xmlFile, elementTag .. "#ignoreComboMask"), false)
-	local v26_ = getXMLBool(xmlFile, elementTag .. "#isBaseAction")
-	local v27_ = getXMLBool(xmlFile, elementTag .. "#isConsoleAction")
-	local v28_ = getXMLBool(xmlFile, elementTag .. "#isMobileAction")
-	local v29_ = table.hasElement(Platform.lockedInputActionNames, v17_) and true or v24_
-	if v17_ and not InputAction[v17_] then
-		InputAction[v17_] = v17_
+	local isLocked = Utils.getNoNil(getXMLBool(xmlFile, elementTag .. "#locked"), false)
+	local ignoreComboMask = Utils.getNoNil(getXMLBool(xmlFile, elementTag .. "#ignoreComboMask"), false)
+	local isBaseAction = getXMLBool(xmlFile, elementTag .. "#isBaseAction")
+	local isConsoleAction = getXMLBool(xmlFile, elementTag .. "#isConsoleAction")
+	local isMobileAction = getXMLBool(xmlFile, elementTag .. "#isMobileAction")
+	if table.hasElement(Platform.lockedInputActionNames, name) then
+		isLocked = true
 	end
-	return InputAction.new(v17_, v19_, v22_, v23_, v29_, v25_, nil, nil, v26_, v27_, v28_)
+	if name and not InputAction[name] then
+		InputAction[name] = name
+	end
+	return InputAction.new(name, categories, displayCategory, axisType, isLocked, ignoreComboMask, nil, nil, isBaseAction, isConsoleAction, isMobileAction)
 end
-
 function InputAction:getIsSupportedOnCurrentPlatform()
-	return (self.isBaseAction or not GS_PLATFORM_PC) and ((self.isConsoleAction or not GS_IS_CONSOLE_VERSION) and (self.isMobileAction or not GS_IS_MOBILE_VERSION)) and true or false
+	if (self.isBaseAction or not GS_PLATFORM_PC) and (self.isConsoleAction or not GS_IS_CONSOLE_VERSION) then
+		if not self.isMobileAction and GS_IS_MOBILE_VERSION then
+			return false
+		end
+		return true
+	end
 end
-
--- Local values: _, existingBinding
 function InputAction:addBinding(binding)
-	for _, v33_ in pairs(self.bindings) do
-		if v33_.id == binding.id then
+	for _, existingBinding in pairs(self.bindings) do
+		if existingBinding.id == binding.id then
 			return
 		end
 	end
-	local v34_ = self.bindings
-	table.insert(v34_, binding)
+	table.insert(self.bindings, binding)
 	self:resetActiveBindings()
 end
-
--- Local values: i, existingBinding
 function InputAction:removeBinding(binding)
-	for v37_, v38_ in ipairs(self.bindings) do
-		if v38_.id == binding.id then
-			table.remove(self.bindings, v37_)
+	for i, existingBinding in ipairs(self.bindings) do
+		if existingBinding.id == binding.id then
+			table.remove(self.bindings, i)
 			return
 		end
 	end
 	self:resetActiveBindings()
 end
-
--- Local values: i, existingBinding
 function InputAction:disableBinding(binding)
-	for v41_, v42_ in ipairs(self.activeBindings) do
-		if v42_.id == binding.id then
-			table.remove(self.activeBindings, v41_)
+	for i, existingBinding in ipairs(self.activeBindings) do
+		if existingBinding.id == binding.id then
+			table.remove(self.activeBindings, i)
 			return
 		end
 	end
 end
-
--- Local values: _, existingBinding
 function InputAction:enableBinding(binding)
-	for _, v45_ in ipairs(self.bindings) do
-		if v45_.id == binding.id then
+	for _, existingBinding in ipairs(self.bindings) do
+		if existingBinding.id == binding.id then
 			table.addElement(self.activeBindings, binding)
 		end
 	end
 end
-
 function InputAction:getBindings()
 	return self.bindings
 end
-
 function InputAction:getActiveBindings()
 	return self.activeBindings
 end
-
--- Local values: num, i, binding
 function InputAction:getNumActiveBindings(ignoreDeviceState)
-	local v50_ = 0
-	for v51_ = 1, #self.activeBindings do
-		local v52_ = self.activeBindings[v51_]
-		if g_inputBinding.deviceIdToInternal[v52_.deviceId] ~= nil or ignoreDeviceState then
-			v50_ = v50_ + 1
+	local num = 0
+	for i = 1, #self.activeBindings do
+		local binding = self.activeBindings[i]
+		if g_inputBinding.deviceIdToInternal[binding.deviceId] ~= nil or ignoreDeviceState then
+			num = num + 1
 		end
 	end
-	return v50_
+	return num
 end
-
--- Local values: k, _, binding
 function InputAction:resetActiveBindings()
-	for v54_ in pairs(self.activeBindings) do
-		self.activeBindings[v54_] = nil
+	for k in pairs(self.activeBindings) do
+		self.activeBindings[k] = nil
 	end
-	for _, v55_ in ipairs(self.bindings) do
-		local v56_ = self.activeBindings
-		table.insert(v56_, v55_)
+	for _, binding in ipairs(self.bindings) do
+		table.insert(self.activeBindings, binding)
 	end
 end
-
 function InputAction:clearBindings()
 	self.bindings = {}
 	self.activeBindings = {}
 end
-
--- Local values: _, binding
 function InputAction:getBindingAtSlot(axisComponent, isKbMouse, slotIndex)
-	for _, v62_ in pairs(self.bindings) do
-		if v62_:isSameSlotWithParams(axisComponent, isKbMouse, slotIndex) then
-			return v62_
+	for _, binding in pairs(self.bindings) do
+		if binding:isSameSlotWithParams(axisComponent, isKbMouse, slotIndex) then
+			return binding
 		end
 	end
 	return nil
 end
-
 function InputAction:setPrimaryKeyboardBinding(binding)
 	self.primaryKeyboardInput = table.concat(binding.axisNames, " ")
 end
-
 function InputAction:isFullAxis()
 	return self.axisType == InputAction.AXIS_TYPE.FULL
 end
-
 function InputAction:getIgnoreComboMask()
 	return self.ignoreComboMask
 end
-
--- Local values: clone
 function InputAction:clone()
-	return InputAction.new(self.name, self.categories, self.displayCategory, self.axisType, self.isLocked, self.ignoreComboMask, self.displayNamePositive, self.displayNameNegative)
+	local clone = InputAction.new(self.name, self.categories, self.displayCategory, self.axisType, self.isLocked, self.ignoreComboMask, self.displayNamePositive, self.displayNameNegative)
+	return clone
 end
-
--- Local values: categories, cat
 function InputAction:toString()
-	local v69_ = ""
-	for v70_ in pairs(self.categories) do
-		v69_ = v69_ .. " " .. v70_
+	local categories = ""
+	for cat in pairs(self.categories) do
+		categories = categories .. " " .. cat
 	end
-	local v71_ = string.format
-	local v72_ = self.name
-	local v73_ = tostring(v72_)
-	local v74_ = self.axisType
-	local v75_ = tostring(v74_)
-	local v76_ = self.isLocked
-	return v71_("[%s: categories=%s, axisType=%s, isLocked=%s]", v73_, v69_, v75_, (tostring(v76_)))
+	return string.format("[%s: categories=%s, axisType=%s, isLocked=%s]", tostring(self.name), categories, tostring(self.axisType), tostring(self.isLocked))
 end
 InputAction_mt.__tostring = InputAction.toString
 InputAction.JUMP = "JUMP"
@@ -435,21 +397,5 @@ InputAction.VARIABLE_WORK_WIDTH_TOGGLE = "VARIABLE_WORK_WIDTH_TOGGLE"
 InputAction.WOOD_HARVESTER_DROP = "WOOD_HARVESTER_DROP"
 InputAction.TOGGLE_CUT_LENGTH_BACK = "TOGGLE_CUT_LENGTH_BACK"
 InputAction.TOGGLE_WOOD_HARVESTER_TILT = "TOGGLE_WOOD_HARVESTER_TILT"
-InputAction.LINKED_ACTIONS = {
-	[InputAction.AXIS_LOOK_LEFTRIGHT_PLAYER] = InputAction.AXIS_LOOK_UPDOWN_PLAYER,
-	[InputAction.AXIS_LOOK_UPDOWN_PLAYER] = InputAction.AXIS_LOOK_LEFTRIGHT_PLAYER,
-	[InputAction.AXIS_LOOK_LEFTRIGHT_VEHICLE] = InputAction.AXIS_LOOK_UPDOWN_VEHICLE,
-	[InputAction.AXIS_LOOK_UPDOWN_VEHICLE] = InputAction.AXIS_LOOK_LEFTRIGHT_VEHICLE
-}
-InputAction.EXCLUSIVE_ACTION_GROUPS = {
-	["MENU"] = {
-		InputAction.MENU_ACCEPT,
-		InputAction.MENU_ACTIVATE,
-		InputAction.MENU_BACK,
-		InputAction.MENU_CANCEL,
-		InputAction.MENU_EXTRA_1,
-		InputAction.MENU_EXTRA_2,
-		InputAction.MENU_AXIS_LEFT_RIGHT,
-		InputAction.MENU_AXIS_UP_DOWN
-	}
-}
+InputAction.LINKED_ACTIONS = { [InputAction.AXIS_LOOK_LEFTRIGHT_PLAYER] = InputAction.AXIS_LOOK_UPDOWN_PLAYER, [InputAction.AXIS_LOOK_UPDOWN_PLAYER] = InputAction.AXIS_LOOK_LEFTRIGHT_PLAYER, [InputAction.AXIS_LOOK_LEFTRIGHT_VEHICLE] = InputAction.AXIS_LOOK_UPDOWN_VEHICLE, [InputAction.AXIS_LOOK_UPDOWN_VEHICLE] = InputAction.AXIS_LOOK_LEFTRIGHT_VEHICLE }
+InputAction.EXCLUSIVE_ACTION_GROUPS = { MENU = { InputAction.MENU_ACCEPT, InputAction.MENU_ACTIVATE, InputAction.MENU_BACK, InputAction.MENU_CANCEL, InputAction.MENU_EXTRA_1, InputAction.MENU_EXTRA_2, InputAction.MENU_AXIS_LEFT_RIGHT, InputAction.MENU_AXIS_UP_DOWN } }

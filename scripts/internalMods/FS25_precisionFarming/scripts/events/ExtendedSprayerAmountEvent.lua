@@ -1,21 +1,17 @@
--- Local values: ExtendedSprayerAmountEvent_mt
 ExtendedSprayerAmountEvent = {}
 local ExtendedSprayerAmountEvent_mt = Class(ExtendedSprayerAmountEvent, Event)
 InitEventClass(ExtendedSprayerAmountEvent, "ExtendedSprayerAmountEvent")
 function ExtendedSprayerAmountEvent.emptyNew()
-	-- upvalues: (copy) ExtendedSprayerAmountEvent_mt
-	return Event.new(ExtendedSprayerAmountEvent_mt)
+	local self = Event.new(ExtendedSprayerAmountEvent_mt)
+	return self
 end
-
--- Local values: self
 function ExtendedSprayerAmountEvent.new(object, automaticMode, manualValue)
-	local v5_ = ExtendedSprayerAmountEvent.emptyNew()
-	v5_.object = object
-	v5_.automaticMode = automaticMode
-	v5_.manualValue = manualValue
-	return v5_
+	local self = ExtendedSprayerAmountEvent.emptyNew()
+	self.object = object
+	self.automaticMode = automaticMode
+	self.manualValue = manualValue
+	return self
 end
-
 function ExtendedSprayerAmountEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.automaticMode = streamReadBool(streamId)
@@ -24,14 +20,12 @@ function ExtendedSprayerAmountEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function ExtendedSprayerAmountEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	if not streamWriteBool(streamId, self.automaticMode) then
 		streamWriteUIntN(streamId, self.manualValue, NitrogenMap.NUM_BITS)
 	end
 end
-
 function ExtendedSprayerAmountEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -43,7 +37,6 @@ function ExtendedSprayerAmountEvent:run(connection)
 		end
 	end
 end
-
 function ExtendedSprayerAmountEvent.sendEvent(object, automaticMode, manualValue, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

@@ -1,105 +1,103 @@
 source("dataS/scripts/vehicles/specializations/events/FoldableSetFoldDirectionEvent.lua")
 Foldable = {}
-
 function Foldable.prerequisitesPresent(specializations)
 	return true
 end
 function Foldable.initSpecialization()
 	g_vehicleConfigurationManager:addConfigurationType("folding", g_i18n:getText("configuration_folding"), "foldable", VehicleConfigurationItem)
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("Foldable")
-	v1_:register(XMLValueType.FLOAT, "vehicle.foldable.foldingConfigurations.foldingConfiguration(?)#workingWidth", "Working width to display in shop")
-	Foldable.registerFoldingXMLPaths(v1_, "vehicle.foldable.foldingConfigurations.foldingConfiguration(?).foldingParts")
-	v1_:register(XMLValueType.BOOL, WorkArea.WORK_AREA_XML_KEY .. "#foldLimitedOuterRange", "Fold limit outer range", false)
-	v1_:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_KEY .. ".folding#minLimit", "Min. fold limit", 0)
-	v1_:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_KEY .. ".folding#maxLimit", "Max. fold limit", 1)
-	v1_:register(XMLValueType.BOOL, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#foldLimitedOuterRange", "Fold limit outer range", false)
-	v1_:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. ".folding#minLimit", "Min. fold limit", 0)
-	v1_:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. ".folding#maxLimit", "Max. fold limit", 1)
-	v1_:register(XMLValueType.FLOAT, GroundReference.GROUND_REFERENCE_XML_KEY .. ".folding#minLimit", "Min. fold limit", 0)
-	v1_:register(XMLValueType.FLOAT, GroundReference.GROUND_REFERENCE_XML_KEY .. ".folding#maxLimit", "Max. fold limit", 1)
-	v1_:register(XMLValueType.BOOL, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#foldLimitedOuterRange", "Fold limit outer range", false)
-	v1_:register(XMLValueType.FLOAT, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#foldMinLimit", "Min. fold limit", 0)
-	v1_:register(XMLValueType.FLOAT, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#foldMaxLimit", "Max. fold limit", 1)
-	v1_:register(XMLValueType.BOOL, Leveler.LEVELER_NODE_XML_KEY .. "#foldLimitedOuterRange", "Fold limit outer range", false)
-	v1_:register(XMLValueType.FLOAT, Leveler.LEVELER_NODE_XML_KEY .. "#foldMinLimit", "Min. fold limit", 0)
-	v1_:register(XMLValueType.FLOAT, Leveler.LEVELER_NODE_XML_KEY .. "#foldMaxLimit", "Max. fold limit", 1)
-	v1_:addDelayedRegistrationFunc("SlopeCompensation:compensationNode", function(p2_, p3_)
-		p2_:register(XMLValueType.FLOAT, p3_ .. "#foldAngleScale", "Fold angle scale")
-		p2_:register(XMLValueType.BOOL, p3_ .. "#invertFoldAngleScale", "Invert fold angle scale", false)
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Foldable")
+	schema:register(XMLValueType.FLOAT, "vehicle.foldable.foldingConfigurations.foldingConfiguration(?)#workingWidth", "Working width to display in shop")
+	Foldable.registerFoldingXMLPaths(schema, "vehicle.foldable.foldingConfigurations.foldingConfiguration(?).foldingParts")
+	schema:register(XMLValueType.BOOL, WorkArea.WORK_AREA_XML_KEY .. "#foldLimitedOuterRange", "Fold limit outer range", false)
+	schema:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_KEY .. ".folding#minLimit", "Min. fold limit", 0)
+	schema:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_KEY .. ".folding#maxLimit", "Max. fold limit", 1)
+	schema:register(XMLValueType.BOOL, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#foldLimitedOuterRange", "Fold limit outer range", false)
+	schema:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. ".folding#minLimit", "Min. fold limit", 0)
+	schema:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. ".folding#maxLimit", "Max. fold limit", 1)
+	schema:register(XMLValueType.FLOAT, GroundReference.GROUND_REFERENCE_XML_KEY .. ".folding#minLimit", "Min. fold limit", 0)
+	schema:register(XMLValueType.FLOAT, GroundReference.GROUND_REFERENCE_XML_KEY .. ".folding#maxLimit", "Max. fold limit", 1)
+	schema:register(XMLValueType.BOOL, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#foldLimitedOuterRange", "Fold limit outer range", false)
+	schema:register(XMLValueType.FLOAT, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#foldMinLimit", "Min. fold limit", 0)
+	schema:register(XMLValueType.FLOAT, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#foldMaxLimit", "Max. fold limit", 1)
+	schema:register(XMLValueType.BOOL, Leveler.LEVELER_NODE_XML_KEY .. "#foldLimitedOuterRange", "Fold limit outer range", false)
+	schema:register(XMLValueType.FLOAT, Leveler.LEVELER_NODE_XML_KEY .. "#foldMinLimit", "Min. fold limit", 0)
+	schema:register(XMLValueType.FLOAT, Leveler.LEVELER_NODE_XML_KEY .. "#foldMaxLimit", "Max. fold limit", 1)
+	schema:addDelayedRegistrationFunc("SlopeCompensation:compensationNode", function(cSchema, cKey)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#foldAngleScale", "Fold angle scale")
+		cSchema:register(XMLValueType.BOOL, cKey .. "#invertFoldAngleScale", "Invert fold angle scale", false)
 	end)
-	v1_:addDelayedRegistrationFunc("Cylindered:movingTool", function(p4_, p5_)
-		p4_:register(XMLValueType.FLOAT, p5_ .. "#foldMinLimit", "Fold min. time", 0)
-		p4_:register(XMLValueType.FLOAT, p5_ .. "#foldMaxLimit", "Fold max. time", 1)
-		p4_:register(XMLValueType.INT, p5_ .. "#foldingConfigurationIndex", "Index of folding configuration to activate the moving tool")
-		p4_:register(XMLValueType.VECTOR_N, p5_ .. "#foldingConfigurationIndices", "List of folding configuration indices to activate the moving tool")
+	schema:addDelayedRegistrationFunc("Cylindered:movingTool", function(cSchema, cKey)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#foldMinLimit", "Fold min. time", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#foldMaxLimit", "Fold max. time", 1)
+		cSchema:register(XMLValueType.INT, cKey .. "#foldingConfigurationIndex", "Index of folding configuration to activate the moving tool")
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. "#foldingConfigurationIndices", "List of folding configuration indices to activate the moving tool")
 	end)
-	v1_:addDelayedRegistrationFunc("Cylindered:movingPart", function(p6_, p7_)
-		p6_:register(XMLValueType.FLOAT, p7_ .. "#foldMinLimit", "Fold min. time", 0)
-		p6_:register(XMLValueType.FLOAT, p7_ .. "#foldMaxLimit", "Fold max. time", 1)
+	schema:addDelayedRegistrationFunc("Cylindered:movingPart", function(cSchema, cKey)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#foldMinLimit", "Fold min. time", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#foldMaxLimit", "Fold max. time", 1)
 	end)
-	v1_:addDelayedRegistrationFunc("Attachable:support", function(p8_, p9_)
-		p8_:register(XMLValueType.FLOAT, p9_ .. ".folding#minLimit", "Min. fold limit", 0)
-		p8_:register(XMLValueType.FLOAT, p9_ .. ".folding#maxLimit", "Max. fold limit", 1)
+	schema:addDelayedRegistrationFunc("Attachable:support", function(cSchema, cKey)
+		cSchema:register(XMLValueType.FLOAT, cKey .. ".folding#minLimit", "Min. fold limit", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. ".folding#maxLimit", "Max. fold limit", 1)
 	end)
-	v1_:addDelayedRegistrationFunc("CrabSteering:steeringMode", function(p10_, p11_)
-		p10_:register(XMLValueType.FLOAT, p11_ .. ".folding#minLimit", "Min. fold limit", 0)
-		p10_:register(XMLValueType.FLOAT, p11_ .. ".folding#maxLimit", "Max. fold limit", 1)
+	schema:addDelayedRegistrationFunc("CrabSteering:steeringMode", function(cSchema, cKey)
+		cSchema:register(XMLValueType.FLOAT, cKey .. ".folding#minLimit", "Min. fold limit", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. ".folding#maxLimit", "Max. fold limit", 1)
 	end)
-	v1_:addDelayedRegistrationFunc("WheelChock", function(p12_, p13_)
-		p12_:register(XMLValueType.FLOAT, p13_ .. "#foldMinLimit", "Fold min. time", 0)
-		p12_:register(XMLValueType.FLOAT, p13_ .. "#foldMaxLimit", "Fold max. time", 1)
+	schema:addDelayedRegistrationFunc("WheelChock", function(cSchema, cKey)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#foldMinLimit", "Fold min. time", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#foldMaxLimit", "Fold max. time", 1)
 	end)
-	v1_:addDelayedRegistrationFunc("GroundAdjustedNodes:node", function(p14_, p15_)
-		p14_:register(XMLValueType.FLOAT, p15_ .. ".foldable#minLimit", "Fold min. time", 0)
-		p14_:register(XMLValueType.FLOAT, p15_ .. ".foldable#maxLimit", "Fold max. time", 1)
+	schema:addDelayedRegistrationFunc("GroundAdjustedNodes:node", function(cSchema, cKey)
+		cSchema:register(XMLValueType.FLOAT, cKey .. ".foldable#minLimit", "Fold min. time", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. ".foldable#maxLimit", "Fold max. time", 1)
 	end)
-	v1_:addDelayedRegistrationFunc("CraneShovel", function(p16_, p17_)
-		p16_:register(XMLValueType.FLOAT, p17_ .. ".foldable#minLimit", "Fold min. time", 0)
-		p16_:register(XMLValueType.FLOAT, p17_ .. ".foldable#maxLimit", "Fold max. time", 1)
+	schema:addDelayedRegistrationFunc("CraneShovel", function(cSchema, cKey)
+		cSchema:register(XMLValueType.FLOAT, cKey .. ".foldable#minLimit", "Fold min. time", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. ".foldable#maxLimit", "Fold max. time", 1)
 	end)
-	v1_:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. "#foldMinLimit", "Fold min. time", 0)
-	v1_:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. "#foldMaxLimit", "Fold max. time", 1)
-	v1_:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. "#foldingConfigurationIndex", "Index of folding configuration to activate spray type")
-	v1_:register(XMLValueType.VECTOR_N, Sprayer.SPRAY_TYPE_XML_KEY .. "#foldingConfigurationIndices", "List of folding configuration indices to activate spray type")
-	v1_:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. "#foldMinLimit", "Fold min. time", 0)
-	v1_:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. "#foldMaxLimit", "Fold max. time", 1)
-	v1_:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. "#foldMinLimit", "Fold min. time", 0)
-	v1_:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. "#foldMaxLimit", "Fold max. time", 1)
-	v1_:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. ".heightNode(?)#foldMinLimit", "Fold min. time", 0)
-	v1_:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. ".heightNode(?)#foldMaxLimit", "Fold max. time", 1)
-	v1_:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. ".heightNode(?)#foldMinLimit", "Fold min. time", 0)
-	v1_:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. ".heightNode(?)#foldMaxLimit", "Fold max. time", 1)
-	v1_:register(XMLValueType.FLOAT, Enterable.ADDITIONAL_CHARACTER_XML_KEY .. "#foldMinLimit", "Fold min. time", 0)
-	v1_:register(XMLValueType.FLOAT, Enterable.ADDITIONAL_CHARACTER_XML_KEY .. "#foldMaxLimit", "Fold max. time", 1)
-	v1_:register(XMLValueType.FLOAT, Attachable.STEERING_AXLE_XML_KEY .. ".folding#minLimit", "Min. fold limit", 0)
-	v1_:register(XMLValueType.FLOAT, Attachable.STEERING_AXLE_XML_KEY .. ".folding#maxLimit", "Max. fold limit", 1)
-	v1_:register(XMLValueType.FLOAT, Wheels.WHEEL_XML_PATH .. "#versatileFoldMinLimit", "Fold min. time for versatility", 0)
-	v1_:register(XMLValueType.FLOAT, Wheels.WHEEL_XML_PATH .. "#versatileFoldMaxLimit", "Fold max. time for versatility", 1)
-	v1_:register(XMLValueType.FLOAT, FillUnit.FILL_UNIT_XML_KEY .. "#foldMinLimit", "Fold min. time for filling", 0)
-	v1_:register(XMLValueType.FLOAT, FillUnit.FILL_UNIT_XML_KEY .. "#foldMaxLimit", "Fold max. time for filling", 1)
-	v1_:register(XMLValueType.FLOAT, TurnOnVehicle.TURNED_ON_ANIMATION_XML_PATH .. "#foldMinLimit", "Fold min. time for running turned on animation", 0)
-	v1_:register(XMLValueType.FLOAT, TurnOnVehicle.TURNED_ON_ANIMATION_XML_PATH .. "#foldMaxLimit", "Fold max. time for running turned on animation", 1)
-	v1_:register(XMLValueType.FLOAT, Pickup.PICKUP_XML_KEY .. "#foldMinLimit", "Fold min. time for pickup lowering", 0)
-	v1_:register(XMLValueType.FLOAT, Pickup.PICKUP_XML_KEY .. "#foldMaxLimit", "Fold max. time for pickup lowering", 1)
-	v1_:register(XMLValueType.FLOAT, Cutter.CUTTER_TILT_XML_KEY .. "#foldMinLimit", "Fold min. time for cutter automatic tilt", 0)
-	v1_:register(XMLValueType.FLOAT, Cutter.CUTTER_TILT_XML_KEY .. "#foldMaxLimit", "Fold max. time for cutter automatic tilt", 1)
-	v1_:register(XMLValueType.FLOAT, VinePrepruner.PRUNER_NODE_XML_KEY .. "#foldMinLimit", "Fold min. time for pruner node update", 0)
-	v1_:register(XMLValueType.FLOAT, VinePrepruner.PRUNER_NODE_XML_KEY .. "#foldMaxLimit", "Fold max. time for pruner node update", 1)
-	v1_:register(XMLValueType.FLOAT, Shovel.SHOVEL_NODE_XML_KEY .. "#foldMinLimit", "Fold min. time for shovel pickup", 0)
-	v1_:register(XMLValueType.FLOAT, Shovel.SHOVEL_NODE_XML_KEY .. "#foldMaxLimit", "Fold max. time for shovel pickup", 1)
-	v1_:register(XMLValueType.FLOAT, Attachable.STEERING_ANGLE_NODE_XML_KEY .. "#foldMinLimit", "Fold min. time for steering angle nodes to update", 0)
-	v1_:register(XMLValueType.FLOAT, Attachable.STEERING_ANGLE_NODE_XML_KEY .. "#foldMaxLimit", "Fold max. time for steering angle nodes to update", 1)
-	v1_:register(XMLValueType.FLOAT, WoodHarvester.HEADER_JOINT_TILT_XML_KEY .. "#foldMinLimit", "Fold min. time for header tilt to be allowed", 0)
-	v1_:register(XMLValueType.FLOAT, WoodHarvester.HEADER_JOINT_TILT_XML_KEY .. "#foldMaxLimit", "Fold max. time for header tilt to be allowed", 1)
-	v1_:register(XMLValueType.FLOAT, Suspensions.SUSPENSION_NODE_XML_KEY .. "#foldMinLimit", "Fold min. time for suspension node to be active", 0)
-	v1_:register(XMLValueType.FLOAT, Suspensions.SUSPENSION_NODE_XML_KEY .. "#foldMaxLimit", "Fold max. time for suspension node to be active", 1)
-	v1_:setXMLSpecializationType()
-	local v18_ = Vehicle.xmlSchemaSavegame
-	v18_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).foldable#foldAnimTime", "Fold animation time")
-	v18_:register(XMLValueType.BOOL, "vehicles.vehicle(?).foldable#isAllowed", "If folding is allowed")
+	schema:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. "#foldMinLimit", "Fold min. time", 0)
+	schema:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. "#foldMaxLimit", "Fold max. time", 1)
+	schema:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. "#foldingConfigurationIndex", "Index of folding configuration to activate spray type")
+	schema:register(XMLValueType.VECTOR_N, Sprayer.SPRAY_TYPE_XML_KEY .. "#foldingConfigurationIndices", "List of folding configuration indices to activate spray type")
+	schema:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. "#foldMinLimit", "Fold min. time", 0)
+	schema:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. "#foldMaxLimit", "Fold max. time", 1)
+	schema:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. "#foldMinLimit", "Fold min. time", 0)
+	schema:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. "#foldMaxLimit", "Fold max. time", 1)
+	schema:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. ".heightNode(?)#foldMinLimit", "Fold min. time", 0)
+	schema:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. ".heightNode(?)#foldMaxLimit", "Fold max. time", 1)
+	schema:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. ".heightNode(?)#foldMinLimit", "Fold min. time", 0)
+	schema:register(XMLValueType.FLOAT, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. ".heightNode(?)#foldMaxLimit", "Fold max. time", 1)
+	schema:register(XMLValueType.FLOAT, Enterable.ADDITIONAL_CHARACTER_XML_KEY .. "#foldMinLimit", "Fold min. time", 0)
+	schema:register(XMLValueType.FLOAT, Enterable.ADDITIONAL_CHARACTER_XML_KEY .. "#foldMaxLimit", "Fold max. time", 1)
+	schema:register(XMLValueType.FLOAT, Attachable.STEERING_AXLE_XML_KEY .. ".folding#minLimit", "Min. fold limit", 0)
+	schema:register(XMLValueType.FLOAT, Attachable.STEERING_AXLE_XML_KEY .. ".folding#maxLimit", "Max. fold limit", 1)
+	schema:register(XMLValueType.FLOAT, Wheels.WHEEL_XML_PATH .. "#versatileFoldMinLimit", "Fold min. time for versatility", 0)
+	schema:register(XMLValueType.FLOAT, Wheels.WHEEL_XML_PATH .. "#versatileFoldMaxLimit", "Fold max. time for versatility", 1)
+	schema:register(XMLValueType.FLOAT, FillUnit.FILL_UNIT_XML_KEY .. "#foldMinLimit", "Fold min. time for filling", 0)
+	schema:register(XMLValueType.FLOAT, FillUnit.FILL_UNIT_XML_KEY .. "#foldMaxLimit", "Fold max. time for filling", 1)
+	schema:register(XMLValueType.FLOAT, TurnOnVehicle.TURNED_ON_ANIMATION_XML_PATH .. "#foldMinLimit", "Fold min. time for running turned on animation", 0)
+	schema:register(XMLValueType.FLOAT, TurnOnVehicle.TURNED_ON_ANIMATION_XML_PATH .. "#foldMaxLimit", "Fold max. time for running turned on animation", 1)
+	schema:register(XMLValueType.FLOAT, Pickup.PICKUP_XML_KEY .. "#foldMinLimit", "Fold min. time for pickup lowering", 0)
+	schema:register(XMLValueType.FLOAT, Pickup.PICKUP_XML_KEY .. "#foldMaxLimit", "Fold max. time for pickup lowering", 1)
+	schema:register(XMLValueType.FLOAT, Cutter.CUTTER_TILT_XML_KEY .. "#foldMinLimit", "Fold min. time for cutter automatic tilt", 0)
+	schema:register(XMLValueType.FLOAT, Cutter.CUTTER_TILT_XML_KEY .. "#foldMaxLimit", "Fold max. time for cutter automatic tilt", 1)
+	schema:register(XMLValueType.FLOAT, VinePrepruner.PRUNER_NODE_XML_KEY .. "#foldMinLimit", "Fold min. time for pruner node update", 0)
+	schema:register(XMLValueType.FLOAT, VinePrepruner.PRUNER_NODE_XML_KEY .. "#foldMaxLimit", "Fold max. time for pruner node update", 1)
+	schema:register(XMLValueType.FLOAT, Shovel.SHOVEL_NODE_XML_KEY .. "#foldMinLimit", "Fold min. time for shovel pickup", 0)
+	schema:register(XMLValueType.FLOAT, Shovel.SHOVEL_NODE_XML_KEY .. "#foldMaxLimit", "Fold max. time for shovel pickup", 1)
+	schema:register(XMLValueType.FLOAT, Attachable.STEERING_ANGLE_NODE_XML_KEY .. "#foldMinLimit", "Fold min. time for steering angle nodes to update", 0)
+	schema:register(XMLValueType.FLOAT, Attachable.STEERING_ANGLE_NODE_XML_KEY .. "#foldMaxLimit", "Fold max. time for steering angle nodes to update", 1)
+	schema:register(XMLValueType.FLOAT, WoodHarvester.HEADER_JOINT_TILT_XML_KEY .. "#foldMinLimit", "Fold min. time for header tilt to be allowed", 0)
+	schema:register(XMLValueType.FLOAT, WoodHarvester.HEADER_JOINT_TILT_XML_KEY .. "#foldMaxLimit", "Fold max. time for header tilt to be allowed", 1)
+	schema:register(XMLValueType.FLOAT, Suspensions.SUSPENSION_NODE_XML_KEY .. "#foldMinLimit", "Fold min. time for suspension node to be active", 0)
+	schema:register(XMLValueType.FLOAT, Suspensions.SUSPENSION_NODE_XML_KEY .. "#foldMaxLimit", "Fold max. time for suspension node to be active", 1)
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).foldable#foldAnimTime", "Fold animation time")
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).foldable#isAllowed", "If folding is allowed")
 end
-
 function Foldable.registerFoldingXMLPaths(schema, basePath)
 	schema:register(XMLValueType.L10N_STRING, basePath .. "#objectText", "override OBJECT text inserted in folding action string", "vehicle typeDesc")
 	schema:register(XMLValueType.L10N_STRING, basePath .. "#posDirectionText", "Positive direction text", "$l10n_action_foldOBJECT")
@@ -137,12 +135,12 @@ function Foldable.registerFoldingXMLPaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. ".toggleFolding#blockedDirection", "Direction which is blocked while not in the given range (0 = all directions)", 0)
 	schema:register(XMLValueType.L10N_STRING, basePath .. "#unfoldWarning", "Unfold warning (Triggered when not in the right folding state for certain action (due to min/max limits))", "$l10n_warning_firstUnfoldTheTool")
 	schema:register(XMLValueType.L10N_STRING, basePath .. "#detachWarning", "Detach warning (Triggered when trying to detach while currently folding)", "$l10n_warning_doNotDetachWhileFolding")
-	schema:register(XMLValueType.BOOL, basePath .. "#useParentFoldingState", "The fold state can not be controlled manually. It\'s always a copy of the fold state of the parent vehicle.", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#useParentFoldingState", "The fold state can not be controlled manually. It's always a copy of the fold state of the parent vehicle.", false)
 	schema:register(XMLValueType.BOOL, basePath .. "#ignoreFoldMiddleWhileFolded", "While the tool is folded pressing the lowering button will only control the attacher joint state, not the fold state. The lowering key has only function if the tool is unfolded. (only if fold middle time defined)", false)
-	schema:register(XMLValueType.BOOL, basePath .. "#lowerWhileDetach", "If tool is in fold middle state it gets lowered on detach and lifted while it\'s attached again", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#lowerWhileDetach", "If tool is in fold middle state it gets lowered on detach and lifted while it's attached again", false)
 	schema:register(XMLValueType.BOOL, basePath .. "#foldWhileDetach", "Fold the tool while it is being detached", false)
-	schema:register(XMLValueType.BOOL, basePath .. "#keepFoldingWhileDetached", "If set to \'true\' the tool is still continuing with the folding animation after the tool is detached, otherwise it\'s stopped", "true for mobile platform, otherwise false")
-	schema:register(XMLValueType.BOOL, basePath .. "#releaseBrakesWhileFolding", "If set to \'true\' the tool is releasing it\'s brakes while the folding is active", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#keepFoldingWhileDetached", "If set to 'true' the tool is still continuing with the folding animation after the tool is detached, otherwise it's stopped", "true for mobile platform, otherwise false")
+	schema:register(XMLValueType.BOOL, basePath .. "#releaseBrakesWhileFolding", "If set to 'true' the tool is releasing it's brakes while the folding is active", false)
 	schema:register(XMLValueType.BOOL, basePath .. "#requiresPower", "Vehicle needs to be powered to change folding state", true)
 	schema:register(XMLValueType.BOOL, basePath .. "#allowControlWhileFolding", "Allow controlling of vehicle while folding is in progress", true)
 	schema:register(XMLValueType.FLOAT, basePath .. ".foldingPart(?)#speedScale", "Speed scale", 1)
@@ -158,12 +156,10 @@ function Foldable.registerFoldingXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. ".foldingPart(?)#aiSkipDelay", "Defines if the AI uses the delayed lowering/lifting or is controls all parts synchronized", false)
 	schema:register(XMLValueType.BOOL, basePath .. ".foldingPart(?)#skipDelayOnReverse", "While reversing the delay is completely skipped", true)
 end
-
 function Foldable.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onFoldStateChanged")
 	SpecializationUtil.registerEvent(vehicleType, "onFoldTimeChanged")
 end
-
 function Foldable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "loadFoldingPartFromXML", Foldable.loadFoldingPartFromXML)
 	SpecializationUtil.registerFunction(vehicleType, "setFoldDirection", Foldable.setFoldDirection)
@@ -178,7 +174,6 @@ function Foldable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getToggledFoldDirection", Foldable.getToggledFoldDirection)
 	SpecializationUtil.registerFunction(vehicleType, "getToggledFoldMiddleDirection", Foldable.getToggledFoldMiddleDirection)
 end
-
 function Foldable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "allowLoadMovingToolStates", Foldable.allowLoadMovingToolStates)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "loadSpeedRotatingPartFromXML", Foldable.loadSpeedRotatingPartFromXML)
@@ -255,7 +250,6 @@ function Foldable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getBrakeForce", Foldable.getBrakeForce)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getRequiresPower", Foldable.getRequiresPower)
 end
-
 function Foldable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Foldable)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", Foldable)
@@ -275,127 +269,120 @@ function Foldable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreDetachImplement", Foldable)
 	SpecializationUtil.registerEventListener(vehicleType, "onDynamicMountTypeChanged", Foldable)
 end
-
--- Local values: spec, foldingConfigurationId, configKey, startMoveDirection, foldInputButtonStr, foldMiddleInputButtonStr, i, baseKey, foldingPart, foldAnimTime
 function Foldable:onLoad(savegame)
-	local v27_ = self.spec_foldable
+	local spec = self.spec_foldable
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.foldingParts", "vehicle.foldable.foldingConfigurations.foldingConfiguration.foldingParts")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.foldable.foldingParts", "vehicle.foldable.foldingConfigurations.foldingConfiguration.foldingParts")
-	local v28_ = Utils.getNoNil(self.configurations.folding, 1)
-	local v29_ = string.format("vehicle.foldable.foldingConfigurations.foldingConfiguration(%d).foldingParts", v28_ - 1)
-	v27_.isFoldAllowed = true
-	v27_.objectText = self.xmlFile:getValue(v29_ .. "#objectText", self.typeDesc, self.customEnvironment, false)
-	v27_.posDirectionText = string.format(self.xmlFile:getValue(v29_ .. "#posDirectionText", "action_foldOBJECT", self.customEnvironment, false), v27_.objectText)
-	v27_.negDirectionText = string.format(self.xmlFile:getValue(v29_ .. "#negDirectionText", "action_unfoldOBJECT", self.customEnvironment, false), v27_.objectText)
-	v27_.middlePosDirectionText = string.format(self.xmlFile:getValue(v29_ .. "#middlePosDirectionText", "action_liftOBJECT", self.customEnvironment, false), v27_.objectText)
-	v27_.middleNegDirectionText = string.format(self.xmlFile:getValue(v29_ .. "#middleNegDirectionText", "action_lowerOBJECT", self.customEnvironment, false), v27_.objectText)
-	v27_.startAnimTime = self.xmlFile:getValue(v29_ .. "#startAnimTime")
-	v27_.foldMoveDirection = 0
-	v27_.moveToMiddle = false
-	if v27_.startAnimTime == nil then
-		v27_.startAnimTime = 0
-		if self.xmlFile:getValue(v29_ .. "#startMoveDirection", 0) > 0.1 then
-			v27_.startAnimTime = 1
+	local foldingConfigurationId = Utils.getNoNil(self.configurations.folding, 1)
+	local configKey = string.format("vehicle.foldable.foldingConfigurations.foldingConfiguration(%d).foldingParts", foldingConfigurationId - 1)
+	spec.isFoldAllowed = true
+	spec.objectText = self.xmlFile:getValue(configKey .. "#objectText", self.typeDesc, self.customEnvironment, false)
+	spec.posDirectionText = string.format(self.xmlFile:getValue(configKey .. "#posDirectionText", "action_foldOBJECT", self.customEnvironment, false), spec.objectText)
+	spec.negDirectionText = string.format(self.xmlFile:getValue(configKey .. "#negDirectionText", "action_unfoldOBJECT", self.customEnvironment, false), spec.objectText)
+	spec.middlePosDirectionText = string.format(self.xmlFile:getValue(configKey .. "#middlePosDirectionText", "action_liftOBJECT", self.customEnvironment, false), spec.objectText)
+	spec.middleNegDirectionText = string.format(self.xmlFile:getValue(configKey .. "#middleNegDirectionText", "action_lowerOBJECT", self.customEnvironment, false), spec.objectText)
+	spec.startAnimTime = self.xmlFile:getValue(configKey .. "#startAnimTime")
+	spec.foldMoveDirection = 0
+	spec.moveToMiddle = false
+	if spec.startAnimTime == nil then
+		spec.startAnimTime = 0
+		local startMoveDirection = self.xmlFile:getValue(configKey .. "#startMoveDirection", 0)
+		if 0.1 < startMoveDirection then
+			spec.startAnimTime = 1
 		end
 	end
-	v27_.turnOnFoldDirection = 1
-	if v27_.startAnimTime > 0.5 then
-		v27_.turnOnFoldDirection = -1
+	spec.turnOnFoldDirection = 1
+	if 0.5 < spec.startAnimTime then
+		spec.turnOnFoldDirection = -1
 	end
-	local v30_ = self.xmlFile:getValue(v29_ .. "#turnOnFoldDirection", v27_.turnOnFoldDirection)
-	v27_.turnOnFoldDirection = math.sign(v30_)
-	if v27_.turnOnFoldDirection == 0 then
-		Logging.xmlWarning(self.xmlFile, "Foldable \'turnOnFoldDirection\' not allowed to be 0! Only -1 and 1 are allowed")
-		v27_.turnOnFoldDirection = -1
+	spec.turnOnFoldDirection = math.sign(self.xmlFile:getValue(configKey .. "#turnOnFoldDirection", spec.turnOnFoldDirection))
+	if spec.turnOnFoldDirection == 0 then
+		Logging.xmlWarning(self.xmlFile, "Foldable 'turnOnFoldDirection' not allowed to be 0! Only -1 and 1 are allowed")
+		spec.turnOnFoldDirection = -1
 	end
-	v27_.allowUnfoldingByAI = self.xmlFile:getValue(v29_ .. "#allowUnfoldingByAI", true)
-	local v31_ = self.xmlFile:getValue(v29_ .. "#foldInputButton")
-	if v31_ ~= nil then
-		v27_.foldInputButton = InputAction[v31_]
+	spec.allowUnfoldingByAI = self.xmlFile:getValue(configKey .. "#allowUnfoldingByAI", true)
+	local foldInputButtonStr = self.xmlFile:getValue(configKey .. "#foldInputButton")
+	if foldInputButtonStr ~= nil then
+		spec.foldInputButton = InputAction[foldInputButtonStr]
 	end
-	v27_.foldInputButton = Utils.getNoNil(v27_.foldInputButton, InputAction.IMPLEMENT_EXTRA2)
-	local v32_ = self.xmlFile:getValue(v29_ .. "#foldMiddleInputButton")
-	if v32_ ~= nil then
-		v27_.foldMiddleInputButton = InputAction[v32_]
+	spec.foldInputButton = Utils.getNoNil(spec.foldInputButton, InputAction.IMPLEMENT_EXTRA2)
+	local foldMiddleInputButtonStr = self.xmlFile:getValue(configKey .. "#foldMiddleInputButton")
+	if foldMiddleInputButtonStr ~= nil then
+		spec.foldMiddleInputButton = InputAction[foldMiddleInputButtonStr]
 	end
-	v27_.foldMiddleInputButton = Utils.getNoNil(v27_.foldMiddleInputButton, InputAction.LOWER_IMPLEMENT)
-	v27_.foldMiddleAnimTime = self.xmlFile:getValue(v29_ .. "#foldMiddleAnimTime")
-	v27_.foldMiddleDirection = self.xmlFile:getValue(v29_ .. "#foldMiddleDirection", 1)
-	v27_.foldMiddleAIRaiseDirection = self.xmlFile:getValue(v29_ .. "#foldMiddleAIRaiseDirection", v27_.foldMiddleDirection)
-	v27_.turnOnFoldMaxLimit = self.xmlFile:getValue(v29_ .. "#turnOnFoldMaxLimit", 1)
-	v27_.turnOnFoldMinLimit = self.xmlFile:getValue(v29_ .. "#turnOnFoldMinLimit", 0)
-	v27_.toggleCoverMaxLimit = self.xmlFile:getValue(v29_ .. "#toggleCoverMaxLimit", 1)
-	v27_.toggleCoverMinLimit = self.xmlFile:getValue(v29_ .. "#toggleCoverMinLimit", 0)
-	v27_.detachingMaxLimit = self.xmlFile:getValue(v29_ .. "#detachingMaxLimit", 1)
-	v27_.detachingMinLimit = self.xmlFile:getValue(v29_ .. "#detachingMinLimit", 0)
-	v27_.attachingMaxLimit = self.xmlFile:getValue(v29_ .. "#attachingMaxLimit", 1)
-	v27_.attachingMinLimit = self.xmlFile:getValue(v29_ .. "#attachingMinLimit", 0)
-	v27_.allowDetachingWhileFolding = self.xmlFile:getValue(v29_ .. "#allowDetachingWhileFolding", false)
-	v27_.loweringMaxLimit = self.xmlFile:getValue(v29_ .. "#loweringMaxLimit", 1)
-	v27_.loweringMinLimit = self.xmlFile:getValue(v29_ .. "#loweringMinLimit", 0)
-	v27_.loadMovingToolStatesMaxLimit = self.xmlFile:getValue(v29_ .. "#loadMovingToolStatesMaxLimit", 1)
-	v27_.loadMovingToolStatesMinLimit = self.xmlFile:getValue(v29_ .. "#loadMovingToolStatesMinLimit", 0)
-	v27_.dynamicMountMinLimit = self.xmlFile:getValue(v29_ .. "#dynamicMountMinLimit", 0)
-	v27_.dynamicMountMaxLimit = self.xmlFile:getValue(v29_ .. "#dynamicMountMaxLimit", 1)
-	v27_.crabSteeringMinLimit = self.xmlFile:getValue(v29_ .. "#crabSteeringMinLimit", 0)
-	v27_.crabSteeringMaxLimit = self.xmlFile:getValue(v29_ .. "#crabSteeringMaxLimit", 1)
-	v27_.toggleFoldingMinLimit = self.xmlFile:getValue(v29_ .. ".toggleFolding#minLimit", 0)
-	v27_.toggleFoldingMaxLimit = self.xmlFile:getValue(v29_ .. ".toggleFolding#maxLimit", 1)
-	v27_.toggleFoldingBlockedDirection = self.xmlFile:getValue(v29_ .. ".toggleFolding#blockedDirection", 0)
-	v27_.unfoldWarning = string.format(self.xmlFile:getValue(v29_ .. "#unfoldWarning", "warning_firstUnfoldTheTool", self.customEnvironment, false), v27_.objectText)
-	v27_.detachWarning = string.format(self.xmlFile:getValue(v29_ .. "#detachWarning", "warning_doNotDetachWhileFolding", self.customEnvironment, false), v27_.objectText)
-	v27_.useParentFoldingState = self.xmlFile:getValue(v29_ .. "#useParentFoldingState", false)
-	v27_.subFoldingStateVehicles = {}
-	v27_.ignoreFoldMiddleWhileFolded = self.xmlFile:getValue(v29_ .. "#ignoreFoldMiddleWhileFolded", false)
-	v27_.lowerWhileDetach = self.xmlFile:getValue(v29_ .. "#lowerWhileDetach", false)
-	v27_.foldWhileDetach = self.xmlFile:getValue(v29_ .. "#foldWhileDetach", false)
-	v27_.keepFoldingWhileDetached = self.xmlFile:getValue(v29_ .. "#keepFoldingWhileDetached", Platform.gameplay.keepFoldingWhileDetached)
-	v27_.releaseBrakesWhileFolding = self.xmlFile:getValue(v29_ .. "#releaseBrakesWhileFolding", false)
-	v27_.requiresPower = self.xmlFile:getValue(v29_ .. "#requiresPower", true)
-	v27_.allowControlWhileFolding = self.xmlFile:getValue(v29_ .. "#allowControlWhileFolding", true)
-	v27_.foldAnimTime = 0
-	v27_.maxFoldAnimDuration = 0.0001
-	v27_.foldingParts = {}
-	local v33_ = 0
+	spec.foldMiddleInputButton = Utils.getNoNil(spec.foldMiddleInputButton, InputAction.LOWER_IMPLEMENT)
+	spec.foldMiddleAnimTime = self.xmlFile:getValue(configKey .. "#foldMiddleAnimTime")
+	spec.foldMiddleDirection = self.xmlFile:getValue(configKey .. "#foldMiddleDirection", 1)
+	spec.foldMiddleAIRaiseDirection = self.xmlFile:getValue(configKey .. "#foldMiddleAIRaiseDirection", spec.foldMiddleDirection)
+	spec.turnOnFoldMaxLimit = self.xmlFile:getValue(configKey .. "#turnOnFoldMaxLimit", 1)
+	spec.turnOnFoldMinLimit = self.xmlFile:getValue(configKey .. "#turnOnFoldMinLimit", 0)
+	spec.toggleCoverMaxLimit = self.xmlFile:getValue(configKey .. "#toggleCoverMaxLimit", 1)
+	spec.toggleCoverMinLimit = self.xmlFile:getValue(configKey .. "#toggleCoverMinLimit", 0)
+	spec.detachingMaxLimit = self.xmlFile:getValue(configKey .. "#detachingMaxLimit", 1)
+	spec.detachingMinLimit = self.xmlFile:getValue(configKey .. "#detachingMinLimit", 0)
+	spec.attachingMaxLimit = self.xmlFile:getValue(configKey .. "#attachingMaxLimit", 1)
+	spec.attachingMinLimit = self.xmlFile:getValue(configKey .. "#attachingMinLimit", 0)
+	spec.allowDetachingWhileFolding = self.xmlFile:getValue(configKey .. "#allowDetachingWhileFolding", false)
+	spec.loweringMaxLimit = self.xmlFile:getValue(configKey .. "#loweringMaxLimit", 1)
+	spec.loweringMinLimit = self.xmlFile:getValue(configKey .. "#loweringMinLimit", 0)
+	spec.loadMovingToolStatesMaxLimit = self.xmlFile:getValue(configKey .. "#loadMovingToolStatesMaxLimit", 1)
+	spec.loadMovingToolStatesMinLimit = self.xmlFile:getValue(configKey .. "#loadMovingToolStatesMinLimit", 0)
+	spec.dynamicMountMinLimit = self.xmlFile:getValue(configKey .. "#dynamicMountMinLimit", 0)
+	spec.dynamicMountMaxLimit = self.xmlFile:getValue(configKey .. "#dynamicMountMaxLimit", 1)
+	spec.crabSteeringMinLimit = self.xmlFile:getValue(configKey .. "#crabSteeringMinLimit", 0)
+	spec.crabSteeringMaxLimit = self.xmlFile:getValue(configKey .. "#crabSteeringMaxLimit", 1)
+	spec.toggleFoldingMinLimit = self.xmlFile:getValue(configKey .. ".toggleFolding#minLimit", 0)
+	spec.toggleFoldingMaxLimit = self.xmlFile:getValue(configKey .. ".toggleFolding#maxLimit", 1)
+	spec.toggleFoldingBlockedDirection = self.xmlFile:getValue(configKey .. ".toggleFolding#blockedDirection", 0)
+	spec.unfoldWarning = string.format(self.xmlFile:getValue(configKey .. "#unfoldWarning", "warning_firstUnfoldTheTool", self.customEnvironment, false), spec.objectText)
+	spec.detachWarning = string.format(self.xmlFile:getValue(configKey .. "#detachWarning", "warning_doNotDetachWhileFolding", self.customEnvironment, false), spec.objectText)
+	spec.useParentFoldingState = self.xmlFile:getValue(configKey .. "#useParentFoldingState", false)
+	spec.subFoldingStateVehicles = {}
+	spec.ignoreFoldMiddleWhileFolded = self.xmlFile:getValue(configKey .. "#ignoreFoldMiddleWhileFolded", false)
+	spec.lowerWhileDetach = self.xmlFile:getValue(configKey .. "#lowerWhileDetach", false)
+	spec.foldWhileDetach = self.xmlFile:getValue(configKey .. "#foldWhileDetach", false)
+	spec.keepFoldingWhileDetached = self.xmlFile:getValue(configKey .. "#keepFoldingWhileDetached", Platform.gameplay.keepFoldingWhileDetached)
+	spec.releaseBrakesWhileFolding = self.xmlFile:getValue(configKey .. "#releaseBrakesWhileFolding", false)
+	spec.requiresPower = self.xmlFile:getValue(configKey .. "#requiresPower", true)
+	spec.allowControlWhileFolding = self.xmlFile:getValue(configKey .. "#allowControlWhileFolding", true)
+	spec.foldAnimTime = 0
+	spec.maxFoldAnimDuration = 0.0001
+	spec.foldingParts = {}
+	local i = 0
 	while true do
-		local v34_ = string.format(v29_ .. ".foldingPart(%d)", v33_)
-		if not self.xmlFile:hasProperty(v34_) then
+		local baseKey = string.format(configKey .. ".foldingPart(%d)", i)
+		if not self.xmlFile:hasProperty(baseKey) then
 			break
 		end
-		local v35_ = {}
-		if self:loadFoldingPartFromXML(self.xmlFile, v34_, v35_) then
-			local v36_ = v27_.foldingParts
-			table.insert(v36_, v35_)
-			local v37_ = v27_.maxFoldAnimDuration
-			local v38_ = v35_.animDuration
-			v27_.maxFoldAnimDuration = math.max(v37_, v38_)
+		local foldingPart = {}
+		if self:loadFoldingPartFromXML(self.xmlFile, baseKey, foldingPart) then
+			table.insert(spec.foldingParts, foldingPart)
+			spec.maxFoldAnimDuration = math.max(spec.maxFoldAnimDuration, foldingPart.animDuration)
 		end
-		v33_ = v33_ + 1
+		i = i + 1
 	end
-	v27_.hasFoldingParts = #v27_.foldingParts > 0
-	v27_.actionEventsLowering = {}
-	if v27_.hasFoldingParts and (savegame ~= nil and not savegame.resetVehicles) then
-		v27_.loadedFoldAnimTime = savegame.xmlFile:getValue(savegame.key .. ".foldable#foldAnimTime")
-		v27_.isFoldAllowed = savegame.xmlFile:getValue(savegame.key .. ".foldable#isAllowed", v27_.isFoldAllowed)
+	spec.hasFoldingParts = 0 < #spec.foldingParts
+	spec.actionEventsLowering = {}
+	if spec.hasFoldingParts and (savegame ~= nil and not savegame.resetVehicles) then
+		spec.loadedFoldAnimTime = savegame.xmlFile:getValue(savegame.key .. ".foldable#foldAnimTime")
+		spec.isFoldAllowed = savegame.xmlFile:getValue(savegame.key .. ".foldable#isAllowed", spec.isFoldAllowed)
 	end
-	if v27_.loadedFoldAnimTime == nil then
-		v27_.loadedFoldAnimTime = v27_.startAnimTime
+	if spec.loadedFoldAnimTime == nil then
+		spec.loadedFoldAnimTime = spec.startAnimTime
 	end
 	if self.vehicleLoadingData:getCustomParameter("foldableInvertFoldState") then
-		v27_.loadedFoldAnimTime = 1 - v27_.loadedFoldAnimTime
+		spec.loadedFoldAnimTime = 1 - spec.loadedFoldAnimTime
 	else
-		local v39_ = self.vehicleLoadingData:getCustomParameter("foldableFoldingTime")
-		if v39_ ~= nil then
-			v27_.loadedFoldAnimTime = v39_
+		local foldAnimTime = self.vehicleLoadingData:getCustomParameter("foldableFoldingTime")
+		if foldAnimTime ~= nil then
+			spec.loadedFoldAnimTime = foldAnimTime
 		end
 	end
 end
-
--- Local values: spec
 function Foldable:onPostLoad(savegame)
-	local v41_ = self.spec_foldable
-	Foldable.setAnimTime(self, v41_.loadedFoldAnimTime, false)
-	if #v41_.foldingParts == 0 or v41_.useParentFoldingState then
+	local spec = self.spec_foldable
+	Foldable.setAnimTime(self, spec.loadedFoldAnimTime, false)
+	if #spec.foldingParts == 0 or spec.useParentFoldingState then
 		SpecializationUtil.removeEventListener(self, "onReadStream", Foldable)
 		SpecializationUtil.removeEventListener(self, "onWriteStream", Foldable)
 		SpecializationUtil.removeEventListener(self, "onUpdate", Foldable)
@@ -409,909 +396,790 @@ function Foldable:onPostLoad(savegame)
 		SpecializationUtil.removeEventListener(self, "onDynamicMountTypeChanged", Foldable)
 	end
 end
-
--- Local values: spec
 function Foldable:onRegistered()
-	if not self.spec_foldable.allowControlWhileFolding and self.registerPlayerVehicleControlAllowedFunction ~= nil then
+	local spec = self.spec_foldable
+	if not spec.allowControlWhileFolding and self.registerPlayerVehicleControlAllowedFunction ~= nil then
 		self:registerPlayerVehicleControlAllowedFunction(self, Foldable.getIsVehicleControlAllowed)
 	end
 end
-
--- Local values: spec
 function Foldable:saveToXMLFile(xmlFile, key, usedModNames)
-	local v46_ = self.spec_foldable
-	if v46_.hasFoldingParts then
-		xmlFile:setValue(key .. "#foldAnimTime", v46_.foldAnimTime)
-		xmlFile:setValue(key .. "#isAllowed", v46_.isFoldAllowed)
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts then
+		xmlFile:setValue(key .. "#foldAnimTime", spec.foldAnimTime)
+		xmlFile:setValue(key .. "#isAllowed", spec.isFoldAllowed)
 	end
 end
-
--- Local values: direction, moveToMiddle, animTime
 function Foldable:onReadStream(streamId, connection)
-	local v49_ = streamReadUIntN(streamId, 2) - 1
-	local v50_ = streamReadBool(streamId)
-	local v51_ = streamReadFloat32(streamId)
-	Foldable.setAnimTime(self, v51_, false)
-	self:setFoldState(v49_, v50_, true)
+	local direction = streamReadUIntN(streamId, 2) - 1
+	local moveToMiddle = streamReadBool(streamId)
+	local animTime = streamReadFloat32(streamId)
+	Foldable.setAnimTime(self, animTime, false)
+	self:setFoldState(direction, moveToMiddle, true)
 end
-
--- Local values: spec, direction
 function Foldable:onWriteStream(streamId, connection)
-	local v54_ = self.spec_foldable
-	local v55_ = v54_.foldMoveDirection
-	local v56_ = math.sign(v55_) + 1
-	streamWriteUIntN(streamId, v56_, 2)
-	streamWriteBool(streamId, v54_.moveToMiddle)
-	streamWriteFloat32(streamId, v54_.foldAnimTime)
+	local spec = self.spec_foldable
+	local direction = math.sign(spec.foldMoveDirection) + 1
+	streamWriteUIntN(streamId, direction, 2)
+	streamWriteBool(streamId, spec.moveToMiddle)
+	streamWriteFloat32(streamId, spec.foldAnimTime)
 end
-
--- Local values: spec, isInvalid, foldAnimTime, _, foldingPart, charSet, animTime, animTime, _, foldingPart, _, vehicle, i, foldingPart, delayedLowering, lowerDistance, prevDistance, distance, force
 function Foldable:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v58_ = self.spec_foldable
-	local v59_ = v58_.foldMoveDirection
-	if math.abs(v59_) > 0.1 then
-		local v60_ = v58_.foldMoveDirection < -0.1 and 1 or 0
-		local v61_ = false
-		for _, v62_ in pairs(v58_.foldingParts) do
-			local v63_ = v62_.animCharSet
-			if v58_.foldMoveDirection > 0 then
-				local v64_
-				if v63_ == 0 then
-					v64_ = self:getRealAnimationTime(v62_.animationName)
+	local spec = self.spec_foldable
+	if 0.1 < math.abs(spec.foldMoveDirection) then
+		local isInvalid = false
+		local foldAnimTime = 0
+		if spec.foldMoveDirection < -0.1 then
+			foldAnimTime = 1
+		end
+		for _, foldingPart in pairs(spec.foldingParts) do
+			local charSet = foldingPart.animCharSet
+			if 0 < spec.foldMoveDirection then
+				local animTime = nil
+				if charSet ~= 0 then
+					animTime = getAnimTrackTime(charSet, 0)
 				else
-					v64_ = getAnimTrackTime(v63_, 0)
+					animTime = self:getRealAnimationTime(foldingPart.animationName)
 				end
-				v61_ = v64_ < v62_.animDuration and true or v61_
-				local v65_ = v64_ / v58_.maxFoldAnimDuration
-				v60_ = math.max(v60_, v65_)
-			elseif v58_.foldMoveDirection < 0 then
-				local v66_
-				if v63_ == 0 then
-					v66_ = self:getRealAnimationTime(v62_.animationName)
+				if animTime < foldingPart.animDuration then
+					isInvalid = true
+				end
+				foldAnimTime = math.max(foldAnimTime, animTime / spec.maxFoldAnimDuration)
+			elseif spec.foldMoveDirection < 0 then
+				local animTime = nil
+				if charSet ~= 0 then
+					animTime = getAnimTrackTime(charSet, 0)
 				else
-					v66_ = getAnimTrackTime(v63_, 0)
+					animTime = self:getRealAnimationTime(foldingPart.animationName)
 				end
-				v61_ = v66_ > 0 and true or v61_
-				local v67_ = v66_ / v58_.maxFoldAnimDuration
-				v60_ = math.min(v60_, v67_)
+				if 0 < animTime then
+					isInvalid = true
+				end
+				foldAnimTime = math.min(foldAnimTime, animTime / spec.maxFoldAnimDuration)
 			end
 		end
-		local v68_ = math.clamp(v60_, 0, 1)
-		if v68_ ~= v58_.foldAnimTime then
-			v58_.foldAnimTime = v68_
-			SpecializationUtil.raiseEvent(self, "onFoldTimeChanged", v58_.foldAnimTime)
+		foldAnimTime = math.clamp(foldAnimTime, 0, 1)
+		if foldAnimTime ~= spec.foldAnimTime then
+			spec.foldAnimTime = foldAnimTime
+			SpecializationUtil.raiseEvent(self, "onFoldTimeChanged", spec.foldAnimTime)
 		end
-		if v58_.foldMoveDirection > 0 then
-			if v58_.moveToMiddle and v58_.foldMiddleAnimTime ~= nil then
-				if v58_.foldAnimTime == v58_.foldMiddleAnimTime then
-					v58_.foldMoveDirection = 0
+		if 0 < spec.foldMoveDirection then
+			if not spec.moveToMiddle or spec.foldMiddleAnimTime == nil then
+				if spec.foldAnimTime == 1 then
+					spec.foldMoveDirection = 0
 				end
-			elseif v58_.foldAnimTime == 1 then
-				v58_.foldMoveDirection = 0
-			end
-		elseif v58_.foldMoveDirection < 0 then
-			if v58_.moveToMiddle and v58_.foldMiddleAnimTime ~= nil then
-				if v58_.foldAnimTime == v58_.foldMiddleAnimTime then
-					v58_.foldMoveDirection = 0
+			else
+				if spec.foldAnimTime == spec.foldMiddleAnimTime then
+					spec.foldMoveDirection = 0
 				end
-			elseif v58_.foldAnimTime == 0 then
-				v58_.foldMoveDirection = 0
 			end
-		end
-		if v61_ and self.isServer then
-			for _, v69_ in pairs(v58_.foldingParts) do
-				if v69_.componentJoint ~= nil then
-					self:setComponentJointFrame(v69_.componentJoint, v69_.anchorActor)
+		elseif spec.foldMoveDirection < 0 then
+			if not spec.moveToMiddle or spec.foldMiddleAnimTime == nil then
+				if spec.foldAnimTime == 0 then
+					spec.foldMoveDirection = 0
+				end
+			else
+				if spec.foldAnimTime == spec.foldMiddleAnimTime then
+					spec.foldMoveDirection = 0
 				end
 			end
 		end
-		for _, v70_ in pairs(v58_.subFoldingStateVehicles) do
-			Foldable.setAnimTime(v70_, v58_.foldAnimTime, false, true)
+		if isInvalid and self.isServer then
+			for _, foldingPart in pairs(spec.foldingParts) do
+				if foldingPart.componentJoint == nil then
+					continue
+				end
+				self:setComponentJointFrame(foldingPart.componentJoint, foldingPart.anchorActor)
+			end
 		end
-		if not v58_.allowControlWhileFolding and self.brake ~= nil then
+		for _, vehicle in pairs(spec.subFoldingStateVehicles) do
+			Foldable.setAnimTime(vehicle, spec.foldAnimTime, false, true)
+		end
+		if not spec.allowControlWhileFolding and self.brake ~= nil then
 			self:brake(self:getBrakeForce())
 		end
 	end
-	for v71_ = 1, #v58_.foldingParts do
-		local v72_ = v58_.foldingParts[v71_]
-		local v73_ = v72_.delayedLowering
-		if v73_ ~= nil and v73_.currentDistance >= 0 then
-			v73_.currentDistance = v73_.currentDistance + self.lastMovedDistance
-			if v73_.prevDistance == nil and v73_.startTime + v73_.previousDuration < g_time then
-				v73_.prevDistance = v73_.currentDistance
+	for i = 1, #spec.foldingParts do
+		local foldingPart = spec.foldingParts[i]
+		local delayedLowering = foldingPart.delayedLowering
+		if delayedLowering == nil then
+			continue
+		end
+		if 0 <= delayedLowering.currentDistance then
+			delayedLowering.currentDistance = delayedLowering.currentDistance + self.lastMovedDistance
+			if delayedLowering.prevDistance == nil and delayedLowering.startTime + delayedLowering.previousDuration < g_time then
+				delayedLowering.prevDistance = delayedLowering.currentDistance
 			end
-			local v74_ = self.lastSpeedReal * v73_.loweringDuration
-			local v75_ = v73_.prevDistance or self.lastSpeedReal * v73_.previousDuration
-			local v76_ = v73_.distance + v75_ - v74_
-			local v77_ = g_time
-			local v78_ = v73_.startTime
-			local v79_ = v73_.maxDelayDuration
-			local v80_ = v73_.currentDistance / v76_ * 0.5 + 0.5
-			local v81_ = v78_ + v79_ * math.clamp(v80_, 0, 1) < v77_
-			if v73_.aiSkipDelay then
-				v81_ = v81_ or self:getIsAIActive()
+			local lowerDistance = self.lastSpeedReal * delayedLowering.loweringDuration
+			local prevDistance = delayedLowering.prevDistance or self.lastSpeedReal * delayedLowering.previousDuration
+			local distance = delayedLowering.distance + prevDistance - lowerDistance
+			local force = delayedLowering.startTime + delayedLowering.maxDelayDuration * math.clamp(delayedLowering.currentDistance / distance * 0.5 + 0.5, 0, 1) < g_time
+			if delayedLowering.aiSkipDelay then
+				force = force or self:getIsAIActive()
 			end
-			if v73_.skipDelayOnReverse then
-				if not v81_ then
-					if self:getLastSpeed() > 2.5 then
-						v81_ = self.movingDirection < 0
-					else
-						v81_ = false
-					end
+			if delayedLowering.skipDelayOnReverse then
+				force = force or 2.5 >= self:getLastSpeed() or self.movingDirection < 0
+			end
+			if distance <= delayedLowering.currentDistance or force then
+				self:playAnimation(foldingPart.animationName, delayedLowering.speedScale, delayedLowering.animTime, true)
+				if delayedLowering.stopAnimTime ~= nil then
+					self:setAnimationStopTime(foldingPart.animationName, delayedLowering.stopAnimTime)
 				end
-			end
-			if v76_ <= v73_.currentDistance or v81_ then
-				self:playAnimation(v72_.animationName, v73_.speedScale, v73_.animTime, true)
-				if v73_.stopAnimTime ~= nil then
-					self:setAnimationStopTime(v72_.animationName, v73_.stopAnimTime)
-				end
-				v73_.currentDistance = -1
+				delayedLowering.currentDistance = -1
 			end
 		end
 	end
 end
-
--- Local values: spec, attacherVehicle, jointDesc
 function Foldable:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v83_ = self.spec_foldable
+	local spec = self.spec_foldable
 	if self.isClient then
 		Foldable.updateActionEventFold(self)
-		if v83_.foldMiddleAnimTime ~= nil then
+		if spec.foldMiddleAnimTime ~= nil then
 			Foldable.updateActionEventFoldMiddle(self)
 		end
 	end
-	if self.isServer and (v83_.ignoreFoldMiddleWhileFolded and self.getAttacherVehicle ~= nil) then
-		local v84_ = v83_.foldAnimTime - v83_.foldMiddleAnimTime
-		if math.abs(v84_) < 0.001 and v83_.foldMoveDirection == 1 == (v83_.turnOnFoldDirection == 1) then
-			local v85_ = self:getAttacherVehicle()
-			if v85_ ~= nil then
-				local v86_ = v85_:getAttacherJointDescFromObject(self)
-				if (v86_.allowsLowering or v86_.isDefaultLowered) and v86_.moveDown then
-					self:setFoldState(-1, false)
-				end
+	if self.isServer and (spec.ignoreFoldMiddleWhileFolded and (self.getAttacherVehicle ~= nil and (math.abs(spec.foldAnimTime - spec.foldMiddleAnimTime) < 0.001 and spec.foldMoveDirection == 1 == (spec.turnOnFoldDirection == 1)))) then
+		local attacherVehicle = self:getAttacherVehicle()
+		if attacherVehicle ~= nil then
+			local jointDesc = attacherVehicle:getAttacherJointDescFromObject(self)
+			if (jointDesc.allowsLowering or jointDesc.isDefaultLowered) and jointDesc.moveDown then
+				self:setFoldState(-1, false)
 			end
 		end
 	end
 end
-
--- Local values: isValid, componentJointIndex, componentJoint, rootNode, animCharSet, clip, animationName, animation, distance, node
 function Foldable:loadFoldingPartFromXML(xmlFile, baseKey, foldingPart)
-	local v91_ = false
+	local isValid = false
 	foldingPart.speedScale = xmlFile:getValue(baseKey .. "#speedScale", 1)
 	if foldingPart.speedScale <= 0 then
-		Logging.xmlWarning(xmlFile, "Negative speed scale for folding part \'%s\' not allowed!", baseKey)
+		Logging.xmlWarning(xmlFile, "Negative speed scale for folding part '%s' not allowed!", baseKey)
 		return false
 	end
-	local v92_ = xmlFile:getValue(baseKey .. "#componentJointIndex")
-	local v93_
-	if v92_ == nil then
-		v93_ = nil
-	else
-		if v92_ == 0 then
-			Logging.xmlWarning(xmlFile, "Invalid componentJointIndex for folding part \'%s\'. Indexing starts with 1!", baseKey)
+	local componentJointIndex = xmlFile:getValue(baseKey .. "#componentJointIndex")
+	local componentJoint = nil
+	if componentJointIndex ~= nil then
+		if componentJointIndex == 0 then
+			Logging.xmlWarning(xmlFile, "Invalid componentJointIndex for folding part '%s'. Indexing starts with 1!", baseKey)
 			return false
 		end
-		v93_ = self.componentJoints[v92_]
-		foldingPart.componentJoint = v93_
+		componentJoint = self.componentJoints[componentJointIndex]
+		foldingPart.componentJoint = componentJoint
 	end
 	foldingPart.anchorActor = xmlFile:getValue(baseKey .. "#anchorActor", 0)
 	foldingPart.animCharSet = 0
-	local v94_ = xmlFile:getValue(baseKey .. "#rootNode", nil, self.components, self.i3dMappings)
-	if v94_ ~= nil then
-		local v95_ = getAnimCharacterSet(v94_)
-		if v95_ ~= 0 then
-			local v96_ = getAnimClipIndex(v95_, xmlFile:getValue(baseKey .. "#animationClip"))
-			if v96_ >= 0 then
-				foldingPart.animCharSet = v95_
-				assignAnimTrackClip(foldingPart.animCharSet, 0, v96_)
+	local rootNode = xmlFile:getValue(baseKey .. "#rootNode", nil, self.components, self.i3dMappings)
+	if rootNode ~= nil then
+		local animCharSet = getAnimCharacterSet(rootNode)
+		if animCharSet ~= 0 then
+			local clip = getAnimClipIndex(animCharSet, xmlFile:getValue(baseKey .. "#animationClip"))
+			if 0 <= clip then
+				isValid = true
+				foldingPart.animCharSet = animCharSet
+				assignAnimTrackClip(foldingPart.animCharSet, 0, clip)
 				setAnimTrackLoopState(foldingPart.animCharSet, 0, false)
-				foldingPart.animDuration = getAnimClipDuration(foldingPart.animCharSet, v96_)
-				v91_ = true
+				foldingPart.animDuration = getAnimClipDuration(foldingPart.animCharSet, clip)
 			end
 		end
 	end
-	if not v91_ then
+	if not isValid then
 		if SpecializationUtil.hasSpecialization(AnimatedVehicle, self.specializations) then
-			local v97_ = xmlFile:getValue(baseKey .. "#animationName")
-			if v97_ ~= nil and self:getAnimationExists(v97_) then
-				foldingPart.animDuration = self:getAnimationDuration(v97_)
-				if foldingPart.animDuration > 0 then
-					foldingPart.animationName = v97_
-					self:getAnimationByName(v97_).resetOnStart = true
-					v91_ = true
+			local animationName = xmlFile:getValue(baseKey .. "#animationName")
+			if animationName ~= nil and self:getAnimationExists(animationName) then
+				foldingPart.animDuration = self:getAnimationDuration(animationName)
+				if 0 < foldingPart.animDuration then
+					isValid = true
+					foldingPart.animationName = animationName
+					local animation = self:getAnimationByName(animationName)
+					animation.resetOnStart = true
 				else
-					Logging.xmlWarning(xmlFile, "Empty animation in folding part \'%s\'", baseKey)
+					Logging.xmlWarning(xmlFile, "Empty animation in folding part '%s'", baseKey)
 				end
 			end
 		elseif xmlFile:getValue(baseKey .. "#animationName") ~= nil then
-			Logging.xmlWarning(xmlFile, "Found animationName in folding part \'%s\', but vehicle has no animations!", baseKey)
+			Logging.xmlWarning(xmlFile, "Found animationName in folding part '%s', but vehicle has no animations!", baseKey)
 			return false
 		end
 	end
-	if not v91_ then
-		Logging.xmlWarning(xmlFile, "Invalid folding part \'%s\'. Either a animationClip or animationName needs to be defined!", baseKey)
+	if not isValid then
+		Logging.xmlWarning(xmlFile, "Invalid folding part '%s'. Either a animationClip or animationName needs to be defined!", baseKey)
 		return false
+	else
+		local distance = xmlFile:getValue(baseKey .. "#delayDistance")
+		if distance ~= nil then
+			foldingPart.delayedLowering = {}
+			foldingPart.delayedLowering.distance = distance
+			foldingPart.delayedLowering.previousDuration = xmlFile:getValue(baseKey .. "#previousDuration", 1) * 1000
+			foldingPart.delayedLowering.loweringDuration = xmlFile:getValue(baseKey .. "#loweringDuration", 1) * 1000
+			foldingPart.delayedLowering.maxDelayDuration = xmlFile:getValue(baseKey .. "#maxDelayDuration", 7.5) * 1000
+			foldingPart.delayedLowering.aiSkipDelay = xmlFile:getValue(baseKey .. "#aiSkipDelay", false)
+			foldingPart.delayedLowering.skipDelayOnReverse = xmlFile:getValue(baseKey .. "#skipDelayOnReverse", true)
+			foldingPart.delayedLowering.currentDistance = -1
+			foldingPart.delayedLowering.startTime = math.huge
+			foldingPart.delayedLowering.speedScale = 0
+			foldingPart.delayedLowering.animTime = 0
+			foldingPart.delayedLowering.stopAnimTime = 0
+			foldingPart.delayedLowering.prevDistance = nil
+		end
+		if componentJoint ~= nil then
+			local node = self.components[componentJoint.componentIndices[(foldingPart.anchorActor + 1) % 2 + 1]].node
+			foldingPart.x, foldingPart.y, foldingPart.z = worldToLocal(componentJoint.jointNode, getWorldTranslation(node))
+			foldingPart.upX, foldingPart.upY, foldingPart.upZ = worldDirectionToLocal(componentJoint.jointNode, localDirectionToWorld(node, 0, 1, 0))
+			foldingPart.dirX, foldingPart.dirY, foldingPart.dirZ = worldDirectionToLocal(componentJoint.jointNode, localDirectionToWorld(node, 0, 0, 1))
+		end
+		return true
 	end
-	local v98_ = xmlFile:getValue(baseKey .. "#delayDistance")
-	if v98_ ~= nil then
-		foldingPart.delayedLowering = {}
-		foldingPart.delayedLowering.distance = v98_
-		foldingPart.delayedLowering.previousDuration = xmlFile:getValue(baseKey .. "#previousDuration", 1) * 1000
-		foldingPart.delayedLowering.loweringDuration = xmlFile:getValue(baseKey .. "#loweringDuration", 1) * 1000
-		foldingPart.delayedLowering.maxDelayDuration = xmlFile:getValue(baseKey .. "#maxDelayDuration", 7.5) * 1000
-		foldingPart.delayedLowering.aiSkipDelay = xmlFile:getValue(baseKey .. "#aiSkipDelay", false)
-		foldingPart.delayedLowering.skipDelayOnReverse = xmlFile:getValue(baseKey .. "#skipDelayOnReverse", true)
-		foldingPart.delayedLowering.currentDistance = -1
-		foldingPart.delayedLowering.startTime = math.huge
-		foldingPart.delayedLowering.speedScale = 0
-		foldingPart.delayedLowering.animTime = 0
-		foldingPart.delayedLowering.stopAnimTime = 0
-		foldingPart.delayedLowering.prevDistance = nil
-	end
-	if v93_ ~= nil then
-		local v99_ = self.components[v93_.componentIndices[(foldingPart.anchorActor + 1) % 2 + 1]].node
-		local v100_, v101_, v102_ = worldToLocal(v93_.jointNode, getWorldTranslation(v99_))
-		foldingPart.x = v100_
-		foldingPart.y = v101_
-		foldingPart.z = v102_
-		local v103_, v104_, v105_ = worldDirectionToLocal(v93_.jointNode, localDirectionToWorld(v99_, 0, 1, 0))
-		foldingPart.upX = v103_
-		foldingPart.upY = v104_
-		foldingPart.upZ = v105_
-		local v106_, v107_, v108_ = worldDirectionToLocal(v93_.jointNode, localDirectionToWorld(v99_, 0, 0, 1))
-		foldingPart.dirX = v106_
-		foldingPart.dirY = v107_
-		foldingPart.dirZ = v108_
-	end
-	return true
 end
-
 function Foldable:setFoldDirection(direction, noEventSend)
 	self:setFoldState(direction, false, noEventSend)
 end
-
--- Local values: spec, _, foldingPart, speedScale, charSet, animTime, alreadyPlaying, stopAnimTime, isFolding, delayedLowering
 function Foldable:setFoldState(direction, moveToMiddle, noEventSend)
-	local v116_ = self.spec_foldable
-	if v116_.foldMiddleAnimTime == nil then
+	local spec = self.spec_foldable
+	if spec.foldMiddleAnimTime == nil then
 		moveToMiddle = false
 	end
-	if v116_.foldMoveDirection ~= direction or v116_.moveToMiddle ~= moveToMiddle then
+	if spec.foldMoveDirection ~= direction or spec.moveToMiddle ~= moveToMiddle then
 		if noEventSend == nil or noEventSend == false then
-			if g_server == nil then
-				g_client:getServerConnection():sendEvent(FoldableSetFoldDirectionEvent.new(self, direction, moveToMiddle))
-			else
+			if g_server ~= nil then
 				g_server:broadcastEvent(FoldableSetFoldDirectionEvent.new(self, direction, moveToMiddle), nil, nil, self)
-			end
-		end
-		v116_.foldMoveDirection = direction
-		v116_.moveToMiddle = moveToMiddle
-		for _, v117_ in pairs(v116_.foldingParts) do
-			local v118_ = nil
-			if v116_.foldMoveDirection > 0.1 then
-				if not v116_.moveToMiddle or v116_.foldAnimTime < v116_.foldMiddleAnimTime then
-					v118_ = v117_.speedScale
-				end
-			elseif v116_.foldMoveDirection < -0.1 and (not v116_.moveToMiddle or v116_.foldAnimTime > v116_.foldMiddleAnimTime) then
-				v118_ = -v117_.speedScale
-			end
-			local v119_ = v117_.animCharSet
-			if v119_ == 0 then
-				local v120_
-				if self:getIsAnimationPlaying(v117_.animationName) then
-					v120_ = self:getAnimationTime(v117_.animationName)
-				else
-					v120_ = v116_.foldAnimTime * v116_.maxFoldAnimDuration / self:getAnimationDuration(v117_.animationName)
-				end
-				local v121_ = self:getIsAnimationPlaying(v117_.animationName)
-				self:stopAnimation(v117_.animationName, true)
-				if v118_ ~= nil then
-					local v122_
-					if moveToMiddle then
-						v122_ = v116_.foldMiddleAnimTime * v116_.maxFoldAnimDuration / self:getAnimationDuration(v117_.animationName)
-					else
-						v122_ = nil
-					end
-					local v123_ = direction ~= v116_.turnOnFoldDirection == not moveToMiddle
-					if v117_.delayedLowering == nil or (v123_ or v121_) then
-						self:playAnimation(v117_.animationName, v118_, v120_, true)
-						if moveToMiddle then
-							self:setAnimationStopTime(v117_.animationName, v122_)
-						end
-						if v117_.delayedLowering ~= nil then
-							v117_.delayedLowering.currentDistance = -1
-						end
-					else
-						local v124_ = v117_.delayedLowering
-						v124_.currentDistance = 0
-						v124_.speedScale = v118_
-						v124_.animTime = v120_
-						v124_.stopAnimTime = v122_
-						v124_.startTime = g_time
-						v124_.prevDistance = nil
-					end
-				end
-			elseif v118_ == nil then
-				disableAnimTrack(v119_, 0)
 			else
-				if v118_ > 0 then
-					if getAnimTrackTime(v119_, 0) < 0 then
-						setAnimTrackTime(v119_, 0, 0)
-					end
-				elseif getAnimTrackTime(v119_, 0) > v117_.animDuration then
-					setAnimTrackTime(v119_, 0, v117_.animDuration)
-				end
-				setAnimTrackSpeedScale(v119_, 0, v118_)
-				enableAnimTrack(v119_, 0)
+				g_client:getServerConnection():sendEvent(FoldableSetFoldDirectionEvent.new(self, direction, moveToMiddle))
 			end
 		end
-		if v116_.foldMoveDirection > 0.1 then
-			local v125_ = v116_.foldAnimTime + 0.0001
-			local v126_ = v116_.foldAnimTime
-			local v127_ = math.max(v126_, 1)
-			v116_.foldAnimTime = math.min(v125_, v127_)
-		elseif v116_.foldMoveDirection < -0.1 then
-			local v128_ = v116_.foldAnimTime - 0.0001
-			local v129_ = v116_.foldAnimTime
-			local v130_ = math.min(v129_, 0)
-			v116_.foldAnimTime = math.max(v128_, v130_)
+		spec.foldMoveDirection = direction
+		spec.moveToMiddle = moveToMiddle
+		for _, foldingPart in pairs(spec.foldingParts) do
+			local speedScale = nil
+			if 0.1 < spec.foldMoveDirection then
+				if not spec.moveToMiddle or spec.foldAnimTime < spec.foldMiddleAnimTime then
+					speedScale = foldingPart.speedScale
+				end
+			elseif spec.foldMoveDirection < -0.1 then
+				if not spec.moveToMiddle or spec.foldMiddleAnimTime < spec.foldAnimTime then
+					speedScale = -foldingPart.speedScale
+				end
+			end
+			local charSet = foldingPart.animCharSet
+			if charSet == 0 then
+				local animTime = nil
+				if self:getIsAnimationPlaying(foldingPart.animationName) then
+					animTime = self:getAnimationTime(foldingPart.animationName)
+				else
+					animTime = spec.foldAnimTime * spec.maxFoldAnimDuration / self:getAnimationDuration(foldingPart.animationName)
+				end
+				local alreadyPlaying = self:getIsAnimationPlaying(foldingPart.animationName)
+				self:stopAnimation(foldingPart.animationName, true)
+				if speedScale == nil then
+					continue
+				end
+				local stopAnimTime = nil
+				if moveToMiddle then
+					stopAnimTime = spec.foldMiddleAnimTime * spec.maxFoldAnimDuration / self:getAnimationDuration(foldingPart.animationName)
+				end
+				local isFolding = direction ~= spec.turnOnFoldDirection == not moveToMiddle
+				if foldingPart.delayedLowering == nil or isFolding or alreadyPlaying then
+					self:playAnimation(foldingPart.animationName, speedScale, animTime, true)
+					if moveToMiddle then
+						self:setAnimationStopTime(foldingPart.animationName, stopAnimTime)
+					end
+					if foldingPart.delayedLowering == nil then
+						continue
+					end
+					foldingPart.delayedLowering.currentDistance = -1
+				else
+					local delayedLowering = foldingPart.delayedLowering
+					delayedLowering.currentDistance = 0
+					delayedLowering.speedScale = speedScale
+					delayedLowering.animTime = animTime
+					delayedLowering.stopAnimTime = stopAnimTime
+					delayedLowering.startTime = g_time
+					delayedLowering.prevDistance = nil
+				end
+			elseif speedScale == nil then
+				disableAnimTrack(charSet, 0)
+			else
+				if 0 < speedScale then
+					if getAnimTrackTime(charSet, 0) < 0 then
+						setAnimTrackTime(charSet, 0, 0)
+					end
+				elseif foldingPart.animDuration < getAnimTrackTime(charSet, 0) then
+					setAnimTrackTime(charSet, 0, foldingPart.animDuration)
+				end
+				setAnimTrackSpeedScale(charSet, 0, speedScale)
+				enableAnimTrack(charSet, 0)
+			end
 		end
-		if not v116_.allowControlWhileFolding and self.setCruiseControlState ~= nil then
+		if 0.1 < spec.foldMoveDirection then
+			spec.foldAnimTime = math.min(spec.foldAnimTime + 0.0001, math.max(spec.foldAnimTime, 1))
+		elseif spec.foldMoveDirection < -0.1 then
+			spec.foldAnimTime = math.max(spec.foldAnimTime - 0.0001, math.min(spec.foldAnimTime, 0))
+		end
+		if not spec.allowControlWhileFolding and self.setCruiseControlState ~= nil then
 			self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF)
 		end
 		SpecializationUtil.raiseEvent(self, "onFoldStateChanged", direction, moveToMiddle)
 	end
 end
-
--- Local values: spec
 function Foldable:setFoldMiddleState(doLowering)
-	local v133_ = self.spec_foldable
-	if v133_.foldMiddleAnimTime ~= nil and self:getIsFoldMiddleAllowed() then
+	local spec = self.spec_foldable
+	if spec.foldMiddleAnimTime ~= nil and self:getIsFoldMiddleAllowed() then
 		if doLowering then
-			self:setFoldState(-v133_.foldMiddleAIRaiseDirection, false)
+			self:setFoldState(-spec.foldMiddleAIRaiseDirection, false)
 			return
 		end
-		self:setFoldState(v133_.foldMiddleAIRaiseDirection, true)
+		self:setFoldState(spec.foldMiddleAIRaiseDirection, true)
 	end
 end
-
--- Local values: spec
 function Foldable:getIsUnfolded()
-	local v135_ = self.spec_foldable
-	if v135_.hasFoldingParts then
-		if v135_.foldMiddleAnimTime == nil then
-			return v135_.turnOnFoldDirection == -1 and v135_.foldAnimTime == 0 or v135_.turnOnFoldDirection == 1 and v135_.foldAnimTime == 1
-		else
-			return v135_.turnOnFoldDirection == -1 and v135_.foldAnimTime < v135_.foldMiddleAnimTime + 0.01 or v135_.turnOnFoldDirection == 1 and v135_.foldAnimTime > v135_.foldMiddleAnimTime - 0.01
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts then
+		if spec.foldMiddleAnimTime ~= nil then
+			if spec.turnOnFoldDirection ~= -1 or not (spec.foldAnimTime < spec.foldMiddleAnimTime + 0.01) then
+				if spec.turnOnFoldDirection == 1 and spec.foldMiddleAnimTime - 0.01 < spec.foldAnimTime then
+					return true
+				end
+				return false
+			end
+		elseif spec.turnOnFoldDirection ~= -1 or spec.foldAnimTime ~= 0 then
+			if spec.turnOnFoldDirection == 1 and spec.foldAnimTime == 1 then
+				return true
+			end
+			return false
 		end
-	else
-		return true
 	end
+	return true
 end
-
--- Local values: spec
 function Foldable:getFoldAnimTime()
-	local v137_ = self.spec_foldable
-	return v137_.loadedFoldAnimTime or v137_.foldAnimTime
+	local spec = self.spec_foldable
+	return spec.loadedFoldAnimTime or spec.foldAnimTime
 end
-
 function Foldable:setIsFoldActionAllowed(isAllowed)
 	self.spec_foldable.isFoldAllowed = isAllowed
 end
-
 function Foldable:getIsFoldActionAllowed()
 	return self.spec_foldable.isFoldAllowed
 end
-
--- Local values: spec, inputAttacherJoint, foldAnimTime
 function Foldable:getIsFoldAllowed(direction, onAiTurnOn)
-	local v142_ = self.spec_foldable
-	if v142_.isFoldAllowed then
-		if self.getAttacherVehicle ~= nil and self:getAttacherVehicle() ~= nil then
-			local v143_ = self:getActiveInputAttacherJoint()
-			if v143_.foldMinLimit ~= nil and v143_.foldMaxLimit ~= nil then
-				local v144_ = self:getFoldAnimTime()
-				if v144_ < v143_.foldMinLimit or v143_.foldMaxLimit < v144_ then
-					return false, nil
-				end
+	local spec = self.spec_foldable
+	if not spec.isFoldAllowed then
+		return false, nil
+	end
+	if self.getAttacherVehicle ~= nil and self:getAttacherVehicle() ~= nil then
+		local inputAttacherJoint = self:getActiveInputAttacherJoint()
+		if inputAttacherJoint.foldMinLimit ~= nil and inputAttacherJoint.foldMaxLimit ~= nil then
+			local foldAnimTime = self:getFoldAnimTime()
+			if foldAnimTime < inputAttacherJoint.foldMinLimit or inputAttacherJoint.foldMaxLimit < foldAnimTime then
+				return false, nil
 			end
 		end
-		if (v142_.toggleFoldingBlockedDirection == 0 and v142_.foldMoveDirection ~= 0 or v142_.toggleFoldingBlockedDirection ~= 0 and v142_.foldMoveDirection == -v142_.toggleFoldingBlockedDirection) and (v142_.foldAnimTime > v142_.toggleFoldingMaxLimit or v142_.foldAnimTime < v142_.toggleFoldingMinLimit) then
+	end
+	if spec.toggleFoldingBlockedDirection ~= 0 or spec.foldMoveDirection == 0 then
+		if spec.toggleFoldingBlockedDirection ~= 0 and (spec.foldMoveDirection == -spec.toggleFoldingBlockedDirection and (spec.toggleFoldingMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.toggleFoldingMinLimit)) then
 			return false, nil
-		else
-			return true, nil
 		end
-	else
-		return false, nil
-	end
-end
-
--- Local values: spec
-function Foldable:getIsFoldMiddleAllowed()
-	local v146_ = self.spec_foldable
-	if v146_.isFoldAllowed then
-		return v146_.foldMiddleAnimTime ~= nil
-	else
-		return false
-	end
-end
-
--- Local values: spec, foldMidTime, targetDirection
-function Foldable:getToggledFoldDirection()
-	local v148_ = self.spec_foldable
-	local v149_
-	if v148_.foldMiddleAnimTime == nil then
-		v149_ = 0.5
-	elseif v148_.foldMiddleDirection > 0 then
-		v149_ = (1 + v148_.foldMiddleAnimTime) * 0.5
-	else
-		v149_ = v148_.foldMiddleAnimTime * 0.5
-	end
-	local v150_
-	if v148_.moveToMiddle then
-		v150_ = v148_.foldMiddleDirection
-	elseif v148_.foldMoveDirection == 0 then
-		v150_ = v148_.foldAnimTime < v149_ and 1 or -1
-	else
-		v150_ = -v148_.foldMoveDirection
-	end
-	if v148_.foldMiddleAnimTime ~= nil then
-		if v148_.foldMiddleDirection > 0 then
-			if v148_.foldAnimTime < v148_.foldMiddleAnimTime - 0.01 then
-				return 1
-			end
-		else
-			v150_ = v148_.foldAnimTime > v148_.foldMiddleAnimTime + 0.01 and -1 or v150_
-		end
-	end
-	return v150_
-end
-
--- Local values: spec, ret
-function Foldable:getToggledFoldMiddleDirection()
-	local v152_ = self.spec_foldable
-	local v153_
-	if v152_.foldMiddleAnimTime == nil then
-		v153_ = 0
-	else
-		v153_ = v152_.foldMoveDirection > 0.1 and -1 or 1
-		if v152_.foldMiddleDirection > 0 then
-			if v152_.foldAnimTime >= v152_.foldMiddleAnimTime - 0.01 then
-				return -1
-			end
-		else
-			if v152_.foldAnimTime <= v152_.foldMiddleAnimTime + 0.01 then
-				return 1
-			end
-			v153_ = -1
-		end
-	end
-	return v153_
-end
-
--- Local values: spec
-function Foldable:getIsVehicleControlAllowed()
-	if self.spec_foldable.foldMoveDirection == 0 then
 		return true, nil
-	else
-		return false, nil
 	end
 end
-
--- Local values: spec
-function Foldable:allowLoadMovingToolStates(superFunc)
-	local v157_ = self.spec_foldable
-	if v157_.foldAnimTime > v157_.loadMovingToolStatesMaxLimit or v157_.foldAnimTime < v157_.loadMovingToolStatesMinLimit then
+function Foldable:getIsFoldMiddleAllowed()
+	local spec = self.spec_foldable
+	if not spec.isFoldAllowed then
 		return false
 	else
-		return superFunc(self)
+		return spec.foldMiddleAnimTime ~= nil
 	end
 end
-
--- Local values: minFoldLimit, maxFoldLimit
+function Foldable:getToggledFoldDirection()
+	local spec = self.spec_foldable
+	local foldMidTime = 0.5
+	if spec.foldMiddleAnimTime ~= nil then
+		foldMidTime = 0 < spec.foldMiddleDirection and (1 + spec.foldMiddleAnimTime) * 0.5 or spec.foldMiddleAnimTime * 0.5
+	end
+	local targetDirection = 0
+	if spec.moveToMiddle then
+		targetDirection = spec.foldMiddleDirection
+	elseif spec.foldMoveDirection == 0 then
+		targetDirection = spec.foldAnimTime < foldMidTime and 1 or -1
+	else
+		targetDirection = -spec.foldMoveDirection
+	end
+	if spec.foldMiddleAnimTime ~= nil then
+		if 0 < spec.foldMiddleDirection then
+			if spec.foldAnimTime < spec.foldMiddleAnimTime - 0.01 then
+				targetDirection = 1
+				return targetDirection
+			end
+		elseif spec.foldMiddleAnimTime + 0.01 < spec.foldAnimTime then
+			targetDirection = -1
+		end
+	end
+	return targetDirection
+end
+function Foldable:getToggledFoldMiddleDirection()
+	local spec = self.spec_foldable
+	local ret = 0
+	if spec.foldMiddleAnimTime ~= nil then
+		ret = 0.1 < spec.foldMoveDirection and -1 or 1
+		if 0 < spec.foldMiddleDirection then
+			if spec.foldMiddleAnimTime - 0.01 <= spec.foldAnimTime then
+				ret = -1
+				return ret
+			end
+		else
+			if spec.foldAnimTime <= spec.foldMiddleAnimTime + 0.01 then
+				ret = 1
+				return ret
+			end
+			ret = -1
+		end
+	end
+	return ret
+end
+function Foldable:getIsVehicleControlAllowed()
+	local spec = self.spec_foldable
+	if spec.foldMoveDirection ~= 0 then
+		return false, nil
+	else
+		return true, nil
+	end
+end
+function Foldable:allowLoadMovingToolStates(superFunc)
+	local spec = self.spec_foldable
+	if spec.loadMovingToolStatesMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.loadMovingToolStatesMinLimit then
+		return false
+	end
+	return superFunc(self)
+end
 function Foldable:loadSpeedRotatingPartFromXML(superFunc, speedRotatingPart, xmlFile, key)
 	if not superFunc(self, speedRotatingPart, xmlFile, key) then
 		return false
-	end
-	speedRotatingPart.foldLimitedOuterRange = xmlFile:getValue(key .. "#foldLimitedOuterRange", false)
-	local v163_, v164_
-	if speedRotatingPart.foldLimitedOuterRange then
-		v163_ = 0.5
-		v164_ = 0.5
 	else
-		v163_ = 0
-		v164_ = 1
+		speedRotatingPart.foldLimitedOuterRange = xmlFile:getValue(key .. "#foldLimitedOuterRange", false)
+		local minFoldLimit = 0
+		local maxFoldLimit = 1
+		if speedRotatingPart.foldLimitedOuterRange then
+			minFoldLimit = 0.5
+			maxFoldLimit = 0.5
+		end
+		speedRotatingPart.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", minFoldLimit)
+		speedRotatingPart.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", maxFoldLimit)
+		return true
 	end
-	speedRotatingPart.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", v163_)
-	speedRotatingPart.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", v164_)
-	return true
 end
-
--- Local values: spec
 function Foldable:getIsSpeedRotatingPartActive(superFunc, speedRotatingPart)
-	local v168_ = self.spec_foldable
-	if speedRotatingPart.foldLimitedOuterRange then
-		if v168_.foldAnimTime <= speedRotatingPart.foldMaxLimit and v168_.foldAnimTime > speedRotatingPart.foldMinLimit then
+	local spec = self.spec_foldable
+	if not speedRotatingPart.foldLimitedOuterRange then
+		if speedRotatingPart.foldMaxLimit < spec.foldAnimTime or spec.foldAnimTime < speedRotatingPart.foldMinLimit then
 			return false
 		end
-	elseif v168_.foldAnimTime > speedRotatingPart.foldMaxLimit or v168_.foldAnimTime < speedRotatingPart.foldMinLimit then
-		return false
+	elseif spec.foldAnimTime <= speedRotatingPart.foldMaxLimit then
+		if speedRotatingPart.foldMinLimit < spec.foldAnimTime then
+			return false
+		end
 	end
 	return superFunc(self, speedRotatingPart)
 end
-
 function Foldable:loadSlopeCompensationNodeFromXML(superFunc, compensationNode, xmlFile, key)
 	compensationNode.foldAngleScale = xmlFile:getValue(key .. "#foldAngleScale")
 	compensationNode.invertFoldAngleScale = xmlFile:getValue(key .. "#invertFoldAngleScale", false)
 	return superFunc(self, compensationNode, xmlFile, key)
 end
-
--- Local values: scale, spec, animTime
 function Foldable:getSlopeCompensationAngleScale(superFunc, compensationNode)
-	local v177_ = superFunc(self, compensationNode)
+	local scale = superFunc(self, compensationNode)
 	if compensationNode.foldAngleScale ~= nil then
-		local v178_ = self.spec_foldable
-		local v179_ = 1 - v178_.foldAnimTime
+		local spec = self.spec_foldable
+		local animTime = 1 - spec.foldAnimTime
 		if compensationNode.invertFoldAngleScale then
-			v179_ = 1 - v179_
+			animTime = 1 - animTime
 		end
-		if v178_.foldMiddleAnimTime ~= nil then
-			return v177_ * MathUtil.lerp(compensationNode.foldAngleScale, 1, v179_ / (1 - v178_.foldMiddleAnimTime))
+		if spec.foldMiddleAnimTime ~= nil and spec.foldMiddleAnimTime ~= 1 then
+			scale = scale * MathUtil.lerp(compensationNode.foldAngleScale, 1, animTime / (1 - spec.foldMiddleAnimTime))
+			return scale
 		end
-		v177_ = v177_ * MathUtil.lerp(compensationNode.foldAngleScale, 1, v179_)
+		scale = scale * MathUtil.lerp(compensationNode.foldAngleScale, 1, animTime)
 	end
-	return v177_
+	return scale
 end
-
 function Foldable:loadWheelFromXML(superFunc, wheel)
 	wheel.versatileFoldMinLimit = wheel.xmlObject:getValue("#versatileFoldMinLimit", 0)
 	wheel.versatileFoldMaxLimit = wheel.xmlObject:getValue("#versatileFoldMaxLimit", 1)
 	return superFunc(self, wheel)
 end
-
--- Local values: spec
 function Foldable:getIsVersatileYRotActive(superFunc, wheel)
-	local v186_ = self.spec_foldable
-	if v186_.foldAnimTime > wheel.versatileFoldMaxLimit or v186_.foldAnimTime < wheel.versatileFoldMinLimit then
+	local spec = self.spec_foldable
+	if wheel.versatileFoldMaxLimit < spec.foldAnimTime or spec.foldAnimTime < wheel.versatileFoldMinLimit then
 		return false
-	else
-		return superFunc(self, wheel)
 	end
+	return superFunc(self, wheel)
 end
-
--- Local values: minFoldLimit, maxFoldLimit
 function Foldable:loadWorkAreaFromXML(superFunc, workArea, xmlFile, key)
 	workArea.foldLimitedOuterRange = xmlFile:getValue(key .. "#foldLimitedOuterRange", false)
-	local v192_, v193_
+	local minFoldLimit = 0
+	local maxFoldLimit = 1
 	if workArea.foldLimitedOuterRange then
-		v192_ = 0.5
-		v193_ = 0.5
-	else
-		v192_ = 0
-		v193_ = 1
+		minFoldLimit = 0.5
+		maxFoldLimit = 0.5
 	end
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#foldMinLimit", key .. ".folding#minLimit")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#foldMaxLimit", key .. ".folding#maxLimit")
-	workArea.foldMinLimit = xmlFile:getValue(key .. ".folding#minLimit", v192_)
-	workArea.foldMaxLimit = xmlFile:getValue(key .. ".folding#maxLimit", v193_)
+	workArea.foldMinLimit = xmlFile:getValue(key .. ".folding#minLimit", minFoldLimit)
+	workArea.foldMaxLimit = xmlFile:getValue(key .. ".folding#maxLimit", maxFoldLimit)
 	return superFunc(self, workArea, xmlFile, key)
 end
-
--- Local values: spec
 function Foldable:getIsWorkAreaActive(superFunc, workArea)
-	local v197_ = self.spec_foldable
-	if workArea.foldLimitedOuterRange then
-		if v197_.foldAnimTime <= workArea.foldMaxLimit and v197_.foldAnimTime > workArea.foldMinLimit then
+	local spec = self.spec_foldable
+	if not workArea.foldLimitedOuterRange then
+		if workArea.foldMaxLimit < spec.foldAnimTime or spec.foldAnimTime < workArea.foldMinLimit then
 			return false
 		end
-	elseif v197_.foldAnimTime > workArea.foldMaxLimit or v197_.foldAnimTime < workArea.foldMinLimit then
-		return false
+	elseif spec.foldAnimTime <= workArea.foldMaxLimit then
+		if workArea.foldMinLimit < spec.foldAnimTime then
+			return false
+		end
 	end
 	return superFunc(self, workArea)
 end
-
--- Local values: returnValue
 function Foldable:loadGroundReferenceNode(superFunc, xmlFile, key, groundReferenceNode)
-	local v203_ = superFunc(self, xmlFile, key, groundReferenceNode)
-	if v203_ then
+	local returnValue = superFunc(self, xmlFile, key, groundReferenceNode)
+	if returnValue then
 		groundReferenceNode.foldMinLimit = xmlFile:getValue(key .. ".folding#minLimit", 0)
 		groundReferenceNode.foldMaxLimit = xmlFile:getValue(key .. ".folding#maxLimit", 1)
 	end
-	return v203_
+	return returnValue
 end
-
--- Local values: foldAnimTime
 function Foldable:updateGroundReferenceNode(superFunc, groundReferenceNode)
 	superFunc(self, groundReferenceNode)
-	local v207_ = self:getFoldAnimTime()
-	if groundReferenceNode.foldMaxLimit < v207_ or v207_ < groundReferenceNode.foldMinLimit then
+	local foldAnimTime = self:getFoldAnimTime()
+	if groundReferenceNode.foldMaxLimit < foldAnimTime or foldAnimTime < groundReferenceNode.foldMinLimit then
 		groundReferenceNode.isActive = false
 	end
 end
-
--- Local values: minFoldLimit, maxFoldLimit
 function Foldable:loadLevelerNodeFromXML(superFunc, levelerNode, xmlFile, key)
 	levelerNode.foldLimitedOuterRange = xmlFile:getValue(key .. "#foldLimitedOuterRange", false)
-	local v213_, v214_
+	local minFoldLimit = 0
+	local maxFoldLimit = 1
 	if levelerNode.foldLimitedOuterRange then
-		v213_ = 0.5
-		v214_ = 0.5
-	else
-		v213_ = 0
-		v214_ = 1
+		minFoldLimit = 0.5
+		maxFoldLimit = 0.5
 	end
-	levelerNode.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", v213_)
-	levelerNode.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", v214_)
+	levelerNode.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", minFoldLimit)
+	levelerNode.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", maxFoldLimit)
 	return superFunc(self, levelerNode, xmlFile, key)
 end
-
--- Local values: spec
 function Foldable:getIsLevelerPickupNodeActive(superFunc, levelerNode)
-	local v218_ = self.spec_foldable
-	if levelerNode.foldLimitedOuterRange then
-		if v218_.foldAnimTime <= levelerNode.foldMaxLimit and v218_.foldAnimTime > levelerNode.foldMinLimit then
+	local spec = self.spec_foldable
+	if not levelerNode.foldLimitedOuterRange then
+		if levelerNode.foldMaxLimit < spec.foldAnimTime or spec.foldAnimTime < levelerNode.foldMinLimit then
 			return false
 		end
-	elseif v218_.foldAnimTime > levelerNode.foldMaxLimit or v218_.foldAnimTime < levelerNode.foldMinLimit then
-		return false
+	elseif spec.foldAnimTime <= levelerNode.foldMaxLimit then
+		if levelerNode.foldMinLimit < spec.foldAnimTime then
+			return false
+		end
 	end
 	return superFunc(self, levelerNode)
 end
-
--- Local values: foldingConfigurationIndex, foldingConfigurationIndices, i
 function Foldable:loadMovingToolFromXML(superFunc, xmlFile, key, entry)
 	if not superFunc(self, xmlFile, key, entry) then
 		return false
-	end
-	entry.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
-	entry.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
-	entry.hasRequiredFoldingConfiguration = true
-	if self.configurations.folding ~= nil then
-		local v224_ = xmlFile:getValue(key .. "#foldingConfigurationIndex")
-		if v224_ ~= nil and self.configurations.folding ~= v224_ then
-			entry.hasRequiredFoldingConfiguration = false
-		end
-		local v225_ = xmlFile:getValue(key .. "#foldingConfigurationIndices", nil, true)
-		if v225_ ~= nil and #v225_ > 0 then
-			entry.hasRequiredFoldingConfiguration = false
-			for v226_ = 1, #v225_ do
-				if self.configurations.folding == v225_[v226_] then
-					entry.hasRequiredFoldingConfiguration = true
-					break
+	else
+		entry.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
+		entry.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
+		entry.hasRequiredFoldingConfiguration = true
+		if self.configurations.folding ~= nil then
+			local foldingConfigurationIndex = xmlFile:getValue(key .. "#foldingConfigurationIndex")
+			if foldingConfigurationIndex ~= nil and self.configurations.folding ~= foldingConfigurationIndex then
+				entry.hasRequiredFoldingConfiguration = false
+			end
+			local foldingConfigurationIndices = xmlFile:getValue(key .. "#foldingConfigurationIndices", nil, true)
+			if foldingConfigurationIndices ~= nil and 0 < #foldingConfigurationIndices then
+				entry.hasRequiredFoldingConfiguration = false
+				for i = 1, #foldingConfigurationIndices do
+					if self.configurations.folding == foldingConfigurationIndices[i] then
+						entry.hasRequiredFoldingConfiguration = true
+						break
+					end
 				end
 			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: foldAnimTime
 function Foldable:getIsMovingToolActive(superFunc, movingTool)
-	if movingTool.hasRequiredFoldingConfiguration then
-		local v230_ = self:getFoldAnimTime()
-		if movingTool.foldMaxLimit < v230_ or v230_ < movingTool.foldMinLimit then
-			return false
-		else
-			return superFunc(self, movingTool)
-		end
-	else
+	if not movingTool.hasRequiredFoldingConfiguration then
 		return false
+	else
+		local foldAnimTime = self:getFoldAnimTime()
+		if movingTool.foldMaxLimit < foldAnimTime or foldAnimTime < movingTool.foldMinLimit then
+			return false
+		end
+		return superFunc(self, movingTool)
 	end
 end
-
 function Foldable:loadMovingPartFromXML(superFunc, xmlFile, key, entry)
 	if not superFunc(self, xmlFile, key, entry) then
 		return false
+	else
+		entry.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
+		entry.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
+		return true
 	end
-	entry.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
-	entry.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
-	return true
 end
-
--- Local values: foldAnimTime
 function Foldable:getIsMovingPartActive(superFunc, movingPart)
 	if movingPart.foldMaxLimit ~= 1 or movingPart.foldMinLimit ~= 0 then
-		local v239_ = self:getFoldAnimTime()
-		if movingPart.foldMaxLimit < v239_ or v239_ < movingPart.foldMinLimit then
+		local foldAnimTime = self:getFoldAnimTime()
+		if movingPart.foldMaxLimit < foldAnimTime or foldAnimTime < movingPart.foldMinLimit then
 			return false
 		end
 	end
 	return superFunc(self, movingPart)
 end
-
--- Local values: spec
 function Foldable:getCanBeTurnedOn(superFunc)
-	local v242_ = self.spec_foldable
-	if v242_.foldAnimTime > v242_.turnOnFoldMaxLimit or v242_.foldAnimTime < v242_.turnOnFoldMinLimit then
+	local spec = self.spec_foldable
+	if spec.turnOnFoldMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.turnOnFoldMinLimit then
 		return false
-	else
-		return superFunc(self)
 	end
+	return superFunc(self)
 end
-
--- Local values: spec
 function Foldable:getIsNextCoverStateAllowed(superFunc, nextState)
 	if not superFunc(self, nextState) then
 		return false
+	else
+		local spec = self.spec_foldable
+		if spec.toggleCoverMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.toggleCoverMinLimit then
+			return false
+		end
+		return true
 	end
-	local v246_ = self.spec_foldable
-	return v246_.foldAnimTime <= v246_.toggleCoverMaxLimit and v246_.foldAnimTime >= v246_.toggleCoverMinLimit
 end
-
--- Local values: spec
 function Foldable:getIsNextCoverStateAllowedWarning(superFunc, nextState)
-	local v250_ = self.spec_foldable
-	if v250_.foldAnimTime > v250_.toggleCoverMaxLimit or v250_.foldAnimTime < v250_.toggleCoverMinLimit then
-		return v250_.unfoldWarning
-	else
-		return superFunc(self, nextState)
+	local spec = self.spec_foldable
+	if spec.toggleCoverMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.toggleCoverMinLimit then
+		return spec.unfoldWarning
 	end
+	return superFunc(self, nextState)
 end
-
--- Local values: spec
 function Foldable:getIsInWorkPosition(superFunc)
-	local v253_ = self.spec_foldable
-	if v253_.turnOnFoldDirection == 0 or (#v253_.foldingParts == 0 or v253_.turnOnFoldDirection == -1 and v253_.foldAnimTime == 0) or v253_.turnOnFoldDirection == 1 and v253_.foldAnimTime == 1 then
-		return superFunc(self)
-	else
+	local spec = self.spec_foldable
+	if spec.turnOnFoldDirection ~= 0 and (#spec.foldingParts ~= 0 and ((spec.turnOnFoldDirection ~= -1 or spec.foldAnimTime ~= 0) and (spec.turnOnFoldDirection ~= 1 or spec.foldAnimTime ~= 1))) then
 		return false
 	end
-end
-
--- Local values: spec
-function Foldable:getTurnedOnNotAllowedWarning(superFunc)
-	local v256_ = self.spec_foldable
-	if v256_.foldAnimTime > v256_.turnOnFoldMaxLimit or v256_.foldAnimTime < v256_.turnOnFoldMinLimit then
-		return v256_.unfoldWarning
-	else
-		return superFunc(self)
-	end
-end
-
--- Local values: spec
-function Foldable:isDetachAllowed(superFunc)
-	local v259_ = self.spec_foldable
-	if v259_.foldAnimTime > v259_.detachingMaxLimit or v259_.foldAnimTime < v259_.detachingMinLimit then
-		return false, v259_.unfoldWarning
-	end
-	if not v259_.allowDetachingWhileFolding then
-		if v259_.foldMiddleAnimTime == nil then
-			::l7::
-			if v259_.foldAnimTime > 0 and v259_.foldAnimTime < 1 then
-				return false, v259_.detachWarning
-			end
-			goto l5
-		end
-		local v260_ = v259_.foldAnimTime - v259_.foldMiddleAnimTime
-		if math.abs(v260_) > 0.001 then
-			goto l7
-		end
-	end
-	::l5::
 	return superFunc(self)
 end
-
--- Local values: spec
+function Foldable:getTurnedOnNotAllowedWarning(superFunc)
+	local spec = self.spec_foldable
+	if spec.turnOnFoldMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.turnOnFoldMinLimit then
+		return spec.unfoldWarning
+	end
+	return superFunc(self)
+end
+function Foldable:isDetachAllowed(superFunc)
+	local spec = self.spec_foldable
+	if spec.detachingMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.detachingMinLimit then
+		return false, spec.unfoldWarning
+	end
+	if not spec.allowDetachingWhileFolding and ((spec.foldMiddleAnimTime == nil or 0.001 < math.abs(spec.foldAnimTime - spec.foldMiddleAnimTime)) and (0 < spec.foldAnimTime and spec.foldAnimTime < 1)) then
+		return false, spec.detachWarning
+	end
+	return superFunc(self)
+end
 function Foldable:isAttachAllowed(superFunc, farmId, attacherVehicle)
-	local v265_ = self.spec_foldable
-	if v265_.foldAnimTime > v265_.attachingMaxLimit or v265_.foldAnimTime < v265_.attachingMinLimit then
-		return false, v265_.unfoldWarning
-	else
-		return superFunc(self, farmId, attacherVehicle)
+	local spec = self.spec_foldable
+	if spec.attachingMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.attachingMinLimit then
+		return false, spec.unfoldWarning
 	end
+	return superFunc(self, farmId, attacherVehicle)
 end
-
--- Local values: spec
 function Foldable:getAllowsLowering(superFunc)
-	local v268_ = self.spec_foldable
-	if v268_.foldAnimTime > v268_.loweringMaxLimit or v268_.foldAnimTime < v268_.loweringMinLimit then
-		return false, v268_.unfoldWarning
-	else
-		return superFunc(self)
+	local spec = self.spec_foldable
+	if spec.loweringMaxLimit < spec.foldAnimTime or spec.foldAnimTime < spec.loweringMinLimit then
+		return false, spec.unfoldWarning
 	end
+	return superFunc(self)
 end
-
--- Local values: spec, ignoreFoldMiddle
 function Foldable:getIsLowered(superFunc, default)
-	local v272_ = self.spec_foldable
-	if not self:getIsFoldMiddleAllowed() or (v272_.foldMiddleAnimTime == nil or v272_.foldMiddleInputButton == nil) then
-		return superFunc(self, default)
-	end
-	if v272_.ignoreFoldMiddleWhileFolded and self:getFoldAnimTime() > v272_.foldMiddleAnimTime and true or false then
-		return superFunc(self, default)
-	end
-	if v272_.foldMoveDirection == 0 then
-		if v272_.foldMiddleDirection > 0 and v272_.foldAnimTime < 0.01 then
-			return true
+	local spec = self.spec_foldable
+	if self:getIsFoldMiddleAllowed() and (spec.foldMiddleAnimTime ~= nil and spec.foldMiddleInputButton ~= nil) then
+		local ignoreFoldMiddle = false
+		if spec.ignoreFoldMiddleWhileFolded and spec.foldMiddleAnimTime < self:getFoldAnimTime() then
+			ignoreFoldMiddle = true
 		end
-		if v272_.foldMiddleDirection < 0 then
-			local v273_ = 1 - v272_.foldAnimTime
-			if math.abs(v273_) < 0.01 then
-				return true
-			end
-		end
-	elseif v272_.foldMiddleDirection > 0 then
-		if v272_.foldAnimTime < v272_.foldMiddleAnimTime + 0.01 then
-			local v274_
-			if v272_.foldMoveDirection < 0 then
-				v274_ = v272_.moveToMiddle ~= true
+		if not ignoreFoldMiddle then
+			if spec.foldMoveDirection ~= 0 then
+				if 0 < spec.foldMiddleDirection then
+					if spec.foldAnimTime < spec.foldMiddleAnimTime + 0.01 then
+						return spec.foldMoveDirection < 0 and spec.moveToMiddle ~= true
+					end
+				elseif spec.foldMiddleAnimTime - 0.01 < spec.foldAnimTime then
+					return 0 < spec.foldMoveDirection and spec.moveToMiddle ~= true
+				end
 			else
-				v274_ = false
+				if 0 < spec.foldMiddleDirection and spec.foldAnimTime < 0.01 then
+					return true
+				end
+				if spec.foldMiddleDirection < 0 and math.abs(1 - spec.foldAnimTime) < 0.01 then
+					return true
+				end
 			end
-			return v274_
-		end
-	elseif v272_.foldAnimTime > v272_.foldMiddleAnimTime - 0.01 then
-		local v275_
-		if v272_.foldMoveDirection > 0 then
-			v275_ = v272_.moveToMiddle ~= true
+			return false
 		else
-			v275_ = false
+			return superFunc(self, default)
 		end
-		return v275_
 	end
-	return false
+	return superFunc(self, default)
 end
-
--- Local values: spec, state, actionEventId
 function Foldable:registerLoweringActionEvent(superFunc, actionEventsTable, inputAction, target, callback, triggerUp, triggerDown, triggerAlways, startActive, callbackState, customIconName, ignoreCollisions)
-	local v289_ = self.spec_foldable
-	if v289_.hasFoldingParts and v289_.foldMiddleAnimTime ~= nil then
-		self:clearActionEventsTable(v289_.actionEventsLowering)
-		local v290_, v291_
-		if v289_.requiresPower then
-			v290_, v291_ = self:addPoweredActionEvent(v289_.actionEventsLowering, v289_.foldMiddleInputButton, self, Foldable.actionEventFoldMiddle, false, true, false, true, nil, nil, ignoreCollisions)
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts and spec.foldMiddleAnimTime ~= nil then
+		self:clearActionEventsTable(spec.actionEventsLowering)
+		local state = nil
+		local actionEventId = nil
+		if spec.requiresPower then
+			state, actionEventId = self:addPoweredActionEvent(spec.actionEventsLowering, spec.foldMiddleInputButton, self, Foldable.actionEventFoldMiddle, false, true, false, true, nil, nil, ignoreCollisions)
 		else
-			v290_, v291_ = self:addActionEvent(v289_.actionEventsLowering, v289_.foldMiddleInputButton, self, Foldable.actionEventFoldMiddle, false, true, false, true, nil, nil, ignoreCollisions)
+			state, actionEventId = self:addActionEvent(spec.actionEventsLowering, spec.foldMiddleInputButton, self, Foldable.actionEventFoldMiddle, false, true, false, true, nil, nil, ignoreCollisions)
 		end
-		g_inputBinding:setActionEventTextPriority(v291_, GS_PRIO_HIGH)
+		g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
 		Foldable.updateActionEventFoldMiddle(self)
-		if v289_.foldMiddleInputButton == inputAction then
-			return v290_, v291_
+		if spec.foldMiddleInputButton == inputAction then
+			return state, actionEventId
 		end
 	end
 	return superFunc(self, actionEventsTable, inputAction, target, callback, triggerUp, triggerDown, triggerAlways, startActive, callbackState, customIconName)
 end
-
 function Foldable:registerSelfLoweringActionEvent(superFunc, actionEventsTable, inputAction, target, callback, triggerUp, triggerDown, triggerAlways, startActive, callbackState, customIconName, ignoreCollisions)
 	return Foldable.registerLoweringActionEvent(self, superFunc, actionEventsTable, inputAction, target, callback, triggerUp, triggerDown, triggerAlways, startActive, callbackState, customIconName, ignoreCollisions)
 end
-
 function Foldable:loadGroundAdjustedNodeFromXML(superFunc, xmlFile, key, adjustedNode)
 	if not superFunc(self, xmlFile, key, adjustedNode) then
 		return false
-	end
-	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#foldMinLimit", key .. ".foldable#minLimit")
-	XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#foldMaxLimit", key .. ".foldable#maxLimit")
-	adjustedNode.foldMinLimit = xmlFile:getValue(key .. ".foldable#minLimit", 0)
-	adjustedNode.foldMaxLimit = xmlFile:getValue(key .. ".foldable#maxLimit", 1)
-	return true
-end
-
--- Local values: spec, foldAnimTime
-function Foldable:getIsGroundAdjustedNodeActive(superFunc, adjustedNode, ignoreAttachState)
-	local v314_ = self.spec_foldable.foldAnimTime
-	if v314_ == nil or adjustedNode.foldMaxLimit >= v314_ and v314_ >= adjustedNode.foldMinLimit then
-		return superFunc(self, adjustedNode, ignoreAttachState)
 	else
+		XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#foldMinLimit", key .. ".foldable#minLimit")
+		XMLUtil.checkDeprecatedXMLElements(xmlFile, key .. "#foldMaxLimit", key .. ".foldable#maxLimit")
+		adjustedNode.foldMinLimit = xmlFile:getValue(key .. ".foldable#minLimit", 0)
+		adjustedNode.foldMaxLimit = xmlFile:getValue(key .. ".foldable#maxLimit", 1)
+		return true
+	end
+end
+function Foldable:getIsGroundAdjustedNodeActive(superFunc, adjustedNode, ignoreAttachState)
+	local spec = self.spec_foldable
+	local foldAnimTime = spec.foldAnimTime
+	if foldAnimTime ~= nil and (adjustedNode.foldMaxLimit < foldAnimTime or foldAnimTime < adjustedNode.foldMinLimit) then
 		return false
 	end
+	return superFunc(self, adjustedNode, ignoreAttachState)
 end
-
--- Local values: foldingConfigurationIndex, foldingConfigurationIndices, i
 function Foldable:loadSprayTypeFromXML(superFunc, xmlFile, key, sprayType)
 	sprayType.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit")
 	sprayType.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit")
 	sprayType.hasRequiredFoldingConfiguration = true
 	if self.configurations.folding ~= nil then
-		local v320_ = xmlFile:getValue(key .. "#foldingConfigurationIndex")
-		if v320_ ~= nil and self.configurations.folding ~= v320_ then
+		local foldingConfigurationIndex = xmlFile:getValue(key .. "#foldingConfigurationIndex")
+		if foldingConfigurationIndex ~= nil and self.configurations.folding ~= foldingConfigurationIndex then
 			sprayType.hasRequiredFoldingConfiguration = false
 		end
-		local v321_ = xmlFile:getValue(key .. "#foldingConfigurationIndices", nil, true)
-		if v321_ ~= nil and #v321_ > 0 then
+		local foldingConfigurationIndices = xmlFile:getValue(key .. "#foldingConfigurationIndices", nil, true)
+		if foldingConfigurationIndices ~= nil and 0 < #foldingConfigurationIndices then
 			sprayType.hasRequiredFoldingConfiguration = false
-			for v322_ = 1, #v321_ do
-				if self.configurations.folding == v321_[v322_] then
+			for i = 1, #foldingConfigurationIndices do
+				if self.configurations.folding == foldingConfigurationIndices[i] then
 					sprayType.hasRequiredFoldingConfiguration = true
 					break
 				end
@@ -1320,75 +1188,61 @@ function Foldable:loadSprayTypeFromXML(superFunc, xmlFile, key, sprayType)
 	end
 	return superFunc(self, xmlFile, key, sprayType)
 end
-
--- Local values: spec, foldAnimTime
 function Foldable:getIsSprayTypeActive(superFunc, sprayType)
-	local v326_ = self.spec_foldable
+	local spec = self.spec_foldable
 	if sprayType.foldMinLimit ~= nil and sprayType.foldMaxLimit ~= nil then
-		local v327_ = v326_.foldAnimTime
-		if v327_ ~= nil and (sprayType.foldMaxLimit < v327_ or v327_ < sprayType.foldMinLimit) then
+		local foldAnimTime = spec.foldAnimTime
+		if foldAnimTime ~= nil and (sprayType.foldMaxLimit < foldAnimTime or foldAnimTime < sprayType.foldMinLimit) then
 			return false
 		end
 	end
-	if sprayType.hasRequiredFoldingConfiguration then
-		return superFunc(self, sprayType)
-	else
+	if not sprayType.hasRequiredFoldingConfiguration then
 		return false
+	else
+		return superFunc(self, sprayType)
 	end
 end
-
 function Foldable:getCanBeSelected(superFunc)
 	return true
 end
-
 function Foldable:loadInputAttacherJoint(superFunc, xmlFile, key, inputAttacherJoint, index)
 	inputAttacherJoint.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit")
 	inputAttacherJoint.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit")
 	return superFunc(self, xmlFile, key, inputAttacherJoint, index)
 end
-
--- Local values: foldAnimTime
 function Foldable:getIsInputAttacherActive(superFunc, inputAttacherJoint)
 	if inputAttacherJoint.foldMinLimit ~= nil and inputAttacherJoint.foldMaxLimit ~= nil then
-		local v337_ = self:getFoldAnimTime()
-		if v337_ < inputAttacherJoint.foldMinLimit or inputAttacherJoint.foldMaxLimit < v337_ then
+		local foldAnimTime = self:getFoldAnimTime()
+		if foldAnimTime < inputAttacherJoint.foldMinLimit or inputAttacherJoint.foldMaxLimit < foldAnimTime then
 			return false
 		end
 	end
 	return superFunc(self, inputAttacherJoint)
 end
-
--- Local values: spec
 function Foldable:loadAdditionalCharacterFromXML(superFunc, xmlFile)
-	local v341_ = self.spec_enterable
-	v341_.additionalCharacterFoldMinLimit = xmlFile:getValue("vehicle.enterable.additionalCharacter#foldMinLimit")
-	v341_.additionalCharacterFoldMaxLimit = xmlFile:getValue("vehicle.enterable.additionalCharacter#foldMaxLimit")
+	local spec = self.spec_enterable
+	spec.additionalCharacterFoldMinLimit = xmlFile:getValue("vehicle.enterable.additionalCharacter#foldMinLimit")
+	spec.additionalCharacterFoldMaxLimit = xmlFile:getValue("vehicle.enterable.additionalCharacter#foldMaxLimit")
 	return superFunc(self, xmlFile)
 end
-
--- Local values: spec, foldAnimTime
 function Foldable:getIsAdditionalCharacterActive(superFunc)
-	local v344_ = self.spec_enterable
-	if v344_.additionalCharacterFoldMinLimit ~= nil and v344_.additionalCharacterFoldMaxLimit ~= nil then
-		local v345_ = self:getFoldAnimTime()
-		if v344_.additionalCharacterFoldMinLimit <= v345_ and v345_ <= v344_.additionalCharacterFoldMaxLimit then
+	local spec = self.spec_enterable
+	if spec.additionalCharacterFoldMinLimit ~= nil and spec.additionalCharacterFoldMaxLimit ~= nil then
+		local foldAnimTime = self:getFoldAnimTime()
+		if spec.additionalCharacterFoldMinLimit <= foldAnimTime and foldAnimTime <= spec.additionalCharacterFoldMaxLimit then
 			return true
 		end
 	end
 	return superFunc(self)
 end
-
--- Local values: spec, foldAnimTime
 function Foldable:getAllowDynamicMountObjects(superFunc)
-	local v348_ = self.spec_foldable
-	local v349_ = self:getFoldAnimTime()
-	if v349_ < v348_.dynamicMountMinLimit or v348_.dynamicMountMaxLimit < v349_ then
+	local spec = self.spec_foldable
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < spec.dynamicMountMinLimit or spec.dynamicMountMaxLimit < foldAnimTime then
 		return false
-	else
-		return superFunc(self)
 	end
+	return superFunc(self)
 end
-
 function Foldable:loadSupportAnimationFromXML(superFunc, supportAnimation, xmlFile, key)
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#foldMinLimit", key .. ".folding#minLimit")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#foldMaxLimit", key .. ".folding#maxLimit")
@@ -1396,17 +1250,13 @@ function Foldable:loadSupportAnimationFromXML(superFunc, supportAnimation, xmlFi
 	supportAnimation.foldMaxLimit = xmlFile:getValue(key .. ".folding#maxLimit", 1)
 	return superFunc(self, supportAnimation, xmlFile, key)
 end
-
--- Local values: foldAnimTime
 function Foldable:getIsSupportAnimationAllowed(superFunc, supportAnimation)
-	local v358_ = self:getFoldAnimTime()
-	if v358_ < supportAnimation.foldMinLimit or supportAnimation.foldMaxLimit < v358_ then
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < supportAnimation.foldMinLimit or supportAnimation.foldMaxLimit < foldAnimTime then
 		return false
-	else
-		return superFunc(self, supportAnimation)
 	end
+	return superFunc(self, supportAnimation)
 end
-
 function Foldable:loadSteeringAxleFromXML(superFunc, spec, xmlFile, key)
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#foldMinLimit", key .. ".folding#minLimit")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#foldMaxLimit", key .. ".folding#maxLimit")
@@ -1414,783 +1264,694 @@ function Foldable:loadSteeringAxleFromXML(superFunc, spec, xmlFile, key)
 	spec.foldMaxLimit = xmlFile:getValue(key .. ".folding#maxLimit", 1)
 	return superFunc(self, spec, xmlFile, key)
 end
-
--- Local values: spec, foldAnimTime
 function Foldable:getIsSteeringAxleAllowed(superFunc)
-	local v366_ = self.spec_attachable
-	local v367_ = self:getFoldAnimTime()
-	if v367_ < v366_.foldMinLimit or v366_.foldMaxLimit < v367_ then
+	local spec = self.spec_attachable
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < spec.foldMinLimit or spec.foldMaxLimit < foldAnimTime then
 		return false
-	else
-		return superFunc(self)
 	end
+	return superFunc(self)
 end
-
 function Foldable:loadFillUnitFromXML(superFunc, xmlFile, key, entry, index)
 	entry.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
 	entry.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
 	return superFunc(self, xmlFile, key, entry, index)
 end
-
--- Local values: fillUnit, foldAnimTime
 function Foldable:getFillUnitSupportsToolType(superFunc, fillUnitIndex, toolType)
 	if toolType ~= ToolType.UNDEFINED then
-		local v378_ = self.spec_fillUnit.fillUnits[fillUnitIndex]
-		if v378_ ~= nil and (v378_.foldMinLimit ~= nil and v378_.foldMaxLimit ~= nil) then
-			local v379_ = self:getFoldAnimTime()
-			if v379_ < v378_.foldMinLimit or v378_.foldMaxLimit < v379_ then
+		local fillUnit = self.spec_fillUnit.fillUnits[fillUnitIndex]
+		if fillUnit ~= nil and (fillUnit.foldMinLimit ~= nil and fillUnit.foldMaxLimit ~= nil) then
+			local foldAnimTime = self:getFoldAnimTime()
+			if foldAnimTime < fillUnit.foldMinLimit or fillUnit.foldMaxLimit < foldAnimTime then
 				return false
 			end
 		end
 	end
 	return superFunc(self, fillUnitIndex, toolType)
 end
-
 function Foldable:loadTurnedOnAnimationFromXML(superFunc, xmlFile, key, turnedOnAnimation)
 	turnedOnAnimation.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
 	turnedOnAnimation.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
 	return superFunc(self, xmlFile, key, turnedOnAnimation)
 end
-
--- Local values: foldAnimTime
 function Foldable:getIsTurnedOnAnimationActive(superFunc, turnedOnAnimation)
-	local v388_ = self:getFoldAnimTime()
-	if v388_ < turnedOnAnimation.foldMinLimit or turnedOnAnimation.foldMaxLimit < v388_ then
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < turnedOnAnimation.foldMinLimit or turnedOnAnimation.foldMaxLimit < foldAnimTime then
 		return false
-	else
-		return superFunc(self, turnedOnAnimation)
 	end
+	return superFunc(self, turnedOnAnimation)
 end
-
 function Foldable:loadAttacherJointHeightNode(superFunc, xmlFile, key, heightNode, attacherJointNode)
 	heightNode.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
 	heightNode.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
 	return superFunc(self, xmlFile, key, heightNode, attacherJointNode)
 end
-
--- Local values: foldAnimTime
 function Foldable:getIsAttacherJointHeightNodeActive(superFunc, heightNode)
-	local v398_ = self:getFoldAnimTime()
-	if v398_ < heightNode.foldMinLimit or heightNode.foldMaxLimit < v398_ then
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < heightNode.foldMinLimit or heightNode.foldMaxLimit < foldAnimTime then
 		return false
-	else
-		return superFunc(self, heightNode)
 	end
+	return superFunc(self, heightNode)
 end
-
 function Foldable:loadPickupFromXML(superFunc, xmlFile, key, spec)
 	spec.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
 	spec.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
 	return superFunc(self, xmlFile, key, spec)
 end
-
--- Local values: foldAnimTime
 function Foldable:getCanChangePickupState(superFunc, spec, newState)
-	local v408_ = self:getFoldAnimTime()
-	if v408_ < spec.foldMinLimit or spec.foldMaxLimit < v408_ then
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < spec.foldMinLimit or spec.foldMaxLimit < foldAnimTime then
 		return false
-	else
-		return superFunc(self, spec, newState)
 	end
+	return superFunc(self, spec, newState)
 end
-
 function Foldable:loadCutterTiltFromXML(superFunc, xmlFile, key, target)
 	if not superFunc(self, xmlFile, key, target) then
 		return false
-	end
-	target.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
-	target.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
-	return true
-end
-
--- Local values: isActive, doReset, foldAnimTime
-function Foldable:getCutterTiltIsActive(superFunc, automaticTilt)
-	local v417_, v418_ = superFunc(self, automaticTilt)
-	if v417_ then
-		local v419_ = self:getFoldAnimTime()
-		if v419_ < automaticTilt.foldMinLimit or automaticTilt.foldMaxLimit < v419_ then
-			return false, true
-		else
-			return true, false
-		end
 	else
-		return v417_, v418_
+		target.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
+		target.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
+		return true
 	end
 end
-
+function Foldable:getCutterTiltIsActive(superFunc, automaticTilt)
+	local isActive, doReset = superFunc(self, automaticTilt)
+	if not isActive then
+		return isActive, doReset
+	else
+		local foldAnimTime = self:getFoldAnimTime()
+		if foldAnimTime < automaticTilt.foldMinLimit or automaticTilt.foldMaxLimit < foldAnimTime then
+			return false, true
+		end
+		return true, false
+	end
+end
 function Foldable:loadPreprunerNodeFromXML(superFunc, xmlFile, key, prunerNode)
 	if not superFunc(self, xmlFile, key, prunerNode) then
 		return false
-	end
-	prunerNode.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
-	prunerNode.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
-	return true
-end
-
--- Local values: foldAnimTime
-function Foldable:getIsPreprunerNodeActive(superFunc, prunerNode)
-	local v428_ = self:getFoldAnimTime()
-	if v428_ < prunerNode.foldMinLimit or prunerNode.foldMaxLimit < v428_ then
-		return false
 	else
-		return superFunc(self, prunerNode)
+		prunerNode.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
+		prunerNode.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
+		return true
 	end
 end
-
+function Foldable:getIsPreprunerNodeActive(superFunc, prunerNode)
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < prunerNode.foldMinLimit or prunerNode.foldMaxLimit < foldAnimTime then
+		return false
+	end
+	return superFunc(self, prunerNode)
+end
 function Foldable:loadShovelNode(superFunc, xmlFile, key, shovelNode)
 	superFunc(self, xmlFile, key, shovelNode)
 	shovelNode.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
 	shovelNode.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
 	return true
 end
-
--- Local values: foldAnimTime
 function Foldable:getShovelNodeIsActive(superFunc, shovelNode)
-	local v437_ = self:getFoldAnimTime()
-	if v437_ < shovelNode.foldMinLimit or shovelNode.foldMaxLimit < v437_ then
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < shovelNode.foldMinLimit or shovelNode.foldMaxLimit < foldAnimTime then
 		return false
-	else
-		return superFunc(self, shovelNode)
 	end
+	return superFunc(self, shovelNode)
 end
-
 function Foldable:loadSteeringAngleNodeFromXML(superFunc, entry, xmlFile, key)
 	if not superFunc(self, entry, xmlFile, key) then
 		return false
+	else
+		entry.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
+		entry.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
+		return true
 	end
-	entry.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
-	entry.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
-	return true
 end
-
--- Local values: foldAnimTime
 function Foldable:updateSteeringAngleNode(superFunc, steeringAngleNode, angle, dt)
-	local v448_ = self:getFoldAnimTime()
-	if v448_ >= steeringAngleNode.foldMinLimit and steeringAngleNode.foldMaxLimit >= v448_ then
-		return superFunc(self, steeringAngleNode, angle, dt)
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < steeringAngleNode.foldMinLimit or steeringAngleNode.foldMaxLimit < foldAnimTime then
+		return
 	end
+	return superFunc(self, steeringAngleNode, angle, dt)
 end
-
 function Foldable:loadWoodHarvesterHeaderTiltFromXML(superFunc, headerTilt, xmlFile, key)
 	if not superFunc(self, headerTilt, xmlFile, key) then
 		return false
-	end
-	headerTilt.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
-	headerTilt.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
-	return true
-end
-
--- Local values: foldAnimTime
-function Foldable:getIsWoodHarvesterTiltStateAllowed(superFunc, headerTilt)
-	local v457_ = self:getFoldAnimTime()
-	if v457_ < headerTilt.foldMinLimit or headerTilt.foldMaxLimit < v457_ then
-		return false
 	else
-		return superFunc(self, headerTilt)
+		headerTilt.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
+		headerTilt.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
+		return true
 	end
 end
-
+function Foldable:getIsWoodHarvesterTiltStateAllowed(superFunc, headerTilt)
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < headerTilt.foldMinLimit or headerTilt.foldMaxLimit < foldAnimTime then
+		return false
+	end
+	return superFunc(self, headerTilt)
+end
 function Foldable:loadSuspensionNodeFromXML(superFunc, xmlFile, key, suspensionNode)
 	if not superFunc(self, xmlFile, key, suspensionNode) then
 		return false
-	end
-	suspensionNode.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
-	suspensionNode.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
-	return true
-end
-
--- Local values: foldAnimTime
-function Foldable:getIsSuspensionNodeActive(superFunc, suspensionNode)
-	local v466_ = self:getFoldAnimTime()
-	if v466_ < suspensionNode.foldMinLimit or suspensionNode.foldMaxLimit < v466_ then
-		return false
 	else
-		return superFunc(self, suspensionNode)
+		suspensionNode.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
+		suspensionNode.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
+		return true
 	end
 end
-
+function Foldable:getIsSuspensionNodeActive(superFunc, suspensionNode)
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < suspensionNode.foldMinLimit or suspensionNode.foldMaxLimit < foldAnimTime then
+		return false
+	end
+	return superFunc(self, suspensionNode)
+end
 function Foldable:loadCrabSteeringModeFromXML(superFunc, xmlFile, key, mode)
 	if not superFunc(self, xmlFile, key, mode) then
 		return false
+	else
+		mode.foldMinLimit = xmlFile:getValue(key .. ".folding#minLimit", 0)
+		mode.foldMaxLimit = xmlFile:getValue(key .. ".folding#maxLimit", 1)
+		return true
 	end
-	mode.foldMinLimit = xmlFile:getValue(key .. ".folding#minLimit", 0)
-	mode.foldMaxLimit = xmlFile:getValue(key .. ".folding#maxLimit", 1)
-	return true
 end
-
--- Local values: foldAnimTime
 function Foldable:getCrabSteeringModeAvailable(superFunc, mode)
-	local v475_ = self:getFoldAnimTime()
-	if v475_ < mode.foldMinLimit or mode.foldMaxLimit < v475_ then
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < mode.foldMinLimit or mode.foldMaxLimit < foldAnimTime then
 		return false
-	else
-		return superFunc(self, mode)
 	end
+	return superFunc(self, mode)
 end
-
--- Local values: spec, foldAnimTime
 function Foldable:getCanToggleCrabSteering(superFunc)
-	local v478_ = self.spec_foldable
-	local v479_ = self:getFoldAnimTime()
-	if v479_ < v478_.crabSteeringMinLimit or v478_.crabSteeringMaxLimit < v479_ then
-		return false, v478_.unfoldWarning
-	else
-		return superFunc(self)
+	local spec = self.spec_foldable
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime < spec.crabSteeringMinLimit or spec.crabSteeringMaxLimit < foldAnimTime then
+		return false, spec.unfoldWarning
 	end
+	return superFunc(self)
 end
-
 function Foldable:onLoadWheelChockFromXML(superFunc, wheelChock, xmlObject, key)
 	superFunc(self)
 	wheelChock.foldMinLimit = xmlObject:getValue(key .. "#foldMinLimit", 0)
 	wheelChock.foldMaxLimit = xmlObject:getValue(key .. "#foldMaxLimit", 1)
 end
-
--- Local values: foldAnimTime
 function Foldable:getIsWheelChockAllowed(superFunc, wheelChock)
-	local v488_ = self:getFoldAnimTime()
-	if v488_ == nil or v488_ >= wheelChock.foldMinLimit and wheelChock.foldMaxLimit >= v488_ then
-		return superFunc(self)
-	else
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime ~= nil and (foldAnimTime < wheelChock.foldMinLimit or wheelChock.foldMaxLimit < foldAnimTime) then
 		return false
 	end
+	return superFunc(self)
 end
-
 function Foldable:loadCraneShovelFromXML(superFunc, spec, xmlFile, key)
 	if not superFunc(self, spec, xmlFile, key) then
 		return false
-	end
-	spec.foldableMinLimit = xmlFile:getValue(key .. ".foldable#minLimit", 0)
-	spec.foldableMaxLimit = xmlFile:getValue(key .. ".foldable#maxLimit", 1)
-	return true
-end
-
--- Local values: foldAnimTime
-function Foldable:getCraneShovelStateChangedAllowed(superFunc, spec)
-	local v497_ = self:getFoldAnimTime()
-	if v497_ == nil or v497_ >= spec.foldableMinLimit and spec.foldableMaxLimit >= v497_ then
-		return superFunc(self, spec)
 	else
+		spec.foldableMinLimit = xmlFile:getValue(key .. ".foldable#minLimit", 0)
+		spec.foldableMaxLimit = xmlFile:getValue(key .. ".foldable#maxLimit", 1)
+		return true
+	end
+end
+function Foldable:getCraneShovelStateChangedAllowed(superFunc, spec)
+	local foldAnimTime = self:getFoldAnimTime()
+	if foldAnimTime ~= nil and (foldAnimTime < spec.foldableMinLimit or spec.foldableMaxLimit < foldAnimTime) then
 		return false, self.spec_foldable.unfoldWarning
 	end
+	return superFunc(self, spec)
 end
-
--- Local values: spec
 function Foldable:getBrakeForce(superFunc)
-	local v500_ = self.spec_foldable
-	return v500_.releaseBrakesWhileFolding and v500_.foldMoveDirection ~= 0 and 0 or superFunc(self)
+	local spec = self.spec_foldable
+	if spec.releaseBrakesWhileFolding and spec.foldMoveDirection ~= 0 then
+		return 0
+	end
+	return superFunc(self)
 end
-
 function Foldable:getRequiresPower(superFunc)
-	return self.spec_foldable.foldMoveDirection ~= 0 and true or superFunc(self)
+	if self.spec_foldable.foldMoveDirection == 0 then
+		superFunc(self)
+	end
+	return true
 end
-
--- Local values: spec, isOnlyLowering, _, actionEventId
 function Foldable:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v505_ = self.spec_foldable
-		self:clearActionEventsTable(v505_.actionEvents)
+		local spec = self.spec_foldable
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			local v506_
-			if v505_.foldMiddleAnimTime == nil then
-				v506_ = false
-			else
-				v506_ = v505_.foldMiddleAnimTime == 1
-			end
-			if not v506_ then
-				local v507_
-				if v505_.requiresPower then
-					local v508_
-					v508_, v507_ = self:addPoweredActionEvent(v505_.actionEvents, v505_.foldInputButton, self, Foldable.actionEventFold, false, true, false, true, nil)
+			local isOnlyLowering = spec.foldMiddleAnimTime ~= nil and spec.foldMiddleAnimTime == 1
+			if not isOnlyLowering then
+				local _ = nil
+				local actionEventId = nil
+				if spec.requiresPower then
+					_, actionEventId = self:addPoweredActionEvent(spec.actionEvents, spec.foldInputButton, self, Foldable.actionEventFold, false, true, false, true, nil)
 				else
-					local v509_
-					v509_, v507_ = self:addActionEvent(v505_.actionEvents, v505_.foldInputButton, self, Foldable.actionEventFold, false, true, false, true, nil)
+					_, actionEventId = self:addActionEvent(spec.actionEvents, spec.foldInputButton, self, Foldable.actionEventFold, false, true, false, true, nil)
 				end
-				g_inputBinding:setActionEventTextPriority(v507_, GS_PRIO_HIGH)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
 				Foldable.updateActionEventFold(self)
-				local _, v510_ = self:addPoweredActionEvent(v505_.actionEvents, InputAction.FOLD_ALL_IMPLEMENTS, self, Foldable.actionEventFoldAll, false, true, false, true, nil)
-				g_inputBinding:setActionEventTextVisibility(v510_, false)
+				_, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.FOLD_ALL_IMPLEMENTS, self, Foldable.actionEventFoldAll, false, true, false, true, nil)
+				g_inputBinding:setActionEventTextVisibility(actionEventId, false)
 			end
 		end
 	end
 end
-
--- Local values: spec
 function Foldable:onRegisterExternalActionEvents(trigger, name, xmlFile, key)
-	if name == "folding" and self.spec_foldable.hasFoldingParts then
-		self:registerExternalActionEvent(trigger, name, Foldable.externalActionEventRegister, Foldable.externalActionEventUpdate)
-	end
-end
-
--- Local values: canContinue, stopAI, stopReason, spec
-function Foldable:getCanAIImplementContinueWork(superFunc, isTurning)
-	local v517_, v518_, v519_ = superFunc(self, isTurning)
-	if not v517_ then
-		return false, v518_, v519_
-	end
-	local v520_ = self.spec_foldable
-	if v520_.hasFoldingParts and v520_.allowUnfoldingByAI then
-		if v520_.foldMiddleAnimTime == nil then
-			if v520_.foldAnimTime ~= 0 and v520_.foldAnimTime ~= 1 then
-				return false
-			end
-		else
-			local v521_ = v520_.foldAnimTime - v520_.foldMiddleAnimTime
-			if math.abs(v521_) > 0.001 and (v520_.foldAnimTime ~= 0 and v520_.foldAnimTime ~= 1) then
-				return v520_.foldAnimTime > 0 and (v520_.foldAnimTime < v520_.foldMiddleAnimTime and v520_.foldMoveDirection > 0)
-			end
+	if name == "folding" then
+		local spec = self.spec_foldable
+		if spec.hasFoldingParts then
+			self:registerExternalActionEvent(trigger, name, Foldable.externalActionEventRegister, Foldable.externalActionEventUpdate)
 		end
 	end
-	return v517_
 end
-
--- Local values: spec
+function Foldable:getCanAIImplementContinueWork(superFunc, isTurning)
+	local canContinue, stopAI, stopReason = superFunc(self, isTurning)
+	if not canContinue then
+		return false, stopAI, stopReason
+	else
+		local spec = self.spec_foldable
+		if spec.hasFoldingParts and spec.allowUnfoldingByAI then
+			if spec.foldMiddleAnimTime ~= nil then
+				if 0.001 < math.abs(spec.foldAnimTime - spec.foldMiddleAnimTime) and (spec.foldAnimTime ~= 0 and spec.foldAnimTime ~= 1) then
+					if 0 < spec.foldAnimTime and (spec.foldAnimTime < spec.foldMiddleAnimTime and 0 < spec.foldMoveDirection) then
+						return true
+					end
+					return false
+				end
+			elseif spec.foldAnimTime ~= 0 then
+				if spec.foldAnimTime ~= 1 then
+					return false
+				end
+			end
+		end
+		return canContinue
+	end
+end
 function Foldable:getIsAIReadyToDrive(superFunc)
-	local v524_ = self.spec_foldable
-	if v524_.hasFoldingParts and v524_.allowUnfoldingByAI then
-		if v524_.turnOnFoldDirection > 0 then
-			if v524_.foldAnimTime > 0 then
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts and spec.allowUnfoldingByAI then
+		if 0 < spec.turnOnFoldDirection then
+			if 0 < spec.foldAnimTime then
 				return false
 			end
-		elseif v524_.foldAnimTime < 1 then
+		elseif spec.foldAnimTime < 1 then
 			return false
 		end
 	end
 	return superFunc(self)
 end
-
--- Local values: spec
 function Foldable:getIsAIPreparingToDrive(superFunc)
-	local v527_ = self.spec_foldable
-	return v527_.hasFoldingParts and (v527_.allowUnfoldingByAI and (v527_.foldAnimTime ~= v527_.foldMiddleAnimTime and (v527_.foldAnimTime ~= 0 and v527_.foldAnimTime ~= 1))) and true or superFunc(self)
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts and (spec.allowUnfoldingByAI and (spec.foldAnimTime ~= spec.foldMiddleAnimTime and (spec.foldAnimTime ~= 0 and spec.foldAnimTime ~= 1))) then
+		return true
+	end
+	return superFunc(self)
 end
-
--- Local values: spec
 function Foldable:onDeactivate()
-	local v529_ = self.spec_foldable
-	if not (v529_.keepFoldingWhileDetached or (v529_.lowerWhileDetach or v529_.foldWhileDetach)) then
+	local spec = self.spec_foldable
+	if not spec.keepFoldingWhileDetached and (not spec.lowerWhileDetach and not spec.foldWhileDetach) then
 		self:setFoldDirection(0, true)
 	end
 end
-
 function Foldable:onSetLoweredAll(doLowering, jointDescIndex)
 	self:setFoldMiddleState(doLowering)
 end
-
--- Local values: spec, jointDesc
 function Foldable:onPostAttach(attacherVehicle, inputJointDescIndex, jointDescIndex)
-	if self.spec_foldable.lowerWhileDetach and (attacherVehicle ~= nil and (not attacherVehicle:getAttacherJointByJointDescIndex(jointDescIndex).moveDown and self:getFoldAnimTime() < 0.001)) then
-		self:setFoldState(1, true, true)
+	local spec = self.spec_foldable
+	if spec.lowerWhileDetach and attacherVehicle ~= nil then
+		local jointDesc = attacherVehicle:getAttacherJointByJointDescIndex(jointDescIndex)
+		if not jointDesc.moveDown and self:getFoldAnimTime() < 0.001 then
+			self:setFoldState(1, true, true)
+		end
 	end
 end
-
--- Local values: spec, actionController
 function Foldable:onRootVehicleChanged(rootVehicle)
-	local v_u_537_ = self.spec_foldable
-	if v_u_537_.hasFoldingParts then
-		local v538_ = rootVehicle.actionController
-		if v538_ == nil then
-			if v_u_537_.controlledActionFold ~= nil then
-				v_u_537_.controlledActionFold:remove()
-			end
-			if v_u_537_.controlledActionLower ~= nil then
-				v_u_537_.controlledActionLower:remove()
-			end
-			if v_u_537_.controlledActionLowerAIStart ~= nil then
-				v_u_537_.controlledActionLowerAIStart:remove()
-			end
-		else
-			if v_u_537_.controlledActionFold ~= nil then
-				v_u_537_.controlledActionFold:updateParent(v538_)
-				if v_u_537_.controlledActionLower ~= nil then
-					v_u_537_.controlledActionLower:updateParent(v538_)
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts then
+		local actionController = rootVehicle.actionController
+		if actionController ~= nil then
+			if spec.controlledActionFold ~= nil then
+				spec.controlledActionFold:updateParent(actionController)
+				if spec.controlledActionLower ~= nil then
+					spec.controlledActionLower:updateParent(actionController)
 				end
-				if v_u_537_.controlledActionLowerAIStart ~= nil then
-					v_u_537_.controlledActionLowerAIStart:updateParent(v538_)
+				if spec.controlledActionLowerAIStart ~= nil then
+					spec.controlledActionLowerAIStart:updateParent(actionController)
 				end
 				return
 			end
-			v_u_537_.controlledActionFold = v538_:registerAction("fold", v_u_537_.toggleTurnOnInputBinding, 4)
-			v_u_537_.controlledActionFold:setCallback(self, Foldable.actionControllerFoldEvent)
-			v_u_537_.controlledActionFold:setFinishedFunctions(self, function(p539_)
-				-- upvalues: (copy) v_u_537_
-				if v_u_537_.turnOnFoldDirection < 0 then
-					local v540_ = p539_:getFoldAnimTime()
-					return v540_ == 1 and true or v540_ <= (v_u_537_.foldMiddleAnimTime or 0)
+			spec.controlledActionFold = actionController:registerAction("fold", spec.toggleTurnOnInputBinding, 4)
+			spec.controlledActionFold:setCallback(self, Foldable.actionControllerFoldEvent)
+			spec.controlledActionFold:setFinishedFunctions(self, function(vehicle)
+				if spec.turnOnFoldDirection < 0 then
+					local foldTime = vehicle:getFoldAnimTime()
+					return foldTime == 1 or foldTime <= (spec.foldMiddleAnimTime or 0)
 				else
-					local v541_ = p539_:getFoldAnimTime()
-					return v541_ == 0 and true or (v_u_537_.foldMiddleAnimTime or 1) <= v541_
+					local foldTime = vehicle:getFoldAnimTime()
+					return foldTime == 0 or (spec.foldMiddleAnimTime or 1) <= foldTime
 				end
 			end, true, true)
-			if v_u_537_.allowUnfoldingByAI then
-				v_u_537_.controlledActionFold:addAIEventListener(self, "onAIFieldWorkerPrepareForWork", 1)
-				v_u_537_.controlledActionFold:addAIEventListener(self, "onAIImplementPrepareForWork", 1)
-				v_u_537_.controlledActionFold:addAIEventListener(self, "onAIImplementPrepareForTransport", -1, true)
+			if spec.allowUnfoldingByAI then
+				spec.controlledActionFold:addAIEventListener(self, "onAIFieldWorkerPrepareForWork", 1)
+				spec.controlledActionFold:addAIEventListener(self, "onAIImplementPrepareForWork", 1)
+				spec.controlledActionFold:addAIEventListener(self, "onAIImplementPrepareForTransport", -1, true)
 				if Platform.gameplay.foldAfterAIFinished then
-					v_u_537_.controlledActionFold:addAIEventListener(self, "onAIImplementEnd", -1, true)
-					v_u_537_.controlledActionFold:addAIEventListener(self, "onAIFieldWorkerEnd", -1)
+					spec.controlledActionFold:addAIEventListener(self, "onAIImplementEnd", -1, true)
+					spec.controlledActionFold:addAIEventListener(self, "onAIFieldWorkerEnd", -1)
 				end
 			end
 			if self:getIsFoldMiddleAllowed() then
-				v_u_537_.controlledActionLower = v538_:registerAction("lowerFoldable", v_u_537_.toggleTurnOnInputBinding, 3)
-				v_u_537_.controlledActionLower:setCallback(self, Foldable.actionControllerLowerEvent)
-				v_u_537_.controlledActionLower:setFinishedFunctions(self, self.getFoldAnimTime, v_u_537_.turnOnFoldDirection < 0 and 0 or 1, v_u_537_.foldMiddleAnimTime)
-				v_u_537_.controlledActionLower:setResetOnDeactivation(false)
-				if v_u_537_.allowUnfoldingByAI then
-					v_u_537_.controlledActionLower:addAIEventListener(self, "onAIImplementStartLine", 1)
-					v_u_537_.controlledActionLower:addAIEventListener(self, "onAIImplementEndLine", -1)
+				spec.controlledActionLower = actionController:registerAction("lowerFoldable", spec.toggleTurnOnInputBinding, 3)
+				spec.controlledActionLower:setCallback(self, Foldable.actionControllerLowerEvent)
+				spec.controlledActionLower:setFinishedFunctions(self, self.getFoldAnimTime, spec.turnOnFoldDirection < 0 and 0 or 1, spec.foldMiddleAnimTime)
+				spec.controlledActionLower:setResetOnDeactivation(false)
+				if spec.allowUnfoldingByAI then
+					spec.controlledActionLower:addAIEventListener(self, "onAIImplementStartLine", 1)
+					spec.controlledActionLower:addAIEventListener(self, "onAIImplementEndLine", -1)
 				end
-				v_u_537_.controlledActionLowerAIStart = v538_:registerAction("lowerFoldableAIStart", v_u_537_.toggleTurnOnInputBinding, 3)
-				v_u_537_.controlledActionLowerAIStart:setCallback(self, Foldable.actionControllerLowerEventAIStart)
-				v_u_537_.controlledActionLowerAIStart:setFinishedFunctions(self, self.getFoldAnimTime, v_u_537_.turnOnFoldDirection < 0 and 0 or 1, v_u_537_.foldMiddleAnimTime)
-				v_u_537_.controlledActionLowerAIStart:setResetOnDeactivation(false)
-				if v_u_537_.allowUnfoldingByAI then
-					v_u_537_.controlledActionLowerAIStart:addAIEventListener(self, "onAIImplementStart", -1)
-					return
+				spec.controlledActionLowerAIStart = actionController:registerAction("lowerFoldableAIStart", spec.toggleTurnOnInputBinding, 3)
+				spec.controlledActionLowerAIStart:setCallback(self, Foldable.actionControllerLowerEventAIStart)
+				spec.controlledActionLowerAIStart:setFinishedFunctions(self, self.getFoldAnimTime, spec.turnOnFoldDirection < 0 and 0 or 1, spec.foldMiddleAnimTime)
+				spec.controlledActionLowerAIStart:setResetOnDeactivation(false)
+				if spec.allowUnfoldingByAI then
+					spec.controlledActionLowerAIStart:addAIEventListener(self, "onAIImplementStart", -1)
 				end
+			end
+		else
+			if spec.controlledActionFold ~= nil then
+				spec.controlledActionFold:remove()
+			end
+			if spec.controlledActionLower ~= nil then
+				spec.controlledActionLower:remove()
+			end
+			if spec.controlledActionLowerAIStart ~= nil then
+				spec.controlledActionLowerAIStart:remove()
 			end
 		end
 	end
 end
-
--- Local values: spec
 function Foldable:actionControllerFoldEvent(direction)
-	local v544_ = self.spec_foldable
-	if v544_.hasFoldingParts then
-		if self:getIsFoldMiddleAllowed() and (v544_.foldAnimTime > 0 and v544_.foldAnimTime < v544_.foldMiddleAnimTime) then
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts then
+		if self:getIsFoldMiddleAllowed() and (0 < spec.foldAnimTime and spec.foldAnimTime < spec.foldMiddleAnimTime) then
 			return false
 		end
-		local v545_ = v544_.turnOnFoldDirection * direction
-		if self:getIsFoldAllowed(v545_, false) then
-			if v545_ == v544_.turnOnFoldDirection then
-				if v545_ < 0 and v544_.foldAnimTime > 0 or v545_ > 0 and v544_.foldAnimTime < 1 then
-					self:setFoldState(v545_, true)
+		direction = spec.turnOnFoldDirection * direction
+		if self:getIsFoldAllowed(direction, false) then
+			if direction == spec.turnOnFoldDirection then
+				if direction < 0 and (0 < spec.foldAnimTime or 0 < direction and spec.foldAnimTime < 1) then
+					self:setFoldState(direction, true)
 				end
-			elseif v545_ < 0 and v544_.foldAnimTime > 0 or v545_ > 0 and v544_.foldAnimTime < 1 then
-				self:setFoldState(v545_, false)
+			elseif direction < 0 then
+				if 0 < spec.foldAnimTime or 0 < direction and spec.foldAnimTime < 1 then
+					self:setFoldState(direction, false)
+				end
 			end
 			return true
 		end
 	end
 	return false
 end
-
--- Local values: spec
 function Foldable:actionControllerLowerEvent(direction)
-	local v548_ = self.spec_foldable
-	if v548_.hasFoldingParts then
-		local v549_ = v548_.turnOnFoldDirection * direction
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts then
+		direction = spec.turnOnFoldDirection * direction
 		if self:getIsFoldMiddleAllowed() then
-			if v549_ == v548_.turnOnFoldDirection then
-				self:setFoldState(v549_, false)
-			elseif v548_.foldMiddleDirection > 0 then
-				if v548_.foldAnimTime > v548_.foldMiddleAnimTime then
-					self:setFoldState(-v549_, true)
+			if direction == spec.turnOnFoldDirection then
+				self:setFoldState(direction, false)
+			elseif 0 < spec.foldMiddleDirection then
+				if spec.foldMiddleAnimTime < spec.foldAnimTime then
+					self:setFoldState(-direction, true)
 				else
-					self:setFoldState(v549_, true)
+					self:setFoldState(direction, true)
 				end
-			elseif v548_.foldAnimTime < v548_.foldMiddleAnimTime then
-				self:setFoldState(-v549_, true)
+			elseif spec.foldAnimTime < spec.foldMiddleAnimTime then
+				self:setFoldState(-direction, true)
 			else
-				self:setFoldState(v549_, true)
+				self:setFoldState(direction, true)
 			end
 			return true
 		end
 	end
 	return false
 end
-
--- Local values: spec
 function Foldable:actionControllerLowerEventAIStart(direction)
-	local v552_ = self.spec_foldable
-	if v552_.hasFoldingParts then
-		local v553_ = v552_.turnOnFoldDirection * direction
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts then
+		direction = spec.turnOnFoldDirection * direction
 		if self:getIsFoldMiddleAllowed() then
-			if v552_.foldAnimTime >= v552_.foldMiddleAnimTime then
+			if spec.foldMiddleAnimTime <= spec.foldAnimTime then
 				return true
 			end
-			if v552_.foldMiddleDirection > 0 then
-				if v552_.foldAnimTime > v552_.foldMiddleAnimTime then
-					self:setFoldState(-v553_, true)
+			if 0 < spec.foldMiddleDirection then
+				if spec.foldMiddleAnimTime < spec.foldAnimTime then
+					self:setFoldState(-direction, true)
 				else
-					self:setFoldState(v553_, true)
+					self:setFoldState(direction, true)
 				end
-			elseif v552_.foldAnimTime < v552_.foldMiddleAnimTime then
-				self:setFoldState(-v553_, true)
+			elseif spec.foldAnimTime < spec.foldMiddleAnimTime then
+				self:setFoldState(-direction, true)
 			else
-				self:setFoldState(v553_, true)
+				self:setFoldState(direction, true)
 			end
 		end
 	end
 	return true
 end
-
--- Local values: spec, foldAnimTime
 function Foldable:onPreDetach(attacherVehicle, implement)
-	local v555_ = self.spec_foldable
-	if v555_.lowerWhileDetach and v555_.foldMiddleAnimTime ~= nil then
-		local v556_ = self:getFoldAnimTime() - v555_.foldMiddleAnimTime
-		if math.abs(v556_) < 0.001 then
+	local spec = self.spec_foldable
+	if spec.lowerWhileDetach and spec.foldMiddleAnimTime ~= nil then
+		local foldAnimTime = self:getFoldAnimTime()
+		if math.abs(foldAnimTime - spec.foldMiddleAnimTime) < 0.001 then
 			self:setFoldState(-1, false, true)
 			return
 		end
-	elseif v555_.foldWhileDetach then
-		self:setFoldState(-v555_.turnOnFoldDirection, false, true)
+	end
+	if spec.foldWhileDetach then
+		self:setFoldState(-spec.turnOnFoldDirection, false, true)
 	end
 end
-
--- Local values: subSpec
 function Foldable:onPreAttachImplement(object, inputJointDescIndex, jointDescIndex, loadFromSavegame)
-	local v559_ = object.spec_foldable
-	if v559_ ~= nil and v559_.useParentFoldingState then
+	local subSpec = object.spec_foldable
+	if subSpec ~= nil and subSpec.useParentFoldingState then
 		self.spec_foldable.subFoldingStateVehicles[object] = object
 		Foldable.setAnimTime(object, self.spec_foldable.foldAnimTime, false)
 	end
 end
-
--- Local values: subSpec
 function Foldable:onPreDetachImplement(implement)
-	local v562_ = implement.object.spec_foldable
-	if v562_ ~= nil and v562_.useParentFoldingState then
+	local subSpec = implement.object.spec_foldable
+	if subSpec ~= nil and subSpec.useParentFoldingState then
 		self.spec_foldable.subFoldingStateVehicles[implement.object] = nil
 	end
 end
-
 function Foldable:onDynamicMountTypeChanged(dynamicMountType, mountObject)
 	if dynamicMountType ~= MountableObject.MOUNT_TYPE_NONE then
 		self:setFoldDirection(0, true)
 	end
 end
-
--- Local values: spec, _, foldingPart, _, foldingPart, componentJoint, jointNode, node, x, y, z, upX, upY, upZ, dirX, dirY, dirZ, _, vehicle
 function Foldable:setAnimTime(animTime, placeComponents, playSounds)
-	local v569_ = self.spec_foldable
-	v569_.foldAnimTime = animTime
-	v569_.loadedFoldAnimTime = nil
-	for _, v570_ in pairs(v569_.foldingParts) do
-		if v570_.animCharSet == 0 then
-			animTime = v569_.foldAnimTime * v569_.maxFoldAnimDuration / self:getAnimationDuration(v570_.animationName)
-			self:setAnimationTime(v570_.animationName, animTime, true, playSounds)
+	local spec = self.spec_foldable
+	spec.foldAnimTime = animTime
+	spec.loadedFoldAnimTime = nil
+	for _, foldingPart in pairs(spec.foldingParts) do
+		if foldingPart.animCharSet ~= 0 then
+			enableAnimTrack(foldingPart.animCharSet, 0)
+			setAnimTrackTime(foldingPart.animCharSet, 0, spec.foldAnimTime * foldingPart.animDuration, true)
+			disableAnimTrack(foldingPart.animCharSet, 0)
 		else
-			enableAnimTrack(v570_.animCharSet, 0)
-			setAnimTrackTime(v570_.animCharSet, 0, v569_.foldAnimTime * v570_.animDuration, true)
-			disableAnimTrack(v570_.animCharSet, 0)
+			animTime = spec.foldAnimTime * spec.maxFoldAnimDuration / self:getAnimationDuration(foldingPart.animationName)
+			self:setAnimationTime(foldingPart.animationName, animTime, true, playSounds)
 		end
 	end
-	local v571_ = placeComponents == nil and true or placeComponents
+	if placeComponents == nil then
+		placeComponents = true
+	end
 	if self.updateCylinderedInitial ~= nil then
-		self:updateCylinderedInitial(v571_)
+		self:updateCylinderedInitial(placeComponents)
 	end
-	if v571_ and self.isServer then
-		for _, v572_ in pairs(v569_.foldingParts) do
-			if v572_.componentJoint ~= nil then
-				local v573_ = v572_.componentJoint
-				local v574_ = v573_.jointNode
-				if v572_.anchorActor == 1 then
-					v574_ = v573_.jointNodeActor1
-				end
-				local v575_ = self.components[v573_.componentIndices[(v572_.anchorActor + 1) % 2 + 1]].node
-				local v576_, v577_, v578_ = localToWorld(v574_, v572_.x, v572_.y, v572_.z)
-				local v579_, v580_, v581_ = localDirectionToWorld(v574_, v572_.upX, v572_.upY, v572_.upZ)
-				local v582_, v583_, v584_ = localDirectionToWorld(v574_, v572_.dirX, v572_.dirY, v572_.dirZ)
-				setWorldTranslation(v575_, v576_, v577_, v578_)
-				I3DUtil.setWorldDirection(v575_, v582_, v583_, v584_, v579_, v580_, v581_)
-				self:setComponentJointFrame(v573_, v572_.anchorActor)
+	if placeComponents and self.isServer then
+		for _, foldingPart in pairs(spec.foldingParts) do
+			if foldingPart.componentJoint == nil then
+				continue
 			end
+			local componentJoint = foldingPart.componentJoint
+			local jointNode = componentJoint.jointNode
+			if foldingPart.anchorActor == 1 then
+				jointNode = componentJoint.jointNodeActor1
+			end
+			local node = self.components[componentJoint.componentIndices[(foldingPart.anchorActor + 1) % 2 + 1]].node
+			local x, y, z = localToWorld(jointNode, foldingPart.x, foldingPart.y, foldingPart.z)
+			local upX, upY, upZ = localDirectionToWorld(jointNode, foldingPart.upX, foldingPart.upY, foldingPart.upZ)
+			local dirX, dirY, dirZ = localDirectionToWorld(jointNode, foldingPart.dirX, foldingPart.dirY, foldingPart.dirZ)
+			setWorldTranslation(node, x, y, z)
+			I3DUtil.setWorldDirection(node, dirX, dirY, dirZ, upX, upY, upZ)
+			self:setComponentJointFrame(componentJoint, foldingPart.anchorActor)
 		end
 	end
-	for _, v585_ in pairs(v569_.subFoldingStateVehicles) do
-		Foldable.setAnimTime(v585_, animTime, v571_, playSounds)
+	for _, vehicle in pairs(spec.subFoldingStateVehicles) do
+		Foldable.setAnimTime(vehicle, animTime, placeComponents, playSounds)
 	end
-	SpecializationUtil.raiseEvent(self, "onFoldTimeChanged", v569_.foldAnimTime)
+	SpecializationUtil.raiseEvent(self, "onFoldTimeChanged", spec.foldAnimTime)
 end
-
--- Local values: spec, actionEvent, direction, text
 function Foldable:updateActionEventFold()
-	local v587_ = self.spec_foldable
-	local v588_ = v587_.actionEvents[v587_.foldInputButton]
-	if v588_ ~= nil then
-		local v589_
-		if self:getToggledFoldDirection() == v587_.turnOnFoldDirection then
-			v589_ = v587_.negDirectionText
-		else
-			v589_ = v587_.posDirectionText
-		end
-		g_inputBinding:setActionEventText(v588_.actionEventId, v589_)
-		g_inputBinding:setActionEventActive(v588_.actionEventId, self:getIsFoldActionAllowed())
+	local spec = self.spec_foldable
+	local actionEvent = spec.actionEvents[spec.foldInputButton]
+	if actionEvent ~= nil then
+		local direction = self:getToggledFoldDirection()
+		local text = nil
+		text = direction == spec.turnOnFoldDirection and spec.negDirectionText or spec.posDirectionText
+		g_inputBinding:setActionEventText(actionEvent.actionEventId, text)
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, self:getIsFoldActionAllowed())
 	end
 end
-
--- Local values: spec, actionEvent, state, direction, text
 function Foldable:updateActionEventFoldMiddle()
-	local v591_ = self.spec_foldable
-	local v592_ = v591_.actionEventsLowering[v591_.foldMiddleInputButton]
-	if v592_ ~= nil then
-		local v593_ = self:getIsFoldMiddleAllowed()
-		g_inputBinding:setActionEventActive(v592_.actionEventId, v593_)
-		if v593_ then
-			local v594_ = self:getToggledFoldMiddleDirection() == v591_.foldMiddleDirection
-			if v591_.ignoreFoldMiddleWhileFolded and self:getFoldAnimTime() > v591_.foldMiddleAnimTime then
-				v594_ = self:getIsLowered(true)
+	local spec = self.spec_foldable
+	local actionEvent = spec.actionEventsLowering[spec.foldMiddleInputButton]
+	if actionEvent ~= nil then
+		local state = self:getIsFoldMiddleAllowed()
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, state)
+		if state then
+			local direction = self:getToggledFoldMiddleDirection() == spec.foldMiddleDirection
+			if spec.ignoreFoldMiddleWhileFolded and spec.foldMiddleAnimTime < self:getFoldAnimTime() then
+				direction = self:getIsLowered(true)
 			end
-			local v595_
-			if v594_ then
-				v595_ = v591_.middlePosDirectionText
-			else
-				v595_ = v591_.middleNegDirectionText
-			end
-			g_inputBinding:setActionEventText(v592_.actionEventId, v595_)
+			local text = nil
+			text = direction and spec.middlePosDirectionText or spec.middleNegDirectionText
+			g_inputBinding:setActionEventText(actionEvent.actionEventId, text)
 		end
 	end
 end
-
--- Local values: spec, toggleDirection, allowed, warning, attacherVehicle, attacherJointIndex, moveDown, targetMoveDown
 function Foldable:actionEventFold(actionName, inputValue, callbackState, isAnalog)
-	local v597_ = self.spec_foldable
-	if v597_.hasFoldingParts then
-		local v598_ = self:getToggledFoldDirection()
-		local v599_, v600_ = self:getIsFoldAllowed(v598_, false)
-		if v599_ then
-			if v598_ == v597_.turnOnFoldDirection then
-				self:setFoldState(v598_, true)
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts then
+		local toggleDirection = self:getToggledFoldDirection()
+		local allowed, warning = self:getIsFoldAllowed(toggleDirection, false)
+		if allowed then
+			if toggleDirection == spec.turnOnFoldDirection then
+				self:setFoldState(toggleDirection, true)
 				return
 			end
-			self:setFoldState(v598_, false)
+			self:setFoldState(toggleDirection, false)
 			if self:getIsFoldMiddleAllowed() and self.getAttacherVehicle ~= nil then
-				local v601_ = self:getAttacherVehicle()
-				local v602_ = v601_:getAttacherJointIndexFromObject(self)
-				if v602_ ~= nil then
-					local v603_ = v601_:getJointMoveDown(v602_)
-					local v604_ = v598_ == v597_.turnOnFoldDirection
-					if v604_ ~= v603_ then
-						v601_:setJointMoveDown(v602_, v604_)
-						return
+				local attacherVehicle = self:getAttacherVehicle()
+				local attacherJointIndex = attacherVehicle:getAttacherJointIndexFromObject(self)
+				if attacherJointIndex ~= nil then
+					local moveDown = attacherVehicle:getJointMoveDown(attacherJointIndex)
+					local targetMoveDown = toggleDirection == spec.turnOnFoldDirection
+					if targetMoveDown ~= moveDown then
+						attacherVehicle:setJointMoveDown(attacherJointIndex, targetMoveDown)
 					end
 				end
 			end
-		elseif v600_ ~= nil then
-			g_currentMission:showBlinkingWarning(v600_, 2000)
+		elseif warning ~= nil then
+			g_currentMission:showBlinkingWarning(warning, 2000)
 		end
 	end
 end
-
--- Local values: spec, ignoreFoldMiddle, direction, attacherVehicle, attacherJointIndex, moveDown, targetMoveDown, attacherVehicle
 function Foldable:actionEventFoldMiddle(actionName, inputValue, callbackState, isAnalog)
-	local v606_ = self.spec_foldable
-	if v606_.hasFoldingParts and self:getIsFoldMiddleAllowed() then
-		if v606_.ignoreFoldMiddleWhileFolded and self:getFoldAnimTime() > v606_.foldMiddleAnimTime and true or false then
-			if self.getAttacherVehicle ~= nil then
-				local v607_ = self:getAttacherVehicle()
-				if v607_ ~= nil then
-					v607_:handleLowerImplementEvent(self)
-				end
-			end
-		else
-			local v608_ = self:getToggledFoldMiddleDirection()
-			if v608_ ~= 0 then
-				if v608_ == v606_.turnOnFoldDirection then
-					self:setFoldState(v608_, false)
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts and self:getIsFoldMiddleAllowed() then
+		local ignoreFoldMiddle = false
+		if spec.ignoreFoldMiddleWhileFolded and spec.foldMiddleAnimTime < self:getFoldAnimTime() then
+			ignoreFoldMiddle = true
+		end
+		if not ignoreFoldMiddle then
+			local direction = self:getToggledFoldMiddleDirection()
+			if direction ~= 0 then
+				if direction == spec.turnOnFoldDirection then
+					self:setFoldState(direction, false)
 				else
-					self:setFoldState(v608_, true)
+					self:setFoldState(direction, true)
 				end
 				if self.getAttacherVehicle ~= nil then
-					local v609_ = self:getAttacherVehicle()
-					local v610_ = v609_:getAttacherJointIndexFromObject(self)
-					if v610_ ~= nil then
-						local v611_ = v609_:getJointMoveDown(v610_)
-						local v612_ = v608_ == v606_.turnOnFoldDirection
-						if v612_ ~= v611_ then
-							v609_:setJointMoveDown(v610_, v612_)
-							return
+					local attacherVehicle = self:getAttacherVehicle()
+					local attacherJointIndex = attacherVehicle:getAttacherJointIndexFromObject(self)
+					if attacherJointIndex ~= nil then
+						local moveDown = attacherVehicle:getJointMoveDown(attacherJointIndex)
+						local targetMoveDown = direction == spec.turnOnFoldDirection
+						if targetMoveDown ~= moveDown then
+							attacherVehicle:setJointMoveDown(attacherJointIndex, targetMoveDown)
 						end
 					end
 				end
 			end
+		elseif self.getAttacherVehicle ~= nil then
+			local attacherVehicle = self:getAttacherVehicle()
+			if attacherVehicle ~= nil then
+				attacherVehicle:handleLowerImplementEvent(self)
+			end
 		end
 	end
 end
-
--- Local values: spec, displayWarning, warningToDisplay, toggleDirection, allowed, warning, vehicles, i, vehicle, spec2, toggleDirection2, allowed2, warning2
 function Foldable:actionEventFoldAll(actionName, inputValue, callbackState, isAnalog)
-	local v614_ = self.spec_foldable
-	if v614_.hasFoldingParts then
-		local v615_ = true
-		local v616_ = nil
-		local v617_ = self:getToggledFoldDirection()
-		local v618_, v619_ = self:getIsFoldAllowed(v617_, false)
-		if v618_ then
-			if v617_ == v614_.turnOnFoldDirection then
-				self:setFoldState(v617_, true)
-				v615_ = false
+	local spec = self.spec_foldable
+	if spec.hasFoldingParts then
+		local displayWarning = true
+		local warningToDisplay = nil
+		local toggleDirection = self:getToggledFoldDirection()
+		local allowed, warning = self:getIsFoldAllowed(toggleDirection, false)
+		if allowed then
+			if toggleDirection == spec.turnOnFoldDirection then
+				self:setFoldState(toggleDirection, true)
 			else
-				self:setFoldState(v617_, false)
-				v615_ = false
+				self:setFoldState(toggleDirection, false)
 			end
-		elseif v619_ ~= nil then
-			v616_ = v619_
+			displayWarning = false
+		elseif warning ~= nil then
+			warningToDisplay = warning
 		end
-		local v620_ = self.rootVehicle:getChildVehicles()
-		for v621_ = 1, #v620_ do
-			local v622_ = v620_[v621_]
-			if v622_.setFoldState ~= nil then
-				local v623_ = v622_.spec_foldable
-				if #v623_.foldingParts > 0 then
-					local v624_ = v622_:getToggledFoldDirection()
-					local v625_, v626_ = v622_:getIsFoldAllowed(v617_, false)
-					if v625_ then
-						if v617_ == v614_.turnOnFoldDirection == (v624_ == v623_.turnOnFoldDirection) then
-							if v624_ == v623_.turnOnFoldDirection then
-								v622_:setFoldState(v624_, true)
-							else
-								v622_:setFoldState(v624_, false)
-							end
-							v615_ = false
+		local vehicles = self.rootVehicle:getChildVehicles()
+		for i = 1, #vehicles do
+			local vehicle = vehicles[i]
+			if vehicle.setFoldState == nil then
+				continue
+			end
+			local spec2 = vehicle.spec_foldable
+			if 0 < #spec2.foldingParts then
+				local toggleDirection2 = vehicle:getToggledFoldDirection()
+				local allowed2, warning2 = vehicle:getIsFoldAllowed(toggleDirection, false)
+				if allowed2 then
+					if toggleDirection == spec.turnOnFoldDirection == (toggleDirection2 == spec2.turnOnFoldDirection) then
+						if toggleDirection2 == spec2.turnOnFoldDirection then
+							vehicle:setFoldState(toggleDirection2, true)
+						else
+							vehicle:setFoldState(toggleDirection2, false)
 						end
-					elseif v626_ ~= nil then
-						v616_ = v626_
+						displayWarning = false
 					end
+				else
+					if warning2 == nil then
+						continue
+					end
+					warningToDisplay = warning2
 				end
 			end
 		end
-		if v615_ and v616_ ~= nil then
-			g_currentMission:showBlinkingWarning(v616_, 2000)
+		if displayWarning and warningToDisplay ~= nil then
+			g_currentMission:showBlinkingWarning(warningToDisplay, 2000)
 		end
 	end
 end
-
--- Local values: spec, actionEvent, _
 function Foldable.externalActionEventRegister(data, vehicle)
-	local v_u_629_ = vehicle.spec_foldable
-	local _, v636_ = g_inputBinding:registerActionEvent(v_u_629_.foldInputButton, data, function(_, p630_, p631_, p632_, p633_)
-		-- upvalues: (copy) vehicle, (copy) v_u_629_
+	local spec = vehicle.spec_foldable
+	local actionEvent = function(_, actionName, inputValue, callbackState, isAnalog)
 		Motorized.tryStartMotor(vehicle)
-		if v_u_629_.requiresPower then
-			local v634_, v635_ = vehicle:getIsPowered()
-			if v634_ then
-				Foldable.actionEventFold(vehicle, p630_, p631_, p632_, p633_)
+		if spec.requiresPower then
+			local isPowered, warning = vehicle:getIsPowered()
+			if isPowered then
+				Foldable.actionEventFold(vehicle, actionName, inputValue, callbackState, isAnalog)
 				return
 			end
-			if p631_ ~= 0 and v635_ ~= nil then
-				g_currentMission:showBlinkingWarning(v635_, 2000)
-				return
+			if inputValue ~= 0 and warning ~= nil then
+				g_currentMission:showBlinkingWarning(warning, 2000)
 			end
 		else
-			Foldable.actionEventFold(vehicle, p630_, p631_, p632_, p633_)
+			Foldable.actionEventFold(vehicle, actionName, inputValue, callbackState, isAnalog)
 		end
-	end, false, true, false, true)
-	data.actionEventId = v636_
+	end
+	local _ = nil
+	_, data.actionEventId = g_inputBinding:registerActionEvent(spec.foldInputButton, data, actionEvent, false, true, false, true)
 	g_inputBinding:setActionEventTextPriority(data.actionEventId, GS_PRIO_HIGH)
 end
-
--- Local values: spec, text
 function Foldable.externalActionEventUpdate(data, vehicle)
-	local v639_ = vehicle.spec_foldable
+	local spec = vehicle.spec_foldable
 	if data.actionEventId ~= nil then
-		local v640_
-		if vehicle:getToggledFoldDirection() == v639_.turnOnFoldDirection then
-			v640_ = v639_.negDirectionText
-		else
-			v640_ = v639_.posDirectionText
-		end
-		g_inputBinding:setActionEventText(data.actionEventId, v640_)
+		local text = nil
+		text = vehicle:getToggledFoldDirection() == spec.turnOnFoldDirection and spec.negDirectionText or spec.posDirectionText
+		g_inputBinding:setActionEventText(data.actionEventId, text)
 	end
 end

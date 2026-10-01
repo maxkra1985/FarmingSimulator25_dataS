@@ -1,80 +1,56 @@
 FileSystemUtil = {}
-
--- Local values: items, callbackTarget
 function FileSystemUtil.getItems(directoryPath, asAbsPath)
-	local v_u_3_ = {}
+	local items = {}
 	if not string.endsWith(directoryPath, "/") then
 		directoryPath = directoryPath .. "/"
 	end
-	local v8_ = {
-		["FileSystemUtilystemItemCallback"] = function(_, p4_, p5_)
-			-- upvalues: (copy) asAbsPath, (ref) directoryPath, (copy) v_u_3_
-			local v6_ = {}
-			if asAbsPath then
-				p4_ = directoryPath .. p4_ or p4_
-			end
-			v6_.filename = p4_
-			v6_.isDirectory = p5_
-			local v7_ = v_u_3_
-			table.insert(v7_, v6_)
-		end
-	}
-	getFiles(directoryPath, "FileSystemUtilystemItemCallback", v8_)
-	return v_u_3_
+	local callbackTarget = {}
+	function callbackTarget.FileSystemUtilystemItemCallback(_, filename, isDirectory)
+		local file = { isDirectory = isDirectory }
+		file.filename = asAbsPath and directoryPath .. filename or filename
+		table.insert(items, file)
+	end
+	getFiles(directoryPath, "FileSystemUtilystemItemCallback", callbackTarget)
+	return items
 end
-
--- Local values: files, callbackTarget
 function FileSystemUtil.getFiles(directoryPath, asAbsPath, pattern, recursive)
-	local v_u_13_ = {}
+	local files = {}
 	if not string.endsWith(directoryPath, "/") then
 		directoryPath = directoryPath .. "/"
 	end
-	local v19_ = {
-		["FileSystemUtilystemItemCallback"] = function(_, p14_, p15_)
-			-- upvalues: (copy) recursive, (ref) directoryPath, (copy) asAbsPath, (copy) pattern, (copy) v_u_13_
-			if p15_ then
-				if recursive then
-					for _, v16_ in ipairs(FileSystemUtil.getFiles(directoryPath .. p14_, asAbsPath, pattern, recursive)) do
-						local v17_ = v_u_13_
-						table.insert(v17_, v16_)
-					end
+	local callbackTarget = {}
+	function callbackTarget.FileSystemUtilystemItemCallback(_, filename, isDirectory)
+		if isDirectory then
+			if recursive then
+				for _, file in ipairs(FileSystemUtil.getFiles(directoryPath .. filename, asAbsPath, pattern, recursive)) do
+					table.insert(files, file)
 				end
-				return
-			elseif pattern == nil or string.match(p14_, pattern) then
-				if asAbsPath then
-					p14_ = directoryPath .. p14_ or p14_
-				end
-				local v18_ = v_u_13_
-				table.insert(v18_, p14_)
 			end
+		else
+			if pattern ~= nil and not string.match(filename, pattern) then
+				return
+			end
+			local file = asAbsPath and directoryPath .. filename or filename
+			table.insert(files, file)
 		end
-	}
-	getFiles(directoryPath, "FileSystemUtilystemItemCallback", v19_)
-	return v_u_13_
+	end
+	getFiles(directoryPath, "FileSystemUtilystemItemCallback", callbackTarget)
+	return files
 end
-
--- Local values: directories, callbackTarget
 function FileSystemUtil.getDirectories(directoryPath, asAbsPath, pattern)
-	local v_u_23_ = {}
+	local directories = {}
 	if not string.endsWith(directoryPath, "/") then
 		directoryPath = directoryPath .. "/"
 	end
-	local v27_ = {
-		["FileSystemUtilystemItemCallback"] = function(_, p24_, p25_)
-			-- upvalues: (copy) pattern, (copy) asAbsPath, (ref) directoryPath, (copy) v_u_23_
-			if p25_ then
-				if pattern == nil or string.match(p24_, pattern) then
-					if asAbsPath then
-						p24_ = directoryPath .. p24_ or p24_
-					end
-					local v26_ = v_u_23_
-					table.insert(v26_, p24_)
-				end
-			else
-				return
-			end
+	local callbackTarget = {}
+	function callbackTarget.FileSystemUtilystemItemCallback(_, filename, isDirectory)
+		if not isDirectory then
+			return
+		elseif not (pattern ~= nil and not string.match(filename, pattern)) then
+			local directory = asAbsPath and directoryPath .. filename or filename
+			table.insert(directories, directory)
 		end
-	}
-	getFiles(directoryPath, "FileSystemUtilystemItemCallback", v27_)
-	return v_u_23_
+	end
+	getFiles(directoryPath, "FileSystemUtilystemItemCallback", callbackTarget)
+	return directories
 end

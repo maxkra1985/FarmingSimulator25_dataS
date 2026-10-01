@@ -1,30 +1,24 @@
 source("dataS/scripts/vehicles/specializations/events/AIConveyorBeltSetAngleEvent.lua")
 AIConveyorBelt = {}
-
 function AIConveyorBelt.prerequisitesPresent(specializations)
-	local v2_ = SpecializationUtil.hasSpecialization(AIFieldWorker, specializations)
-	if v2_ then
-		v2_ = SpecializationUtil.hasSpecialization(Motorized, specializations)
-	end
-	return v2_
+	return SpecializationUtil.hasSpecialization(AIFieldWorker, specializations) and SpecializationUtil.hasSpecialization(Motorized, specializations)
 end
 function AIConveyorBelt.initSpecialization()
-	local v3_ = Vehicle.xmlSchema
-	v3_:setXMLSpecializationType("AIConveyorBelt")
-	v3_:register(XMLValueType.FLOAT, "vehicle.ai.conveyorBelt#minAngle", "Min angle", 5)
-	v3_:register(XMLValueType.FLOAT, "vehicle.ai.conveyorBelt#maxAngle", "Max angle", 45)
-	v3_:register(XMLValueType.FLOAT, "vehicle.ai.conveyorBelt#stepSize", "Step size", 5)
-	v3_:register(XMLValueType.FLOAT, "vehicle.ai.conveyorBelt#speed", "Speed", 1)
-	v3_:register(XMLValueType.INT, "vehicle.ai.conveyorBelt#direction", "Direction", -1)
-	v3_:setXMLSpecializationType()
-	Vehicle.xmlSchemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).aiConveyorBelt#currentAngle", "Current angle", 45)
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("AIConveyorBelt")
+	schema:register(XMLValueType.FLOAT, "vehicle.ai.conveyorBelt#minAngle", "Min angle", 5)
+	schema:register(XMLValueType.FLOAT, "vehicle.ai.conveyorBelt#maxAngle", "Max angle", 45)
+	schema:register(XMLValueType.FLOAT, "vehicle.ai.conveyorBelt#stepSize", "Step size", 5)
+	schema:register(XMLValueType.FLOAT, "vehicle.ai.conveyorBelt#speed", "Speed", 1)
+	schema:register(XMLValueType.INT, "vehicle.ai.conveyorBelt#direction", "Direction", -1)
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).aiConveyorBelt#currentAngle", "Current angle", 45)
 end
-
 function AIConveyorBelt.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "setAIConveyorBeltAngle", AIConveyorBelt.setAIConveyorBeltAngle)
 	SpecializationUtil.registerFunction(vehicleType, "getDirectionAndSpeedToTargetAngle", AIConveyorBelt.getDirectionAndSpeedToTargetAngle)
 end
-
 function AIConveyorBelt.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getStartableAIJob", AIConveyorBelt.getStartableAIJob)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getHasStartableAIJob", AIConveyorBelt.getHasStartableAIJob)
@@ -33,7 +27,6 @@ function AIConveyorBelt.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getCanBeSelected", AIConveyorBelt.getCanBeSelected)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getAINeedsTrafficCollisionBox", AIConveyorBelt.getAINeedsTrafficCollisionBox)
 end
-
 function AIConveyorBelt.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AIConveyorBelt)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", AIConveyorBelt)
@@ -44,22 +37,20 @@ function AIConveyorBelt.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onAIFieldWorkerStart", AIConveyorBelt)
 	SpecializationUtil.registerEventListener(vehicleType, "onRegisterActionEvents", AIConveyorBelt)
 end
-
--- Local values: spec
 function AIConveyorBelt:onLoad(savegame)
-	local v8_ = self.spec_aiConveyorBelt
-	v8_.isAllowed = self.xmlFile:hasProperty("vehicle.ai.conveyorBelt")
-	v8_.minAngle = self.xmlFile:getValue("vehicle.ai.conveyorBelt#minAngle", 5)
-	v8_.maxAngle = self.xmlFile:getValue("vehicle.ai.conveyorBelt#maxAngle", 45)
-	v8_.stepSize = self.xmlFile:getValue("vehicle.ai.conveyorBelt#stepSize", 5)
-	v8_.currentAngle = v8_.maxAngle
-	v8_.minTargetWorldYRot = 0
-	v8_.maxTargetWorldYRot = 0
-	v8_.currentDirection = 0
-	v8_.currentSpeed = 0
-	v8_.conveyorJob = g_currentMission.aiJobTypeManager:createJob(AIJobType.CONVEYOR)
-	v8_.speed = self.xmlFile:getValue("vehicle.ai.conveyorBelt#speed", 1)
-	v8_.direction = self.xmlFile:getValue("vehicle.ai.conveyorBelt#direction", -1)
+	local spec = self.spec_aiConveyorBelt
+	spec.isAllowed = self.xmlFile:hasProperty("vehicle.ai.conveyorBelt")
+	spec.minAngle = self.xmlFile:getValue("vehicle.ai.conveyorBelt#minAngle", 5)
+	spec.maxAngle = self.xmlFile:getValue("vehicle.ai.conveyorBelt#maxAngle", 45)
+	spec.stepSize = self.xmlFile:getValue("vehicle.ai.conveyorBelt#stepSize", 5)
+	spec.currentAngle = spec.maxAngle
+	spec.minTargetWorldYRot = 0
+	spec.maxTargetWorldYRot = 0
+	spec.currentDirection = 0
+	spec.currentSpeed = 0
+	spec.conveyorJob = g_currentMission.aiJobTypeManager:createJob(AIJobType.CONVEYOR)
+	spec.speed = self.xmlFile:getValue("vehicle.ai.conveyorBelt#speed", 1)
+	spec.direction = self.xmlFile:getValue("vehicle.ai.conveyorBelt#direction", -1)
 	if not self.isServer then
 		SpecializationUtil.removeEventListener(self, "onUpdate", AIConveyorBelt)
 	end
@@ -67,155 +58,125 @@ function AIConveyorBelt:onLoad(savegame)
 		SpecializationUtil.removeEventListener(self, "onUpdateTick", AIConveyorBelt)
 	end
 end
-
--- Local values: spec
 function AIConveyorBelt:onPostLoad(savegame)
-	local v11_ = self.spec_aiConveyorBelt
+	local spec = self.spec_aiConveyorBelt
 	if savegame ~= nil and not savegame.resetVehicles then
-		v11_.currentAngle = savegame.xmlFile:getValue(savegame.key .. ".aiConveyorBelt#currentAngle", v11_.currentAngle)
+		spec.currentAngle = savegame.xmlFile:getValue(savegame.key .. ".aiConveyorBelt#currentAngle", spec.currentAngle)
 	end
 end
-
--- Local values: spec
 function AIConveyorBelt:saveToXMLFile(xmlFile, key, usedModNames)
-	local v15_ = self.spec_aiConveyorBelt
-	xmlFile:setValue(key .. "#currentAngle", v15_.currentAngle)
+	local spec = self.spec_aiConveyorBelt
+	xmlFile:setValue(key .. "#currentAngle", spec.currentAngle)
 end
-
 function AIConveyorBelt:onReadStream(streamId, connection)
 	self:setAIConveyorBeltAngle(streamReadInt8(streamId), true)
 end
-
 function AIConveyorBelt:onWriteStream(streamId, connection)
 	streamWriteInt8(streamId, self.spec_aiConveyorBelt.currentAngle)
 end
-
--- Local values: spec
 function AIConveyorBelt:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	if self:getIsAIActive() then
-		local v22_ = self.spec_aiConveyorBelt
-		local v23_, v24_ = self:getDirectionAndSpeedToTargetAngle(v22_.currentDirection, v22_.minTargetWorldYRot, v22_.maxTargetWorldYRot)
-		v22_.currentDirection = v23_
-		v22_.currentSpeed = v24_
-		local v25_ = self:getMotor()
-		local v26_ = v22_.currentSpeed * v22_.speed
-		v25_:setSpeedLimit((math.abs(v26_)))
-		WheelsUtil.updateWheelsPhysics(self, dt, v22_.currentSpeed * v22_.speed * v22_.direction, v22_.currentDirection * v22_.direction, false, true)
+		local spec = self.spec_aiConveyorBelt
+		spec.currentDirection, spec.currentSpeed = self:getDirectionAndSpeedToTargetAngle(spec.currentDirection, spec.minTargetWorldYRot, spec.maxTargetWorldYRot)
+		self:getMotor():setSpeedLimit(math.abs(spec.currentSpeed * spec.speed))
+		WheelsUtil.updateWheelsPhysics(self, dt, spec.currentSpeed * spec.speed * spec.direction, spec.currentDirection * spec.direction, false, true)
 	end
 end
-
--- Local values: spec, actionEvent
 function AIConveyorBelt:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v29_ = self.spec_aiConveyorBelt
-	local v30_ = v29_.actionEvents[InputAction.IMPLEMENT_EXTRA3]
-	if v30_ ~= nil then
-		g_inputBinding:setActionEventActive(v30_.actionEventId, isActiveForInputIgnoreSelection)
+	local spec = self.spec_aiConveyorBelt
+	local actionEvent = spec.actionEvents[InputAction.IMPLEMENT_EXTRA3]
+	if actionEvent ~= nil then
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, isActiveForInputIgnoreSelection)
 		if isActiveForInputIgnoreSelection then
-			g_inputBinding:setActionEventText(v30_.actionEventId, string.format(g_i18n:getText("action_conveyorBeltChangeAngle"), string.format("%.0f", v29_.currentAngle)))
+			g_inputBinding:setActionEventText(actionEvent.actionEventId, string.format(g_i18n:getText("action_conveyorBeltChangeAngle"), string.format("%.0f", spec.currentAngle)))
 		end
 	end
 end
-
 function AIConveyorBelt:setAIConveyorBeltAngle(angle, noEventSend)
 	if noEventSend == nil or noEventSend == false then
-		if g_server == nil then
-			g_client:getServerConnection():sendEvent(AIConveyorBeltSetAngleEvent.new(self, angle))
-		else
+		if g_server ~= nil then
 			g_server:broadcastEvent(AIConveyorBeltSetAngleEvent.new(self, angle), nil, nil, self)
+		else
+			g_client:getServerConnection():sendEvent(AIConveyorBeltSetAngleEvent.new(self, angle))
 		end
 	end
 	self.spec_aiConveyorBelt.currentAngle = angle
 end
-
--- Local values: dx, _, dz, yRot, angleDifference, speed
 function AIConveyorBelt:getDirectionAndSpeedToTargetAngle(direction, minAngle, maxAngle)
-	local v38_, _, v39_ = localDirectionToWorld(self.components[1].node, 0, 0, 1)
-	local v40_ = MathUtil.getYRotationFromDirection(v38_, v39_)
-	local v41_
-	if direction > 0 then
-		if maxAngle < v40_ then
+	local dx, _, dz = localDirectionToWorld(self.components[1].node, 0, 0, 1)
+	local yRot = MathUtil.getYRotationFromDirection(dx, dz)
+	local angleDifference = nil
+	if 0 < direction then
+		if maxAngle < yRot then
 			return -1, 0
 		end
-		v41_ = maxAngle - v40_
+		angleDifference = maxAngle - yRot
 	elseif direction < 0 then
-		if v40_ < minAngle then
+		if yRot < minAngle then
 			return 1, 0
 		end
-		v41_ = v40_ - minAngle
+		angleDifference = yRot - minAngle
 	else
-		v41_ = 0
+		angleDifference = 0
 	end
-	local v42_ = math.deg(v41_) / 2.5
-	return direction, math.clamp(v42_, 0.1, 1) * direction
+	local speed = math.clamp(math.deg(angleDifference) / 2.5, 0.1, 1) * direction
+	return direction, speed
 end
-
 function AIConveyorBelt:getCanStartAIVehicle(superFunc)
-	if superFunc(self) then
-		return self.spec_aiConveyorBelt.isAllowed
-	else
+	if not superFunc(self) then
 		return false
+	else
+		return self.spec_aiConveyorBelt.isAllowed
 	end
 end
-
 function AIConveyorBelt:getCanStartFieldWork()
 	return self:getCanStartAIVehicle()
 end
-
--- Local values: spec, conveyorJob, success
 function AIConveyorBelt:getStartableAIJob(superFunc)
 	if self:getCanStartFieldWork() then
-		local v47_ = self.spec_aiConveyorBelt.conveyorJob
-		v47_:applyCurrentState(self, g_currentMission, g_localPlayer.farmId, false)
-		v47_:setValues()
-		if v47_:validate(false) then
-			return v47_
+		local spec = self.spec_aiConveyorBelt
+		local conveyorJob = spec.conveyorJob
+		conveyorJob:applyCurrentState(self, g_currentMission, g_localPlayer.farmId, false)
+		conveyorJob:setValues()
+		local success = conveyorJob:validate(false)
+		if success then
+			return conveyorJob
 		end
 	end
 	return nil
 end
-
 function AIConveyorBelt:getHasStartableAIJob(superFunc)
 	return true
 end
-
 function AIConveyorBelt:getCanBeSelected(superFunc)
 	return true
 end
-
 function AIConveyorBelt:getAINeedsTrafficCollisionBox(superFunc)
 	return false
 end
-
--- Local values: spec, dx, _, dz, yRot
 function AIConveyorBelt:onAIFieldWorkerStart()
-	local v49_ = self.spec_aiConveyorBelt
-	local v50_, _, v51_ = localDirectionToWorld(self.components[1].node, 0, 0, 1)
-	local v52_ = MathUtil.getYRotationFromDirection(v50_, v51_)
-	local v53_ = v49_.currentAngle
-	v49_.minTargetWorldYRot = v52_ - math.rad(v53_) / 2
-	local v54_ = v49_.currentAngle
-	v49_.maxTargetWorldYRot = v52_ + math.rad(v54_) / 2
-	v49_.currentDirection = 1
+	local spec = self.spec_aiConveyorBelt
+	local dx, _, dz = localDirectionToWorld(self.components[1].node, 0, 0, 1)
+	local yRot = MathUtil.getYRotationFromDirection(dx, dz)
+	spec.minTargetWorldYRot = yRot - math.rad(spec.currentAngle) / 2
+	spec.maxTargetWorldYRot = yRot + math.rad(spec.currentAngle) / 2
+	spec.currentDirection = 1
 end
-
--- Local values: spec, _, actionEventId
 function AIConveyorBelt:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v57_ = self.spec_aiConveyorBelt
-		self:clearActionEventsTable(v57_.actionEvents)
-		if isActiveForInputIgnoreSelection and v57_.isAllowed then
-			local _, v58_ = self:addActionEvent(v57_.actionEvents, InputAction.IMPLEMENT_EXTRA3, self, AIConveyorBelt.actionEventChangeAngle, false, true, false, true, nil)
-			g_inputBinding:setActionEventTextPriority(v58_, GS_PRIO_NORMAL)
+		local spec = self.spec_aiConveyorBelt
+		self:clearActionEventsTable(spec.actionEvents)
+		if isActiveForInputIgnoreSelection and spec.isAllowed then
+			local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.IMPLEMENT_EXTRA3, self, AIConveyorBelt.actionEventChangeAngle, false, true, false, true, nil)
+			g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_NORMAL)
 		end
 	end
 end
-
--- Local values: spec, newAngle
 function AIConveyorBelt:actionEventChangeAngle(actionName, inputValue, callbackState, isAnalog)
-	local v60_ = self.spec_aiConveyorBelt
-	local v61_ = v60_.currentAngle + v60_.stepSize
-	if v60_.maxAngle < v61_ then
-		v61_ = v60_.minAngle
+	local spec = self.spec_aiConveyorBelt
+	local newAngle = spec.currentAngle + spec.stepSize
+	if spec.maxAngle < newAngle then
+		newAngle = spec.minAngle
 	end
-	self:setAIConveyorBeltAngle(v61_)
+	self:setAIConveyorBeltAngle(newAngle)
 end

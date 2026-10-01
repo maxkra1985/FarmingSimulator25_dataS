@@ -1,92 +1,85 @@
--- Local values: getFilename
 Logging = {}
-local function v_u_3_(p1_)
-	local v2_ = type(p1_)
-	if v2_ == "number" then
-		return getXMLFilename(p1_)
-	elseif v2_ == "table" and (p1_.isa ~= nil and p1_:isa(XMLFile)) then
-		return p1_:getFilename()
-	elseif v2_ == "string" and string.endsWith(p1_, ".xml") then
-		return p1_
+local getFilename = function(obj)
+	local objType = type(obj)
+	if objType == "number" then
+		return getXMLFilename(obj)
+	elseif objType == "table" and (obj.isa ~= nil and obj:isa(XMLFile)) then
+		return obj:getFilename()
+	elseif objType == "string" and string.endsWith(obj, ".xml") then
+		return obj
 	else
 		return nil
 	end
 end
-function Logging.xmlWarning(p4_, p5_, ...)
-	-- upvalues: (copy) v_u_3_
-	local v6_ = v_u_3_(p4_)
-	printWarning(string.format("  Warning (%s): " .. p5_, v6_, ...))
+function Logging.xmlWarning(xmlFile, warningMessage, ...)
+	local filename = getFilename(xmlFile)
+	printWarning(string.format("  Warning (%s): " .. warningMessage, filename, ...))
 end
-function Logging.xmlError(p7_, p8_, ...)
-	-- upvalues: (copy) v_u_3_
-	local v9_ = v_u_3_(p7_)
-	printError(string.format("  Error (%s): " .. p8_, v9_, ...))
+function Logging.xmlError(xmlFile, errorMessage, ...)
+	local filename = getFilename(xmlFile)
+	printError(string.format("  Error (%s): " .. errorMessage, filename, ...))
 end
-function Logging.xmlInfo(p10_, p11_, ...)
-	-- upvalues: (copy) v_u_3_
-	local v12_ = v_u_3_(p10_)
-	print(string.format("  Info (%s): " .. p11_, v12_, ...))
+function Logging.xmlInfo(xmlFile, infoMessage, ...)
+	local filename = getFilename(xmlFile)
+	print(string.format("  Info (%s): " .. infoMessage, filename, ...))
 end
-function Logging.i3dWarning(p13_, p14_, ...)
-	local v15_ = I3DUtil.getNodeNameAndIndexPath(p13_)
-	printWarning(string.format("  Warning (%s): " .. p14_, v15_, ...))
+function Logging.i3dWarning(node, warningMessage, ...)
+	local nodeStr = I3DUtil.getNodeNameAndIndexPath(node)
+	printWarning(string.format("  Warning (%s): " .. warningMessage, nodeStr, ...))
 end
-function Logging.i3dError(p16_, p17_, ...)
-	local v18_ = I3DUtil.getNodeNameAndIndexPath(p16_)
-	printError(string.format("  Error (%s): " .. p17_, v18_, ...))
+function Logging.i3dError(node, errorMessage, ...)
+	local nodeStr = I3DUtil.getNodeNameAndIndexPath(node)
+	printError(string.format("  Error (%s): " .. errorMessage, nodeStr, ...))
 end
-function Logging.i3dInfo(p19_, p20_, ...)
-	local v21_ = I3DUtil.getNodeNameAndIndexPath(p19_)
-	print(string.format("  Info (%s): " .. p20_, v21_, ...))
+function Logging.i3dInfo(node, infoMessage, ...)
+	local nodeStr = I3DUtil.getNodeNameAndIndexPath(node)
+	print(string.format("  Info (%s): " .. infoMessage, nodeStr, ...))
 end
-function Logging.xmlDevWarning(p22_, p23_, ...)
-	-- upvalues: (copy) v_u_3_
+function Logging.xmlDevWarning(xmlFile, warningMessage, ...)
 	if g_showDevelopmentWarnings then
-		local v24_ = v_u_3_(p22_)
-		printWarning(string.format("  DevWarning (%s): " .. p23_, v24_, ...))
+		local filename = getFilename(xmlFile)
+		printWarning(string.format("  DevWarning (%s): " .. warningMessage, filename, ...))
 	end
 end
-function Logging.xmlDevError(p25_, p26_, ...)
-	-- upvalues: (copy) v_u_3_
+function Logging.xmlDevError(xmlFile, errorMessage, ...)
 	if g_showDevelopmentWarnings then
-		local v27_ = v_u_3_(p25_)
-		printError(string.format("  DevError (%s): " .. p26_, v27_, ...))
+		local filename = getFilename(xmlFile)
+		printError(string.format("  DevError (%s): " .. errorMessage, filename, ...))
 	end
 end
-function Logging.xmlDevInfo(p28_, p29_, ...)
-	-- upvalues: (copy) v_u_3_
+function Logging.xmlDevInfo(xmlFile, infoMessage, ...)
 	if g_showDevelopmentWarnings then
-		local v30_ = v_u_3_(p28_)
-		print(string.format("  DevInfo (%s): " .. p29_, v30_, ...))
+		local filename = getFilename(xmlFile)
+		print(string.format("  DevInfo (%s): " .. infoMessage, filename, ...))
 	end
 end
-function Logging.warning(p31_, ...)
-	printWarning(string.format("  Warning: " .. p31_, ...))
+function Logging.warning(warningMessage, ...)
+	printWarning(string.format("  Warning: " .. warningMessage, ...))
 end
-function Logging.error(p32_, ...)
-	printError(string.format("  Error: " .. p32_, ...))
+function Logging.error(errorMessage, ...)
+	printError(string.format("  Error: " .. errorMessage, ...))
 end
-function Logging.info(p33_, ...)
-	print(string.format("  Info: " .. p33_, ...))
+function Logging.info(infoMessage, ...)
+	print(string.format("  Info: " .. infoMessage, ...))
 end
-function Logging.fatal(p34_, ...)
-	local v35_ = string.format("  Fatal Error: " .. p34_, ...)
+function Logging.fatal(fatalMessage, ...)
+	local message = string.format("  Fatal Error: " .. fatalMessage, ...)
 	printCallstack()
 	requestExit()
-	error(v35_)
+	error(message)
 end
-function Logging.devWarning(p36_, ...)
+function Logging.devWarning(warningMessage, ...)
 	if g_showDevelopmentWarnings then
-		printWarning(string.format("  DevWarning: " .. p36_, ...))
+		printWarning(string.format("  DevWarning: " .. warningMessage, ...))
 	end
 end
-function Logging.devError(p37_, ...)
+function Logging.devError(errorMessage, ...)
 	if g_showDevelopmentWarnings then
-		printError(string.format("  DevError: " .. p37_, ...))
+		printError(string.format("  DevError: " .. errorMessage, ...))
 	end
 end
-function Logging.devInfo(p38_, ...)
+function Logging.devInfo(infoMessage, ...)
 	if g_showDevelopmentWarnings then
-		print(string.format("  DevInfo: " .. p38_, ...))
+		print(string.format("  DevInfo: " .. infoMessage, ...))
 	end
 end

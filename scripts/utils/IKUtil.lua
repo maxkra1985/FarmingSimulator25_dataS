@@ -1,339 +1,274 @@
 IKUtil = {}
-
--- Local values: ikChain, numNodeElements, j, nodeKey, node, minRx, maxRx, minRy, maxRy, minRz, maxRz, damping, localLimits, initTranslation, numPoseElements, j, poseKey, id, pose, i, node
 function IKUtil.loadIKChain(xmlFile, key, targetBasenode, chainBasenode, ikTable)
-	local v6_ = {
-		["id"] = getXMLString(xmlFile, key .. "#id"),
-		["target"] = I3DUtil.indexToObject(targetBasenode, getXMLString(xmlFile, key .. "#target")),
-		["targetOffset"] = string.getVector(getXMLString(xmlFile, key .. "#targetOffset"), 3)
-	}
-	if v6_.targetOffset == nil then
-		v6_.targetOffset = { 0, 0, 0 }
+	local ikChain = {}
+	ikChain.id = getXMLString(xmlFile, key .. "#id")
+	ikChain.target = I3DUtil.indexToObject(targetBasenode, getXMLString(xmlFile, key .. "#target"))
+	ikChain.targetOffset = string.getVector(getXMLString(xmlFile, key .. "#targetOffset"), 3)
+	if ikChain.targetOffset == nil then
+		ikChain.targetOffset = { 0, 0, 0 }
 	end
-	v6_.targetRotationOffset = string.getVector(getXMLString(xmlFile, key .. "#targetRotationOffset"), 3)
-	if v6_.targetRotationOffset == nil then
-		v6_.targetRotationOffset = { 0, 0, 0 }
+	ikChain.targetRotationOffset = string.getVector(getXMLString(xmlFile, key .. "#targetRotationOffset"), 3)
+	if ikChain.targetRotationOffset == nil then
+		ikChain.targetRotationOffset = { 0, 0, 0 }
 	else
-		local v7_ = v6_.targetRotationOffset
-		local v8_ = v6_.targetRotationOffset[1]
-		v7_[1] = math.rad(v8_)
-		local v9_ = v6_.targetRotationOffset
-		local v10_ = v6_.targetRotationOffset[2]
-		v9_[2] = math.rad(v10_)
-		local v11_ = v6_.targetRotationOffset
-		local v12_ = v6_.targetRotationOffset[3]
-		v11_[3] = math.rad(v12_)
+		ikChain.targetRotationOffset[1] = math.rad(ikChain.targetRotationOffset[1])
+		ikChain.targetRotationOffset[2] = math.rad(ikChain.targetRotationOffset[2])
+		ikChain.targetRotationOffset[3] = math.rad(ikChain.targetRotationOffset[3])
 	end
-	v6_.alignToTarget = Utils.getNoNil(getXMLBool(xmlFile, key .. "#alignToTarget"), false)
-	local v13_ = getXMLNumOfElements(xmlFile, key .. ".node")
-	v6_.nodes = table.create(v13_)
-	for v14_ = 1, v13_ do
-		local v15_ = key .. string.format(".node(%d)", v14_ - 1)
-		local v16_ = I3DUtil.indexToObject(chainBasenode, getXMLString(xmlFile, v15_ .. "#index"))
-		if v16_ ~= nil then
-			local v17_ = getXMLFloat(xmlFile, v15_ .. "#minRx") or -180
-			local v18_ = math.rad(v17_)
-			local v19_ = getXMLFloat(xmlFile, v15_ .. "#maxRx") or 180
-			local v20_ = math.rad(v19_)
-			local v21_ = getXMLFloat(xmlFile, v15_ .. "#minRy") or -180
-			local v22_ = math.rad(v21_)
-			local v23_ = getXMLFloat(xmlFile, v15_ .. "#maxRy") or 180
-			local v24_ = math.rad(v23_)
-			local v25_ = getXMLFloat(xmlFile, v15_ .. "#minRz") or -180
-			local v26_ = math.rad(v25_)
-			local v27_ = getXMLFloat(xmlFile, v15_ .. "#maxRz") or 180
-			local v28_ = math.rad(v27_)
-			local v29_ = getXMLFloat(xmlFile, v15_ .. "#damping") or 30
-			local v30_ = math.rad(v29_)
-			local v31_ = Utils.getNoNil(getXMLBool(xmlFile, v15_ .. "#localLimits"), false)
-			local v32_ = v14_ == v13_ and { getTranslation(v16_) } or nil
-			local v33_ = v6_.nodes
-			table.insert(v33_, {
-				["node"] = v16_,
-				["minRx"] = v18_,
-				["maxRx"] = v20_,
-				["minRy"] = v22_,
-				["maxRy"] = v24_,
-				["minRz"] = v26_,
-				["maxRz"] = v28_,
-				["damping"] = v30_,
-				["localLimits"] = v31_,
-				["initTranslation"] = v32_
-			})
+	ikChain.alignToTarget = Utils.getNoNil(getXMLBool(xmlFile, key .. "#alignToTarget"), false)
+	local numNodeElements = getXMLNumOfElements(xmlFile, key .. ".node")
+	ikChain.nodes = table.create(numNodeElements)
+	for j = 1, numNodeElements do
+		local nodeKey = key .. string.format(".node(%d)", j - 1)
+		local node = I3DUtil.indexToObject(chainBasenode, getXMLString(xmlFile, nodeKey .. "#index"))
+		if node == nil then
+			continue
 		end
+		local minRx = math.rad(getXMLFloat(xmlFile, nodeKey .. "#minRx") or -180)
+		local maxRx = math.rad(getXMLFloat(xmlFile, nodeKey .. "#maxRx") or 180)
+		local minRy = math.rad(getXMLFloat(xmlFile, nodeKey .. "#minRy") or -180)
+		local maxRy = math.rad(getXMLFloat(xmlFile, nodeKey .. "#maxRy") or 180)
+		local minRz = math.rad(getXMLFloat(xmlFile, nodeKey .. "#minRz") or -180)
+		local maxRz = math.rad(getXMLFloat(xmlFile, nodeKey .. "#maxRz") or 180)
+		local damping = math.rad(getXMLFloat(xmlFile, nodeKey .. "#damping") or 30)
+		local localLimits = Utils.getNoNil(getXMLBool(xmlFile, nodeKey .. "#localLimits"), false)
+		local initTranslation = nil
+		if j == numNodeElements then
+			initTranslation = { getTranslation(node) }
+		end
+		table.insert(ikChain.nodes, { node = node, minRx = minRx, maxRx = maxRx, minRy = minRy, maxRy = maxRy, minRz = minRz, maxRz = maxRz, damping = damping, localLimits = localLimits, initTranslation = initTranslation })
 	end
-	v6_.rotationNodes = IKUtil.loadRotationNodes(xmlFile, key, chainBasenode, true)
-	local v34_ = getXMLNumOfElements(xmlFile, key .. ".pose")
-	if v34_ > 0 then
-		v6_.poses = {}
-		for v35_ = 0, v34_ - 1 do
-			local v36_ = key .. string.format(".pose(%d)", v35_)
-			local v37_ = getXMLString(xmlFile, v36_ .. "#id")
-			if v37_ ~= nil then
-				local v38_ = {
-					["id"] = v37_,
-					["isDefaultPose"] = Utils.getNoNil(getXMLBool(xmlFile, v36_ .. "#isDefaultPose"), false)
-				}
-				v38_.rotationNodes = IKUtil.loadRotationNodes(xmlFile, v36_, chainBasenode, v38_.isDefaultPose)
-				v6_.poses[v37_] = v38_
+	ikChain.rotationNodes = IKUtil.loadRotationNodes(xmlFile, key, chainBasenode, true)
+	local numPoseElements = getXMLNumOfElements(xmlFile, key .. ".pose")
+	if 0 < numPoseElements then
+		ikChain.poses = {}
+		for j = 0, numPoseElements - 1 do
+			local poseKey = key .. string.format(".pose(%d)", j)
+			local id = getXMLString(xmlFile, poseKey .. "#id")
+			if id == nil then
+				continue
 			end
+			local pose = {}
+			pose.id = id
+			pose.isDefaultPose = Utils.getNoNil(getXMLBool(xmlFile, poseKey .. "#isDefaultPose"), false)
+			pose.rotationNodes = IKUtil.loadRotationNodes(xmlFile, poseKey, chainBasenode, pose.isDefaultPose)
+			ikChain.poses[id] = pose
 		end
 	end
-	if #v6_.nodes <= 0 or (v6_.target == nil or (v6_.id == nil or ikTable[v6_.id] ~= nil)) then
-		return nil
+	if 0 < #ikChain.nodes and (ikChain.target ~= nil and (ikChain.id ~= nil and ikTable[ikChain.id] == nil)) then
+		ikChain.numIterations = getXMLInt(xmlFile, key .. "#numIterations") or 20
+		ikChain.numIterationsToApply = getXMLInt(xmlFile, key .. "#numIterationsInit") or ikChain.numIterations * 2
+		ikChain.positionThreshold = getXMLFloat(xmlFile, key .. "#positionThreshold") or 0.005
+		ikChain.isDirty = Utils.getNoNil(getXMLBool(xmlFile, key .. "#isDirtyOnLoad"), false)
+		ikChain.ikChainSolver = IKChain.new(#ikChain.nodes)
+		for i, node in ipairs(ikChain.nodes) do
+			ikChain.ikChainSolver:setJointTransformGroup(i - 1, node.node, node.minRx, node.maxRx, node.minRy, node.maxRy, node.minRz, node.maxRz, node.damping, node.localLimits)
+		end
+		ikChain.isActive = true
+		ikTable[ikChain.id] = ikChain
+		return ikChain
 	end
-	v6_.numIterations = getXMLInt(xmlFile, key .. "#numIterations") or 20
-	v6_.numIterationsToApply = getXMLInt(xmlFile, key .. "#numIterationsInit") or v6_.numIterations * 2
-	v6_.positionThreshold = getXMLFloat(xmlFile, key .. "#positionThreshold") or 0.005
-	v6_.isDirty = Utils.getNoNil(getXMLBool(xmlFile, key .. "#isDirtyOnLoad"), false)
-	v6_.ikChainSolver = IKChain.new(#v6_.nodes)
-	for v39_, v40_ in ipairs(v6_.nodes) do
-		v6_.ikChainSolver:setJointTransformGroup(v39_ - 1, v40_.node, v40_.minRx, v40_.maxRx, v40_.minRy, v40_.maxRy, v40_.minRz, v40_.maxRz, v40_.damping, v40_.localLimits)
-	end
-	v6_.isActive = true
-	ikTable[v6_.id] = v6_
-	return v6_
+	return nil
 end
-
--- Local values: numRotatioNodes, rotationNodes, i, nodeKey, node, rotConfig, rot
 function IKUtil.loadRotationNodes(xmlFile, key, chainBasenode, apply)
-	local v45_ = getXMLNumOfElements(xmlFile, key .. ".rotationNode")
-	if v45_ == 0 then
+	local numRotatioNodes = getXMLNumOfElements(xmlFile, key .. ".rotationNode")
+	if numRotatioNodes == 0 then
 		return nil
-	end
-	local v46_ = {}
-	for v47_ = 0, v45_ - 1 do
-		local v48_ = key .. string.format(".rotationNode(%d)", v47_)
-		local v49_ = I3DUtil.indexToObject(chainBasenode, getXMLString(xmlFile, v48_ .. "#index"))
-		if v49_ ~= nil then
-			local v50_ = string.getRadians(getXMLString(xmlFile, v48_ .. "#rotation"), 3)
-			local v51_ = v50_ or { getRotation(v49_) }
-			if apply and v50_ ~= nil then
-				setRotation(v49_, unpack(v50_))
+	else
+		local rotationNodes = {}
+		for i = 0, numRotatioNodes - 1 do
+			local nodeKey = key .. string.format(".rotationNode(%d)", i)
+			local node = I3DUtil.indexToObject(chainBasenode, getXMLString(xmlFile, nodeKey .. "#index"))
+			if node == nil then
+				continue
 			end
-			table.insert(v46_, {
-				["node"] = v49_,
-				["defaultRotation"] = v51_
-			})
+			local rotConfig = string.getRadians(getXMLString(xmlFile, nodeKey .. "#rotation"), 3)
+			local rot = rotConfig or { getRotation(node) }
+			if apply and rotConfig ~= nil then
+				setRotation(node, unpack(rotConfig))
+			end
+			table.insert(rotationNodes, { node = node, defaultRotation = rot })
 		end
+		return rotationNodes
 	end
-	return v46_
 end
-
--- Local values: _, rotationNode
 function IKUtil.setRotationNodes(rotationNodes)
-	for _, v53_ in pairs(rotationNodes) do
-		local v54_ = setRotation
-		local v55_ = v53_.node
-		local v56_ = v53_.defaultRotation
-		v54_(v55_, unpack(v56_))
+	for _, rotationNode in pairs(rotationNodes) do
+		setRotation(rotationNode.node, unpack(rotationNode.defaultRotation))
 	end
 end
-
--- Local values: ikChain
 function IKUtil.deleteIKChain(ikTable, id)
-	local v59_ = ikTable[id]
-	if v59_ ~= nil then
-		v59_.ikChainSolver = nil
+	local ikChain = ikTable[id]
+	if ikChain ~= nil then
+		ikChain.ikChainSolver = nil
 	end
 	ikTable[id] = nil
 end
-
--- Local values: ikChain, x, y, z, _, rotationNode, rotNode
 function IKUtil.setTarget(ikTable, id, target)
-	local v63_ = ikTable[id]
-	if v63_ ~= nil then
-		if target == nil then
-			if v63_.defaultTarget ~= nil then
-				v63_.target = v63_.defaultTarget
-				if v63_.rotationNodes ~= nil then
-					IKUtil.setRotationNodes(v63_.rotationNodes)
-				end
+	local ikChain = ikTable[id]
+	if ikChain ~= nil then
+		if target ~= nil then
+			if ikChain.defaultTarget == nil then
+				ikChain.defaultTarget = ikChain.target
 			end
-			if v63_.offsetTargetNode ~= nil then
-				delete(v63_.offsetTargetNode)
-				v63_.offsetTargetNode = nil
+			ikChain.offsetTargetNode = createTransformGroup("ikOffsetTargetNode")
+			link(target.targetNode, ikChain.offsetTargetNode)
+			if ikChain.targetRotationOffset ~= nil then
+				setRotation(ikChain.offsetTargetNode, ikChain.targetRotationOffset[1], ikChain.targetRotationOffset[2], ikChain.targetRotationOffset[3])
 			end
-		else
-			if v63_.defaultTarget == nil then
-				v63_.defaultTarget = v63_.target
+			if ikChain.targetOffset ~= nil then
+				local x, y, z = localToLocal(ikChain.offsetTargetNode, getParent(ikChain.offsetTargetNode), ikChain.targetOffset[1], ikChain.targetOffset[2], ikChain.targetOffset[3])
+				setTranslation(ikChain.offsetTargetNode, x, y, z)
 			end
-			v63_.offsetTargetNode = createTransformGroup("ikOffsetTargetNode")
-			link(target.targetNode, v63_.offsetTargetNode)
-			if v63_.targetRotationOffset ~= nil then
-				setRotation(v63_.offsetTargetNode, v63_.targetRotationOffset[1], v63_.targetRotationOffset[2], v63_.targetRotationOffset[3])
-			end
-			if v63_.targetOffset ~= nil then
-				local v64_, v65_, v66_ = localToLocal(v63_.offsetTargetNode, getParent(v63_.offsetTargetNode), v63_.targetOffset[1], v63_.targetOffset[2], v63_.targetOffset[3])
-				setTranslation(v63_.offsetTargetNode, v64_, v65_, v66_)
-			end
-			v63_.target = v63_.offsetTargetNode
-			v63_.actualTargetNode = target.targetNode
-			if target.rotationNodes ~= nil and v63_.rotationNodes ~= nil then
-				for _, v67_ in pairs(target.rotationNodes) do
-					local v68_ = v63_.rotationNodes[v67_.id]
-					if v68_ ~= nil then
-						local v69_ = setRotation
-						local v70_ = v68_.node
-						local v71_ = v67_.rotation
-						v69_(v70_, unpack(v71_))
+			ikChain.target = ikChain.offsetTargetNode
+			ikChain.actualTargetNode = target.targetNode
+			if target.rotationNodes ~= nil and ikChain.rotationNodes ~= nil then
+				for _, rotationNode in pairs(target.rotationNodes) do
+					local rotNode = ikChain.rotationNodes[rotationNode.id]
+					if rotNode == nil then
+						continue
 					end
+					setRotation(rotNode.node, unpack(rotationNode.rotation))
 				end
 			end
 			if target.poseId ~= nil then
 				IKUtil.setIKChainPose(ikTable, id, target.poseId)
-				return
+			end
+		else
+			if ikChain.defaultTarget ~= nil then
+				ikChain.target = ikChain.defaultTarget
+				if ikChain.rotationNodes ~= nil then
+					IKUtil.setRotationNodes(ikChain.rotationNodes)
+				end
+			end
+			if ikChain.offsetTargetNode ~= nil then
+				delete(ikChain.offsetTargetNode)
+				ikChain.offsetTargetNode = nil
 			end
 		end
 	end
 end
-
--- Local values: _, ikChain
 function IKUtil.updateIKChains(ikChains, translateAlignNodes)
-	for _, v74_ in pairs(ikChains) do
-		if v74_.isDirty and v74_.isActive then
-			v74_.isDirty = false
-			IKUtil.updateIKChain(v74_, v74_.numIterationsToApply, v74_.positionThreshold, translateAlignNodes)
-			v74_.numIterationsToApply = v74_.numIterations
+	for _, ikChain in pairs(ikChains) do
+		if ikChain.isDirty and ikChain.isActive then
+			ikChain.isDirty = false
+			IKUtil.updateIKChain(ikChain, ikChain.numIterationsToApply, ikChain.positionThreshold, translateAlignNodes)
+			ikChain.numIterationsToApply = ikChain.numIterations
 		end
 	end
 	if VehicleDebug ~= nil and VehicleDebug.state == VehicleDebug.DEBUG_ATTRIBUTES then
 		IKUtil.debugDrawChains(ikChains, true)
 	end
 end
-
--- Local values: _, ikChain
 function IKUtil.debugDrawChains(ikChains, drawLimits)
-	for _, v77_ in pairs(ikChains) do
-		if v77_.isActive then
-			IKUtil.debugDrawChain(v77_, drawLimits)
+	for _, ikChain in pairs(ikChains) do
+		if ikChain.isActive then
+			IKUtil.debugDrawChain(ikChain, drawLimits)
 		end
 	end
 end
-
--- Local values: x1, y1, z1, x2, y2, z2, x, y, z, dx, dy, dz, upX, upY, upZ
 function IKUtil.debugDrawChain(ikChain, drawLimits)
-	local v80_ = drawLimits == nil and true or drawLimits
-	ikChain.ikChainSolver:debugDraw(v80_)
-	local v81_, v82_, v83_ = getWorldTranslation(ikChain.nodes[1].node)
-	local v84_, v85_, v86_ = getWorldTranslation(ikChain.target)
-	drawDebugLine(v81_, v82_, v83_, 0, 1, 0, v84_, v85_, v86_, 0, 1, 0)
+	if drawLimits == nil then
+		drawLimits = true
+	end
+	ikChain.ikChainSolver:debugDraw(drawLimits)
+	local x1, y1, z1 = getWorldTranslation(ikChain.nodes[1].node)
+	local x2, y2, z2 = getWorldTranslation(ikChain.target)
+	drawDebugLine(x1, y1, z1, 0, 1, 0, x2, y2, z2, 0, 1, 0)
 	DebugGizmo.renderAtNode(ikChain.target, getName(ikChain.target), false, 0.1, false)
-	local v87_, v88_, v89_ = localToWorld(ikChain.target, 0, 0, 0)
-	local v90_, v91_, v92_ = localDirectionToWorld(ikChain.target, 0, 0, 1)
-	local v93_, v94_, v95_ = localDirectionToWorld(ikChain.target, 0, 1, 0)
-	DebugGizmo.renderAtPosition(v87_, v88_, v89_, v90_, v91_, v92_, v93_, v94_, v95_, "", false, 0.1, nil, Color.PRESETS.RED)
+	local x, y, z = localToWorld(ikChain.target, 0, 0, 0)
+	local dx, dy, dz = localDirectionToWorld(ikChain.target, 0, 0, 1)
+	local upX, upY, upZ = localDirectionToWorld(ikChain.target, 0, 1, 0)
+	DebugGizmo.renderAtPosition(x, y, z, dx, dy, dz, upX, upY, upZ, "", false, 0.1, nil, Color.PRESETS.RED)
 end
-
--- Local values: x, y, z, alignNodeData, alignNode
 function IKUtil.updateIKChain(ikChain, numIterations, positionThreshold, translateAlignNode)
-	local v100_, v101_, v102_ = getWorldTranslation(ikChain.target)
+	local x, y, z = getWorldTranslation(ikChain.target)
 	if ikChain.alignToTarget then
-		local v103_ = ikChain.nodes[#ikChain.nodes]
-		local v104_ = setTranslation
-		local v105_ = v103_.node
-		local v106_ = v103_.initTranslation
-		v104_(v105_, unpack(v106_))
+		local alignNodeData = ikChain.nodes[#ikChain.nodes]
+		setTranslation(alignNodeData.node, unpack(alignNodeData.initTranslation))
 	end
-	ikChain.ikChainSolver:solve(v100_, v101_, v102_, numIterations, positionThreshold)
+	ikChain.ikChainSolver:solve(x, y, z, numIterations, positionThreshold)
 	if ikChain.alignToTarget and ikChain.isActive then
-		local v107_ = ikChain.nodes[#ikChain.nodes].node
+		local alignNode = ikChain.nodes[#ikChain.nodes].node
 		if translateAlignNode then
-			setWorldTranslation(v107_, getWorldTranslation(ikChain.target))
+			setWorldTranslation(alignNode, getWorldTranslation(ikChain.target))
 		end
-		setWorldRotation(v107_, getWorldRotation(ikChain.target))
+		setWorldRotation(alignNode, getWorldRotation(ikChain.target))
 	end
 end
-
--- Local values: ikChain
 function IKUtil.setIKChainDirty(ikTable, id)
-	local v110_ = ikTable[id]
-	if v110_ ~= nil then
-		v110_.isDirty = true
+	local ikChain = ikTable[id]
+	if ikChain ~= nil then
+		ikChain.isDirty = true
 	end
 end
-
--- Local values: ikChain
 function IKUtil.setIKChainActive(ikTable, id)
-	local v113_ = ikTable[id]
-	if v113_ ~= nil then
-		v113_.isActive = true
+	local ikChain = ikTable[id]
+	if ikChain ~= nil then
+		ikChain.isActive = true
 	end
 end
-
--- Local values: ikChain
 function IKUtil.setIKChainInactive(ikTable, id)
-	local v116_ = ikTable[id]
-	if v116_ ~= nil then
-		v116_.isActive = false
+	local ikChain = ikTable[id]
+	if ikChain ~= nil then
+		ikChain.isActive = false
 	end
 end
-
--- Local values: ikChain, pose
 function IKUtil.setIKChainPose(ikTable, chainId, poseId)
-	local v120_ = ikTable[chainId]
-	if v120_ ~= nil and v120_.poses ~= nil then
-		local v121_ = v120_.poses[poseId]
-		if v121_ ~= nil and v121_.rotationNodes ~= nil then
-			IKUtil.setRotationNodes(v121_.rotationNodes)
+	local ikChain = ikTable[chainId]
+	if ikChain ~= nil and ikChain.poses ~= nil then
+		local pose = ikChain.poses[poseId]
+		if pose ~= nil and pose.rotationNodes ~= nil then
+			IKUtil.setRotationNodes(pose.rotationNodes)
 		end
 	end
 end
-
--- Local values: _, ikChain
 function IKUtil.getIKChainByTarget(ikTable, targetNode)
-	for _, v124_ in pairs(ikTable) do
-		if v124_.actualTargetNode == targetNode then
-			return v124_
+	for _, ikChain in pairs(ikTable) do
+		if ikChain.actualTargetNode == targetNode then
+			return ikChain
 		end
 	end
 	return nil
 end
-
--- Local values: i, key, ikName, targetNode, target, numRotatioNodes, j, nodeKey, id, rotation
 function IKUtil.loadIKChainTargets(xmlFile, baseName, rootNode, targets, i3dMappings)
-	local v130_ = 0
+	local i = 0
 	while true do
-		local v131_ = string.format(baseName .. ".target(%d)", v130_)
-		if not xmlFile:hasProperty(v131_) then
+		local key = string.format(baseName .. ".target(%d)", i)
+		if not xmlFile:hasProperty(key) then
 			break
 		end
-		local v132_ = xmlFile:getValue(v131_ .. "#ikChain")
-		local v133_ = xmlFile:getValue(v131_ .. "#targetNode", nil, rootNode, i3dMappings)
-		if v133_ == nil then
-			Logging.xmlWarning(xmlFile, "Missing targetNode in \'%s\' for chain \'%s\'", v131_, v132_)
-		elseif v132_ == nil then
-			Logging.xmlWarning(xmlFile, "Missing ikName for target \'%s\'", v131_)
+		local ikName = xmlFile:getValue(key .. "#ikChain")
+		local targetNode = xmlFile:getValue(key .. "#targetNode", nil, rootNode, i3dMappings)
+		if targetNode == nil then
+			Logging.xmlWarning(xmlFile, "Missing targetNode in '%s' for chain '%s'", key, ikName)
+		elseif ikName == nil then
+			Logging.xmlWarning(xmlFile, "Missing ikName for target '%s'", key)
 		else
-			local v134_ = {
-				["ikName"] = v132_,
-				["targetNode"] = v133_,
-				["targetOffset"] = xmlFile:getValue(v131_ .. "#targetOffset", nil, true),
-				["setDirty"] = xmlFile:getValue(v131_ .. "#setDirty", true)
-			}
-			local v135_ = xmlFile:getNumOfElements(v131_ .. ".rotationNode")
-			if v135_ > 0 then
-				v134_.rotationNodes = {}
-				for v136_ = 0, v135_ - 1 do
-					local v137_ = v131_ .. string.format(".rotationNode(%d)", v136_)
-					local v138_ = xmlFile:getValue(v137_ .. "#id")
-					if v138_ ~= nil then
-						local v139_ = xmlFile:getValue(v137_ .. "#rotation", "0 0 0", true)
-						local v140_ = v134_.rotationNodes
-						table.insert(v140_, {
-							["id"] = v138_,
-							["rotation"] = v139_
-						})
+			local target = {}
+			target.ikName = ikName
+			target.targetNode = targetNode
+			target.targetOffset = xmlFile:getValue(key .. "#targetOffset", nil, true)
+			target.setDirty = xmlFile:getValue(key .. "#setDirty", true)
+			local numRotatioNodes = xmlFile:getNumOfElements(key .. ".rotationNode")
+			if 0 < numRotatioNodes then
+				target.rotationNodes = {}
+				for j = 0, numRotatioNodes - 1 do
+					local nodeKey = key .. string.format(".rotationNode(%d)", j)
+					local id = xmlFile:getValue(nodeKey .. "#id")
+					if id == nil then
+						continue
 					end
+					local rotation = xmlFile:getValue(nodeKey .. "#rotation", "0 0 0", true)
+					table.insert(target.rotationNodes, { id = id, rotation = rotation })
 				end
 			end
-			v134_.poseId = xmlFile:getValue(v131_ .. "#poseId")
-			targets[v134_.ikName] = v134_
+			target.poseId = xmlFile:getValue(key .. "#poseId")
+			targets[target.ikName] = target
 		end
-		v130_ = v130_ + 1
+		i = i + 1
 	end
 end
-
 function IKUtil.registerIKChainTargetsXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. ".target(?)#ikChain", "IK chain name")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".target(?)#targetNode", "Target node")
@@ -344,7 +279,6 @@ function IKUtil.registerIKChainTargetsXMLPaths(schema, basePath)
 	schema:register(XMLValueType.VECTOR_ROT, basePath .. ".target(?).rotationNode(?)#rotation", "Rotation node rotation")
 	schema:register(XMLValueType.STRING, basePath .. ".target(?)#poseId", "Pose id")
 end
-
 function IKUtil.registerIKChainXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#id", "Chain identifier")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#target", "Target node")

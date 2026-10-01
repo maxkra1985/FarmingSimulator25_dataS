@@ -1,22 +1,18 @@
--- Local values: BalerCreateBaleEvent_mt
 BalerCreateBaleEvent = {}
 local BalerCreateBaleEvent_mt = Class(BalerCreateBaleEvent, Event)
 InitStaticEventClass(BalerCreateBaleEvent, "BalerCreateBaleEvent")
 function BalerCreateBaleEvent.emptyNew()
-	-- upvalues: (copy) BalerCreateBaleEvent_mt
-	return Event.new(BalerCreateBaleEvent_mt)
+	local self = Event.new(BalerCreateBaleEvent_mt)
+	return self
 end
-
--- Local values: self
 function BalerCreateBaleEvent.new(object, baleFillType, baleTime, baleServerId)
-	local v6_ = BalerCreateBaleEvent.emptyNew()
-	v6_.object = object
-	v6_.baleFillType = baleFillType
-	v6_.baleTime = baleTime
-	v6_.baleServerId = baleServerId
-	return v6_
+	local self = BalerCreateBaleEvent.emptyNew()
+	self.object = object
+	self.baleFillType = baleFillType
+	self.baleTime = baleTime
+	self.baleServerId = baleServerId
+	return self
 end
-
 function BalerCreateBaleEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.baleTime = streamReadFloat32(streamId)
@@ -26,7 +22,6 @@ function BalerCreateBaleEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function BalerCreateBaleEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	streamWriteFloat32(streamId, self.baleTime)
@@ -35,7 +30,6 @@ function BalerCreateBaleEvent:writeStream(streamId, connection)
 		NetworkUtil.writeNodeObjectId(streamId, self.baleServerId)
 	end
 end
-
 function BalerCreateBaleEvent:run(connection)
 	if self.object ~= nil and self.object:getIsSynchronized() then
 		self.object:createBale(self.baleFillType, nil, self.baleServerId)

@@ -1,4 +1,3 @@
--- Local values: FieldCourseField_mt
 FieldCourseField = {}
 local FieldCourseField_mt = Class(FieldCourseField)
 FieldCourseField.NUM_BOUNDARY_SYNC_BITS = 9
@@ -7,56 +6,42 @@ FieldCourseField.NUM_ISLANDS_SYNC_BITS = 5
 FieldCourseField.MAX_ISLAND_AMOUNT = 2 ^ FieldCourseField.NUM_ISLANDS_SYNC_BITS - 1
 FieldCourseField.MIN_BOUNDARY_LENGTH = 20
 FieldCourseField.THIGHT_CORNER_ANGLE = 2.443460952792061
-
--- Upvalues: FieldCourseField_mt
--- Local values: self
 function FieldCourseField.new(fieldCourseSettings)
-	-- upvalues: (copy) FieldCourseField_mt
-	local v3_ = FieldCourseField_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.fieldCourseSettings = fieldCourseSettings
-	local v5_ = fieldCourseSettings.segmentSplitAngle
-	v4_.segmentSplitAngle = math.rad(v5_)
-	v4_.boundaryPositions = {}
-	v4_.headlandBoundaries = {}
-	v4_.islandBoundaries = {}
-	v4_.state = FieldCourseDetectionState.BOUNDARY_DETECTION
-	v4_.boundaryCollisionCheckSegmentIndex = 0
-	v4_.boundaryCollisionCheckPending = false
-	v4_.boundaryCollisionCheckRequiresSegmentUpdate = false
-	v4_.ignoreIslands = false
-	v4_.ignoreCollisions = false
-	return v4_
+	local self = setmetatable({}, FieldCourseField_mt)
+	self.fieldCourseSettings = fieldCourseSettings
+	self.segmentSplitAngle = math.rad(fieldCourseSettings.segmentSplitAngle)
+	self.boundaryPositions = {}
+	self.headlandBoundaries = {}
+	self.islandBoundaries = {}
+	self.state = FieldCourseDetectionState.BOUNDARY_DETECTION
+	self.boundaryCollisionCheckSegmentIndex = 0
+	self.boundaryCollisionCheckPending = false
+	self.boundaryCollisionCheckRequiresSegmentUpdate = false
+	self.ignoreIslands = false
+	self.ignoreCollisions = false
+	return self
 end
-
--- Local values: field
 function FieldCourseField.generateAtPosition(x, z, fieldCourseSettings, callback, callbackTarget)
-	local v11_, v12_ = g_fieldCourseManager:roundToTerrainDetailPixel(x, z)
-	local v13_ = FieldCourseField.new(fieldCourseSettings)
-	v13_:detectAtPosition(v11_, v12_, callback, callbackTarget)
-	return v13_
+	x, z = g_fieldCourseManager:roundToTerrainDetailPixel(x, z)
+	local field = FieldCourseField.new(fieldCourseSettings)
+	field:detectAtPosition(x, z, callback, callbackTarget)
+	return field
 end
-
--- Local values: _, island
 function FieldCourseField:reset()
 	self.headlandBoundaries = {}
 	if self.islands ~= nil then
-		for _, v15_ in ipairs(self.islands) do
-			v15_.boundaries = {}
-			v15_.hasCutSegments = false
+		for _, island in ipairs(self.islands) do
+			island.boundaries = {}
+			island.hasCutSegments = false
 		end
 	end
 end
-
 function FieldCourseField:setIgnoreIslands(ignoreIslands)
 	self.ignoreIslands = ignoreIslands
 end
-
 function FieldCourseField:setIgnoreCollisions(ignoreCollisions)
 	self.ignoreCollisions = ignoreCollisions
 end
-
--- Local values: y, _, _, _, riceField, numVerts, i, x, z, x, z, inverted, i, i
 function FieldCourseField:detectAtPosition(x, z, callback, callbackTarget)
 	self.startX = x
 	self.startZ = z
@@ -64,225 +49,197 @@ function FieldCourseField:detectAtPosition(x, z, callback, callbackTarget)
 	self.callbackTarget = callbackTarget
 	self.terrainDetailResolution = g_currentMission.terrainSize / g_currentMission.terrainDetailMapSize
 	self.islandSamplePoints = {}
-	local v25_ = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
-	local _, _, _, v26_ = PlaceableRiceField.getRiceFieldAtPosition(x, v25_, z)
-	if v26_ == nil then
+	local y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+	local _, _, _, riceField = PlaceableRiceField.getRiceFieldAtPosition(x, y, z)
+	if riceField ~= nil then
+		local numVerts = riceField.polygon:getNumVertices()
+		for i = 1, numVerts do
+			local x, z = riceField.polygon:getVertex(i)
+			table.insert(self.boundaryPositions, { x, z })
+		end
+		local x, z = riceField.polygon:getVertex(1)
+		table.insert(self.boundaryPositions, { x, z })
+		if FieldCourseBoundary.getIsBoundaryLineInverted(self.boundaryPositions) then
+			local inverted = {}
+			for i = #self.boundaryPositions, 1, -1 do
+				table.insert(inverted, self.boundaryPositions[i])
+			end
+			self.boundaryPositions = inverted
+		end
+		for i = 1, #self.boundaryPositions do
+			self.boundaryPositions[i][1], self.boundaryPositions[i][2] = g_fieldCourseManager:roundToTerrainDetailPixel(self.boundaryPositions[i][1], self.boundaryPositions[i][2])
+		end
+		self.fieldRootBoundary = FieldCourseBoundary.createByBoundaryLine(self.boundaryPositions, self.segmentSplitAngle)
+		self.fieldRootBoundary = self.fieldRootBoundary:extend(0.75)
+		if self.fieldRootBoundary ~= nil then
+			self.boundaryPositions = table.clone(self.fieldRootBoundary.boundaryLine, math.huge)
+			self:finishTask(true)
+			return self
+		else
+			Logging.warning("Failed to create field boundary from rice field")
+			self:finishTask(false)
+			return nil
+		end
+	else
 		self.boundaryDetectionTask = BoundaryDetectionTask.new(x, z)
 		if self.boundaryDetectionTask == nil then
 			self:finishTask(false)
 			return nil
-		end
-		return
-	else
-		for v27_ = 1, v26_.polygon:getNumVertices() do
-			local v28_, v29_ = v26_.polygon:getVertex(v27_)
-			local v30_ = self.boundaryPositions
-			table.insert(v30_, { v28_, v29_ })
-		end
-		local v31_, v32_ = v26_.polygon:getVertex(1)
-		local v33_ = self.boundaryPositions
-		table.insert(v33_, { v31_, v32_ })
-		if FieldCourseBoundary.getIsBoundaryLineInverted(self.boundaryPositions) then
-			local v34_ = {}
-			for v35_ = #self.boundaryPositions, 1, -1 do
-				local v36_ = self.boundaryPositions[v35_]
-				table.insert(v34_, v36_)
-			end
-			self.boundaryPositions = v34_
-		end
-		for v37_ = 1, #self.boundaryPositions do
-			local v38_ = self.boundaryPositions[v37_]
-			local v39_ = self.boundaryPositions[v37_]
-			local v40_, v41_ = g_fieldCourseManager:roundToTerrainDetailPixel(self.boundaryPositions[v37_][1], self.boundaryPositions[v37_][2])
-			v38_[1] = v40_
-			v39_[2] = v41_
-		end
-		self.fieldRootBoundary = FieldCourseBoundary.createByBoundaryLine(self.boundaryPositions, self.segmentSplitAngle)
-		self.fieldRootBoundary = self.fieldRootBoundary:extend(0.75)
-		if self.fieldRootBoundary == nil then
-			Logging.warning("Failed to create field boundary from rice field")
-			self:finishTask(false)
-			return nil
 		else
-			self.boundaryPositions = table.clone(self.fieldRootBoundary.boundaryLine, math.huge)
-			self:finishTask(true)
-			return self
+			return
 		end
 	end
 end
-
--- Local values: boundaryPositionStr, i, i, island, islandKey, islandBoundaryPositionStr, j
 function FieldCourseField:saveToXML(xmlFile, key)
-	local v45_ = ""
-	for v46_ = 1, #self.boundaryPositions do
-		v45_ = v45_ .. string.format("%.2f %.2f ", self.boundaryPositions[v46_][1], self.boundaryPositions[v46_][2])
+	local boundaryPositionStr = ""
+	for i = 1, #self.boundaryPositions do
+		boundaryPositionStr = boundaryPositionStr .. string.format("%.2f %.2f ", self.boundaryPositions[i][1], self.boundaryPositions[i][2])
 	end
-	xmlFile:setValue(key .. ".boundary#positions", string.trim(v45_))
-	for v47_, v48_ in ipairs(self.islands) do
-		local v49_ = string.format("%s.island(%d)", key, v47_ - 1)
-		local v50_ = ""
-		for v51_ = 1, #v48_.rootBoundary.boundaryLine do
-			v50_ = v50_ .. string.format("%.2f %.2f ", v48_.rootBoundary.boundaryLine[v51_][1], v48_.rootBoundary.boundaryLine[v51_][2])
+	xmlFile:setValue(key .. ".boundary#positions", string.trim(boundaryPositionStr))
+	for i, island in ipairs(self.islands) do
+		local islandKey = string.format("%s.island(%d)", key, i - 1)
+		local islandBoundaryPositionStr = ""
+		for j = 1, #island.rootBoundary.boundaryLine do
+			islandBoundaryPositionStr = islandBoundaryPositionStr .. string.format("%.2f %.2f ", island.rootBoundary.boundaryLine[j][1], island.rootBoundary.boundaryLine[j][2])
 		end
-		xmlFile:setValue(v49_ .. "#positions", string.trim(v50_))
+		xmlFile:setValue(islandKey .. "#positions", string.trim(islandBoundaryPositionStr))
 	end
 end
-
--- Local values: boundaryStr, positions, i, x, z, _, key, islandBoundaryStr, island, boundaryLine, islandPositions, i, x, z
 function FieldCourseField:loadFromXML(xmlFile, key)
 	if not xmlFile:hasProperty(key) then
 		return false
 	end
-	local v55_ = xmlFile:getValue(key .. ".boundary#positions")
-	if v55_ == nil then
+	local boundaryStr = xmlFile:getValue(key .. ".boundary#positions")
+	if boundaryStr == nil then
 		return false
 	end
 	self.boundaryPositions = {}
-	local v56_ = string.split(v55_, " ")
-	for v57_ = 1, #v56_, 2 do
-		local v58_ = v56_[v57_]
-		local v59_ = tonumber(v58_)
-		local v60_ = v56_[v57_ + 1]
-		local v61_ = tonumber(v60_)
-		local v62_ = self.boundaryPositions
-		table.insert(v62_, { v59_, v61_ })
+	local positions = string.split(boundaryStr, " ")
+	for i = 1, #positions, 2 do
+		local x = tonumber(positions[i])
+		local z = tonumber(positions[i + 1])
+		table.insert(self.boundaryPositions, { x, z })
 	end
 	self.fieldRootBoundary = FieldCourseBoundary.createByBoundaryLine(self.boundaryPositions, self.segmentSplitAngle)
 	if self.fieldRootBoundary == nil then
-		Logging.xmlWarning(xmlFile, "Failed to create fieldRootBoundary from \'%s\' in \'%s\'", v55_, key)
+		Logging.xmlWarning(xmlFile, "Failed to create fieldRootBoundary from '%s' in '%s'", boundaryStr, key)
 		return false
-	end
-	self.islands = {}
-	for _, v63_ in xmlFile:iterator(key .. ".island") do
-		local v64_ = xmlFile:getValue(v63_ .. "#positions")
-		if v64_ == nil then
-			break
+	else
+		self.islands = {}
+		for _, key in xmlFile:iterator(key .. ".island") do
+			local islandBoundaryStr = xmlFile:getValue(key .. "#positions")
+			if islandBoundaryStr == nil then
+				break
+			end
+			local island = {}
+			island.boundaries = {}
+			island.hasCutSegments = false
+			local boundaryLine = {}
+			local islandPositions = string.split(islandBoundaryStr, " ")
+			for i = 1, #islandPositions, 2 do
+				local x = tonumber(islandPositions[i])
+				local z = tonumber(islandPositions[i + 1])
+				table.insert(boundaryLine, { x, z })
+			end
+			island.rootBoundary = FieldCourseBoundary.createByBoundaryLine(boundaryLine, self.segmentSplitAngle)
+			table.insert(self.islands, island)
 		end
-		local v65_ = string.split(v64_, " ")
-		local v66_ = {}
-		local v67_ = {
-			["boundaries"] = {},
-			["hasCutSegments"] = false
-		}
-		for v68_ = 1, #v65_, 2 do
-			local v69_ = v65_[v68_]
-			local v70_ = tonumber(v69_)
-			local v71_ = v65_[v68_ + 1]
-			local v72_ = { v70_, (tonumber(v71_)) }
-			table.insert(v66_, v72_)
-		end
-		v67_.rootBoundary = FieldCourseBoundary.createByBoundaryLine(v66_, self.segmentSplitAngle)
-		local v73_ = self.islands
-		table.insert(v73_, v67_)
+		self.state = FieldCourseDetectionState.FINISHED
+		return true
 	end
-	self.state = FieldCourseDetectionState.FINISHED
-	return true
 end
-
--- Local values: i, _, island, i
 function FieldCourseField:writeStream(streamId, connection)
 	streamWriteUIntN(streamId, #self.boundaryPositions, FieldCourseField.NUM_BOUNDARY_SYNC_BITS)
-	for v76_ = 1, #self.boundaryPositions do
-		g_fieldCourseManager:writeTerrainDetailPixel(streamId, self.boundaryPositions[v76_][1], self.boundaryPositions[v76_][2])
+	for i = 1, #self.boundaryPositions do
+		g_fieldCourseManager:writeTerrainDetailPixel(streamId, self.boundaryPositions[i][1], self.boundaryPositions[i][2])
 	end
 	streamWriteUIntN(streamId, #self.islands, FieldCourseField.NUM_ISLANDS_SYNC_BITS)
-	for _, v77_ in ipairs(self.islands) do
-		streamWriteUIntN(streamId, #v77_.rootBoundary.boundaryLine, FieldCourseField.NUM_BOUNDARY_SYNC_BITS)
-		for v78_ = 1, #v77_.rootBoundary.boundaryLine do
-			g_fieldCourseManager:writeTerrainDetailPixel(streamId, v77_.rootBoundary.boundaryLine[v78_][1], v77_.rootBoundary.boundaryLine[v78_][2])
+	for _, island in ipairs(self.islands) do
+		streamWriteUIntN(streamId, #island.rootBoundary.boundaryLine, FieldCourseField.NUM_BOUNDARY_SYNC_BITS)
+		for i = 1, #island.rootBoundary.boundaryLine do
+			g_fieldCourseManager:writeTerrainDetailPixel(streamId, island.rootBoundary.boundaryLine[i][1], island.rootBoundary.boundaryLine[i][2])
 		end
 	end
 end
-
--- Local values: numBoundaryPositions, i, x, z, numIslands, i, island, boundaryLine, j, x, z
 function FieldCourseField:readStream(streamId, connection)
 	self.boundaryPositions = {}
-	for _ = 1, streamReadUIntN(streamId, FieldCourseField.NUM_BOUNDARY_SYNC_BITS) do
-		local v81_, v82_ = g_fieldCourseManager:readTerrainDetailPixel(streamId)
-		local v83_ = self.boundaryPositions
-		table.insert(v83_, { v81_, v82_ })
+	local numBoundaryPositions = streamReadUIntN(streamId, FieldCourseField.NUM_BOUNDARY_SYNC_BITS)
+	for i = 1, numBoundaryPositions do
+		local x, z = g_fieldCourseManager:readTerrainDetailPixel(streamId)
+		table.insert(self.boundaryPositions, { x, z })
 	end
 	self.fieldRootBoundary = FieldCourseBoundary.createByBoundaryLine(self.boundaryPositions, self.segmentSplitAngle)
 	self.islands = {}
-	for _ = 1, streamReadUIntN(streamId, FieldCourseField.NUM_ISLANDS_SYNC_BITS) do
-		local v84_ = {}
-		local v85_ = {
-			["boundaries"] = {},
-			["hasCutSegments"] = false
-		}
-		for _ = 1, streamReadUIntN(streamId, FieldCourseField.NUM_BOUNDARY_SYNC_BITS) do
-			local v86_, v87_ = g_fieldCourseManager:readTerrainDetailPixel(streamId)
-			table.insert(v84_, { v86_, v87_ })
+	local numIslands = streamReadUIntN(streamId, FieldCourseField.NUM_ISLANDS_SYNC_BITS)
+	for i = 1, numIslands do
+		local island = {}
+		island.boundaries = {}
+		island.hasCutSegments = false
+		local boundaryLine = {}
+		numBoundaryPositions = streamReadUIntN(streamId, FieldCourseField.NUM_BOUNDARY_SYNC_BITS)
+		for j = 1, numBoundaryPositions do
+			local x, z = g_fieldCourseManager:readTerrainDetailPixel(streamId)
+			table.insert(boundaryLine, { x, z })
 		end
-		v85_.rootBoundary = FieldCourseBoundary.createByBoundaryLine(v84_, self.segmentSplitAngle)
-		local v88_ = self.islands
-		table.insert(v88_, v85_)
+		island.rootBoundary = FieldCourseBoundary.createByBoundaryLine(boundaryLine, self.segmentSplitAngle)
+		table.insert(self.islands, island)
 	end
 	self.state = FieldCourseDetectionState.FINISHED
 end
-
--- Local values: boundaryPositions, i, boundaryPositions, maxZ, i, length, i, x1, z1, x2, z2, fieldRootBoundary, islandPositions, invertedPositions, i, i, sx, sz, isValid, _, island, boundary, offsetBoundary, boundaryLine, i
 function FieldCourseField:update(dt, frameBudget)
 	if self.state == FieldCourseDetectionState.BOUNDARY_DETECTION then
 		if self.boundaryDetectionTask ~= nil and not self.boundaryDetectionTask:update(dt, frameBudget) then
-			if #self.boundaryDetectionTask.boundaryPositions > 0 then
+			if 0 < #self.boundaryDetectionTask.boundaryPositions then
 				self.state = FieldCourseDetectionState.BOUNDARY_SIMPLIFICATION1
 			else
 				self:finishTask(false)
 			end
 		end
 	elseif self.state == FieldCourseDetectionState.BOUNDARY_SIMPLIFICATION1 then
-		local v92_ = self.boundaryDetectionTask.boundaryPositions
-		FieldCourseUtil.pointAveragePositions(v92_)
-		for v93_ = #v92_, 1, -2 do
-			table.remove(v92_, v93_)
+		local boundaryPositions = self.boundaryDetectionTask.boundaryPositions
+		FieldCourseUtil.pointAveragePositions(boundaryPositions)
+		for i = #boundaryPositions, 1, -2 do
+			table.remove(boundaryPositions, i)
 		end
-		local v94_ = v92_[1]
-		local v95_ = v92_[1]
-		local v96_ = v92_[#v92_][1]
-		local v97_ = v92_[#v92_][2]
-		v94_[1] = v96_
-		v95_[2] = v97_
-		FieldCourseUtil.semiConvexSimplification(v92_, 10)
-		FieldCourseUtil.douglasPeucker(v92_, 0.25)
+		boundaryPositions[1][1] = boundaryPositions[#boundaryPositions][1]
+		boundaryPositions[1][2] = boundaryPositions[#boundaryPositions][2]
+		FieldCourseUtil.semiConvexSimplification(boundaryPositions, 10)
+		FieldCourseUtil.douglasPeucker(boundaryPositions, 0.25)
 		self.state = FieldCourseDetectionState.BOUNDARY_SIMPLIFICATION2
 	elseif self.state == FieldCourseDetectionState.BOUNDARY_SIMPLIFICATION2 then
-		local v98_ = self.boundaryDetectionTask.boundaryPositions
-		if FieldCourseUtil.getIsPointInsideBoundary(self.startX, self.startZ, v98_) then
-			for v99_ = 1, #v98_ do
-				local v100_ = v98_[v99_]
-				local v101_ = v98_[v99_]
-				local v102_, v103_ = g_fieldCourseManager:roundToTerrainDetailPixel(v98_[v99_][1], v98_[v99_][2])
-				v100_[1] = v102_
-				v101_[2] = v103_
-			end
-			FieldCourseUtil.visvalingamWhyattSimplification(v98_, 5)
-			FieldCourseUtil.douglasPeucker(v98_, 0.5)
-			local v104_ = 0
-			for v105_ = 1, #v98_ - 1 do
-				local v106_ = v98_[v105_][1]
-				local v107_ = v98_[v105_][2]
-				local v108_ = v98_[v105_ + 1][1]
-				local v109_ = v98_[v105_ + 1][2]
-				v104_ = v104_ + MathUtil.vector2Length(v106_ - v108_, v107_ - v109_)
-				if FieldCourseField.MIN_BOUNDARY_LENGTH <= v104_ then
-					break
-				end
-			end
-			if v104_ < FieldCourseField.MIN_BOUNDARY_LENGTH then
-				self:finishTask(false)
-			else
-				self.boundaryPositions = v98_
-				self.state = FieldCourseDetectionState.BOUNDARY_SEGMENT_CREATION
-			end
-			self.boundaryDetectionTask = nil
-		else
-			local v110_ = self.boundaryDetectionTask:getMaxZ()
-			self.boundaryDetectionTask = BoundaryDetectionTask.new(self.startX, v110_ + self.terrainDetailResolution)
+		local boundaryPositions = self.boundaryDetectionTask.boundaryPositions
+		if not FieldCourseUtil.getIsPointInsideBoundary(self.startX, self.startZ, boundaryPositions) then
+			local maxZ = self.boundaryDetectionTask:getMaxZ()
+			self.boundaryDetectionTask = BoundaryDetectionTask.new(self.startX, maxZ + self.terrainDetailResolution)
 			if self.boundaryDetectionTask == nil then
 				self:finishTask(false)
 			else
 				self.state = FieldCourseDetectionState.BOUNDARY_DETECTION
+			end
+		else
+			for i = 1, #boundaryPositions do
+				boundaryPositions[i][1], boundaryPositions[i][2] = g_fieldCourseManager:roundToTerrainDetailPixel(boundaryPositions[i][1], boundaryPositions[i][2])
+			end
+			FieldCourseUtil.visvalingamWhyattSimplification(boundaryPositions, 5)
+			FieldCourseUtil.douglasPeucker(boundaryPositions, 0.5)
+			local length = 0
+			for i = 1, #boundaryPositions - 1 do
+				local x1 = boundaryPositions[i][1]
+				local z1 = boundaryPositions[i][2]
+				local x2 = boundaryPositions[i + 1][1]
+				local z2 = boundaryPositions[i + 1][2]
+				length = length + MathUtil.vector2Length(x1 - x2, z1 - z2)
+				if not (FieldCourseField.MIN_BOUNDARY_LENGTH <= length) then
+					continue
+				end
+				if length < FieldCourseField.MIN_BOUNDARY_LENGTH then
+					self:finishTask(false)
+				else
+					self.boundaryPositions = boundaryPositions
+					self.state = FieldCourseDetectionState.BOUNDARY_SEGMENT_CREATION
+				end
+				self.boundaryDetectionTask = nil
+				return self.state ~= FieldCourseDetectionState.FINISHED
 			end
 		end
 	elseif self.state == FieldCourseDetectionState.BOUNDARY_SEGMENT_CREATION then
@@ -294,11 +251,11 @@ function FieldCourseField:update(dt, frameBudget)
 		end
 	elseif self.state == FieldCourseDetectionState.BOUNDARY_SHRINK then
 		self.originalBoundary = self.fieldRootBoundary
-		local v111_ = self.fieldRootBoundary:extend(2.5)
-		if v111_ == nil then
+		local fieldRootBoundary = self.fieldRootBoundary:extend(2.5)
+		if fieldRootBoundary == nil then
 			self.state = FieldCourseDetectionState.BOUNDARY_COLLISION_CHECK
 		else
-			self.fieldRootBoundary = v111_
+			self.fieldRootBoundary = fieldRootBoundary
 			self.state = FieldCourseDetectionState.BOUNDARY_EXTENSION
 		end
 	elseif self.state == FieldCourseDetectionState.BOUNDARY_EXTENSION then
@@ -320,15 +277,10 @@ function FieldCourseField:update(dt, frameBudget)
 	elseif self.state == FieldCourseDetectionState.BOUNDARY_COLLISION_CHECK then
 		if not self.boundaryCollisionCheckPending then
 			self.boundaryCollisionCheckPending = true
-			self.fieldRootBoundary:segmentCollisionOffset(5, 1, function(_)
-				-- upvalues: (copy) self
-				local v112_ = self.fieldRootBoundary.boundaryLine
-				for v113_ = 1, #v112_ do
-					local v114_ = v112_[v113_]
-					local v115_ = v112_[v113_]
-					local v116_, v117_ = g_fieldCourseManager:roundToTerrainDetailPixel(v112_[v113_][1], v112_[v113_][2])
-					v114_[1] = v116_
-					v115_[2] = v117_
+			self.fieldRootBoundary:segmentCollisionOffset(5, 1, function(segmentsAdjusted)
+				local boundaryLine = self.fieldRootBoundary.boundaryLine
+				for i = 1, #boundaryLine do
+					boundaryLine[i][1], boundaryLine[i][2] = g_fieldCourseManager:roundToTerrainDetailPixel(boundaryLine[i][1], boundaryLine[i][2])
 				end
 				self.fieldRootBoundary:regenerateSegments()
 				self.boundaryPositions = self.fieldRootBoundary.boundaryLine
@@ -342,49 +294,46 @@ function FieldCourseField:update(dt, frameBudget)
 		end
 	elseif self.state == FieldCourseDetectionState.ISLAND_DETECTION then
 		if self.curIslandDetectionTask ~= nil and not self.curIslandDetectionTask:update(dt, frameBudget) then
-			local v118_ = self.curIslandDetectionTask.boundaryPositions
-			FieldCourseUtil.pointAveragePositions(v118_)
-			local v119_ = {}
-			for v120_ = #v118_, 1, -1 do
-				local v121_ = v118_[v120_]
-				table.insert(v119_, v121_)
+			local islandPositions = self.curIslandDetectionTask.boundaryPositions
+			FieldCourseUtil.pointAveragePositions(islandPositions)
+			local invertedPositions = {}
+			for i = #islandPositions, 1, -1 do
+				table.insert(invertedPositions, islandPositions[i])
 			end
-			FieldCourseUtil.semiConvexSimplification(v119_, 15)
-			local v122_ = {}
-			for v123_ = #v119_, 1, -1 do
-				local v124_ = v119_[v123_]
-				table.insert(v122_, v124_)
+			FieldCourseUtil.semiConvexSimplification(invertedPositions, 15)
+			islandPositions = {}
+			for i = #invertedPositions, 1, -1 do
+				table.insert(islandPositions, invertedPositions[i])
 			end
-			FieldCourseUtil.douglasPeucker(v122_, 0.25)
-			FieldCourseUtil.visvalingamWhyattSimplification(v122_, 5)
-			local v125_ = v122_[1][1]
-			local v126_ = v122_[1][2]
-			local v127_ = true
-			for _, v128_ in ipairs(self.islandBoundaries) do
-				if FieldCourseUtil.getAreBoundariesColliding(v128_.boundaryLine, v122_) or FieldCourseUtil.getIsPointInsideBoundary(v125_, v126_, v128_.boundaryLine) then
-					v127_ = false
+			FieldCourseUtil.douglasPeucker(islandPositions, 0.25)
+			FieldCourseUtil.visvalingamWhyattSimplification(islandPositions, 5)
+			local sx = islandPositions[1][1]
+			local sz = islandPositions[1][2]
+			local isValid = true
+			for _, island in ipairs(self.islandBoundaries) do
+				if FieldCourseUtil.getAreBoundariesColliding(island.boundaryLine, islandPositions) then
+					isValid = false
+					break
+				end
+				if FieldCourseUtil.getIsPointInsideBoundary(sx, sz, island.boundaryLine) then
+					isValid = false
 					break
 				end
 			end
-			if v127_ then
-				local v129_ = FieldCourseBoundary.createByBoundaryLine(v122_, self.segmentSplitAngle)
-				if v129_ ~= nil then
-					local v130_ = v129_:extend(-0.25)
-					if v130_ == nil then
+			if isValid then
+				local boundary = FieldCourseBoundary.createByBoundaryLine(islandPositions, self.segmentSplitAngle)
+				if boundary ~= nil then
+					local offsetBoundary = boundary:extend(-0.25)
+					if offsetBoundary == nil then
 						Logging.error("FieldCourseField: Failed to extend island boundary")
 					end
-					local v131_ = v130_ or v129_
-					local v132_ = v131_.boundaryLine
-					for v133_ = 1, #v132_ do
-						local v134_ = v132_[v133_]
-						local v135_ = v132_[v133_]
-						local v136_, v137_ = g_fieldCourseManager:roundToTerrainDetailPixel(v132_[v133_][1], v132_[v133_][2])
-						v134_[1] = v136_
-						v135_[2] = v137_
+					boundary = offsetBoundary or boundary
+					local boundaryLine = boundary.boundaryLine
+					for i = 1, #boundaryLine do
+						boundaryLine[i][1], boundaryLine[i][2] = g_fieldCourseManager:roundToTerrainDetailPixel(boundaryLine[i][1], boundaryLine[i][2])
 					end
-					v131_:regenerateSegments()
-					local v138_ = self.islandBoundaries
-					table.insert(v138_, v131_)
+					boundary:regenerateSegments()
+					table.insert(self.islandBoundaries, boundary)
 				end
 			end
 			self.curIslandDetectionTask = nil
@@ -392,204 +341,167 @@ function FieldCourseField:update(dt, frameBudget)
 				self:finishTask(true)
 			end
 		end
-		if (#self.islandSamplePoints > 0 or self.islandSamplePointsDetected == false) and not self:continueIslandDetection(frameBudget) then
+		if (0 < #self.islandSamplePoints or self.islandSamplePointsDetected == false) and not self:continueIslandDetection(frameBudget) then
 			self:finishTask(true)
 		end
 	end
-	return self.state ~= FieldCourseDetectionState.FINISHED
 end
-
--- Local values: _, island
 function FieldCourseField:setProtectedBoundary(protectedBoundarySize)
 	self.protectedBoundary = self.fieldRootBoundary:extend(protectedBoundarySize) or self.fieldRootBoundary
-	for _, v141_ in ipairs(self.islands) do
-		v141_.protectedBoundary = v141_.rootBoundary:extend(-protectedBoundarySize) or v141_.rootBoundary
+	for _, island in ipairs(self.islands) do
+		island.protectedBoundary = island.rootBoundary:extend(-protectedBoundarySize) or island.rootBoundary
 	end
 	return self.protectedBoundary
 end
-
--- Local values: _, islandBoundary, island
 function FieldCourseField:finishTask(success)
 	self.state = FieldCourseDetectionState.FINISHED
 	if success then
 		self.islands = {}
-		for _, v144_ in ipairs(self.islandBoundaries) do
-			local v145_ = self.islands
-			table.insert(v145_, {
-				["rootBoundary"] = v144_,
-				["boundaries"] = {},
-				["hasCutSegments"] = false
-			})
+		for _, islandBoundary in ipairs(self.islandBoundaries) do
+			local island = {}
+			island.rootBoundary = islandBoundary
+			island.boundaries = {}
+			island.hasCutSegments = false
+			table.insert(self.islands, island)
 		end
 		self.islandBoundaries = nil
 	end
-	if self.callbackTarget == nil then
+	if self.callbackTarget ~= nil then
+		self.callback(self.callbackTarget, self, success)
+	else
 		if self.callback ~= nil then
 			self.callback(self, success)
 		end
-	else
-		self.callback(self.callbackTarget, self, success)
 	end
 end
-
--- Local values: boundingBox, i
 function FieldCourseField:generateBoundingBoxFromBoundary(boundary)
 	if #boundary == 0 then
-		return {
-			0,
-			0,
-			0,
-			0
-		}
+		return { 0, 0, 0, 0 }
+	else
+		local boundingBox = { math.huge, -math.huge, math.huge, -math.huge }
+		for i = 1, #boundary do
+			boundingBox[1] = math.min(boundingBox[1], boundary[i][1])
+			boundingBox[2] = math.max(boundingBox[2], boundary[i][1])
+			boundingBox[3] = math.min(boundingBox[3], boundary[i][2])
+			boundingBox[4] = math.max(boundingBox[4], boundary[i][2])
+		end
+		return boundingBox
 	end
-	local v147_ = {
-		math.huge,
-		-math.huge,
-		math.huge,
-		-math.huge
-	}
-	for v148_ = 1, #boundary do
-		local v149_ = v147_[1]
-		local v150_ = boundary[v148_][1]
-		v147_[1] = math.min(v149_, v150_)
-		local v151_ = v147_[2]
-		local v152_ = boundary[v148_][1]
-		v147_[2] = math.max(v151_, v152_)
-		local v153_ = v147_[3]
-		local v154_ = boundary[v148_][2]
-		v147_[3] = math.min(v153_, v154_)
-		local v155_ = v147_[4]
-		local v156_ = boundary[v148_][2]
-		v147_[4] = math.max(v155_, v156_)
-	end
-	return v147_
 end
-
--- Local values: groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels
 function FieldCourseField:islandDetection(boundary)
 	self.islandSamplePoints = {}
 	self.islandSamplePointsDetected = false
 	self.islandSamplePointsBoundingBox = self:generateBoundingBoxFromBoundary(boundary)
 	self.islandSamplePointsLastX = self.islandSamplePointsBoundingBox[1]
-	local v159_, v160_, v161_ = g_currentMission.fieldGroundSystem:getDensityMapData(FieldDensityMap.GROUND_TYPE)
-	if v159_ == nil then
-		self:finishTask(true)
-	else
-		self.islandSampleModifier = DensityMapModifier.new(v159_, v160_, v161_, g_terrainNode)
-		self.islandSampleFilter = DensityMapFilter.new(v159_, v160_, v161_)
+	local groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels = g_currentMission.fieldGroundSystem:getDensityMapData(FieldDensityMap.GROUND_TYPE)
+	if groundTypeMapId ~= nil then
+		self.islandSampleModifier = DensityMapModifier.new(groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels, g_terrainNode)
+		self.islandSampleFilter = DensityMapFilter.new(groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels)
 		self.islandSampleFilter:setValueCompareParams(DensityValueCompareType.GREATER, 0)
 		if not self:continueIslandDetection(0) then
 			self:finishTask(true)
 		end
+	else
+		self:finishTask(true)
 	end
 end
-
--- Local values: startTime, terrainDetailId, boundingBox, rasterSize, subRasterSize, x, z, x1, z1, x2, z2, x3, z3, _, numPixels, totalPixels, x4, z4, lastState, foundPosition, subX, subZ, delta, p, x, z, isValid, _, island
 function FieldCourseField:continueIslandDetection(frameBudget)
 	if not self.islandSamplePointsDetected then
-		local v164_ = getTimeSec()
-		local v165_ = g_currentMission.terrainDetailId
-		local v166_ = self.islandSamplePointsBoundingBox
-		for v167_ = self.islandSamplePointsLastX, v166_[2], 15 do
-			for v168_ = v166_[3], v166_[4], 15 do
-				local v169_ = v167_ + 15
-				local v170_ = v168_ + 15
-				self.islandSampleModifier:setParallelogramWorldCoords(v167_, v168_, v169_, v168_, v167_, v170_, DensityCoordType.POINT_POINT_POINT)
-				local _, v171_, v172_ = self.islandSampleModifier:executeGet(self.islandSampleFilter)
-				local v173_
-				if v171_ < v172_ then
-					local v174_ = v167_ + 15
-					local v175_ = v168_ + 15
-					if FieldCourseUtil.getIsPointInsideBoundary(v167_, v168_, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(v169_, v168_, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(v167_, v170_, self.boundaryPositions) and FieldCourseUtil.getIsPointInsideBoundary(v174_, v175_, self.boundaryPositions))) then
-						v173_ = v168_
-						local v176_ = false
-						local v177_ = false
-						for v178_ = v167_, v169_ do
-							for v179_ = v168_, v170_ do
-								if getDensityAtWorldPos(v165_, v178_, 0, v179_) ~= 0 ~= v177_ then
-									v177_ = not v177_
-									if not v177_ and (FieldCourseUtil.getIsPointInsideBoundary(v178_, v179_, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(v178_ + 2, v179_ + 2, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(v178_ - 2, v179_ - 2, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(v178_ - 2, v179_ + 2, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(v178_ + 2, v179_ - 2, self.boundaryPositions) and FieldCourseUtil.getDistanceToBoundary(v178_, v179_, self.boundaryPositions) > 3))))) then
-										local v180_ = self.islandSamplePoints
-										table.insert(v180_, { v178_, v179_ })
-										v176_ = true
+		local startTime = getTimeSec()
+		local terrainDetailId = g_currentMission.terrainDetailId
+		local boundingBox = self.islandSamplePointsBoundingBox
+		local rasterSize = 15
+		local subRasterSize = 1
+		for x = self.islandSamplePointsLastX, boundingBox[2], 15 do
+			for z = boundingBox[3], boundingBox[4], 15 do
+				local x1 = x
+				local z1 = z
+				local x2 = x + 15
+				local z2 = z
+				local x3 = x
+				local z3 = z + 15
+				self.islandSampleModifier:setParallelogramWorldCoords(x1, z1, x2, z2, x3, z3, DensityCoordType.POINT_POINT_POINT)
+				local _, numPixels, totalPixels = self.islandSampleModifier:executeGet(self.islandSampleFilter)
+				if numPixels < totalPixels then
+					local x4 = x + 15
+					local z4 = z + 15
+					if FieldCourseUtil.getIsPointInsideBoundary(x1, z1, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(x2, z2, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(x3, z3, self.boundaryPositions) and FieldCourseUtil.getIsPointInsideBoundary(x4, z4, self.boundaryPositions))) then
+						local lastState = false
+						local foundPosition = false
+						for subX = x1, x2 do
+							for subZ = z1, z3 do
+								if getDensityAtWorldPos(terrainDetailId, subX, 0, subZ) ~= 0 ~= lastState then
+									lastState = not lastState
+									if not lastState and (FieldCourseUtil.getIsPointInsideBoundary(subX, subZ, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(subX + 2, subZ + 2, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(subX - 2, subZ - 2, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(subX - 2, subZ + 2, self.boundaryPositions) and (FieldCourseUtil.getIsPointInsideBoundary(subX + 2, subZ - 2, self.boundaryPositions) and 3 < FieldCourseUtil.getDistanceToBoundary(subX, subZ, self.boundaryPositions)))))) then
+										foundPosition = true
+										table.insert(self.islandSamplePoints, { subX, subZ })
 									end
 								end
-								if v176_ then
-									break
+								if not foundPosition then
+									continue
 								end
 							end
-							if v176_ then
-								break
-							end
 						end
-					else
-						v173_ = v168_
 					end
-				else
-					v173_ = v168_
 				end
 			end
-			self.islandSamplePointsLastX = v167_ + 15
-			if frameBudget < getTimeSec() - v164_ then
+			self.islandSamplePointsLastX = x + 15
+			local delta = getTimeSec() - startTime
+			if frameBudget < delta then
 				break
 			end
 		end
-		if self.islandSamplePointsLastX >= v166_[2] then
+		if boundingBox[2] <= self.islandSamplePointsLastX then
 			self.islandSamplePointsDetected = true
 			if #self.islandSamplePoints <= 0 then
 				return false
 			end
 		end
 		return true
-	end
-	if self.curIslandDetectionTask == nil then
-		while #self.islandSamplePoints > 0 do
-			local v181_ = self.islandSamplePoints[#self.islandSamplePoints]
-			local v182_ = v181_[1]
-			local v183_ = v181_[2]
-			self.islandSamplePoints[#self.islandSamplePoints] = nil
-			local v184_ = true
-			for _, v185_ in ipairs(self.islandBoundaries) do
-				if FieldCourseUtil.getIsPointInsideBoundary(v182_, v183_, v185_.boundaryLine) then
-					v184_ = false
+	else
+		if self.curIslandDetectionTask == nil then
+			while 0 < #self.islandSamplePoints do
+				local p = self.islandSamplePoints[#self.islandSamplePoints]
+				local x = p[1]
+				local z = p[2]
+				self.islandSamplePoints[#self.islandSamplePoints] = nil
+				local isValid = true
+				for _, island in ipairs(self.islandBoundaries) do
+					if FieldCourseUtil.getIsPointInsideBoundary(x, z, island.boundaryLine) then
+						isValid = false
+						break
+					end
+				end
+				if isValid then
+					self.curIslandDetectionTask = BoundaryDetectionTaskInsideOut.new(x, z)
 					break
 				end
 			end
-			if v184_ then
-				self.curIslandDetectionTask = BoundaryDetectionTaskInsideOut.new(v182_, v183_)
-			end
 		end
+		return 0 < #self.islandSamplePoints or self.curIslandDetectionTask ~= nil
 	end
-	return #self.islandSamplePoints > 0 and true or self.curIslandDetectionTask ~= nil
 end
-
 function FieldCourseField:getIsPointInsideBoundary(x, z)
-	return FieldCourseUtil.getIsPointInsideBoundary(x, z, self.boundaryPositions) or (FieldCourseUtil.getIsPointInsideBoundary(x + 2, z + 2, self.boundaryPositions) or FieldCourseUtil.getIsPointInsideBoundary(x - 2, z - 2, self.boundaryPositions) or (FieldCourseUtil.getIsPointInsideBoundary(x + 2, z - 2, self.boundaryPositions) or FieldCourseUtil.getIsPointInsideBoundary(x - 2, z + 2, self.boundaryPositions)))
+	return FieldCourseUtil.getIsPointInsideBoundary(x, z, self.boundaryPositions) or FieldCourseUtil.getIsPointInsideBoundary(x + 2, z + 2, self.boundaryPositions) or FieldCourseUtil.getIsPointInsideBoundary(x - 2, z - 2, self.boundaryPositions) or FieldCourseUtil.getIsPointInsideBoundary(x + 2, z - 2, self.boundaryPositions) or FieldCourseUtil.getIsPointInsideBoundary(x - 2, z + 2, self.boundaryPositions)
 end
-
--- Local values: numPositions, minX, maxX, minZ, maxZ, _, pos
 function FieldCourseField:getBoundingBox()
-	if #self.boundaryPositions == 0 then
+	local numPositions = #self.boundaryPositions
+	if numPositions == 0 then
 		return 0, 0, 0, 0
+	else
+		local minX = math.huge
+		local maxX = -math.huge
+		local minZ = math.huge
+		local maxZ = -math.huge
+		for _, pos in ipairs(self.boundaryPositions) do
+			minX = math.min(minX, pos[1])
+			maxX = math.max(maxX, pos[1])
+			minZ = math.min(minZ, pos[2])
+			maxZ = math.max(maxZ, pos[2])
+		end
+		return minX, maxX, minZ, maxZ
 	end
-	local v190_ = math.huge
-	local v191_ = -math.huge
-	local v192_ = math.huge
-	local v193_ = -math.huge
-	for _, v194_ in ipairs(self.boundaryPositions) do
-		local v195_ = v194_[1]
-		v190_ = math.min(v190_, v195_)
-		local v196_ = v194_[1]
-		v191_ = math.max(v191_, v196_)
-		local v197_ = v194_[2]
-		v192_ = math.min(v192_, v197_)
-		local v198_ = v194_[2]
-		v193_ = math.max(v193_, v198_)
-	end
-	return v190_, v191_, v192_, v193_
 end
-
--- Local values: _, island
 function FieldCourseField:draw()
 	if self.fieldRootBoundary ~= nil then
 		self.fieldRootBoundary:draw(0, 0, 1, 0.2)
@@ -598,43 +510,35 @@ function FieldCourseField:draw()
 		self.protectedBoundary:draw(1, 0, 0, 0.2)
 	end
 	if self.islands ~= nil then
-		for _, v200_ in ipairs(self.islands) do
-			if v200_.rootBoundary ~= nil then
-				v200_.rootBoundary:draw(0, 0, 1, 0.2)
+		for _, island in ipairs(self.islands) do
+			if island.rootBoundary ~= nil then
+				island.rootBoundary:draw(0, 0, 1, 0.2)
 			end
-			if v200_.protectedBoundary ~= nil then
-				v200_.protectedBoundary:draw(1, 0, 0, 0.2)
+			if island.protectedBoundary == nil then
+				continue
 			end
+			island.protectedBoundary:draw(1, 0, 0, 0.2)
 		end
 	end
 end
-
--- Local values: i, x1, z1, x2, z2, x3, z3, dir1X, dir1Z, dir2X, dir2Z, angle
 function FieldCourseField.thightCornerExtension(boundaryPositions)
-	for v202_ = 1, #boundaryPositions - 2 do
-		local v203_ = boundaryPositions[v202_][1]
-		local v204_ = boundaryPositions[v202_][2]
-		local v205_ = boundaryPositions[v202_ + 1][1]
-		local v206_ = boundaryPositions[v202_ + 1][2]
-		local v207_ = boundaryPositions[v202_ + 2][1]
-		local v208_ = boundaryPositions[v202_ + 2][2]
-		local v209_, v210_ = MathUtil.vector2Normalize(v205_ - v203_, v206_ - v204_)
-		local v211_, v212_ = MathUtil.vector2Normalize(v205_ - v207_, v206_ - v208_)
-		local v213_ = MathUtil.dotProduct(v209_, 0, v210_, v211_, 0, v212_)
-		if 3.141592653589793 - math.acos(v213_) > FieldCourseField.THIGHT_CORNER_ANGLE then
-			local v214_ = boundaryPositions[v202_ + 1]
-			local v215_ = boundaryPositions[v202_ + 1]
-			local v216_ = v205_ + v209_ * 0.1
-			local v217_ = v206_ + v210_ * 0.1
-			v214_[1] = v216_
-			v215_[2] = v217_
-			local v218_ = v202_ + 1
-			local v219_ = { v205_ + v211_ * 0.1, v206_ + v212_ * 0.1 }
-			table.insert(boundaryPositions, v218_, v219_)
+	for i = 1, #boundaryPositions - 2 do
+		local x1 = boundaryPositions[i][1]
+		local z1 = boundaryPositions[i][2]
+		local x2 = boundaryPositions[i + 1][1]
+		local z2 = boundaryPositions[i + 1][2]
+		local x3 = boundaryPositions[i + 2][1]
+		local z3 = boundaryPositions[i + 2][2]
+		local dir1X, dir1Z = MathUtil.vector2Normalize(x2 - x1, z2 - z1)
+		local dir2X, dir2Z = MathUtil.vector2Normalize(x2 - x3, z2 - z3)
+		local angle = 3.141592653589793 - math.acos(MathUtil.dotProduct(dir1X, 0, dir1Z, dir2X, 0, dir2Z))
+		if FieldCourseField.THIGHT_CORNER_ANGLE < angle then
+			boundaryPositions[i + 1][1] = x2 + dir1X * 0.1
+			boundaryPositions[i + 1][2] = z2 + dir1Z * 0.1
+			table.insert(boundaryPositions, i + 1, { x2 + dir2X * 0.1, z2 + dir2Z * 0.1 })
 		end
 	end
 end
-
 function FieldCourseField.registerXMLPaths(schema, path)
 	schema:register(XMLValueType.STRING, path .. ".boundary#positions", "List of boundary positions (x z)")
 	schema:register(XMLValueType.STRING, path .. ".island(?)#positions", "List of boundary positions (x z)")

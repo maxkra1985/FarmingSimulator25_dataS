@@ -1,14 +1,9 @@
--- Local values: AIMessageErrorNotReachable_mt
 AIMessageErrorNotReachable = {}
 local AIMessageErrorNotReachable_mt = Class(AIMessageErrorNotReachable, AIMessage)
-
--- Upvalues: AIMessageErrorNotReachable_mt
--- Local values: self
 function AIMessageErrorNotReachable.new(customMt)
-	-- upvalues: (copy) AIMessageErrorNotReachable_mt
-	return AIMessage.new(customMt or AIMessageErrorNotReachable_mt)
+	local self = AIMessage.new(customMt or AIMessageErrorNotReachable_mt)
+	return self
 end
-
 function AIMessageErrorNotReachable:getI18NText()
 	return g_i18n:getText("ai_messageErrorNotReachable")
 end

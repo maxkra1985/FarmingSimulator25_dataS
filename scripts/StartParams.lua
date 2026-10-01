@@ -1,51 +1,36 @@
--- Local values: params
 StartParams = {}
 local params = {}
-
--- Upvalues: params
--- Local values: argValues, currentKey, _, arg
 function StartParams.init(args)
-	-- upvalues: (copy) params
-	local v3_ = args:split(" ")
-	local v4_ = "exe"
-	for _, v5_ in pairs(v3_) do
-		if v5_:startsWith("-") then
-			v4_ = string.sub(v5_, 2)
-			params[v4_] = ""
+	local argValues = args:split(" ")
+	local currentKey = "exe"
+	for _, arg in pairs(argValues) do
+		if arg:startsWith("-") then
+			currentKey = string.sub(arg, 2)
+			params[currentKey] = ""
 		else
-			if params[v4_] == nil then
-				params[v4_] = ""
+			if params[currentKey] == nil then
+				params[currentKey] = ""
 			end
-			if params[v4_] ~= "" then
-				params[v4_] = params[v4_] .. " "
+			if params[currentKey] ~= "" then
+				params[currentKey] = params[currentKey] .. " "
 			end
-			params[v4_] = params[v4_] .. v5_
+			params[currentKey] = params[currentKey] .. arg
 		end
 	end
 	StartParams.printAll()
 end
-
--- Upvalues: params
 function StartParams.getValue(name)
-	-- upvalues: (copy) params
 	return params[name]
 end
-
--- Upvalues: params
 function StartParams.getIsSet(name)
-	-- upvalues: (copy) params
 	return params[name] ~= nil
 end
-
--- Upvalues: params
 function StartParams.setValue(name, value)
-	-- upvalues: (copy) params
 	params[name] = value
 end
 function StartParams.printAll()
-	-- upvalues: (copy) params
 	log("Used Start Parameters:")
-	for v10_, v11_ in pairs(params) do
-		log("  ", v10_, v11_)
+	for name, value in pairs(params) do
+		log("  ", name, value)
 	end
 end

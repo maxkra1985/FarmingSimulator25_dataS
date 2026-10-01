@@ -1,105 +1,35 @@
--- Local values: FarmStats_mt
 FarmStats = {}
 local FarmStats_mt = Class(FarmStats)
-FarmStats.STAT_NAMES = {
-	"fuelUsage",
-	"seedUsage",
-	"sprayUsage",
-	"traveledDistance",
-	"workedHectares",
-	"cultivatedHectares",
-	"plowedHectares",
-	"sownHectares",
-	"sprayedHectares",
-	"threshedHectares",
-	"weededHectares",
-	"harvestedGrapes",
-	"harvestedOlives",
-	"workedTime",
-	"cultivatedTime",
-	"plowedTime",
-	"sownTime",
-	"sprayedTime",
-	"threshedTime",
-	"weededTime",
-	"baleCount",
-	"breedCowsCount",
-	"breedPigsCount",
-	"breedSheepCount",
-	"breedChickenCount",
-	"breedHorsesCount",
-	"breedGoatsCount",
-	"breedWaterBuffaloCount",
-	"revenue",
-	"expenses",
-	"playTime",
-	"workersHired",
-	"storedBales",
-	"storedPallets",
-	"missionCount",
-	"plantedTreeCount",
-	"cutTreeCount",
-	"woodTonsSold",
-	"treeTypesCut",
-	"windTurbineCount",
-	"petDogCount",
-	"tractorDistance",
-	"carDistance",
-	"truckDistance",
-	"horseDistance",
-	"horseJumpCount",
-	"repairVehicleCount",
-	"repaintVehicleCount",
-	"soldCottonBales",
-	"wrappedBales"
-}
-FarmStats.HERO_STAT_NAMES = {
-	"playTime",
-	"moneyEarned",
-	"traveledDistance",
-	"completedMissions",
-	"threshedHectares"
-}
+FarmStats.STAT_NAMES = { "fuelUsage", "seedUsage", "sprayUsage", "traveledDistance", "workedHectares", "cultivatedHectares", "plowedHectares", "sownHectares", "sprayedHectares", "threshedHectares", "weededHectares", "harvestedGrapes", "harvestedOlives", "workedTime", "cultivatedTime", "plowedTime", "sownTime", "sprayedTime", "threshedTime", "weededTime", "baleCount", "breedCowsCount", "breedPigsCount", "breedSheepCount", "breedChickenCount", "breedHorsesCount", "breedGoatsCount", "breedWaterBuffaloCount", "revenue", "expenses", "playTime", "workersHired", "storedBales", "storedPallets", "missionCount", "plantedTreeCount", "cutTreeCount", "woodTonsSold", "treeTypesCut", "windTurbineCount", "petDogCount", "tractorDistance", "carDistance", "truckDistance", "horseDistance", "horseJumpCount", "repairVehicleCount", "repaintVehicleCount", "soldCottonBales", "wrappedBales" }
+FarmStats.HERO_STAT_NAMES = { "playTime", "moneyEarned", "traveledDistance", "completedMissions", "threshedHectares" }
 function FarmStats.new()
-	-- upvalues: (copy) FarmStats_mt
-	local v2_ = FarmStats_mt
-	local v3_ = setmetatable({}, v2_)
-	v3_.statistics = {}
-	for _, v4_ in pairs(FarmStats.STAT_NAMES) do
-		v3_.statistics[v4_] = {
-			["session"] = 0,
-			["total"] = 0
-		}
+	local self = setmetatable({}, FarmStats_mt)
+	self.statistics = {}
+	for _, statName in pairs(FarmStats.STAT_NAMES) do
+		self.statistics[statName] = { session = 0, total = 0 }
 	end
-	v3_.statistics.treeTypesCut = "000000"
-	v3_.finances = FinanceStats.new()
-	v3_.financesHistory = {}
-	v3_.heroStats = {}
-	for _, v5_ in pairs(FarmStats.HERO_STAT_NAMES) do
-		v3_.heroStats[v5_] = {
-			["id"] = nil,
-			["value"] = nil,
-			["accumValue"] = 0
-		}
+	self.statistics.treeTypesCut = "000000"
+	self.finances = FinanceStats.new()
+	self.financesHistory = {}
+	self.heroStats = {}
+	for _, heroStat in pairs(FarmStats.HERO_STAT_NAMES) do
+		self.heroStats[heroStat] = { id = nil, value = nil, accumValue = 0 }
 	end
-	v3_.heroStatsLoaded = false
-	v3_.moneyEarnedHeroAccum = 0
-	v3_.nextHeroAccumUpdate = 0
+	self.heroStatsLoaded = false
+	self.moneyEarnedHeroAccum = 0
+	self.nextHeroAccumUpdate = 0
 	if g_currentMission:getIsServer() then
-		g_currentMission:addUpdateable(v3_)
+		g_currentMission:addUpdateable(self)
 	end
-	v3_.financesVersionCounter = 0
-	v3_.financesHistoryVersionCounter = 0
-	v3_.financesHistoryVersionCounterLocal = 0
-	v3_.updatePlayTime = true
-	return v3_
+	self.financesVersionCounter = 0
+	self.financesHistoryVersionCounter = 0
+	self.financesHistoryVersionCounterLocal = 0
+	self.updatePlayTime = true
+	return self
 end
-
 function FarmStats:delete()
 	g_currentMission:removeUpdateable(self)
 end
-
--- Local values: toSave, numHistoricItems
 function FarmStats:saveToXMLFile(xmlFile, key)
 	xmlFile:setFloat(key .. ".statistics.traveledDistance", self.statistics.traveledDistance.total)
 	xmlFile:setFloat(key .. ".statistics.fuelUsage", self.statistics.fuelUsage.total)
@@ -145,109 +75,99 @@ function FarmStats:saveToXMLFile(xmlFile, key)
 	xmlFile:setFloat(key .. ".statistics.carDistance", self.statistics.carDistance.total)
 	xmlFile:setFloat(key .. ".statistics.truckDistance", self.statistics.truckDistance.total)
 	xmlFile:setFloat(key .. ".statistics.horseDistance", self.statistics.horseDistance.total)
-	local v10_ = { self.finances }
-	local v11_ = #self.financesHistory
-	if v11_ > 3 then
-		local v12_ = self.financesHistory[v11_ - 3]
-		table.insert(v10_, v12_)
+	local toSave = { self.finances }
+	local numHistoricItems = #self.financesHistory
+	if 3 < numHistoricItems then
+		table.insert(toSave, self.financesHistory[numHistoricItems - 3])
 	end
-	if v11_ > 2 then
-		local v13_ = self.financesHistory[v11_ - 2]
-		table.insert(v10_, v13_)
+	if 2 < numHistoricItems then
+		table.insert(toSave, self.financesHistory[numHistoricItems - 2])
 	end
-	if v11_ > 1 then
-		local v14_ = self.financesHistory[v11_ - 1]
-		table.insert(v10_, v14_)
+	if 1 < numHistoricItems then
+		table.insert(toSave, self.financesHistory[numHistoricItems - 1])
 	end
-	if v11_ > 0 then
-		local v15_ = self.financesHistory[v11_ - 0]
-		table.insert(v10_, v15_)
+	if 0 < numHistoricItems then
+		table.insert(toSave, self.financesHistory[numHistoricItems - 0])
 	end
-	xmlFile:setSortedTable(key .. ".finances.stats", v10_, function(p16_, p17_, p18_)
-		-- upvalues: (copy) xmlFile
-		xmlFile:setInt(p16_ .. "#day", p18_ - 1)
-		p17_:saveToXMLFile(xmlFile, p16_)
+	xmlFile:setSortedTable(key .. ".finances.stats", toSave, function(statsKey, finances, day)
+		xmlFile:setInt(statsKey .. "#day", day - 1)
+		finances:saveToXMLFile(xmlFile, statsKey)
 	end)
 end
-
--- Local values: key
 function FarmStats:loadFromXMLFile(xmlFile, rootKey)
-	local v22_ = rootKey .. ".statistics"
-	self.statistics.traveledDistance.total = xmlFile:getFloat(v22_ .. ".traveledDistance", 0)
-	self.statistics.fuelUsage.total = xmlFile:getFloat(v22_ .. ".fuelUsage", 0)
-	self.statistics.seedUsage.total = xmlFile:getFloat(v22_ .. ".seedUsage", 0)
-	self.statistics.sprayUsage.total = xmlFile:getFloat(v22_ .. ".sprayUsage", 0)
-	self.statistics.workedHectares.total = xmlFile:getFloat(v22_ .. ".workedHectares", 0)
-	self.statistics.cultivatedHectares.total = xmlFile:getFloat(v22_ .. ".cultivatedHectares", 0)
-	self.statistics.sownHectares.total = xmlFile:getFloat(v22_ .. ".sownHectares", 0)
-	self.statistics.sprayedHectares.total = xmlFile:getFloat(v22_ .. ".sprayedHectares", 0)
-	self.statistics.threshedHectares.total = xmlFile:getFloat(v22_ .. ".threshedHectares", 0)
-	self.statistics.weededHectares.total = xmlFile:getFloat(v22_ .. ".weededHectares", 0)
-	self.statistics.plowedHectares.total = xmlFile:getFloat(v22_ .. ".plowedHectares", 0)
-	self.statistics.harvestedGrapes.total = xmlFile:getFloat(v22_ .. ".harvestedGrapes", 0)
-	self.statistics.harvestedOlives.total = xmlFile:getFloat(v22_ .. ".harvestedOlives", 0)
-	self.statistics.workedTime.total = xmlFile:getFloat(v22_ .. ".workedTime", 0)
-	self.statistics.cultivatedTime.total = xmlFile:getFloat(v22_ .. ".cultivatedTime", 0)
-	self.statistics.sownTime.total = xmlFile:getFloat(v22_ .. ".sownTime", 0)
-	self.statistics.sprayedTime.total = xmlFile:getFloat(v22_ .. ".sprayedTime", 0)
-	self.statistics.threshedTime.total = xmlFile:getFloat(v22_ .. ".threshedTime", 0)
-	self.statistics.weededTime.total = xmlFile:getFloat(v22_ .. ".weededTime", 0)
-	self.statistics.plowedTime.total = xmlFile:getFloat(v22_ .. ".plowedTime", 0)
-	self.statistics.baleCount.total = xmlFile:getInt(v22_ .. ".baleCount", 0)
-	self.statistics.breedCowsCount.total = xmlFile:getInt(v22_ .. ".breedCowsCount", 0)
-	self.statistics.breedSheepCount.total = xmlFile:getInt(v22_ .. ".breedSheepCount", 0)
-	self.statistics.breedPigsCount.total = xmlFile:getInt(v22_ .. ".breedPigsCount", 0)
-	self.statistics.breedChickenCount.total = xmlFile:getInt(v22_ .. ".breedChickenCount", 0)
-	self.statistics.breedHorsesCount.total = xmlFile:getInt(v22_ .. ".breedHorsesCount", 0)
-	self.statistics.breedGoatsCount.total = xmlFile:getInt(v22_ .. ".breedGoatsCount", 0)
-	self.statistics.breedWaterBuffaloCount.total = xmlFile:getInt(v22_ .. ".breedWaterBuffaloCount", 0)
-	self.statistics.missionCount.total = xmlFile:getInt(v22_ .. ".missionCount", 0)
-	self.statistics.plantedTreeCount.total = xmlFile:getInt(v22_ .. ".plantedTreeCount", 0)
-	self.statistics.cutTreeCount.total = xmlFile:getInt(v22_ .. ".cutTreeCount", 0)
-	self.statistics.woodTonsSold.total = xmlFile:getFloat(v22_ .. ".woodTonsSold", 0)
-	self.statistics.treeTypesCut = xmlFile:getString(v22_ .. ".treeTypesCut", "000000")
-	self.statistics.revenue.total = xmlFile:getFloat(v22_ .. ".revenue", 0)
-	self.statistics.expenses.total = xmlFile:getFloat(v22_ .. ".expenses", 0)
-	self.statistics.playTime.total = xmlFile:getFloat(v22_ .. ".playTime", 0)
-	self.statistics.petDogCount.total = xmlFile:getInt(v22_ .. ".petDogCount", 0)
-	self.statistics.repaintVehicleCount.total = xmlFile:getInt(v22_ .. ".repaintVehicleCount", 0)
-	self.statistics.repairVehicleCount.total = xmlFile:getInt(v22_ .. ".repairVehicleCount", 0)
-	self.statistics.tractorDistance.total = xmlFile:getFloat(v22_ .. ".tractorDistance", 0)
-	self.statistics.carDistance.total = xmlFile:getFloat(v22_ .. ".carDistance", 0)
-	self.statistics.truckDistance.total = xmlFile:getFloat(v22_ .. ".truckDistance", 0)
-	self.statistics.horseDistance.total = xmlFile:getFloat(v22_ .. ".horseDistance", 0)
-	self.statistics.horseJumpCount.total = xmlFile:getInt(v22_ .. ".horseJumpCount", 0)
-	self.statistics.soldCottonBales.total = xmlFile:getInt(v22_ .. ".soldCottonBales", 0)
-	self.statistics.wrappedBales.total = xmlFile:getInt(v22_ .. ".wrappedBales", 0)
-	xmlFile:iterate(rootKey .. ".finances.stats", function(p23_, p24_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v25_ = FinanceStats.new()
-		v25_:loadFromXMLFile(xmlFile, p24_)
-		if p23_ == 1 then
-			self.finances = v25_
+	local key = rootKey .. ".statistics"
+	self.statistics.traveledDistance.total = xmlFile:getFloat(key .. ".traveledDistance", 0)
+	self.statistics.fuelUsage.total = xmlFile:getFloat(key .. ".fuelUsage", 0)
+	self.statistics.seedUsage.total = xmlFile:getFloat(key .. ".seedUsage", 0)
+	self.statistics.sprayUsage.total = xmlFile:getFloat(key .. ".sprayUsage", 0)
+	self.statistics.workedHectares.total = xmlFile:getFloat(key .. ".workedHectares", 0)
+	self.statistics.cultivatedHectares.total = xmlFile:getFloat(key .. ".cultivatedHectares", 0)
+	self.statistics.sownHectares.total = xmlFile:getFloat(key .. ".sownHectares", 0)
+	self.statistics.sprayedHectares.total = xmlFile:getFloat(key .. ".sprayedHectares", 0)
+	self.statistics.threshedHectares.total = xmlFile:getFloat(key .. ".threshedHectares", 0)
+	self.statistics.weededHectares.total = xmlFile:getFloat(key .. ".weededHectares", 0)
+	self.statistics.plowedHectares.total = xmlFile:getFloat(key .. ".plowedHectares", 0)
+	self.statistics.harvestedGrapes.total = xmlFile:getFloat(key .. ".harvestedGrapes", 0)
+	self.statistics.harvestedOlives.total = xmlFile:getFloat(key .. ".harvestedOlives", 0)
+	self.statistics.workedTime.total = xmlFile:getFloat(key .. ".workedTime", 0)
+	self.statistics.cultivatedTime.total = xmlFile:getFloat(key .. ".cultivatedTime", 0)
+	self.statistics.sownTime.total = xmlFile:getFloat(key .. ".sownTime", 0)
+	self.statistics.sprayedTime.total = xmlFile:getFloat(key .. ".sprayedTime", 0)
+	self.statistics.threshedTime.total = xmlFile:getFloat(key .. ".threshedTime", 0)
+	self.statistics.weededTime.total = xmlFile:getFloat(key .. ".weededTime", 0)
+	self.statistics.plowedTime.total = xmlFile:getFloat(key .. ".plowedTime", 0)
+	self.statistics.baleCount.total = xmlFile:getInt(key .. ".baleCount", 0)
+	self.statistics.breedCowsCount.total = xmlFile:getInt(key .. ".breedCowsCount", 0)
+	self.statistics.breedSheepCount.total = xmlFile:getInt(key .. ".breedSheepCount", 0)
+	self.statistics.breedPigsCount.total = xmlFile:getInt(key .. ".breedPigsCount", 0)
+	self.statistics.breedChickenCount.total = xmlFile:getInt(key .. ".breedChickenCount", 0)
+	self.statistics.breedHorsesCount.total = xmlFile:getInt(key .. ".breedHorsesCount", 0)
+	self.statistics.breedGoatsCount.total = xmlFile:getInt(key .. ".breedGoatsCount", 0)
+	self.statistics.breedWaterBuffaloCount.total = xmlFile:getInt(key .. ".breedWaterBuffaloCount", 0)
+	self.statistics.missionCount.total = xmlFile:getInt(key .. ".missionCount", 0)
+	self.statistics.plantedTreeCount.total = xmlFile:getInt(key .. ".plantedTreeCount", 0)
+	self.statistics.cutTreeCount.total = xmlFile:getInt(key .. ".cutTreeCount", 0)
+	self.statistics.woodTonsSold.total = xmlFile:getFloat(key .. ".woodTonsSold", 0)
+	self.statistics.treeTypesCut = xmlFile:getString(key .. ".treeTypesCut", "000000")
+	self.statistics.revenue.total = xmlFile:getFloat(key .. ".revenue", 0)
+	self.statistics.expenses.total = xmlFile:getFloat(key .. ".expenses", 0)
+	self.statistics.playTime.total = xmlFile:getFloat(key .. ".playTime", 0)
+	self.statistics.petDogCount.total = xmlFile:getInt(key .. ".petDogCount", 0)
+	self.statistics.repaintVehicleCount.total = xmlFile:getInt(key .. ".repaintVehicleCount", 0)
+	self.statistics.repairVehicleCount.total = xmlFile:getInt(key .. ".repairVehicleCount", 0)
+	self.statistics.tractorDistance.total = xmlFile:getFloat(key .. ".tractorDistance", 0)
+	self.statistics.carDistance.total = xmlFile:getFloat(key .. ".carDistance", 0)
+	self.statistics.truckDistance.total = xmlFile:getFloat(key .. ".truckDistance", 0)
+	self.statistics.horseDistance.total = xmlFile:getFloat(key .. ".horseDistance", 0)
+	self.statistics.horseJumpCount.total = xmlFile:getInt(key .. ".horseJumpCount", 0)
+	self.statistics.soldCottonBales.total = xmlFile:getInt(key .. ".soldCottonBales", 0)
+	self.statistics.wrappedBales.total = xmlFile:getInt(key .. ".wrappedBales", 0)
+	xmlFile:iterate(rootKey .. ".finances.stats", function(day, financeKey)
+		local finances = FinanceStats.new()
+		finances:loadFromXMLFile(xmlFile, financeKey)
+		if day == 1 then
+			self.finances = finances
 		else
-			local v26_ = self.financesHistory
-			table.insert(v26_, v25_)
+			table.insert(self.financesHistory, finances)
 		end
 	end)
 end
-
--- Local values: heroStatName, heroStat
 function FarmStats:update(dt)
 	if GS_PLATFORM_XBOX then
 		if not self.heroStatsLoaded and areStatsAvailable() then
 			self.heroStatsLoaded = true
-			for v29_, v30_ in pairs(self.heroStats) do
-				v30_.id = statsGetIndex(v29_)
-				v30_.value = statsGet(v30_.id)
-				if v30_.accumValue ~= 0 then
-					v30_.value = v30_.value + v30_.accumValue
-					statsSet(v30_.id, v30_.value)
-					v30_.accumValue = 0
+			for heroStatName, heroStat in pairs(self.heroStats) do
+				heroStat.id = statsGetIndex(heroStatName)
+				heroStat.value = statsGet(heroStat.id)
+				if heroStat.accumValue == 0 then
+					continue
 				end
+				heroStat.value = heroStat.value + heroStat.accumValue
+				statsSet(heroStat.id, heroStat.value)
+				heroStat.accumValue = 0
 			end
 		end
-		if g_time >= self.nextHeroAccumUpdate and self.moneyEarnedHeroAccum > 0 then
+		if self.nextHeroAccumUpdate <= g_time and 0 < self.moneyEarnedHeroAccum then
 			self:addValueToHeroStat("moneyEarned", self.moneyEarnedHeroAccum)
 			self.moneyEarnedHeroAccum = 0
 			self.nextHeroAccumUpdate = g_time + 10000
@@ -255,156 +175,125 @@ function FarmStats:update(dt)
 	end
 	self:updateStats("playTime", dt / 60000, self.updatePlayTime)
 end
-
--- Local values: heroStat
 function FarmStats:addValueToHeroStat(name, value)
-	local v34_ = self.heroStats[name]
+	local heroStat = self.heroStats[name]
 	if self.heroStatsLoaded then
-		v34_.value = v34_.value + value
-		statsSet(v34_.id, v34_.value)
+		heroStat.value = heroStat.value + value
+		statsSet(heroStat.id, heroStat.value)
 	else
-		v34_.accumValue = v34_.accumValue + value
+		heroStat.accumValue = heroStat.accumValue + value
 	end
 end
-
 function FarmStats:changeFinanceStats(amount, statType)
 	if statType ~= nil and self.finances[statType] ~= nil then
 		self.finances[statType] = self.finances[statType] + amount
 		if g_currentMission:getIsServer() then
 			self.financesVersionCounter = self.financesVersionCounter + 1
-			if self.financesVersionCounter > 999999 then
+			if 999999 < self.financesVersionCounter then
 				self.financesVersionCounter = 0
 			end
 		end
 	end
 end
-
 function FarmStats:archiveFinances()
 	if g_currentMission:getIsServer() then
-		local v39_ = self.financesHistory
-		local v40_ = self.finances
-		table.insert(v39_, v40_)
+		table.insert(self.financesHistory, self.finances)
 		self.finances = FinanceStats.new()
 		self.financesVersionCounter = self.financesVersionCounter + 1
-		if self.financesVersionCounter > 999999 then
+		if 999999 < self.financesVersionCounter then
 			self.financesVersionCounter = 0
 		end
 		self.financesHistoryVersionCounter = self.financesHistoryVersionCounter + 1
-		if self.financesHistoryVersionCounter > 127 then
+		if 127 < self.financesHistoryVersionCounter then
 			self.financesHistoryVersionCounter = 0
 		end
 	end
 end
-
 function FarmStats:getCompletedMissions()
 	return self:getTotalValue("missionCount")
 end
-
 function FarmStats:getCompletedMissionsSession()
 	return self:getSessionValue("missionCount")
 end
-
--- Local values: total, session
 function FarmStats:updateStats(statName, delta, ignoreHeroStats)
-	local v47_ = nil
-	local v48_ = nil
+	local total = nil
+	local session = nil
 	if delta == nil then
 		printCallstack()
 	end
-	if self.statistics[statName] == nil then
-		printError("Error: Invalid statistic \'" .. statName .. "\'")
-	else
+	if self.statistics[statName] ~= nil then
 		self.statistics[statName].session = self.statistics[statName].session + delta
-		v48_ = self.statistics[statName].session
+		session = self.statistics[statName].session
 		if self.statistics[statName].total ~= nil then
 			self.statistics[statName].total = self.statistics[statName].total + delta
-			v47_ = self.statistics[statName].total
+			total = self.statistics[statName].total
 		end
+	else
+		printError("Error: Invalid statistic '" .. statName .. "'")
 	end
 	if ignoreHeroStats == nil or not ignoreHeroStats then
 		self:addHeroStat(statName, delta)
 	end
-	return v47_, v48_
+	return total, session
 end
-
 function FarmStats:addHeroStat(statName, delta)
-	if self.heroStats[statName] == nil then
-		if statName == "missionCount" then
-			self:addValueToHeroStat("completedMissions", delta)
+	if self.heroStats[statName] ~= nil then
+		if statName == "moneyEarned" then
+			self.moneyEarnedHeroAccum = self.moneyEarnedHeroAccum + delta
+			return
+		else
+			self:addValueToHeroStat(statName, delta)
+			return
 		end
-		return
-	elseif statName == "moneyEarned" then
-		self.moneyEarnedHeroAccum = self.moneyEarnedHeroAccum + delta
-	else
-		self:addValueToHeroStat(statName, delta)
+	end
+	if statName == "missionCount" then
+		self:addValueToHeroStat("completedMissions", delta)
 	end
 end
-
 function FarmStats:getTotalValue(statName)
-	if self.statistics[statName] == nil then
-		return nil
-	else
+	if self.statistics[statName] ~= nil then
 		return self.statistics[statName].total
-	end
-end
-
-function FarmStats:getSessionValue(statName)
-	if self.statistics[statName] == nil then
-		return nil
 	else
-		return self.statistics[statName].session
+		return nil
 	end
 end
-
--- Local values: trees, i, treeName, treeMatch, _, subTreeName, stats
+function FarmStats:getSessionValue(statName)
+	if self.statistics[statName] ~= nil then
+		return self.statistics[statName].session
+	else
+		return nil
+	end
+end
 function FarmStats:updateTreeTypesCut(splitTypeName)
-	for v58_, v59_ in ipairs({
-		"oak",
-		"birch",
-		"maple",
-		{ "spruce", "pine" },
-		"poplar",
-		"ash"
-	}) do
-		local v60_ = false
-		if type(v59_) == "table" then
-			for _, v61_ in pairs(v59_) do
-				if splitTypeName == v61_ then
-					v60_ = true
+	local trees = { "oak", "birch", "maple", { "spruce", "pine" }, "poplar", "ash" }
+	for i, treeName in ipairs(trees) do
+		local treeMatch = false
+		if type(treeName) == "table" then
+			for _, subTreeName in pairs(treeName) do
+				if splitTypeName == subTreeName then
+					treeMatch = true
 				end
 			end
-		elseif splitTypeName == v59_ then
-			v60_ = true
+		elseif splitTypeName == treeName then
+			treeMatch = true
 		end
-		if v60_ then
-			local v62_ = self.statistics
-			local v63_ = v62_.treeTypesCut
-			local v64_ = v58_ - 1
-			local v65_ = string.sub(v63_, 1, v64_)
-			local v66_ = v62_.treeTypesCut
-			local v67_ = v58_ + 1
-			local v68_ = v62_.treeTypesCut
-			local v69_ = string.len(v68_)
-			v62_.treeTypesCut = v65_ .. "1" .. string.sub(v66_, v67_, v69_)
+		if treeMatch then
+			local stats = self.statistics
+			stats.treeTypesCut = string.sub(stats.treeTypesCut, 1, i - 1) .. "1" .. string.sub(stats.treeTypesCut, i + 1, string.len(stats.treeTypesCut))
 		end
 	end
 end
-
 function FarmStats:updateMissionDone()
 	self:updateStats("missionCount", 1)
 	self:updateJobAchievements()
 end
-
--- Local values: missionCount
 function FarmStats:updateJobAchievements()
-	local v72_ = self:getTotalValue("missionCount")
-	g_achievementManager:tryUnlock("MissionFirst", v72_)
-	g_achievementManager:tryUnlock("Mission", v72_)
+	local missionCount = self:getTotalValue("missionCount")
+	g_achievementManager:tryUnlock("MissionFirst", missionCount)
+	g_achievementManager:tryUnlock("Mission", missionCount)
 end
-
--- Local values: year
 function FarmStats:getStatisticData()
-	if not (g_currentMission.missionDynamicInfo.isMultiplayer and g_currentMission.missionDynamicInfo.isClient) then
+	if not g_currentMission.missionDynamicInfo.isMultiplayer or not g_currentMission.missionDynamicInfo.isClient then
 		self:addStatistic("workedHectares", g_i18n:getAreaUnit(false), g_i18n:getArea(self:getSessionValue("workedHectares")), g_i18n:getArea(self:getTotalValue("workedHectares")), "%.2f")
 		self:addStatistic("cultivatedHectares", g_i18n:getAreaUnit(false), g_i18n:getArea(self:getSessionValue("cultivatedHectares")), g_i18n:getArea(self:getTotalValue("cultivatedHectares")), "%.2f")
 		self:addStatistic("plowedHectares", g_i18n:getAreaUnit(false), g_i18n:getArea(self:getSessionValue("plowedHectares")), g_i18n:getArea(self:getTotalValue("plowedHectares")), "%.2f")
@@ -432,11 +321,11 @@ function FarmStats:getStatisticData()
 			self:addStatistic("missionCount", nil, self:getSessionValue("missionCount"), self:getTotalValue("missionCount"), "%d")
 		end
 		self:addStatistic("playTime", nil, Utils.formatTime(self:getSessionValue("playTime")), Utils.formatTime(self:getTotalValue("playTime")), "%s")
-		local v74_ = g_currentMission.environment.currentYear
-		if g_currentMission.environment.currentPeriod >= SeasonPeriod.MID_WINTER then
-			v74_ = v74_ + 1
+		local year = g_currentMission.environment.currentYear
+		if SeasonPeriod.MID_WINTER <= g_currentMission.environment.currentPeriod then
+			year = year + 1
 		end
-		self:addStatistic("yearsPlayed", nil, nil, v74_, "%s")
+		self:addStatistic("yearsPlayed", nil, nil, year, "%s")
 		self:addStatistic("workersHired", nil, self:getSessionValue("workersHired"), nil, "%s")
 		self:addStatistic("storedBales", nil, self:getSessionValue("storedBales"), nil, "%s")
 		self:addStatistic("storedPallets", nil, self:getSessionValue("storedPallets"), nil, "%s")
@@ -446,47 +335,37 @@ function FarmStats:getStatisticData()
 	end
 	return Utils.getNoNil(self.statisticData, {})
 end
-
--- Local values: formattedName, newDataSet
 function FarmStats:addStatistic(name, unit, valueSession, valueTotal, stringFormat, customEnv)
 	if self.statisticData == nil then
 		self.statisticData = {}
 		self.statisticDataRev = {}
 	end
-	local v82_ = g_i18n:getText("statistic_" .. name, customEnv or g_currentMission.missionInfo.customEnvironment)
+	local formattedName = g_i18n:getText("statistic_" .. name, customEnv or g_currentMission.missionInfo.customEnvironment)
 	if unit ~= nil then
-		v82_ = v82_ .. " [" .. unit .. "]"
+		formattedName = formattedName .. " [" .. unit .. "]"
 	end
-	local v83_ = self.statisticDataRev[name]
-	if v83_ == nil then
-		v83_ = {}
-		self.statisticDataRev[name] = v83_
-		local v84_ = self.statisticData
-		table.insert(v84_, v83_)
+	local newDataSet = self.statisticDataRev[name]
+	if newDataSet == nil then
+		newDataSet = {}
+		self.statisticDataRev[name] = newDataSet
+		table.insert(self.statisticData, newDataSet)
 	end
-	v83_.name = v82_
-	v83_.valueSession = string.format(stringFormat, Utils.getNoNil(valueSession, ""))
-	v83_.valueTotal = string.format(stringFormat, Utils.getNoNil(valueTotal, ""))
+	newDataSet.name = formattedName
+	newDataSet.valueSession = string.format(stringFormat, Utils.getNoNil(valueSession, ""))
+	newDataSet.valueTotal = string.format(stringFormat, Utils.getNoNil(valueTotal, ""))
 end
-
--- Local values: _, statName, cut, i
 function FarmStats:merge(other)
-	for _, v87_ in ipairs(FarmStats.STAT_NAMES) do
-		if v87_ == "treeTypesCut" then
-			local v88_ = self.statistics.treeTypesCut
-			for v89_ = 1, string.len(v88_) do
-				local v90_ = other.statistics.treeTypesCut
-				if string.sub(v90_, v89_, v89_) == "1" then
-					local v91_ = v89_ - 1
-					local v92_ = string.sub(v88_, 1, v91_)
-					local v93_ = v89_ + 1
-					local v94_ = string.len(v88_)
-					v88_ = v92_ .. "1" .. string.sub(v88_, v93_, v94_)
+	for _, statName in ipairs(FarmStats.STAT_NAMES) do
+		if statName == "treeTypesCut" then
+			local cut = self.statistics.treeTypesCut
+			for i = 1, string.len(cut) do
+				if string.sub(other.statistics.treeTypesCut, i, i) == "1" then
+					cut = string.sub(cut, 1, i - 1) .. "1" .. string.sub(cut, i + 1, string.len(cut))
 				end
 			end
-			self.statistics.treeTypesCut = v88_
+			self.statistics.treeTypesCut = cut
 		else
-			self.statistics[v87_].total = self.statistics[v87_].total + other.statistics[v87_].total
+			self.statistics[statName].total = self.statistics[statName].total + other.statistics[statName].total
 		end
 	end
 	self.finances:merge(other.finances)

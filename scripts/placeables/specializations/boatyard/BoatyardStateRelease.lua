@@ -1,18 +1,12 @@
--- Local values: BoatyardStateRelease_mt
 BoatyardStateRelease = {}
 local BoatyardStateRelease_mt = Class(BoatyardStateRelease, BoatyardState)
-
--- Upvalues: BoatyardStateRelease_mt
--- Local values: self
 function BoatyardStateRelease.new(boatyard, customMt)
-	-- upvalues: (copy) BoatyardStateRelease_mt
-	return BoatyardState.new(boatyard, customMt or BoatyardStateRelease_mt)
+	local self = BoatyardState.new(boatyard, customMt or BoatyardStateRelease_mt)
+	return self
 end
-
 function BoatyardStateRelease:isDone()
 	return true
 end
-
 function BoatyardStateRelease:activate()
 	BoatyardStateRelease:superClass().activate(self)
 	self.boatyard:releaseBoat()

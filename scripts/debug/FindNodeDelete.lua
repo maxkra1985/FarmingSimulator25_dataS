@@ -1,28 +1,30 @@
 FindNodeDelete = {}
 FindNodeDelete.NODES = {}
 function FindNodeDelete.init()
-	if StartParams.getIsSet("findNodeDelete") then
-		local v_u_1_ = delete
-		function delete(p2_)
-			-- upvalues: (copy) v_u_1_
-			if getHasClassId(p2_, ClassIds.TRANSFORM_GROUP) and next(FindNodeDelete.NODES) ~= nil then
-				I3DUtil.iterateRecursively(p2_, function(p3_)
-					if FindNodeDelete.NODES[p3_] ~= nil then
-						printWarning(string.format("FindNodeDelete: Node \'%s\' will be deleted", getName(p3_)))
+	if not StartParams.getIsSet("findNodeDelete") then
+		return
+	else
+		local oldDelete = delete
+		function delete(id)
+			if getHasClassId(id, ClassIds.TRANSFORM_GROUP) and next(FindNodeDelete.NODES) ~= nil then
+				I3DUtil.iterateRecursively(id, function(node)
+					if FindNodeDelete.NODES[node] ~= nil then
+						printWarning(string.format("FindNodeDelete: Node '%s' will be deleted", getName(node)))
 						printCallstack()
-						FindNodeDelete.NODES[p3_] = nil
+						FindNodeDelete.NODES[node] = nil
 					end
 					return next(FindNodeDelete.NODES) ~= nil
 				end)
 			end
-			v_u_1_(p2_)
+			oldDelete(id)
 		end
 		printWarning("Warning: FindNodeDelete is active!")
 	end
 end
-
 function FindNodeDelete.addNode(node)
-	if StartParams.getIsSet("findNodeDelete") then
+	if not StartParams.getIsSet("findNodeDelete") then
+		return
+	else
 		FindNodeDelete.NODES[node] = true
 	end
 end

@@ -1,4 +1,3 @@
--- Local values: VehicleMaterialManager_mt
 VehicleMaterialManager = {}
 VehicleMaterialManager.DEFAULT_TEMPLATES_FILENAME = "data/shared/detailLibrary/materialTemplates.xml"
 VehicleMaterialManager.DEFAULT_BRAND_TEMPLATES_FILENAME = "data/shared/brandMaterialTemplates.xml"
@@ -7,230 +6,203 @@ VehicleMaterialManager.NUM_BITS_TEMPLATE = 16
 VehicleMaterialManager.MAX_TEMPLATE_INDEX = 2 ^ VehicleMaterialManager.NUM_BITS_TEMPLATE - 1
 source("dataS/scripts/vehicles/VehicleMaterial.lua")
 local VehicleMaterialManager_mt = Class(VehicleMaterialManager, AbstractManager)
-
--- Upvalues: VehicleMaterialManager_mt
--- Local values: self
 function VehicleMaterialManager.new(customMt)
-	-- upvalues: (copy) VehicleMaterialManager_mt
-	local v3_ = AbstractManager.new(customMt or VehicleMaterialManager_mt)
+	local self = AbstractManager.new(customMt or VehicleMaterialManager_mt)
 	VehicleMaterialManager.xmlSchema = XMLSchema.new("materialTemplates")
 	VehicleMaterialManager.registerXMLPaths(VehicleMaterialManager.xmlSchema, "templates")
-	return v3_
+	return self
 end
-
 function VehicleMaterialManager:initDataStructures()
 	self.materialTemplates = {}
 	self.materialTemplatesByName = {}
 	self.modMaterialTemplatesToLoad = {}
 end
-
--- Local values: i, modMaterialTemplate, xmlFile
 function VehicleMaterialManager:loadMapData(mapXMLFile, missionInfo, baseDirectory)
 	self:loadMaterialTemplates(VehicleMaterialManager.DEFAULT_TEMPLATES_FILENAME)
 	self:loadMaterialTemplates(VehicleMaterialManager.DEFAULT_BRAND_TEMPLATES_FILENAME)
-	for v6_ = #self.modMaterialTemplatesToLoad, 1, -1 do
-		local v7_ = self.modMaterialTemplatesToLoad[v6_]
-		local v8_ = XMLFile.load("ModFile", v7_.xmlFilename, g_modDescSchema)
-		if v8_ ~= nil then
-			self:loadMaterialTemplatesFromXML(v8_, v7_.key, v7_.baseDirectory, v7_.customEnvironment, "calibratedPaint")
-			v8_:delete()
+	for i = #self.modMaterialTemplatesToLoad, 1, -1 do
+		local modMaterialTemplate = self.modMaterialTemplatesToLoad[i]
+		local xmlFile = XMLFile.load("ModFile", modMaterialTemplate.xmlFilename, g_modDescSchema)
+		if xmlFile ~= nil then
+			self:loadMaterialTemplatesFromXML(xmlFile, modMaterialTemplate.key, modMaterialTemplate.baseDirectory, modMaterialTemplate.customEnvironment, "calibratedPaint")
+			xmlFile:delete()
 		end
-		table.remove(self.modMaterialTemplatesToLoad, v6_)
+		table.remove(self.modMaterialTemplatesToLoad, i)
 	end
 end
-
 function VehicleMaterialManager:addModMaterialTemplatesToLoad(xmlFilename, key, baseDirectory, customEnvironment)
-	local v14_ = self.modMaterialTemplatesToLoad
-	table.insert(v14_, {
-		["xmlFilename"] = xmlFilename,
-		["key"] = key,
-		["baseDirectory"] = baseDirectory,
-		["customEnvironment"] = customEnvironment
-	})
+	table.insert(self.modMaterialTemplatesToLoad, { xmlFilename = xmlFilename, key = key, baseDirectory = baseDirectory, customEnvironment = customEnvironment })
 end
-
--- Local values: xmlFile
 function VehicleMaterialManager:loadMaterialTemplates(xmlFilename, baseDirectory, customEnvironment)
-	local v19_ = XMLFile.load("templates", xmlFilename, VehicleMaterialManager.xmlSchema)
-	if v19_ ~= nil then
-		self:loadMaterialTemplatesFromXML(v19_, "templates", baseDirectory, customEnvironment)
-		v19_:delete()
+	local xmlFile = XMLFile.load("templates", xmlFilename, VehicleMaterialManager.xmlSchema)
+	if xmlFile ~= nil then
+		self:loadMaterialTemplatesFromXML(xmlFile, "templates", baseDirectory, customEnvironment)
+		xmlFile:delete()
 	end
 end
-
 function VehicleMaterialManager:loadMaterialTemplatesFromXML(xmlFile, key, baseDirectory, customEnvironment, parentTemplateDefault)
-	local v_u_26_ = xmlFile:getValue(key .. "#parentTemplateDefault", parentTemplateDefault)
-	xmlFile:iterate(key .. ".template", function(_, p27_)
-		-- upvalues: (copy) xmlFile, (copy) customEnvironment, (ref) v_u_26_, (copy) self, (copy) baseDirectory
-		local v28_ = xmlFile:getValue(p27_ .. "#name")
-		if v28_ == nil then
-			Logging.xmlWarning(xmlFile, "Missing name attribute for \'%s\'", p27_)
-			return
-		else
-			local v29_
-			if customEnvironment == nil then
-				v29_ = string.upper(v28_)
+	parentTemplateDefault = xmlFile:getValue(key .. "#parentTemplateDefault", parentTemplateDefault)
+	xmlFile:iterate(key .. ".template", function(index, templateKey)
+		local name = xmlFile:getValue(templateKey .. "#name")
+		if name ~= nil then
+			if customEnvironment ~= nil then
+				name = string.upper(customEnvironment .. "." .. name)
 			else
-				v29_ = string.upper(customEnvironment .. "." .. v28_)
+				name = string.upper(name)
 			end
-			local v30_ = xmlFile:getValue(p27_ .. "#parentTemplate", v_u_26_)
-			local v31_
-			if v30_ == nil then
-				v31_ = nil
-			else
-				v31_ = self.materialTemplatesByName[string.upper(v30_)]
-				if v31_ == nil then
-					Logging.xmlWarning(xmlFile, "Unable to find parent template \'%s\' for \'%s\'", v30_, p27_)
+			local parentName = xmlFile:getValue(templateKey .. "#parentTemplate", parentTemplateDefault)
+			local parentTemplate = nil
+			if parentName ~= nil then
+				parentTemplate = self.materialTemplatesByName[string.upper(parentName)]
+				if parentTemplate == nil then
+					Logging.xmlWarning(xmlFile, "Unable to find parent template '%s' for '%s'", parentName, templateKey)
 					return
 				end
 			end
-			local v32_ = self.materialTemplatesByName[v29_]
-			local v33_ = v32_ == nil and {} or v32_
-			v33_.name = v29_
-			v33_.parentTemplate = v31_ or v33_
-			v33_.customEnvironment = customEnvironment
-			local v34_ = xmlFile:getValue(p27_ .. "#brand")
-			if v34_ ~= nil then
-				v33_.brand = g_brandManager:getBrandByName(v34_)
-				if v33_.brand == nil then
-					Logging.xmlWarning(xmlFile, "Unknown brand \'%s\' defined in material template \'%s\'", v34_, p27_)
+			local materialTemplate = self.materialTemplatesByName[name]
+			if materialTemplate == nil then
+				materialTemplate = {}
+			end
+			materialTemplate.name = name
+			materialTemplate.parentTemplate = parentTemplate or materialTemplate
+			materialTemplate.customEnvironment = customEnvironment
+			local brandName = xmlFile:getValue(templateKey .. "#brand")
+			if brandName ~= nil then
+				materialTemplate.brand = g_brandManager:getBrandByName(brandName)
+				if materialTemplate.brand == nil then
+					Logging.xmlWarning(xmlFile, "Unknown brand '%s' defined in material template '%s'", brandName, templateKey)
 				end
 			end
-			v33_.titleL10N = xmlFile:getValue(p27_ .. "#title")
-			v33_.colorScale = xmlFile:getValue(p27_ .. "#colorScale", nil, true)
-			v33_.smoothnessScale = xmlFile:getValue(p27_ .. "#smoothnessScale")
-			v33_.metalnessScale = xmlFile:getValue(p27_ .. "#metalnessScale")
-			v33_.clearCoatSmoothness = xmlFile:getValue(p27_ .. "#clearCoatSmoothness")
-			v33_.clearCoatIntensity = xmlFile:getValue(p27_ .. "#clearCoatIntensity")
-			v33_.porosity = xmlFile:getValue(p27_ .. "#porosity")
-			v33_.detailDiffuse = xmlFile:getValue(p27_ .. "#detailDiffuse")
-			if v33_.detailDiffuse ~= nil then
-				v33_.detailDiffuse = Utils.getFilename(v33_.detailDiffuse, baseDirectory)
-				if not textureFileExists(v33_.detailDiffuse) then
-					Logging.xmlWarning(xmlFile, "Unable to find detail texture \'%s\' in \'%s\'", v33_.detailDiffuse, p27_)
-					v33_.detailDiffuse = nil
+			materialTemplate.titleL10N = xmlFile:getValue(templateKey .. "#title")
+			materialTemplate.colorScale = xmlFile:getValue(templateKey .. "#colorScale", nil, true)
+			materialTemplate.smoothnessScale = xmlFile:getValue(templateKey .. "#smoothnessScale")
+			materialTemplate.metalnessScale = xmlFile:getValue(templateKey .. "#metalnessScale")
+			materialTemplate.clearCoatSmoothness = xmlFile:getValue(templateKey .. "#clearCoatSmoothness")
+			materialTemplate.clearCoatIntensity = xmlFile:getValue(templateKey .. "#clearCoatIntensity")
+			materialTemplate.porosity = xmlFile:getValue(templateKey .. "#porosity")
+			materialTemplate.detailDiffuse = xmlFile:getValue(templateKey .. "#detailDiffuse")
+			if materialTemplate.detailDiffuse ~= nil then
+				materialTemplate.detailDiffuse = Utils.getFilename(materialTemplate.detailDiffuse, baseDirectory)
+				if not textureFileExists(materialTemplate.detailDiffuse) then
+					Logging.xmlWarning(xmlFile, "Unable to find detail texture '%s' in '%s'", materialTemplate.detailDiffuse, templateKey)
+					materialTemplate.detailDiffuse = nil
 				end
 			end
-			if v33_.detailDiffuse == nil and v33_.parentTemplate.detailDiffuse == nil then
-				Logging.xmlWarning(xmlFile, "Missing detail diffuse texture for \'%s\'", p27_)
+			if materialTemplate.detailDiffuse == nil and materialTemplate.parentTemplate.detailDiffuse == nil then
+				Logging.xmlWarning(xmlFile, "Missing detail diffuse texture for '%s'", templateKey)
 				return
-			else
-				v33_.detailNormal = xmlFile:getValue(p27_ .. "#detailNormal")
-				if v33_.detailNormal ~= nil then
-					v33_.detailNormal = Utils.getFilename(v33_.detailNormal, baseDirectory)
-					if not textureFileExists(v33_.detailNormal) then
-						Logging.xmlWarning(xmlFile, "Unable to find detail texture \'%s\' in \'%s\'", v33_.detailNormal, p27_)
-						v33_.detailNormal = nil
-					end
-				end
-				if v33_.detailNormal == nil and v33_.parentTemplate.detailNormal == nil then
-					Logging.xmlWarning(xmlFile, "Missing detail normal texture for \'%s\'", p27_)
-					return
-				else
-					v33_.detailSpecular = xmlFile:getValue(p27_ .. "#detailSpecular")
-					if v33_.detailSpecular ~= nil then
-						v33_.detailSpecular = Utils.getFilename(v33_.detailSpecular, baseDirectory)
-						if not textureFileExists(v33_.detailSpecular) then
-							Logging.xmlWarning(xmlFile, "Unable to find detail texture \'%s\' in \'%s\'", v33_.detailSpecular, p27_)
-							v33_.detailSpecular = nil
-						end
-					end
-					if v33_.detailSpecular == nil and v33_.parentTemplate.detailSpecular == nil then
-						Logging.xmlWarning(xmlFile, "Missing detail specular texture for \'%s\'", p27_)
-					else
-						local v35_ = self.materialTemplates
-						table.insert(v35_, v33_)
-						self.materialTemplatesByName[v29_] = v33_
-					end
+			end
+			materialTemplate.detailNormal = xmlFile:getValue(templateKey .. "#detailNormal")
+			if materialTemplate.detailNormal ~= nil then
+				materialTemplate.detailNormal = Utils.getFilename(materialTemplate.detailNormal, baseDirectory)
+				if not textureFileExists(materialTemplate.detailNormal) then
+					Logging.xmlWarning(xmlFile, "Unable to find detail texture '%s' in '%s'", materialTemplate.detailNormal, templateKey)
+					materialTemplate.detailNormal = nil
 				end
 			end
+			if materialTemplate.detailNormal == nil and materialTemplate.parentTemplate.detailNormal == nil then
+				Logging.xmlWarning(xmlFile, "Missing detail normal texture for '%s'", templateKey)
+				return
+			end
+			materialTemplate.detailSpecular = xmlFile:getValue(templateKey .. "#detailSpecular")
+			if materialTemplate.detailSpecular ~= nil then
+				materialTemplate.detailSpecular = Utils.getFilename(materialTemplate.detailSpecular, baseDirectory)
+				if not textureFileExists(materialTemplate.detailSpecular) then
+					Logging.xmlWarning(xmlFile, "Unable to find detail texture '%s' in '%s'", materialTemplate.detailSpecular, templateKey)
+					materialTemplate.detailSpecular = nil
+				end
+			end
+			if materialTemplate.detailSpecular == nil and materialTemplate.parentTemplate.detailSpecular == nil then
+				Logging.xmlWarning(xmlFile, "Missing detail specular texture for '%s'", templateKey)
+				return
+			end
+			table.insert(self.materialTemplates, materialTemplate)
+			self.materialTemplatesByName[name] = materialTemplate
+		else
+			Logging.xmlWarning(xmlFile, "Missing name attribute for '%s'", templateKey)
 		end
 	end)
 end
-
--- Local values: template
 function VehicleMaterialManager:getMaterialTemplateByName(name, customEnvironment)
-	if name == nil then
+	if name ~= nil then
+		if customEnvironment ~= nil then
+			local template = self.materialTemplatesByName[string.upper(customEnvironment .. "." .. name)]
+			if template ~= nil then
+				return template
+			end
+		end
+		return self.materialTemplatesByName[string.upper(name)]
+	else
 		return nil
 	end
-	if customEnvironment ~= nil then
-		local v39_ = self.materialTemplatesByName[string.upper(customEnvironment .. "." .. name)]
-		if v39_ ~= nil then
-			return v39_
-		end
-	end
-	return self.materialTemplatesByName[string.upper(name)]
 end
-
--- Local values: materialTemplate
 function VehicleMaterialManager:getMaterialTemplateColorByName(name, customEnvironment)
 	if name ~= nil then
-		local v43_ = self:getMaterialTemplateByName(string.upper(name), customEnvironment)
-		if v43_ ~= nil and v43_.colorScale ~= nil then
-			return {
-				v43_.colorScale[1],
-				v43_.colorScale[2],
-				v43_.colorScale[3],
-				0
-			}
+		name = string.upper(name)
+		local materialTemplate = self:getMaterialTemplateByName(name, customEnvironment)
+		if materialTemplate ~= nil and materialTemplate.colorScale ~= nil then
+			return { materialTemplate.colorScale[1], materialTemplate.colorScale[2], materialTemplate.colorScale[3], 0 }
 		end
 	end
 	return nil
 end
-
--- Local values: materialTemplate, title
 function VehicleMaterialManager:getMaterialTemplateColorAndTitleByName(name, customEnvironment)
 	if name ~= nil then
-		local v47_ = self:getMaterialTemplateByName(string.upper(name), customEnvironment)
-		if v47_ ~= nil then
-			local v48_
-			if v47_.brand == nil then
-				v48_ = nil
-			else
-				v48_ = v47_.brand.title
+		name = string.upper(name)
+		local materialTemplate = self:getMaterialTemplateByName(name, customEnvironment)
+		if materialTemplate ~= nil then
+			local title = nil
+			if materialTemplate.brand ~= nil then
+				title = materialTemplate.brand.title
 			end
-			if v47_.titleL10N ~= nil then
-				v48_ = (v48_ == nil and "" or v48_ .. " ") .. g_i18n:convertText(v47_.titleL10N, v47_.customEnvironment)
+			if materialTemplate.titleL10N ~= nil then
+				if title ~= nil then
+					title = title .. " "
+				else
+					title = ""
+				end
+				title = title .. g_i18n:convertText(materialTemplate.titleL10N, materialTemplate.customEnvironment)
 			end
-			if v47_.colorScale == nil then
-				return { 1, 1, 1 }, v48_
+			if materialTemplate.colorScale == nil then
+				return { 1, 1, 1 }, title
 			else
-				return table.clone(v47_.colorScale), v48_
+				return table.clone(materialTemplate.colorScale), title
 			end
 		end
 	end
 	return nil, nil
 end
-
--- Local values: i, materialTemplate
 function VehicleMaterialManager:getMaterialTemplateIndexByName(name)
 	if name ~= nil then
-		local v51_ = string.upper(name)
-		for v52_, v53_ in ipairs(self.materialTemplates) do
-			if v53_.name == v51_ then
-				return v52_
+		name = string.upper(name)
+		for i, materialTemplate in ipairs(self.materialTemplates) do
+			if materialTemplate.name == name then
+				return i
 			end
 		end
 	end
 	return 1
 end
-
--- Local values: template
 function VehicleMaterialManager:getMaterialTemplateNameByIndex(index)
-	return (self.materialTemplates[index] or self.materialTemplates[1]).name
+	local template = self.materialTemplates[index] or self.materialTemplates[1]
+	return template.name
 end
-
--- Local values: isMetallic, isMat, materialTemplateNameLower
 function VehicleMaterialManager:getMaterialTemplateFinish(materialTemplateName)
-	local v57_ = false
-	local v58_ = false
+	local isMetallic = false
+	local isMat = false
 	if materialTemplateName == nil then
-		return v57_, v58_
+		return isMetallic, isMat
+	else
+		local materialTemplateNameLower = string.lower(materialTemplateName)
+		if materialTemplateNameLower:contains("silver") or materialTemplateNameLower:contains("copper") or materialTemplateNameLower:contains("gold") or materialTemplateNameLower:contains("bronze") or materialTemplateNameLower:contains("chrome") or materialTemplateNameLower:contains("metallic") then
+			isMetallic = true
+		end
+		if materialTemplateNameLower:contains("matpaint") then
+			isMat = true
+		end
+		return isMetallic, isMat
 	end
-	local v59_ = string.lower(materialTemplateName)
-	return (v59_:contains("silver") or (v59_:contains("copper") or (v59_:contains("gold") or (v59_:contains("bronze") or (v59_:contains("chrome") or v59_:contains("metallic")))))) and true or v57_, v59_:contains("matpaint") and true or v58_
 end
-
 function VehicleMaterialManager.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#id", "File Identifier")
 	schema:register(XMLValueType.STRING, basePath .. "#name", "File Name")

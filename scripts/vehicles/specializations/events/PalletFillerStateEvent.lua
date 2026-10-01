@@ -1,31 +1,25 @@
--- Local values: PalletFillerStateEvent_mt
 PalletFillerStateEvent = {}
 local PalletFillerStateEvent_mt = Class(PalletFillerStateEvent, Event)
 InitStaticEventClass(PalletFillerStateEvent, "PalletFillerStateEvent")
 function PalletFillerStateEvent.emptyNew()
-	-- upvalues: (copy) PalletFillerStateEvent_mt
-	return Event.new(PalletFillerStateEvent_mt)
+	local self = Event.new(PalletFillerStateEvent_mt)
+	return self
 end
-
--- Local values: self
 function PalletFillerStateEvent.new(object, state)
-	local v4_ = PalletFillerStateEvent.emptyNew()
-	v4_.object = object
-	v4_.state = state
-	return v4_
+	local self = PalletFillerStateEvent.emptyNew()
+	self.object = object
+	self.state = state
+	return self
 end
-
 function PalletFillerStateEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.state = PalletFillerState.readStream(streamId)
 	self:run(connection)
 end
-
 function PalletFillerStateEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	PalletFillerState.writeStream(streamId, self.state)
 end
-
 function PalletFillerStateEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -34,7 +28,6 @@ function PalletFillerStateEvent:run(connection)
 		self.object:setPalletFillerState(self.state, false, true)
 	end
 end
-
 function PalletFillerStateEvent.sendEvent(vehicle, state, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

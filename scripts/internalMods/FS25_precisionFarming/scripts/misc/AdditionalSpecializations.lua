@@ -1,52 +1,38 @@
--- Local values: modName, additionals, additionalsSpec, globalSpec, oldFinalizeTypes
-local v_u_1_ = g_currentModName
-local v_u_2_ = {}
-local v_u_3_ = {
-	["sprayer"] = {
-		v_u_1_ .. ".extendedSprayer",
-		v_u_1_ .. ".extendedSprayerEffects",
-		v_u_1_ .. ".manureSensor",
-		v_u_1_ .. ".weedSpotSpray"
-	},
-	["sowingMachine"] = { v_u_1_ .. ".extendedSowingMachine" },
-	["motorized"] = { v_u_1_ .. ".extendedMotorized", v_u_1_ .. ".cropSensor" },
-	["wearable"] = { v_u_1_ .. ".extendedWearable" },
-	["combine"] = { v_u_1_ .. ".extendedCombine" },
-	["mower"] = { v_u_1_ .. ".extendedMower" }
-}
-local v_u_4_ = { v_u_1_ .. ".precisionFarmingStatistic" }
-local v_u_5_ = TypeManager.finalizeTypes
-function TypeManager.finalizeTypes(p6_, ...)
-	-- upvalues: (copy) v_u_1_, (copy) v_u_4_, (copy) v_u_3_, (copy) v_u_2_, (copy) v_u_5_
-	if p6_.typeName == "vehicle" and g_modIsLoaded[v_u_1_] then
-		for v7_, v8_ in pairs(p6_:getTypes()) do
-			for _, v9_ in pairs(v_u_4_) do
-				if v8_.specializationsByName[v9_] == nil then
-					p6_:addSpecialization(v7_, v9_)
+local modName = g_currentModName
+local additionals = {}
+local additionalsSpec = { sprayer = { modName .. ".extendedSprayer", modName .. ".extendedSprayerEffects", modName .. ".manureSensor", modName .. ".weedSpotSpray" }, sowingMachine = { modName .. ".extendedSowingMachine" }, motorized = { modName .. ".extendedMotorized", modName .. ".cropSensor" }, wearable = { modName .. ".extendedWearable" }, combine = { modName .. ".extendedCombine" }, mower = { modName .. ".extendedMower" } }
+local globalSpec = { modName .. ".precisionFarmingStatistic" }
+local oldFinalizeTypes = TypeManager.finalizeTypes
+function TypeManager:finalizeTypes(...)
+	if self.typeName == "vehicle" and g_modIsLoaded[modName] then
+		for typeName, typeEntry in pairs(self:getTypes()) do
+			for _, spec in pairs(globalSpec) do
+				if typeEntry.specializationsByName[spec] == nil then
+					self:addSpecialization(typeName, spec)
 				end
 			end
-			for v10_ = #v8_.specializationNames, 1, -1 do
-				local v11_ = v8_.specializationNames[v10_]
-				for v12_, v13_ in pairs(v_u_3_) do
-					if v11_ == v12_ then
-						for v14_ = 1, #v13_ do
-							if v8_.specializationsByName[v13_[v14_]] == nil then
-								p6_:addSpecialization(v7_, v13_[v14_])
+			for i = #typeEntry.specializationNames, 1, -1 do
+				local specName = typeEntry.specializationNames[i]
+				for addName, specs in pairs(additionalsSpec) do
+					if specName == addName then
+						for j = 1, #specs do
+							if typeEntry.specializationsByName[specs[j]] == nil then
+								self:addSpecialization(typeName, specs[j])
 							end
 						end
 					end
 				end
 			end
-			for v15_, v16_ in pairs(v_u_2_) do
-				if v7_ == v15_ then
-					for v17_ = 1, #v16_ do
-						if v8_.specializationsByName[v16_[v17_]] == nil then
-							p6_:addSpecialization(v7_, v16_[v17_])
+			for name, specs in pairs(additionals) do
+				if typeName == name then
+					for i = 1, #specs do
+						if typeEntry.specializationsByName[specs[i]] == nil then
+							self:addSpecialization(typeName, specs[i])
 						end
 					end
 				end
 			end
 		end
 	end
-	v_u_5_(p6_, ...)
+	oldFinalizeTypes(self, ...)
 end

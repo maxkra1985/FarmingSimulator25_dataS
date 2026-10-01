@@ -1,20 +1,14 @@
--- Local values: SplitShapeManager_mt
 SplitShapeManager = {}
 local SplitShapeManager_mt = Class(SplitShapeManager, AbstractManager)
-
--- Upvalues: SplitShapeManager_mt
--- Local values: self
 function SplitShapeManager.new(customMt)
-	-- upvalues: (copy) SplitShapeManager_mt
-	return AbstractManager.new(customMt or SplitShapeManager_mt)
+	local self = AbstractManager.new(customMt or SplitShapeManager_mt)
+	return self
 end
-
 function SplitShapeManager:initDataStructures()
 	self.typesByIndex = {}
 	self.typesByName = {}
 	self.activeYarders = {}
 end
-
 function SplitShapeManager:loadMapData()
 	SplitShapeManager:superClass().loadMapData(self)
 	self:addSplitType("SPRUCE", "treeType_spruce", 1, 0.7, 3, true, nil, 1000, 6)
@@ -60,143 +54,130 @@ function SplitShapeManager:loadMapData()
 	end
 	return true
 end
-
 function SplitShapeManager:unloadMapData()
 	removeConsoleCommand("gsSplitTypesExport")
 	SplitShapeManager:superClass().unloadMapData(self)
 end
-
--- Local values: desc
 function SplitShapeManager:addSplitType(name, l10nKey, splitTypeIndex, pricePerLiter, woodChipsPerLiter, allowsWoodHarvester, customEnvironment, volumeToLiter, woodHarvesterAreaThreshold)
-	if self.typesByIndex[splitTypeIndex] == nil then
-		local v16_ = string.upper(name)
-		if self.typesByName[v16_] == nil then
-			if type(woodHarvesterAreaThreshold) ~= "number" then
-				woodHarvesterAreaThreshold = nil
-			end
-			local v17_ = {
-				["name"] = v16_,
-				["title"] = g_i18n:getText(l10nKey, customEnvironment),
-				["splitTypeIndex"] = splitTypeIndex,
-				["pricePerLiter"] = pricePerLiter,
-				["woodChipsPerLiter"] = woodChipsPerLiter,
-				["allowsWoodHarvester"] = allowsWoodHarvester,
-				["woodHarvesterAreaThreshold"] = woodHarvesterAreaThreshold or 4.5,
-				["volumeToLiter"] = volumeToLiter or 1000
-			}
-			self.typesByIndex[splitTypeIndex] = v17_
-			self.typesByName[v16_] = v17_
-		else
-			Logging.error("SplitShapeManager:addSplitType(): SplitType name \'%s\' is already in use", v16_)
-		end
-	else
-		Logging.error("SplitShapeManager:addSplitType(): SplitTypeIndex \'%d\' is already in use for \'%s\'", splitTypeIndex, name)
+	if self.typesByIndex[splitTypeIndex] ~= nil then
+		Logging.error("SplitShapeManager:addSplitType(): SplitTypeIndex '%d' is already in use for '%s'", splitTypeIndex, name)
 		return
 	end
+	name = string.upper(name)
+	if self.typesByName[name] ~= nil then
+		Logging.error("SplitShapeManager:addSplitType(): SplitType name '%s' is already in use", name)
+	else
+		if type(woodHarvesterAreaThreshold) ~= "number" then
+			woodHarvesterAreaThreshold = nil
+		end
+		local desc = {}
+		desc.name = name
+		desc.title = g_i18n:getText(l10nKey, customEnvironment)
+		desc.splitTypeIndex = splitTypeIndex
+		desc.pricePerLiter = pricePerLiter
+		desc.woodChipsPerLiter = woodChipsPerLiter
+		desc.allowsWoodHarvester = allowsWoodHarvester
+		desc.woodHarvesterAreaThreshold = woodHarvesterAreaThreshold or 4.5
+		desc.volumeToLiter = volumeToLiter or 1000
+		self.typesByIndex[splitTypeIndex] = desc
+		self.typesByName[name] = desc
+	end
 end
-
 function SplitShapeManager:getSplitTypeByIndex(index)
 	return self.typesByIndex[index]
 end
-
--- Local values: splitTypeData
 function SplitShapeManager:getSplitTypeNameByIndex(index)
-	local v22_ = self.typesByIndex[index]
-	return v22_ == nil and "<NO_SPLIT_TYPE>" or v22_.name
+	local splitTypeData = self.typesByIndex[index]
+	if splitTypeData ~= nil then
+		return splitTypeData.name
+	else
+		return "<NO_SPLIT_TYPE>"
+	end
 end
-
--- Local values: splitType
 function SplitShapeManager:getSplitTypeIndexByName(name)
 	if name == nil then
 		return nil
+	end
+	name = string.upper(name)
+	local splitType = self.typesByName[name]
+	if splitType == nil then
+		return nil
 	else
-		local v25_ = string.upper(name)
-		local v26_ = self.typesByName[v25_]
-		if v26_ == nil then
-			return nil
-		else
-			return v26_.splitTypeIndex
-		end
+		return splitType.splitTypeIndex
 	end
 end
-
--- Local values: isAllowed, objectId, _, vehicle
 function SplitShapeManager:getIsShapeCutAllowed(x, z, shape, farmId, connection)
-	local v33_ = g_missionManager:getIsShapeCutAllowed(shape, x, z, farmId)
-	if v33_ ~= nil then
-		return v33_
-	end
-	if Platform.gameplay.treeCutFarmlandRestrictions and not g_currentMission.accessHandler:canFarmAccessLand(farmId, x, z) then
+	local isAllowed = g_missionManager:getIsShapeCutAllowed(shape, x, z, farmId)
+	if isAllowed ~= nil then
+		return isAllowed
+	elseif Platform.gameplay.treeCutFarmlandRestrictions and not g_currentMission.accessHandler:canFarmAccessLand(farmId, x, z) then
 		return false
-	end
-	for v34_, _ in pairs(self.activeYarders) do
-		local v35_ = NetworkUtil.getObject(v34_)
-		if v35_ == nil then
-			self.activeYarders[v34_] = nil
-		elseif v35_:getIsTreeShapeUsedForYarderSetup(shape) then
-			return false
+	else
+		for objectId, _ in pairs(self.activeYarders) do
+			local vehicle = NetworkUtil.getObject(objectId)
+			if vehicle ~= nil then
+				if vehicle:getIsTreeShapeUsedForYarderSetup(shape) then
+					return false
+				end
+			else
+				self.activeYarders[objectId] = nil
+			end
 		end
+		return g_currentMission:getHasPlayerPermission("cutTrees", connection)
 	end
-	return g_currentMission:getHasPlayerPermission("cutTrees", connection)
 end
-
--- Local values: objectId
 function SplitShapeManager:addActiveYarder(vehicle)
-	local v38_ = NetworkUtil.getObjectId(vehicle)
-	self.activeYarders[v38_] = true
+	local objectId = NetworkUtil.getObjectId(vehicle)
+	self.activeYarders[objectId] = true
 end
-
--- Local values: objectId
 function SplitShapeManager:removeActiveYarder(vehicle)
-	local v41_ = NetworkUtil.getObjectId(vehicle)
-	self.activeYarders[v41_] = nil
+	local objectId = NetworkUtil.getObjectId(vehicle)
+	self.activeYarders[objectId] = nil
 end
-
--- Local values: splitTypeIndex, splitTypeDesc, _, sizeY, sizeZ, _, _, area
 function SplitShapeManager:getSplitShapeAllowsHarvester(splitShapeId)
-	local v43_ = getSplitType(splitShapeId)
-	local v44_ = g_splitShapeManager:getSplitTypeByIndex(v43_)
-	if v44_ ~= nil and v44_.allowsWoodHarvester then
-		local _, v45_, v46_, _, _ = getSplitShapeStats(splitShapeId)
-		local v47_ = v45_ * v46_
-		if v47_ > 0.01 and v47_ < v44_.woodHarvesterAreaThreshold then
+	local splitTypeIndex = getSplitType(splitShapeId)
+	local splitTypeDesc = g_splitShapeManager:getSplitTypeByIndex(splitTypeIndex)
+	if splitTypeDesc ~= nil and splitTypeDesc.allowsWoodHarvester then
+		local _, sizeY, sizeZ, _, _ = getSplitShapeStats(splitShapeId)
+		local area = sizeY * sizeZ
+		if 0.01 < area and area < splitTypeDesc.woodHarvesterAreaThreshold then
 			return true
 		end
 	end
 	return false
 end
-
--- Local values: xmlFile, warningComment, typesSorted, _, desc, index, desc, element
 function SplitShapeManager:exportToXML(_)
-	if g_isDevelopmentVersion then
-		local v49_ = XMLFile.create("SplitTypes", "", "splitTypes")
-		v49_:addComment("splitTypes", "Warning: This file is exported from script and should not be edited manually")
-		local v50_ = {}
-		for _, v51_ in pairs(self.typesByName) do
-			table.insert(v50_, v51_)
+	if not g_isDevelopmentVersion then
+		return
+	else
+		local xmlFile = XMLFile.create("SplitTypes", "", "splitTypes")
+		local warningComment = "Warning: This file is exported from script and should not be edited manually"
+		xmlFile:addComment("splitTypes", "Warning: This file is exported from script and should not be edited manually")
+		local typesSorted = {}
+		for _, desc in pairs(self.typesByName) do
+			table.insert(typesSorted, desc)
 		end
-		table.sort(v50_, function(p52_, p53_)
-			return p52_.splitTypeIndex < p53_.splitTypeIndex
+		table.sort(typesSorted, function(a, b)
+			return a.splitTypeIndex < b.splitTypeIndex
 		end)
-		for v54_, v55_ in ipairs(v50_) do
-			local v56_ = string.format("splitTypes.splitType(%d)", v54_ - 1)
-			v49_:setInt(v56_ .. "#index", v55_.splitTypeIndex)
-			v49_:setString(v56_ .. "#name", v55_.name)
+		for index, desc in ipairs(typesSorted) do
+			local element = string.format("splitTypes.splitType(%d)", index - 1)
+			xmlFile:setInt(element .. "#index", desc.splitTypeIndex)
+			xmlFile:setString(element .. "#name", desc.name)
 		end
-		v49_:addComment("splitTypes", "Warning: This file is exported from script and should not be edited manually")
-		v49_:saveTo("../tools/exporter/maya/splitTypes.xml", true)
-		v49_:delete()
+		xmlFile:addComment("splitTypes", "Warning: This file is exported from script and should not be edited manually")
+		xmlFile:saveTo("../tools/exporter/maya/splitTypes.xml", true)
+		xmlFile:delete()
 	end
 end
 g_splitShapeManager = SplitShapeManager.new()
 g_splitTypeManager = {}
-local v57_ = g_splitTypeManager
-setmetatable(v57_, {
-	["__index"] = function(_, p58_)
+setmetatable(g_splitTypeManager, {
+	__index = function(table, key)
 		if FindDeletedObjects.isRunning == nil then
-			Logging.error("\'g_splitTypeManager\' no longer exists, use \'g_splitShapeManager\' instead!")
+			Logging.error("'g_splitTypeManager' no longer exists, use 'g_splitShapeManager' instead!")
 			printCallstack()
 		end
-		return g_splitShapeManager[p58_]
-	end
+		return g_splitShapeManager[key]
+	end,
 })

@@ -1,18 +1,12 @@
--- Local values: AIMessageErrorNoPalletsLoaded_mt
 AIMessageErrorNoPalletsLoaded = {}
 local AIMessageErrorNoPalletsLoaded_mt = Class(AIMessageErrorNoPalletsLoaded, AIMessage)
-
--- Upvalues: AIMessageErrorNoPalletsLoaded_mt
--- Local values: self
 function AIMessageErrorNoPalletsLoaded.new(customMt)
-	-- upvalues: (copy) AIMessageErrorNoPalletsLoaded_mt
-	return AIMessage.new(customMt or AIMessageErrorNoPalletsLoaded_mt)
+	local self = AIMessage.new(customMt or AIMessageErrorNoPalletsLoaded_mt)
+	return self
 end
-
 function AIMessageErrorNoPalletsLoaded:getI18NText()
 	return g_i18n:getText("ai_messageErrorNoPalletsLoaded")
 end
-
 function AIMessageErrorNoPalletsLoaded:getType()
 	return AIMessageType.ERROR
 end

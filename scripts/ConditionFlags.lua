@@ -1,144 +1,110 @@
--- Local values: ConditionFlags_mt
 ConditionFlags = {}
 local ConditionFlags_mt = Class(ConditionFlags)
-
--- Local values: preventKey, requiredKey, prevent, required
 function ConditionFlags.loadFlagFromXML(xmlFile, key, modifier, requiredFlags, preventFlags)
-	local v7_ = string.format("%s.prevent#%s", key, modifier.xmlAttributeName)
-	local v8_ = string.format("%s.required#%s", key, modifier.xmlAttributeName)
-	if xmlFile:getBool(v7_) then
-		local v9_ = modifier.bitflag
-		preventFlags = bit32.bor(preventFlags, v9_)
+	local preventKey = string.format("%s.prevent#%s", key, modifier.xmlAttributeName)
+	local requiredKey = string.format("%s.required#%s", key, modifier.xmlAttributeName)
+	local prevent = xmlFile:getBool(preventKey)
+	if prevent then
+		preventFlags = bit32.bor(preventFlags, modifier.bitflag)
 	end
-	if xmlFile:getBool(v8_) then
-		local v10_ = modifier.bitflag
-		requiredFlags = bit32.bor(requiredFlags, v10_)
+	local required = xmlFile:getBool(requiredKey)
+	if required then
+		requiredFlags = bit32.bor(requiredFlags, modifier.bitflag)
 	end
 	return requiredFlags, preventFlags
 end
-
--- Upvalues: ConditionFlags_mt
--- Local values: self
 function ConditionFlags.new(customMt)
-	-- upvalues: (copy) ConditionFlags_mt
-	local v12_ = customMt or ConditionFlags_mt
-	local v13_ = setmetatable({}, v12_)
-	v13_.modifiers = {}
-	v13_.nameToModifier = {}
-	v13_.mask = 0
-	return v13_
+	local self = setmetatable({}, customMt or ConditionFlags_mt)
+	self.modifiers = {}
+	self.nameToModifier = {}
+	self.mask = 0
+	return self
 end
-
 function ConditionFlags:delete() end
-
--- Local values: requiredFlags, preventFlags, _, modifier, _, modifier, lineNumber
 function ConditionFlags:loadFlagsFromXMLFile(xmlFile, key)
-	local v17_ = 0
-	local v18_ = 0
-	if xmlFile:getNumOfElements(string.format("%s.prevent", key)) > 1 then
-		Logging.xmlWarning(xmlFile, "More than one \'prevent\' element defined for \'%s\'", key)
+	local requiredFlags = 0
+	local preventFlags = 0
+	if 1 < xmlFile:getNumOfElements(string.format("%s.prevent", key)) then
+		Logging.xmlWarning(xmlFile, "More than one 'prevent' element defined for '%s'", key)
 	end
-	if xmlFile:getNumOfElements(string.format("%s.required", key)) > 1 then
-		Logging.xmlWarning(xmlFile, "More than one \'required\' element defined for \'%s\'", key)
+	if 1 < xmlFile:getNumOfElements(string.format("%s.required", key)) then
+		Logging.xmlWarning(xmlFile, "More than one 'required' element defined for '%s'", key)
 	end
-	for _, v19_ in ipairs(self.modifiers) do
-		v17_, v18_ = v19_.loadFromXMLFunc(xmlFile, key, v19_, v17_, v18_)
+	for _, modifier in ipairs(self.modifiers) do
+		requiredFlags, preventFlags = modifier.loadFromXMLFunc(xmlFile, key, modifier, requiredFlags, preventFlags)
 	end
-	if bit32.band(v17_, v18_) ~= 0 then
-		for _, v20_ in ipairs(self.modifiers) do
-			local v21_ = v20_.bitflag
-			if bit32.band(v17_, v21_) ~= 0 then
-				local v22_ = v20_.bitflag
-				if bit32.band(v18_, v22_) ~= 0 then
-					local v23_ = xmlFile:getLineNumber(key .. ".prevent#" .. v20_.xmlAttributeName)
-					Logging.xmlWarning(xmlFile, "Modifier \'%s\' is set for prevent and required in \'%s\' (line %d)", v20_.xmlAttributeName, key, v23_)
-				end
+	if bit32.band(requiredFlags, preventFlags) ~= 0 then
+		for _, modifier in ipairs(self.modifiers) do
+			if bit32.band(requiredFlags, modifier.bitflag) == 0 or bit32.band(preventFlags, modifier.bitflag) == 0 then
+				continue
 			end
+			local lineNumber = xmlFile:getLineNumber(key .. ".prevent#" .. modifier.xmlAttributeName)
+			Logging.xmlWarning(xmlFile, "Modifier '%s' is set for prevent and required in '%s' (line %d)", modifier.xmlAttributeName, key, lineNumber)
 		end
 	end
-	return v17_, v18_
+	return requiredFlags, preventFlags
 end
-
--- Local values: _, modifier, attributeName
 function ConditionFlags:registerXMLPaths(xmlSchema, basePath)
-	for _, v27_ in ipairs(self.modifiers) do
-		if not v27_.hasCustomLoadFunction then
-			local v28_ = v27_.xmlAttributeName
-			xmlSchema:register(XMLValueType.BOOL, basePath .. ".prevent#" .. v28_, "Prevent flag " .. v28_)
-			xmlSchema:register(XMLValueType.BOOL, basePath .. ".required#" .. v28_, "Required flag " .. v28_)
+	for _, modifier in ipairs(self.modifiers) do
+		if modifier.hasCustomLoadFunction then
+			continue
 		end
+		local attributeName = modifier.xmlAttributeName
+		xmlSchema:register(XMLValueType.BOOL, basePath .. ".prevent#" .. attributeName, "Prevent flag " .. attributeName)
+		xmlSchema:register(XMLValueType.BOOL, basePath .. ".required#" .. attributeName, "Required flag " .. attributeName)
 	end
 end
-
--- Local values: name, _, modifier, modifier
 function ConditionFlags:registerModifier(xmlAttributeName, loadFromXMLFunc)
-	local v32_ = string.upper(xmlAttributeName)
-	for _, v33_ in ipairs(self.modifiers) do
-		if v33_.xmlAttributeName == xmlAttributeName then
-			Logging.warning("Given ConditionFlags modifier xml attribute name \'%s\' already used", xmlAttributeName)
-			return v33_.updateFunc
+	local name = string.upper(xmlAttributeName)
+	for _, modifier in ipairs(self.modifiers) do
+		if modifier.xmlAttributeName == xmlAttributeName then
+			Logging.warning("Given ConditionFlags modifier xml attribute name '%s' already used", xmlAttributeName)
+			return modifier.updateFunc
 		end
 	end
-	local v_u_42_ = {
-		["name"] = v32_,
-		["xmlAttributeName"] = xmlAttributeName,
-		["hasCustomLoadFunction"] = loadFromXMLFunc ~= nil,
-		["bitflag"] = 2 ^ (#self.modifiers + 1),
-		["loadFromXMLFunc"] = loadFromXMLFunc or ConditionFlags.loadFlagFromXML,
-		["updateFunc"] = function(p34_)
-			-- upvalues: (copy) self, (copy) v_u_42_
-			if p34_ then
-				local v35_ = self
-				local v36_ = self.mask
-				local v37_ = v_u_42_.bitflag
-				v35_.mask = bit32.bor(v36_, v37_)
-			else
-				local v38_ = self
-				local v39_ = self.mask
-				local v40_ = v_u_42_.bitflag
-				local v41_ = bit32.bnot(v40_)
-				v38_.mask = bit32.band(v39_, v41_)
-			end
+	local modifier = {}
+	modifier.name = name
+	modifier.xmlAttributeName = xmlAttributeName
+	modifier.hasCustomLoadFunction = loadFromXMLFunc ~= nil
+	modifier.bitflag = 2 ^ (#self.modifiers + 1)
+	modifier.loadFromXMLFunc = loadFromXMLFunc or ConditionFlags.loadFlagFromXML
+	function modifier.updateFunc(isActive)
+		if isActive then
+			self.mask = bit32.bor(self.mask, modifier.bitflag)
+		else
+			self.mask = bit32.band(self.mask, bit32.bnot(modifier.bitflag))
 		end
-	}
-	local v43_ = self.modifiers
-	table.insert(v43_, v_u_42_)
-	self.nameToModifier[v32_] = v_u_42_
-	return v_u_42_.updateFunc
+	end
+	table.insert(self.modifiers, modifier)
+	self.nameToModifier[name] = modifier
+	return modifier.updateFunc
 end
-
--- Local values: name, modifier
 function ConditionFlags:setModifierValue(modifierName, value)
-	local v47_ = string.upper(modifierName)
-	local v48_ = self.nameToModifier[v47_]
-	if v48_ ~= nil then
-		v48_.updateFunc(value)
+	local name = string.upper(modifierName)
+	local modifier = self.nameToModifier[name]
+	if modifier ~= nil then
+		modifier.updateFunc(value)
 	end
 end
-
 function ConditionFlags:getMask()
 	return self.mask
 end
-
--- Local values: textSize, textOffset, _, modifier, isActive
 function ConditionFlags:drawDebug(posX, posY)
 	setTextColor(1, 1, 1, 1)
 	setTextBold(true)
 	setTextAlignment(RenderText.ALIGN_CENTER)
 	renderText(posX, posY, getCorrectTextSize(0.014), "Modifiers:")
 	setTextBold(false)
-	local v53_ = getCorrectTextSize(0.012)
-	local v54_ = getCorrectTextSize(0.001)
-	local v55_ = posY - 0.02
-	for _, v56_ in ipairs(self.modifiers) do
-		local v57_ = self.mask
-		local v58_ = v56_.bitflag
-		local v59_ = bit32.band(v57_, v58_) ~= 0
+	local textSize = getCorrectTextSize(0.012)
+	local textOffset = getCorrectTextSize(0.001)
+	posY = posY - 0.02
+	for _, modifier in ipairs(self.modifiers) do
+		local isActive = bit32.band(self.mask, modifier.bitflag) ~= 0
 		setTextAlignment(RenderText.ALIGN_RIGHT)
-		renderText(posX, v55_, v53_, v56_.xmlAttributeName .. ":  ")
+		renderText(posX, posY, textSize, modifier.xmlAttributeName .. ":  ")
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		renderText(posX, v55_, v53_, (tostring(v59_)))
-		v55_ = v55_ - v53_ - v54_
+		renderText(posX, posY, textSize, tostring(isActive))
+		posY = posY - textSize - textOffset
 	end
-	return v55_
+	return posY
 end

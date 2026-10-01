@@ -1,77 +1,67 @@
--- Local values: UserEvent_mt
 UserEvent = {}
 UserEvent.SEND_NUM_BITS = 5
 local UserEvent_mt = Class(UserEvent, Event)
 InitStaticEventClass(UserEvent, "UserEvent")
 function UserEvent.emptyNew()
-	-- upvalues: (copy) UserEvent_mt
-	return Event.new(UserEvent_mt)
+	local self = Event.new(UserEvent_mt)
+	return self
 end
-
--- Local values: self
 function UserEvent.new(addedUsers, removedUsers, capacity, disconnectReason)
-	local v6_ = UserEvent.emptyNew()
-	v6_.addedUsers = addedUsers
-	v6_.removedUsers = removedUsers
-	v6_.capacity = capacity
-	v6_.disconnectReason = disconnectReason or 1
-	return v6_
+	local self = UserEvent.emptyNew()
+	self.addedUsers = addedUsers
+	self.removedUsers = removedUsers
+	self.capacity = capacity
+	self.disconnectReason = disconnectReason or 1
+	return self
 end
-
--- Local values: userId, numUsers, _, user, _, removedUserId
 function UserEvent:readStream(streamId, connection)
-	local v10_ = User.streamReadUserId(streamId)
-	g_currentMission.playerUserId = v10_
+	local userId = User.streamReadUserId(streamId)
+	g_currentMission.playerUserId = userId
 	self.capacity = streamReadInt8(streamId)
 	self.addedUsers = {}
-	for _ = 1, streamReadUIntN(streamId, UserEvent.SEND_NUM_BITS) do
-		local v11_ = User.new()
-		v11_:readStream(streamId, connection)
-		local v12_ = self.addedUsers
-		table.insert(v12_, v11_)
+	local numUsers = streamReadUIntN(streamId, UserEvent.SEND_NUM_BITS)
+	for _ = 1, numUsers do
+		local user = User.new()
+		user:readStream(streamId, connection)
+		table.insert(self.addedUsers, user)
 	end
 	self.removedUsers = {}
-	local v13_ = streamReadUIntN(streamId, UserEvent.SEND_NUM_BITS)
-	for _ = 1, v13_ do
-		local v14_ = User.streamReadUserId(streamId)
-		local v15_ = self.removedUsers
-		table.insert(v15_, v14_)
+	numUsers = streamReadUIntN(streamId, UserEvent.SEND_NUM_BITS)
+	for _ = 1, numUsers do
+		local removedUserId = User.streamReadUserId(streamId)
+		table.insert(self.removedUsers, removedUserId)
 	end
-	if v13_ > 0 then
+	if 0 < numUsers then
 		self.disconnectReason = DisconnectReason.readStream(streamId)
 	end
 	self:run(connection)
 end
-
--- Local values: userId, numUsers, _, user, _, user
 function UserEvent:writeStream(streamId, connection)
-	local v19_ = g_currentMission.userManager:getUserIdByConnection(connection)
-	User.streamWriteUserId(streamId, v19_)
+	local userId = g_currentMission.userManager:getUserIdByConnection(connection)
+	User.streamWriteUserId(streamId, userId)
 	streamWriteInt8(streamId, self.capacity)
-	local v20_ = #self.addedUsers
-	streamWriteUIntN(streamId, v20_, UserEvent.SEND_NUM_BITS)
-	for _, v21_ in ipairs(self.addedUsers) do
-		v21_:writeStream(streamId, connection)
+	local numUsers = #self.addedUsers
+	streamWriteUIntN(streamId, numUsers, UserEvent.SEND_NUM_BITS)
+	for _, user in ipairs(self.addedUsers) do
+		user:writeStream(streamId, connection)
 	end
-	local v22_ = #self.removedUsers
-	streamWriteUIntN(streamId, v22_, UserEvent.SEND_NUM_BITS)
-	for _, v23_ in ipairs(self.removedUsers) do
-		User.streamWriteUserId(streamId, v23_:getId())
+	numUsers = #self.removedUsers
+	streamWriteUIntN(streamId, numUsers, UserEvent.SEND_NUM_BITS)
+	for _, user in ipairs(self.removedUsers) do
+		User.streamWriteUserId(streamId, user:getId())
 	end
-	if v22_ > 0 then
+	if 0 < numUsers then
 		DisconnectReason.writeStream(streamId, self.disconnectReason)
 	end
 end
-
--- Local values: _, user, _, userId
 function UserEvent:run(connection)
 	g_currentMission.missionDynamicInfo.capacity = self.capacity
-	for _, v25_ in ipairs(self.addedUsers) do
-		if g_currentMission.userManager:getUserByUniqueId(v25_:getUniqueUserId()) == nil then
-			g_currentMission.userManager:addUser(v25_)
+	for _, user in ipairs(self.addedUsers) do
+		if g_currentMission.userManager:getUserByUniqueId(user:getUniqueUserId()) == nil then
+			g_currentMission.userManager:addUser(user)
 		end
 	end
-	for _, v26_ in ipairs(self.removedUsers) do
-		g_currentMission.userManager:removeUserById(v26_, self.disconnectReason)
+	for _, userId in ipairs(self.removedUsers) do
+		g_currentMission.userManager:removeUserById(userId, self.disconnectReason)
 	end
 end

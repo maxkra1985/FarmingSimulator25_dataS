@@ -1,142 +1,129 @@
--- Local values: originalSplitFunc
 local originalSplitFunc = splitShape
 SplitShapeUtil = {}
 SplitShapeUtil.SPLIT_SHAPES = {}
 SplitShapeUtil.callbackFunc = nil
 SplitShapeUtil.callbackTarget = nil
-
--- Local values: splitData, target, callbackFunc
 function SplitShapeUtil.onSplitShapeCallback(unused, shape, isBelow, isAbove, minY, maxY, minZ, maxZ)
-	local v9_ = SplitShapeUtil.SPLIT_SHAPES
-	table.insert(v9_, {
-		["shape"] = shape,
-		["isBelow"] = isBelow,
-		["isAbove"] = isAbove,
-		["minY"] = minY,
-		["maxY"] = maxY,
-		["minZ"] = minZ,
-		["maxZ"] = maxZ
-	})
-	local v10_ = SplitShapeUtil.callbackTarget
-	v10_[SplitShapeUtil.callbackFunc](v10_, shape, isBelow, isAbove, minY, maxY, minZ, maxZ)
+	local splitData = { shape = shape, isBelow = isBelow, isAbove = isAbove, minY = minY, maxY = maxY, minZ = minZ, maxZ = maxZ }
+	table.insert(SplitShapeUtil.SPLIT_SHAPES, splitData)
+	local target = SplitShapeUtil.callbackTarget
+	local callbackFunc = SplitShapeUtil.callbackFunc
+	target[callbackFunc](target, shape, isBelow, isAbove, minY, maxY, minZ, maxZ)
 end
-
--- Upvalues: originalSplitFunc
--- Local values: tx, ty, tz, rx, ry, rz, data, parts
 function SplitShapeUtil.splitShape(shape, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, callback, target)
-	-- upvalues: (copy) originalSplitFunc
-	if entityExists(shape) and getHasClassId(shape, ClassIds.MESH_SPLIT_SHAPE) then
-		local v25_, v26_, v27_ = getWorldTranslation(shape)
-		local v28_, v29_, v30_ = getWorldRotation(shape)
-		local v31_ = {
-			["shape"] = shape,
-			["splitTypeIndex"] = getSplitType(shape),
-			["volume"] = getVolume(shape),
-			["x"] = v25_,
-			["y"] = v26_,
-			["z"] = v27_,
-			["rx"] = v28_,
-			["ry"] = v29_,
-			["rz"] = v30_,
-			["alreadySplit"] = getIsSplitShapeSplit(shape)
-		}
-		if target == nil then
-			local v32_ = string.split(callback, ".")
-			if #v32_ == 2 then
-				target = _G[v32_[1]]
-				callback = v32_[2]
+	if not entityExists(shape) or not getHasClassId(shape, ClassIds.MESH_SPLIT_SHAPE) then
+		return
+	end
+	local tx, ty, tz = getWorldTranslation(shape)
+	local rx, ry, rz = getWorldRotation(shape)
+	local data = {}
+	data.shape = shape
+	data.splitTypeIndex = getSplitType(shape)
+	data.volume = getVolume(shape)
+	data.x = tx
+	data.y = ty
+	data.z = tz
+	data.rx = rx
+	data.ry = ry
+	data.rz = rz
+	data.alreadySplit = getIsSplitShapeSplit(shape)
+	if target == nil then
+		local parts = string.split(callback, ".")
+		if #parts == 2 then
+			target = _G[parts[1]]
+			callback = parts[2]
+		end
+	end
+	SplitShapeUtil.callbackFunc = callback
+	SplitShapeUtil.callbackTarget = target
+	SplitShapeUtil.SPLIT_SHAPES = {}
+	originalSplitFunc(shape, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, "onSplitShapeCallback", SplitShapeUtil)
+	g_messageCenter:publish(MessageType.SPLIT_SHAPE, data, SplitShapeUtil.SPLIT_SHAPES)
+end
+function _G.splitShape(shape, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, callback, target)
+	SplitShapeUtil.splitShape(shape, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, callback, target)
+end
+function SplitShapeUtil.getTreeOffsetPosition(shapeId, x, y, z, maxRadius, minLength)
+	local localX, localY, localZ = worldToLocal(shapeId, x, y, z)
+	local cx, cy, cz = localToWorld(shapeId, localX - maxRadius * 0.5, localY, localZ - maxRadius * 0.5)
+	local nx, ny, nz = localDirectionToWorld(shapeId, 0, 1, 0)
+	local yx, yy, yz = localDirectionToWorld(shapeId, 0, 0, 1)
+	local minY, maxY, minZ, maxZ = testSplitShape(shapeId, cx, cy, cz, nx, ny, nz, yx, yy, yz, maxRadius, maxRadius)
+	if minY ~= nil then
+		if minLength ~= nil then
+			local lengthBelow, lengthAbove = getSplitShapePlaneExtents(shapeId, cx, cy, cz, nx, ny, nz)
+			if lengthBelow ~= nil and lengthBelow < minLength then
+				return nil
+			end
+			if lengthAbove ~= nil and lengthAbove < minLength then
+				return nil
 			end
 		end
-		SplitShapeUtil.callbackFunc = callback
-		SplitShapeUtil.callbackTarget = target
-		SplitShapeUtil.SPLIT_SHAPES = {}
-		originalSplitFunc(shape, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, "onSplitShapeCallback", SplitShapeUtil)
-		g_messageCenter:publish(MessageType.SPLIT_SHAPE, v31_, SplitShapeUtil.SPLIT_SHAPES)
-	end
-end
-function _G.splitShape(p33_, p34_, p35_, p36_, p37_, p38_, p39_, p40_, p41_, p42_, p43_, p44_, p45_, p46_)
-	SplitShapeUtil.splitShape(p33_, p34_, p35_, p36_, p37_, p38_, p39_, p40_, p41_, p42_, p43_, p44_, p45_, p46_)
-end
-
--- Local values: localX, localY, localZ, cx, cy, cz, nx, ny, nz, yx, yy, yz, minY, maxY, minZ, maxZ, lengthBelow, lengthAbove, minMaxY, minMaxZ, centerX, centerY, centerZ, radius
-function SplitShapeUtil.getTreeOffsetPosition(shapeId, x, y, z, maxRadius, minLength)
-	local v53_, v54_, v55_ = worldToLocal(shapeId, x, y, z)
-	local v56_, v57_, v58_ = localToWorld(shapeId, v53_ - maxRadius * 0.5, v54_, v55_ - maxRadius * 0.5)
-	local v59_, v60_, v61_ = localDirectionToWorld(shapeId, 0, 1, 0)
-	local v62_, v63_, v64_ = localDirectionToWorld(shapeId, 0, 0, 1)
-	local v65_, v66_, v67_, v68_ = testSplitShape(shapeId, v56_, v57_, v58_, v59_, v60_, v61_, v62_, v63_, v64_, maxRadius, maxRadius)
-	if v65_ == nil then
+		local minMaxY = (minY + maxY) * 0.5
+		local minMaxZ = (minZ + maxZ) * 0.5
+		local centerX, centerY, centerZ = localToWorld(shapeId, localX - maxRadius * 0.5 + minMaxZ, localY, localZ - maxRadius * 0.5 + minMaxY)
+		local radius = math.max(maxY - minY, maxZ - minZ) * 0.5
+		return centerX, centerY, centerZ, nx, ny, nz, radius
+	else
 		return nil
 	end
-	if minLength ~= nil then
-		local v69_, v70_ = getSplitShapePlaneExtents(shapeId, v56_, v57_, v58_, v59_, v60_, v61_)
-		if v69_ ~= nil and v69_ < minLength then
-			return nil
-		end
-		if v70_ ~= nil and v70_ < minLength then
-			return nil
-		end
-	end
-	local v71_ = (v65_ + v66_) * 0.5
-	local v72_ = (v67_ + v68_) * 0.5
-	local v73_, v74_, v75_ = localToWorld(shapeId, v53_ - maxRadius * 0.5 + v72_, v54_, v55_ - maxRadius * 0.5 + v71_)
-	local v76_ = v66_ - v65_
-	local v77_ = v68_ - v67_
-	return v73_, v74_, v75_, v59_, v60_, v61_, math.max(v76_, v77_) * 0.5
 end
-
--- Local values: dir2X, dir2Y, dir2Z, rootNode, startNode, endNode, linkNode, tensionBelt, beltShapeId, _, _, wx, wy, wz, rx, ry, rz
 function SplitShapeUtil.createTreeBelt(beltData, shapeId, tx, ty, tz, sx, sy, sz, upX, upY, upZ, hookOffset, ignoreYDirection, spacing)
-	if beltData ~= nil then
-		local v92_, v93_, v94_ = MathUtil.vector3Normalize(sx - tx, sy - ty, sz - tz)
-		local v95_ = spacing or 0.0025
-		local v96_ = createTransformGroup("rootNode")
-		link(getRootNode(), v96_)
-		setTranslation(v96_, tx, ty, tz)
-		setDirection(v96_, v92_, ignoreYDirection and 0 or v93_, v94_, upX, upY, upZ)
-		local v97_ = createTransformGroup("startNode")
-		link(v96_, v97_)
-		setTranslation(v97_, -v95_ * 0.5, 0, hookOffset)
-		setRotation(v97_, -1.5707963267948966, 0, -1.5707963267948966)
-		local v98_ = createTransformGroup("endNode")
-		link(v97_, v98_)
-		setTranslation(v98_, 0, 0, v95_)
-		setRotation(v98_, 0, 0, 0)
-		local v99_ = createTransformGroup("linkNode")
-		link(v97_, v99_)
-		setTranslation(v99_, 0, 0, v95_ * 0.5)
-		setRotation(v99_, 0, 0, 0)
-		local v100_ = TensionBeltGeometryConstructor.new()
-		v100_:setWidth(beltData.width)
-		v100_:setMaterial(beltData.material.materialId)
-		v100_:setUVscale(beltData.material.uvScale)
-		v100_:setMaxEdgeLength(0.1)
-		v100_:setFixedPoints(v97_, v98_)
-		v100_:setGeometryBias(0.005)
-		v100_:setLinkNode(v99_)
-		v100_:addShape(shapeId, -100, 100, -100, 100)
-		local v101_, _, _ = v100_:finalize()
-		local v102_, v103_, v104_ = getWorldTranslation(v101_)
-		local v105_, v106_, v107_ = getWorldRotation(v101_)
-		link(getRootNode(), v101_)
-		setWorldTranslation(v101_, v102_, v103_, v104_)
-		setWorldRotation(v101_, v105_, v106_, v107_)
-		delete(v96_)
-		return v101_
+	if beltData == nil then
+		Logging.error("Failed to create tree belt. Missing beltData.")
+		return
+	else
+		local dir2X, dir2Y, dir2Z = MathUtil.vector3Normalize(sx - tx, sy - ty, sz - tz)
+		if ignoreYDirection then
+			dir2Y = 0
+		end
+		spacing = spacing or 0.0025
+		local rootNode = createTransformGroup("rootNode")
+		link(getRootNode(), rootNode)
+		setTranslation(rootNode, tx, ty, tz)
+		setDirection(rootNode, dir2X, dir2Y, dir2Z, upX, upY, upZ)
+		local startNode = createTransformGroup("startNode")
+		link(rootNode, startNode)
+		setTranslation(startNode, -spacing * 0.5, 0, hookOffset)
+		setRotation(startNode, -1.5707963267948966, 0, -1.5707963267948966)
+		local endNode = createTransformGroup("endNode")
+		link(startNode, endNode)
+		setTranslation(endNode, 0, 0, spacing)
+		setRotation(endNode, 0, 0, 0)
+		local linkNode = createTransformGroup("linkNode")
+		link(startNode, linkNode)
+		setTranslation(linkNode, 0, 0, spacing * 0.5)
+		setRotation(linkNode, 0, 0, 0)
+		local tensionBelt = TensionBeltGeometryConstructor.new()
+		tensionBelt:setWidth(beltData.width)
+		tensionBelt:setMaterial(beltData.material.materialId)
+		tensionBelt:setUVscale(beltData.material.uvScale)
+		tensionBelt:setMaxEdgeLength(0.1)
+		tensionBelt:setFixedPoints(startNode, endNode)
+		tensionBelt:setGeometryBias(0.005)
+		tensionBelt:setLinkNode(linkNode)
+		tensionBelt:addShape(shapeId, -100, 100, -100, 100)
+		local beltShapeId, _, _ = tensionBelt:finalize()
+		local wx, wy, wz = getWorldTranslation(beltShapeId)
+		local rx, ry, rz = getWorldRotation(beltShapeId)
+		link(getRootNode(), beltShapeId)
+		setWorldTranslation(beltShapeId, wx, wy, wz)
+		setWorldRotation(beltShapeId, rx, ry, rz)
+		delete(rootNode)
+		return beltShapeId
 	end
-	Logging.error("Failed to create tree belt. Missing beltData.")
 end
-
--- Local values: i, ret
 function SplitShapeUtil.getSplitShapeId(node)
 	if getHasClassId(node, ClassIds.MESH_SPLIT_SHAPE) then
 		return node
-	end
-	for v109_ = 0, getNumOfChildren(node) - 1 do
-		local v110_ = SplitShapeUtil.getSplitShapeId(getChildAt(node, v109_))
-		if v110_ ~= nil then
-			return v110_
+	else
+		for i = 0, getNumOfChildren(node) - 1 do
+			local ret = SplitShapeUtil.getSplitShapeId(getChildAt(node, i))
+			if ret == nil then
+				continue
+			end
+			return ret
 		end
+		return nil
 	end
-	return nil
 end

@@ -1,46 +1,34 @@
--- Local values: IndoorMask_mt
 IndoorMask = {}
 IndoorMask.NUM_CHANNELS = 1
 IndoorMask.FIRST_CHANNEL = 0
 IndoorMask.INDOOR = 1
 IndoorMask.OUTDOOR = 0
-IndoorMask.COLORS = {
-	[IndoorMask.INDOOR] = Color.new(1, 0, 0, 0.15),
-	[IndoorMask.OUTDOOR] = Color.new(0, 1, 0, 0.15)
-}
+IndoorMask.COLORS = { [IndoorMask.INDOOR] = Color.new(1, 0, 0, 0.15), [IndoorMask.OUTDOOR] = Color.new(0, 1, 0, 0.15) }
 local IndoorMask_mt = Class(IndoorMask)
-
--- Upvalues: IndoorMask_mt
--- Local values: self
 function IndoorMask.new(mission, isServer, customMt)
-	-- upvalues: (copy) IndoorMask_mt
-	local v5_ = customMt or IndoorMask_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.mission = mission
-	v6_.isServer = isServer
-	v6_.visualizeMask = false
-	v6_.handle = nil
-	v6_.layerName = "indoorMask"
+	local self = setmetatable({}, customMt or IndoorMask_mt)
+	self.mission = mission
+	self.isServer = isServer
+	self.visualizeMask = false
+	self.handle = nil
+	self.layerName = "indoorMask"
 	if g_addCheatCommands then
-		addConsoleCommand("gsIndoorMaskToggle", "Toggle indoor mask visualization", "consoleCommandToggleMask", v6_)
+		addConsoleCommand("gsIndoorMaskToggle", "Toggle indoor mask visualization", "consoleCommandToggleMask", self)
 	end
-	return v6_
+	return self
 end
-
 function IndoorMask:delete()
 	g_messageCenter:unsubscribeAll(self)
 	if g_addCheatCommands then
 		removeConsoleCommand("gsIndoorMaskToggle")
 	end
 end
-
 function IndoorMask:loadMapData(xmlFile, missionInfo, baseDirectory) end
-
 function IndoorMask:onTerrainLoad(terrainRootNode)
 	self.handle = getInfoLayerFromTerrain(terrainRootNode, self.layerName)
 	if self.handle == nil or self.handle == 0 then
 		self.handle = 0
-		Logging.error("Layer \'%s\' is missing for current map!", self.layerName)
+		Logging.error("Layer '%s' is missing for current map!", self.layerName)
 	end
 	self.terrainSize = self.mission.terrainSize
 	self.terrainSizeHalf = self.terrainSize / 2
@@ -52,96 +40,80 @@ function IndoorMask:onTerrainLoad(terrainRootNode)
 		self.densityToWorldMap = self.terrainSize / self.maskSize
 	end
 end
-
--- Local values: terrainSizeHalf, worldToDensityMap, densityToWorldMap, sizePixelsHalf, x, _, z, vehicle, xI, zI, minXi, minZi, maxXi, maxZi, areaSize, zi, xi, v, color, xt, zt
 function IndoorMask:drawDebug()
-	if not g_gui:getIsGuiVisible() or g_gui.currentGuiName == "ConstructionScreen" then
-		if self.handle ~= nil then
-			local v11_ = self.terrainSizeHalf
-			local v12_ = self.worldToDensityMap
-			local v13_ = self.densityToWorldMap
-			local v14_, _, v15_ = getWorldTranslation(g_cameraManager:getActiveCamera())
-			local v16_ = g_localPlayer:getCurrentVehicle()
-			if v16_ ~= nil then
-				if v16_.selectedImplement ~= nil then
-					v16_ = v16_.selectedImplement.object
-				end
-				local v17_
-				v14_, v17_, v15_ = getWorldTranslation(v16_.components[1].node)
+	if g_gui:getIsGuiVisible() and g_gui.currentGuiName ~= "ConstructionScreen" then
+		return
+	end
+	if self.handle ~= nil then
+		local terrainSizeHalf = self.terrainSizeHalf
+		local worldToDensityMap = self.worldToDensityMap
+		local densityToWorldMap = self.densityToWorldMap
+		local sizePixelsHalf = 20
+		local x, _, z = getWorldTranslation(g_cameraManager:getActiveCamera())
+		local vehicle = g_localPlayer:getCurrentVehicle()
+		if vehicle ~= nil then
+			if vehicle.selectedImplement ~= nil then
+				vehicle = vehicle.selectedImplement.object
 			end
-			local v18_ = (v14_ + v11_) * v12_
-			local v19_ = math.floor(v18_)
-			local v20_ = (v15_ + v11_) * v12_
-			local v21_ = math.floor(v20_)
-			local v22_ = v19_ - 20
-			local v23_ = math.max(v22_, 0)
-			local v24_ = v21_ - 20
-			local v25_ = math.max(v24_, 0)
-			local v26_ = v19_ + 20
-			local v27_ = self.maskSize - 1
-			local v28_ = math.min(v26_, v27_)
-			local v29_ = v21_ + 20
-			local v30_ = self.maskSize - 1
-			local v31_ = math.min(v29_, v30_)
-			local v32_ = self.terrainSize / self.maskSize
-			for v33_ = v25_, v31_ do
-				for v34_ = v23_, v28_ do
-					local v35_ = getBitVectorMapPoint(self.handle, v34_, v33_, IndoorMask.FIRST_CHANNEL, IndoorMask.NUM_CHANNELS)
-					local v36_ = IndoorMask.COLORS[v35_]
-					local v37_ = v34_ * v13_ - v11_
-					local v38_ = v33_ * v13_ - v11_
-					DebugPlane.renderWithPositions(v37_, 0, v38_, v37_, 0, v38_ + v32_, v37_ + v32_, 0, v38_, v36_, true, true)
-				end
+			x, _, z = getWorldTranslation(vehicle.components[1].node)
+		end
+		local xI = math.floor((x + terrainSizeHalf) * worldToDensityMap)
+		local zI = math.floor((z + terrainSizeHalf) * worldToDensityMap)
+		local minXi = math.max(xI - 20, 0)
+		local minZi = math.max(zI - 20, 0)
+		local maxXi = math.min(xI + 20, self.maskSize - 1)
+		local maxZi = math.min(zI + 20, self.maskSize - 1)
+		local areaSize = self.terrainSize / self.maskSize
+		for zi = minZi, maxZi do
+			for xi = minXi, maxXi do
+				local v = getBitVectorMapPoint(self.handle, xi, zi, IndoorMask.FIRST_CHANNEL, IndoorMask.NUM_CHANNELS)
+				local color = IndoorMask.COLORS[v]
+				local xt = xi * densityToWorldMap - terrainSizeHalf
+				local zt = zi * densityToWorldMap - terrainSizeHalf
+				DebugPlane.renderWithPositions(xt, 0, zt, xt, 0, zt + areaSize, xt + areaSize, 0, zt, color, true, true)
 			end
 		end
 	end
 end
-
 function IndoorMask:hasMask()
 	return self.handle ~= nil
 end
-
 function IndoorMask:getFilter(indoorOutdoor)
-	if self.handle == nil then
+	if self.handle ~= nil then
+		self.filter:setValueCompareParams(DensityValueCompareType.EQUAL, indoorOutdoor)
+		return self.filter
+	else
 		return nil
 	end
-	self.filter:setValueCompareParams(DensityValueCompareType.EQUAL, indoorOutdoor)
-	return self.filter
 end
-
--- Local values: x, z, value
 function IndoorMask:getIsIndoorAtWorldPosition(wx, wz)
-	if self.handle == nil then
+	if self.handle ~= nil then
+		local x = math.floor((wx + self.terrainSizeHalf) * self.worldToDensityMap)
+		local z = math.floor((wz + self.terrainSizeHalf) * self.worldToDensityMap)
+		local value = getBitVectorMapPoint(self.handle, x, z, IndoorMask.FIRST_CHANNEL, IndoorMask.NUM_CHANNELS)
+		return value == IndoorMask.INDOOR
+	else
 		return false
 	end
-	local v45_ = (wx + self.terrainSizeHalf) * self.worldToDensityMap
-	local v46_ = math.floor(v45_)
-	local v47_ = (wz + self.terrainSizeHalf) * self.worldToDensityMap
-	local v48_ = math.floor(v47_)
-	return getBitVectorMapPoint(self.handle, v46_, v48_, IndoorMask.FIRST_CHANNEL, IndoorMask.NUM_CHANNELS) == IndoorMask.INDOOR
 end
-
--- Local values: x, _, z, x1, _, z1, x2, _, z2
 function IndoorMask:setStateByArea(area, indoor)
-	if self.handle ~= nil then
-		local v52_, _, v53_ = getWorldTranslation(area.start)
-		local v54_, _, v55_ = getWorldTranslation(area.width)
-		local v56_, _, v57_ = getWorldTranslation(area.height)
-		self:setParallelogramUVCoords(self.modifierValue, v52_, v53_, v54_, v55_, v56_, v57_)
+	if self.handle == nil then
+		return
+	else
+		local x, _, z = getWorldTranslation(area.start)
+		local x1, _, z1 = getWorldTranslation(area.width)
+		local x2, _, z2 = getWorldTranslation(area.height)
+		self:setParallelogramUVCoords(self.modifierValue, x, z, x1, z1, x2, z2)
 		self.modifierValue:executeSet(indoor)
 	end
 end
-
--- Local values: terrainSize
 function IndoorMask:setParallelogramUVCoords(modifier, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
-	local v66_ = self.terrainSize
-	modifier:setParallelogramUVCoords(startWorldX / v66_ + 0.5, startWorldZ / v66_ + 0.5, widthWorldX / v66_ + 0.5, widthWorldZ / v66_ + 0.5, heightWorldX / v66_ + 0.5, heightWorldZ / v66_ + 0.5, DensityCoordType.POINT_POINT_POINT)
+	local terrainSize = self.terrainSize
+	modifier:setParallelogramUVCoords(startWorldX / terrainSize + 0.5, startWorldZ / terrainSize + 0.5, widthWorldX / terrainSize + 0.5, widthWorldZ / terrainSize + 0.5, heightWorldX / terrainSize + 0.5, heightWorldZ / terrainSize + 0.5, DensityCoordType.POINT_POINT_POINT)
 end
-
 function IndoorMask:getDensityMapData()
 	return self.handle, IndoorMask.FIRST_CHANNEL, IndoorMask.NUM_CHANNELS
 end
-
 function IndoorMask:consoleCommandToggleMask()
 	self.visualizeMask = not self.visualizeMask
 	if self.visualizeMask then
@@ -149,6 +121,5 @@ function IndoorMask:consoleCommandToggleMask()
 	else
 		g_debugManager:removeDrawable(self)
 	end
-	local v69_ = self.visualizeMask
-	return "visualizeMask=" .. tostring(v69_)
+	return "visualizeMask=" .. tostring(self.visualizeMask)
 end

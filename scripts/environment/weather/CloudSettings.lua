@@ -1,39 +1,32 @@
--- Local values: CloudSettings_mt
 CloudSettings = {}
 local CloudSettings_mt = Class(CloudSettings)
-
--- Upvalues: CloudSettings_mt
--- Local values: self
 function CloudSettings.new(customMt)
-	-- upvalues: (copy) CloudSettings_mt
-	local v3_ = customMt or CloudSettings_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.type = 1
-	v4_.baseShapeTiling = 2500
-	v4_.erosionTiling = 2500
-	v4_.precipitation = 0
-	v4_.combinedNoiseEdge0 = 0.49
-	v4_.combinedNoiseEdge1 = 1
-	v4_.noise0Weight = 0.314507
-	v4_.noise0Edge0 = 0.09
-	v4_.noise0Edge1 = 0.99
-	v4_.noise1Weight = 0.525494
-	v4_.noise1Edge0 = 0
-	v4_.noise1Edge1 = 0.88
-	v4_.noise2Weight = 0.16
-	v4_.noise2Edge0 = 0
-	v4_.noise2Edge1 = 0.9
-	v4_.erosionWeight = 0.3
-	v4_.cirrusCoverage = 0.05
-	v4_.envMapCloudProbeIndex = 1
-	v4_.curlNoiseTiling = 2500
-	v4_.curlNoiseHeightFractionModifier = 3
-	v4_.curlNoiseModifier = 600
-	v4_.groundAlbedo = { 1, 1, 1 }
-	v4_.densityScale = 0.01
-	return v4_
+	local self = setmetatable({}, customMt or CloudSettings_mt)
+	self.type = 1
+	self.baseShapeTiling = 2500
+	self.erosionTiling = 2500
+	self.precipitation = 0
+	self.combinedNoiseEdge0 = 0.49
+	self.combinedNoiseEdge1 = 1
+	self.noise0Weight = 0.314507
+	self.noise0Edge0 = 0.09
+	self.noise0Edge1 = 0.99
+	self.noise1Weight = 0.525494
+	self.noise1Edge0 = 0
+	self.noise1Edge1 = 0.88
+	self.noise2Weight = 0.16
+	self.noise2Edge0 = 0
+	self.noise2Edge1 = 0.9
+	self.erosionWeight = 0.3
+	self.cirrusCoverage = 0.05
+	self.envMapCloudProbeIndex = 1
+	self.curlNoiseTiling = 2500
+	self.curlNoiseHeightFractionModifier = 3
+	self.curlNoiseModifier = 600
+	self.groundAlbedo = { 1, 1, 1 }
+	self.densityScale = 0.01
+	return self
 end
-
 function CloudSettings:load(xmlFile, key)
 	self.type = xmlFile:getInt(key .. ".cloudType#type", self.type)
 	self.densityScale = xmlFile:getFloat(key .. ".cloudType#densityScale", self.densityScale)
@@ -60,7 +53,6 @@ function CloudSettings:load(xmlFile, key)
 	self.groundAlbedo = xmlFile:getVector(key .. ".groundAlbedo#color", self.groundAlbedo, 3)
 	return true
 end
-
 function CloudSettings:save(xmlFile, key)
 	xmlFile:setInt(key .. ".cloudType#type", self.type)
 	xmlFile:setFloat(key .. ".cloudType#densityScale", self.densityScale)
@@ -87,14 +79,11 @@ function CloudSettings:save(xmlFile, key)
 	xmlFile:setString(key .. ".groundAlbedo#color", string.format("%.3f %.3f %.3f", self.groundAlbedo[1], self.groundAlbedo[2], self.groundAlbedo[3]))
 	return true
 end
-
--- Local values: ret
 function CloudSettings:clone()
-	local v12_ = self.new()
-	v12_:copyAttributes(self)
-	return v12_
+	local ret = self.new()
+	ret:copyAttributes(self)
+	return ret
 end
-
 function CloudSettings:copyAttributes(src)
 	self.type = src.type
 	self.densityScale = src.densityScale

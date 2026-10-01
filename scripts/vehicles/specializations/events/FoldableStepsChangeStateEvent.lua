@@ -1,31 +1,25 @@
--- Local values: FoldableStepsChangeStateEvent_mt
 FoldableStepsChangeStateEvent = {}
 local FoldableStepsChangeStateEvent_mt = Class(FoldableStepsChangeStateEvent, Event)
 InitStaticEventClass(FoldableStepsChangeStateEvent, "FoldableStepsChangeStateEvent")
 function FoldableStepsChangeStateEvent.emptyNew()
-	-- upvalues: (copy) FoldableStepsChangeStateEvent_mt
-	return Event.new(FoldableStepsChangeStateEvent_mt)
+	local self = Event.new(FoldableStepsChangeStateEvent_mt)
+	return self
 end
-
--- Local values: self
 function FoldableStepsChangeStateEvent.new(object, targetState)
-	local v4_ = FoldableStepsChangeStateEvent.emptyNew()
-	v4_.object = object
-	v4_.targetState = targetState
-	return v4_
+	local self = FoldableStepsChangeStateEvent.emptyNew()
+	self.object = object
+	self.targetState = targetState
+	return self
 end
-
 function FoldableStepsChangeStateEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.targetState = streamReadUIntN(streamId, FoldableSteps.STATE_NUM_BITS)
 	self:run(connection)
 end
-
 function FoldableStepsChangeStateEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	streamWriteUIntN(streamId, self.targetState, FoldableSteps.STATE_NUM_BITS)
 end
-
 function FoldableStepsChangeStateEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -34,7 +28,6 @@ function FoldableStepsChangeStateEvent:run(connection)
 		self.object:setFoldableStepsFoldState(self.targetState, true)
 	end
 end
-
 function FoldableStepsChangeStateEvent.sendEvent(vehicle, targetState, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

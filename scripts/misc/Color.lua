@@ -1,363 +1,259 @@
--- Local values: Color_mt
 Color = {}
 local Color_mt = Class(Color)
-
--- Local values: value
 function Color_mt.__index(color, key)
-	local v4_ = rawget(color, key)
-	if v4_ == nil then
-		local v5_ = Color[key]
-		if v5_ == nil then
-			if type(key) == "number" and (key > 0 and key <= 4) then
-				if key == 1 then
-					return color.r
-				elseif key == 2 then
-					return color.g
-				elseif key == 3 then
-					return color.b
-				else
-					return color.a
-				end
-			else
-				return Color.swizzle(color, key)
-			end
-		else
-			return v5_
-		end
+	local value = rawget(color, key)
+	if value ~= nil then
+		return value
+	end
+	value = Color[key]
+	if value ~= nil then
+		return value
 	else
-		return v4_
+		if type(key) == "number" and (0 < key and key <= 4) then
+			if key == 1 then
+				return color.r
+			elseif key == 2 then
+				return color.g
+			elseif key == 3 then
+				return color.b
+			else
+				return color.a
+			end
+		end
+		return Color.swizzle(color, key)
 	end
 end
-
--- Local values: i, r, g, b, a
 function Color_mt.__mul(left, right)
 	if type(left) == "table" and type(right) == "table" then
-		for v8_ = 1, 3 do
-			if left[v8_] == nil or right[v8_] == nil then
+		for i = 1, 3 do
+			if left[i] == nil or right[i] == nil then
 				Assert.fail("Cannot multiply between two tables that do not both have indices 1, 2, and 3!")
 			end
 		end
-		local v9_ = left[1] * right[1]
-		local v10_ = math.clamp(v9_, 0, 1)
-		local v11_ = left[2] * right[2]
-		local v12_ = math.clamp(v11_, 0, 1)
-		local v13_ = left[3] * right[3]
-		local v14_ = math.clamp(v13_, 0, 1)
-		local v15_
-		if left[4] == nil or right[4] == nil then
-			v15_ = left[4] or right[4] or 1
-		else
-			local v16_ = left[4] * right[4]
-			v15_ = math.clamp(v16_, 0, 1)
+		local r = math.clamp(left[1] * right[1], 0, 1)
+		local g = math.clamp(left[2] * right[2], 0, 1)
+		local b = math.clamp(left[3] * right[3], 0, 1)
+		local a = nil
+		if left[4] ~= nil then
+			if right[4] ~= nil then
+				a = math.clamp(left[4] * right[4], 0, 1)
+			else
+				a = left[4] or right[4] or 1
+			end
 		end
-		return Color.new(v10_, v12_, v14_, v15_)
+		return Color.new(r, g, b, a)
 	end
 	if type(left) == "number" then
-		local v17_ = Color.new
-		local v18_ = right[1] * left
-		local v19_ = math.clamp(v18_, 0, 1)
-		local v20_ = right[2] * left
-		local v21_ = math.clamp(v20_, 0, 1)
-		local v22_ = right[3] * left
-		local v23_ = math.clamp(v22_, 0, 1)
-		local v24_ = (right[4] or 1) * left
-		return v17_(v19_, v21_, v23_, (math.clamp(v24_, 0, 1)))
-	end
-	if type(right) ~= "number" then
-		Assert.fail("attempt to perform arithmetic (mul) on %s and %s", type(left), (type(right)))
+		return Color.new(math.clamp(right[1] * left, 0, 1), math.clamp(right[2] * left, 0, 1), math.clamp(right[3] * left, 0, 1), math.clamp((right[4] or 1) * left, 0, 1))
+	elseif type(right) == "number" then
+		return Color.new(math.clamp(left[1] * right, 0, 1), math.clamp(left[2] * right, 0, 1), math.clamp(left[3] * right, 0, 1), math.clamp((left[4] or 1) * right, 0, 1))
+	else
+		Assert.fail("attempt to perform arithmetic (mul) on %s and %s", type(left), type(right))
 		return nil
 	end
-	local v25_ = Color.new
-	local v26_ = left[1] * right
-	local v27_ = math.clamp(v26_, 0, 1)
-	local v28_ = left[2] * right
-	local v29_ = math.clamp(v28_, 0, 1)
-	local v30_ = left[3] * right
-	local v31_ = math.clamp(v30_, 0, 1)
-	local v32_ = (left[4] or 1) * right
-	return v25_(v27_, v29_, v31_, (math.clamp(v32_, 0, 1)))
 end
-
--- Upvalues: Color_mt
--- Local values: self
 function Color.new(r, g, b, a)
-	-- upvalues: (copy) Color_mt
-	local v37_ = Color_mt
-	local v38_ = setmetatable({}, v37_)
-	v38_.r = r or 0
-	v38_.g = g or 0
-	v38_.b = b or 0
-	v38_.a = a or 1
-	return v38_
+	local self = setmetatable({}, Color_mt)
+	self.r = r or 0
+	self.g = g or 0
+	self.b = b or 0
+	self.a = a or 1
+	return self
 end
-
 function Color:copy()
 	return Color.new(self.r, self.g, self.b, self.a)
 end
-
 function Color:copyTo(color)
-	local v42_ = self.r
-	local v43_ = self.g
-	local v44_ = self.b
-	local v45_ = self.a
-	color.r = v42_
-	color.g = v43_
-	color.b = v44_
-	color.a = v45_
+	color.r = self.r
+	color.g = self.g
+	color.b = self.b
+	color.a = self.a
 end
-
--- Local values: color, vector
 function Color.parseFromString(inputString, ignoreAlpha)
-	if type(inputString) == "string" then
-		if string.startsWith(inputString, "#") then
-			return Color.fromHex(inputString)
-		else
-			local v48_ = Color.fromPackedValue(inputString)
-			if v48_ == nil then
-				local v49_ = string.split(inputString, " ", tonumber)
-				if #v49_ >= 3 then
-					if ignoreAlpha then
-						return Color.new(v49_[1], v49_[2], v49_[3])
-					else
-						return Color.new(v49_[1], v49_[2], v49_[3], v49_[4])
-					end
-				else
-					if g_vehicleMaterialManager ~= nil then
-						local v50_ = Color.fromVector(g_vehicleMaterialManager:getMaterialTemplateColorByName(inputString), nil, 3)
-						if v50_ ~= nil then
-							if ignoreAlpha then
-								v50_.a = 1
-							end
-							return v50_
-						end
-					end
-					local v51_ = Color.fromPresetName(inputString)
-					if v51_ == nil then
-						return nil
-					end
-					if ignoreAlpha then
-						v51_.a = 1
-					end
-					return v51_
-				end
-			else
+	if type(inputString) ~= "string" then
+		return nil
+	end
+	if string.startsWith(inputString, "#") then
+		return Color.fromHex(inputString)
+	end
+	local color = Color.fromPackedValue(inputString)
+	if color ~= nil then
+		if ignoreAlpha then
+			color.a = 1
+		end
+		return color
+	end
+	local vector = string.split(inputString, " ", tonumber)
+	if 3 > #vector then
+		if g_vehicleMaterialManager ~= nil then
+			color = Color.fromVector(g_vehicleMaterialManager:getMaterialTemplateColorByName(inputString), nil, 3)
+			if color ~= nil then
 				if ignoreAlpha then
-					v48_.a = 1
+					color.a = 1
 				end
-				return v48_
+				return color
 			end
 		end
+		color = Color.fromPresetName(inputString)
+		if color ~= nil then
+			if ignoreAlpha then
+				color.a = 1
+			end
+			return color
+		else
+			return nil
+		end
+	elseif ignoreAlpha then
+		return Color.new(vector[1], vector[2], vector[3])
 	else
-		return nil
+		return Color.new(vector[1], vector[2], vector[3], vector[4])
 	end
 end
-
 function Color.fromPresetName(presetName)
-	if type(presetName) == "string" then
-		return Color.PRESETS[string.upper(presetName)]
-	else
+	if type(presetName) ~= "string" then
 		return nil
+	else
+		return Color.PRESETS[string.upper(presetName)]
 	end
 end
-
--- Local values: r, g, b, a
 function Color.fromPackedValue(packedValue)
 	if type(packedValue) == "string" then
 		packedValue = tonumber(packedValue)
 	end
 	if type(packedValue) ~= "number" then
 		return nil
-	end
-	local v54_ = bit32.band(packedValue, 255) / 255
-	local v55_ = bit32.band(packedValue, 65280)
-	local v56_ = bit32.rshift(v55_, 8) / 255
-	local v57_ = bit32.band(packedValue, 16711680)
-	local v58_ = bit32.rshift(v57_, 16) / 255
-	local v59_ = bit32.band(packedValue, 4278190080)
-	local v60_ = bit32.rshift(v59_, 24) / 255
-	return Color.new(v54_, v56_, v58_, v60_)
-end
-
--- Local values: packedValue
-function Color:toPackedValue()
-	local v62_ = self.r * 255
-	local v63_ = math.ceil(v62_)
-	local v64_ = self.g * 255
-	local v65_ = math.ceil(v64_)
-	local v66_ = bit32.lshift(v65_, 8)
-	local v67_ = bit32.bor(v63_, v66_)
-	local v68_ = self.b * 255
-	local v69_ = math.ceil(v68_)
-	local v70_ = bit32.lshift(v69_, 16)
-	local v71_ = bit32.bor(v67_, v70_)
-	local v72_ = self.a * 255
-	local v73_ = math.ceil(v72_)
-	local v74_ = bit32.lshift(v73_, 24)
-	return bit32.bor(v71_, v74_)
-end
-
--- Local values: packedValue
-function Color.fromHex(hexString)
-	if type(hexString) == "string" then
-		if type(hexString) == "string" and string.startsWith(hexString, "#") then
-			hexString = string.sub(hexString, 2)
-		end
-		local v76_ = tonumber(hexString, 16)
-		if v76_ == nil then
-			return nil
-		else
-			return Color.fromPackedValue(v76_)
-		end
 	else
+		local r = bit32.band(packedValue, 255) / 255
+		local g = bit32.rshift(bit32.band(packedValue, 65280), 8) / 255
+		local b = bit32.rshift(bit32.band(packedValue, 16711680), 16) / 255
+		local a = bit32.rshift(bit32.band(packedValue, 4278190080), 24) / 255
+		return Color.new(r, g, b, a)
+	end
+end
+function Color:toPackedValue()
+	local packedValue = math.ceil(self.r * 255)
+	packedValue = bit32.bor(packedValue, bit32.lshift(math.ceil(self.g * 255), 8))
+	packedValue = bit32.bor(packedValue, bit32.lshift(math.ceil(self.b * 255), 16))
+	packedValue = bit32.bor(packedValue, bit32.lshift(math.ceil(self.a * 255), 24))
+	return packedValue
+end
+function Color.fromHex(hexString)
+	if type(hexString) ~= "string" then
 		return nil
 	end
+	if type(hexString) == "string" and string.startsWith(hexString, "#") then
+		hexString = string.sub(hexString, 2)
+	end
+	local packedValue = tonumber(hexString, 16)
+	if packedValue == nil then
+		return nil
+	else
+		return Color.fromPackedValue(packedValue)
+	end
 end
-
--- Local values: packedValue
 function Color:toHex(includeHash)
-	local v79_ = self:toPackedValue()
-	return string.format("%s%x", includeHash and "#" or "", v79_)
+	local packedValue = self:toPackedValue()
+	return string.format("%s%x", includeHash and "#" or "", packedValue)
 end
-
 function Color.fromVector(vector, minLength, maxLength)
 	if type(vector) ~= "table" or minLength ~= nil and #vector < minLength then
 		return nil
 	end
-	local v83_ = maxLength or #vector
-	return Color.new(v83_ >= 1 and (vector[1] or 0) or 0, v83_ >= 2 and (vector[2] or 0) or 0, v83_ >= 3 and (vector[3] or 0) or 0, v83_ >= 4 and vector[4] or 1)
+	maxLength = maxLength or #vector
+	return Color.new(1 <= maxLength and vector[1] or 0, 2 <= maxLength and vector[2] or 0, 3 <= maxLength and vector[3] or 0, 4 <= maxLength and vector[4] or 1)
 end
-
 function Color:unpack()
 	return self.r, self.g, self.b, self.a
 end
-
 function Color:unpack3()
 	return self.r, self.g, self.b
 end
-
 function Color:toVector3()
 	return { self.r, self.g, self.b }
 end
-
 function Color:toVector4()
-	return {
-		self.r,
-		self.g,
-		self.b,
-		self.a
-	}
+	return { self.r, self.g, self.b, self.a }
 end
-
 function Color.fromRGBA(r, g, b, a)
 	return Color.new((r or 0) / 255, (g or 0) / 255, (b or 0) / 255, (a or 255) / 255)
 end
-
 function Color:unpackRGBA()
-	local v93_ = self.r * 255
-	local v94_ = math.ceil(v93_)
-	local v95_ = self.g * 255
-	local v96_ = math.ceil(v95_)
-	local v97_ = self.b * 255
-	local v98_ = math.ceil(v97_)
-	local v99_ = self.a * 255
-	return v94_, v96_, v98_, math.ceil(v99_)
+	return math.ceil(self.r * 255), math.ceil(self.g * 255), math.ceil(self.b * 255), math.ceil(self.a * 255)
 end
-
 function Color.fromVectorRGBA(vector, minLength, maxLength)
 	if type(vector) ~= "table" or minLength ~= nil and #vector < minLength then
 		return nil
 	end
-	local v103_ = maxLength or #vector
-	return Color.fromRGBA(v103_ >= 1 and (vector[1] or 0) or 0, v103_ >= 2 and (vector[2] or 0) or 0, v103_ >= 3 and (vector[3] or 0) or 0, v103_ >= 4 and vector[4] or 255)
+	maxLength = maxLength or #vector
+	return Color.fromRGBA(1 <= maxLength and vector[1] or 0, 2 <= maxLength and vector[2] or 0, 3 <= maxLength and vector[3] or 0, 4 <= maxLength and vector[4] or 255)
 end
-
 function Color:toVectorRGB()
-	local v105_ = {}
-	local v106_ = self.r * 255
-	local v107_ = math.ceil(v106_)
-	local v108_ = self.g * 255
-	local v109_ = math.ceil(v108_)
-	local v110_ = self.b * 255
-	__set_list(v105_, 1, {v107_, v109_, (math.ceil(v110_))})
-	return v105_
+	return { math.ceil(self.r * 255), math.ceil(self.g * 255), math.ceil(self.b * 255) }
 end
-
 function Color:toVectorRGBA()
-	local v112_ = {}
-	local v113_ = self.r * 255
-	local v114_ = math.ceil(v113_)
-	local v115_ = self.g * 255
-	local v116_ = math.ceil(v115_)
-	local v117_ = self.b * 255
-	local v118_ = math.ceil(v117_)
-	local v119_ = self.a * 255
-	__set_list(v112_, 1, {v114_, v116_, v118_, (math.ceil(v119_))})
-	return v112_
+	return { math.ceil(self.r * 255), math.ceil(self.g * 255), math.ceil(self.b * 255), math.ceil(self.a * 255) }
 end
-
 function Color.blend(first, second, alpha)
 	return Color.new(MathUtil.lerp(first.r, second.r, alpha), MathUtil.lerp(first.g, second.g, alpha), MathUtil.lerp(first.b, second.b, alpha), MathUtil.lerp(first.a, second.a, alpha))
 end
-
--- Local values: swizzleLength, swizzleVector, i, swizzleValue
 function Color:swizzle(key)
 	if type(key) ~= "string" then
 		return nil
-	end
-	local v125_ = string.len(key)
-	if v125_ > 4 or v125_ <= 0 then
-		return nil
-	end
-	local v126_ = {}
-	for v127_ = 1, v125_ do
-		local v128_ = string.sub(key, v127_, v127_)
-		local v129_ = rawget(self, v128_)
-		if v129_ == nil then
+	else
+		local swizzleLength = string.len(key)
+		if 4 < swizzleLength or swizzleLength <= 0 then
 			return nil
 		end
-		v126_[v127_] = v129_
+		local swizzleVector = {}
+		for i = 1, swizzleLength do
+			local swizzleValue = rawget(self, string.sub(key, i, i))
+			if swizzleValue == nil then
+				return nil
+			end
+			swizzleVector[i] = swizzleValue
+		end
+		return swizzleVector
 	end
-	return v126_
 end
-
 function Color.writeStreamRGB(streamId, r, g, b)
 	streamWriteUIntN(streamId, math.clamp(r, 0, 1) * 1023, 10)
 	streamWriteUIntN(streamId, math.clamp(g, 0, 1) * 1023, 10)
 	streamWriteUIntN(streamId, math.clamp(b, 0, 1) * 1023, 10)
 end
-
 function Color.readStreamRGB(streamId)
 	return streamReadUIntN(streamId, 10) / 1023, streamReadUIntN(streamId, 10) / 1023, streamReadUIntN(streamId, 10) / 1023
 end
-
--- Local values: max, min, h, s, l, d, hue_shifted
 function Color.rgbToHsl(r, g, b, offset)
-	local v139_ = math.max(r, g, b)
-	local v140_ = math.min(r, g, b)
-	local v141_ = offset or 0
-	local v142_ = (v139_ + v140_) / 2
-	local v143_, v144_
-	if v139_ == v140_ then
-		v143_ = 0
-		v144_ = 0
+	local max = math.max(r, g, b)
+	local min = math.min(r, g, b)
+	local h = nil
+	local s = nil
+	local l = nil
+	offset = offset or 0
+	l = (max + min) / 2
+	if max == min then
+		h = 0
+		s = 0
 	else
-		local v145_ = v139_ - v140_
-		v144_ = v142_ > 0.5 and v145_ / (2 - v139_ - v140_) or v145_ / (v139_ + v140_)
-		local v146_
-		if v139_ == r then
-			v146_ = (g - b) / v145_ + (g < b and 6 or 0)
-		elseif v139_ == g then
-			v146_ = (b - r) / v145_ + 2
+		local d = max - min
+		s = 0.5 < l and d / (2 - max - min) or d / (max + min)
+		if max == r then
+			h = (g - b) / d + (g < b and 6 or 0)
+		elseif max == g then
+			h = (b - r) / d + 2
 		else
-			v146_ = (r - g) / v145_ + 4
+			h = (r - g) / d + 4
 		end
-		v143_ = v146_ / 6
+		h = h / 6
 	end
-	local v147_ = v143_ - v141_
-	if v147_ < 0 then
-		v147_ = v147_ + 1
+	local hue_shifted = h - offset
+	if hue_shifted < 0 then
+		hue_shifted = hue_shifted + 1
 	end
-	return v147_ * 2 - 1, v144_ * 4, v142_ * 2
+	h = hue_shifted * 2 - 1
+	s = s * 4
+	l = l * 2
+	return h, s, l
 end
 Color.PRESETS = {
 	["TRANSPARENT"] = Color.fromPackedValue(0),
@@ -500,5 +396,5 @@ Color.PRESETS = {
 	["WHITE"] = Color.fromPackedValue(4294967295),
 	["WHITESMOKE"] = Color.fromPackedValue(4294309365),
 	["YELLOW"] = Color.fromPackedValue(4278255615),
-	["YELLOWGREEN"] = Color.fromPackedValue(4281519514)
+	["YELLOWGREEN"] = Color.fromPackedValue(4281519514),
 }

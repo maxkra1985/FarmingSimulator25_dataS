@@ -1,22 +1,18 @@
--- Local values: PlaceableTrainSystemRentEvent_mt
 PlaceableTrainSystemRentEvent = {}
 local PlaceableTrainSystemRentEvent_mt = Class(PlaceableTrainSystemRentEvent, Event)
 InitStaticEventClass(PlaceableTrainSystemRentEvent, "PlaceableTrainSystemRentEvent")
 function PlaceableTrainSystemRentEvent.emptyNew()
-	-- upvalues: (copy) PlaceableTrainSystemRentEvent_mt
-	return Event.new(PlaceableTrainSystemRentEvent_mt)
+	local self = Event.new(PlaceableTrainSystemRentEvent_mt)
+	return self
 end
-
--- Local values: self
 function PlaceableTrainSystemRentEvent.new(object, isRented, farmId, splinePosition)
-	local v6_ = PlaceableTrainSystemRentEvent.emptyNew()
-	v6_.object = object
-	v6_.isRented = isRented
-	v6_.farmId = farmId
-	v6_.splinePosition = splinePosition
-	return v6_
+	local self = PlaceableTrainSystemRentEvent.emptyNew()
+	self.object = object
+	self.isRented = isRented
+	self.farmId = farmId
+	self.splinePosition = splinePosition
+	return self
 end
-
 function PlaceableTrainSystemRentEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.isRented = streamReadBool(streamId)
@@ -26,7 +22,6 @@ function PlaceableTrainSystemRentEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function PlaceableTrainSystemRentEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	if streamWriteBool(streamId, self.isRented) then
@@ -34,20 +29,16 @@ function PlaceableTrainSystemRentEvent:writeStream(streamId, connection)
 		streamWriteFloat32(streamId, self.splinePosition)
 	end
 end
-
--- Local values: farmId, splinePosition
 function PlaceableTrainSystemRentEvent:run(connection)
-	local v14_, v15_
+	local farmId = nil
+	local splinePosition = nil
 	if self.isRented then
-		v14_ = self.farmId
-		v15_ = self.splinePosition
-	else
-		v14_ = nil
-		v15_ = nil
+		farmId = self.farmId
+		splinePosition = self.splinePosition
 	end
 	if self.object ~= nil and self.object:getIsSynchronized() then
 		if self.isRented then
-			self.object:rentRailroad(v14_, v15_, true)
+			self.object:rentRailroad(farmId, splinePosition, true)
 		else
 			self.object:returnRailroad(true)
 		end
@@ -56,7 +47,6 @@ function PlaceableTrainSystemRentEvent:run(connection)
 		g_server:broadcastEvent(PlaceableTrainSystemRentEvent.new(self.object, self.isRented, self.farmId, self.splinePosition), nil, connection, self.object)
 	end
 end
-
 function PlaceableTrainSystemRentEvent.sendEvent(object, isRented, farmId, splinePosition, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

@@ -1,35 +1,31 @@
--- Local values: SlotSystemUpdateEvent_mt
 SlotSystemUpdateEvent = {}
 local SlotSystemUpdateEvent_mt = Class(SlotSystemUpdateEvent, Event)
 InitStaticEventClass(SlotSystemUpdateEvent, "SlotSystemUpdateEvent")
 function SlotSystemUpdateEvent.emptyNew()
-	-- upvalues: (copy) SlotSystemUpdateEvent_mt
-	return Event.new(SlotSystemUpdateEvent_mt)
+	local self = Event.new(SlotSystemUpdateEvent_mt)
+	return self
 end
-
--- Local values: self
 function SlotSystemUpdateEvent.new(slotLimit)
-	local v3_ = SlotSystemUpdateEvent.emptyNew()
-	v3_.slotLimit = slotLimit
-	local v4_ = g_server ~= nil
-	assert(v4_, "Server->client event")
-	return v3_
+	local self = SlotSystemUpdateEvent.emptyNew()
+	self.slotLimit = slotLimit
+	assert(g_server ~= nil, "Server->client event")
+	return self
 end
-
--- Local values: slotLimit
 function SlotSystemUpdateEvent:readStream(streamId, connection)
-	local v8_ = streamReadUInt16(streamId)
-	self.slotLimit = v8_ == 0 and math.huge or v8_
+	local slotLimit = streamReadUInt16(streamId)
+	if slotLimit == 0 then
+		slotLimit = math.huge
+	end
+	self.slotLimit = slotLimit
 	self:run(connection)
 end
-
--- Local values: slotLimit
 function SlotSystemUpdateEvent:writeStream(streamId, connection)
-	local v11_ = self.slotLimit
-	local v12_ = v11_ == math.huge and 0 or v11_
-	streamWriteUInt16(streamId, v12_)
+	local slotLimit = self.slotLimit
+	if slotLimit == math.huge then
+		slotLimit = 0
+	end
+	streamWriteUInt16(streamId, slotLimit)
 end
-
 function SlotSystemUpdateEvent:run(connection)
 	g_currentMission.slotSystem:setSlotLimit(self.slotLimit)
 end

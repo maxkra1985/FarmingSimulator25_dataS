@@ -1,4 +1,3 @@
--- Local values: BuyHandToolEvent_mt
 BuyHandToolEvent = {}
 local BuyHandToolEvent_mt = Class(BuyHandToolEvent, Event)
 InitStaticEventClass(BuyHandToolEvent, "BuyHandToolEvent")
@@ -7,40 +6,34 @@ BuyHandToolEvent.STATE_NO_PERMISSION = 1
 BuyHandToolEvent.STATE_FAILED_TO_LOAD = 2
 BuyHandToolEvent.STATE_NOT_ENOUGH_MONEY = 3
 function BuyHandToolEvent.emptyNew()
-	-- upvalues: (copy) BuyHandToolEvent_mt
-	return Event.new(BuyHandToolEvent_mt)
+	local self = Event.new(BuyHandToolEvent_mt)
+	return self
 end
-
--- Local values: self
 function BuyHandToolEvent.new(handToolBuyData)
-	local v3_ = BuyHandToolEvent.emptyNew()
-	v3_.handToolBuyData = handToolBuyData
-	return v3_
+	local self = BuyHandToolEvent.emptyNew()
+	self.handToolBuyData = handToolBuyData
+	return self
 end
-
--- Local values: self
 function BuyHandToolEvent.newServerToClient(errorCode, handToolBuyData, wasPickedUp)
-	local v7_ = BuyHandToolEvent.emptyNew()
-	v7_.errorCode = errorCode
-	v7_.handToolBuyData = handToolBuyData
-	v7_.wasPickedUp = wasPickedUp
-	return v7_
+	local self = BuyHandToolEvent.emptyNew()
+	self.errorCode = errorCode
+	self.handToolBuyData = handToolBuyData
+	self.wasPickedUp = wasPickedUp
+	return self
 end
-
 function BuyHandToolEvent:readStream(streamId, connection)
 	if self.handToolBuyData == nil then
 		self.handToolBuyData = BuyHandToolData.new()
 	end
-	if connection:getIsServer() then
+	if not connection:getIsServer() then
+		self.handToolBuyData:readStream(streamId, connection)
+	else
 		self.errorCode = streamReadUIntN(streamId, 3)
 		self.handToolBuyData:readStream(streamId, connection)
 		self.wasPickedUp = streamReadBool(streamId)
-	else
-		self.handToolBuyData:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function BuyHandToolEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
 		self.handToolBuyData:writeStream(streamId, connection)
@@ -50,48 +43,35 @@ function BuyHandToolEvent:writeStream(streamId, connection)
 		streamWriteBool(streamId, self.wasPickedUp)
 	end
 end
-
--- Local values: mission, player
 function BuyHandToolEvent:run(connection)
 	if connection:getIsServer() then
 		g_messageCenter:publish(BuyHandToolEvent, self.errorCode, self.handToolBuyData.price, self.wasPickedUp)
 		return
+	end
+	local mission = g_currentMission
+	if not mission:getHasPlayerPermission(Farm.PERMISSION.BUY_VEHICLE, connection) then
+		connection:sendEvent(BuyHandToolEvent.newServerToClient(BuyHandToolEvent.STATE_NO_PERMISSION, self.handToolBuyData, false))
+	elseif not self.handToolBuyData:isValid() then
+		connection:sendEvent(BuyHandToolEvent.newServerToClient(BuyHandToolEvent.STATE_FAILED_TO_LOAD, self.handToolBuyData, false))
+	elseif mission:getMoney(self.ownerFarmId) < self.handToolBuyData.price then
+		connection:sendEvent(BuyHandToolEvent.newServerToClient(BuyHandToolEvent.STATE_NOT_ENOUGH_MONEY, self.handToolBuyData, false))
 	else
-		local v16_ = g_currentMission
-		if v16_:getHasPlayerPermission(Farm.PERMISSION.BUY_VEHICLE, connection) then
-			if self.handToolBuyData:isValid() then
-				if self.handToolBuyData.price > v16_:getMoney(self.ownerFarmId) then
-					connection:sendEvent(BuyHandToolEvent.newServerToClient(BuyHandToolEvent.STATE_NOT_ENOUGH_MONEY, self.handToolBuyData, false))
-				else
-					local v17_ = v16_.playerSystem:getPlayerByConnection(connection)
-					self.handToolBuyData:setHolder(v17_)
-					self.handToolBuyData:buy(self.onHandToolBoughtCallback, self, {
-						["connection"] = connection
-					})
-				end
-			else
-				connection:sendEvent(BuyHandToolEvent.newServerToClient(BuyHandToolEvent.STATE_FAILED_TO_LOAD, self.handToolBuyData, false))
-				return
-			end
-		else
-			connection:sendEvent(BuyHandToolEvent.newServerToClient(BuyHandToolEvent.STATE_NO_PERMISSION, self.handToolBuyData, false))
-			return
-		end
+		local player = mission.playerSystem:getPlayerByConnection(connection)
+		self.handToolBuyData:setHolder(player)
+		self.handToolBuyData:buy(self.onHandToolBoughtCallback, self, { connection = connection })
 	end
 end
-
--- Local values: connection, errorCode, wasPickedUp
 function BuyHandToolEvent:onHandToolBoughtCallback(handTool, loadingState, arguments)
-	local v22_ = arguments.connection
-	local v23_ = BuyHandToolEvent.STATE_FAILED_TO_LOAD
-	local v24_ = false
+	local connection = arguments.connection
+	local errorCode = BuyHandToolEvent.STATE_FAILED_TO_LOAD
+	local wasPickedUp = false
 	if loadingState == HandToolLoadingState.OK then
-		v23_ = BuyHandToolEvent.STATE_SUCCESS
+		errorCode = BuyHandToolEvent.STATE_SUCCESS
 		if handTool.pendingHolder == g_localPlayer or handTool:getHolder() == g_localPlayer then
-			v24_ = true
+			wasPickedUp = true
 		end
 	elseif loadingState == HandToolLoadingState.NO_SPACE then
-		v23_ = BuyHandToolEvent.STATE_NO_SPACE
+		errorCode = BuyHandToolEvent.STATE_NO_SPACE
 	end
-	v22_:sendEvent(BuyHandToolEvent.newServerToClient(v23_, self.handToolBuyData, v24_))
+	connection:sendEvent(BuyHandToolEvent.newServerToClient(errorCode, self.handToolBuyData, wasPickedUp))
 end

@@ -1,39 +1,32 @@
--- Local values: FenceSegmentEvent_mt
 FenceSegmentEvent = {}
 local FenceSegmentEvent_mt = Class(FenceSegmentEvent, Event)
 InitStaticEventClass(FenceSegmentEvent, "FenceSegmentEvent")
 function FenceSegmentEvent.emptyNew()
-	-- upvalues: (copy) FenceSegmentEvent_mt
 	return Event.new(FenceSegmentEvent_mt, NetworkNode.CHANNEL_MAIN)
 end
-
--- Local values: self
 function FenceSegmentEvent.new(fencePlaceable, segment)
-	local v4_ = FenceSegmentEvent.emptyNew()
-	v4_.fencePlaceable = fencePlaceable
-	v4_.segment = segment
-	return v4_
+	local self = FenceSegmentEvent.emptyNew()
+	self.fencePlaceable = fencePlaceable
+	self.segment = segment
+	return self
 end
-
--- Local values: templateIndex, fence, templateId
 function FenceSegmentEvent:readStream(streamId, connection)
 	self.fencePlaceable = NetworkUtil.readNodeObject(streamId)
-	local v8_ = streamReadUInt8(streamId)
-	local v9_ = self.fencePlaceable:getFence()
-	self.segment = v9_:createNewSegment((v9_:getSegmentTemplateIdByIndex(v8_)))
+	local templateIndex = streamReadUInt8(streamId)
+	local fence = self.fencePlaceable:getFence()
+	local templateId = fence:getSegmentTemplateIdByIndex(templateIndex)
+	self.segment = fence:createNewSegment(templateId)
 	self.segment:readStream(streamId, connection)
 	self:run(connection)
 end
-
--- Local values: segmentId, fence, fenceTemplateIndex
 function FenceSegmentEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.fencePlaceable)
-	local v13_ = self.segment:getId()
-	local v14_ = self.fencePlaceable:getFence():getSegmentTemplateIndexById(v13_)
-	streamWriteUInt8(streamId, v14_)
+	local segmentId = self.segment:getId()
+	local fence = self.fencePlaceable:getFence()
+	local fenceTemplateIndex = fence:getSegmentTemplateIndexById(segmentId)
+	streamWriteUInt8(streamId, fenceTemplateIndex)
 	self.segment:writeStream(streamId, connection)
 end
-
 function FenceSegmentEvent:run(connection)
 	if self.fencePlaceable ~= nil and self.fencePlaceable:getIsSynchronized() then
 		self.segment:updateMeshes(true, false)

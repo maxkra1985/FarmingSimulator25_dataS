@@ -1,53 +1,39 @@
--- Local values: DebugPolygon_mt
 DebugPolygon = {}
 local DebugPolygon_mt = Class(DebugPolygon, DebugElement)
-
--- Upvalues: DebugPolygon_mt
--- Local values: self
 function DebugPolygon.new(customMt)
-	-- upvalues: (copy) DebugPolygon_mt
-	local v3_ = DebugPolygon:superClass().new(customMt or DebugPolygon_mt)
-	v3_.solid = false
-	v3_.drawContour = false
-	v3_.positions = {}
-	return v3_
+	local self = DebugPolygon:superClass().new(customMt or DebugPolygon_mt)
+	self.solid = false
+	self.drawContour = false
+	self.positions = {}
+	return self
 end
-
 function DebugPolygon:draw()
 	DebugPolygon.renderWithPositions(self.positions, self.color, self.solid, self.drawContour)
 end
-
--- Local values: r, g, b, a, i
 function DebugPolygon.renderWithPositions(positions, color, solid, drawContour)
-	local v9_, v10_, v11_, v12_ = (color or Color.PRESETS.WHITE):unpack()
-	local v13_ = Utils.getNoNil(solid, false)
-	drawDebugPolygon(positions, v9_, v10_, v11_, v12_, v13_)
+	local r, g, b, a = (color or Color.PRESETS.WHITE):unpack()
+	solid = Utils.getNoNil(solid, false)
+	drawDebugPolygon(positions, r, g, b, a, solid)
 	if drawContour then
-		for v14_ = 1, #positions, 3 do
-			if v14_ + 3 < #positions then
-				drawDebugLine(positions[v14_], positions[v14_ + 1], positions[v14_ + 2], v9_, v10_, v11_, positions[v14_ + 3], positions[v14_ + 4], positions[v14_ + 5], v9_, v10_, v11_, v13_)
+		for i = 1, #positions, 3 do
+			if i + 3 < #positions then
+				drawDebugLine(positions[i], positions[i + 1], positions[i + 2], r, g, b, positions[i + 3], positions[i + 4], positions[i + 5], r, g, b, solid)
 			else
-				drawDebugLine(positions[v14_], positions[v14_ + 1], positions[v14_ + 2], v9_, v10_, v11_, positions[1], positions[2], positions[3], v9_, v10_, v11_, v13_)
+				drawDebugLine(positions[i], positions[i + 1], positions[i + 2], r, g, b, positions[1], positions[2], positions[3], r, g, b, solid)
 			end
 		end
 	end
 end
-
 function DebugPolygon:create(positions)
 	self.positions = positions
 	return self
 end
-
 function DebugPolygon:addPosition(x, y, z)
-	local v21_ = self.positions
-	table.insert(v21_, x)
-	local v22_ = self.positions
-	table.insert(v22_, y)
-	local v23_ = self.positions
-	table.insert(v23_, z)
+	table.insert(self.positions, x)
+	table.insert(self.positions, y)
+	table.insert(self.positions, z)
 	return self
 end
-
 function DebugPolygon:setDrawContour(drawContour)
 	self.drawContour = drawContour
 	return self

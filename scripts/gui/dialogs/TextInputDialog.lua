@@ -1,57 +1,43 @@
--- Local values: TextInputDialog_mt, NO_CALLBACK
 TextInputDialog = {}
 local TextInputDialog_mt = Class(TextInputDialog, YesNoDialog)
-local function NO_CALLBACK() end
+local NO_CALLBACK = function() end
 function TextInputDialog.register()
-	local v3_ = TextInputDialog.new()
-	g_gui:loadGui("dataS/gui/dialogs/TextInputDialog.xml", "TextInputDialog", v3_)
-	TextInputDialog.INSTANCE = v3_
+	local textInputDialog = TextInputDialog.new()
+	g_gui:loadGui("dataS/gui/dialogs/TextInputDialog.xml", "TextInputDialog", textInputDialog)
+	TextInputDialog.INSTANCE = textInputDialog
 end
-
--- Local values: dialog
 function TextInputDialog.show(callback, target, defaultText, dialogPrompt, imePrompt, maxCharacters, confirmText, callbackArgs, text, applyTextFilter)
 	if TextInputDialog.INSTANCE ~= nil then
-		local v14_ = TextInputDialog.INSTANCE
-		v14_:setText(text)
-		v14_:setCallback(callback, target, defaultText, dialogPrompt, imePrompt, maxCharacters, callbackArgs, applyTextFilter)
-		v14_:setButtonTexts(confirmText)
+		local dialog = TextInputDialog.INSTANCE
+		dialog:setText(text)
+		dialog:setCallback(callback, target, defaultText, dialogPrompt, imePrompt, maxCharacters, callbackArgs, applyTextFilter)
+		dialog:setButtonTexts(confirmText)
 		g_gui:showDialog("TextInputDialog")
 	end
 end
-
--- Upvalues: TextInputDialog_mt, NO_CALLBACK
--- Local values: self
 function TextInputDialog.new(target, custom_mt)
-	-- upvalues: (copy) TextInputDialog_mt, (copy) NO_CALLBACK
-	local v17_ = YesNoDialog.new(target, custom_mt or TextInputDialog_mt)
-	v17_.onTextEntered = NO_CALLBACK
-	v17_.callbackArgs = nil
-	v17_.extraInputDisableTime = 0
-	local v18_ = GS_IS_CONSOLE_VERSION
-	if v18_ then
-		v18_ = imeIsSupported()
-	end
-	v17_.doHide = v18_
-	v17_.disableOpenSound = true
-	return v17_
+	local self = YesNoDialog.new(target, custom_mt or TextInputDialog_mt)
+	self.onTextEntered = NO_CALLBACK
+	self.callbackArgs = nil
+	self.extraInputDisableTime = 0
+	self.doHide = GS_IS_CONSOLE_VERSION and imeIsSupported()
+	self.disableOpenSound = true
+	return self
 end
-
--- Local values: callback, target, defaultText, dialogPrompt, imePrompt, maxCharacters, confirmText, callbackArgs, text, applyTextFilter
 function TextInputDialog.createFromExistingGui(gui, guiName)
 	TextInputDialog.register()
-	local v20_ = gui.onTextEntered
-	local v21_ = gui.target
-	local v22_ = gui.defaultText
-	local v23_ = gui.dialogPrompt
-	local v24_ = gui.imePrompt
-	local v25_ = gui.maxCharacters
-	local v26_ = gui.confirmText
-	local v27_ = gui.callbackArgs
-	local v28_ = gui.inputText
-	local v29_ = gui.applyTextFilter
-	TextInputDialog.show(v20_, v21_, v22_, v23_, v24_, v25_, v26_, v27_, v28_, v29_)
+	local callback = gui.onTextEntered
+	local target = gui.target
+	local defaultText = gui.defaultText
+	local dialogPrompt = gui.dialogPrompt
+	local imePrompt = gui.imePrompt
+	local maxCharacters = gui.maxCharacters
+	local confirmText = gui.confirmText
+	local callbackArgs = gui.callbackArgs
+	local text = gui.inputText
+	local applyTextFilter = gui.applyTextFilter
+	TextInputDialog.show(callback, target, defaultText, dialogPrompt, imePrompt, maxCharacters, confirmText, callbackArgs, text, applyTextFilter)
 end
-
 function TextInputDialog:onOpen()
 	TextInputDialog:superClass().onOpen(self)
 	self.extraInputDisableTime = getPlatformId() == PlatformId.SWITCH and 0 or 100
@@ -60,7 +46,6 @@ function TextInputDialog:onOpen()
 	self.textElement:onFocusActivate()
 	self:updateButtonVisibility()
 end
-
 function TextInputDialog:onClose()
 	TextInputDialog:superClass().onClose(self)
 	if not GS_IS_CONSOLE_VERSION then
@@ -68,20 +53,15 @@ function TextInputDialog:onClose()
 	end
 	self:updateButtonVisibility()
 end
-
 function TextInputDialog:setText(text)
 	TextInputDialog:superClass().setText(self, text)
 	self.inputText = text
 end
-
 function TextInputDialog:setButtonTexts(yesText, noText)
 	TextInputDialog:superClass().setButtonTexts(self, yesText, noText)
 	self.confirmText = yesText
 end
-
--- Upvalues: NO_CALLBACK
 function TextInputDialog:setCallback(onTextEntered, target, defaultInputText, dialogPrompt, imePrompt, maxCharacters, callbackArgs, applyTextFilter)
-	-- upvalues: (copy) NO_CALLBACK
 	self.onTextEntered = onTextEntered or NO_CALLBACK
 	self.target = target
 	self.callbackArgs = callbackArgs
@@ -101,55 +81,53 @@ function TextInputDialog:setCallback(onTextEntered, target, defaultInputText, di
 	self.imePrompt = imePrompt
 	self.maxCharacters = maxCharacters
 end
-
--- Local values: text
 function TextInputDialog:sendCallback(clickOk)
-	local v48_ = self.textElement.text
+	local text = self.textElement.text
 	self:close()
-	if self.target == nil then
-		self.onTextEntered(v48_, clickOk, self.callbackArgs)
+	if self.target ~= nil then
+		self.onTextEntered(self.target, text, clickOk, self.callbackArgs)
 	else
-		self.onTextEntered(self.target, v48_, clickOk, self.callbackArgs)
+		self.onTextEntered(text, clickOk, self.callbackArgs)
 	end
 end
-
 function TextInputDialog:onEnterPressed(element, dismissal)
-	return dismissal and true or self:onClickOk()
+	if not dismissal then
+		return self:onClickOk()
+	else
+		return true
+	end
 end
-
 function TextInputDialog:onEscPressed(element)
 	return self:onClickBack()
 end
-
 function TextInputDialog:onClickBack(forceBack, usedMenuButton)
-	if self:isInputDisabled() then
+	if not self:isInputDisabled() then
+		self:sendCallback(false)
+		return false
+	else
 		return true
 	end
-	self:sendCallback(false)
-	return false
 end
-
--- Local values: baseText, filteredText
 function TextInputDialog:onClickOk()
-	if self:isInputDisabled() then
+	if not self:isInputDisabled() then
+		if self.applyTextFilter and not self.textElement.isPassword then
+			local baseText = self.textElement.text
+			local filteredText = filterText(baseText, true, true)
+			if baseText ~= "" and baseText ~= filteredText then
+				self.textElement:setText(filteredText)
+				Logging.info("Entered text contains profanity and has been adjusted.")
+				self.reactivateNextFrame = true
+				self:updateButtonVisibility()
+				return false
+			end
+		end
+		self:sendCallback(true)
+		self:updateButtonVisibility()
+		return false
+	else
 		return true
 	end
-	if self.applyTextFilter and not self.textElement.isPassword then
-		local v54_ = self.textElement.text
-		local v55_ = filterText(v54_, true, true)
-		if v54_ ~= "" and v54_ ~= v55_ then
-			self.textElement:setText(v55_)
-			Logging.info("Entered text contains profanity and has been adjusted.")
-			self.reactivateNextFrame = true
-			self:updateButtonVisibility()
-			return false
-		end
-	end
-	self:sendCallback(true)
-	self:updateButtonVisibility()
-	return false
 end
-
 function TextInputDialog:updateButtonVisibility()
 	if self.yesButton ~= nil then
 		self.yesButton:setVisible(not self.textElement.imeActive)
@@ -158,7 +136,6 @@ function TextInputDialog:updateButtonVisibility()
 		self.noButton:setVisible(not self.textElement.imeActive)
 	end
 end
-
 function TextInputDialog:update(dt)
 	TextInputDialog:superClass().update(self, dt)
 	if self.reactivateNextFrame then
@@ -167,23 +144,18 @@ function TextInputDialog:update(dt)
 		self.reactivateNextFrame = false
 		self:updateButtonVisibility()
 	end
-	if self.extraInputDisableTime > 0 then
+	if 0 < self.extraInputDisableTime then
 		self.extraInputDisableTime = self.extraInputDisableTime - dt
 	end
 end
-
 function TextInputDialog:isInputDisabled()
-	local v60_
-	if self.extraInputDisableTime > 0 then
-		v60_ = not self.doHide
-	else
-		v60_ = false
+	local _v2 = false
+	if 0 < self.extraInputDisableTime then
+		_v2 = not self.doHide
 	end
-	return v60_
+	return _v2
 end
-
 function TextInputDialog:disableInputForDuration(duration) end
-
 function TextInputDialog:getIsVisible()
 	if self.doHide then
 		return false

@@ -1,4 +1,3 @@
--- Local values: PrecisionFarming_mt, validateTypes, save, loadItems, unloadMapData, postInitTerrain, postSendInitialClientState
 PrecisionFarming = {}
 PrecisionFarming.MOD_NAME = g_currentModName
 PrecisionFarming.BASE_DIRECTORY = g_currentModDirectory
@@ -52,52 +51,45 @@ source(PrecisionFarming.BASE_DIRECTORY .. "scripts/statistics/FarmlandStatistics
 source(PrecisionFarming.BASE_DIRECTORY .. "scripts/statistics/FarmlandStatistic.lua")
 source(PrecisionFarming.BASE_DIRECTORY .. "scripts/statistics/FarmlandStatisticCounter.lua")
 local PrecisionFarming_mt = Class(PrecisionFarming)
-
--- Upvalues: PrecisionFarming_mt
--- Local values: self
 function PrecisionFarming.new(customMt)
-	-- upvalues: (copy) PrecisionFarming_mt
-	local v3_ = customMt or PrecisionFarming_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.overwrittenGameFunctions = {}
-	v4_.valueMaps = {}
-	v4_.visualizationOverlays = {}
-	v4_.precisionFarmingSettings = PrecisionFarmingSettings.new(v4_)
-	v4_:registerValueMap(SoilMap.new(v4_))
-	v4_:registerValueMap(PHMap.new(v4_))
-	v4_:registerValueMap(NitrogenMap.new(v4_))
-	v4_:registerValueMap(YieldMap.new(v4_))
-	v4_:registerValueMap(SeedRateMap.new(v4_))
-	v4_:registerValueMap(TramlineMap.new(v4_))
-	v4_:registerValueMap(CoverMap.new(v4_))
-	v4_.inGameMenuMapFrameExtension = InGameMenuMapFrameExtension.new(v4_)
-	v4_.inputHelpDisplayExtension = InputHelpDisplayExtension.new(v4_)
-	v4_.shopConfigScreenExtension = ShopConfigScreenExtension.new()
-	v4_.inGameMapExtension = InGameMapExtension.new(v4_)
-	v4_.aiExtension = AIExtension.new()
-	v4_.fieldInfoDisplayExtension = FieldInfoDisplayExtension.new(v4_)
-	v4_.harvestExtension = HarvestExtension.new(v4_)
-	v4_.helplineExtension = HelplineExtension.new(v4_)
-	v4_.farmlandStatistics = FarmlandStatistics.new(v4_)
-	v4_.additionalFieldBuyInfo = AdditionalFieldBuyInfo.new(v4_)
-	v4_.cropSensorLinkageData = CropSensorLinkageData.new(v4_)
-	v4_.environmentalScore = EnvironmentalScore.new(v4_)
-	v4_.extendedWeedControl = ExtendedWeedControl.new(v4_)
-	v4_.manureSensorLinkageData = ManureSensorLinkageData.new(v4_)
-	v4_.sprayerNodeData = SprayerNodeData.new(v4_)
-	v4_.subsidies = Subsidies.new(v4_)
-	v4_.precisionFarmingDebug = PrecisionFarmingDebug.new(v4_)
-	v4_.densityMapUpdater = PrecisionFarmingDensityMapUpdater.new(v4_)
-	v4_.firstTimeRun = false
-	v4_.firstTimeRunDelay = 2000
-	return v4_
+	local self = setmetatable({}, customMt or PrecisionFarming_mt)
+	self.overwrittenGameFunctions = {}
+	self.valueMaps = {}
+	self.visualizationOverlays = {}
+	self.precisionFarmingSettings = PrecisionFarmingSettings.new(self)
+	self:registerValueMap(SoilMap.new(self))
+	self:registerValueMap(PHMap.new(self))
+	self:registerValueMap(NitrogenMap.new(self))
+	self:registerValueMap(YieldMap.new(self))
+	self:registerValueMap(SeedRateMap.new(self))
+	self:registerValueMap(TramlineMap.new(self))
+	self:registerValueMap(CoverMap.new(self))
+	self.inGameMenuMapFrameExtension = InGameMenuMapFrameExtension.new(self)
+	self.inputHelpDisplayExtension = InputHelpDisplayExtension.new(self)
+	self.shopConfigScreenExtension = ShopConfigScreenExtension.new()
+	self.inGameMapExtension = InGameMapExtension.new(self)
+	self.aiExtension = AIExtension.new()
+	self.fieldInfoDisplayExtension = FieldInfoDisplayExtension.new(self)
+	self.harvestExtension = HarvestExtension.new(self)
+	self.helplineExtension = HelplineExtension.new(self)
+	self.farmlandStatistics = FarmlandStatistics.new(self)
+	self.additionalFieldBuyInfo = AdditionalFieldBuyInfo.new(self)
+	self.cropSensorLinkageData = CropSensorLinkageData.new(self)
+	self.environmentalScore = EnvironmentalScore.new(self)
+	self.extendedWeedControl = ExtendedWeedControl.new(self)
+	self.manureSensorLinkageData = ManureSensorLinkageData.new(self)
+	self.sprayerNodeData = SprayerNodeData.new(self)
+	self.subsidies = Subsidies.new(self)
+	self.precisionFarmingDebug = PrecisionFarmingDebug.new(self)
+	self.densityMapUpdater = PrecisionFarmingDensityMapUpdater.new(self)
+	self.firstTimeRun = false
+	self.firstTimeRunDelay = 2000
+	return self
 end
-
--- Local values: i
 function PrecisionFarming:initialize()
-	for v6_ = 1, #self.valueMaps do
-		self.valueMaps[v6_]:initialize(self)
-		self.valueMaps[v6_]:overwriteGameFunctions(self)
+	for i = 1, #self.valueMaps do
+		self.valueMaps[i]:initialize(self)
+		self.valueMaps[i]:overwriteGameFunctions(self)
 	end
 	self.inGameMenuMapFrameExtension:initialize(self)
 	self.inGameMenuMapFrameExtension:overwriteGameFunctions(self)
@@ -118,8 +110,6 @@ function PrecisionFarming:initialize()
 	self.subsidies:overwriteGameFunctions(self)
 	self.precisionFarmingSettings:overwriteGameFunctions(self)
 end
-
--- Local values: xmlFile, i, i
 function PrecisionFarming:loadMap(filename)
 	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
 		if not Utils.getNoNil(getXMLBool(g_savegameXML, "gameSettings.precisionFarming#initialized"), false) then
@@ -129,62 +119,56 @@ function PrecisionFarming:loadMap(filename)
 		end
 		self.mapFilename = filename
 		self.configFileName = Utils.getFilename("PrecisionFarming.xml", PrecisionFarming.BASE_DIRECTORY)
-		local v9_ = loadXMLFile("ConfigXML", self.configFileName)
-		for v10_ = 1, #self.valueMaps do
-			self.valueMaps[v10_]:loadFromXML(v9_, "precisionFarming", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		local xmlFile = loadXMLFile("ConfigXML", self.configFileName)
+		for i = 1, #self.valueMaps do
+			self.valueMaps[i]:loadFromXML(xmlFile, "precisionFarming", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
 		end
-		for v11_ = 1, #self.valueMaps do
-			self.valueMaps[v11_]:postLoad(v9_, "precisionFarming", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		for i = 1, #self.valueMaps do
+			self.valueMaps[i]:postLoad(xmlFile, "precisionFarming", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
 		end
-		self.aiExtension:loadFromXML(v9_, "precisionFarming.aiExtension", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.fieldInfoDisplayExtension:loadFromXML(v9_, "precisionFarming.fieldInfoDisplayExtension", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.harvestExtension:loadFromXML(v9_, "precisionFarming.harvestExtension", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.helplineExtension:loadFromXML(v9_, "precisionFarming.helplineExtension", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.farmlandStatistics:loadFromXML(v9_, "precisionFarming.farmlandStatistics", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.additionalFieldBuyInfo:loadFromXML(v9_, "precisionFarming.additionalFieldBuyInfo", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.cropSensorLinkageData:loadFromXML(v9_, "precisionFarming.cropSensorLinkageData", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.manureSensorLinkageData:loadFromXML(v9_, "precisionFarming.manureSensorLinkageData", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.sprayerNodeData:loadFromXML(v9_, "precisionFarming.sprayerNodeData", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.subsidies:loadFromXML(v9_, "precisionFarming.subsidies", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.environmentalScore:loadFromXML(v9_, "precisionFarming.environmentalScore", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		self.extendedWeedControl:loadFromXML(v9_, "precisionFarming.extendedWeedControl", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
-		delete(v9_)
+		self.aiExtension:loadFromXML(xmlFile, "precisionFarming.aiExtension", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.fieldInfoDisplayExtension:loadFromXML(xmlFile, "precisionFarming.fieldInfoDisplayExtension", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.harvestExtension:loadFromXML(xmlFile, "precisionFarming.harvestExtension", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.helplineExtension:loadFromXML(xmlFile, "precisionFarming.helplineExtension", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.farmlandStatistics:loadFromXML(xmlFile, "precisionFarming.farmlandStatistics", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.additionalFieldBuyInfo:loadFromXML(xmlFile, "precisionFarming.additionalFieldBuyInfo", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.cropSensorLinkageData:loadFromXML(xmlFile, "precisionFarming.cropSensorLinkageData", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.manureSensorLinkageData:loadFromXML(xmlFile, "precisionFarming.manureSensorLinkageData", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.sprayerNodeData:loadFromXML(xmlFile, "precisionFarming.sprayerNodeData", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.subsidies:loadFromXML(xmlFile, "precisionFarming.subsidies", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.environmentalScore:loadFromXML(xmlFile, "precisionFarming.environmentalScore", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		self.extendedWeedControl:loadFromXML(xmlFile, "precisionFarming.extendedWeedControl", PrecisionFarming.BASE_DIRECTORY, self.configFileName, filename)
+		delete(xmlFile)
 	end
 end
-
 function PrecisionFarming:unloadMapData()
 	self.inGameMenuMapFrameExtension:unloadMapData()
 	self.shopConfigScreenExtension:unloadMapData()
 	self.inGameMapExtension:unloadMapData()
 	self.extendedWeedControl:unloadMapData()
 end
-
--- Local values: i
 function PrecisionFarming:initTerrain(mission, terrainId, filename)
-	for v17_ = 1, #self.valueMaps do
-		self.valueMaps[v17_]:initTerrain(mission, terrainId, filename)
+	for i = 1, #self.valueMaps do
+		self.valueMaps[i]:initTerrain(mission, terrainId, filename)
 	end
 end
-
--- Local values: i
 function PrecisionFarming:sendInitialClientState(connection, user, farm)
-	for v22_ = 1, #self.valueMaps do
-		if self.valueMaps[v22_].sendInitialClientState ~= nil then
-			self.valueMaps[v22_]:sendInitialClientState(connection, user, farm)
+	for i = 1, #self.valueMaps do
+		if self.valueMaps[i].sendInitialClientState == nil then
+			continue
 		end
+		self.valueMaps[i]:sendInitialClientState(connection, user, farm)
 	end
 	self.precisionFarmingSettings:sendInitialClientState(connection, user, farm)
 end
-
--- Local values: i, i, i, reference
 function PrecisionFarming:deleteMap()
 	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
-		for v24_ = #self.visualizationOverlays, 1, -1 do
-			resetDensityMapVisualizationOverlay(self.visualizationOverlays[v24_])
-			self.visualizationOverlays[v24_] = nil
+		for i = #self.visualizationOverlays, 1, -1 do
+			resetDensityMapVisualizationOverlay(self.visualizationOverlays[i])
+			self.visualizationOverlays[i] = nil
 		end
-		for v25_ = 1, #self.valueMaps do
-			self.valueMaps[v25_]:delete()
+		for i = 1, #self.valueMaps do
+			self.valueMaps[i]:delete()
 		end
 		self.inGameMenuMapFrameExtension:delete()
 		self.shopConfigScreenExtension:delete()
@@ -201,49 +185,41 @@ function PrecisionFarming:deleteMap()
 		self.subsidies:delete()
 		self.environmentalScore:delete()
 		self.precisionFarmingDebug:delete()
-		for v26_ = #self.overwrittenGameFunctions, 1, -1 do
-			local v27_ = self.overwrittenGameFunctions[v26_]
-			v27_.object[v27_.funcName] = v27_.oldFunc
-			self.overwrittenGameFunctions[v26_] = nil
+		for i = #self.overwrittenGameFunctions, 1, -1 do
+			local reference = self.overwrittenGameFunctions[i]
+			reference.object[reference.funcName] = reference.oldFunc
+			self.overwrittenGameFunctions[i] = nil
 		end
 	end
 end
-
--- Local values: i
 function PrecisionFarming:loadFromItemsXML(xmlFile, key)
-	for v31_ = #self.valueMaps, 1, -1 do
-		self.valueMaps[v31_]:loadFromItemsXML(xmlFile, key)
+	for i = #self.valueMaps, 1, -1 do
+		self.valueMaps[i]:loadFromItemsXML(xmlFile, key)
 	end
 	self.farmlandStatistics:loadFromItemsXML(xmlFile, key)
 	self.additionalFieldBuyInfo:loadFromItemsXML(xmlFile, key)
 	self.environmentalScore:loadFromItemsXML(xmlFile, key)
 	self.densityMapUpdater:loadFromItemsXML(xmlFile, key)
 end
-
--- Local values: i
 function PrecisionFarming:saveToXMLFile(xmlFile, key, usedModNames)
-	for v36_ = 1, #self.valueMaps do
-		self.valueMaps[v36_]:saveToXMLFile(xmlFile, key, usedModNames)
+	for i = 1, #self.valueMaps do
+		self.valueMaps[i]:saveToXMLFile(xmlFile, key, usedModNames)
 	end
 	self.farmlandStatistics:saveToXMLFile(xmlFile, key, usedModNames)
 	self.additionalFieldBuyInfo:saveToXMLFile(xmlFile, key, usedModNames)
 	self.environmentalScore:saveToXMLFile(xmlFile, key, usedModNames)
 	self.densityMapUpdater:saveToXMLFile(xmlFile, key, usedModNames)
 end
-function PrecisionFarming.addSetting(p37_, ...)
-	p37_.precisionFarmingSettings:addSetting(...)
+function PrecisionFarming:addSetting(...)
+	self.precisionFarmingSettings:addSetting(...)
 end
-
 function PrecisionFarming:registerVisualizationOverlay(overlay)
-	local v40_ = self.visualizationOverlays
-	table.insert(v40_, overlay)
+	table.insert(self.visualizationOverlays, overlay)
 end
-
--- Local values: i
 function PrecisionFarming:update(dt)
 	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
-		for v43_ = 1, #self.valueMaps do
-			self.valueMaps[v43_]:update(dt)
+		for i = 1, #self.valueMaps do
+			self.valueMaps[i]:update(dt)
 		end
 		self.inGameMenuMapFrameExtension:update(dt)
 		self.shopConfigScreenExtension:update(dt)
@@ -253,8 +229,7 @@ function PrecisionFarming:update(dt)
 		self.environmentalScore:update(dt)
 		self.densityMapUpdater:update(dt)
 		if self.firstTimeRun then
-			local v44_ = self.firstTimeRunDelay - dt
-			self.firstTimeRunDelay = math.max(v44_, 0)
+			self.firstTimeRunDelay = math.max(self.firstTimeRunDelay - dt, 0)
 			if self.firstTimeRunDelay == 0 and self.helplineExtension:getAllowFirstTimeEvent() then
 				self.helplineExtension:onFirstTimeRun()
 				self.firstTimeRun = false
@@ -262,41 +237,32 @@ function PrecisionFarming:update(dt)
 		end
 	end
 end
-
 function PrecisionFarming:draw()
 	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
 		self.harvestExtension:draw()
 	end
 end
-
 function PrecisionFarming:registerValueMap(object)
-	local v48_ = self.valueMaps
-	table.insert(v48_, object)
+	table.insert(self.valueMaps, object)
 	self[object.name] = object
 	object.valueMapIndex = #self.valueMaps
 end
-
 function PrecisionFarming:getValueMaps()
 	return self.valueMaps
 end
-
 function PrecisionFarming:getValueMap(index)
 	return self.valueMaps[index]
 end
-
 function PrecisionFarming:updatePrecisionFarmingOverlays()
 	self.inGameMapExtension:updatePrecisionFarmingOverlays()
 	self.inGameMenuMapFrameExtension:updatePrecisionFarmingOverlays()
 end
-
 function PrecisionFarming:onValueMapSelectionChanged(valueMap)
 	self.yieldMap:onValueMapSelectionChanged(valueMap)
 end
-
 function PrecisionFarming:onFarmlandSelectionChanged(farmlandId, fieldNumber, fieldArea)
 	self.yieldMap:onFarmlandSelectionChanged(farmlandId, fieldNumber, fieldArea)
 end
-
 function PrecisionFarming:setMapFrame(mapFrame)
 	if self.additionalFieldBuyInfo ~= nil then
 		self.additionalFieldBuyInfo:setMapFrame(mapFrame)
@@ -317,147 +283,142 @@ function PrecisionFarming:setMapFrame(mapFrame)
 		self.environmentalScore:setMapFrame(mapFrame)
 	end
 end
-
 function PrecisionFarming:onMapFrameOpen(mapFrame)
 	if self.environmentalScore ~= nil then
 		self.environmentalScore:onMapFrameOpen(mapFrame)
 	end
 end
-
--- Local values: i
 function PrecisionFarming:collectFieldInfos(fieldInfoDisplayExtension)
-	for v65_ = 1, #self.valueMaps do
-		self.valueMaps[v65_]:collectFieldInfos(fieldInfoDisplayExtension)
+	for i = 1, #self.valueMaps do
+		self.valueMaps[i]:collectFieldInfos(fieldInfoDisplayExtension)
 	end
 end
-
--- Local values: i
 function PrecisionFarming:collectFarmlandHotspotActions(farmlandHotspotActions)
-	for v68_ = 1, #self.valueMaps do
-		self.valueMaps[v68_]:collectFarmlandHotspotActions(farmlandHotspotActions)
+	for i = 1, #self.valueMaps do
+		self.valueMaps[i]:collectFarmlandHotspotActions(farmlandHotspotActions)
 	end
 	self.farmlandStatistics:collectFarmlandHotspotActions(farmlandHotspotActions)
 end
-
 function PrecisionFarming:getIsMaizePlusActive()
 	return g_modIsLoaded.FS25_MaizePlus
 end
-
 function PrecisionFarming:getCropSensorLinkageData(configFileName)
 	return self.cropSensorLinkageData:getCropSensorLinkageData(configFileName)
 end
-
 function PrecisionFarming:getClonedCropSensorNode(typeName)
 	return self.cropSensorLinkageData:getClonedCropSensorNode(typeName)
 end
-
 function PrecisionFarming:getManureSensorLinkageData(configFileName)
 	return self.manureSensorLinkageData:getManureSensorLinkageData(configFileName)
 end
-
 function PrecisionFarming:getClonedManureSensorNode(typeName)
 	return self.manureSensorLinkageData:getClonedManureSensorNode(typeName)
 end
-
 function PrecisionFarming:getSprayerNodeData(configFileName, configurations)
 	return self.sprayerNodeData:getSprayerNodeData(configFileName, configurations)
 end
-
 function PrecisionFarming:getClonedSprayerEffectNode()
 	return self.sprayerNodeData:getClonedSprayerEffectNode()
 end
-
 function PrecisionFarming:getClonedSprayerWeedSensorNode(sensorTypeId)
 	return self.sprayerNodeData:getClonedSprayerWeedSensorNode(sensorTypeId)
 end
-
 function PrecisionFarming:getSprayerConfigPrices()
 	return self.sprayerNodeData:getConfigPrices()
 end
-
 function PrecisionFarming:getSprayerClonedSectionSamples(name, linkNode, modifierTargetObject)
 	return self.sprayerNodeData:getClonedSectionSamples(name, linkNode, modifierTargetObject)
 end
-
--- Local values: fieldNumber, fieldArea, farmland, fields, _, field
 function PrecisionFarming:getFarmlandFieldInfo(farmlandId)
-	local v89_ = 0
-	local v90_ = g_farmlandManager.farmlands[farmlandId]
-	local v91_ = v90_ == nil and 0 or (v90_.totalFieldArea or 0)
-	local v92_ = g_fieldManager:getFields()
-	if v92_ ~= nil then
-		for _, v93_ in pairs(v92_) do
-			if v93_.farmland ~= nil and v93_.farmland.id == farmlandId then
-				return v93_:getId(), v91_
+	local fieldNumber = 0
+	local fieldArea = 0
+	local farmland = g_farmlandManager.farmlands[farmlandId]
+	if farmland ~= nil then
+		fieldArea = farmland.totalFieldArea or 0
+	end
+	local fields = g_fieldManager:getFields()
+	if fields ~= nil then
+		for _, field in pairs(fields) do
+			if field.farmland == nil then
+				continue
+			end
+			if field.farmland.id == farmlandId then
+				fieldNumber = field:getId()
+				return fieldNumber, fieldArea
 			end
 		end
 	end
-	return v89_, v91_
+	return fieldNumber, fieldArea
 end
-
--- Local values: oldFunc, reference
 function PrecisionFarming:overwriteGameFunction(object, funcName, newFunc)
 	if object == nil then
-		Logging.error("Failed to overwrite \'%s\'", funcName)
+		Logging.error("Failed to overwrite '%s'", funcName)
 		printCallstack()
 	else
-		local v_u_98_ = object[funcName]
-		if v_u_98_ ~= nil then
+		local oldFunc = object[funcName]
+		if oldFunc ~= nil then
 			object[funcName] = function(...)
-				-- upvalues: (copy) newFunc, (copy) v_u_98_
-				return newFunc(v_u_98_, ...)
+				return newFunc(oldFunc, ...)
 			end
 		end
-		local v99_ = self.overwrittenGameFunctions
-		table.insert(v99_, {
-			["object"] = object,
-			["funcName"] = funcName,
-			["oldFunc"] = v_u_98_
-		})
+		local reference = {}
+		reference.object = object
+		reference.funcName = funcName
+		reference.oldFunc = oldFunc
+		table.insert(self.overwrittenGameFunctions, reference)
 	end
 end
 g_precisionFarming = PrecisionFarming.new()
 addModEventListener(g_precisionFarming)
-TypeManager.validateTypes = Utils.prependedFunction(TypeManager.validateTypes, function(p100_)
-	if p100_.typeName == "vehicle" and (g_modIsLoaded[PrecisionFarming.MOD_NAME] and g_iconGenerator == nil) then
+local validateTypes = function()
+	if self.typeName == "vehicle" and (g_modIsLoaded[PrecisionFarming.MOD_NAME] and g_iconGenerator == nil) then
 		g_precisionFarming:initialize()
 	end
-end)
-ItemSystem.save = Utils.prependedFunction(ItemSystem.save, function(_, _, p101_)
+end
+TypeManager.validateTypes = Utils.prependedFunction(TypeManager.validateTypes, validateTypes)
+local save = function(itemsSystem, xmlFilename, usedModNames)
 	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
-		local v102_ = g_currentMission.missionInfo.savegameDirectory .. "/precisionFarming.xml"
-		local v103_ = XMLFile.create("precisionFarmingXML", v102_, "precisionFarming")
-		if v103_ ~= nil then
-			g_precisionFarming:saveToXMLFile(v103_, "precisionFarming", p101_)
-			v103_:save()
-			v103_:delete()
+		local xmlFilenamePrecisionFarming = g_currentMission.missionInfo.savegameDirectory .. "/precisionFarming.xml"
+		local xmlFile = XMLFile.create("precisionFarmingXML", xmlFilenamePrecisionFarming, "precisionFarming")
+		if xmlFile ~= nil then
+			g_precisionFarming:saveToXMLFile(xmlFile, "precisionFarming", usedModNames)
+			xmlFile:save()
+			xmlFile:delete()
 		end
 	end
-end)
-ItemSystem.loadItems = Utils.prependedFunction(ItemSystem.loadItems, function(_, _, ...)
-	if g_modIsLoaded[PrecisionFarming.MOD_NAME] and g_currentMission.missionInfo.savegameDirectory ~= nil then
-		local v104_ = g_currentMission.missionInfo.savegameDirectory .. "/precisionFarming.xml"
-		if fileExists(v104_) then
-			local v105_ = XMLFile.load("precisionFarmingXML", v104_)
-			if v105_ ~= nil then
-				g_precisionFarming:loadFromItemsXML(v105_, "precisionFarming")
-				v105_:delete()
+end
+ItemSystem.save = Utils.prependedFunction(ItemSystem.save, save)
+local loadItems = function(itemsSystem, xmlFilename, ...)
+	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
+		local savegameDirectory = g_currentMission.missionInfo.savegameDirectory
+		if savegameDirectory ~= nil then
+			local xmlFilenamePrecisionFarming = g_currentMission.missionInfo.savegameDirectory .. "/precisionFarming.xml"
+			if fileExists(xmlFilenamePrecisionFarming) then
+				local xmlFile = XMLFile.load("precisionFarmingXML", xmlFilenamePrecisionFarming)
+				if xmlFile ~= nil then
+					g_precisionFarming:loadFromItemsXML(xmlFile, "precisionFarming")
+					xmlFile:delete()
+				end
 			end
 		end
 	end
-end)
-Gui.unloadMapData = Utils.prependedFunction(Gui.unloadMapData, function(_, _)
+end
+ItemSystem.loadItems = Utils.prependedFunction(ItemSystem.loadItems, loadItems)
+local unloadMapData = function(mission, xmlFilename)
 	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
 		g_precisionFarming:unloadMapData()
 	end
-end)
-FSBaseMission.initTerrain = Utils.appendedFunction(FSBaseMission.initTerrain, function(p106_, p107_, p108_)
+end
+Gui.unloadMapData = Utils.prependedFunction(Gui.unloadMapData, unloadMapData)
+local postInitTerrain = function(mission, terrainId, filename)
 	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
-		g_precisionFarming:initTerrain(p106_, p107_, p108_)
+		g_precisionFarming:initTerrain(mission, terrainId, filename)
 	end
-end)
-FSBaseMission.sendInitialClientState = Utils.appendedFunction(FSBaseMission.sendInitialClientState, function(_, p109_, p110_, p111_)
+end
+FSBaseMission.initTerrain = Utils.appendedFunction(FSBaseMission.initTerrain, postInitTerrain)
+local postSendInitialClientState = function(mission, connection, user, farm)
 	if g_modIsLoaded[PrecisionFarming.MOD_NAME] then
-		g_precisionFarming:sendInitialClientState(p109_, p110_, p111_)
+		g_precisionFarming:sendInitialClientState(connection, user, farm)
 	end
-end)
+end
+FSBaseMission.sendInitialClientState = Utils.appendedFunction(FSBaseMission.sendInitialClientState, postSendInitialClientState)

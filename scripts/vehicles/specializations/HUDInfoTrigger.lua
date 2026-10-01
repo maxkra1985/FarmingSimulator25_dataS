@@ -1,109 +1,97 @@
 HUDInfoTrigger = {}
-
-function HUDInfoTrigger.prerequisitesPresent(self)
+function HUDInfoTrigger.prerequisitesPresent(specializations)
 	return true
 end
 function HUDInfoTrigger.initSpecialization()
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("HUDInfoTrigger")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.hudInfoTrigger#triggerNode", "Player or vehicle trigger node")
-	v1_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("HUDInfoTrigger")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.hudInfoTrigger#triggerNode", "Player or vehicle trigger node")
+	schema:setXMLSpecializationType()
 end
-
-function HUDInfoTrigger.registerFunctions(self)
+function HUDInfoTrigger.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getIsPlayerInHudInfoTrigger", HUDInfoTrigger.getIsPlayerInHudInfoTrigger)
 	SpecializationUtil.registerFunction(vehicleType, "getAllowHudInfoTrigger", HUDInfoTrigger.getAllowHudInfoTrigger)
 end
-
-function HUDInfoTrigger.registerOverwrittenFunctions(self) end
-
-function HUDInfoTrigger.registerEventListeners(self)
+function HUDInfoTrigger.registerOverwrittenFunctions(vehicleType) end
+function HUDInfoTrigger.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", HUDInfoTrigger)
 	SpecializationUtil.registerEventListener(vehicleType, "onDelete", HUDInfoTrigger)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", HUDInfoTrigger)
 end
-
--- Local values: spec
 function HUDInfoTrigger:onLoad(savegame)
-	local v5_ = self.spec_hudInfoTrigger
-	v5_.triggerNode = self.xmlFile:getValue("vehicle.hudInfoTrigger#triggerNode", nil, self.components, self.i3dMappings)
-	if v5_.triggerNode == nil then
+	local spec = self.spec_hudInfoTrigger
+	spec.triggerNode = self.xmlFile:getValue("vehicle.hudInfoTrigger#triggerNode", nil, self.components, self.i3dMappings)
+	if spec.triggerNode ~= nil then
+		spec.callbackId = addTrigger(spec.triggerNode, "onHudInfoTriggerCallback", self, false, HUDInfoTrigger.onHudInfoTriggerCallback)
+		spec.enteredObjects = {}
+	else
 		SpecializationUtil.removeEventListener(self, "onDelete", HUDInfoTrigger)
 		SpecializationUtil.removeEventListener(self, "onUpdate", HUDInfoTrigger)
-	else
-		v5_.callbackId = addTrigger(v5_.triggerNode, "onHudInfoTriggerCallback", self, false, HUDInfoTrigger.onHudInfoTriggerCallback)
-		v5_.enteredObjects = {}
 	end
 end
-
--- Local values: spec
 function HUDInfoTrigger:onDelete()
-	local v7_ = self.spec_hudInfoTrigger
-	if v7_.triggerNode ~= nil then
-		removeTrigger(v7_.triggerNode, v7_.callbackId)
+	local spec = self.spec_hudInfoTrigger
+	if spec.triggerNode ~= nil then
+		removeTrigger(spec.triggerNode, spec.callbackId)
 	end
 end
-
 function HUDInfoTrigger:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	if not isActiveForInputIgnoreSelection and self:getIsPlayerInHudInfoTrigger() then
 		self.rootVehicle:draw()
 		self:raiseActive()
 	end
 end
-
--- Local values: object, objectId, spec
 function HUDInfoTrigger:onHudInfoTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay)
-	local v14_ = g_currentMission:getNodeObject(otherId)
-	if v14_ == nil and (g_localPlayer ~= nil and otherId == g_localPlayer.rootNode) then
-		v14_ = g_localPlayer
+	local object = g_currentMission:getNodeObject(otherId)
+	if object == nil and (g_localPlayer ~= nil and otherId == g_localPlayer.rootNode) then
+		object = g_localPlayer
 	end
-	if v14_ ~= nil and v14_ ~= self then
-		local v15_ = NetworkUtil.getObjectId(v14_)
-		if v15_ ~= nil then
-			local v16_ = self.spec_hudInfoTrigger
+	if object ~= nil and object ~= self then
+		local objectId = NetworkUtil.getObjectId(object)
+		if objectId ~= nil then
+			local spec = self.spec_hudInfoTrigger
 			if onEnter then
-				v16_.enteredObjects[v15_] = (v16_.enteredObjects[v15_] or 0) + 1
+				spec.enteredObjects[objectId] = (spec.enteredObjects[objectId] or 0) + 1
 				self:raiseActive()
 				return
 			end
 			if onLeave then
-				v16_.enteredObjects[v15_] = (v16_.enteredObjects[v15_] or 0) - 1
-				if v16_.enteredObjects[v15_] <= 0 then
-					v16_.enteredObjects[v15_] = nil
+				spec.enteredObjects[objectId] = (spec.enteredObjects[objectId] or 0) - 1
+				if spec.enteredObjects[objectId] <= 0 then
+					spec.enteredObjects[objectId] = nil
 				end
 			end
 		end
 	end
 end
-
-function HUDInfoTrigger.getAllowHudInfoTrigger(self)
+function HUDInfoTrigger:getAllowHudInfoTrigger()
 	return true
 end
-
--- Local values: spec, localPlayer, objectId, playerVehicle, childVehicles, _, vehicle, objectId
 function HUDInfoTrigger:getIsPlayerInHudInfoTrigger()
 	if not self:getAllowHudInfoTrigger() then
 		return false
 	end
-	local v18_ = self.spec_hudInfoTrigger
-	local v19_ = g_localPlayer
-	if v19_ == nil then
+	local spec = self.spec_hudInfoTrigger
+	local localPlayer = g_localPlayer
+	if localPlayer == nil then
 		return false
 	end
-	if not v19_:getIsInVehicle() then
-		local v20_ = NetworkUtil.getObjectId(g_localPlayer)
-		return v18_.enteredObjects[v20_] ~= nil
+	if not localPlayer:getIsInVehicle() then
+		local objectId = NetworkUtil.getObjectId(g_localPlayer)
+		return spec.enteredObjects[objectId] ~= nil
 	end
-	local v21_ = v19_:getCurrentVehicle()
-	if v21_ == nil then
+	local playerVehicle = localPlayer:getCurrentVehicle()
+	if playerVehicle == nil then
 		return false
-	end
-	local v22_ = v21_.childVehicles
-	for _, v23_ in ipairs(v22_) do
-		local v24_ = NetworkUtil.getObjectId(v23_)
-		if v18_.enteredObjects[v24_] ~= nil then
+	else
+		local childVehicles = playerVehicle.childVehicles
+		for _, vehicle in ipairs(childVehicles) do
+			local objectId = NetworkUtil.getObjectId(vehicle)
+			if spec.enteredObjects[objectId] == nil then
+				continue
+			end
 			return true
 		end
+		return false
 	end
-	return false
 end

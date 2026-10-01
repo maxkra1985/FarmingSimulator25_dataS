@@ -1,124 +1,103 @@
--- Local values: PalletShopDialog_mt
 PalletShopDialog = {}
 local PalletShopDialog_mt = Class(PalletShopDialog, YesNoDialog)
 function PalletShopDialog.register()
-	local v2_ = PalletShopDialog.new()
-	g_gui:loadGui("dataS/gui/dialogs/PalletShopDialog.xml", "PalletShopDialog", v2_)
-	PalletShopDialog.INSTANCE = v2_
+	local palletShopDialog = PalletShopDialog.new()
+	g_gui:loadGui("dataS/gui/dialogs/PalletShopDialog.xml", "PalletShopDialog", palletShopDialog)
+	PalletShopDialog.INSTANCE = palletShopDialog
 end
-
--- Local values: dialog
 function PalletShopDialog.show(callback, target, items, maxQuantity, title)
 	if PalletShopDialog.INSTANCE ~= nil then
-		local v8_ = PalletShopDialog.INSTANCE
-		v8_:setCallback(callback, target)
-		v8_:setTitle(title)
-		v8_:setItems(items, maxQuantity)
+		local dialog = PalletShopDialog.INSTANCE
+		dialog:setCallback(callback, target)
+		dialog:setTitle(title)
+		dialog:setItems(items, maxQuantity)
 		g_gui:showDialog("PalletShopDialog")
 	end
 end
-
--- Upvalues: PalletShopDialog_mt
--- Local values: self
 function PalletShopDialog.new(target, custom_mt)
-	-- upvalues: (copy) PalletShopDialog_mt
-	local v11_ = YesNoDialog.new(target, custom_mt or PalletShopDialog_mt)
-	v11_.selectedFillType = nil
-	v11_.areButtonsDisabled = false
-	v11_.lastSelectedFillType = nil
-	return v11_
+	local self = YesNoDialog.new(target, custom_mt or PalletShopDialog_mt)
+	self.selectedFillType = nil
+	self.areButtonsDisabled = false
+	self.lastSelectedFillType = nil
+	return self
 end
-
--- Local values: callback, target, items, maxQuantity
 function PalletShopDialog.createFromExistingGui(gui, guiName)
 	PalletShopDialog.register()
-	local v13_ = gui.callbackFunc
-	local v14_ = gui.target
-	local v15_ = gui.items
-	local v16_ = gui.maxQuantity
-	PalletShopDialog.show(v13_, v14_, v15_, v16_)
+	local callback = gui.callbackFunc
+	local target = gui.target
+	local items = gui.items
+	local maxQuantity = gui.maxQuantity
+	PalletShopDialog.show(callback, target, items, maxQuantity)
 end
-
 function PalletShopDialog:onOpen()
 	PalletShopDialog:superClass().onOpen(self)
 	FocusManager:setFocus(self.itemsElement)
 end
-
 function PalletShopDialog:onYes()
 	if self.areButtonsDisabled then
 		return true
+	else
+		self:sendCallback(self.lastSelectedIndex, self.quantityElement:getState())
+		return false
 	end
-	self:sendCallback(self.lastSelectedIndex, self.quantityElement:getState())
-	return false
 end
-
 function PalletShopDialog:onNo(forceBack, usedMenuButton)
 	self:sendCallback(nil, nil)
 	return false
 end
-
 function PalletShopDialog:sendCallback(index, quantity)
-	if self.inputDelay >= self.time then
+	if self.inputDelay < self.time then
+		self:close()
+		if self.callbackFunc ~= nil then
+			if self.target ~= nil then
+				self.callbackFunc(self.target, index, quantity, self.callbackArgs)
+			else
+				self.callbackFunc(index, quantity, self.callbackArgs)
+			end
+		end
+		return false
+	else
 		return true
 	end
-	self:close()
-	if self.callbackFunc ~= nil then
-		if self.target == nil then
-			self.callbackFunc(index, quantity, self.callbackArgs)
-		else
-			self.callbackFunc(self.target, index, quantity, self.callbackArgs)
-		end
-	end
-	return false
 end
-
--- Local values: item
 function PalletShopDialog:onClickItems(state)
 	self:setButtonDisabled(false)
-	local v25_ = self.items[state]
+	local item = self.items[state]
 	self.lastSelectedIndex = state
-	self.palletIconElement:setImageFilename(v25_.imageFilename)
+	self.palletIconElement:setImageFilename(item.imageFilename)
 	self:updatePrices()
 end
-
 function PalletShopDialog:onClickQuantity()
 	self:updatePrices()
 end
-
--- Local values: item, quantity, price, total
 function PalletShopDialog:updatePrices()
-	local v28_ = self.items[self.lastSelectedIndex]
-	local v29_ = self.quantityElement:getState()
-	local v30_ = v28_.price
-	local v31_ = v28_.price * v29_
-	self.basePriceText:setText(g_i18n:formatMoney(v30_, 0, true, false))
-	self.totalPriceText:setText(g_i18n:formatMoney(v31_, 0, true, false))
+	local item = self.items[self.lastSelectedIndex]
+	local quantity = self.quantityElement:getState()
+	local price = item.price
+	local total = item.price * quantity
+	self.basePriceText:setText(g_i18n:formatMoney(price, 0, true, false))
+	self.totalPriceText:setText(g_i18n:formatMoney(total, 0, true, false))
 end
-
--- Local values: selectedId, itemTitles, k, item, quantities, i
 function PalletShopDialog:setItems(items, maxQuantity)
 	self.items = items
 	self.maxQuantity = maxQuantity
 	self.itemsMapping = {}
-	local v35_ = {}
-	local v36_ = 1
-	for v37_, v38_ in ipairs(items) do
-		local v39_ = v38_.title
-		table.insert(v35_, v39_)
-		if v37_ == self.lastSelectedIndex then
-			v36_ = v37_
+	local selectedId = 1
+	local itemTitles = {}
+	for k, item in ipairs(items) do
+		table.insert(itemTitles, item.title)
+		if k == self.lastSelectedIndex then
+			selectedId = k
 		end
 	end
-	self.itemsElement:setTexts(v35_)
-	self.itemsElement:setState(v36_, true)
-	local v40_ = {}
-	for v41_ = 1, maxQuantity do
-		local v42_ = tostring(v41_) .. "x"
-		table.insert(v40_, v42_)
+	self.itemsElement:setTexts(itemTitles)
+	self.itemsElement:setState(selectedId, true)
+	local quantities = {}
+	for i = 1, maxQuantity do
+		table.insert(quantities, tostring(i) .. "x")
 	end
-	self.quantityElement:setTexts(v40_)
+	self.quantityElement:setTexts(quantities)
 end
-
 function PalletShopDialog:setButtonDisabled(disabled)
 	self.areButtonsDisabled = disabled
 	self.yesButton:setDisabled(disabled)

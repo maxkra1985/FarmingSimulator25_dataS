@@ -1,4 +1,3 @@
--- Local values: DensityMapHeightManager_mt, sortHeightTypes, getIsPlacementAreaBlocked_modifier, getIsPlacementAreaBlocked_filter
 DensityMapHeightManager = {}
 DensityMapHeightManager.GENERATED_TIP_COLLISION_FILENAME = "infoLayer_tipCollisionGenerated.grle"
 DensityMapHeightManager.GENERATED_PLACEMENT_COLLISION_FILENAME = "infoLayer_placementCollisionGenerated.grle"
@@ -11,41 +10,34 @@ g_xmlManager:addCreateSchemaFunction(function()
 end)
 g_xmlManager:addInitSchemaFunction(function()
 	DensityMapHeightManager.registerXMLPaths(DensityMapHeightManager.xmlSchema, "map")
-	local v1_ = Mission00.xmlSchema
-	DensityMapHeightManager.registerXMLPaths(v1_, "map")
+	local missionXMLSchema = Mission00.xmlSchema
+	DensityMapHeightManager.registerXMLPaths(missionXMLSchema, "map")
 end)
-
--- Local values: typeKey
 function DensityMapHeightManager.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. ".densityMapHeightTypes#firstChannel", "First channel on the density map for height types", 0)
 	schema:register(XMLValueType.INT, basePath .. ".densityMapHeightTypes#numChannels", "Number of channel on the density map for height types", 6)
 	schema:register(XMLValueType.FLOAT, basePath .. ".densityMapHeightTypes.freeAccessArea(?)#x", "free accees area center world space x coordinate")
 	schema:register(XMLValueType.FLOAT, basePath .. ".densityMapHeightTypes.freeAccessArea(?)#z", "free accees area center world space z coordinate")
 	schema:register(XMLValueType.FLOAT, basePath .. ".densityMapHeightTypes.freeAccessArea(?)#radius", "free accees area radius in meters")
-	local v4_ = basePath .. ".densityMapHeightTypes.densityMapHeightType(?)"
-	schema:register(XMLValueType.STRING, v4_ .. "#fillTypeName", "Name of the fill type")
-	schema:register(XMLValueType.ANGLE, v4_ .. "#maxSurfaceAngle", "Max. surface angle for this fill type", 26)
-	schema:register(XMLValueType.FLOAT, v4_ .. "#fillToGroundScale", "Scale factor for fill to ground", 1)
-	schema:register(XMLValueType.BOOL, v4_ .. "#allowsSmoothing", "Allows smoothing", false)
-	schema:register(XMLValueType.FLOAT, v4_ .. ".collision#scale", "Collision scale", 1)
-	schema:register(XMLValueType.FLOAT, v4_ .. ".collision#baseOffset", "Collision base offset", 0)
-	schema:register(XMLValueType.FLOAT, v4_ .. ".collision#minOffset", "Collision min offset", 0)
-	schema:register(XMLValueType.FLOAT, v4_ .. ".collision#maxOffset", "Collision max offset", 1)
-	schema:register(XMLValueType.BOOL, v4_ .. "#canBeTipped", "Can be tipped", true)
-	schema:register(XMLValueType.INT, v4_ .. ".visualHeightMapping.mapping(?)#realValue", "Real density map value (1-64 when using 6 bits)")
-	schema:register(XMLValueType.INT, v4_ .. ".visualHeightMapping.mapping(?)#visualValue", "Visual value to show when the real value is reached (1-64 when using 6 bits)")
+	local typeKey = basePath .. ".densityMapHeightTypes.densityMapHeightType(?)"
+	schema:register(XMLValueType.STRING, typeKey .. "#fillTypeName", "Name of the fill type")
+	schema:register(XMLValueType.ANGLE, typeKey .. "#maxSurfaceAngle", "Max. surface angle for this fill type", 26)
+	schema:register(XMLValueType.FLOAT, typeKey .. "#fillToGroundScale", "Scale factor for fill to ground", 1)
+	schema:register(XMLValueType.BOOL, typeKey .. "#allowsSmoothing", "Allows smoothing", false)
+	schema:register(XMLValueType.FLOAT, typeKey .. ".collision#scale", "Collision scale", 1)
+	schema:register(XMLValueType.FLOAT, typeKey .. ".collision#baseOffset", "Collision base offset", 0)
+	schema:register(XMLValueType.FLOAT, typeKey .. ".collision#minOffset", "Collision min offset", 0)
+	schema:register(XMLValueType.FLOAT, typeKey .. ".collision#maxOffset", "Collision max offset", 1)
+	schema:register(XMLValueType.BOOL, typeKey .. "#canBeTipped", "Can be tipped", true)
+	schema:register(XMLValueType.INT, typeKey .. ".visualHeightMapping.mapping(?)#realValue", "Real density map value (1-64 when using 6 bits)")
+	schema:register(XMLValueType.INT, typeKey .. ".visualHeightMapping.mapping(?)#visualValue", "Visual value to show when the real value is reached (1-64 when using 6 bits)")
 end
-local v_u_5_ = Class(DensityMapHeightManager, AbstractManager)
-
--- Upvalues: DensityMapHeightManager_mt
--- Local values: self
+local DensityMapHeightManager_mt = Class(DensityMapHeightManager, AbstractManager)
 function DensityMapHeightManager.new(customMt)
-	-- upvalues: (copy) v_u_5_
-	local v7_ = AbstractManager.new(customMt or v_u_5_)
-	v7_.modDensityHeightMapTypeFilenames = {}
-	return v7_
+	local self = AbstractManager.new(customMt or DensityMapHeightManager_mt)
+	self.modDensityHeightMapTypeFilenames = {}
+	return self
 end
-
 function DensityMapHeightManager:initDataStructures()
 	self.numHeightTypes = 0
 	self.heightTypes = {}
@@ -77,16 +69,12 @@ function DensityMapHeightManager:initDataStructures()
 	self.tipCollisionMask = CollisionFlag.GROUND_TIP_BLOCKING
 	self.placementCollisionMask = CollisionFlag.PLACEMENT_BLOCKING
 end
-
--- Local values: xmlFile
 function DensityMapHeightManager:loadDefaultTypes(missionInfo, baseDirectory)
 	self:initDataStructures()
-	local v12_ = loadXMLFile("heightTypes", "data/maps/maps_densityMapHeightTypes.xml")
-	self:loadDensityMapHeightTypes(v12_, missionInfo, baseDirectory, true)
-	delete(v12_)
+	local xmlFile = loadXMLFile("heightTypes", "data/maps/maps_densityMapHeightTypes.xml")
+	self:loadDensityMapHeightTypes(xmlFile, missionInfo, baseDirectory, true)
+	delete(xmlFile)
 end
-
--- Local values: success
 function DensityMapHeightManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	DensityMapHeightManager:superClass().loadMapData(self)
 	if g_addCheatCommands then
@@ -101,9 +89,9 @@ function DensityMapHeightManager:loadMapData(xmlFile, missionInfo, baseDirectory
 		addConsoleCommand("gsPlacementCollisionsShow", "Shows the collisions for placement and terraforming", "consoleCommandShowPlacementCollisions", self)
 	end
 	self:loadDefaultTypes(missionInfo, baseDirectory)
-	return XMLUtil.loadDataFromMapXML(xmlFile, "densityMapHeightTypes", baseDirectory, self, self.loadDensityMapHeightTypes, missionInfo, baseDirectory)
+	local success = XMLUtil.loadDataFromMapXML(xmlFile, "densityMapHeightTypes", baseDirectory, self, self.loadDensityMapHeightTypes, missionInfo, baseDirectory)
+	return success
 end
-
 function DensityMapHeightManager:unloadMapData()
 	DensityMapHeightManager:superClass().unloadMapData(self)
 	removeConsoleCommand("gsTipAnywhereAdd")
@@ -122,349 +110,300 @@ function DensityMapHeightManager:unloadMapData()
 		self.debugBitVectorMapPlacementCollisionsId = nil
 	end
 end
-
--- Local values: rootName, _, key, _, key, x, z, radius, area
 function DensityMapHeightManager:loadDensityMapHeightTypes(xmlFile, missionInfo, baseDirectory, isBaseType)
 	if type(xmlFile) ~= "table" then
 		xmlFile = XMLFile.wrap(xmlFile, DensityMapHeightManager.xmlSchema)
 	end
-	local v21_ = xmlFile:getRootName()
-	self.heightTypeFirstChannel = xmlFile:getValue(v21_ .. ".densityMapHeightTypes#firstChannel", self.heightTypeFirstChannel or 0)
-	local v22_ = xmlFile:getValue(v21_ .. ".densityMapHeightTypes#numChannels", self.heightTypeNumChannels or 6)
-	local v23_ = self.heightTypeNumChannels or 6
-	self.heightTypeNumChannels = math.max(v22_, v23_)
-	for _, v24_ in xmlFile:iterator(v21_ .. ".densityMapHeightTypes.densityMapHeightType") do
-		self:loadDensityMapHeightTypeFromXML(xmlFile, v24_, isBaseType)
+	local rootName = xmlFile:getRootName()
+	self.heightTypeFirstChannel = xmlFile:getValue(rootName .. ".densityMapHeightTypes#firstChannel", self.heightTypeFirstChannel or 0)
+	self.heightTypeNumChannels = math.max(xmlFile:getValue(rootName .. ".densityMapHeightTypes#numChannels", self.heightTypeNumChannels or 6), self.heightTypeNumChannels or 6)
+	for _, key in xmlFile:iterator(rootName .. ".densityMapHeightTypes.densityMapHeightType") do
+		self:loadDensityMapHeightTypeFromXML(xmlFile, key, isBaseType)
 	end
-	for _, v25_ in xmlFile:iterator(v21_ .. ".densityMapHeightTypes.freeAccessArea") do
-		local v26_ = xmlFile:getFloat(v25_ .. "#x")
-		local v27_ = xmlFile:getFloat(v25_ .. "#z")
-		local v28_ = xmlFile:getFloat(v25_ .. "#radius")
-		if v26_ ~= nil and (v27_ ~= nil and v28_ ~= nil) then
-			local v29_ = self.freeAccessAreas
-			table.insert(v29_, {
-				["x"] = v26_,
-				["z"] = v27_,
-				["radius"] = v28_
-			})
+	for _, key in xmlFile:iterator(rootName .. ".densityMapHeightTypes.freeAccessArea") do
+		local x = xmlFile:getFloat(key .. "#x")
+		local z = xmlFile:getFloat(key .. "#z")
+		local radius = xmlFile:getFloat(key .. "#radius")
+		if x == nil or z == nil or radius == nil then
+			continue
 		end
+		local area = { x = x, z = z, radius = radius }
+		table.insert(self.freeAccessAreas, area)
 	end
 	return true
 end
-
 function DensityMapHeightManager:addModDensityMapHeightTypes(xmlFilename)
-	local v32_ = self.modDensityHeightMapTypeFilenames
-	table.insert(v32_, xmlFilename)
+	table.insert(self.modDensityHeightMapTypeFilenames, xmlFilename)
 end
-
--- Local values: i, filename, heightTypesXmlFile
 function DensityMapHeightManager:loadModDensityMapHeightTypes()
-	for v34_ = #self.modDensityHeightMapTypeFilenames, 1, -1 do
-		local v35_ = self.modDensityHeightMapTypeFilenames[v34_]
-		local v36_ = loadXMLFile("heightTypes", v35_)
-		if v36_ ~= 0 then
-			self:loadDensityMapHeightTypes(v36_, nil, nil, false)
-			delete(v36_)
+	for i = #self.modDensityHeightMapTypeFilenames, 1, -1 do
+		local filename = self.modDensityHeightMapTypeFilenames[i]
+		local heightTypesXmlFile = loadXMLFile("heightTypes", filename)
+		if heightTypesXmlFile ~= 0 then
+			self:loadDensityMapHeightTypes(heightTypesXmlFile, nil, nil, false)
+			delete(heightTypesXmlFile)
 		end
-		self.modDensityHeightMapTypeFilenames[v34_] = nil
+		self.modDensityHeightMapTypeFilenames[i] = nil
 	end
 end
-
--- Local values: xmlFile
 function DensityMapHeightManager:loadFromXMLFile(xmlFilename)
 	if xmlFilename == nil then
 		return false
 	end
-	local v_u_39_ = XMLFile.load("densitymapHeightXML", xmlFilename)
-	if v_u_39_ == nil then
+	local xmlFile = XMLFile.load("densitymapHeightXML", xmlFilename)
+	if xmlFile == nil then
 		return false
-	end
-	self.tipTypeMappings = {}
-	v_u_39_:iterate("tipTypeMappings.tipTypeMapping", function(_, p40_)
-		-- upvalues: (copy) v_u_39_, (copy) self
-		local v41_ = v_u_39_:getString(p40_ .. "#fillType")
-		local v42_ = v_u_39_:getInt(p40_ .. "#index")
-		if v41_ ~= nil and v42_ ~= nil then
-			self.tipTypeMappings[string.lower(v41_)] = v42_
-		end
-	end)
-	v_u_39_:delete()
-	return true
-end
-
--- Local values: xmlFile, k, heightType, mappingKey
-function DensityMapHeightManager:saveToXMLFile(xmlFilename)
-	local v45_ = XMLFile.create("densityMapHeightXML", xmlFilename, "tipTypeMappings")
-	if v45_ == nil then
-		return false
-	end
-	for v46_, v47_ in ipairs(self.heightTypes) do
-		local v48_ = string.format("tipTypeMappings.tipTypeMapping(%d)", v46_ - 1)
-		v45_:setString(v48_ .. "#fillType", v47_.fillTypeName)
-		v45_:setInt(v48_ .. "#index", v47_.index)
-	end
-	v45_:save()
-	v45_:delete()
-	return true
-end
-local function v_u_51_(p49_, p50_)
-	return p49_.fillTypeIndex < p50_.fillTypeIndex
-end
-
--- Upvalues: sortHeightTypes
--- Local values: i, heightType
-function DensityMapHeightManager:sortHeightTypes()
-	-- upvalues: (copy) v_u_51_
-	table.sort(self.heightTypes, v_u_51_)
-	for v53_ = 1, #self.heightTypes do
-		local v54_ = self.heightTypes[v53_]
-		v54_.index = v53_
-		self.heightTypeIndexToFillTypeIndex[v54_.index] = v54_.fillTypeIndex
-	end
-end
-
--- Local values: fillTypeName, fillTypeIndex, heightType, maxNumHeightTypes, _, mappingKey, mapping
-function DensityMapHeightManager:loadDensityMapHeightTypeFromXML(xmlFile, key, isBaseType)
-	local v59_ = xmlFile:getValue(key .. "#fillTypeName")
-	local v60_ = g_fillTypeManager:getFillTypeIndexByName(v59_)
-	if v60_ == nil then
-		Logging.xmlError(xmlFile, "\'%s\' has invalid fill type \'%s\'!", key, v59_)
-		return
-	elseif isBaseType and self.fillTypeNameToHeightType[v59_] ~= nil then
-		Logging.error("density height map for \'%s\' already exists!", v59_)
 	else
-		local v61_ = self.fillTypeNameToHeightType[v59_]
-		if v61_ == nil then
-			local v62_ = 2 ^ g_densityMapHeightManager.heightTypeNumChannels - 1
-			if v62_ <= self.numHeightTypes then
-				Logging.error("addDensityMapHeightType %q: maximum number (%d) of height types already registered. Adjust densityMapHeightTypes#numChannels to allow for more", v59_, v62_)
+		self.tipTypeMappings = {}
+		xmlFile:iterate("tipTypeMappings.tipTypeMapping", function(_, key)
+			local name = xmlFile:getString(key .. "#fillType")
+			local index = xmlFile:getInt(key .. "#index")
+			if name ~= nil and index ~= nil then
+				self.tipTypeMappings[string.lower(name)] = index
+			end
+		end)
+		xmlFile:delete()
+		return true
+	end
+end
+function DensityMapHeightManager:saveToXMLFile(xmlFilename)
+	local xmlFile = XMLFile.create("densityMapHeightXML", xmlFilename, "tipTypeMappings")
+	if xmlFile ~= nil then
+		for k, heightType in ipairs(self.heightTypes) do
+			local mappingKey = string.format("tipTypeMappings.tipTypeMapping(%d)", k - 1)
+			xmlFile:setString(mappingKey .. "#fillType", heightType.fillTypeName)
+			xmlFile:setInt(mappingKey .. "#index", heightType.index)
+		end
+		xmlFile:save()
+		xmlFile:delete()
+		return true
+	else
+		return false
+	end
+end
+local sortHeightTypes = function(a, b)
+	return a.fillTypeIndex < b.fillTypeIndex
+end
+function DensityMapHeightManager:sortHeightTypes()
+	table.sort(self.heightTypes, sortHeightTypes)
+	for i = 1, #self.heightTypes do
+		local heightType = self.heightTypes[i]
+		heightType.index = i
+		self.heightTypeIndexToFillTypeIndex[heightType.index] = heightType.fillTypeIndex
+	end
+end
+function DensityMapHeightManager:loadDensityMapHeightTypeFromXML(xmlFile, key, isBaseType)
+	local fillTypeName = xmlFile:getValue(key .. "#fillTypeName")
+	local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
+	if fillTypeIndex == nil then
+		Logging.xmlError(xmlFile, "'%s' has invalid fill type '%s'!", key, fillTypeName)
+	else
+		if isBaseType and self.fillTypeNameToHeightType[fillTypeName] ~= nil then
+			Logging.error("density height map for '%s' already exists!", fillTypeName)
+			return
+		end
+		local heightType = self.fillTypeNameToHeightType[fillTypeName]
+		if heightType == nil then
+			local maxNumHeightTypes = 2 ^ g_densityMapHeightManager.heightTypeNumChannels - 1
+			if maxNumHeightTypes <= self.numHeightTypes then
+				Logging.error("addDensityMapHeightType %q: maximum number (%d) of height types already registered. Adjust densityMapHeightTypes#numChannels to allow for more", fillTypeName, maxNumHeightTypes)
 				return
 			end
 			self.numHeightTypes = self.numHeightTypes + 1
-			v61_ = {
-				["index"] = self.numHeightTypes,
-				["fillTypeName"] = v59_,
-				["fillTypeIndex"] = v60_
-			}
-			local v63_ = self.heightTypes
-			table.insert(v63_, v61_)
-			self.fillTypeNameToHeightType[v59_] = v61_
-			self.fillTypeIndexToHeightType[v60_] = v61_
-			self.heightTypeIndexToFillTypeIndex[v61_.index] = v60_
+			heightType = {}
+			heightType.index = self.numHeightTypes
+			heightType.fillTypeName = fillTypeName
+			heightType.fillTypeIndex = fillTypeIndex
+			table.insert(self.heightTypes, heightType)
+			self.fillTypeNameToHeightType[fillTypeName] = heightType
+			self.fillTypeIndexToHeightType[fillTypeIndex] = heightType
+			self.heightTypeIndexToFillTypeIndex[heightType.index] = fillTypeIndex
 			self:sortHeightTypes()
 		end
-		v61_.maxSurfaceAngle = xmlFile:getValue(key .. "#maxSurfaceAngle") or (v61_.maxSurfaceAngle or 0.4537856055185257)
-		v61_.fillToGroundScale = xmlFile:getValue(key .. "#fillToGroundScale") or (v61_.fillToGroundScale or 1)
-		v61_.allowsSmoothing = xmlFile:getValue(key .. "#allowsSmoothing", Utils.getNoNil(v61_.allowsSmoothing, false))
-		v61_.collisionScale = xmlFile:getValue(key .. ".collision#scale") or (v61_.collisionScale or 1)
-		v61_.collisionBaseOffset = xmlFile:getValue(key .. ".collision#baseOffset") or (v61_.collisionBaseOffset or 0)
-		v61_.minCollisionOffset = xmlFile:getValue(key .. ".collision#minOffset") or (v61_.minCollisionOffset or 0)
-		v61_.maxCollisionOffset = xmlFile:getValue(key .. ".collision#maxOffset") or (v61_.maxCollisionOffset or 1)
-		v61_.canBeTipped = xmlFile:getValue(key .. "#canBeTipped", Utils.getNoNil(v61_.canBeTipped, true))
+		heightType.maxSurfaceAngle = xmlFile:getValue(key .. "#maxSurfaceAngle") or heightType.maxSurfaceAngle or 0.4537856055185257
+		heightType.fillToGroundScale = xmlFile:getValue(key .. "#fillToGroundScale") or heightType.fillToGroundScale or 1
+		heightType.allowsSmoothing = xmlFile:getValue(key .. "#allowsSmoothing", Utils.getNoNil(heightType.allowsSmoothing, false))
+		heightType.collisionScale = xmlFile:getValue(key .. ".collision#scale") or heightType.collisionScale or 1
+		heightType.collisionBaseOffset = xmlFile:getValue(key .. ".collision#baseOffset") or heightType.collisionBaseOffset or 0
+		heightType.minCollisionOffset = xmlFile:getValue(key .. ".collision#minOffset") or heightType.minCollisionOffset or 0
+		heightType.maxCollisionOffset = xmlFile:getValue(key .. ".collision#maxOffset") or heightType.maxCollisionOffset or 1
+		heightType.canBeTipped = xmlFile:getValue(key .. "#canBeTipped", Utils.getNoNil(heightType.canBeTipped, true))
 		if xmlFile:hasProperty(key .. ".visualHeightMapping") then
-			v61_.visualHeightMapping = {}
-			for _, v64_ in xmlFile:iterator(key .. ".visualHeightMapping.mapping") do
-				local v65_ = {
-					["realValue"] = xmlFile:getValue(v64_ .. "#realValue"),
-					["visualValue"] = xmlFile:getValue(v64_ .. "#visualValue")
-				}
-				if v65_.realValue == nil or v65_.visualValue == nil then
-					Logging.xmlError(xmlFile, "\'%s\' has invalid visual height mapping!", v64_)
-				else
-					local v66_ = v61_.visualHeightMapping
-					table.insert(v66_, v65_)
+			heightType.visualHeightMapping = {}
+			for _, mappingKey in xmlFile:iterator(key .. ".visualHeightMapping.mapping") do
+				local mapping = {}
+				mapping.realValue = xmlFile:getValue(mappingKey .. "#realValue")
+				mapping.visualValue = xmlFile:getValue(mappingKey .. "#visualValue")
+				if mapping.realValue ~= nil then
+					if mapping.visualValue ~= nil then
+						table.insert(heightType.visualHeightMapping, mapping)
+					else
+						Logging.xmlError(xmlFile, "'%s' has invalid visual height mapping!", mappingKey)
+					end
 				end
 			end
-			table.sort(v61_.visualHeightMapping, function(p67_, p68_)
-				return p67_.realValue < p68_.realValue
+			table.sort(heightType.visualHeightMapping, function(a, b)
+				return a.realValue < b.realValue
 			end)
 		end
 	end
 end
-
 function DensityMapHeightManager:getDensityMapHeightTypeByIndex(index)
-	if index == nil then
-		return nil
-	else
+	if index ~= nil then
 		return self.heightTypes[index]
+	else
+		return nil
 	end
 end
-
 function DensityMapHeightManager:getFillTypeNameByDensityHeightMapIndex(index)
-	if index == nil or self.heightTypes[index] == nil then
-		return nil
-	else
+	if index ~= nil and self.heightTypes[index] ~= nil then
 		return self.heightTypes[index].fillTypeName
 	end
+	return nil
 end
-
 function DensityMapHeightManager:getFillTypeIndexByDensityHeightMapIndex(index)
-	if index == nil or self.heightTypes[index] == nil then
-		return nil
-	else
+	if index ~= nil and self.heightTypes[index] ~= nil then
 		return self.heightTypes[index].fillTypeIndex
 	end
+	return nil
 end
-
 function DensityMapHeightManager:getDensityMapHeightTypeByFillTypeName(fillTypeName)
-	if fillTypeName == nil then
-		return nil
-	else
+	if fillTypeName ~= nil then
 		return self.fillTypeNameToHeightType[fillTypeName]
+	else
+		return nil
 	end
 end
-
 function DensityMapHeightManager:getDensityMapHeightTypeByFillTypeIndex(fillTypeIndex)
-	if fillTypeIndex == nil then
-		return nil
-	else
+	if fillTypeIndex ~= nil then
 		return self.fillTypeIndexToHeightType[fillTypeIndex]
+	else
+		return nil
 	end
 end
-
 function DensityMapHeightManager:getDensityMapHeightTypeIndexByFillTypeName(fillTypeName)
-	if fillTypeName == nil or self.fillTypeNameToHeightType[fillTypeName] == nil then
-		return nil
-	else
+	if fillTypeName ~= nil and self.fillTypeNameToHeightType[fillTypeName] ~= nil then
 		return self.fillTypeNameToHeightType[fillTypeName].index
 	end
+	return nil
 end
-
 function DensityMapHeightManager:getDensityMapHeightTypeIndexByFillTypeIndex(fillTypeIndex)
-	if fillTypeIndex == nil or self.fillTypeIndexToHeightType[fillTypeIndex] == nil then
-		return nil
-	else
+	if fillTypeIndex ~= nil and self.fillTypeIndexToHeightType[fillTypeIndex] ~= nil then
 		return self.fillTypeIndexToHeightType[fillTypeIndex].index
 	end
+	return nil
 end
-
 function DensityMapHeightManager:getDensityMapHeightTypes()
 	return self.heightTypes
 end
-
 function DensityMapHeightManager:getFillTypeToDensityMapHeightTypes()
 	return self.fillTypeIndexToHeightType
 end
-
 function DensityMapHeightManager:setFixedFillTypesArea(area, fillTypes)
-	self.fixedFillTypesAreas[area] = {
-		["fillTypes"] = fillTypes
-	}
+	self.fixedFillTypesAreas[area] = { fillTypes = fillTypes }
 end
-
 function DensityMapHeightManager:removeFixedFillTypesArea(area)
 	self.fixedFillTypesAreas[area] = nil
 end
-
 function DensityMapHeightManager:getFixedFillTypesAreas()
 	return self.fixedFillTypesAreas
 end
-
 function DensityMapHeightManager:setConvertingFillTypeAreas(area, fillTypes, fillTypeTarget)
-	self.convertingFillTypesAreas[area] = {
-		["fillTypes"] = fillTypes,
-		["fillTypeTarget"] = fillTypeTarget
-	}
+	self.convertingFillTypesAreas[area] = { fillTypes = fillTypes, fillTypeTarget = fillTypeTarget }
 end
-
 function DensityMapHeightManager:removeConvertingFillTypeAreas(area)
 	self.convertingFillTypesAreas[area] = nil
 end
-
 function DensityMapHeightManager:getConvertingFillTypesAreas()
 	return self.convertingFillTypesAreas
 end
-
--- Local values: typeMappings, numUsedMappings, _, entry, name, oldTypeIndex, numMappings, _, _
 function DensityMapHeightManager:checkTypeMappings()
-	local v99_ = self.tipTypeMappings
-	if v99_ ~= nil and next(v99_) ~= nil then
-		local v100_ = 0
-		for _, v101_ in ipairs(self.heightTypes) do
-			local v102_ = v99_[g_fillTypeManager:getFillTypeNameByIndex(v101_.fillTypeIndex)]
-			if v102_ == nil or v102_ ~= v101_.index then
+	local typeMappings = self.tipTypeMappings
+	if typeMappings ~= nil and next(typeMappings) ~= nil then
+		local numUsedMappings = 0
+		for _, entry in ipairs(self.heightTypes) do
+			local name = g_fillTypeManager:getFillTypeNameByIndex(entry.fillTypeIndex)
+			local oldTypeIndex = typeMappings[name]
+			if oldTypeIndex == nil or oldTypeIndex ~= entry.index then
 				return false
 			end
-			v100_ = v100_ + 1
+			numUsedMappings = numUsedMappings + 1
 		end
-		local v103_ = 0
-		for _, _ in pairs(v99_) do
-			v103_ = v103_ + 1
+		local numMappings = 0
+		for _, _ in pairs(typeMappings) do
+			numMappings = numMappings + 1
 		end
-		if v103_ ~= v100_ then
+		if numMappings ~= numUsedMappings then
 			return false
 		end
 	end
 	return true
 end
-
--- Local values: id, densitySize, deform, placementMapSize, litersPerMeter, maxHeight, unitLength, maxHeightDensityValue, heightFirstChannel, heightNumChannels, typeFirstChannel, typeNumChannels, densityMapHeightCollisionMask, displacementHeightCollisionMask, numUsedMappings, heightTypes, _, entry, oldTypeIndex, name, fillTypeName, forceTypeConversion, numMappings, _, _, missionInfo, collisionMapValid, savegameFilename, cleanupHeights, placementCollisionMapValid, savegameFilename, sizeX, _sizeZ, tipCollisionMapSize, tipCollisionCellsize, placementCollisionMapSize, placementCellsize
 function DensityMapHeightManager:initialize(isServer, tipCollisionMap, placementCollisionMap)
-	local v108_ = g_currentMission.terrainDetailHeightId
+	local id = g_currentMission.terrainDetailHeightId
 	self.tipToGroundIsAllowed = true
-	local v109_ = getDensityMapSize(v108_)
-	local v110_ = TerrainDeformation.new(g_terrainNode)
-	local v111_ = v110_:getBlockedAreaMapSize()
-	v110_:cancel()
-	v110_:delete()
-	self.worldToDensityMap = v109_ / g_currentMission.terrainSize
-	self.densityToWorldMap = g_currentMission.terrainSize / v109_
-	self.worldToPlacementMap = v111_ / g_currentMission.terrainSize
-	self.placementToWorldMap = g_currentMission.terrainSize / v111_
+	local densitySize = getDensityMapSize(id)
+	local deform = TerrainDeformation.new(g_terrainNode)
+	local placementMapSize = deform:getBlockedAreaMapSize()
+	deform:cancel()
+	deform:delete()
+	self.worldToDensityMap = densitySize / g_currentMission.terrainSize
+	self.densityToWorldMap = g_currentMission.terrainSize / densitySize
+	self.worldToPlacementMap = placementMapSize / g_currentMission.terrainSize
+	self.placementToWorldMap = g_currentMission.terrainSize / placementMapSize
 	self.pendingCollisionRecalculateAreas = {}
 	self.collisionRecalculateAreaSize = 16
 	self.collisionRecalculateAreaWorldSize = self.collisionRecalculateAreaSize * self.densityToWorldMap
-	local v112_ = (v109_ + self.collisionRecalculateAreaSize - 1) / self.collisionRecalculateAreaSize
-	self.numCollisionRecalculateAreasPerSide = math.floor(v112_)
-	local v113_ = 250
-	local v114_ = getDensityMapMaxHeight(v108_)
-	local v115_ = g_currentMission.terrainSize / v109_
-	self.volumePerPixel = v114_ * v115_ * v115_
-	self.literPerPixel = v113_ * v114_ * self.volumePerPixel
-	self.fillToGroundScale = self.worldToDensityMap ^ 2 / (v113_ * v114_)
-	local v116_ = 2 ^ getDensityMapHeightNumChannels(v108_) - 1
-	self.minValidLiterValue = self.literPerPixel / v116_
-	self.minValidVolumeValue = self.volumePerPixel / v116_
-	self.heightToDensityValue = v116_ / v114_
-	local v117_ = getDensityMapHeightFirstChannel(v108_)
-	local v118_ = getDensityMapHeightNumChannels(v108_)
-	local v119_ = self.heightTypeFirstChannel
-	local v120_ = self.heightTypeNumChannels
-	if v117_ < v119_ + v120_ and v119_ < v117_ + v118_ then
-		Logging.warning("Density map height type channels [%d-%d] are overlapping with the density map height channels [%d-%d]. This will lead to unexpected results.", v119_, v119_ + v120_ - 1, v117_, v117_ + v118_ - 1)
+	self.numCollisionRecalculateAreasPerSide = math.floor((densitySize + self.collisionRecalculateAreaSize - 1) / self.collisionRecalculateAreaSize)
+	local litersPerMeter = 250
+	local maxHeight = getDensityMapMaxHeight(id)
+	local unitLength = g_currentMission.terrainSize / densitySize
+	self.volumePerPixel = maxHeight * unitLength * unitLength
+	self.literPerPixel = litersPerMeter * maxHeight * self.volumePerPixel
+	self.fillToGroundScale = self.worldToDensityMap ^ 2 / (litersPerMeter * maxHeight)
+	local maxHeightDensityValue = 2 ^ getDensityMapHeightNumChannels(id) - 1
+	self.minValidLiterValue = self.literPerPixel / maxHeightDensityValue
+	self.minValidVolumeValue = self.volumePerPixel / maxHeightDensityValue
+	self.heightToDensityValue = maxHeightDensityValue / maxHeight
+	local heightFirstChannel = getDensityMapHeightFirstChannel(id)
+	local heightNumChannels = getDensityMapHeightNumChannels(id)
+	local typeFirstChannel = self.heightTypeFirstChannel
+	local typeNumChannels = self.heightTypeNumChannels
+	if heightFirstChannel < typeFirstChannel + typeNumChannels and typeFirstChannel < heightFirstChannel + heightNumChannels then
+		Logging.warning("Density map height type channels [%d-%d] are overlapping with the density map height channels [%d-%d]. This will lead to unexpected results.", typeFirstChannel, typeFirstChannel + typeNumChannels - 1, heightFirstChannel, heightFirstChannel + heightNumChannels - 1)
 	end
-	local v121_ = CollisionFlag.TERRAIN_DELTA
-	local v122_ = CollisionFlag.TERRAIN_DISPLACEMENT
-	self.terrainDetailHeightUpdater = createDensityMapHeightUpdater("TerrainDetailHeightUpdater", v108_, v119_, v120_, v121_, v122_)
-	local v123_ = 0
-	local v124_ = self:getDensityMapHeightTypes()
-	if v124_ ~= nil then
-		for _, v125_ in ipairs(v124_) do
-			local v126_ = v125_.index
+	local densityMapHeightCollisionMask = CollisionFlag.TERRAIN_DELTA
+	local displacementHeightCollisionMask = CollisionFlag.TERRAIN_DISPLACEMENT
+	self.terrainDetailHeightUpdater = createDensityMapHeightUpdater("TerrainDetailHeightUpdater", id, typeFirstChannel, typeNumChannels, densityMapHeightCollisionMask, displacementHeightCollisionMask)
+	local numUsedMappings = 0
+	local heightTypes = self:getDensityMapHeightTypes()
+	if heightTypes ~= nil then
+		for _, entry in ipairs(heightTypes) do
+			local oldTypeIndex = entry.index
 			if self.tipTypeMappings ~= nil and next(self.tipTypeMappings) ~= nil then
-				local v127_ = g_fillTypeManager:getFillTypeNameByIndex(v125_.fillTypeIndex)
-				local v128_ = string.lower(v127_)
-				v126_ = self.tipTypeMappings[v128_] or -1
-				if v126_ >= 0 then
-					v123_ = v123_ + 1
+				local name = g_fillTypeManager:getFillTypeNameByIndex(entry.fillTypeIndex)
+				local fillTypeName = string.lower(name)
+				oldTypeIndex = self.tipTypeMappings[fillTypeName] or -1
+				if 0 <= oldTypeIndex then
+					numUsedMappings = numUsedMappings + 1
 				end
 			end
-			setDensityMapHeightTypeProperties(self.terrainDetailHeightUpdater, v125_.index, v126_, v125_.maxSurfaceAngle, v125_.collisionScale, v125_.collisionBaseOffset, v125_.minCollisionOffset, v125_.maxCollisionOffset)
+			setDensityMapHeightTypeProperties(self.terrainDetailHeightUpdater, entry.index, oldTypeIndex, entry.maxSurfaceAngle, entry.collisionScale, entry.collisionBaseOffset, entry.minCollisionOffset, entry.maxCollisionOffset)
 		end
 	end
-	g_fillTypeManager:constructFillTypeDistanceTextureArray(g_currentMission.terrainDetailHeightId, v119_, v120_, v124_)
-	local v129_ = false
+	g_fillTypeManager:constructFillTypeDistanceTextureArray(g_currentMission.terrainDetailHeightId, typeFirstChannel, typeNumChannels, heightTypes)
+	local forceTypeConversion = false
 	if self.tipTypeMappings ~= nil then
-		local v130_ = 0
+		local numMappings = 0
 		for _, _ in pairs(self.tipTypeMappings) do
-			v130_ = v130_ + 1
+			numMappings = numMappings + 1
 		end
-		if v130_ ~= v123_ then
-			v129_ = true
+		if numMappings ~= numUsedMappings then
+			forceTypeConversion = true
 		end
 	end
-	initDensityMapHeightTypeProperties(self.terrainDetailHeightUpdater, v129_)
-	local v131_ = g_currentMission.missionInfo
+	initDensityMapHeightTypeProperties(self.terrainDetailHeightUpdater, forceTypeConversion)
+	local missionInfo = g_currentMission.missionInfo
 	if isServer then
 		self.tipCollisionMap = tipCollisionMap
 		self.tipCollisionMapCreated = false
@@ -472,21 +411,26 @@ function DensityMapHeightManager:initialize(isServer, tipCollisionMap, placement
 			self.tipCollisionMap = createBitVectorMap("CollisionMap")
 			self.tipCollisionMapCreated = true
 		end
-		local v132_ = false
-		if not GS_IS_MOBILE_VERSION and v131_:getIsTipCollisionValid(g_currentMission) then
-			local v133_ = v131_.savegameDirectory .. "/" .. DensityMapHeightManager.GENERATED_TIP_COLLISION_FILENAME
-			if loadBitVectorMapFromFile(self.tipCollisionMap, v133_, 2) and setDensityMapHeightCollisionMap(self.terrainDetailHeightUpdater, self.tipCollisionMap, false) then
-				v132_ = true
-			else
-				Logging.warning("Failed to load savegame tip collision map \'" .. v133_ .. "\'. Loading default tip collision map and recreating from placeables.")
+		local collisionMapValid = false
+		if not GS_IS_MOBILE_VERSION and missionInfo:getIsTipCollisionValid(g_currentMission) then
+			local savegameFilename = missionInfo.savegameDirectory .. "/" .. DensityMapHeightManager.GENERATED_TIP_COLLISION_FILENAME
+			if loadBitVectorMapFromFile(self.tipCollisionMap, savegameFilename, 2) then
+				if setDensityMapHeightCollisionMap(self.terrainDetailHeightUpdater, self.tipCollisionMap, false) then
+					collisionMapValid = true
+				else
+					Logging.warning("Failed to load savegame tip collision map '" .. savegameFilename .. "'. Loading default tip collision map and recreating from placeables.")
+				end
 			end
 		end
-		if not v132_ then
-			local v134_ = v131_.isValid and true or false
-			if self.tipCollisionMapCreated or not setDensityMapHeightCollisionMap(self.terrainDetailHeightUpdater, self.tipCollisionMap, v134_) then
+		if not collisionMapValid then
+			local cleanupHeights = false
+			if missionInfo.isValid then
+				cleanupHeights = true
+			end
+			if self.tipCollisionMapCreated or not setDensityMapHeightCollisionMap(self.terrainDetailHeightUpdater, self.tipCollisionMap, cleanupHeights) then
 				Logging.warning("No tip collision map defined. Creating empty tip placement collision map.")
-				loadBitVectorMapNew(self.tipCollisionMap, v109_, v109_, 2, false)
-				setDensityMapHeightCollisionMap(self.terrainDetailHeightUpdater, self.tipCollisionMap, v134_)
+				loadBitVectorMapNew(self.tipCollisionMap, densitySize, densitySize, 2, false)
+				setDensityMapHeightCollisionMap(self.terrainDetailHeightUpdater, self.tipCollisionMap, cleanupHeights)
 			end
 		end
 	end
@@ -497,392 +441,356 @@ function DensityMapHeightManager:initialize(isServer, tipCollisionMap, placement
 			self.placementCollisionMap = createBitVectorMap("PlacementCollisionMap")
 			self.placementCollisionMapCreated = true
 		end
-		local v135_ = false
-		if v131_:getIsPlacementCollisionValid(g_currentMission) then
-			local v136_ = v131_.savegameDirectory .. "/" .. DensityMapHeightManager.GENERATED_PLACEMENT_COLLISION_FILENAME
-			if loadBitVectorMapFromFile(self.placementCollisionMap, v136_, 1) then
-				local v137_, _ = getBitVectorMapSize(self.placementCollisionMap)
-				if v137_ == v111_ then
-					v135_ = true
+		local placementCollisionMapValid = false
+		if missionInfo:getIsPlacementCollisionValid(g_currentMission) then
+			local savegameFilename = missionInfo.savegameDirectory .. "/" .. DensityMapHeightManager.GENERATED_PLACEMENT_COLLISION_FILENAME
+			if loadBitVectorMapFromFile(self.placementCollisionMap, savegameFilename, 1) then
+				local sizeX, _sizeZ = getBitVectorMapSize(self.placementCollisionMap)
+				if sizeX ~= placementMapSize then
+					Logging.warning("Savegame placement collision map %q size %d does not match expected size %d", savegameFilename, sizeX, placementMapSize)
 				else
-					Logging.warning("Savegame placement collision map %q size %d does not match expected size %d", v136_, v137_, v111_)
+					placementCollisionMapValid = true
 				end
 			else
-				Logging.warning("Failed to load savegame placement collision map \'" .. v136_ .. "\'. Loading default placement collision map and recreating from placeables.")
+				Logging.warning("Failed to load savegame placement collision map '" .. savegameFilename .. "'. Loading default placement collision map and recreating from placeables.")
 			end
 		end
-		if not v135_ and self.placementCollisionMapCreated then
+		if not placementCollisionMapValid and self.placementCollisionMapCreated then
 			Logging.warning("No placement collision map defined. Creating empty placement collision map.")
-			loadBitVectorMapNew(self.placementCollisionMap, v111_, v111_, 1, false)
+			loadBitVectorMapNew(self.placementCollisionMap, placementMapSize, placementMapSize, 1, false)
 		end
 	end
-	g_fillTypeManager:constructTerrainFillLayers(v124_, g_terrainNode)
+	g_fillTypeManager:constructTerrainFillLayers(heightTypes, g_terrainNode)
 	if self.tipCollisionMap ~= nil then
-		local v_u_138_ = getBitVectorMapSize(self.tipCollisionMap)
-		local v139_ = g_currentMission.terrainSize / v_u_138_
-		self.debugBitVectorMapTipCollisions = DebugBitVectorMap.newSimple(10, v139_, true, 0.2, nil, true)
-		self.debugBitVectorMapTipCollisions.valueToColor = {
-			[0] = Color.PRESETS.GREEN:copy(),
-			[1] = Color.PRESETS.BLUE:copy(),
-			[2] = Color.PRESETS.RED:copy()
-		}
-		self.debugBitVectorMapTipCollisions:createWithCustomFunc(function(_, p140_, p141_, p142_, p143_, p144_, p145_)
-			-- upvalues: (copy) v_u_138_, (copy) self
-			local v146_ = (p140_ + p142_ + p144_) / 3
-			local v147_ = (p141_ + p143_ + p145_) / 3
-			local v148_ = g_currentMission.terrainSize
-			local v149_ = 0.5 + v_u_138_ * (v146_ + v148_ * 0.5) / v148_
-			local v150_ = math.floor(v149_)
-			local v151_ = 0.5 + v_u_138_ * (v147_ + v148_ * 0.5) / v148_
-			local v152_ = math.floor(v151_)
-			return getBitVectorMapPoint(self.tipCollisionMap, v150_, v152_, 0, 2)
+		local tipCollisionMapSize = getBitVectorMapSize(self.tipCollisionMap)
+		local tipCollisionCellsize = g_currentMission.terrainSize / tipCollisionMapSize
+		self.debugBitVectorMapTipCollisions = DebugBitVectorMap.newSimple(10, tipCollisionCellsize, true, 0.2, nil, true)
+		self.debugBitVectorMapTipCollisions.valueToColor = { Color.PRESETS.BLUE:copy(), Color.PRESETS.RED:copy(), [0] = Color.PRESETS.GREEN:copy() }
+		self.debugBitVectorMapTipCollisions:createWithCustomFunc(function(instance, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+			local centerX = (startWorldX + widthWorldX + heightWorldX) / 3
+			local centerZ = (startWorldZ + widthWorldZ + heightWorldZ) / 3
+			local terrainSize = g_currentMission.terrainSize
+			local localX = math.floor(0.5 + tipCollisionMapSize * (centerX + terrainSize * 0.5) / terrainSize)
+			local localZ = math.floor(0.5 + tipCollisionMapSize * (centerZ + terrainSize * 0.5) / terrainSize)
+			local value = getBitVectorMapPoint(self.tipCollisionMap, localX, localZ, 0, 2)
+			return value
 		end)
 	end
 	if self.placementCollisionMap ~= nil then
-		local v_u_153_ = getBitVectorMapSize(self.placementCollisionMap)
-		local v154_ = g_currentMission.terrainSize / v_u_153_
-		self.debugBitVectorMapPlacementCollisions = DebugBitVectorMap.newSimple(10, v154_, true, 0.2)
-		self.debugBitVectorMapPlacementCollisions.valueToColor = {
-			[0] = Color.PRESETS.GREEN:copy(),
-			[1] = Color.PRESETS.RED:copy()
-		}
-		self.debugBitVectorMapPlacementCollisions:createWithCustomFunc(function(_, p155_, p156_, p157_, p158_, p159_, p160_)
-			-- upvalues: (copy) v_u_153_, (copy) self
-			local v161_ = (p155_ + p157_ + p159_) / 3
-			local v162_ = (p156_ + p158_ + p160_) / 3
-			local v163_ = g_currentMission.terrainSize
-			local v164_ = 0.5 + v_u_153_ * (v161_ + v163_ * 0.5) / v163_
-			local v165_ = math.floor(v164_)
-			local v166_ = 0.5 + v_u_153_ * (v162_ + v163_ * 0.5) / v163_
-			local v167_ = math.floor(v166_)
-			return getBitVectorMapPoint(self.placementCollisionMap, v165_, v167_, 0, 1)
+		local placementCollisionMapSize = getBitVectorMapSize(self.placementCollisionMap)
+		local placementCellsize = g_currentMission.terrainSize / placementCollisionMapSize
+		self.debugBitVectorMapPlacementCollisions = DebugBitVectorMap.newSimple(10, placementCellsize, true, 0.2)
+		self.debugBitVectorMapPlacementCollisions.valueToColor = { Color.PRESETS.RED:copy(), [0] = Color.PRESETS.GREEN:copy() }
+		self.debugBitVectorMapPlacementCollisions:createWithCustomFunc(function(instance, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+			local centerX = (startWorldX + widthWorldX + heightWorldX) / 3
+			local centerZ = (startWorldZ + widthWorldZ + heightWorldZ) / 3
+			local terrainSize = g_currentMission.terrainSize
+			local localX = math.floor(0.5 + placementCollisionMapSize * (centerX + terrainSize * 0.5) / terrainSize)
+			local localZ = math.floor(0.5 + placementCollisionMapSize * (centerZ + terrainSize * 0.5) / terrainSize)
+			local value = getBitVectorMapPoint(self.placementCollisionMap, localX, localZ, 0, 1)
+			return value
 		end)
 	end
 end
-
 function DensityMapHeightManager:getIsValid()
 	return self.terrainDetailHeightUpdater ~= nil
 end
-
 function DensityMapHeightManager:getTerrainDetailHeightUpdater()
 	return self.terrainDetailHeightUpdater
 end
-
--- Local values: heightType
 function DensityMapHeightManager:getMinValidLiterValue(fillTypeIndex)
-	local v172_ = self:getDensityMapHeightTypeByFillTypeIndex(fillTypeIndex)
-	return v172_ == nil and 0 or self.minValidLiterValue / v172_.fillToGroundScale
+	local heightType = self:getDensityMapHeightTypeByFillTypeIndex(fillTypeIndex)
+	if heightType == nil then
+		return 0
+	else
+		return self.minValidLiterValue / heightType.fillToGroundScale
+	end
 end
-
--- Local values: heightType, literPerPixel
 function DensityMapHeightManager:getMinValidLiterValuePerSqm(fillTypeIndex)
-	local v175_ = self:getDensityMapHeightTypeByFillTypeIndex(fillTypeIndex)
-	return v175_ == nil and 0 or self.minValidLiterValue / v175_.fillToGroundScale / (self.densityToWorldMap * self.densityToWorldMap)
+	local heightType = self:getDensityMapHeightTypeByFillTypeIndex(fillTypeIndex)
+	if heightType == nil then
+		return 0
+	else
+		local literPerPixel = self.minValidLiterValue / heightType.fillToGroundScale
+		return literPerPixel / (self.densityToWorldMap * self.densityToWorldMap)
+	end
 end
-
--- Local values: num, terrainHalfSize, areaIndex, loopIndex, zi, xi, minX, minZ
 function DensityMapHeightManager:update(dt)
 	if self.terrainDetailHeightUpdater == nil then
 		return
 	end
-	local v177_ = g_currentMission.terrainSize * 0.5
-	local v178_ = 0
-	for v179_, v180_ in pairs(self.pendingCollisionRecalculateAreas) do
-		if v180_ <= g_updateLoopIndex then
-			self.pendingCollisionRecalculateAreas[v179_] = nil
-			local v181_ = v179_ / self.numCollisionRecalculateAreasPerSide
-			local v182_ = math.floor(v181_)
-			local v183_ = (v179_ - v182_ * self.numCollisionRecalculateAreasPerSide) * self.collisionRecalculateAreaWorldSize - v177_
-			local v184_ = v182_ * self.collisionRecalculateAreaWorldSize - v177_
-			self:updateCollisionMap(v183_, v184_, v183_ + self.collisionRecalculateAreaWorldSize, v184_ + self.collisionRecalculateAreaWorldSize, false)
-			v178_ = v178_ + 1
-			if v178_ > 6 then
-				break
+	local num = 0
+	local terrainHalfSize = g_currentMission.terrainSize * 0.5
+	for areaIndex, loopIndex in pairs(self.pendingCollisionRecalculateAreas) do
+		if loopIndex <= g_updateLoopIndex then
+			self.pendingCollisionRecalculateAreas[areaIndex] = nil
+			local zi = math.floor(areaIndex / self.numCollisionRecalculateAreasPerSide)
+			local xi = areaIndex - zi * self.numCollisionRecalculateAreasPerSide
+			local minX = xi * self.collisionRecalculateAreaWorldSize - terrainHalfSize
+			local minZ = zi * self.collisionRecalculateAreaWorldSize - terrainHalfSize
+			self:updateCollisionMap(minX, minZ, minX + self.collisionRecalculateAreaWorldSize, minZ + self.collisionRecalculateAreaWorldSize, false)
+			num = num + 1
+			if not (6 < num) then
+				continue
 			end
+			return
 		end
 	end
 end
-
 function DensityMapHeightManager:saveCollisionMap(directory)
 	if self.tipCollisionMap ~= nil then
 		saveBitVectorMapToFile(self.tipCollisionMap, directory .. "/" .. DensityMapHeightManager.GENERATED_TIP_COLLISION_FILENAME)
 	end
 end
-
 function DensityMapHeightManager:prepareSaveCollisionMap(directory)
 	if self.tipCollisionMap ~= nil then
 		prepareSaveBitVectorMapToFile(self.tipCollisionMap, directory .. "/" .. DensityMapHeightManager.GENERATED_TIP_COLLISION_FILENAME)
 	end
 end
-
 function DensityMapHeightManager:savePreparedCollisionMap(callback, callbackObject)
 	if self.tipCollisionMap ~= nil then
 		savePreparedBitVectorMapToFile(self.tipCollisionMap, callback, callbackObject)
 	end
 end
-
 function DensityMapHeightManager:savePlacementCollisionMap(directory)
 	if self.placementCollisionMap ~= nil then
 		saveBitVectorMapToFile(self.placementCollisionMap, directory .. "/" .. DensityMapHeightManager.GENERATED_PLACEMENT_COLLISION_FILENAME)
 	end
 end
-
 function DensityMapHeightManager:prepareSavePlacementCollisionMap(directory)
 	if self.placementCollisionMap ~= nil then
 		prepareSaveBitVectorMapToFile(self.placementCollisionMap, directory .. "/" .. DensityMapHeightManager.GENERATED_PLACEMENT_COLLISION_FILENAME)
 	end
 end
-
 function DensityMapHeightManager:savePreparedPlacementCollisionMap(callback, callbackObject)
 	if self.placementCollisionMap ~= nil then
 		savePreparedBitVectorMapToFile(self.placementCollisionMap, callback, callbackObject)
 	end
 end
-
--- Local values: terrainHalfSize, minXi, minZi, maxXi, maxZi, zi, xi, areaIndex, frameOffset
 function DensityMapHeightManager:setCollisionMapAreaDirty(minX, minZ, maxX, maxZ, delayed)
-	local v205_ = g_currentMission.terrainSize * 0.5
-	local v206_ = (minX + v205_) / self.collisionRecalculateAreaWorldSize
-	local v207_ = math.floor(v206_)
-	local v208_ = (minZ + v205_) / self.collisionRecalculateAreaWorldSize
-	local v209_ = math.floor(v208_)
-	local v210_ = (maxX + v205_) / self.collisionRecalculateAreaWorldSize
-	local v211_ = math.ceil(v210_)
-	local v212_ = (maxZ + v205_) / self.collisionRecalculateAreaWorldSize
-	for v213_ = v209_, math.ceil(v212_) do
-		for v214_ = v207_, v211_ do
-			local v215_ = v213_ * self.numCollisionRecalculateAreasPerSide + v214_
-			self.pendingCollisionRecalculateAreas[v215_] = g_updateLoopIndex + (delayed and 2 or 0)
+	local terrainHalfSize = g_currentMission.terrainSize * 0.5
+	local minXi = math.floor((minX + terrainHalfSize) / self.collisionRecalculateAreaWorldSize)
+	local minZi = math.floor((minZ + terrainHalfSize) / self.collisionRecalculateAreaWorldSize)
+	local maxXi = math.ceil((maxX + terrainHalfSize) / self.collisionRecalculateAreaWorldSize)
+	local maxZi = math.ceil((maxZ + terrainHalfSize) / self.collisionRecalculateAreaWorldSize)
+	for zi = minZi, maxZi do
+		for xi = minXi, maxXi do
+			local areaIndex = zi * self.numCollisionRecalculateAreasPerSide + xi
+			local frameOffset = 0
+			if delayed then
+				frameOffset = 2
+			end
+			self.pendingCollisionRecalculateAreas[areaIndex] = g_updateLoopIndex + frameOffset
 		end
 	end
 end
-
--- Local values: terrainHalfSize
 function DensityMapHeightManager:updateCollisionMap(minX, minZ, maxX, maxZ, synchronous)
 	if self.tipCollisionMap ~= nil or self.placementCollisionMap ~= nil then
-		local v222_ = g_currentMission.terrainSize * 0.5
-		local v223_ = -v222_
-		local v224_ = math.clamp(minX, v223_, v222_)
-		local v225_ = -v222_
-		local v226_ = math.clamp(minZ, v225_, v222_)
-		local v227_ = -v222_
-		local v228_ = math.clamp(maxX, v227_, v222_)
-		local v229_ = -v222_
-		local v230_ = math.clamp(maxZ, v229_, v222_)
-		local v231_ = synchronous == nil and true or synchronous
+		local terrainHalfSize = g_currentMission.terrainSize * 0.5
+		minX = math.clamp(minX, -terrainHalfSize, terrainHalfSize)
+		minZ = math.clamp(minZ, -terrainHalfSize, terrainHalfSize)
+		maxX = math.clamp(maxX, -terrainHalfSize, terrainHalfSize)
+		maxZ = math.clamp(maxZ, -terrainHalfSize, terrainHalfSize)
+		if synchronous == nil then
+			synchronous = true
+		end
 		if self.tipCollisionMap ~= nil then
-			updateTerrainCollisionMap(self.tipCollisionMap, g_terrainNode, "tipCollision", 0, self.tipCollisionMask, v224_, v226_, v228_, v230_, v231_)
+			updateTerrainCollisionMap(self.tipCollisionMap, g_terrainNode, "tipCollision", 0, self.tipCollisionMask, minX, minZ, maxX, maxZ, synchronous)
 		end
 		if self.placementCollisionMap ~= nil then
-			updatePlacementCollisionMap(self.placementCollisionMap, g_terrainNode, "placementCollision", 0, self.placementCollisionMask, v224_, v226_, v228_, v230_, v231_)
+			updatePlacementCollisionMap(self.placementCollisionMap, g_terrainNode, "placementCollision", 0, self.placementCollisionMask, minX, minZ, maxX, maxZ, synchronous)
 		end
 	end
 end
-local v_u_232_ = nil
-local v_u_233_ = nil
-local function v241_(p234_, p235_, p236_, p237_, p238_, p239_, p240_)
-	-- upvalues: (ref) v_u_232_, (ref) v_u_233_
-	if p234_.placementCollisionMap == nil then
+local getIsPlacementAreaBlocked_modifier = nil
+local getIsPlacementAreaBlocked_filter = nil
+function DensityMapHeightManager:getIsPlacementAreaBlocked(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+	if self.placementCollisionMap == nil then
 		return false
+	else
+		if getIsPlacementAreaBlocked_modifier == nil then
+			getIsPlacementAreaBlocked_modifier = DensityMapModifier.new(self.placementCollisionMap, 0, 1, g_terrainNode)
+			getIsPlacementAreaBlocked_filter = DensityMapFilter.new(self.placementCollisionMap, 0, 1)
+		end
+		heightWorldX = heightWorldX or startWorldX + 0.05
+		heightWorldZ = heightWorldZ or startWorldZ
+		getIsPlacementAreaBlocked_modifier:setParallelogramWorldCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
+		getIsPlacementAreaBlocked_filter:setValueCompareParams(DensityValueCompareType.EQUAL, 1)
+		local blockedPixels = getIsPlacementAreaBlocked_modifier:executeGet(getIsPlacementAreaBlocked_filter)
+		return 0 < blockedPixels
 	end
-	if v_u_232_ == nil then
-		v_u_232_ = DensityMapModifier.new(p234_.placementCollisionMap, 0, 1, g_terrainNode)
-		v_u_233_ = DensityMapFilter.new(p234_.placementCollisionMap, 0, 1)
-	end
-	v_u_232_:setParallelogramWorldCoords(p235_, p236_, p237_, p238_, p239_ or p235_ + 0.05, p240_ or p236_, DensityCoordType.POINT_POINT_POINT)
-	v_u_233_:setValueCompareParams(DensityValueCompareType.EQUAL, 1)
-	return v_u_232_:executeGet(v_u_233_) > 0
 end
-DensityMapHeightManager.getIsPlacementAreaBlocked = v241_
-
--- Local values: _, area
 function DensityMapHeightManager:getIsInFreeAccessArea(sx, sz, ex, ez)
-	for _, v247_ in ipairs(self.freeAccessAreas) do
-		if MathUtil.vector2Length(v247_.x - sx, v247_.z - sz) <= v247_.radius and MathUtil.vector2Length(v247_.x - ex, v247_.z - ez) <= v247_.radius then
+	for _, area in ipairs(self.freeAccessAreas) do
+		if MathUtil.vector2Length(area.x - sx, area.z - sz) <= area.radius and MathUtil.vector2Length(area.x - ex, area.z - ez) <= area.radius then
 			return true
 		end
 	end
 	return false
 end
-
--- Local values: usage, fillTypeIndex, availableFillTypes, availableFillTypes, mission, player, controlledVehicle, x, y, z, dirX, _, dirZ, playerYaw, amountTipped, initialOffset, i, offset, lx, ly, lz, height
 function DensityMapHeightManager:consoleCommandTipAnywhereAdd(fillTypeName, amount, length, rows, spacing)
-	local v254_ = "Usage: gsTipAnywhereAdd fillTypeName amount [length] [rows] [spacing]"
+	local usage = "Usage: gsTipAnywhereAdd fillTypeName amount [length] [rows] [spacing]"
 	if fillTypeName == nil then
 		printError("Error: No filltype given")
-		return v254_
+		return usage
 	end
-	local v255_ = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
-	if v255_ == nil then
-		local v256_ = g_fillTypeManager:getFillTypeNamesByIndices(self.fillTypeIndexToHeightType)
-		printError(string.format("Error: Invalid fillType \'%s\'", fillTypeName))
-		return string.format("Available fillTypes: %s", table.concat(v256_, ", "))
+	local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
+	if fillTypeIndex == nil then
+		local availableFillTypes = g_fillTypeManager:getFillTypeNamesByIndices(self.fillTypeIndexToHeightType)
+		printError(string.format("Error: Invalid fillType '%s'", fillTypeName))
+		return string.format("Available fillTypes: %s", table.concat(availableFillTypes, ", "))
 	end
-	if self.fillTypeIndexToHeightType[v255_] == nil then
-		local v257_ = g_fillTypeManager:getFillTypeNamesByIndices(self.fillTypeIndexToHeightType)
-		printError(string.format("Error: fillType \'%s\' not supported by tip anywhere", fillTypeName))
-		return string.format("Available fillTypes: %s", table.concat(v257_, ", "))
+	if self.fillTypeIndexToHeightType[fillTypeIndex] == nil then
+		local availableFillTypes = g_fillTypeManager:getFillTypeNamesByIndices(self.fillTypeIndexToHeightType)
+		printError(string.format("Error: fillType '%s' not supported by tip anywhere", fillTypeName))
+		return string.format("Available fillTypes: %s", table.concat(availableFillTypes, ", "))
 	end
-	local v258_ = tonumber(amount)
-	if v258_ == nil then
+	amount = tonumber(amount)
+	if amount == nil then
 		printError("Error: no amount given")
-		return v254_
-	end
-	local v259_ = Utils.getNoNil(tonumber(length), 1)
-	local v260_ = Utils.getNoNil(tonumber(rows), 1)
-	local v261_ = Utils.getNoNil(tonumber(spacing), 3)
-	local v262_ = g_currentMission
-	local v263_ = g_localPlayer
-	local v264_ = v263_:getCurrentVehicle()
-	local v265_ = 0
-	local v266_ = 0
-	local v267_ = 0
-	local v268_ = 1
-	local v269_ = 0
-	if v263_ == nil or not v263_:getIsControlled() then
-		if v264_ ~= nil then
-			v265_, v266_, v267_ = getWorldTranslation(v264_.rootNode)
-			local v270_
-			v268_, v270_, v269_ = localDirectionToWorld(v264_.rootNode, 0, 0, 1)
+		return usage
+	else
+		length = Utils.getNoNil(tonumber(length), 1)
+		rows = Utils.getNoNil(tonumber(rows), 1)
+		spacing = Utils.getNoNil(tonumber(spacing), 3)
+		local mission = g_currentMission
+		local player = g_localPlayer
+		local controlledVehicle = player:getCurrentVehicle()
+		local x = 0
+		local y = 0
+		local z = 0
+		local dirX = 1
+		local _ = 0
+		local dirZ = 0
+		if player ~= nil then
+			if player:getIsControlled() then
+				if player.rootNode ~= nil and player.rootNode ~= 0 then
+					x, y, z = getWorldTranslation(player.rootNode)
+					local playerYaw = player.mover:getMovementYaw() + 1.5707963267948966
+					dirX = -math.cos(playerYaw)
+					_ = 0
+					dirZ = math.sin(playerYaw)
+				end
+			elseif controlledVehicle ~= nil then
+				x, y, z = getWorldTranslation(controlledVehicle.rootNode)
+				dirX, _, dirZ = localDirectionToWorld(controlledVehicle.rootNode, 0, 0, 1)
+			end
 		end
-	elseif v263_.rootNode ~= nil and v263_.rootNode ~= 0 then
-		v265_, v266_, v267_ = getWorldTranslation(v263_.rootNode)
-		local v271_ = v263_.mover:getMovementYaw() + 1.5707963267948966
-		v268_ = -math.cos(v271_)
-		v269_ = math.sin(v271_)
+		local amountTipped = 0
+		local initialOffset = (rows - 1) * spacing * -0.5
+		for i = 0, rows - 1 do
+			local offset = initialOffset + i * spacing
+			local lx = x + offset * dirZ
+			local ly = y
+			local lz = z + offset * -dirX
+			amountTipped = amountTipped + DensityMapHeightUtil.tipToGroundAroundLine(controlledVehicle, amount, fillTypeIndex, lx, ly, lz, lx + length * dirX, ly, lz + length * dirZ, 10, 40, nil, nil, nil, nil)
+		end
+		if mission.controlPlayer and player ~= nil then
+			local height = DensityMapHeightUtil.getHeightAtWorldPos(x, y, z)
+			player.mover:teleportTo(x, height, z)
+		end
+		return string.format("Tipped %dl of %s", amountTipped, fillTypeName)
 	end
-	local v272_ = (v260_ - 1) * v261_ * -0.5
-	local v273_ = 0
-	for v274_ = 0, v260_ - 1 do
-		local v275_ = v272_ + v274_ * v261_
-		local v276_ = v265_ + v275_ * v269_
-		local v277_ = v267_ + v275_ * -v268_
-		v273_ = v273_ + DensityMapHeightUtil.tipToGroundAroundLine(v264_, v258_, v255_, v276_, v266_, v277_, v276_ + v259_ * v268_, v266_, v277_ + v259_ * v269_, 10, 40, nil, nil, nil, nil)
-	end
-	if v262_.controlPlayer and v263_ ~= nil then
-		local v278_ = DensityMapHeightUtil.getHeightAtWorldPos(v265_, v266_, v267_)
-		v263_.mover:teleportTo(v265_, v278_, v267_)
-	end
-	return string.format("Tipped %dl of %s", v273_, fillTypeName)
 end
-
--- Local values: player, controlledVehicle, x, y, z, dirX, _, dirZ, playerYaw, amounts, sideOffsets, heapSpacing, heightTypeIndex, heightType, amountIndex, amount, sideOffset, x1, z1, x2, z2, debugString, yRot, debugText
 function DensityMapHeightManager:consoleCommandTipAnywhereAddAll()
-	local v280_ = g_localPlayer
-	local v281_ = v280_:getCurrentVehicle()
-	local v282_ = 0
-	local v283_ = 0
-	local v284_ = 0
-	local v285_ = 1
-	local v286_ = 0
-	if v280_ == nil or not v280_:getIsControlled() then
-		if v281_ ~= nil then
-			v282_, v283_, v284_ = getWorldTranslation(v281_.rootNode)
-			local v287_
-			v285_, v287_, v286_ = localDirectionToWorld(v281_.rootNode, 0, 0, 1)
+	local player = g_localPlayer
+	local controlledVehicle = player:getCurrentVehicle()
+	local x = 0
+	local y = 0
+	local z = 0
+	local dirX = 1
+	local _ = 0
+	local dirZ = 0
+	if player ~= nil then
+		if player:getIsControlled() then
+			if player.rootNode ~= nil and player.rootNode ~= 0 then
+				x, y, z = getWorldTranslation(player.rootNode)
+				local playerYaw = player.mover:getMovementYaw() + 1.5707963267948966
+				dirX = -math.cos(playerYaw)
+				_ = 0
+				dirZ = math.sin(playerYaw)
+			end
+		elseif controlledVehicle ~= nil then
+			x, y, z = getWorldTranslation(controlledVehicle.rootNode)
+			dirX, _, dirZ = localDirectionToWorld(controlledVehicle.rootNode, 0, 0, 1)
 		end
-	elseif v280_.rootNode ~= nil and v280_.rootNode ~= 0 then
-		v282_, v283_, v284_ = getWorldTranslation(v280_.rootNode)
-		local v288_ = v280_.mover:getMovementYaw() + 1.5707963267948966
-		v285_ = -math.cos(v288_)
-		v286_ = math.sin(v288_)
 	end
-	local v289_ = v282_ + v285_ * 10
-	local v290_ = v284_ + v286_ * 10
-	local v291_ = {
-		0,
-		100,
-		1000,
-		5000,
-		10000,
-		999999
-	}
-	local v292_ = {
-		-4,
-		-1.5,
-		2,
-		8,
-		16,
-		26
-	}
-	for v293_ = 1, #self.heightTypes do
-		local v294_ = self.heightTypes[v293_]
-		for v295_, v296_ in ipairs(v291_) do
-			local v297_ = v292_[v295_]
-			local v298_ = v289_ + v285_ * v293_ * 10
-			local v299_ = v290_ + v286_ * v293_ * 10
-			local v300_ = v298_ + v286_ * v297_
-			local v301_ = v299_ - v285_ * v297_
-			local v302_ = v300_ + v285_ * 1
-			local v303_ = v301_ + v286_ * 1
-			local v304_ = g_densityMapHeightManager:getMinValidLiterValue(v294_.fillTypeIndex)
-			local v305_ = math.max(v304_, v296_)
-			DensityMapHeightUtil.tipToGroundAroundLine(v281_, v305_, v294_.fillTypeIndex, v300_, v283_, v301_, v302_, v283_, v303_, 10, 40, nil, nil, nil, nil)
-			local v306_ = string.format("%s (%.2f)", g_fillTypeManager:getFillTypeNameByIndex(v294_.fillTypeIndex), v305_)
-			local v307_ = MathUtil.getYRotationFromDirection(-v285_, -v286_)
-			local v308_ = DebugText3D.new():createWithWorldPos(v300_ - v285_ * 2, v283_ + 2, v301_ - v286_ * 2, 0, v307_, 0, v306_, 0.2)
-			g_debugManager:addElement(v308_, nil, nil, math.huge)
+	local amounts = { 0, 100, 1000, 5000, 10000, 999999 }
+	local sideOffsets = { -4, -1.5, 2, 8, 16, 26 }
+	local heapSpacing = 10
+	x = x + dirX * 10
+	z = z + dirZ * 10
+	for heightTypeIndex = 1, #self.heightTypes do
+		local heightType = self.heightTypes[heightTypeIndex]
+		for amountIndex, amount in ipairs(amounts) do
+			local sideOffset = sideOffsets[amountIndex]
+			local x1 = x + dirX * heightTypeIndex * 10
+			local z1 = z + dirZ * heightTypeIndex * 10
+			x1 = x1 + dirZ * sideOffset
+			z1 = z1 - dirX * sideOffset
+			local x2 = x1 + dirX * 1
+			local z2 = z1 + dirZ * 1
+			local amount = math.max(g_densityMapHeightManager:getMinValidLiterValue(heightType.fillTypeIndex), amount)
+			DensityMapHeightUtil.tipToGroundAroundLine(controlledVehicle, amount, heightType.fillTypeIndex, x1, y, z1, x2, y, z2, 10, 40, nil, nil, nil, nil)
+			local debugString = string.format("%s (%.2f)", g_fillTypeManager:getFillTypeNameByIndex(heightType.fillTypeIndex), amount)
+			local yRot = MathUtil.getYRotationFromDirection(-dirX, -dirZ)
+			local debugText = DebugText3D.new():createWithWorldPos(x1 - dirX * 2, y + 2, z1 - dirZ * 2, 0, yRot, 0, debugString, 0.2)
+			g_debugManager:addElement(debugText, nil, nil, math.huge)
 		end
 	end
 end
-
--- Local values: usage, size, mission, player, controlledVehicle, terrainSizeHalf, x0, z0, x1, z1, x2, z2, node, sizeHalf, _
 function DensityMapHeightManager:consoleCommandTipAnywhereClear(sizeStr)
-	local v310_ = "Usage: gsTipAnywhereClear sizeToClearMeters"
+	local usage = "Usage: gsTipAnywhereClear sizeToClearMeters"
 	if sizeStr == nil then
 		printError("Error: Missing sizeToClearMeters parameter")
-		return v310_
+		return usage
 	end
-	local v311_ = tonumber(sizeStr)
-	if v311_ == nil then
+	local size = tonumber(sizeStr)
+	if size == nil then
 		printError(string.format("Error: invalid size %q, provide a number", sizeStr))
-		return v310_
-	end
-	local v312_ = g_currentMission
-	local v313_ = g_localPlayer
-	local v314_ = v313_:getCurrentVehicle()
-	local v315_ = v312_.terrainSize * 0.5
-	local v316_ = -v315_
-	local v317_ = -v315_
-	local v318_ = -v315_
-	local v319_ = nil
-	if v313_ == nil or not v313_:getIsControlled() then
-		if v314_ ~= nil then
-			v319_ = v314_.rootNode
-		end
-	elseif v313_ ~= nil and (v313_.rootNode ~= nil and v313_.rootNode ~= 0) then
-		v319_ = v313_.rootNode
-	end
-	local v320_, v321_
-	if v319_ == nil then
-		v320_ = v315_
-		v321_ = v320_
-		local v322_ = v320_
-		v320_ = v321_
-		v322_ = v321_
+		return usage
 	else
-		local v323_ = v311_ * 0.5
-		local v324_
-		v316_, v324_, v315_ = localToWorld(v319_, -v323_, 0, v323_)
-		local v325_
-		v321_, v325_, v320_ = localToWorld(v319_, v323_, 0, v323_)
-		local v326_
-		v317_, v326_, v318_ = localToWorld(v319_, -v323_, 0, -v323_)
+		local mission = g_currentMission
+		local player = g_localPlayer
+		local controlledVehicle = player:getCurrentVehicle()
+		local terrainSizeHalf = mission.terrainSize * 0.5
+		local x0 = -terrainSizeHalf
+		local z0 = terrainSizeHalf
+		local x1 = terrainSizeHalf
+		local z1 = terrainSizeHalf
+		local x2 = -terrainSizeHalf
+		local z2 = -terrainSizeHalf
+		local node = nil
+		if player ~= nil then
+			if player:getIsControlled() then
+				if player ~= nil and (player.rootNode ~= nil and player.rootNode ~= 0) then
+					node = player.rootNode
+				end
+			elseif controlledVehicle ~= nil then
+				node = controlledVehicle.rootNode
+			end
+		end
+		if node ~= nil then
+			local sizeHalf = size * 0.5
+			local _ = nil
+			x0, _, z0 = localToWorld(node, -sizeHalf, 0, sizeHalf)
+			x1, _, z1 = localToWorld(node, sizeHalf, 0, sizeHalf)
+			x2, _, z2 = localToWorld(node, -sizeHalf, 0, -sizeHalf)
+		end
+		DensityMapHeightUtil.clearArea(x0, z0, x1, z1, x2, z2)
+		return "Cleared area (" .. size .. "m)"
 	end
-	DensityMapHeightUtil.clearArea(v316_, v315_, v321_, v320_, v317_, v318_)
-	return "Cleared area (" .. v311_ .. "m)"
 end
-
 function DensityMapHeightManager:consoleCommandToggleDebug()
 	DensityMapHeightManager.DEBUG_ENABLED = not DensityMapHeightManager.DEBUG_ENABLED
 	g_debugManager:setGroupVisibility(DensityMapHeightManager.DEBUG_GROUP_ID, DensityMapHeightManager.DEBUG_ENABLED)
-	local v327_ = string.format
-	local v328_ = DensityMapHeightManager.DEBUG_ENABLED
-	return v327_("DensityMapHeightManager.DEBUG_ENABLED = %s", (tostring(v328_)))
+	return string.format("DensityMapHeightManager.DEBUG_ENABLED = %s", tostring(DensityMapHeightManager.DEBUG_ENABLED))
 end
-
 function DensityMapHeightManager:consoleCommandShowTipCollisions(active)
-	if StartParams.getIsSet("scriptDebug") then
+	if not StartParams.getIsSet("scriptDebug") then
+		printError("Error: Game must be started with '-scriptDebug' parameter")
+		return
+	else
 		DensityMapHeightManager.DEBUG_TIP_COLLISIONS = Utils.getNoNil(active, not DensityMapHeightManager.DEBUG_TIP_COLLISIONS)
 		if DensityMapHeightManager.DEBUG_TIP_COLLISIONS then
 			self.debugBitVectorMapTipCollisionsId = g_debugManager:addElement(self.debugBitVectorMapTipCollisions)
@@ -890,15 +798,14 @@ function DensityMapHeightManager:consoleCommandShowTipCollisions(active)
 			g_debugManager:removeElementById(self.debugBitVectorMapTipCollisionsId)
 			self.debugBitVectorMapTipCollisionsId = nil
 		end
-		local v331_ = string.format
-		local v332_ = DensityMapHeightManager.DEBUG_TIP_COLLISIONS
-		return v331_("DensityMapHeightManager.DEBUG_TIP_COLLISIONS = %s\nEnable debug view (F5) to render collision information", (tostring(v332_)))
+		return string.format("DensityMapHeightManager.DEBUG_TIP_COLLISIONS = %s\nEnable debug view (F5) to render collision information", tostring(DensityMapHeightManager.DEBUG_TIP_COLLISIONS))
 	end
-	printError("Error: Game must be started with \'-scriptDebug\' parameter")
 end
-
 function DensityMapHeightManager:consoleCommandShowPlacementCollisions(active)
-	if StartParams.getIsSet("scriptDebug") then
+	if not StartParams.getIsSet("scriptDebug") then
+		printError("Error: Game must be started with '-scriptDebug' parameter")
+		return
+	else
 		DensityMapHeightManager.DEBUG_PLACEMENT_COLLISIONS = Utils.getNoNil(active, not DensityMapHeightManager.DEBUG_PLACEMENT_COLLISIONS)
 		if DensityMapHeightManager.DEBUG_PLACEMENT_COLLISIONS then
 			self.debugBitVectorMapPlacementCollisionsId = g_debugManager:addElement(self.debugBitVectorMapPlacementCollisions)
@@ -906,20 +813,14 @@ function DensityMapHeightManager:consoleCommandShowPlacementCollisions(active)
 			g_debugManager:removeElementById(self.debugBitVectorMapPlacementCollisionsId)
 			self.debugBitVectorMapPlacementCollisionsId = nil
 		end
-		local v335_ = string.format
-		local v336_ = DensityMapHeightManager.DEBUG_PLACEMENT_COLLISIONS
-		return v335_("DensityMapHeightManager.DEBUG_PLACEMENT_COLLISIONS = %s\nEnable debug view (F5) to render collision information", (tostring(v336_)))
+		return string.format("DensityMapHeightManager.DEBUG_PLACEMENT_COLLISIONS = %s\nEnable debug view (F5) to render collision information", tostring(DensityMapHeightManager.DEBUG_PLACEMENT_COLLISIONS))
 	end
-	printError("Error: Game must be started with \'-scriptDebug\' parameter")
 end
-
--- Local values: x, _, z, halfWidth
 function DensityMapHeightManager:consoleCommandUpdateTipCollisions(width)
-	local v339_, _, v340_ = getWorldTranslation(g_cameraManager:getActiveCamera())
-	local v341_ = tonumber(width) or 20
-	local v342_ = math.clamp(v341_, 2, 1000)
-	local v343_ = v342_ / 2
-	self:updateCollisionMap(v339_ - v343_, v340_ - v343_, v339_ + v343_, v340_ + v343_)
-	return string.format("Updated tipCollision in a %ix%i area around the camera. Add a number as a parameter to update a custom area", v342_, v342_)
+	local x, _, z = getWorldTranslation(g_cameraManager:getActiveCamera())
+	width = math.clamp(tonumber(width) or 20, 2, 1000)
+	local halfWidth = width / 2
+	self:updateCollisionMap(x - halfWidth, z - halfWidth, x + halfWidth, z + halfWidth)
+	return string.format("Updated tipCollision in a %ix%i area around the camera. Add a number as a parameter to update a custom area", width, width)
 end
 g_densityMapHeightManager = DensityMapHeightManager.new()

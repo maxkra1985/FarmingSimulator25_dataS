@@ -1,122 +1,87 @@
--- Local values: MixerWagonHUDExtension_mt
 MixerWagonHUDExtension = {}
 local MixerWagonHUDExtension_mt = Class(MixerWagonHUDExtension)
-
--- Upvalues: MixerWagonHUDExtension_mt
--- Local values: self, r, g, b, a, _, mixerWagonFillType, firstFilltype, fillType, icon, status
 function MixerWagonHUDExtension.new(vehicle, customMt)
-	-- upvalues: (copy) MixerWagonHUDExtension_mt
-	local v4_ = customMt or MixerWagonHUDExtension_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.priority = GS_PRIO_HIGH
-	local v6_ = HUD.COLOR.BACKGROUND
-	local v7_, v8_, v9_, v10_ = unpack(v6_)
-	v5_.backgroundTop = g_overlayManager:createOverlay("gui.hudExtension_top", 0, 0, 0, 0)
-	v5_.backgroundTop:setColor(v7_, v8_, v9_, v10_)
-	v5_.backgroundScale = g_overlayManager:createOverlay("gui.hudExtension_middle", 0, 0, 0, 0)
-	v5_.backgroundScale:setColor(v7_, v8_, v9_, v10_)
-	v5_.backgroundBottom = g_overlayManager:createOverlay("gui.hudExtension_bottom", 0, 0, 0, 0)
-	v5_.backgroundBottom:setColor(v7_, v8_, v9_, v10_)
-	v5_.bar = ThreePartOverlay.new()
-	v5_.bar:setLeftPart("gui.progressbar_left", 0, 0)
-	v5_.bar:setMiddlePart("gui.progressbar_middle", 0, 0)
-	v5_.bar:setRightPart("gui.progressbar_right", 0, 0)
-	v5_.marker = g_overlayManager:createOverlay("gui.tmr_marker", 0, 0, 0, 0)
-	v5_.vehicle = vehicle
-	v5_.mixerWagon = vehicle.spec_mixerWagon
-	v5_.numFillTypes = #v5_.mixerWagon.mixerWagonFillTypes
-	v5_.fillTypeStatus = {}
-	for _, v11_ in ipairs(v5_.mixerWagon.mixerWagonFillTypes) do
-		local v12_ = next(v11_.fillTypes)
-		local v13_ = g_fillTypeManager:getFillTypeByIndex(v12_)
-		if v13_ ~= nil then
-			local v14_ = {
-				["icon"] = Overlay.new(v13_.hudOverlayFilename, 0, 0, 0, 0),
-				["fillLevel"] = 0,
-				["minPercentage"] = v11_.minPercentage,
-				["maxPercentage"] = v11_.maxPercentage
-			}
-			local v15_ = v5_.fillTypeStatus
-			table.insert(v15_, v14_)
+	local self = setmetatable({}, customMt or MixerWagonHUDExtension_mt)
+	self.priority = GS_PRIO_HIGH
+	local r, g, b, a = unpack(HUD.COLOR.BACKGROUND)
+	self.backgroundTop = g_overlayManager:createOverlay("gui.hudExtension_top", 0, 0, 0, 0)
+	self.backgroundTop:setColor(r, g, b, a)
+	self.backgroundScale = g_overlayManager:createOverlay("gui.hudExtension_middle", 0, 0, 0, 0)
+	self.backgroundScale:setColor(r, g, b, a)
+	self.backgroundBottom = g_overlayManager:createOverlay("gui.hudExtension_bottom", 0, 0, 0, 0)
+	self.backgroundBottom:setColor(r, g, b, a)
+	self.bar = ThreePartOverlay.new()
+	self.bar:setLeftPart("gui.progressbar_left", 0, 0)
+	self.bar:setMiddlePart("gui.progressbar_middle", 0, 0)
+	self.bar:setRightPart("gui.progressbar_right", 0, 0)
+	self.marker = g_overlayManager:createOverlay("gui.tmr_marker", 0, 0, 0, 0)
+	self.vehicle = vehicle
+	self.mixerWagon = vehicle.spec_mixerWagon
+	self.numFillTypes = #self.mixerWagon.mixerWagonFillTypes
+	self.fillTypeStatus = {}
+	for _, mixerWagonFillType in ipairs(self.mixerWagon.mixerWagonFillTypes) do
+		local firstFilltype = next(mixerWagonFillType.fillTypes)
+		local fillType = g_fillTypeManager:getFillTypeByIndex(firstFilltype)
+		if fillType == nil then
+			continue
 		end
+		local icon = Overlay.new(fillType.hudOverlayFilename, 0, 0, 0, 0)
+		local status = { icon = icon, fillLevel = 0, minPercentage = mixerWagonFillType.minPercentage, maxPercentage = mixerWagonFillType.maxPercentage }
+		table.insert(self.fillTypeStatus, status)
 	end
-	v5_.badMixColor = {
-		0.8069,
-		0.0097,
-		0.0097,
-		1
-	}
-	v5_.title = utf8ToUpper(string.format("%s - %s", g_i18n:getText("info_mixingRatio"), vehicle:getFullName()))
-	v5_:storeScaledValues()
-	g_messageCenter:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.UI_SCALE], v5_.storeScaledValues, v5_)
-	return v5_
+	self.badMixColor = { 0.8069, 0.0097, 0.0097, 1 }
+	self.title = utf8ToUpper(string.format("%s - %s", g_i18n:getText("info_mixingRatio"), vehicle:getFullName()))
+	self:storeScaledValues()
+	g_messageCenter:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.UI_SCALE], self.storeScaledValues, self)
+	return self
 end
-
--- Local values: _, status
 function MixerWagonHUDExtension:delete()
 	self.backgroundTop:delete()
 	self.backgroundScale:delete()
 	self.backgroundBottom:delete()
 	self.marker:delete()
 	self.bar:delete()
-	for _, v17_ in ipairs(self.fillTypeStatus) do
-		v17_.icon:delete()
+	for _, status in ipairs(self.fillTypeStatus) do
+		status.icon:delete()
 	end
 	g_messageCenter:unsubscribeAll(self)
 end
-
--- Local values: _, uiScale, width, height, barPartWidth, barPartHeight, iconWidth, iconHeight, _, status, markerWidth, markerHeight
 function MixerWagonHUDExtension:storeScaledValues()
-	local v19_ = g_gameSettings:getValue(GameSettings.SETTING.UI_SCALE)
-	local _, v20_ = getNormalizedScreenValues(0, 26 * v19_)
-	self.offsetTop = v20_
-	local _, v21_ = getNormalizedScreenValues(0, 8 * v19_)
-	self.offsetBottom = v21_
-	local _, v22_ = getNormalizedScreenValues(0, 24 * v19_)
-	self.heightPerFillType = v22_
+	local _ = nil
+	local uiScale = g_gameSettings:getValue(GameSettings.SETTING.UI_SCALE)
+	_, self.offsetTop = getNormalizedScreenValues(0, 26 * uiScale)
+	_, self.offsetBottom = getNormalizedScreenValues(0, 8 * uiScale)
+	_, self.heightPerFillType = getNormalizedScreenValues(0, 24 * uiScale)
 	self.totalHeight = self.heightPerFillType * self.numFillTypes + self.offsetTop + self.offsetBottom
-	local v23_, v24_ = getNormalizedScreenValues(330 * v19_, 6 * v19_)
-	self.backgroundTop:setDimension(v23_, v24_)
-	self.backgroundBottom:setDimension(v23_, v24_)
-	self.backgroundScale:setDimension(v23_, self.totalHeight - 2 * v24_)
-	local v25_, v26_ = getNormalizedScreenValues(14 * v19_, -19 * v19_)
-	self.titleOffsetX = v25_
-	self.titleOffsetY = v26_
-	local _, v27_ = getNormalizedScreenValues(0, 12 * v19_)
-	self.titleSize = v27_
-	local v28_, v29_ = getNormalizedScreenValues(45 * v19_, 10 * v19_)
-	self.barOffsetX = v28_
-	self.barOffsetY = v29_
-	local v30_, v31_ = getNormalizedScreenValues(3, 6)
-	local v32_, _ = getNormalizedScreenValues(235 * v19_, 0)
-	self.barMaxWidth = v32_
-	self.barPartsWidth = 2 * v30_
-	self.barPartHeight = v31_
+	local width, height = getNormalizedScreenValues(330 * uiScale, 6 * uiScale)
+	self.backgroundTop:setDimension(width, height)
+	self.backgroundBottom:setDimension(width, height)
+	self.backgroundScale:setDimension(width, self.totalHeight - 2 * height)
+	self.titleOffsetX, self.titleOffsetY = getNormalizedScreenValues(14 * uiScale, -19 * uiScale)
+	_, self.titleSize = getNormalizedScreenValues(0, 12 * uiScale)
+	self.barOffsetX, self.barOffsetY = getNormalizedScreenValues(45 * uiScale, 10 * uiScale)
+	local barPartWidth, barPartHeight = getNormalizedScreenValues(3, 6)
+	self.barMaxWidth, _ = getNormalizedScreenValues(235 * uiScale, 0)
+	self.barPartsWidth = 2 * barPartWidth
+	self.barPartHeight = barPartHeight
 	self.middlePartMaxWidth = self.barMaxWidth - self.barPartsWidth
-	self.bar:setLeftPart(nil, v30_, v31_)
-	self.bar:setMiddlePart(nil, self.middlePartMaxWidth, v31_)
-	self.bar:setRightPart(nil, v30_, v31_)
-	local v33_, v34_ = getNormalizedScreenValues(25 * v19_, 25 * v19_)
-	for _, v35_ in ipairs(self.fillTypeStatus) do
-		v35_.icon:setDimension(v33_, v34_)
+	self.bar:setLeftPart(nil, barPartWidth, barPartHeight)
+	self.bar:setMiddlePart(nil, self.middlePartMaxWidth, barPartHeight)
+	self.bar:setRightPart(nil, barPartWidth, barPartHeight)
+	local iconWidth, iconHeight = getNormalizedScreenValues(25 * uiScale, 25 * uiScale)
+	for _, status in ipairs(self.fillTypeStatus) do
+		status.icon:setDimension(iconWidth, iconHeight)
 	end
-	local v36_, v37_ = getNormalizedScreenValues(11 * v19_, 2 * v19_)
-	self.iconOffsetX = v36_
-	self.iconOffsetY = v37_
-	local v38_, v39_ = getNormalizedScreenValues(-5 * v19_, 8 * v19_)
-	self.textOffsetX = v38_
-	self.textOffsetY = v39_
-	local _, v40_ = getNormalizedScreenValues(0, 12 * v19_)
-	self.textSize = v40_
-	local v41_, v42_ = getNormalizedScreenValues(11 * v19_, 11 * v19_)
-	self.marker:setDimension(v41_, v42_)
+	self.iconOffsetX, self.iconOffsetY = getNormalizedScreenValues(11 * uiScale, 2 * uiScale)
+	self.textOffsetX, self.textOffsetY = getNormalizedScreenValues(-5 * uiScale, 8 * uiScale)
+	_, self.textSize = getNormalizedScreenValues(0, 12 * uiScale)
+	local markerWidth, markerHeight = getNormalizedScreenValues(11 * uiScale, 11 * uiScale)
+	self.marker:setDimension(markerWidth, markerHeight)
 end
-
--- Local values: barBgColor, activeColor, badMixColor, maxWidth, title, totalFillLevel, i, mixerWagonFillType, fillTypePosY, fillTypeTextPosX, _, status, icon, percentage, scale, offsetX, color, text
 function MixerWagonHUDExtension:draw(inputHelpDisplay, posX, posY)
-	local v46_ = HUD.COLOR.BACKGROUND_DARK
-	local v47_ = HUD.COLOR.ACTIVE
-	local v48_ = self.badMixColor
+	local barBgColor = HUD.COLOR.BACKGROUND_DARK
+	local activeColor = HUD.COLOR.ACTIVE
+	local badMixColor = self.badMixColor
 	self.backgroundTop:setPosition(posX, posY - self.backgroundTop.height)
 	self.backgroundScale:setPosition(posX, self.backgroundTop.y - self.backgroundScale.height)
 	self.backgroundBottom:setPosition(posX, self.backgroundScale.y - self.backgroundBottom.height)
@@ -126,50 +91,50 @@ function MixerWagonHUDExtension:draw(inputHelpDisplay, posX, posY)
 	setTextAlignment(RenderText.ALIGN_LEFT)
 	setTextColor(1, 1, 1, 1)
 	setTextBold(true)
-	local v49_ = self.backgroundTop.width - 2 * self.titleOffsetX
-	local v50_ = Utils.limitTextToWidth(self.title, self.titleSize, v49_, false, "...")
-	renderText(posX + self.titleOffsetX, posY + self.titleOffsetY, self.titleSize, v50_)
+	local maxWidth = self.backgroundTop.width - 2 * self.titleOffsetX
+	local title = Utils.limitTextToWidth(self.title, self.titleSize, maxWidth, false, "...")
+	renderText(posX + self.titleOffsetX, posY + self.titleOffsetY, self.titleSize, title)
 	setTextAlignment(RenderText.ALIGN_RIGHT)
-	local v51_ = 0
-	if self.vehicle:getFillUnitFillLevel(self.mixerWagon.fillUnitIndex) > 0 then
-		for v52_, v53_ in ipairs(self.mixerWagon.mixerWagonFillTypes) do
-			v51_ = v51_ + v53_.fillLevel
-			self.fillTypeStatus[v52_].fillLevel = v53_.fillLevel
+	local totalFillLevel = 0
+	if 0 < self.vehicle:getFillUnitFillLevel(self.mixerWagon.fillUnitIndex) then
+		for i, mixerWagonFillType in ipairs(self.mixerWagon.mixerWagonFillTypes) do
+			totalFillLevel = totalFillLevel + mixerWagonFillType.fillLevel
+			self.fillTypeStatus[i].fillLevel = mixerWagonFillType.fillLevel
 		end
 	end
-	local v54_ = posY - self.offsetTop
-	local v55_ = posX + self.backgroundTop.width + self.textOffsetX
-	for _, v56_ in ipairs(self.fillTypeStatus) do
-		v54_ = v54_ - self.heightPerFillType
-		local v57_ = v56_.icon
-		v57_:setPosition(posX + self.iconOffsetX, v54_ + self.iconOffsetY)
-		v57_:render()
+	local fillTypePosY = posY - self.offsetTop
+	local fillTypeTextPosX = posX + self.backgroundTop.width + self.textOffsetX
+	for _, status in ipairs(self.fillTypeStatus) do
+		fillTypePosY = fillTypePosY - self.heightPerFillType
+		local icon = status.icon
+		icon:setPosition(posX + self.iconOffsetX, fillTypePosY + self.iconOffsetY)
+		icon:render()
 		self.bar:setMiddlePart(nil, self.middlePartMaxWidth, nil)
-		self.bar:setColor(v46_[1], v46_[2], v46_[3], v46_[4])
-		self.bar:setPosition(posX + self.barOffsetX, v54_ + self.barOffsetY)
+		self.bar:setColor(barBgColor[1], barBgColor[2], barBgColor[3], barBgColor[4])
+		self.bar:setPosition(posX + self.barOffsetX, fillTypePosY + self.barOffsetY)
 		self.bar:render()
-		local v58_ = self.vehicle:getFillUnitFillLevel(self.mixerWagon.fillUnitIndex) <= 0 and 0 or v56_.fillLevel / v51_
-		local v59_ = self.barMaxWidth * (v56_.maxPercentage - v56_.minPercentage) - self.barPartsWidth
-		local v60_ = self.barMaxWidth * v56_.minPercentage
-		local v61_
-		if v56_.fillLevel > 0 and (self.vehicle:getFillUnitFillType(self.mixerWagon.fillUnitIndex) ~= FillType.FORAGE_MIXING or v56_.minPercentage <= v58_ and v58_ <= v56_.maxPercentage) then
-			v61_ = v47_
-		else
-			v61_ = v48_
+		local percentage = 0
+		if 0 < self.vehicle:getFillUnitFillLevel(self.mixerWagon.fillUnitIndex) then
+			percentage = status.fillLevel / totalFillLevel
 		end
-		self.bar:setColor(v61_[1], v61_[2], v61_[3], v61_[4])
-		self.bar:setMiddlePart(nil, v59_, nil)
-		self.bar:setPosition(posX + self.barOffsetX + v60_, nil)
+		local scale = self.barMaxWidth * (status.maxPercentage - status.minPercentage) - self.barPartsWidth
+		local offsetX = self.barMaxWidth * status.minPercentage
+		local color = badMixColor
+		if 0 < status.fillLevel and (self.vehicle:getFillUnitFillType(self.mixerWagon.fillUnitIndex) ~= FillType.FORAGE_MIXING or status.minPercentage <= percentage and percentage <= status.maxPercentage) then
+			color = activeColor
+		end
+		self.bar:setColor(color[1], color[2], color[3], color[4])
+		self.bar:setMiddlePart(nil, scale, nil)
+		self.bar:setPosition(posX + self.barOffsetX + offsetX, nil)
 		self.bar:render()
-		self.marker:setPosition(posX + self.barOffsetX + self.barMaxWidth * v58_ - self.marker.width * 0.5, self.bar.y - (self.marker.height - self.barPartHeight) * 0.5)
+		self.marker:setPosition(posX + self.barOffsetX + self.barMaxWidth * percentage - self.marker.width * 0.5, self.bar.y - (self.marker.height - self.barPartHeight) * 0.5)
 		self.marker:render()
-		local v62_ = string.format("%d%%", v58_ * 100)
-		renderText(v55_, v54_ + self.textOffsetY, self.textSize, v62_)
+		local text = string.format("%d%%", percentage * 100)
+		renderText(fillTypeTextPosX, fillTypePosY + self.textOffsetY, self.textSize, text)
 	end
 	setTextBold(false)
 	return self.backgroundBottom.y
 end
-
 function MixerWagonHUDExtension:getHeight()
 	return self.totalHeight
 end

@@ -1,19 +1,19 @@
--- Local values: getNamespace, debugFunctionDrawLastTriggerCallbacks, debugFunctionDrawLastTriggerCallbacksElementId, string_len
-if StartParams.getIsSet("scriptDebug") then
+if not StartParams.getIsSet("scriptDebug") then
+	return
+else
 	WrapFunctions = {}
 	WrapFunctions.SCRIPT_BINDING_PATH = "../tools/studio/Farming_Simulator_25_Dev.xml"
 	WrapFunctions.ignore = {}
 	WrapFunctions.backups = {}
-	local function getNamespace(p1_)
-		local v2_ = nil
-		if string.contains(p1_, ":", true) then
-			local v3_ = string.split
-			v2_, p1_ = unpack(v3_(p1_, ":"))
-		elseif string.contains(p1_, ".", true) then
-			local v4_ = string.split
-			v2_, p1_ = unpack(v4_(p1_, "."))
+	local getNamespace = function(functionNameStr)
+		local namespaceStr = nil
+		if string.contains(functionNameStr, ":", true) then
+			namespaceStr, functionNameStr = unpack(string.split(functionNameStr, ":"))
+		elseif string.contains(functionNameStr, ".", true) then
+			namespaceStr, functionNameStr = unpack(string.split(functionNameStr, "."))
 		end
-		return p1_, v2_ and _G[v2_] or _G
+		local namespaceTbl = namespaceStr and _G[namespaceStr] or _G
+		return functionNameStr, namespaceTbl
 	end
 	function WrapFunctions.init()
 		printWarning("Warning: function profiling / wrapping active")
@@ -30,813 +30,790 @@ if StartParams.getIsSet("scriptDebug") then
 		WrapFunctions.customWrappersXML()
 	end
 	function WrapFunctions.consoleCommandFunctionWrap(_, ...)
-		-- upvalues: (copy) getNamespace
-		local v6_ = select("#", ...)
-		if v6_ == 0 then
+		local numArgs = select("#", ...)
+		if numArgs == 0 then
 			printError("Error: no function names given\nUsage: gsFunctionWrap functionName <functionName2> ...")
 		else
-			for v7_ = 1, v6_ do
-				local v8_ = select(v7_, ...)
-				local v9_, v10_ = getNamespace(v8_)
-				local v11_, v12_ = WrapFunctions.wrapFunction(v9_, v10_, v8_)
-				if v11_ then
-					print(string.format("%q %s", v8_, v12_))
+			for i = 1, numArgs do
+				local funcName = select(i, ...)
+				local functionNameOnly, namespaceTbl = getNamespace(funcName)
+				local success, statusMessage = WrapFunctions.wrapFunction(functionNameOnly, namespaceTbl, funcName)
+				if success then
+					print(string.format("%q %s", funcName, statusMessage))
 				else
-					printError("Error: " .. string.format("%q %s", v8_, v12_))
+					printError("Error: " .. string.format("%q %s", funcName, statusMessage))
 				end
 			end
 		end
 	end
 	function WrapFunctions.consoleCommandFunctionWrapClass(_, ...)
-		local v13_ = select("#", ...)
-		if v13_ == 0 then
+		local numArgs = select("#", ...)
+		if numArgs == 0 then
 			printError("Error: no function names given\nUsage: gsFunctionWrapClass ClassName <ClassName2> ...")
 		else
-			for v14_ = 1, v13_ do
-				local v15_ = select(v14_, ...)
-				local v16_, v17_ = WrapFunctions.wrapClass(v15_)
-				if v16_ then
-					print(v17_)
+			for i = 1, numArgs do
+				local className = select(i, ...)
+				local success, statusMessage = WrapFunctions.wrapClass(className)
+				if success then
+					print(statusMessage)
 				else
-					printError("Error: " .. v17_)
+					printError("Error: " .. statusMessage)
 				end
 			end
 		end
 	end
 	function WrapFunctions.consoleCommandFunctionWrapEngine()
-		local v18_ = WrapFunctions.wrapEngineFunctions()
-		print(string.format("Wrapped %d functions in profiling zones", v18_))
+		local numWrapped = WrapFunctions.wrapEngineFunctions()
+		print(string.format("Wrapped %d functions in profiling zones", numWrapped))
 	end
 	function WrapFunctions.consoleCommandFunctionWrapEngineCategory(_, ...)
-		if select("#", ...) == 0 then
+		local numArgs = select("#", ...)
+		if numArgs == 0 then
 			printError("Error: no function names given\nUsage: gsFunctionWrapEngineCategory CategoryName <CategoryName2> ...")
 		else
-			local v19_ = WrapFunctions.wrapEngineFunctions(...)
-			print(string.format("Wrapped %d functions in profiling zones", v19_))
+			local numWrapped = WrapFunctions.wrapEngineFunctions(...)
+			print(string.format("Wrapped %d functions in profiling zones", numWrapped))
 		end
 	end
 	function WrapFunctions.consoleCommandFunctionUnwrap()
-		local v20_ = WrapFunctions.unwrapAll()
-		if v20_ == 0 then
+		local num = WrapFunctions.unwrapAll()
+		if num == 0 then
 			printWarning("Warning: no functions to unwrap, use one of the gsFunctionWrap* console commands to wrap function(s) in profiling zones")
 		else
-			print(string.format("unwrapped %d functions", v20_))
+			print(string.format("unwrapped %d functions", num))
 		end
 	end
 	function WrapFunctions.consoleCommandFunctionVisualize()
 		WrapFunctions.customWrappersPhysics()
 	end
-	local string_len = nil
-	local v_u_22_ = nil
-	local function v23_()
-		-- upvalues: (ref) v_u_22_, (ref) string_len
-		if v_u_22_ then
-			g_debugManager:removeElementById(v_u_22_)
-			v_u_22_ = nil
+	local debugFunctionDrawLastTriggerCallbacks = nil
+	local debugFunctionDrawLastTriggerCallbacksElementId = nil
+	function WrapFunctions.consoleCommandDrawTriggerCallbacks()
+		if debugFunctionDrawLastTriggerCallbacksElementId then
+			g_debugManager:removeElementById(debugFunctionDrawLastTriggerCallbacksElementId)
+			debugFunctionDrawLastTriggerCallbacksElementId = nil
 			return "Disabled drawing of trigger callbacks"
-		else
-			if string_len == nil then
-				return "No draw function defined"
-			end
-			v_u_22_ = g_debugManager:addElement(string_len)
+		elseif debugFunctionDrawLastTriggerCallbacks ~= nil then
+			debugFunctionDrawLastTriggerCallbacksElementId = g_debugManager:addElement(debugFunctionDrawLastTriggerCallbacks)
 			return "Enabled drawing of trigger callbacks"
+		else
+			return "No draw function defined"
 		end
 	end
-	WrapFunctions.consoleCommandDrawTriggerCallbacks = v23_
-	
--- Local values: classTable, numWrapped, k, v, zoneName
-function WrapFunctions.wrapClass(className, trackMemory)
-		local v26_ = _G[className]
-		if v26_ == nil then
+	function WrapFunctions.wrapClass(className, trackMemory)
+		local classTable = _G[className]
+		if classTable == nil then
 			return false, string.format("No global class %q", className)
-		end
-		local v27_ = 0
-		for v28_, v29_ in pairs(v26_) do
-			if type(v29_) == "function" then
-				local v30_ = className .. "." .. v28_
-				if WrapFunctions.wrapFunction(v28_, v26_, v30_, trackMemory) then
-					v27_ = v27_ + 1
+		else
+			local numWrapped = 0
+			for k, v in pairs(classTable) do
+				if type(v) == "function" then
+					local zoneName = className .. "." .. k
+					if WrapFunctions.wrapFunction(k, classTable, zoneName, trackMemory) then
+						numWrapped = numWrapped + 1
+					end
 				end
 			end
+			return true, string.format("Wrapped %d functions for %q in profiling zones", numWrapped, className)
 		end
-		return true, string.format("Wrapped %d functions for %q in profiling zones", v27_, className)
 	end
 	function WrapFunctions.wrapEngineFunctions(...)
-		-- upvalues: (copy) getNamespace
-		local v31_ = loadXMLFile("scriptBinding", WrapFunctions.SCRIPT_BINDING_PATH)
-		if v31_ == 0 then
+		local xml = loadXMLFile("scriptBinding", WrapFunctions.SCRIPT_BINDING_PATH)
+		if xml == 0 then
 			return 0
-		end
-		print(string.format("WrapFunctions.wrapEngineFunctions(): loading script biding from %s", WrapFunctions.SCRIPT_BINDING_PATH))
-		local v32_ = nil
-		for v33_ = 1, select("#", ...) do
-			v32_ = v32_ or {}
-			v32_[string.upper(select(v33_, ...))] = true
-		end
-		if v32_ then
-			print("   limit to categories: " .. table.concatKeys(v32_, ", "))
-		end
-		local v34_ = 0
-		for v35_ = 0, getXMLNumOfElements(v31_, "scriptBinding.function") - 1 do
-			local v36_ = "scriptBinding.function(" .. v35_ .. ")"
-			local v37_ = getXMLString(v31_, v36_ .. "#name")
-			local v38_ = getXMLString(v31_, v36_ .. "#category") or "NoCategory"
-			local v39_ = string.gsub(string.upper(v38_), " ", "")
-			if WrapFunctions.ignore[v37_] == nil and (not v32_ or v32_[v39_] ~= nil) then
-				local v40_, v41_ = getNamespace(v37_)
-				local v42_ = string.format("%s (%s)", v37_, v38_)
-				if WrapFunctions.wrapFunction(v40_, v41_, v42_) then
-					v34_ = v34_ + 1
+		else
+			print(string.format("WrapFunctions.wrapEngineFunctions(): loading script biding from %s", WrapFunctions.SCRIPT_BINDING_PATH))
+			local categoryFilter = nil
+			for i = 1, select("#", ...) do
+				categoryFilter = categoryFilter or {}
+				local normalizedCategory = string.upper(select(i, ...))
+				categoryFilter[normalizedCategory] = true
+			end
+			if categoryFilter then
+				print("   limit to categories: " .. table.concatKeys(categoryFilter, ", "))
+			end
+			local numWrapped = 0
+			for i = 0, getXMLNumOfElements(xml, "scriptBinding.function") - 1 do
+				local key = "scriptBinding.function(" .. i .. ")"
+				local functionName = getXMLString(xml, key .. "#name")
+				local functionCategory = getXMLString(xml, key .. "#category") or "NoCategory"
+				local functionCategoryNoramlized = string.gsub(string.upper(functionCategory), " ", "")
+				if WrapFunctions.ignore[functionName] == nil and (not categoryFilter or categoryFilter[functionCategoryNoramlized] ~= nil) then
+					local functionNameOnly, namespaceTbl = getNamespace(functionName)
+					functionName = string.format("%s (%s)", functionName, functionCategory)
+					if WrapFunctions.wrapFunction(functionNameOnly, namespaceTbl, functionName) then
+						numWrapped = numWrapped + 1
+					end
 				end
 			end
+			delete(xml)
+			return numWrapped
 		end
-		delete(v31_)
-		return v34_
 	end
-	
--- Local values: oldFunc, id, wrapper
-function WrapFunctions.wrapFunction(name, namespace, zoneName, trackMemory)
-		local v47_ = namespace or _G
-		local v_u_48_ = zoneName or name
-		local v_u_49_ = v47_[name]
-		if type(v_u_49_) ~= "function" then
+	function WrapFunctions.wrapFunction(name, namespace, zoneName, trackMemory)
+		namespace = namespace or _G
+		zoneName = zoneName or name
+		local oldFunc = namespace[name]
+		if type(oldFunc) ~= "function" then
 			return false, "not a function"
 		end
-		local v50_ = tostring(v47_) .. name
-		if WrapFunctions.backups[v50_] ~= nil then
+		local id = tostring(namespace) .. name
+		if WrapFunctions.backups[id] ~= nil then
 			printWarning(string.format("Warning: %q is already wrapped, ignoring", name))
 			return false, "already wrapped"
-		end
-		WrapFunctions.backups[v50_] = { name, v47_, v_u_49_ }
-		if trackMemory then
-			WrapFunctions.memoryAllocations[v_u_48_] = WrapFunctions.memoryAllocations[v_u_48_] or 0
-		end
-		v47_[name] = function(...)
-			-- upvalues: (copy) trackMemory, (ref) v_u_48_, (copy) v_u_49_
-			local v51_
+		else
+			WrapFunctions.backups[id] = { name, namespace, oldFunc }
 			if trackMemory then
-				collectgarbage("collect")
-				v51_ = collectgarbage("count")
-			else
-				v51_ = nil
+				WrapFunctions.memoryAllocations[zoneName] = WrapFunctions.memoryAllocations[zoneName] or 0
 			end
-			RemoteProfiler.zoneBeginN(v_u_48_)
-			local v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_, v62_, v63_, v64_, v65_, v66_, v67_, v68_ = v_u_49_(...)
-			RemoteProfiler.zoneEnd()
-			if trackMemory then
-				collectgarbage("collect")
-				local v69_ = collectgarbage("count") - v51_
-				WrapFunctions.memoryAllocations[v_u_48_] = WrapFunctions.memoryAllocations[v_u_48_] + v69_
-			end
-			if v68_ == nil then
-				if v67_ == nil then
-					if v66_ == nil then
-						if v65_ == nil then
-							if v64_ == nil then
-								if v63_ == nil then
-									if v62_ == nil then
-										if v61_ == nil then
-											if v60_ == nil then
-												if v59_ == nil then
-													if v58_ == nil then
-														if v57_ == nil then
-															if v56_ == nil then
-																if v55_ == nil then
-																	if v54_ == nil then
-																		if v53_ == nil then
-																			if v52_ == nil then
-																				return nil
-																			else
-																				return v52_
-																			end
-																		else
-																			return v52_, v53_
-																		end
-																	else
-																		return v52_, v53_, v54_
-																	end
-																else
-																	return v52_, v53_, v54_, v55_
-																end
-															else
-																return v52_, v53_, v54_, v55_, v56_
-															end
-														else
-															return v52_, v53_, v54_, v55_, v56_, v57_
-														end
-													else
-														return v52_, v53_, v54_, v55_, v56_, v57_, v58_
-													end
-												else
-													return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_
-												end
-											else
-												return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_
-											end
-										else
-											return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_
-										end
-									else
-										return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_, v62_
-									end
-								else
-									return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_, v62_, v63_
-								end
-							else
-								return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_, v62_, v63_, v64_
-							end
-						else
-							return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_, v62_, v63_, v64_, v65_
-						end
-					else
-						return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_, v62_, v63_, v64_, v65_, v66_
-					end
-				else
-					return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_, v62_, v63_, v64_, v65_, v66_, v67_
+			local wrapper = function(...)
+				local mem = nil
+				if trackMemory then
+					collectgarbage("collect")
+					mem = collectgarbage("count")
 				end
-			else
-				return v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_, v62_, v63_, v64_, v65_, v66_, v67_, v68_
+				RemoteProfiler.zoneBeginN(zoneName)
+				local ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10, ret11, ret12, ret13, ret14, ret15, ret16, ret17 = oldFunc(...)
+				RemoteProfiler.zoneEnd()
+				if trackMemory then
+					collectgarbage("collect")
+					mem = collectgarbage("count") - mem
+					WrapFunctions.memoryAllocations[zoneName] = WrapFunctions.memoryAllocations[zoneName] + mem
+				end
+				if ret17 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10, ret11, ret12, ret13, ret14, ret15, ret16, ret17
+				elseif ret16 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10, ret11, ret12, ret13, ret14, ret15, ret16
+				elseif ret15 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10, ret11, ret12, ret13, ret14, ret15
+				elseif ret14 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10, ret11, ret12, ret13, ret14
+				elseif ret13 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10, ret11, ret12, ret13
+				elseif ret12 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10, ret11, ret12
+				elseif ret11 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10, ret11
+				elseif ret10 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9, ret10
+				elseif ret9 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8, ret9
+				elseif ret8 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8
+				elseif ret7 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6, ret7
+				elseif ret6 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5, ret6
+				elseif ret5 ~= nil then
+					return ret1, ret2, ret3, ret4, ret5
+				elseif ret4 ~= nil then
+					return ret1, ret2, ret3, ret4
+				elseif ret3 ~= nil then
+					return ret1, ret2, ret3
+				elseif ret2 ~= nil then
+					return ret1, ret2
+				elseif ret1 ~= nil then
+					return ret1
+				else
+					return nil
+				end
 			end
+			namespace[name] = wrapper
+			return true, "wrapped in profiling zone"
 		end
-		return true, "wrapped in profiling zone"
 	end
 	function WrapFunctions.unwrapAll()
-		local v70_ = table.size(WrapFunctions.backups)
-		for _, v71_ in pairs(WrapFunctions.backups) do
-			local v72_, v73_, v74_ = unpack(v71_)
-			v73_[v72_] = v74_
+		local num = table.size(WrapFunctions.backups)
+		for _, triple in pairs(WrapFunctions.backups) do
+			local funcName, env, oldFunc = unpack(triple)
+			env[funcName] = oldFunc
 		end
 		WrapFunctions.backups = {}
-		return v70_
+		return num
 	end
-	local v_u_75_ = nil
-	local function v132_()
-		-- upvalues: (ref) string_len, (ref) v_u_75_
-		local v_u_76_ = {}
-		string_len = DebugFunction.new(nil, function()
-			-- upvalues: (copy) v_u_76_
+	local string_len = nil
+	function WrapFunctions.customWrappers()
+		local lastCallbacks = {}
+		local addHistoryEntry = function(str)
+			table.insert(lastCallbacks, 1, str)
+			if 15 < #lastCallbacks then
+				table.remove(lastCallbacks)
+			end
+		end
+		debugFunctionDrawLastTriggerCallbacks = DebugFunction.new(nil, function()
 			setTextColor(1, 1, 1, 1)
-			for v77_, v78_ in ipairs(v_u_76_) do
-				renderText(0.2, 0.72 + v77_ * 0.012, 0.012, v78_)
+			for index, callbackStr in ipairs(lastCallbacks) do
+				renderText(0.2, 0.72 + index * 0.012, 0.012, callbackStr)
 			end
 		end)
-		local v_u_79_ = addTrigger
-		function addTrigger(p80_, p_u_81_, p_u_82_, p83_, p_u_84_)
-			-- upvalues: (copy) v_u_76_, (copy) v_u_79_
-			if not getHasTrigger(p80_) then
-				Logging.warning("addTrigger() shape %q does not have \'trigger\' flag set", I3DUtil.getNodePath(p80_))
+		local engine_addTrigger = addTrigger
+		local new_addTrigger = function(shapeId, callbackFunctionName, callbackTarget, reportOnStay, callbackFunction)
+			if not getHasTrigger(shapeId) then
+				Logging.warning("addTrigger() shape %q does not have 'trigger' flag set", I3DUtil.getNodePath(shapeId))
 				printCallstack()
 			end
-			local v85_ = p_u_84_ or (p_u_82_[p_u_81_] or _G[p_u_81_])
-			if type(v85_) ~= "function" then
-				Logging.error("Unable to access given trigger callback function %q", p_u_81_)
+			if type(callbackFunction or callbackTarget[callbackFunctionName] or _G[callbackFunctionName]) ~= "function" then
+				Logging.error("Unable to access given trigger callback function %q", callbackFunctionName)
 				printCallstack()
 			end
-			local v86_ = ClassUtil.getClassNameByObject(p_u_82_) or (ClassUtil.getClassName(p_u_82_) or "")
-			local v_u_87_ = "TriggerCallback for \'" .. getName(p80_) .. "\' " .. v86_ .. ":" .. p_u_81_
-			local v88_ = {}
-			local function v102_(_, p89_, p90_, p91_, p92_, p93_, ...)
-				-- upvalues: (ref) v_u_76_, (copy) p_u_84_, (copy) v_u_87_, (copy) p_u_82_, (copy) p_u_81_
-				local v94_ = p91_ and "onEnter" or (p92_ and "onLeave" or (p93_ and "onStay" or "unknown"))
-				local v95_ = entityExists(p89_) and (I3DUtil.getNodePath(p89_, nil, true) or "<triggerDeleted>") or "<triggerDeleted>"
-				local v96_ = entityExists(p90_) and (I3DUtil.getNodePath(p90_, nil, true) or "<nodeDeleted>") or "<nodeDeleted>"
-				local v97_ = string.format("uli %d: trig: %s(%d) shape: %s(%d) %s ", g_updateLoopIndex, v95_, p89_, v96_, p90_, v94_)
-				local v98_ = v96_ .. " (" .. p90_ .. ") " .. v94_
-				local v99_ = v_u_76_
-				table.insert(v99_, 1, v97_)
-				if #v_u_76_ > 15 then
-					table.remove(v_u_76_)
-				end
-				if p_u_84_ == nil then
-					RemoteProfiler.zoneBeginN(v_u_87_)
-					RemoteProfiler.zoneText(v98_)
-					local v100_ = p_u_82_[p_u_81_](p_u_82_, p89_, p90_, p91_, p92_, p93_, ...)
-					RemoteProfiler.zoneEnd()
-					return v100_
+			local callbackTargetName = ClassUtil.getClassNameByObject(callbackTarget) or ClassUtil.getClassName(callbackTarget) or ""
+			local profilingZoneName = "TriggerCallback for '" .. getName(shapeId) .. "' " .. callbackTargetName .. ":" .. callbackFunctionName
+			local callbackTarget_inj = {}
+			local callbackFunc_inj = function(_, triggerId, otherId, onEnter, onLeave, onStay, ...)
+				if onEnter then
+					local changeString = "onEnter"
+				elseif onLeave then
+					changeString = "onLeave"
 				else
-					RemoteProfiler.zoneBeginN(v_u_87_)
-					RemoteProfiler.zoneText(v98_)
-					local v101_ = p_u_84_(p_u_82_, p89_, p90_, p91_, p92_, p93_, ...)
+					changeString = onStay and "onStay" or "unknown"
+				end
+				local triggerName = entityExists(triggerId) and I3DUtil.getNodePath(triggerId, nil, true) or "<triggerDeleted>"
+				local otherName = entityExists(otherId) and I3DUtil.getNodePath(otherId, nil, true) or "<nodeDeleted>"
+				local debugString = string.format("uli %d: trig: %s(%d) shape: %s(%d) %s ", g_updateLoopIndex, triggerName, triggerId, otherName, otherId, changeString)
+				local zoneText = otherName .. " (" .. otherId .. ") " .. changeString
+				table.insert(lastCallbacks, 1, debugString)
+				if 15 < #lastCallbacks then
+					table.remove(lastCallbacks)
+				end
+				if callbackFunction ~= nil then
+					RemoteProfiler.zoneBeginN(profilingZoneName)
+					RemoteProfiler.zoneText(zoneText)
+					local ret = callbackFunction(callbackTarget, triggerId, otherId, onEnter, onLeave, onStay, ...)
 					RemoteProfiler.zoneEnd()
-					return v101_
+					return ret
+				else
+					RemoteProfiler.zoneBeginN(profilingZoneName)
+					RemoteProfiler.zoneText(zoneText)
+					local ret = callbackTarget[callbackFunctionName](callbackTarget, triggerId, otherId, onEnter, onLeave, onStay, ...)
+					RemoteProfiler.zoneEnd()
+					return ret
 				end
 			end
-			v88_.callbackFunc_inj = v102_
-			if p_u_84_ == nil then
-				return v_u_79_(p80_, "callbackFunc_inj", v88_, p83_)
+			callbackTarget_inj.callbackFunc_inj = callbackFunc_inj
+			if callbackFunction ~= nil then
+				return engine_addTrigger(shapeId, "callbackFunc_inj", callbackTarget_inj, reportOnStay, callbackFunc_inj)
 			else
-				return v_u_79_(p80_, "callbackFunc_inj", v88_, p83_, v102_)
+				return engine_addTrigger(shapeId, "callbackFunc_inj", callbackTarget_inj, reportOnStay)
 			end
 		end
-		v_u_75_ = string.len
-		local function v104_(p103_)
-			-- upvalues: (ref) v_u_75_
-			if type(p103_) == "number" then
-				p103_ = tostring(p103_) or p103_
-			end
-			if v_u_75_(p103_) ~= utf8Strlen(p103_) then
-				Logging.warning("string.len used on a string containing utf-8 characters: %s", p103_)
+		addTrigger = new_addTrigger
+		string_len = string.len
+		local new_string_len = function(str)
+			str = type(str) == "number" and tostring(str) or str
+			if string_len(str) ~= utf8Strlen(str) then
+				Logging.warning("string.len used on a string containing utf-8 characters: %s", str)
 				printCallstack()
 			end
-			return v_u_75_(p103_)
+			return string_len(str)
 		end
-		string.len = v104_
-		local v_u_105_ = string.sub
-		local function v109_(p106_, p107_, p108_)
-			-- upvalues: (ref) v_u_75_, (copy) v_u_105_
-			if type(p106_) == "number" then
-				p106_ = tostring(p106_) or p106_
-			end
-			if v_u_75_(p106_) ~= utf8Strlen(p106_) then
-				Logging.warning("string.sub used on a string containing utf-8 characters: %s", p106_)
+		string.len = new_string_len
+		local string_sub = string.sub
+		local new_string_sub = function(str, s, e)
+			str = type(str) == "number" and tostring(str) or str
+			if string_len(str) ~= utf8Strlen(str) then
+				Logging.warning("string.sub used on a string containing utf-8 characters: %s", str)
 				printCallstack()
 			end
-			return v_u_105_(p106_, p107_, p108_)
+			return string_sub(str, s, e)
 		end
-		string.sub = v109_
-		local v_u_110_ = string.upper
-		function string.upper(p111_)
-			-- upvalues: (copy) v_u_110_
-			if type(p111_) == "number" then
-				p111_ = tostring(p111_) or p111_
-			end
-			if v_u_110_(p111_) ~= utf8ToUpper(p111_) then
-				Logging.warning("string.upper used on a string containing utf-8 characters: %s", p111_)
+		string.sub = new_string_sub
+		local string_upper = string.upper
+		local new_string_upper = function(str)
+			str = type(str) == "number" and tostring(str) or str
+			if string_upper(str) ~= utf8ToUpper(str) then
+				Logging.warning("string.upper used on a string containing utf-8 characters: %s", str)
 				printCallstack()
 			end
-			return v_u_110_(p111_)
+			return string_upper(str)
 		end
-		local v_u_112_ = string.lower
-		function string.lower(p113_)
-			-- upvalues: (copy) v_u_112_
-			if type(p113_) == "number" then
-				p113_ = tostring(p113_) or p113_
-			end
-			if v_u_112_(p113_) ~= utf8ToLower(p113_) then
-				Logging.warning("string.lower used on a string containing utf-8 characters: %s", p113_)
+		string.upper = new_string_upper
+		local string_lower = string.lower
+		local new_string_lower = function(str)
+			str = type(str) == "number" and tostring(str) or str
+			if string_lower(str) ~= utf8ToLower(str) then
+				Logging.warning("string.lower used on a string containing utf-8 characters: %s", str)
 				printCallstack()
 			end
-			return v_u_112_(p113_)
+			return string_lower(str)
 		end
-		local v_u_114_ = createImageOverlay
-		function createImageOverlay(p115_)
-			-- upvalues: (copy) v_u_114_
-			local v116_ = v_u_114_(p115_)
-			if v116_ ~= 0 and (debug ~= nil and debug.traceback ~= nil) then
-				setName(v116_, getName(v116_) .. "\n" .. debug.traceback(nil, 2))
+		string.lower = new_string_lower
+		local engine_createImageOverlay = createImageOverlay
+		local new_createImageOverlay = function(filename)
+			local overlayId = engine_createImageOverlay(filename)
+			if overlayId ~= 0 and (debug ~= nil and debug.traceback ~= nil) then
+				setName(overlayId, getName(overlayId) .. "\n" .. debug.traceback(nil, 2))
 			end
-			return v116_
+			return overlayId
 		end
-		local v_u_117_ = createSample
-		function createSample(p118_)
-			-- upvalues: (copy) v_u_117_
-			local v119_ = v_u_117_(p118_)
-			if v119_ ~= 0 and (debug ~= nil and debug.traceback ~= nil) then
-				setName(v119_, getName(v119_) .. "\n" .. debug.traceback(nil, 2))
+		createImageOverlay = new_createImageOverlay
+		local engine_createSample = createSample
+		local new_createSample = function(sampleName)
+			local sampleId = engine_createSample(sampleName)
+			if sampleId ~= 0 and (debug ~= nil and debug.traceback ~= nil) then
+				setName(sampleId, getName(sampleId) .. "\n" .. debug.traceback(nil, 2))
 			end
-			return v119_
+			return sampleId
 		end
-		local v_u_120_ = loadSample
-		function loadSample(p121_, p122_, ...)
-			-- upvalues: (copy) v_u_120_
-			local v123_ = v_u_120_(p121_, p122_, ...)
-			if v123_ then
-				setName(p121_, p122_ .. getName(p121_))
+		createSample = new_createSample
+		local engine_loadSample = loadSample
+		local new_loadSample = function(sampleId, sampleFilename, ...)
+			local success = engine_loadSample(sampleId, sampleFilename, ...)
+			if success then
+				setName(sampleId, sampleFilename .. getName(sampleId))
 			end
-			return v123_
+			return success
 		end
-		local v_u_124_ = loadXMLFile
-		function loadXMLFile(p125_, p126_)
-			-- upvalues: (copy) v_u_124_
-			return v_u_124_(string.format("%s - %s%s", p125_, p126_, debug and "\n" .. debug.traceback(nil, 2) or ""), p126_)
+		loadSample = new_loadSample
+		local engine_loadXMLFile = loadXMLFile
+		local new_loadXMLFile = function(objectName, filename)
+			local newObjectName = string.format("%s - %s%s", objectName, filename, debug and "\n" .. debug.traceback(nil, 2) or "")
+			return engine_loadXMLFile(newObjectName, filename)
 		end
-		local v_u_127_ = loadXMLFileFromMemory
-		function loadXMLFileFromMemory(p128_, p129_)
-			-- upvalues: (copy) v_u_127_
-			return v_u_127_(string.format("%s%s", p128_, debug and "\n" .. debug.traceback(nil, 2) or ""), p129_)
+		loadXMLFile = new_loadXMLFile
+		local engine_loadXMLFileFromMemory = loadXMLFileFromMemory
+		local new_loadXMLFileFromMemory = function(objectName, xmlString)
+			local newObjectName = string.format("%s%s", objectName, debug and "\n" .. debug.traceback(nil, 2) or "")
+			return engine_loadXMLFileFromMemory(newObjectName, xmlString)
 		end
-		local v_u_130_ = fileExists
-		function fileExists(p131_)
-			-- upvalues: (copy) v_u_130_
-			if string.endsWith(p131_, ".dds") or string.endsWith(p131_, ".png") then
-				Logging.warning("\'fileExists\' called on texture file which might not exist with the specific extension on a different platform, use \'textureFileExists\' instead")
+		loadXMLFileFromMemory = new_loadXMLFileFromMemory
+		local engine_fileExists = fileExists
+		local new_fileExists = function(filePath)
+			if string.endsWith(filePath, ".dds") or string.endsWith(filePath, ".png") then
+				Logging.warning("'fileExists' called on texture file which might not exist with the specific extension on a different platform, use 'textureFileExists' instead")
 				printCallstack()
-			elseif string.endsWith(p131_, ".ogg") or (string.endsWith(p131_, ".wav") or string.endsWith(p131_, ".gls")) then
-				Logging.warning("\'fileExists\' called on audio file which might not exist with the specific extension on a different platform, use \'audioFileExists\' instead")
-				printCallstack()
+			else
+				if string.endsWith(filePath, ".ogg") or string.endsWith(filePath, ".wav") or string.endsWith(filePath, ".gls") then
+					Logging.warning("'fileExists' called on audio file which might not exist with the specific extension on a different platform, use 'audioFileExists' instead")
+					printCallstack()
+				end
 			end
-			return v_u_130_(p131_)
+			return engine_fileExists(filePath)
 		end
+		fileExists = new_fileExists
 	end
-	WrapFunctions.customWrappers = v132_
 	function WrapFunctions.customWrappersPhysics()
-		local function v_u_151_(p133_, p134_, p135_, p136_, p137_, p138_, p139_, p140_, p141_, p142_, p143_, p144_, p145_, p146_, p147_)
-			local v148_, v149_, v150_ = MathUtil.crossProduct(p136_, p137_, p138_, p139_, p140_, p141_)
-			DebugUtil.drawDebugPlane(p133_, p134_, p135_, v148_, v149_, v150_, p139_, p140_, p141_, p142_, p143_, p144_, p145_, p146_, p147_)
+		local checkMask = function(actual, disallowed)
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(actual, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
+				printCallstack()
+			end
 		end
-		local v_u_152_ = findAndRemoveSplitShapeAttachments
-		function findAndRemoveSplitShapeAttachments(p153_, p154_, p155_, p156_, p157_, p158_, p159_, p160_, p161_, p162_, p163_, p164_)
-			-- upvalues: (copy) v_u_151_, (copy) v_u_152_
-			v_u_151_(p153_, p154_, p155_, p156_, p157_, p158_, p159_, p160_, p161_, p163_, p164_, 1, 0, 0, 0.5)
-			return v_u_152_(p153_, p154_, p155_, p156_, p157_, p158_, p159_, p160_, p161_, p162_, p163_, p164_)
+		local debugSplitFindTest = function(x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, r, g, b, a)
+			local zx, zy, zz = MathUtil.crossProduct(nx, ny, nz, yx, yy, yz)
+			DebugUtil.drawDebugPlane(x, y, z, zx, zy, zz, yx, yy, yz, cutSizeY, cutSizeZ, r, g, b, a)
 		end
-		local v_u_165_ = findSplitShape
-		function findSplitShape(p166_, p167_, p168_, p169_, p170_, p171_, p172_, p173_, p174_, p175_, p176_)
-			-- upvalues: (copy) v_u_151_, (copy) v_u_165_
-			v_u_151_(p166_, p167_, p168_, p169_, p170_, p171_, p172_, p173_, p174_, p175_, p176_, 1, 0, 0, 0.5)
-			local v177_, v178_, v179_, v180_, v181_ = v_u_165_(p166_, p167_, p168_, p169_, p170_, p171_, p172_, p173_, p174_, p175_, p176_)
-			if v177_ == nil or v177_ == 0 then
-				Utils.renderTextAtWorldPosition(p166_, p167_, p168_, "findSplitShape nil", 0.02)
-				return v177_, v178_, v179_, v180_, v181_
+		local engineFindAndRemoveSplitShapeAttachments = findAndRemoveSplitShapeAttachments
+		local newFindAndRemoveSplitShapeAttachments = function(x, y, z, nx, ny, nz, yx, yy, yz, cutSizeX, cutSizeY, cutSizeZ)
+			debugSplitFindTest(x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, 1, 0, 0, 0.5)
+			local removedAttachment = engineFindAndRemoveSplitShapeAttachments(x, y, z, nx, ny, nz, yx, yy, yz, cutSizeX, cutSizeY, cutSizeZ)
+			return removedAttachment
+		end
+		findAndRemoveSplitShapeAttachments = newFindAndRemoveSplitShapeAttachments
+		local engineFindSplitShape = findSplitShape
+		local newFindSplitShape = function(x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ)
+			debugSplitFindTest(x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, 1, 0, 0, 0.5)
+			local shape, minY, maxY, minZ, maxZ = engineFindSplitShape(x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ)
+			if shape ~= nil and shape ~= 0 then
+				Utils.renderTextAtWorldPosition(x, y, z, string.format("findSplitShape shape:%s minY:%.3f maxY:%.3f minZ:%.3f maxZ:%.3f", shape, minY, maxY, minZ, maxZ), 0.02)
+				return shape, minY, maxY, minZ, maxZ
+			end
+			Utils.renderTextAtWorldPosition(x, y, z, "findSplitShape nil", 0.02)
+			return shape, minY, maxY, minZ, maxZ
+		end
+		findSplitShape = newFindSplitShape
+		local engineTestSplitShape = testSplitShape
+		local newTestSplitShape = function(splitShape, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ)
+			debugSplitFindTest(x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ, 0, 1, 0, 0.5)
+			local minY, maxY, minZ, maxZ = engineTestSplitShape(splitShape, x, y, z, nx, ny, nz, yx, yy, yz, cutSizeY, cutSizeZ)
+			if minY then
+				Utils.renderTextAtWorldPosition(x, y, z, string.format("testSplitShape shape:%s minY:%.3f maxY:%.3f minZ:%.3f maxZ:%.3f", splitShape, minY, maxY, minZ, maxZ), 0.02)
+				return minY, maxY, minZ, maxZ
 			else
-				Utils.renderTextAtWorldPosition(p166_, p167_, p168_, string.format("findSplitShape shape:%s minY:%.3f maxY:%.3f minZ:%.3f maxZ:%.3f", v177_, v178_, v179_, v180_, v181_), 0.02)
-				return v177_, v178_, v179_, v180_, v181_
+				Utils.renderTextAtWorldPosition(x, y, z, "testSplitShape nil", 0.02)
+				return minY, maxY, minZ, maxZ
 			end
 		end
-		local v_u_182_ = testSplitShape
-		function testSplitShape(p183_, p184_, p185_, p186_, p187_, p188_, p189_, p190_, p191_, p192_, p193_, p194_)
-			-- upvalues: (copy) v_u_151_, (copy) v_u_182_
-			v_u_151_(p184_, p185_, p186_, p187_, p188_, p189_, p190_, p191_, p192_, p193_, p194_, 0, 1, 0, 0.5)
-			local v195_, v196_, v197_, v198_ = v_u_182_(p183_, p184_, p185_, p186_, p187_, p188_, p189_, p190_, p191_, p192_, p193_, p194_)
-			if v195_ then
-				Utils.renderTextAtWorldPosition(p184_, p185_, p186_, string.format("testSplitShape shape:%s minY:%.3f maxY:%.3f minZ:%.3f maxZ:%.3f", p183_, v195_, v196_, v197_, v198_), 0.02)
-				return v195_, v196_, v197_, v198_
-			else
-				Utils.renderTextAtWorldPosition(p184_, p185_, p186_, "testSplitShape nil", 0.02)
-				return v195_, v196_, v197_, v198_
+		testSplitShape = newTestSplitShape
+		local engineRaycastClosest = raycastClosest
+		local newRaycastClosest = function(x, y, z, nx, ny, nz, maxDistance, raycastFunctionCallback, targetObject, collisionMask)
+			if not DebugUtil.isPositionInCameraRange(x, y, z, 3) then
+				drawDebugArrow(x, y, z, nx * maxDistance, ny * maxDistance, nz * maxDistance, 0.3, 0.3, 0.3, 0.8, 0, 0, true)
 			end
-		end
-		local v_u_199_ = raycastClosest
-		function raycastClosest(p200_, p201_, p202_, p203_, p204_, p205_, p206_, p207_, p208_, p209_)
-			-- upvalues: (copy) v_u_199_
-			if not DebugUtil.isPositionInCameraRange(p200_, p201_, p202_, 3) then
-				drawDebugArrow(p200_, p201_, p202_, p203_ * p206_, p204_ * p206_, p205_ * p206_, 0.3, 0.3, 0.3, 0.8, 0, 0, true)
-			end
-			local v210_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p209_, v210_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v210_))
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_199_(p200_, p201_, p202_, p203_, p204_, p205_, p206_, p207_, p208_, p209_)
+			return engineRaycastClosest(x, y, z, nx, ny, nz, maxDistance, raycastFunctionCallback, targetObject, collisionMask)
 		end
-		local v_u_211_ = raycastClosestAsync
-		function raycastClosestAsync(p212_, p213_, p214_, p215_, p216_, p217_, p218_, p219_, p220_, p221_)
-			-- upvalues: (copy) v_u_211_
-			if not DebugUtil.isPositionInCameraRange(p212_, p213_, p214_, 3) then
-				drawDebugArrow(p212_, p213_, p214_, p215_ * p218_, p216_ * p218_, p217_ * p218_, 0.3, 0.3, 0.3, 1, 1, 1, true)
+		raycastClosest = newRaycastClosest
+		local engineRaycastAsyncClosest = raycastClosestAsync
+		local newRaycastClosestAsync = function(x, y, z, nx, ny, nz, maxDistance, raycastFunctionCallback, targetObject, collisionMask)
+			if not DebugUtil.isPositionInCameraRange(x, y, z, 3) then
+				drawDebugArrow(x, y, z, nx * maxDistance, ny * maxDistance, nz * maxDistance, 0.3, 0.3, 0.3, 1, 1, 1, true)
 			end
-			local v222_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p221_, v222_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v222_))
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_211_(p212_, p213_, p214_, p215_, p216_, p217_, p218_, p219_, p220_, p221_)
+			return engineRaycastAsyncClosest(x, y, z, nx, ny, nz, maxDistance, raycastFunctionCallback, targetObject, collisionMask)
 		end
-		local v_u_223_ = raycastAll
-		function raycastAll(p224_, p225_, p226_, p227_, p228_, p229_, p230_, p231_, p232_, p233_)
-			-- upvalues: (copy) v_u_223_
-			if not DebugUtil.isPositionInCameraRange(p224_, p225_, p226_, 3) then
-				drawDebugArrow(p224_, p225_, p226_, p227_ * p230_, p228_ * p230_, p229_ * p230_, 0.3, 0.3, 0.3, 0, 0.8, 0, true)
+		raycastClosestAsync = newRaycastClosestAsync
+		local engineRaycastAll = raycastAll
+		local newRaycastAll = function(x, y, z, nx, ny, nz, maxDistance, raycastFunctionCallback, targetObject, collisionMask)
+			if not DebugUtil.isPositionInCameraRange(x, y, z, 3) then
+				drawDebugArrow(x, y, z, nx * maxDistance, ny * maxDistance, nz * maxDistance, 0.3, 0.3, 0.3, 0, 0.8, 0, true)
 			end
-			local v234_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p233_, v234_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v234_))
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_223_(p224_, p225_, p226_, p227_, p228_, p229_, p230_, p231_, p232_, p233_)
+			return engineRaycastAll(x, y, z, nx, ny, nz, maxDistance, raycastFunctionCallback, targetObject, collisionMask)
 		end
-		local v_u_235_ = raycastAllAsync
-		function raycastAllAsync(p236_, p237_, p238_, p239_, p240_, p241_, p242_, p243_, p244_, p245_)
-			-- upvalues: (copy) v_u_235_
-			if not DebugUtil.isPositionInCameraRange(p236_, p237_, p238_, 3) then
-				drawDebugArrow(p236_, p237_, p238_, p239_ * p242_, p240_ * p242_, p241_ * p242_, 0.3, 0.3, 0.3, 0.1, 1, 0.1, true)
+		raycastAll = newRaycastAll
+		local engineRaycastAllAsync = raycastAllAsync
+		local newRaycastAllAsync = function(x, y, z, nx, ny, nz, maxDistance, raycastFunctionCallback, targetObject, collisionMask)
+			if not DebugUtil.isPositionInCameraRange(x, y, z, 3) then
+				drawDebugArrow(x, y, z, nx * maxDistance, ny * maxDistance, nz * maxDistance, 0.3, 0.3, 0.3, 0.1, 1, 0.1, true)
 			end
-			local v246_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p245_, v246_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v246_))
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_235_(p236_, p237_, p238_, p239_, p240_, p241_, p242_, p243_, p244_, p245_)
+			return engineRaycastAllAsync(x, y, z, nx, ny, nz, maxDistance, raycastFunctionCallback, targetObject, collisionMask)
 		end
-		local v_u_247_ = overlapBox
-		function overlapBox(p248_, p249_, p250_, p251_, p252_, p253_, p254_, p255_, p256_, p257_, p258_, p259_, ...)
-			-- upvalues: (copy) v_u_247_
-			DebugBox.new():createFromOverlapBoxParameters(p248_, p249_, p250_, p251_, p252_, p253_, p254_, p255_, p256_):setText("overlapBox"):addToManager(nil, 1000, 50)
-			local v260_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p259_, v260_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v260_))
+		raycastAllAsync = newRaycastAllAsync
+		local engineOverlapBox = overlapBox
+		local newOverlapBox = function(x, y, z, rx, ry, rz, ex, ey, ez, callbackFunctionName, callbackTarget, collisionMask, ...)
+			local debugBox = DebugBox.new()
+			debugBox:createFromOverlapBoxParameters(x, y, z, rx, ry, rz, ex, ey, ez):setText("overlapBox"):addToManager(nil, 1000, 50)
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_247_(p248_, p249_, p250_, p251_, p252_, p253_, p254_, p255_, p256_, p257_, p258_, p259_, ...)
+			return engineOverlapBox(x, y, z, rx, ry, rz, ex, ey, ez, callbackFunctionName, callbackTarget, collisionMask, ...)
 		end
-		local v_u_261_ = overlapBoxAsync
-		function overlapBoxAsync(p262_, p263_, p264_, p265_, p266_, p267_, p268_, p269_, p270_, p271_, p272_, p273_, ...)
-			-- upvalues: (copy) v_u_261_
-			DebugBox.new():createFromOverlapBoxParameters(p262_, p263_, p264_, p265_, p266_, p267_, p268_, p269_, p270_):setText("overlapBoxAsync"):addToManager(nil, 1000, 50)
-			local v274_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p273_, v274_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v274_))
+		overlapBox = newOverlapBox
+		local engineOverlapBoxAsync = overlapBoxAsync
+		local newOverlapBoxAsync = function(x, y, z, rx, ry, rz, ex, ey, ez, callbackFunctionName, callbackTarget, collisionMask, ...)
+			local debugBox = DebugBox.new()
+			debugBox:createFromOverlapBoxParameters(x, y, z, rx, ry, rz, ex, ey, ez):setText("overlapBoxAsync"):addToManager(nil, 1000, 50)
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_261_(p262_, p263_, p264_, p265_, p266_, p267_, p268_, p269_, p270_, p271_, p272_, p273_, ...)
+			return engineOverlapBoxAsync(x, y, z, rx, ry, rz, ex, ey, ez, callbackFunctionName, callbackTarget, collisionMask, ...)
 		end
-		local v_u_275_ = overlapSphere
-		function overlapSphere(p276_, p277_, p278_, p279_, p280_, p281_, p282_, ...)
-			-- upvalues: (copy) v_u_275_
-			DebugSphere.new():createWithWorldPos(p276_, p277_, p278_, p279_):setText("overlapSphere"):addToManager(nil, 1000, 50)
-			local v283_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p282_, v283_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v283_))
+		overlapBoxAsync = newOverlapBoxAsync
+		local engineOverlapSphere = overlapSphere
+		local newOverlapSphere = function(x, y, z, radius, callbackFunctionName, callbackTarget, collisionMask, ...)
+			local debugSphere = DebugSphere.new()
+			debugSphere:createWithWorldPos(x, y, z, radius):setText("overlapSphere"):addToManager(nil, 1000, 50)
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_275_(p276_, p277_, p278_, p279_, p280_, p281_, p282_, ...)
+			return engineOverlapSphere(x, y, z, radius, callbackFunctionName, callbackTarget, collisionMask, ...)
 		end
-		local v_u_284_ = overlapSphereAsync
-		function overlapSphereAsync(p285_, p286_, p287_, p288_, p289_, p290_, p291_, ...)
-			-- upvalues: (copy) v_u_284_
-			DebugSphere.new():createWithWorldPos(p285_, p286_, p287_, p288_):setText("overlapSphereAsync"):addToManager(nil, 1000, 50)
-			local v292_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p291_, v292_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v292_))
+		overlapSphere = newOverlapSphere
+		local engineOverlapSphereAsync = overlapSphereAsync
+		local newOverlapSphereAsync = function(x, y, z, radius, callbackFunctionName, callbackTarget, collisionMask, ...)
+			local debugSphere = DebugSphere.new()
+			debugSphere:createWithWorldPos(x, y, z, radius):setText("overlapSphereAsync"):addToManager(nil, 1000, 50)
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_284_(p285_, p286_, p287_, p288_, p289_, p290_, p291_, ...)
+			return engineOverlapSphereAsync(x, y, z, radius, callbackFunctionName, callbackTarget, collisionMask, ...)
 		end
-		local v_u_293_ = overlapCylinder
-		function overlapCylinder(p294_, p295_, p296_, p297_, p298_, p299_, p300_, p301_, p302_, ...)
-			-- upvalues: (copy) v_u_293_
-			DebugCylinder.new():createWithWorldPos(p294_, p295_, p296_, p297_, p298_, p299_):setText("overlapCylinder"):addToManager(nil, 1000, 50)
-			local v303_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p302_, v303_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v303_))
+		overlapSphereAsync = newOverlapSphereAsync
+		local overlapCylinder_engine = overlapCylinder
+		local overlapCylinder_new = function(x, y, z, radius, height, axis, callbackFunctionName, callbackTarget, collisionMask, ...)
+			local debugCylinder = DebugCylinder.new()
+			debugCylinder:createWithWorldPos(x, y, z, radius, height, axis):setText("overlapCylinder"):addToManager(nil, 1000, 50)
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_293_(p294_, p295_, p296_, p297_, p298_, p299_, p300_, p301_, p302_, ...)
+			return overlapCylinder_engine(x, y, z, radius, height, axis, callbackFunctionName, callbackTarget, collisionMask, ...)
 		end
-		local v_u_304_ = overlapCylinderAsync
-		function overlapCylinderAsync(p305_, p306_, p307_, p308_, p309_, p310_, p311_, p312_, p313_, ...)
-			-- upvalues: (copy) v_u_304_
-			DebugCylinder.new():createWithWorldPos(p305_, p306_, p307_, p308_, p309_, p310_):setText("overlapCylinder"):addToManager(nil, 1000, 50)
-			local v314_ = nil or CollisionFlag.TERRAIN_DISPLACEMENT
-			if bit32.btest(p313_, v314_) then
-				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(v314_))
+		overlapCylinder = overlapCylinder_new
+		local overlapCylinderAsync_engine = overlapCylinderAsync
+		local overlapCylinderAsync_new = function(x, y, z, radius, height, axis, callbackFunctionName, callbackTarget, collisionMask, ...)
+			local debugCylinder = DebugCylinder.new()
+			debugCylinder:createWithWorldPos(x, y, z, radius, height, axis):setText("overlapCylinder"):addToManager(nil, 1000, 50)
+			local disallowed = nil
+			disallowed = disallowed or CollisionFlag.TERRAIN_DISPLACEMENT
+			if bit32.btest(collisionMask, disallowed) then
+				Logging.devWarning("function-call includes %s in its mask", CollisionFlag.getFlagsStringFromMask(disallowed))
 				printCallstack()
 			end
-			return v_u_304_(p305_, p306_, p307_, p308_, p309_, p310_, p311_, p312_, p313_, ...)
+			return overlapCylinderAsync_engine(x, y, z, radius, height, axis, callbackFunctionName, callbackTarget, collisionMask, ...)
 		end
+		overlapCylinderAsync = overlapCylinderAsync_new
 	end
-	local function v376_()
-		-- upvalues: (ref) v_u_75_
+	function WrapFunctions.customWrappersNetwork()
 		print("Injected network functions with bounds checks and stats collection")
-		local v_u_315_ = false
-		local v_u_316_ = {}
-		local v_u_317_ = 0
-		local v_u_318_ = {}
-		local v_u_319_ = {}
-		local v336_ = {
-			["toggleCollection"] = function()
-				-- upvalues: (ref) v_u_315_
-				v_u_315_ = not v_u_315_
-				log("networkStatsCollectionEnabled", v_u_315_)
-			end,
-			["resetStats"] = function(_, _)
-				-- upvalues: (ref) v_u_316_, (ref) v_u_317_, (ref) v_u_318_, (ref) v_u_319_
-				v_u_316_ = {}
-				v_u_317_ = 0
-				v_u_318_ = {}
-				v_u_319_ = {}
-				print("reset network stats")
-			end,
-			["printStats"] = function(_, p320_)
-				-- upvalues: (ref) v_u_316_, (ref) v_u_317_, (ref) v_u_319_, (ref) v_u_318_
-				local v321_ = {}
-				for v325_, v323_ in pairs(v_u_316_) do
-					if p320_ then
-						local v324_ = string.findLast(v325_, ":") - 1
-						local v325_ = string.sub(v325_, 1, v324_)
-					end
-					v321_[v325_] = (v321_[v325_] or 0) + v323_
+		local networkStatsCollectionEnabled = false
+		local networkStatsNumBits = {}
+		local networkStatsNumBitsTotal = 0
+		local networkStatsMaxVal = {}
+		local networkStatsMaxSentVal = {}
+		local target = {}
+		function target.toggleCollection()
+			networkStatsCollectionEnabled = not networkStatsCollectionEnabled
+			log("networkStatsCollectionEnabled", networkStatsCollectionEnabled)
+		end
+		function target.resetStats(_, groupByFunction)
+			networkStatsNumBits = {}
+			networkStatsNumBitsTotal = 0
+			networkStatsMaxVal = {}
+			networkStatsMaxSentVal = {}
+			print("reset network stats")
+		end
+		function target.printStats(_, groupByFunction)
+			local filtered = {}
+			for trace, numBits in pairs(networkStatsNumBits) do
+				if groupByFunction then
+					local trace = string.sub(trace, 1, string.findLast(trace, ":") - 1)
 				end
-				local v326_ = {}
-				for v327_, v328_ in pairs(v321_) do
-					table.insert(v326_, { v327_, v328_ })
-				end
-				table.sort(v326_, function(p329_, p330_)
-					return p329_[2] > p330_[2]
-				end)
-				print("")
-				setFileLogPrefixTimestamp(false)
-				print("total bits send by function (integer, float and string network stream functions only):")
-				for _, v331_ in ipairs(v326_) do
-					local v332_ = v331_[2]
-					print(string.format("%10d %.3f%% %s", v332_, v332_ / v_u_317_ * 100, v331_[1]))
-				end
-				print("")
-				print("max value send by function (number network stream functions only)")
-				for v333_, v334_ in pairs(v_u_319_) do
-					local v335_ = v_u_318_[v333_]
-					print(string.format("%s, %d/%d, %.2f%%", v333_, v334_, v335_, v334_ / v335_ * 100))
-				end
-				setFileLogPrefixTimestamp(g_logFilePrefixTimestamp)
+				filtered[trace] = (filtered[trace] or 0) + numBits
 			end
-		}
-		addConsoleCommand("gsNetworkStatsPrint", "print network traffic stats", "printStats", v336_, "[groupByFunction=false]")
-		addConsoleCommand("gsNetworkStatsReset", "reset network traffic stats", "resetStats", v336_)
-		addConsoleCommand("gsNetworkStatsToggle", "toggle network traffic stats collection", "toggleCollection", v336_)
-		local function v_u_343_(p337_, p338_, p339_)
-			-- upvalues: (ref) v_u_315_, (ref) v_u_316_, (ref) v_u_317_, (ref) v_u_318_, (ref) v_u_319_
-			if v_u_315_ then
-				local v340_ = string.format("%s:%s:%d", debug.info(3, "snl"))
-				if string.contains(v340_, "NetworkUtil") then
-					v340_ = string.format("%s:%s:%d", debug.info(4, "snl"))
+			local sorted = {}
+			for trace, numBits in pairs(filtered) do
+				table.insert(sorted, { trace, numBits })
+			end
+			table.sort(sorted, function(a, b)
+				return b[2] < a[2]
+			end)
+			print("")
+			setFileLogPrefixTimestamp(false)
+			print("total bits send by function (integer, float and string network stream functions only):")
+			for _, traceAndBits in ipairs(sorted) do
+				local bits = traceAndBits[2]
+				print(string.format("%10d %.3f%% %s", bits, bits / networkStatsNumBitsTotal * 100, traceAndBits[1]))
+			end
+			print("")
+			print("max value send by function (number network stream functions only)")
+			for trace, maxValSent in pairs(networkStatsMaxSentVal) do
+				local maxVal = networkStatsMaxVal[trace]
+				print(string.format("%s, %d/%d, %.2f%%", trace, maxValSent, maxVal, maxValSent / maxVal * 100))
+			end
+			setFileLogPrefixTimestamp(g_logFilePrefixTimestamp)
+		end
+		addConsoleCommand("gsNetworkStatsPrint", "print network traffic stats", "printStats", target, "[groupByFunction=false]")
+		addConsoleCommand("gsNetworkStatsReset", "reset network traffic stats", "resetStats", target)
+		addConsoleCommand("gsNetworkStatsToggle", "toggle network traffic stats collection", "toggleCollection", target)
+		local storeStats = function(bits, value, maxValue)
+			if not networkStatsCollectionEnabled then
+				return
+			else
+				local trace = string.format("%s:%s:%d", debug.info(3, "snl"))
+				if string.contains(trace, "NetworkUtil") then
+					trace = string.format("%s:%s:%d", debug.info(4, "snl"))
 				end
-				v_u_316_[v340_] = (v_u_316_[v340_] or 0) + p337_
-				v_u_317_ = v_u_317_ + p337_
-				if p338_ ~= nil and type(p338_) == "number" then
-					v_u_318_[v340_] = p339_
-					local v341_ = v_u_319_
-					local v342_ = v_u_319_[v340_] or 0
-					v341_[v340_] = math.max(v342_, p338_)
+				networkStatsNumBits[trace] = (networkStatsNumBits[trace] or 0) + bits
+				networkStatsNumBitsTotal = networkStatsNumBitsTotal + bits
+				if value ~= nil and type(value) == "number" then
+					networkStatsMaxVal[trace] = maxValue
+					networkStatsMaxSentVal[trace] = math.max(networkStatsMaxSentVal[trace] or 0, value)
 				end
 			end
 		end
-		local v_u_344_ = streamWriteInt16
-		function streamWriteInt16(p345_, p346_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_344_
-			if p346_ ~= nil and (p346_ > 32767 or p346_ < -65536) then
-				Logging.error("value %d out of bounds", p346_)
+		local engineStreamWriteInt16 = streamWriteInt16
+		local newStreamWriteInt16 = function(streamId, value)
+			if value ~= nil and (32767 < value or value < -65536) then
+				Logging.error("value %d out of bounds", value)
 				printCallstack()
 			end
-			v_u_343_(16, p346_, 32767)
-			return v_u_344_(p345_, p346_)
+			storeStats(16, value, 32767)
+			return engineStreamWriteInt16(streamId, value)
 		end
-		local v_u_347_ = streamWriteInt32
-		function streamWriteInt32(p348_, p349_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_347_
-			if p349_ ~= nil and (p349_ > 2147483647 or p349_ < -2147483648) then
-				Logging.error("value %d out of bounds", p349_)
+		streamWriteInt16 = newStreamWriteInt16
+		local engineStreamWriteInt32 = streamWriteInt32
+		local newStreamWriteInt32 = function(streamId, value)
+			if value ~= nil and (2147483647 < value or value < -2147483648) then
+				Logging.error("value %d out of bounds", value)
 				printCallstack()
 			end
-			v_u_343_(32, p349_, 2147483647)
-			return v_u_347_(p348_, p349_)
+			storeStats(32, value, 2147483647)
+			return engineStreamWriteInt32(streamId, value)
 		end
-		local v_u_350_ = streamWriteInt8
-		function streamWriteInt8(p351_, p352_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_350_
-			if p352_ ~= nil and (p352_ > 127 or p352_ < -128) then
-				Logging.error("value %d out of bounds", p352_)
+		streamWriteInt32 = newStreamWriteInt32
+		local engineStreamWriteInt8 = streamWriteInt8
+		local newStreamWriteInt8 = function(streamId, value)
+			if value ~= nil and (127 < value or value < -128) then
+				Logging.error("value %d out of bounds", value)
 				printCallstack()
 			end
-			v_u_343_(8, p352_, 127)
-			return v_u_350_(p351_, p352_)
+			storeStats(8, value, 127)
+			return engineStreamWriteInt8(streamId, value)
 		end
-		local v_u_353_ = streamWriteIntN
-		function streamWriteIntN(p354_, p355_, p356_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_353_
-			if p355_ ~= nil and (p356_ ~= nil and (2 ^ (p356_ - 1) - 1 < p355_ or p355_ < -2 ^ (p356_ - 1))) then
-				Logging.error("value %d out of bounds (%d bits, %d max)", p355_, p356_, 2 ^ (p356_ - 1) - 1)
+		streamWriteInt8 = newStreamWriteInt8
+		local engineStreamWriteIntN = streamWriteIntN
+		local newStreamWriteIntN = function(streamId, value, numBits)
+			if value ~= nil and (numBits ~= nil and (2 ^ (numBits - 1) - 1 < value or value < -2 ^ (numBits - 1))) then
+				Logging.error("value %d out of bounds (%d bits, %d max)", value, numBits, 2 ^ (numBits - 1) - 1)
 				printCallstack()
 			end
-			v_u_343_(p356_, p355_, 2 ^ (p356_ - 1) - 1)
-			return v_u_353_(p354_, p355_, p356_)
+			storeStats(numBits, value, 2 ^ (numBits - 1) - 1)
+			return engineStreamWriteIntN(streamId, value, numBits)
 		end
-		local v_u_357_ = streamWriteUInt16
-		function streamWriteUInt16(p358_, p359_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_357_
-			if p359_ ~= nil and (p359_ > 65535 or p359_ < 0) then
-				Logging.error("value %d out of bounds", p359_)
+		streamWriteIntN = newStreamWriteIntN
+		local engineStreamWriteUInt16 = streamWriteUInt16
+		local newStreamWriteUInt16 = function(streamId, value)
+			if value ~= nil and (65535 < value or value < 0) then
+				Logging.error("value %d out of bounds", value)
 				printCallstack()
 			end
-			v_u_343_(16, p359_, 65535)
-			return v_u_357_(p358_, p359_)
+			storeStats(16, value, 65535)
+			return engineStreamWriteUInt16(streamId, value)
 		end
-		local v_u_360_ = streamWriteUInt32
-		function streamWriteUInt32(p361_, p362_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_360_
-			if p362_ ~= nil and (p362_ > 4294967295 or p362_ < 0) then
-				Logging.error("value %d out of bounds", p362_)
+		streamWriteUInt16 = newStreamWriteUInt16
+		local engineStreamWriteUInt32 = streamWriteUInt32
+		local newStreamWriteUInt32 = function(streamId, value)
+			if value ~= nil and (4294967295 < value or value < 0) then
+				Logging.error("value %d out of bounds", value)
 				printCallstack()
 			end
-			v_u_343_(32, p362_, 4294967295)
-			return v_u_360_(p361_, p362_)
+			storeStats(32, value, 4294967295)
+			return engineStreamWriteUInt32(streamId, value)
 		end
-		local v_u_363_ = streamWriteUInt8
-		function streamWriteUInt8(p364_, p365_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_363_
-			if p365_ ~= nil and (p365_ > 255 or p365_ < 0) then
-				Logging.error("value %d out of bounds", p365_)
+		streamWriteUInt32 = newStreamWriteUInt32
+		local engineStreamWriteUInt8 = streamWriteUInt8
+		local newStreamWriteUInt8 = function(streamId, value)
+			if value ~= nil and (255 < value or value < 0) then
+				Logging.error("value %d out of bounds", value)
 				printCallstack()
 			end
-			v_u_343_(8, p365_, 255)
-			return v_u_363_(p364_, p365_)
+			storeStats(8, value, 255)
+			return engineStreamWriteUInt8(streamId, value)
 		end
-		local v_u_366_ = streamWriteUIntN
-		function streamWriteUIntN(p367_, p368_, p369_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_366_
-			if p368_ ~= nil and (p369_ ~= nil and (2 ^ p369_ - 1 < p368_ or p368_ < 0)) then
-				Logging.error("value %d out of bounds (%d bits, %d max)", p368_, p369_, 2 ^ p369_ - 1)
+		streamWriteUInt8 = newStreamWriteUInt8
+		local engineStreamWriteUIntN = streamWriteUIntN
+		local newStreamWriteUIntN = function(streamId, value, numBits)
+			if value ~= nil and (numBits ~= nil and (2 ^ numBits - 1 < value or value < 0)) then
+				Logging.error("value %d out of bounds (%d bits, %d max)", value, numBits, 2 ^ numBits - 1)
 				printCallstack()
 			end
-			v_u_343_(p369_, p368_, 2 ^ p369_ - 1)
-			return v_u_366_(p367_, p368_, p369_)
+			storeStats(numBits, value, 2 ^ numBits - 1)
+			return engineStreamWriteUIntN(streamId, value, numBits)
 		end
-		local v_u_370_ = streamWriteFloat32
-		function streamWriteFloat32(p371_, p372_)
-			-- upvalues: (copy) v_u_343_, (copy) v_u_370_
-			v_u_343_(32, p372_, 1000000000)
-			return v_u_370_(p371_, p372_)
+		streamWriteUIntN = newStreamWriteUIntN
+		local engineStreamWriteFloat32 = streamWriteFloat32
+		local newStreamWriteFloat32 = function(streamId, value)
+			storeStats(32, value, 1000000000)
+			return engineStreamWriteFloat32(streamId, value)
 		end
-		local v_u_373_ = streamWriteString
-		function streamWriteString(p374_, p375_)
-			-- upvalues: (copy) v_u_343_, (ref) v_u_75_, (copy) v_u_373_
-			v_u_343_((v_u_75_ or string.len)(p375_) * 8)
-			return v_u_373_(p374_, p375_)
+		streamWriteFloat32 = newStreamWriteFloat32
+		local engineStreamWriteString = streamWriteString
+		local newStreamWriteString = function(streamId, value)
+			storeStats((string_len or string.len)(value) * 8)
+			return engineStreamWriteString(streamId, value)
 		end
+		streamWriteString = newStreamWriteString
 	end
-	WrapFunctions.customWrappersNetwork = v376_
 	function WrapFunctions.customWrappersXML()
 		print("Injected XML functions checks")
-		local v_u_377_ = setXMLInt
-		function setXMLInt(p378_, p379_, p380_)
-			-- upvalues: (copy) v_u_377_
-			if p380_ ~= nil then
-				if p380_ > 2147483647 or p380_ < -2147483648 then
-					Logging.xmlError(p378_, "value %d out of bounds", p380_)
+		local engine_setXMLInt = setXMLInt
+		local new_setXMLInt = function(xmlFile, path, value)
+			if value ~= nil then
+				if 2147483647 < value or value < -2147483648 then
+					Logging.xmlError(xmlFile, "value %d out of bounds", value)
 					printCallstack()
 				end
-				if not MathUtil.isInt(p380_) and math.abs(p380_) < 100 then
-					Logging.xmlError(p378_, "float %.3f value written as int, is this intentional?", p380_)
-					printCallstack()
-				end
-			end
-			return v_u_377_(p378_, p379_, p380_)
-		end
-		local v_u_381_ = setXMLUInt
-		function setXMLUInt(p382_, p383_, p384_)
-			-- upvalues: (copy) v_u_381_
-			if p384_ ~= nil then
-				if p384_ < 0 then
-					Logging.xmlError(p382_, "negative value %f passed to setXMLUInt for %q", p384_, p383_)
-					printCallstack()
-				end
-				if not MathUtil.isInt(p384_) and p384_ < 100 then
-					Logging.xmlError(p382_, "float %.3f value written as int in %q, is this intentional?", p384_, p383_)
+				if not MathUtil.isInt(value) and math.abs(value) < 100 then
+					Logging.xmlError(xmlFile, "float %.3f value written as int, is this intentional?", value)
 					printCallstack()
 				end
 			end
-			return v_u_381_(p382_, p383_, p384_)
+			return engine_setXMLInt(xmlFile, path, value)
 		end
-		local v_u_385_ = getXMLBool
-		function getXMLBool(p386_, p387_)
-			-- upvalues: (copy) v_u_385_
-			local v388_ = getXMLString(p386_, p387_)
-			if v388_ ~= nil and (v388_ ~= "true" and v388_ ~= "false") then
-				Logging.xmlError(p386_, "trying to load malformed xml boolean value %q from %q", v388_, p387_)
+		setXMLInt = new_setXMLInt
+		local engine_setXMLUInt = setXMLUInt
+		local new_setXMLUInt = function(xmlFile, path, value)
+			if value ~= nil then
+				if value < 0 then
+					Logging.xmlError(xmlFile, "negative value %f passed to setXMLUInt for %q", value, path)
+					printCallstack()
+				end
+				if not MathUtil.isInt(value) and value < 100 then
+					Logging.xmlError(xmlFile, "float %.3f value written as int in %q, is this intentional?", value, path)
+					printCallstack()
+				end
+			end
+			return engine_setXMLUInt(xmlFile, path, value)
+		end
+		setXMLUInt = new_setXMLUInt
+		local engine_getXMLBool = getXMLBool
+		local new_getXMLBool = function(xmlFile, path)
+			local strVal = getXMLString(xmlFile, path)
+			if strVal ~= nil and (strVal ~= "true" and strVal ~= "false") then
+				Logging.xmlError(xmlFile, "trying to load malformed xml boolean value %q from %q", strVal, path)
 				printCallstack()
 			end
-			return v_u_385_(p386_, p387_)
+			return engine_getXMLBool(xmlFile, path)
 		end
-		local v_u_389_ = getXMLInt
-		function getXMLInt(p390_, p391_)
-			-- upvalues: (copy) v_u_389_
-			local v392_ = getXMLString(p390_, p391_)
-			if v392_ ~= nil then
-				local v393_ = tonumber(v392_)
-				if v393_ == nil then
-					Logging.xmlError(p390_, "trying to load malformed xml number value %q from %q", v392_, p391_)
+		getXMLBool = new_getXMLBool
+		local engine_getXMLInt = getXMLInt
+		local new_getXMLInt = function(xmlFile, path)
+			local strVal = getXMLString(xmlFile, path)
+			if strVal ~= nil then
+				local numberVal = tonumber(strVal)
+				if numberVal == nil then
+					Logging.xmlError(xmlFile, "trying to load malformed xml number value %q from %q", strVal, path)
 					printCallstack()
-				elseif not MathUtil.isInt(v393_) then
-					Logging.xmlError(p390_, "trying to load float value %q as integer from %q in %q", v392_, p391_)
+				elseif not MathUtil.isInt(numberVal) then
+					Logging.xmlError(xmlFile, "trying to load float value %q as integer from %q", strVal, path)
 					printCallstack()
 				end
 			end
-			return v_u_389_(p390_, p391_)
+			return engine_getXMLInt(xmlFile, path)
 		end
-		local v_u_394_ = getXMLUInt
-		function getXMLUInt(p395_, p396_)
-			-- upvalues: (copy) v_u_394_
-			local v397_ = getXMLString(p395_, p396_)
-			if v397_ ~= nil then
-				local v398_ = tonumber(v397_)
-				if v398_ == nil then
-					Logging.xmlError(p395_, "trying to load malformed xml number value %q from %q in %q", v397_, p396_)
+		getXMLInt = new_getXMLInt
+		local engine_getXMLUInt = getXMLUInt
+		local new_getXMLUInt = function(xmlFile, path)
+			local strVal = getXMLString(xmlFile, path)
+			if strVal ~= nil then
+				local numberVal = tonumber(strVal)
+				if numberVal == nil then
+					Logging.xmlError(xmlFile, "trying to load malformed xml number value %q from %q", strVal, path)
 					printCallstack()
-				elseif not MathUtil.isInt(v398_) then
-					Logging.xmlError(p395_, "trying to load float value %q as integer from %q in %q", v397_, p396_)
+				elseif not MathUtil.isInt(numberVal) then
+					Logging.xmlError(xmlFile, "trying to load float value %q as integer from %q", strVal, path)
 					printCallstack()
 				end
 			end
-			return v_u_394_(p395_, p396_)
+			return engine_getXMLUInt(xmlFile, path)
 		end
-		local v_u_399_ = getXMLFloat
-		function getXMLFloat(p400_, p401_)
-			-- upvalues: (copy) v_u_399_
-			local v402_ = getXMLString(p400_, p401_)
-			if v402_ ~= nil and tonumber(v402_) == nil then
-				Logging.xmlError(p400_, "trying to load malformed xml number value %q from %q", v402_, p401_)
+		getXMLUInt = new_getXMLUInt
+		local engine_getXMLFloat = getXMLFloat
+		local new_getXMLFloat = function(xmlFile, path)
+			local strVal = getXMLString(xmlFile, path)
+			if strVal ~= nil and tonumber(strVal) == nil then
+				Logging.xmlError(xmlFile, "trying to load malformed xml number value %q from %q", strVal, path)
 				printCallstack()
 			end
-			return v_u_399_(p400_, p401_)
+			return engine_getXMLFloat(xmlFile, path)
 		end
+		getXMLFloat = new_getXMLFloat
 	end
 end

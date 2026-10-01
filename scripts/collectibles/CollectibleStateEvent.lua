@@ -1,36 +1,28 @@
--- Local values: CollectibleStateEvent_mt
 CollectibleStateEvent = {}
 local CollectibleStateEvent_mt = Class(CollectibleStateEvent, Event)
 InitStaticEventClass(CollectibleStateEvent, "CollectibleStateEvent")
 function CollectibleStateEvent.emptyNew()
-	-- upvalues: (copy) CollectibleStateEvent_mt
 	return Event.new(CollectibleStateEvent_mt)
 end
-
--- Local values: self
 function CollectibleStateEvent.new(state)
-	local v3_ = CollectibleStateEvent.emptyNew()
-	v3_.state = state
-	return v3_
+	local self = CollectibleStateEvent.emptyNew()
+	self.state = state
+	return self
 end
-
--- Local values: i
 function CollectibleStateEvent:writeStream(streamId, connection)
 	streamWriteUInt8(streamId, #self.state)
-	for v6_ = 1, #self.state do
-		streamWriteBool(streamId, self.state[v6_])
+	for i = 1, #self.state do
+		streamWriteBool(streamId, self.state[i])
 	end
 end
-
--- Local values: num, i
 function CollectibleStateEvent:readStream(streamId, connection)
 	self.state = {}
-	for v10_ = 1, streamReadUInt8(streamId) do
-		self.state[v10_] = streamReadBool(streamId)
+	local num = streamReadUInt8(streamId)
+	for i = 1, num do
+		self.state[i] = streamReadBool(streamId)
 	end
 	self:run(connection)
 end
-
 function CollectibleStateEvent:run(connection)
 	if connection:getIsServer() then
 		g_currentMission.collectiblesSystem:onStateEvent(self.state)

@@ -1,115 +1,109 @@
--- Local values: GuiProfile_mt
 GuiProfile = {}
 local GuiProfile_mt = Class(GuiProfile)
-
--- Upvalues: GuiProfile_mt
--- Local values: self
 function GuiProfile.new(profiles, traits)
-	-- upvalues: (copy) GuiProfile_mt
-	local v4_ = GuiProfile_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.values = {}
-	v5_.name = ""
-	v5_.profiles = profiles
-	v5_.traits = traits
-	v5_.parent = nil
-	return v5_
+	local self = setmetatable({}, GuiProfile_mt)
+	self.values = {}
+	self.name = ""
+	self.profiles = profiles
+	self.traits = traits
+	self.parent = nil
+	return self
 end
-
--- Local values: name, traitsStr, traitNames, i, traitName, trait, traitValueName, value, numElements, oldFormatCount, i, valueName, valueKey, value, preset
 function GuiProfile:loadFromXML(xmlFile, key, presets, isTrait, isVariant)
-	local v12_ = getXMLString(xmlFile, key .. "#name")
-	if v12_ == nil then
+	local name = getXMLString(xmlFile, key .. "#name")
+	if name == nil then
 		Logging.xmlWarning(xmlFile, "Missing name for a profile in XML file %s at path %s", getXMLFilename(xmlFile), key)
 		return false
-	end
-	self.name = v12_
-	self.isTrait = isTrait or false
-	self.parent = getXMLString(xmlFile, key .. "#extends")
-	self.isVariant = isVariant
-	if self.parent == self.name then
-		error("Profile " .. v12_ .. " extends itself")
-	end
-	if not isTrait then
-		local v13_ = getXMLString(xmlFile, key .. "#with")
-		if v13_ ~= nil then
-			local v14_ = string.split(string.trim(v13_), " ")
-			for _, v15_ in ipairs(v14_) do
-				local v16_ = self.traits[v15_]
-				if v16_ == nil then
-					Logging.xmlWarning(xmlFile, "Trait-profile \'%s\' not found for trait \'%s\' at \'%s\'", v15_, self.name, key)
-				else
-					for v17_, v18_ in pairs(v16_.values) do
-						self.values[v17_] = v18_
+	else
+		self.name = name
+		self.isTrait = isTrait or false
+		self.parent = getXMLString(xmlFile, key .. "#extends")
+		self.isVariant = isVariant
+		if self.parent == self.name then
+			error("Profile " .. name .. " extends itself")
+		end
+		if not isTrait then
+			local traitsStr = getXMLString(xmlFile, key .. "#with")
+			if traitsStr ~= nil then
+				local traitNames = string.split(string.trim(traitsStr), " ")
+				for i, traitName in ipairs(traitNames) do
+					local trait = self.traits[traitName]
+					if trait ~= nil then
+						for traitValueName, value in pairs(trait.values) do
+							self.values[traitValueName] = value
+						end
+					else
+						Logging.xmlWarning(xmlFile, "Trait-profile '%s' not found for trait '%s' at '%s'", traitName, self.name, key)
 					end
 				end
 			end
 		end
-	end
-	local v19_ = 0
-	for v20_ = 0, getXMLNumOfChildren(xmlFile, key) - 1 do
-		local v21_ = getXMLElementName(xmlFile, string.format("%s.*(%i)", key, v20_))
-		local v22_ = key .. string.format(".%s(0)#value", v21_)
-		if v21_ == "Value" then
-			v21_ = getXMLString(xmlFile, key .. string.format(".Value(%i)#name", v19_))
-			v22_ = key .. string.format(".Value(%i)#value", v19_)
-			v19_ = v19_ + 1
-			Logging.xmlWarning(xmlFile, "Gui profile \'%s\' still uses old format, please convert it to the new one", v21_)
-		end
-		local v23_ = getXMLString(xmlFile, v22_)
-		if v21_ == nil or (v23_ == nil or v21_ == "Variant") then
-			break
-		end
-		if v23_:startsWith("$preset_") then
-			local v24_ = string.gsub(v23_, "$preset_", "")
-			if presets[v24_] == nil then
-				Logging.xmlWarning(xmlFile, "Preset \'%s\' it profile \'%s\' at \'%s\' is not defined", v24_, v12_, v22_)
-			else
-				v23_ = presets[v24_]
+		local numElements = getXMLNumOfChildren(xmlFile, key)
+		local oldFormatCount = 0
+		for i = 0, numElements - 1 do
+			local valueName = getXMLElementName(xmlFile, string.format("%s.*(%i)", key, i))
+			local valueKey = key .. string.format(".%s(0)#value", valueName)
+			if valueName == "Value" then
+				valueName = getXMLString(xmlFile, key .. string.format(".Value(%i)#name", oldFormatCount))
+				valueKey = key .. string.format(".Value(%i)#value", oldFormatCount)
+				oldFormatCount = oldFormatCount + 1
+				Logging.xmlWarning(xmlFile, "Gui profile '%s' still uses old format, please convert it to the new one", valueName)
 			end
+			local value = getXMLString(xmlFile, valueKey)
+			if valueName == nil or value == nil or valueName == "Variant" then
+				break
+			end
+			if value:startsWith("$preset_") then
+				local preset = string.gsub(value, "$preset_", "")
+				if presets[preset] ~= nil then
+					value = presets[preset]
+				else
+					Logging.xmlWarning(xmlFile, "Preset '%s' it profile '%s' at '%s' is not defined", preset, name, valueKey)
+				end
+			end
+			self.values[valueName] = value
 		end
-		self.values[v21_] = v23_
+		return true
 	end
-	return true
 end
-
--- Local values: ret, parentProfile
 function GuiProfile:getValue(name, default)
+	local ret = default
 	if self.values[name .. g_baseUIPostfix] ~= nil and self.values[name .. g_baseUIPostfix] ~= "nil" then
-		return self.values[name .. g_baseUIPostfix]
+		ret = self.values[name .. g_baseUIPostfix]
+		return ret
 	end
 	if self.values[name] ~= nil and self.values[name] ~= "nil" then
-		return self.values[name]
+		ret = self.values[name]
+		return ret
 	end
 	if self.parent ~= nil then
-		local v28_
+		local parentProfile = nil
 		if self.isVariant then
-			v28_ = self.profiles[self.parent]
+			parentProfile = self.profiles[self.parent]
 		else
-			v28_ = g_gui:getProfile(self.parent)
+			parentProfile = g_gui:getProfile(self.parent)
 		end
-		if v28_ ~= nil and v28_ ~= "nil" then
-			return v28_:getValue(name, default)
+		if parentProfile ~= nil and parentProfile ~= "nil" then
+			ret = parentProfile:getValue(name, default)
+			return ret
 		end
-		Logging.warning("Parent-profile \'%s\' not found for profile \'%s\'", self.parent, self.name)
+		Logging.warning("Parent-profile '%s' not found for profile '%s'", self.parent, self.name)
 	end
-	return default
+	return ret
 end
-
--- Local values: value, ret
 function GuiProfile:getBool(name, default)
-	local v32_ = self:getValue(name)
-	if v32_ ~= nil and v32_ ~= "nil" then
-		default = string.lower(v32_) == "true"
+	local value = self:getValue(name)
+	local ret = default
+	if value ~= nil and value ~= "nil" then
+		ret = string.lower(value) == "true"
 	end
-	return default
+	return ret
 end
-
--- Local values: value, ret
 function GuiProfile:getNumber(name, default)
-	local v36_ = self:getValue(name)
-	if v36_ ~= nil and v36_ ~= "nil" then
-		default = tonumber(v36_)
+	local value = self:getValue(name)
+	local ret = default
+	if value ~= nil and value ~= "nil" then
+		ret = tonumber(value)
 	end
-	return default
+	return ret
 end

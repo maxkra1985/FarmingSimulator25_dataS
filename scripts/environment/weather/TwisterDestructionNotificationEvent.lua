@@ -1,22 +1,18 @@
--- Local values: TwisterDestructionNotificationEvent_mt
 TwisterDestructionNotificationEvent = {}
 local TwisterDestructionNotificationEvent_mt = Class(TwisterDestructionNotificationEvent, Event)
 InitStaticEventClass(TwisterDestructionNotificationEvent, "TwisterDestructionNotificationEvent")
 function TwisterDestructionNotificationEvent.emptyNew()
-	-- upvalues: (copy) TwisterDestructionNotificationEvent_mt
 	return Event.new(TwisterDestructionNotificationEvent_mt)
 end
 function TwisterDestructionNotificationEvent.new()
-	return TwisterDestructionNotificationEvent.emptyNew()
+	local self = TwisterDestructionNotificationEvent.emptyNew()
+	return self
 end
-
 function TwisterDestructionNotificationEvent:readStream(streamId, connection)
 	self:run(connection)
 end
-
 function TwisterDestructionNotificationEvent:writeStream(streamId, connection) end
-
--- Local values: mission
 function TwisterDestructionNotificationEvent:run(connection)
-	g_currentMission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, g_i18n:getText("twister_destroyedNotification"))
+	local mission = g_currentMission
+	mission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, g_i18n:getText("twister_destroyedNotification"))
 end

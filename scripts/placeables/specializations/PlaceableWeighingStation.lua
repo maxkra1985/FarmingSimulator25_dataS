@@ -1,20 +1,16 @@
 PlaceableWeighingStation = {}
-
 function PlaceableWeighingStation.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableWeighingStation.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "onWeighingTriggerCallback", PlaceableWeighingStation.onWeighingTriggerCallback)
 	SpecializationUtil.registerFunction(placeableType, "updateWeightDisplay", PlaceableWeighingStation.updateWeightDisplay)
 	SpecializationUtil.registerFunction(placeableType, "setWeightDisplay", PlaceableWeighingStation.setWeightDisplay)
 end
-
 function PlaceableWeighingStation.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableWeighingStation)
 	SpecializationUtil.registerEventListener(placeableType, "onDelete", PlaceableWeighingStation)
 end
-
 function PlaceableWeighingStation.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("WeighingStation")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".weighingStation#triggerNode", "Vehicle trigger")
@@ -30,109 +26,88 @@ function PlaceableWeighingStation.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.COLOR, basePath .. ".weighingStation.display(?)#hiddenColor", "Display text hidden color")
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec, key
 function PlaceableWeighingStation:onLoad(savegame)
-	local v_u_6_ = self.spec_weighingStation
-	v_u_6_.trigger = self.xmlFile:getValue("placeable.weighingStation#triggerNode", nil, self.components, self.i3dMappings)
-	if v_u_6_.trigger == nil then
+	local spec = self.spec_weighingStation
+	local key = "placeable.weighingStation"
+	spec.trigger = self.xmlFile:getValue("placeable.weighingStation" .. "#triggerNode", nil, self.components, self.i3dMappings)
+	if spec.trigger == nil then
 		Logging.xmlError(self.xmlFile, "Missing vehicle triggerNode for weighing station")
 	else
-		addTrigger(v_u_6_.trigger, "onWeighingTriggerCallback", self)
-		v_u_6_.triggerVehicleNodes = {}
-		v_u_6_.vehicles = {}
-		v_u_6_.displays = {}
-		self.xmlFile:iterate("placeable.weighingStation.display", function(_, p7_)
-			-- upvalues: (copy) self, (copy) v_u_6_
-			local v8_ = self.xmlFile:getValue(p7_ .. "#node", nil, self.components, self.i3dMappings)
-			if v8_ ~= nil then
-				local v9_ = string.upper(self.xmlFile:getValue(p7_ .. "#font", "DIGIT"))
-				local v10_ = g_materialManager:getFontMaterial(v9_, self.customEnvironment)
-				if v10_ ~= nil then
-					local v11_ = {}
-					local v12_ = self.xmlFile:getValue(p7_ .. "#alignment", "RIGHT")
-					local v13_ = RenderText["ALIGN_" .. string.upper(v12_)] or RenderText.ALIGN_RIGHT
-					local v14_ = self.xmlFile:getValue(p7_ .. "#size", 0.03)
-					local v15_ = self.xmlFile:getValue(p7_ .. "#scaleX", 1)
-					local v16_ = self.xmlFile:getValue(p7_ .. "#scaleY", 1)
-					local v17_ = self.xmlFile:getValue(p7_ .. "#mask", "00.0")
-					local v18_ = self.xmlFile:getValue(p7_ .. "#emissiveScale", 0.2)
-					local v19_ = self.xmlFile:getValue(p7_ .. "#color", {
-						0.9,
-						0.9,
-						0.9,
-						1
-					}, true)
-					local v20_ = self.xmlFile:getValue(p7_ .. "#hiddenColor", nil, true)
-					v11_.displayNode = v8_
-					local v21_, v22_ = Utils.maskToFormat(v17_)
-					v11_.formatStr = v21_
-					v11_.formatPrecision = v22_
-					v11_.characterLine = CharacterLine.new(v8_, v10_, v17_:len())
-					v11_.characterLine:setSizeAndScale(v14_, v15_, v16_)
-					v11_.characterLine:setTextAlignment(v13_)
-					v11_.characterLine:setColor(v19_, v20_, v18_)
-					local v23_ = v_u_6_.displays
-					table.insert(v23_, v11_)
+		addTrigger(spec.trigger, "onWeighingTriggerCallback", self)
+		spec.triggerVehicleNodes = {}
+		spec.vehicles = {}
+		spec.displays = {}
+		self.xmlFile:iterate("placeable.weighingStation" .. ".display", function(_, displayKey)
+			local displayNode = self.xmlFile:getValue(displayKey .. "#node", nil, self.components, self.i3dMappings)
+			if displayNode ~= nil then
+				local fontName = string.upper(self.xmlFile:getValue(displayKey .. "#font", "DIGIT"))
+				local fontMaterial = g_materialManager:getFontMaterial(fontName, self.customEnvironment)
+				if fontMaterial ~= nil then
+					local display = {}
+					local alignmentStr = self.xmlFile:getValue(displayKey .. "#alignment", "RIGHT")
+					local alignment = RenderText["ALIGN_" .. string.upper(alignmentStr)] or RenderText.ALIGN_RIGHT
+					local size = self.xmlFile:getValue(displayKey .. "#size", 0.03)
+					local scaleX = self.xmlFile:getValue(displayKey .. "#scaleX", 1)
+					local scaleY = self.xmlFile:getValue(displayKey .. "#scaleY", 1)
+					local mask = self.xmlFile:getValue(displayKey .. "#mask", "00.0")
+					local emissiveScale = self.xmlFile:getValue(displayKey .. "#emissiveScale", 0.2)
+					local color = self.xmlFile:getValue(displayKey .. "#color", { 0.9, 0.9, 0.9, 1 }, true)
+					local hiddenColor = self.xmlFile:getValue(displayKey .. "#hiddenColor", nil, true)
+					display.displayNode = displayNode
+					display.formatStr, display.formatPrecision = Utils.maskToFormat(mask)
+					display.characterLine = CharacterLine.new(displayNode, fontMaterial, mask:len())
+					display.characterLine:setSizeAndScale(size, scaleX, scaleY)
+					display.characterLine:setTextAlignment(alignment)
+					display.characterLine:setColor(color, hiddenColor, emissiveScale)
+					table.insert(spec.displays, display)
 				end
 			end
 		end)
 		self:setWeightDisplay(0)
 	end
 end
-
--- Local values: spec
 function PlaceableWeighingStation:onDelete()
-	local v25_ = self.spec_weighingStation
-	if v25_.trigger ~= nil then
-		removeTrigger(v25_.trigger)
-		v25_.trigger = nil
+	local spec = self.spec_weighingStation
+	if spec.trigger ~= nil then
+		removeTrigger(spec.trigger)
+		spec.trigger = nil
 	end
 end
-
--- Local values: spec, node, _, vehicle, mass, vehicle
 function PlaceableWeighingStation:updateWeightDisplay()
-	local v27_ = self.spec_weighingStation
-	for v28_, _ in pairs(v27_.triggerVehicleNodes) do
-		if entityExists(v28_) then
-			local v29_ = g_currentMission:getNodeObject(v28_)
-			if v29_ ~= nil and v29_.getTotalMass ~= nil then
-				v27_.vehicles[v29_] = true
+	local spec = self.spec_weighingStation
+	for node, _ in pairs(spec.triggerVehicleNodes) do
+		if entityExists(node) then
+			local vehicle = g_currentMission:getNodeObject(node)
+			if vehicle == nil or vehicle.getTotalMass == nil then
+				continue
 			end
+			spec.vehicles[vehicle] = true
 		else
-			v27_.triggerVehicleNodes[v28_] = nil
+			spec.triggerVehicleNodes[node] = nil
 		end
 	end
-	local v30_ = 0
-	for v31_ in pairs(v27_.vehicles) do
-		v30_ = v30_ + v31_:getTotalMass(true)
+	local mass = 0
+	for vehicle in pairs(spec.vehicles) do
+		mass = mass + vehicle:getTotalMass(true)
 	end
-	table.clear(v27_.vehicles)
-	self:setWeightDisplay(v30_ * 1000)
+	table.clear(spec.vehicles)
+	self:setWeightDisplay(mass * 1000)
 end
-
--- Local values: spec, _, display, int, floatPart, value
 function PlaceableWeighingStation:setWeightDisplay(mass)
-	local v34_ = self.spec_weighingStation
-	for _, v35_ in ipairs(v34_.displays) do
-		local v36_, v37_ = math.modf(mass)
-		local v38_ = string.format
-		local v39_ = v35_.formatStr
-		local v40_ = v37_ * 10 ^ v35_.formatPrecision
-		local v41_ = math.floor(v40_)
-		local v42_ = v38_(v39_, v36_, (math.abs(v41_)))
-		v35_.characterLine:setText(v42_)
+	local spec = self.spec_weighingStation
+	for _, display in ipairs(spec.displays) do
+		local int, floatPart = math.modf(mass)
+		local value = string.format(display.formatStr, int, math.abs(math.floor(floatPart * 10 ^ display.formatPrecision)))
+		display.characterLine:setText(value)
 	end
 end
-
--- Local values: spec
 function PlaceableWeighingStation:onWeighingTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay)
 	if onEnter or onLeave then
-		local v47_ = self.spec_weighingStation
+		local spec = self.spec_weighingStation
 		if onEnter then
-			v47_.triggerVehicleNodes[otherId] = true
+			spec.triggerVehicleNodes[otherId] = true
 		else
-			v47_.triggerVehicleNodes[otherId] = nil
+			spec.triggerVehicleNodes[otherId] = nil
 		end
 		self:updateWeightDisplay()
 	end

@@ -1,38 +1,23 @@
--- Local values: PlayerOnFootStateMachine_mt
 PlayerOnFootStateMachine = {}
 local PlayerOnFootStateMachine_mt = Class(PlayerOnFootStateMachine, StateMachine)
 PlayerOnFootStateMachine:implementStateInterface()
-
--- Upvalues: PlayerOnFootStateMachine_mt
--- Local values: self
 function PlayerOnFootStateMachine.new(player)
-	-- upvalues: (copy) PlayerOnFootStateMachine_mt
-	local v3_ = StateMachine.new(PlayerOnFootStateMachine_mt)
-	v3_.player = player
-	v3_.stateMachine = player.stateMachine
-	v3_.states = {
-		["idle"] = PlayerStateIdle.new(player, v3_),
-		["walking"] = PlayerStateWalk.new(player, v3_),
-		["swimming"] = PlayerStateSwim.new(player, v3_),
-		["falling"] = PlayerStateFall.new(player, v3_),
-		["jumping"] = PlayerStateJump.new(player, v3_),
-		["crouching"] = PlayerStateCrouch.new(player, v3_)
-	}
-	v3_:initialiseStateTransitions()
-	v3_.currentState = v3_.states.idle
-	v3_.defaultState = v3_.states.idle
-	v3_.canUseHandTools = true
-	v3_.player:addStateEvent(PlayerOnFootStateMachine.onLeaveVehicle, v3_, "onLeaveVehicle")
-	v3_.player:addStateEvent(PlayerOnFootStateMachine.onLeaveVehicle, v3_, "onLeaveVehicleAsPassenger")
-	v3_.player:addStateEvent(PlayerOnFootStateMachine.onLeaveVehicle, v3_, "onLeaveRollercoaster")
-	return v3_
+	local self = StateMachine.new(PlayerOnFootStateMachine_mt)
+	self.player = player
+	self.stateMachine = player.stateMachine
+	self.states = { idle = PlayerStateIdle.new(player, self), walking = PlayerStateWalk.new(player, self), swimming = PlayerStateSwim.new(player, self), falling = PlayerStateFall.new(player, self), jumping = PlayerStateJump.new(player, self), crouching = PlayerStateCrouch.new(player, self) }
+	self:initialiseStateTransitions()
+	self.currentState = self.states.idle
+	self.defaultState = self.states.idle
+	self.canUseHandTools = true
+	self.player:addStateEvent(PlayerOnFootStateMachine.onLeaveVehicle, self, "onLeaveVehicle")
+	self.player:addStateEvent(PlayerOnFootStateMachine.onLeaveVehicle, self, "onLeaveVehicleAsPassenger")
+	self.player:addStateEvent(PlayerOnFootStateMachine.onLeaveVehicle, self, "onLeaveRollercoaster")
+	return self
 end
-
 function PlayerOnFootStateMachine:onLeaveVehicle()
 	self.player.stateMachine:changeState(self)
 end
-
--- Local values: oldContext, mission
 function PlayerOnFootStateMachine:onStateEntered(previousState)
 	self.player.networkComponent:reset()
 	self.player.graphicsState:setDefault()
@@ -43,21 +28,19 @@ function PlayerOnFootStateMachine:onStateEntered(previousState)
 		self.player:show()
 	end
 	if self.player.isOwner then
-		local v6_ = g_inputBinding:getContextName()
-		if v6_ ~= Vehicle.INPUT_CONTEXT_NAME then
+		local oldContext = g_inputBinding:getContextName()
+		if oldContext ~= Vehicle.INPUT_CONTEXT_NAME then
 			g_inputBinding:replaceContextInStack(Vehicle.INPUT_CONTEXT_NAME, PlayerInputComponent.INPUT_CONTEXT_NAME)
 		end
-		if v6_ == InputBinding.ROOT_CONTEXT_NAME or (v6_ == Vehicle.INPUT_CONTEXT_NAME or v6_ == PlaceableRollercoaster.INPUT_CONTEXT_ROLLERCOASTER) then
+		if oldContext == InputBinding.ROOT_CONTEXT_NAME or oldContext == Vehicle.INPUT_CONTEXT_NAME or oldContext == PlaceableRollercoaster.INPUT_CONTEXT_ROLLERCOASTER then
 			self.player.inputComponent:makeCurrent()
 		end
-		local v7_ = g_currentMission
-		v7_.activatableObjectsSystem:activate(PlayerInputComponent.INPUT_CONTEXT_NAME)
-		v7_.hud:setIsControllingPlayer(true)
+		local mission = g_currentMission
+		mission.activatableObjectsSystem:activate(PlayerInputComponent.INPUT_CONTEXT_NAME)
+		mission.hud:setIsControllingPlayer(true)
 		self:determineState()
 	end
 end
-
--- Local values: mission
 function PlayerOnFootStateMachine:onStateExited(nextState)
 	self.player.networkComponent:reset()
 	self.player.graphicsState:setDefault()
@@ -67,53 +50,43 @@ function PlayerOnFootStateMachine:onStateExited(nextState)
 		self.player.mover:setSpeed(0)
 		self.player.mover:resetHorizontalVelocity()
 		self.player:setCurrentHandTool(nil, true)
-		g_currentMission.activatableObjectsSystem:deactivate(PlayerInputComponent.INPUT_CONTEXT_NAME)
+		local mission = g_currentMission
+		mission.activatableObjectsSystem:deactivate(PlayerInputComponent.INPUT_CONTEXT_NAME)
 	end
 end
-
 function PlayerOnFootStateMachine:getIsInVehicle()
 	return false
 end
-
 function PlayerOnFootStateMachine:getCurrentVehicle()
 	return nil
 end
-
 function PlayerOnFootStateMachine:getCurrentRootNode()
 	return self.player.rootNode
 end
-
 function PlayerOnFootStateMachine:getSpeed()
 	return self.player.mover:getSpeed()
 end
-
 function PlayerOnFootStateMachine:getMaximumSpeed()
-	return self.currentState.calculateMaximumSpeed == nil and 0 or self.currentState:calculateMaximumSpeed()
+	if self.currentState.calculateMaximumSpeed ~= nil then
+		return self.currentState:calculateMaximumSpeed()
+	else
+		return 0
+	end
 end
-
 function PlayerOnFootStateMachine:getPosition()
 	return self.player.mover:getPosition()
 end
-
 function PlayerOnFootStateMachine:getYaw()
 	return self.player.mover:getMovementYaw()
 end
-
 function PlayerOnFootStateMachine:getCurrentFacingDirection()
 	return MathUtil.getDirectionFromYRotation(self:getYaw())
 end
-
 function PlayerOnFootStateMachine:getCurrentCameraNode()
-	local v16_ = self.player.camera
-	if v16_ then
-		v16_ = self.player.camera:getCurrentCameraNode()
-	end
-	return v16_
+	return self.player.camera and self.player.camera:getCurrentCameraNode()
 end
-
--- Local values: mission, movementX, movementZ, x, y, z, dirX, dirZ, activatableObjectsSystem
 function PlayerOnFootStateMachine:updateAsCurrent(dt)
-	local v19_ = g_currentMission
+	local mission = g_currentMission
 	if self.player.inputComponent ~= nil then
 		self.player.inputComponent:update(dt)
 	end
@@ -129,8 +102,8 @@ function PlayerOnFootStateMachine:updateAsCurrent(dt)
 	self.player.capsuleController:update(dt)
 	self:update(dt)
 	if self.player.inputComponent ~= nil and self.currentState.calculateDesiredHorizontalVelocity then
-		local v20_, v21_ = self.currentState:calculateDesiredHorizontalVelocity(self.player.inputComponent.worldDirectionX, self.player.inputComponent.worldDirectionZ)
-		self.player.mover:moveHorizontally(v20_, v21_)
+		local movementX, movementZ = self.currentState:calculateDesiredHorizontalVelocity(self.player.inputComponent.worldDirectionX, self.player.inputComponent.worldDirectionZ)
+		self.player.mover:moveHorizontally(movementX, movementZ)
 	end
 	self.player.mover:update(dt)
 	if self.player.camera ~= nil then
@@ -152,11 +125,11 @@ function PlayerOnFootStateMachine:updateAsCurrent(dt)
 		self.player.camera:updatePosition(dt)
 	end
 	if self.player.isOwner then
-		local v22_, v23_, v24_ = self.player:getPosition()
-		local v25_, v26_ = self.player:getCurrentFacingDirection()
-		local v27_ = v19_.activatableObjectsSystem
-		v27_:setPosition(v22_, v23_, v24_)
-		v27_:setDirection(v25_, 0, v26_)
+		local x, y, z = self.player:getPosition()
+		local dirX, dirZ = self.player:getCurrentFacingDirection()
+		local activatableObjectsSystem = mission.activatableObjectsSystem
+		activatableObjectsSystem:setPosition(x, y, z)
+		activatableObjectsSystem:setDirection(dirX, 0, dirZ)
 	end
 	if self.player.inputComponent ~= nil then
 		self.player.inputComponent:resetState()
@@ -165,7 +138,6 @@ function PlayerOnFootStateMachine:updateAsCurrent(dt)
 		self.player.networkComponent:update(dt)
 	end
 end
-
 function PlayerOnFootStateMachine:updateTick(dt)
 	if self.player.networkComponent then
 		self.player.networkComponent:updateTick(dt)
@@ -174,21 +146,19 @@ function PlayerOnFootStateMachine:updateTick(dt)
 		self.player.positionalInterpolator:updateTick(dt)
 	end
 end
-
--- Local values: focusNode, playerPositionX, _, playerPositionZ, npcPositionX, _, npcPositionZ, playerNPCDirectionX, _, playerNPCDirectionZ, targetYaw
 function PlayerOnFootStateMachine:updateWhileInConversation(dt, npc)
-	local v32_ = npc.playerGraphics.model.thirdPersonHeadNode
+	local focusNode = npc.playerGraphics.model.thirdPersonHeadNode
 	if npc.playerGraphics.facialAnimation ~= nil then
-		v32_ = npc.playerGraphics.facialAnimation.headFocusNode
+		focusNode = npc.playerGraphics.facialAnimation.headFocusNode
 	end
-	if v32_ ~= nil then
-		self.player.graphicsComponent:pointRightShoulderCameraNodeAt(v32_)
+	if focusNode ~= nil then
+		self.player.graphicsComponent:pointRightShoulderCameraNodeAt(focusNode)
 	end
-	local v33_, _, v34_ = self.player:getPosition()
-	local v35_, _, v36_ = npc:getPosition()
-	local v37_, _, v38_ = MathUtil.vector3Normalize(v35_ - v33_, 0, v36_ - v34_)
-	local v39_ = MathUtil.getYRotationFromDirection(v37_, v38_)
-	self.player.mover:setMovementYaw(v39_)
+	local playerPositionX, _, playerPositionZ = self.player:getPosition()
+	local npcPositionX, _, npcPositionZ = npc:getPosition()
+	local playerNPCDirectionX, _, playerNPCDirectionZ = MathUtil.vector3Normalize(npcPositionX - playerPositionX, 0, npcPositionZ - playerPositionZ)
+	local targetYaw = MathUtil.getYRotationFromDirection(playerNPCDirectionX, playerNPCDirectionZ)
+	self.player.mover:setMovementYaw(targetYaw)
 	self.player.graphicsComponent:defaultAllParameters()
 	self.player.graphicsComponent:setModelYaw(self.player:getGraphicalYaw())
 	self.player.graphicsComponent:setModelPosition(self.player:getGraphicalPosition())

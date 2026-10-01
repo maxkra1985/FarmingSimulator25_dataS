@@ -1,5 +1,4 @@
 VehicleConfigurationDataAdditionalMass = {}
-
 function VehicleConfigurationDataAdditionalMass.registerXMLPaths(schema, rootPath, configPath)
 	schema:setXMLSharedRegistration("VehicleConfigurationDataAdditionalMass", configPath)
 	schema:register(XMLValueType.NODE_INDEX, configPath .. ".component(?)#node", "Component node")
@@ -12,51 +11,52 @@ function VehicleConfigurationDataAdditionalMass.registerXMLPaths(schema, rootPat
 	schema:register(XMLValueType.FLOAT, configPath .. ".component(?).dependentComponentJoint#transDampingFactor", "Factor that is applied to the trans damping of the component joint")
 	schema:resetXMLSharedRegistration("VehicleConfigurationDataAdditionalMass", configPath)
 end
-
--- Local values: _, key, componentNode, additionalMass, additionalMassNode, additionalMassOffset, useTotalMassReference, componentJointIndex, transSpringFactor, transDampingFactor, totalMass, _, component, _, component, comX, comY, comZ, massX, massY, massZ, alpha, invAlpha
 function VehicleConfigurationDataAdditionalMass.onLoad(vehicle, configItem, configId)
 	if configItem.configKey ~= "" then
-		for _, v5_ in vehicle.xmlFile:iterator(configItem.configKey .. ".component") do
-			local v6_ = vehicle.xmlFile:getValue(v5_ .. "#node", nil, vehicle.components, vehicle.i3dMappings)
-			local v7_ = vehicle.xmlFile:getValue(v5_ .. "#additionalMass", 0) * 0.001
-			if v6_ ~= nil and v7_ ~= 0 then
-				local v8_ = vehicle.xmlFile:getValue(v5_ .. "#additionalMassNode", nil, vehicle.components, vehicle.i3dMappings)
-				local v9_ = vehicle.xmlFile:getValue(v5_ .. "#additionalMassOffset", nil, true)
-				local v10_ = vehicle.xmlFile:getValue(v5_ .. "#useTotalMassReference", true)
-				local v11_ = vehicle.xmlFile:getValue(v5_ .. ".dependentComponentJoint#index", nil)
-				if v11_ ~= nil then
-					local v12_ = vehicle.xmlFile:getValue(v5_ .. ".dependentComponentJoint#transSpringFactor", 1)
-					local v13_ = vehicle.xmlFile:getValue(v5_ .. ".dependentComponentJoint#transDampingFactor", 1)
-					if vehicle.setDependentComponentJointBaseFactors ~= nil then
-						vehicle:setDependentComponentJointBaseFactors(v11_, v12_, v13_)
-					end
+		for _, key in vehicle.xmlFile:iterator(configItem.configKey .. ".component") do
+			local componentNode = vehicle.xmlFile:getValue(key .. "#node", nil, vehicle.components, vehicle.i3dMappings)
+			local additionalMass = vehicle.xmlFile:getValue(key .. "#additionalMass", 0) * 0.001
+			if componentNode == nil or additionalMass == 0 then
+				continue
+			end
+			local additionalMassNode = vehicle.xmlFile:getValue(key .. "#additionalMassNode", nil, vehicle.components, vehicle.i3dMappings)
+			local additionalMassOffset = vehicle.xmlFile:getValue(key .. "#additionalMassOffset", nil, true)
+			local useTotalMassReference = vehicle.xmlFile:getValue(key .. "#useTotalMassReference", true)
+			local componentJointIndex = vehicle.xmlFile:getValue(key .. ".dependentComponentJoint#index", nil)
+			if componentJointIndex ~= nil then
+				local transSpringFactor = vehicle.xmlFile:getValue(key .. ".dependentComponentJoint#transSpringFactor", 1)
+				local transDampingFactor = vehicle.xmlFile:getValue(key .. ".dependentComponentJoint#transDampingFactor", 1)
+				if vehicle.setDependentComponentJointBaseFactors ~= nil then
+					vehicle:setDependentComponentJointBaseFactors(componentJointIndex, transSpringFactor, transDampingFactor)
 				end
-				local v14_ = 0
-				for _, v15_ in ipairs(vehicle.components) do
-					v14_ = v14_ + v15_.defaultMass
-				end
-				for _, v16_ in ipairs(vehicle.components) do
-					if v16_.node == v6_ then
-						if v8_ ~= nil or v9_ ~= nil then
-							local v17_, v18_, v19_ = getCenterOfMass(v6_)
-							local v20_, v21_, v22_
-							if v8_ == nil then
-								v20_ = v9_[1]
-								v21_ = v9_[2]
-								v22_ = v9_[3]
-							else
-								v20_, v21_, v22_ = localToLocal(v8_, v6_, 0, 0, 0)
-							end
-							local v23_ = v7_ / (v10_ and v14_ and v14_ or v16_.defaultMass)
-							local v24_ = 1 - v23_
-							local v25_ = v17_ * v24_ + v20_ * v23_
-							local v26_ = v18_ * v24_ + v21_ * v23_
-							local v27_ = v19_ * v24_ + v22_ * v23_
-							setCenterOfMass(v6_, v25_, v26_, v27_)
+			end
+			local totalMass = 0
+			for _, component in ipairs(vehicle.components) do
+				totalMass = totalMass + component.defaultMass
+			end
+			for _, component in ipairs(vehicle.components) do
+				if component.node == componentNode then
+					if additionalMassNode ~= nil or additionalMassOffset ~= nil then
+						local comX, comY, comZ = getCenterOfMass(componentNode)
+						local massX = nil
+						local massY = nil
+						local massZ = nil
+						if additionalMassNode ~= nil then
+							massX, massY, massZ = localToLocal(additionalMassNode, componentNode, 0, 0, 0)
+						else
+							massX = additionalMassOffset[1]
+							massY = additionalMassOffset[2]
+							massZ = additionalMassOffset[3]
 						end
-						v16_.defaultMass = v16_.defaultMass + v7_
-						break
+						local alpha = additionalMass / (useTotalMassReference and totalMass or component.defaultMass)
+						local invAlpha = 1 - alpha
+						comX = comX * invAlpha + massX * alpha
+						comY = comY * invAlpha + massY * alpha
+						comZ = comZ * invAlpha + massZ * alpha
+						setCenterOfMass(componentNode, comX, comY, comZ)
 					end
+					component.defaultMass = component.defaultMass + additionalMass
+					break
 				end
 			end
 		end

@@ -1,33 +1,28 @@
--- Local values: ConversationPrerequisiteMap_mt
 ConversationPrerequisiteMap = {}
 ConversationPrerequisiteMap.NAME = "map"
 local ConversationPrerequisiteMap_mt = Class(ConversationPrerequisiteMap)
-
 function ConversationPrerequisiteMap.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#mapId", "Map id", nil, false)
 end
-
--- Upvalues: ConversationPrerequisiteMap_mt
--- Local values: self
 function ConversationPrerequisiteMap.new(mapId, customMt)
-	-- upvalues: (copy) ConversationPrerequisiteMap_mt
-	local v6_ = customMt or ConversationPrerequisiteMap_mt
-	local v7_ = setmetatable({}, v6_)
-	v7_.mapId = mapId
-	return v7_
+	local self = setmetatable({}, customMt or ConversationPrerequisiteMap_mt)
+	self.mapId = mapId
+	return self
 end
-
 function ConversationPrerequisiteMap:getIsValid(player, userData)
-	return self.mapId == g_currentMission.missionInfo.mapId
-end
-
--- Local values: mapId
-function ConversationPrerequisiteMap.createFromXML(xmlFile, key, conversation, baseDirectory, customEnvironment)
-	local v11_ = xmlFile:getValue(key .. "#mapId", nil)
-	if v11_ ~= nil then
-		return ConversationPrerequisiteMap.new(v11_)
+	if self.mapId ~= g_currentMission.missionInfo.mapId then
+		return false
+	else
+		return true
 	end
-	Logging.xmlWarning(xmlFile, "Missing \'mapId\' for \'%s\'", key)
-	return nil
+end
+function ConversationPrerequisiteMap.createFromXML(xmlFile, key, conversation, baseDirectory, customEnvironment)
+	local mapId = xmlFile:getValue(key .. "#mapId", nil)
+	if mapId == nil then
+		Logging.xmlWarning(xmlFile, "Missing 'mapId' for '%s'", key)
+		return nil
+	else
+		return ConversationPrerequisiteMap.new(mapId)
+	end
 end
 g_npcManager:registerConversationPrerequisiteClass(ConversationPrerequisiteMap.NAME, ConversationPrerequisiteMap)

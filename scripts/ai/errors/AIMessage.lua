@@ -1,35 +1,25 @@
--- Local values: AIMessage_mt
 AIMessage = {}
 local AIMessage_mt = Class(AIMessage)
-
--- Upvalues: AIMessage_mt
--- Local values: self
 function AIMessage.new(customMt)
-	-- upvalues: (copy) AIMessage_mt
-	local v3_ = customMt or AIMessage_mt
-	return setmetatable({}, v3_)
+	local self = setmetatable({}, customMt or AIMessage_mt)
+	return self
 end
-
--- Local values: i18nText
 function AIMessage:getMessage(job)
-	local v6_ = self:getI18NText()
-	if v6_ == nil then
-		return ""
-	elseif job == nil then
-		return string.format(v6_, "Unknown")
-	else
-		return string.format(v6_, job:getHelperName() or "Unknown")
+	local i18nText = self:getI18NText()
+	if i18nText ~= nil then
+		if job == nil then
+			return string.format(i18nText, "Unknown")
+		else
+			return string.format(i18nText, job:getHelperName() or "Unknown")
+		end
 	end
+	return ""
 end
-
 function AIMessage:getI18NText()
 	return nil
 end
-
 function AIMessage:getType()
 	return AIMessageType.ERROR
 end
-
 function AIMessage:readStream(streamId, connection) end
-
 function AIMessage:writeStream(streamId, connection) end

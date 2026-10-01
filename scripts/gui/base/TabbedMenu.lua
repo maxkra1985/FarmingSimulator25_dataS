@@ -1,57 +1,39 @@
--- Local values: TabbedMenu_mt, NO_CALLBACK
 TabbedMenu = {}
 local TabbedMenu_mt = Class(TabbedMenu, ScreenElement)
 TabbedMenu.PAGE_TAB_TEMPLATE_BUTTON_NAME = "tabButton"
 TabbedMenu.NO_BUTTON_INFO = {}
-TabbedMenu.DEFAULT_BUTTON_ACTIONS = {
-	[InputAction.MENU_ACCEPT] = true,
-	[InputAction.MENU_ACTIVATE] = true,
-	[InputAction.MENU_CANCEL] = true,
-	[InputAction.MENU_BACK] = true,
-	[InputAction.MENU_EXTRA_1] = true,
-	[InputAction.MENU_EXTRA_2] = true
-}
-TabbedMenu.PAUSE_ACTIONS = {
-	[InputAction.MENU_BACK] = true,
-	[InputAction.MENU_PAGE_NEXT] = true,
-	[InputAction.MENU_PAGE_PREV] = true
-}
+TabbedMenu.DEFAULT_BUTTON_ACTIONS = { [InputAction.MENU_ACCEPT] = true, [InputAction.MENU_ACTIVATE] = true, [InputAction.MENU_CANCEL] = true, [InputAction.MENU_BACK] = true, [InputAction.MENU_EXTRA_1] = true, [InputAction.MENU_EXTRA_2] = true }
+TabbedMenu.PAUSE_ACTIONS = { [InputAction.MENU_BACK] = true, [InputAction.MENU_PAGE_NEXT] = true, [InputAction.MENU_PAGE_PREV] = true }
 TabbedMenu.MONEY_UPDATE_INTERVAL = 300
-local function NO_CALLBACK() end
-
--- Upvalues: TabbedMenu_mt, NO_CALLBACK
--- Local values: self
+local NO_CALLBACK = function() end
 function TabbedMenu.new(target, custom_mt)
-	-- upvalues: (copy) TabbedMenu_mt, (copy) NO_CALLBACK
-	local v5_ = ScreenElement.new(target, custom_mt or TabbedMenu_mt)
-	v5_.pageFrames = {}
-	v5_.pageTabs = {}
-	v5_.pageTypeControllers = {}
-	v5_.pageRoots = {}
-	v5_.pageEnablingPredicates = {}
-	v5_.disabledPages = {}
-	v5_.enabledPages = {}
-	v5_.currentPageId = 1
-	v5_.currentPageListIndex = 1
-	v5_.currentPage = nil
-	v5_.restorePageIndex = 1
-	v5_.restorePageScrollOffset = 0
-	v5_.buttonActionCallbacks = {}
-	v5_.defaultButtonActionCallbacks = {}
-	v5_.defaultMenuButtonInfoByActions = {}
-	v5_.customButtonEvents = {}
-	v5_.clickBackCallback = NO_CALLBACK
-	v5_.frameClosePageNextCallback = v5_:makeSelfCallback(v5_.onPageNext)
-	v5_.frameClosePagePreviousCallback = v5_:makeSelfCallback(v5_.onPagePrevious)
-	v5_.performBackgroundBlur = false
-	return v5_
+	local self = ScreenElement.new(target, custom_mt or TabbedMenu_mt)
+	self.pageFrames = {}
+	self.pageTabs = {}
+	self.pageTypeControllers = {}
+	self.pageRoots = {}
+	self.pageEnablingPredicates = {}
+	self.disabledPages = {}
+	self.enabledPages = {}
+	self.currentPageId = 1
+	self.currentPageListIndex = 1
+	self.currentPage = nil
+	self.restorePageIndex = 1
+	self.restorePageScrollOffset = 0
+	self.buttonActionCallbacks = {}
+	self.defaultButtonActionCallbacks = {}
+	self.defaultMenuButtonInfoByActions = {}
+	self.customButtonEvents = {}
+	self.clickBackCallback = NO_CALLBACK
+	self.frameClosePageNextCallback = self:makeSelfCallback(self.onPageNext)
+	self.frameClosePagePreviousCallback = self:makeSelfCallback(self.onPagePrevious)
+	self.performBackgroundBlur = false
+	return self
 end
-
 function TabbedMenu:delete()
 	g_messageCenter:unsubscribeAll(self)
 	TabbedMenu:superClass().delete(self)
 end
-
 function TabbedMenu:onGuiSetupFinished()
 	TabbedMenu:superClass().onGuiSetupFinished(self)
 	self.clickBackCallback = self:makeSelfCallback(self.onButtonBack)
@@ -60,11 +42,9 @@ function TabbedMenu:onGuiSetupFinished()
 		self.pagingElement:setSize(1 - self.header.absSize[1])
 	end
 end
-
 function TabbedMenu:exitMenu()
 	self:changeScreen(nil)
 end
-
 function TabbedMenu:reset()
 	TabbedMenu:superClass().reset(self)
 	self.currentPageId = 1
@@ -72,7 +52,6 @@ function TabbedMenu:reset()
 	self.restorePageIndex = 1
 	self.restorePageScrollOffset = 0
 end
-
 function TabbedMenu:onOpen(element)
 	TabbedMenu:superClass().onOpen(self)
 	if self.performBackgroundBlur then
@@ -96,7 +75,6 @@ function TabbedMenu:onOpen(element)
 	self:setSoundSuppressed(false)
 	self:onMenuOpened()
 end
-
 function TabbedMenu:onClose(element)
 	if self.currentPage ~= nil then
 		self.currentPage:onFrameClose()
@@ -118,21 +96,14 @@ function TabbedMenu:onClose(element)
 		g_currentMission:resetGameState()
 	end
 end
-
--- Local values: listenerName
 function TabbedMenu:update(dt)
 	TabbedMenu:superClass().update(self, dt)
 	if self.currentPage ~= nil and (FocusManager.currentGui ~= self.currentPage.name and not g_gui:getIsDialogVisible()) then
 		FocusManager:setGui(self.currentPage.name)
 	end
 	if self.currentPage ~= nil then
-		local v14_
-		if g_gui.currentListener == nil then
-			v14_ = nil
-		else
-			v14_ = g_gui.currentListener.name or nil
-		end
-		if self.currentPage:isMenuButtonInfoDirty() and v14_ == self.name then
+		local listenerName = g_gui.currentListener ~= nil and g_gui.currentListener.name or nil
+		if self.currentPage:isMenuButtonInfoDirty() and listenerName == self.name then
 			self:assignMenuButtonInfo(self.currentPage:getMenuButtonInfo())
 			self.currentPage:clearMenuButtonInfoDirty()
 		end
@@ -141,157 +112,141 @@ function TabbedMenu:update(dt)
 		end
 	end
 end
-
 function TabbedMenu:setupMenuButtonInfo() end
-
--- Local values: tab
 function TabbedMenu:addPageTab(frameController, iconFilename, iconUVs, iconSliceId, soundId)
-	local v_u_21_ = {}
-	self.pageTabs[frameController] = v_u_21_
-	v_u_21_.iconFilename = iconFilename
-	v_u_21_.iconUVs = iconUVs
-	v_u_21_.iconSliceId = iconSliceId
-	v_u_21_.soundId = soundId
-	function v_u_21_.onClickCallback()
-		-- upvalues: (copy) self, (copy) frameController, (copy) v_u_21_
+	local tab = {}
+	self.pageTabs[frameController] = tab
+	tab.iconFilename = iconFilename
+	tab.iconUVs = iconUVs
+	tab.iconSliceId = iconSliceId
+	tab.soundId = soundId
+	function tab.onClickCallback()
 		self:onPageClicked(self.activeDetailPage)
-		local v22_ = self.pagingElement:getPageIdByElement(frameController)
-		local v23_ = self.pagingElement:getPageMappingIndex(v22_)
-		if self.currentPage:requestClose(v_u_21_.onClickCallback) then
-			self.pageSelector:setState(v23_, true)
+		local pageId = self.pagingElement:getPageIdByElement(frameController)
+		local pageMappingIndex = self.pagingElement:getPageMappingIndex(pageId)
+		if self.currentPage:requestClose(tab.onClickCallback) then
+			self.pageSelector:setState(pageMappingIndex, true)
 		end
 	end
 end
-
 function TabbedMenu:onPageClicked(oldPage) end
-
 function TabbedMenu:setPageTabEnabled(pageController, isEnabled, blockListReload)
 	self.pageTabs[pageController].isDisabled = not isEnabled
 	if not blockListReload then
 		self.pagingTabList:reloadData()
 	end
 end
-
--- Local values: i, page, pageId, enabled
 function TabbedMenu:rebuildTabList()
 	self.enabledPages = {}
-	for _, v29_ in ipairs(self.pageFrames) do
-		local v30_ = self.pagingElement:getPageIdByElement(v29_)
-		if not self.pagingElement:getIsPageDisabled(v30_) then
-			local v31_ = self.enabledPages
-			table.insert(v31_, v29_)
+	for i, page in ipairs(self.pageFrames) do
+		local pageId = self.pagingElement:getPageIdByElement(page)
+		local enabled = not self.pagingElement:getIsPageDisabled(pageId)
+		if enabled then
+			table.insert(self.enabledPages, page)
 		end
 	end
 	self.pagingTabList:reloadData()
 	self.pagingTabList:setSelectedIndex(self.currentPageListIndex)
 end
-
 function TabbedMenu:getNumberOfItemsInSection(list, section)
 	return #self.enabledPages
 end
-
--- Local values: button, tab
 function TabbedMenu:populateCellForItemInSection(list, section, index, cell)
-	local v36_ = cell:getAttribute("tabButton")
-	local v37_ = self.pageTabs[self.enabledPages[index]]
-	v36_:setImageFilename(nil, v37_.iconFilename)
-	v36_:setImageUVs(nil, v37_.iconUVs)
-	v36_:setImageSlice(nil, v37_.iconSliceId)
-	if v37_.soundId == nil then
-		v36_:setClickSound(GuiSoundPlayer.SOUND_SAMPLES.PAGING)
+	local button = cell:getAttribute("tabButton")
+	local tab = self.pageTabs[self.enabledPages[index]]
+	button:setImageFilename(nil, tab.iconFilename)
+	button:setImageUVs(nil, tab.iconUVs)
+	button:setImageSlice(nil, tab.iconSliceId)
+	if tab.soundId == nil then
+		button:setClickSound(GuiSoundPlayer.SOUND_SAMPLES.PAGING)
 	else
-		v36_:setClickSound(v37_.soundId)
+		button:setClickSound(tab.soundId)
 	end
-	v36_.onClickCallback = v37_.onClickCallback
+	button.onClickCallback = tab.onClickCallback
 end
-
--- Local values: pageElement, predicate, pageId, enable
 function TabbedMenu:updatePages()
-	for v39_, v40_ in pairs(self.pageEnablingPredicates) do
-		local v41_ = self.pagingElement:getPageIdByElement(v39_)
-		local v42_
-		if self.disabledPages[v39_] == nil then
-			v42_ = v40_()
-		else
-			v42_ = false
+	for pageElement, predicate in pairs(self.pageEnablingPredicates) do
+		local pageId = self.pagingElement:getPageIdByElement(pageElement)
+		local enable = false
+		if self.disabledPages[pageElement] == nil then
+			enable = predicate()
 		end
 		self.pagingElement.neuterPageUpdates = true
-		self.pagingElement:setPageIdDisabled(v41_, not v42_)
+		self.pagingElement:setPageIdDisabled(pageId, not enable)
 		self.pagingElement.neuterPageUpdates = false
-		self:setPageTabEnabled(v39_, v42_, true)
+		self:setPageTabEnabled(pageElement, enable, true)
 	end
 	self:rebuildTabList()
 	self:setPageSelectorTitles()
 end
-
--- Local values: k, i
 function TabbedMenu:clearMenuButtonActions()
-	for v44_ in pairs(self.buttonActionCallbacks) do
-		self.buttonActionCallbacks[v44_] = nil
+	for k in pairs(self.buttonActionCallbacks) do
+		self.buttonActionCallbacks[k] = nil
 	end
-	for v45_ in ipairs(self.customButtonEvents) do
-		g_inputBinding:removeActionEvent(self.customButtonEvents[v45_])
-		self.customButtonEvents[v45_] = nil
+	for i in ipairs(self.customButtonEvents) do
+		g_inputBinding:removeActionEvent(self.customButtonEvents[i])
+		self.customButtonEvents[i] = nil
 	end
 end
-
--- Upvalues: NO_CALLBACK
--- Local values: i, button, info, hasInfo, buttonText, buttonClickCallback, sound, oldButtonClickCallback, showForGameState, showForCurrentState, disabled, _, eventId, separator
 function TabbedMenu:assignMenuButtonInfo(menuButtonInfo)
-	-- upvalues: (copy) NO_CALLBACK
 	self:clearMenuButtonActions()
-	for v48_, v49_ in ipairs(self.menuButton) do
-		local v50_ = menuButtonInfo[v48_]
-		local v51_ = v50_ ~= nil
-		v49_:setVisible(v51_)
-		if v51_ and (v50_.inputAction ~= nil and InputAction[v50_.inputAction] ~= nil) then
-			v49_:setInputAction(v50_.inputAction)
+	for i, button in ipairs(self.menuButton) do
+		local info = menuButtonInfo[i]
+		local hasInfo = info ~= nil
+		button:setVisible(hasInfo)
+		if hasInfo then
+			if info.inputAction == nil or InputAction[info.inputAction] == nil then
+				continue
+			end
+			button:setInputAction(info.inputAction)
 			if Platform.isMobile then
-				if v50_.profile == nil then
-					v49_:applyProfile("buttonBack")
+				if info.profile ~= nil then
+					button:applyProfile(info.profile)
 				else
-					v49_:applyProfile(v50_.profile)
+					button:applyProfile("buttonBack")
 				end
 			end
-			local v52_ = v50_.text
-			if v52_ == nil and self.defaultMenuButtonInfoByActions[v50_.inputAction] ~= nil then
-				v52_ = self.defaultMenuButtonInfoByActions[v50_.inputAction].text
+			local buttonText = info.text
+			if buttonText == nil and self.defaultMenuButtonInfoByActions[info.inputAction] ~= nil then
+				buttonText = self.defaultMenuButtonInfoByActions[info.inputAction].text
 			end
-			v49_:setText(v52_)
-			local v_u_53_ = v50_.callback or (self.defaultButtonActionCallbacks[v50_.inputAction] or NO_CALLBACK)
-			local v54_ = GuiSoundPlayer.SOUND_SAMPLES.CLICK
-			if v50_.inputAction == InputAction.MENU_BACK then
-				v54_ = GuiSoundPlayer.SOUND_SAMPLES.BACK
+			button:setText(buttonText)
+			local buttonClickCallback = info.callback or self.defaultButtonActionCallbacks[info.inputAction] or NO_CALLBACK
+			local sound = GuiSoundPlayer.SOUND_SAMPLES.CLICK
+			if info.inputAction == InputAction.MENU_BACK then
+				sound = GuiSoundPlayer.SOUND_SAMPLES.BACK
 			end
-			if v50_.clickSound == nil or v50_.clickSound == v54_ then
-				v49_:setClickSound(v54_)
-			else
-				local v_u_55_ = v50_.clickSound
-				v_u_53_ = function(...)
-					-- upvalues: (copy) self, (ref) v_u_55_, (copy) v_u_53_
-					self:playSample(v_u_55_)
-					self:setNextScreenClickSoundMuted()
-					return v_u_53_(...)
-				end
-				v49_:setClickSound(GuiSoundPlayer.SOUND_SAMPLES.NONE)
-			end
-			local v56_ = Platform.isMobile or (not self.paused or v50_.showWhenPaused) or TabbedMenu.PAUSE_ACTIONS[v50_.inputAction] ~= nil
-			local v57_ = v50_.disabled or not v56_
-			if not v57_ then
-				if TabbedMenu.DEFAULT_BUTTON_ACTIONS[v50_.inputAction] then
-					self.buttonActionCallbacks[v50_.inputAction] = v_u_53_
+			if info.clickSound ~= nil then
+				if info.clickSound ~= sound then
+					sound = info.clickSound
+					local oldButtonClickCallback = buttonClickCallback
+					function buttonClickCallback(...)
+						self:playSample(sound)
+						self:setNextScreenClickSoundMuted()
+						return oldButtonClickCallback(...)
+					end
+					button:setClickSound(GuiSoundPlayer.SOUND_SAMPLES.NONE)
 				else
-					local _, v58_ = g_inputBinding:registerActionEvent(v50_.inputAction, nil, v_u_53_, false, true, false, true)
-					g_inputBinding:setActionEventTextVisibility(v58_, false)
-					local v59_ = self.customButtonEvents
-					table.insert(v59_, v58_)
+					button:setClickSound(sound)
 				end
 			end
-			v49_.onClickCallback = v_u_53_
-			v49_:setDisabled(v57_)
-			local v60_ = v49_:getDescendantByName("separator")
-			if v60_ ~= nil then
-				v60_:setVisible(v48_ ~= 1)
+			local showForGameState = Platform.isMobile or not self.paused or info.showWhenPaused
+			local showForCurrentState = showForGameState or TabbedMenu.PAUSE_ACTIONS[info.inputAction] ~= nil
+			local disabled = info.disabled or not showForCurrentState
+			if not disabled then
+				if not TabbedMenu.DEFAULT_BUTTON_ACTIONS[info.inputAction] then
+					local _, eventId = g_inputBinding:registerActionEvent(info.inputAction, nil, buttonClickCallback, false, true, false, true)
+					g_inputBinding:setActionEventTextVisibility(eventId, false)
+					table.insert(self.customButtonEvents, eventId)
+				else
+					self.buttonActionCallbacks[info.inputAction] = buttonClickCallback
+				end
+			end
+			button.onClickCallback = buttonClickCallback
+			button:setDisabled(disabled)
+			local separator = button:getDescendantByName("separator")
+			if separator ~= nil then
+				separator:setVisible(i ~= 1)
 			end
 		end
 	end
@@ -300,131 +255,94 @@ function TabbedMenu:assignMenuButtonInfo(menuButtonInfo)
 	end
 	self.buttonsPanel:invalidateLayout()
 end
-
--- Local values: texts, id
 function TabbedMenu:setPageSelectorTitles()
-	local v62_ = self.pagingElement:getPageTitles()
-	self.pageSelector:setTexts(v62_)
-	self.pageSelector:setDisabled(#v62_ == 1)
-	local v63_ = self.pagingElement:getCurrentPageId()
-	self.pageSelector.state = self.pagingElement:getPageMappingIndex(v63_)
+	local texts = self.pagingElement:getPageTitles()
+	self.pageSelector:setTexts(texts)
+	self.pageSelector:setDisabled(#texts == 1)
+	local id = self.pagingElement:getCurrentPageId()
+	self.pageSelector.state = self.pagingElement:getPageMappingIndex(id)
 end
-
--- Local values: oldMute, index
 function TabbedMenu:goToPage(page, muteSound)
-	local v67_ = self.muteSound
+	local oldMute = self.muteSound
 	self.muteSound = muteSound
-	local v68_ = self.pagingElement:getPageMappingIndexByElement(page)
-	if v68_ ~= nil then
-		self.pageSelector:setState(v68_, true)
+	local index = self.pagingElement:getPageMappingIndexByElement(page)
+	if index ~= nil then
+		self.pageSelector:setState(index, true)
 	end
-	self.muteSound = v67_
+	self.muteSound = oldMute
 end
-
 function TabbedMenu:updatePagingVisibility(visible)
 	self.header:setVisible(visible)
 end
-
--- Upvalues: NO_CALLBACK
--- Local values: buttonCallback
 function TabbedMenu:onMenuActionClick(menuActionName)
-	-- upvalues: (copy) NO_CALLBACK
-	local v73_ = self.buttonActionCallbacks[menuActionName]
-	return (v73_ == nil or v73_ == NO_CALLBACK) and true or (v73_() or false)
+	local buttonCallback = self.buttonActionCallbacks[menuActionName]
+	if buttonCallback ~= nil and buttonCallback ~= NO_CALLBACK then
+		return buttonCallback() or false
+	end
+	return true
 end
-
--- Local values: eventUnused
 function TabbedMenu:onClickOk()
-	return self:onMenuActionClick(InputAction.MENU_ACCEPT)
+	local eventUnused = self:onMenuActionClick(InputAction.MENU_ACCEPT)
+	return eventUnused
 end
-
--- Local values: eventUnused
 function TabbedMenu:onClickBack()
-	local v76_ = (self.currentPage == nil or self.currentPage:requestClose(self.clickBackCallback)) and TabbedMenu:superClass().onClickBack(self)
-	if v76_ then
-		v76_ = self:onMenuActionClick(InputAction.MENU_BACK)
+	local eventUnused = true
+	if self.currentPage == nil or self.currentPage:requestClose(self.clickBackCallback) then
+		eventUnused = TabbedMenu:superClass().onClickBack(self) and self:onMenuActionClick(InputAction.MENU_BACK)
 	end
-	return v76_
+	return eventUnused
 end
-
--- Local values: eventUnused
 function TabbedMenu:onClickCancel()
-	local v78_ = TabbedMenu:superClass().onClickCancel(self)
-	if v78_ then
-		v78_ = self:onMenuActionClick(InputAction.MENU_CANCEL)
-	end
-	return v78_
+	local eventUnused = TabbedMenu:superClass().onClickCancel(self) and self:onMenuActionClick(InputAction.MENU_CANCEL)
+	return eventUnused
 end
-
--- Local values: eventUnused
 function TabbedMenu:onClickActivate()
-	local v80_ = TabbedMenu:superClass().onClickActivate(self)
-	if v80_ then
-		v80_ = self:onMenuActionClick(InputAction.MENU_ACTIVATE)
-	end
-	return v80_
+	local eventUnused = TabbedMenu:superClass().onClickActivate(self) and self:onMenuActionClick(InputAction.MENU_ACTIVATE)
+	return eventUnused
 end
-
--- Local values: eventUnused
 function TabbedMenu:onClickMenuExtra1()
-	local v82_ = TabbedMenu:superClass().onClickMenuExtra1(self)
-	if v82_ then
-		v82_ = self:onMenuActionClick(InputAction.MENU_EXTRA_1)
-	end
-	return v82_
+	local eventUnused = TabbedMenu:superClass().onClickMenuExtra1(self) and self:onMenuActionClick(InputAction.MENU_EXTRA_1)
+	return eventUnused
 end
-
--- Local values: eventUnused
 function TabbedMenu:onClickMenuExtra2()
-	local v84_ = TabbedMenu:superClass().onClickMenuExtra2(self)
-	if v84_ then
-		v84_ = self:onMenuActionClick(InputAction.MENU_EXTRA_2)
-	end
-	return v84_
+	local eventUnused = TabbedMenu:superClass().onClickMenuExtra2(self) and self:onMenuActionClick(InputAction.MENU_EXTRA_2)
+	return eventUnused
 end
-
--- Local values: soundId
 function TabbedMenu:onClickPageSelection(state)
 	if self.pagingElement:setPage(state) and not self.muteSound then
-		local v87_ = GuiSoundPlayer.SOUND_SAMPLES.CLICK
+		local soundId = GuiSoundPlayer.SOUND_SAMPLES.CLICK
 		if self.pageTabs[self.currentPage] ~= nil and self.pageTabs[self.currentPage].soundId ~= nil then
-			v87_ = self.pageTabs[self.currentPage].soundId
+			soundId = self.pageTabs[self.currentPage].soundId
 		end
-		self:playSample(v87_)
+		self:playSample(soundId)
 	end
 end
-
 function TabbedMenu:onPagePrevious()
 	if Platform.isMobile then
 		if self.currentPage:getHasPreviousPage() then
 			self.currentPage:onPreviousPage()
-			return
 		end
 	elseif self.currentPage:requestClose(self.frameClosePagePreviousCallback) then
 		TabbedMenu:superClass().onPagePrevious(self)
 	end
 end
-
 function TabbedMenu:onPageNext()
 	if Platform.isMobile then
 		if self.currentPage:getHasNextPage() then
 			self.currentPage:onNextPage()
-			return
 		end
 	elseif self.currentPage:requestClose(self.frameClosePageNextCallback) then
 		TabbedMenu:superClass().onPageNext(self)
 	end
 end
-
--- Local values: page
 function TabbedMenu:onPageChange(pageIndex, pageMappingIndex, element, skipTabVisualUpdate)
 	if self.currentPage ~= nil then
 		self.currentPage:onFrameClose()
 		self.currentPage:setVisible(false)
 	end
 	g_inputBinding:storeEventBindings()
-	local v94_ = self.pagingElement:getPageElementByIndex(pageIndex)
-	self.currentPage = v94_
+	local page = self.pagingElement:getPageElementByIndex(pageIndex)
+	self.currentPage = page
 	self.currentPageListIndex = pageMappingIndex
 	if not skipTabVisualUpdate then
 		self.currentPageId = pageIndex
@@ -432,190 +350,149 @@ function TabbedMenu:onPageChange(pageIndex, pageMappingIndex, element, skipTabVi
 			self.pagingTabList:setSelectedIndex(pageMappingIndex)
 		end
 	end
-	v94_:setVisible(true)
-	v94_:setSoundSuppressed(true)
-	FocusManager:setGui(v94_.name)
-	v94_:setSoundSuppressed(false)
-	self:updateButtonsPanel(v94_)
+	page:setVisible(true)
+	page:setSoundSuppressed(true)
+	FocusManager:setGui(page.name)
+	page:setSoundSuppressed(false)
+	self:updateButtonsPanel(page)
 	self:updateTabDisplay()
-	v94_:onFrameOpen()
+	page:onFrameOpen()
 end
-
 function TabbedMenu:onTabMenuSelectionChanged() end
-
 function TabbedMenu:onTabMenuScroll()
 	self:updateTabDisplay()
 end
-
--- Local values: buttonInfo
 function TabbedMenu:updateButtonsPanel(page)
-	self:assignMenuButtonInfo((self:getPageButtonInfo(page)))
+	local buttonInfo = self:getPageButtonInfo(page)
+	self:assignMenuButtonInfo(buttonInfo)
 	if page.buttonBox ~= nil then
 		page.buttonBox.parent:addElement(page.buttonBox)
 	end
 end
-
--- Local values: list, isFirstItemVisible, itemToShow, prevElement, lastSection, isLastItemVisible, itemToShow, nextElement
 function TabbedMenu:updateTabDisplay()
-	if not Platform.isMobile then
-		local v99_ = self.pagingTabList
+	if Platform.isMobile then
+		return
+	else
+		local list = self.pagingTabList
 		if self.pagingTabPrevious ~= nil then
-			local v100_
-			if v99_.totalItemCount > 0 then
-				v100_ = v99_.sections[1].cells[1] ~= nil
-			else
-				v100_ = false
-			end
-			self.pagingTabPrevious:setVisible(not v100_)
-			if not v100_ then
-				local v101_ = v99_.firstVisibleItem - 1
-				local v102_ = v99_.listItems[v101_].elements[1]
-				local v103_ = self.pagingTabPrevious.elements[1]
-				local v104_ = GuiOverlay.STATE_NORMAL
-				local v105_ = v102_.icon.uvs
-				v103_:setImageUVs(v104_, unpack(v105_))
-				self.pagingTabPrevious.elements[1]:setImageFilename(v102_.icon.filename)
+			local isFirstItemVisible = 0 < list.totalItemCount and list.sections[1].cells[1] ~= nil
+			self.pagingTabPrevious:setVisible(not isFirstItemVisible)
+			if not isFirstItemVisible then
+				local itemToShow = list.firstVisibleItem - 1
+				local prevElement = list.listItems[itemToShow].elements[1]
+				self.pagingTabPrevious.elements[1]:setImageUVs(GuiOverlay.STATE_NORMAL, unpack(prevElement.icon.uvs))
+				self.pagingTabPrevious.elements[1]:setImageFilename(prevElement.icon.filename)
 			end
 		end
 		if self.pagingTabNext ~= nil then
-			local v106_ = v99_.sections[#v99_.sections]
-			local v107_
-			if v99_.totalItemCount > 0 then
-				v107_ = v106_.cells[v106_.numItems] ~= nil
-			else
-				v107_ = false
-			end
-			self.pagingTabNext:setVisible(not v107_)
-			if not v107_ then
-				local v108_ = v99_.firstVisibleItem + v99_.visibleItems
-				local v109_ = v99_.listItems[v108_].elements[1]
-				local v110_ = self.pagingTabNext.elements[1]
-				local v111_ = GuiOverlay.STATE_NORMAL
-				local v112_ = v109_.icon.uvs
-				v110_:setImageUVs(v111_, unpack(v112_))
-				self.pagingTabNext.elements[1]:setImageFilename(v109_.icon.filename)
+			local lastSection = list.sections[#list.sections]
+			local isLastItemVisible = 0 < list.totalItemCount and lastSection.cells[lastSection.numItems] ~= nil
+			self.pagingTabNext:setVisible(not isLastItemVisible)
+			if not isLastItemVisible then
+				local itemToShow = list.firstVisibleItem + list.visibleItems
+				local nextElement = list.listItems[itemToShow].elements[1]
+				self.pagingTabNext.elements[1]:setImageUVs(GuiOverlay.STATE_NORMAL, unpack(nextElement.icon.uvs))
+				self.pagingTabNext.elements[1]:setImageFilename(nextElement.icon.filename)
 			end
 		end
 	end
 end
-
--- Local values: buttonInfo
 function TabbedMenu:getPageButtonInfo(page)
+	local buttonInfo = nil
 	if page:getHasCustomMenuButtons() then
-		return page:getMenuButtonInfo()
+		buttonInfo = page:getMenuButtonInfo()
+		return buttonInfo
 	else
-		return self.defaultMenuButtonInfo
+		buttonInfo = self.defaultMenuButtonInfo
+		return buttonInfo
 	end
 end
-
 function TabbedMenu:onPageUpdate() end
-
 function TabbedMenu:onButtonBack()
 	self:exitMenu()
 end
-
 function TabbedMenu:onMenuOpened() end
-
--- Local values: pageRoot
 function TabbedMenu:registerPage(pageFrameElement, position, enablingPredicateFunction)
-	local v120_
 	if position == nil then
-		v120_ = #self.pageFrames + 1
+		position = #self.pageFrames + 1
 	else
-		local v121_ = #self.pageFrames + 1
-		local v122_ = math.min(v121_, position)
-		v120_ = math.max(1, v122_)
+		position = math.max(1, math.min(#self.pageFrames + 1, position))
 	end
-	local v123_ = self.pageFrames
-	table.insert(v123_, v120_, pageFrameElement)
+	table.insert(self.pageFrames, position, pageFrameElement)
 	self.pageTypeControllers[pageFrameElement:class()] = pageFrameElement
-	local v124_ = pageFrameElement.elements[1]
-	self.pageRoots[pageFrameElement] = v124_
+	local pageRoot = pageFrameElement.elements[1]
+	self.pageRoots[pageFrameElement] = pageRoot
 	self.pageEnablingPredicates[pageFrameElement] = enablingPredicateFunction
 	pageFrameElement:setVisible(false)
-	return v124_, v120_
+	return pageRoot, position
 end
-
--- Local values: pageController, pageTab, pageRoot, pageRemoveIndex, i, page
 function TabbedMenu:unregisterPage(pageFrameClass)
-	local v127_ = self.pageTypeControllers[pageFrameClass]
-	local v128_
-	if v127_ == nil then
-		v128_ = nil
-	else
-		local v129_ = -1
-		for v130_, v131_ in ipairs(self.pageFrames) do
-			if v131_ == v127_ then
-				v129_ = v130_
+	local pageController = self.pageTypeControllers[pageFrameClass]
+	local pageTab = nil
+	local pageRoot = nil
+	if pageController ~= nil then
+		local pageRemoveIndex = -1
+		for i, page in ipairs(self.pageFrames) do
+			if page == pageController then
+				pageRemoveIndex = i
 				break
 			end
 		end
-		table.remove(self.pageFrames, v129_)
-		v128_ = self.pageRoots[v127_]
-		self.pageRoots[v127_] = nil
+		table.remove(self.pageFrames, pageRemoveIndex)
+		pageRoot = self.pageRoots[pageController]
+		self.pageRoots[pageController] = nil
 		self.pageTypeControllers[pageFrameClass] = nil
-		self.pageEnablingPredicates[v127_] = nil
-		self.pageTabs[v127_] = nil
+		self.pageEnablingPredicates[pageController] = nil
+		self.pageTabs[pageController] = nil
 	end
-	return v127_ ~= nil, v127_, v128_, nil
+	return pageController ~= nil, pageController, pageRoot, nil
 end
-
--- Local values: pageRoot, actualPosition, name
 function TabbedMenu:addPage(pageFrameElement, position, tabIconFilename, tabIconUVs, enablingPredicateFunction)
-	local v138_, v139_ = self:registerPage(pageFrameElement, position, enablingPredicateFunction)
+	local pageRoot, actualPosition = self:registerPage(pageFrameElement, position, enablingPredicateFunction)
 	self:addPageTab(pageFrameElement, tabIconFilename, GuiUtils.getUVs(tabIconUVs))
-	local v140_ = v138_.title
-	if v140_ == nil then
-		v140_ = g_i18n:getText("ui_" .. v138_.name)
+	local name = pageRoot.title
+	if name == nil then
+		name = g_i18n:getText("ui_" .. pageRoot.name)
 	end
-	self.pagingElement:addPage(string.upper(v138_.name), v138_, v140_, v139_)
+	self.pagingElement:addPage(string.upper(pageRoot.name), pageRoot, name, actualPosition)
 end
-
--- Local values: defaultPage, needDelete, pageController, pageRoot, pageTab
 function TabbedMenu:removePage(pageFrameClass)
-	local v143_ = self.pageTypeControllers[pageFrameClass]
-	if self.defaultPageElementIDs[v143_] == nil then
-		local v144_, v145_, v146_, v147_ = self:unregisterPage(pageFrameClass)
-		if v144_ then
-			self.pagingElement:removeElement(v146_)
-			v146_:delete()
-			v145_:delete()
-			if self.pagingTabList ~= nil then
-				self.pagingTabList:removeElement(v147_)
-			end
-			v147_:delete()
-		end
-	else
+	local defaultPage = self.pageTypeControllers[pageFrameClass]
+	if self.defaultPageElementIDs[defaultPage] ~= nil then
 		self:setPageEnabled(pageFrameClass, false)
+	else
+		local needDelete, pageController, pageRoot, pageTab = self:unregisterPage(pageFrameClass)
+		if needDelete then
+			self.pagingElement:removeElement(pageRoot)
+			pageRoot:delete()
+			pageController:delete()
+			if self.pagingTabList ~= nil then
+				self.pagingTabList:removeElement(pageTab)
+			end
+			pageTab:delete()
+		end
 	end
 end
-
--- Local values: pageController, pageId
 function TabbedMenu:setPageEnabled(pageFrameClass, isEnabled)
-	local v151_ = self.pageTypeControllers[pageFrameClass]
-	if v151_ ~= nil then
-		local v152_ = self.pagingElement:getPageIdByElement(v151_)
-		self.pagingElement:setPageIdDisabled(v152_, not isEnabled)
-		v151_:setDisabled(not isEnabled)
-		if isEnabled then
-			self.disabledPages[v151_] = nil
+	local pageController = self.pageTypeControllers[pageFrameClass]
+	if pageController ~= nil then
+		local pageId = self.pagingElement:getPageIdByElement(pageController)
+		self.pagingElement:setPageIdDisabled(pageId, not isEnabled)
+		pageController:setDisabled(not isEnabled)
+		if not isEnabled then
+			self.disabledPages[pageController] = pageController
 		else
-			self.disabledPages[v151_] = v151_
+			self.disabledPages[pageController] = nil
 		end
-		self:setPageTabEnabled(v151_, isEnabled)
+		self:setPageTabEnabled(pageController, isEnabled)
 		if self.pagingTabList ~= nil then
 			self.pagingTabList:updateView()
 		end
 	end
 end
-
 function TabbedMenu:makeSelfCallback(func)
 	return function(...)
-		-- upvalues: (copy) func, (copy) self
 		return func(self, ...)
 	end
 end
-TabbedMenu.PROFILE = {
-	["PAGE_TAB"] = "uiTabbedMenuPageTab",
-	["PAGE_TAB_ACTIVE"] = "uiTabbedMenuPageTabActive"
-}
+TabbedMenu.PROFILE = { PAGE_TAB = "uiTabbedMenuPageTab", PAGE_TAB_ACTIVE = "uiTabbedMenuPageTabActive" }

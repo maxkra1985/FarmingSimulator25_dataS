@@ -1,28 +1,22 @@
--- Local values: FellerBuncherCutEvent_mt
 FellerBuncherCutEvent = {}
 local FellerBuncherCutEvent_mt = Class(FellerBuncherCutEvent, Event)
 InitStaticEventClass(FellerBuncherCutEvent, "FellerBuncherCutEvent")
 function FellerBuncherCutEvent.emptyNew()
-	-- upvalues: (copy) FellerBuncherCutEvent_mt
-	return Event.new(FellerBuncherCutEvent_mt)
+	local self = Event.new(FellerBuncherCutEvent_mt)
+	return self
 end
-
--- Local values: self
 function FellerBuncherCutEvent.new(object)
-	local v3_ = FellerBuncherCutEvent.emptyNew()
-	v3_.object = object
-	return v3_
+	local self = FellerBuncherCutEvent.emptyNew()
+	self.object = object
+	return self
 end
-
 function FellerBuncherCutEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self:run(connection)
 end
-
 function FellerBuncherCutEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 end
-
 function FellerBuncherCutEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -31,7 +25,6 @@ function FellerBuncherCutEvent:run(connection)
 		self.object:cutTree(true)
 	end
 end
-
 function FellerBuncherCutEvent.sendEvent(vehicle, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

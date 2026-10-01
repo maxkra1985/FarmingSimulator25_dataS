@@ -1,30 +1,22 @@
--- Local values: InterpolatorSplineTime_mt
 InterpolatorSplineTime = {}
 local InterpolatorSplineTime_mt = Class(InterpolatorSplineTime)
-
--- Upvalues: InterpolatorSplineTime_mt
--- Local values: self
 function InterpolatorSplineTime.new(value, isLooping, customMt)
-	-- upvalues: (copy) InterpolatorSplineTime_mt
-	local v5_ = customMt or InterpolatorSplineTime_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.value = value
-	v6_.lastValue = value
-	v6_.targetValue = value
-	v6_.isLooping = isLooping
+	local self = setmetatable({}, customMt or InterpolatorSplineTime_mt)
+	self.value = value
+	self.lastValue = value
+	self.targetValue = value
+	self.isLooping = isLooping
 	if not isLooping then
-		v6_.min = 0
-		v6_.max = 1
+		self.min = 0
+		self.max = 1
 	end
-	return v6_
+	return self
 end
-
 function InterpolatorSplineTime:setValue(value)
 	self.value = value
 	self.lastValue = value
 	self.targetValue = value
 end
-
 function InterpolatorSplineTime:setTargetValue(value, direction)
 	if self.isLooping then
 		if direction == 1 then
@@ -38,7 +30,6 @@ function InterpolatorSplineTime:setTargetValue(value, direction)
 	self.targetValue = self:clampValue(value)
 	self.lastValue = self.value
 end
-
 function InterpolatorSplineTime:getInterpolatedValue(interpolationAlpha)
 	self.value = self.lastValue + interpolationAlpha * (self.targetValue - self.lastValue)
 	self.value = self:clampValue(self.value)
@@ -51,15 +42,12 @@ function InterpolatorSplineTime:getInterpolatedValue(interpolationAlpha)
 		return self.value
 	end
 end
-
 function InterpolatorSplineTime:clampValue(value)
 	if self.min ~= nil then
-		local v16_ = self.min
-		value = math.max(value, v16_)
+		value = math.max(value, self.min)
 	end
 	if self.max ~= nil then
-		local v17_ = self.max
-		value = math.min(value, v17_)
+		value = math.min(value, self.max)
 	end
 	return value
 end

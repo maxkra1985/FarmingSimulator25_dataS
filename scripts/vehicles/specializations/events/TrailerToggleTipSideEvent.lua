@@ -1,31 +1,25 @@
--- Local values: TrailerToggleTipSideEvent_mt
 TrailerToggleTipSideEvent = {}
 local TrailerToggleTipSideEvent_mt = Class(TrailerToggleTipSideEvent, Event)
 InitStaticEventClass(TrailerToggleTipSideEvent, "TrailerToggleTipSideEvent")
 function TrailerToggleTipSideEvent.emptyNew()
-	-- upvalues: (copy) TrailerToggleTipSideEvent_mt
-	return Event.new(TrailerToggleTipSideEvent_mt)
+	local self = Event.new(TrailerToggleTipSideEvent_mt)
+	return self
 end
-
--- Local values: self
 function TrailerToggleTipSideEvent.new(object, tipSideIndex)
-	local v4_ = TrailerToggleTipSideEvent.emptyNew()
-	v4_.object = object
-	v4_.tipSideIndex = tipSideIndex
-	return v4_
+	local self = TrailerToggleTipSideEvent.emptyNew()
+	self.object = object
+	self.tipSideIndex = tipSideIndex
+	return self
 end
-
 function TrailerToggleTipSideEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.tipSideIndex = streamReadUIntN(streamId, Trailer.TIP_SIDE_NUM_BITS)
 	self:run(connection)
 end
-
 function TrailerToggleTipSideEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	streamWriteUIntN(streamId, self.tipSideIndex, Trailer.TIP_SIDE_NUM_BITS)
 end
-
 function TrailerToggleTipSideEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)

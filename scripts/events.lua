@@ -1,16 +1,16 @@
--- Local values: onOkSigninAccept, hasWindowFocus
-
 function mouseEvent(posX, posY, isDown, isUp, button)
-	if g_currentTest == nil then
+	if g_currentTest ~= nil then
+		g_currentTest.mouseEvent(posX, posY, isDown, isUp, button)
+	else
 		Input.updateMouseButtonState(button, isDown)
 		g_inputBinding:mouseEvent(posX, posY, isDown, isUp, button)
 		if Platform.hasTouchInput then
-			if button == Input.MOUSE_BUTTON_WHEEL_UP or button == Input.MOUSE_BUTTON_WHEEL_DOWN then
-				if g_currentMission == nil or g_currentMission:getAllowsGuiDisplay() then
+			if button ~= Input.MOUSE_BUTTON_WHEEL_UP then
+				if button ~= Input.MOUSE_BUTTON_WHEEL_DOWN then
+					touchEvent(posX, posY, isDown, isUp, TouchHandler.MOUSE_TOUCH_ID)
+				elseif g_currentMission == nil or g_currentMission:getAllowsGuiDisplay() then
 					g_gui:mouseEvent(posX, posY, isDown, isUp, button)
 				end
-			else
-				touchEvent(posX, posY, isDown, isUp, TouchHandler.MOUSE_TOUCH_ID)
 			end
 		else
 			if g_currentMission == nil or g_currentMission:getAllowsGuiDisplay() then
@@ -22,11 +22,8 @@ function mouseEvent(posX, posY, isDown, isUp, button)
 		end
 		g_lastMousePosX = posX
 		g_lastMousePosY = posY
-	else
-		g_currentTest.mouseEvent(posX, posY, isDown, isUp, button)
 	end
 end
-
 function touchEvent(posX, posY, isDown, isUp, touchId)
 	if g_touchHandler ~= nil then
 		g_touchHandler:onTouchEvent(posX, posY, isDown, isUp, touchId)
@@ -40,9 +37,10 @@ function touchEvent(posX, posY, isDown, isUp, touchId)
 		end
 	end
 end
-
 function keyEvent(unicode, sym, modifier, isDown)
-	if g_currentTest == nil then
+	if g_currentTest ~= nil then
+		g_currentTest.keyEvent(unicode, sym, modifier, isDown)
+	else
 		Input.updateKeyState(sym, isDown)
 		g_inputBinding:keyEvent(unicode, sym, modifier, isDown)
 		if g_currentMission == nil or g_currentMission:getAllowsGuiDisplay() then
@@ -51,8 +49,6 @@ function keyEvent(unicode, sym, modifier, isDown)
 		if g_currentMission ~= nil and g_currentMission.isLoaded then
 			g_currentMission:keyEvent(unicode, sym, modifier, isDown)
 		end
-	else
-		g_currentTest.keyEvent(unicode, sym, modifier, isDown)
 	end
 end
 function onUserSignedOut()
@@ -63,7 +59,6 @@ function onUserSignedOut()
 		g_masterServerConnection:disconnectFromMasterServer()
 		g_connectionManager:shutdownAll()
 		g_gui:showGui("GamepadSigninScreen")
-		return
 	elseif g_currentMission.isMissionStarted then
 		g_currentMission:pauseGame()
 		g_masterServerConnection:disconnectFromMasterServer()
@@ -77,8 +72,13 @@ function finishedUserProfileSync()
 	if GS_PLATFORM_XBOX then
 		loadUserSettings(g_gameSettings)
 		g_messageCenter:publish(MessageType.USER_PROFILE_CHANGED)
-	elseif GS_IS_NETFLIX_VERSION and getLanguage() ~= g_language then
-		doRestart(false, "")
+	else
+		if GS_IS_NETFLIX_VERSION then
+			local newLang = getLanguage()
+			if g_language ~= newLang then
+				doRestart(false, "")
+			end
+		end
 	end
 end
 function onWaitForPendingGameSession()
@@ -92,25 +92,22 @@ function onWaitForPendingGameSession()
 	InfoDialog.show(g_i18n:getText("ui_waitForPendingGameSession"), nil, nil, nil, g_i18n:getText("button_cancel"))
 end
 function onMultiplayerInviteSent()
-	local v15_ = g_currentMission
-	if v15_ == nil then
-		onMultiplayerInviteStartSavegame()
-		return true
+	local mission = g_currentMission
+	if mission ~= nil then
+		if not mission.missionDynamicInfo.isMultiplayer then
+			Logging.info("Switching to multiplayer game")
+			g_savegameController:saveSavegame(mission.missionInfo)
+			g_savegameController.onSaveCompleteCallback = onMultiplayerInviteSaveCompleteCallback
+			g_inGameMenu:startSavingGameDisplay()
+			g_multiplayerInviteSentData = { savegameIndex = mission.missionInfo.savegameIndex }
+			return true
+		else
+			return false
+		end
 	end
-	if v15_.missionDynamicInfo.isMultiplayer then
-		return false
-	end
-	Logging.info("Switching to multiplayer game")
-	g_savegameController:saveSavegame(v15_.missionInfo)
-	g_savegameController.onSaveCompleteCallback = onMultiplayerInviteSaveCompleteCallback
-	g_inGameMenu:startSavingGameDisplay()
-	g_multiplayerInviteSentData = {
-		["savegameIndex"] = v15_.missionInfo.savegameIndex
-	}
+	onMultiplayerInviteStartSavegame()
 	return true
 end
-
--- Local values: continue
 function onMultiplayerInviteSaveCompleteCallback(_, errorCode)
 	function g_savegameController.onSaveCompleteCallback() end
 	g_inGameMenu:notifySaveComplete()
@@ -120,24 +117,23 @@ function onMultiplayerInviteSaveCompleteCallback(_, errorCode)
 		onMultiplayerInviteStartSavegame(g_multiplayerInviteSentData.savegameIndex)
 		g_multiplayerInviteSentData = nil
 	else
-		YesNoDialog.show(function(p17_)
-			if p17_ then
+		local continue = function(yes)
+			if yes then
 				onMultiplayerInviteStartSavegame(nil)
 			end
-		end, nil, g_i18n:getText("ui_savingFailedContinueWithoutSaving"), nil, g_i18n:getText("button_continue"), g_i18n:getText("button_cancel"))
+		end
+		YesNoDialog.show(continue, nil, g_i18n:getText("ui_savingFailedContinueWithoutSaving"), nil, g_i18n:getText("button_continue"), g_i18n:getText("button_cancel"))
 	end
 end
-
--- Local values: savegame
 function onMultiplayerInviteStartSavegame(savegameIndex)
 	g_gui:setIsMultiplayer(true)
 	g_gui:showGui("CareerScreen")
 	if savegameIndex ~= nil then
 		g_careerScreen.selectedIndex = savegameIndex
-		local v19_ = g_savegameController:getSavegame(g_careerScreen.selectedIndex)
-		g_careerScreen.currentSavegame = v19_
+		local savegame = g_savegameController:getSavegame(g_careerScreen.selectedIndex)
+		g_careerScreen.currentSavegame = savegame
 		g_careerScreen:onStartAction()
-		if v19_ == SavegameController.NO_SAVEGAME or not v19_.isValid then
+		if savegame == SavegameController.NO_SAVEGAME or not savegame.isValid then
 			return
 		end
 		if g_gui.currentGuiName == "ModSelectionScreen" then
@@ -152,14 +148,11 @@ function onRemovedFromInvite()
 		InfoDialog.show(g_i18n:getText("ui_uninvited"))
 	end
 end
-local function v_u_20_()
+local onOkSigninAccept = function()
 	g_gamepadSigninScreen.forceShowSigninGui = true
 	g_gui:showGui("GamepadSigninScreen")
 end
-
--- Upvalues: onOkSigninAccept
 function acceptedGameInvite(platformServerId, requestUserName)
-	-- upvalues: (copy) v_u_20_
 	g_gui:closeDialogByName("InfoDialog")
 	resetMultiplayerChecks()
 	if g_currentMission ~= nil then
@@ -177,21 +170,20 @@ function acceptedGameInvite(platformServerId, requestUserName)
 		g_tempDeepLinkingInfo.platformServerId = platformServerId
 		g_tempDeepLinkingInfo.requestUserName = requestUserName
 		return
-	elseif Platform.isXbox and (requestUserName ~= "" and g_gameSettings:getValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME) ~= requestUserName) then
+	end
+	if Platform.isXbox and (requestUserName ~= "" and g_gameSettings:getValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME) ~= requestUserName) then
 		g_tempDeepLinkingInfo = {}
 		g_tempDeepLinkingInfo.platformServerId = platformServerId
 		g_tempDeepLinkingInfo.requestUserName = requestUserName
-		InfoDialog.show(string.format(g_i18n:getText("dialog_signinWithUserToAcceptInvite"), requestUserName), v_u_20_)
-	elseif Platform.isXbox or Platform.isPlaystation then
-		if PlatformPrivilegeUtil.checkMultiplayer(acceptedGameInvitePerformConnect, nil, platformServerId, 30000) then
-			acceptedGameInvitePerformConnect(platformServerId)
-			return
-		end
-	else
-		acceptedGameInvitePerformConnect(platformServerId)
+		InfoDialog.show(string.format(g_i18n:getText("dialog_signinWithUserToAcceptInvite"), requestUserName), onOkSigninAccept)
+		return
 	end
+	if (Platform.isXbox or Platform.isPlaystation) and PlatformPrivilegeUtil.checkMultiplayer(acceptedGameInvitePerformConnect, nil, platformServerId, 30000) then
+		acceptedGameInvitePerformConnect(platformServerId)
+		return
+	end
+	acceptedGameInvitePerformConnect(platformServerId)
 end
-
 function acceptedGameInvitePerformConnect(platformServerId)
 	connectToServer(platformServerId)
 end
@@ -215,24 +207,21 @@ function onBlockedListChanged()
 		g_messageCenter:publish(MessageType.BLOCK_LIST_CHANGED)
 	end
 end
-local v_u_24_ = true
+local hasWindowFocus = true
 function notifyWindowGainedFocus()
-	-- upvalues: (ref) v_u_24_
-	v_u_24_ = true
+	hasWindowFocus = true
 	if g_messageCenter ~= nil then
-		g_messageCenter:publish(MessageType.APP_WINDOW_FOCUS_CHANGED, v_u_24_)
+		g_messageCenter:publish(MessageType.APP_WINDOW_FOCUS_CHANGED, hasWindowFocus)
 	end
 end
 function notifyWindowLostFocus()
-	-- upvalues: (ref) v_u_24_
-	v_u_24_ = false
+	hasWindowFocus = false
 	if g_messageCenter ~= nil then
-		g_messageCenter:publish(MessageType.APP_WINDOW_FOCUS_CHANGED, v_u_24_)
+		g_messageCenter:publish(MessageType.APP_WINDOW_FOCUS_CHANGED, hasWindowFocus)
 	end
 end
 function getHasWindowFocus()
-	-- upvalues: (ref) v_u_24_
-	return v_u_24_
+	return hasWindowFocus
 end
 function notifyAppSuspended()
 	g_appIsSuspended = true
@@ -249,14 +238,13 @@ end
 function notifyWindowSizeChanged()
 	Logging.info("Window size changed. Restarting application")
 	g_messageCenter:publish(MessageType.APP_SUSPENDED)
-	if g_currentMission == nil then
+	if g_currentMission ~= nil then
+		OnInGameMenuMenu()
+	else
 		RestartManager:setStartScreen(RestartManager.START_SCREEN_MAIN)
 		doRestart(false, "")
-	else
-		OnInGameMenuMenu()
 	end
 end
-
 function notifyDebugModeChanged(debugMode)
 	if g_messageCenter ~= nil then
 		g_messageCenter:publish(MessageType.DEBUG_MODE_CHANGED, debugMode)

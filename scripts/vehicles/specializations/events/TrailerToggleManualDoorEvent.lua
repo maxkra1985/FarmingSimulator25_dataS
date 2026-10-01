@@ -1,34 +1,28 @@
--- Local values: TrailerToggleManualDoorEvent_mt
 TrailerToggleManualDoorEvent = {}
 local TrailerToggleManualDoorEvent_mt = Class(TrailerToggleManualDoorEvent, Event)
 InitStaticEventClass(TrailerToggleManualDoorEvent, "TrailerToggleManualDoorEvent")
 function TrailerToggleManualDoorEvent.emptyNew()
-	-- upvalues: (copy) TrailerToggleManualDoorEvent_mt
-	return Event.new(TrailerToggleManualDoorEvent_mt)
+	local self = Event.new(TrailerToggleManualDoorEvent_mt)
+	return self
 end
-
--- Local values: self
 function TrailerToggleManualDoorEvent.new(object, tipSideIndex, state)
-	local v5_ = TrailerToggleManualDoorEvent.emptyNew()
-	v5_.object = object
-	v5_.tipSideIndex = tipSideIndex
-	v5_.state = state
-	return v5_
+	local self = TrailerToggleManualDoorEvent.emptyNew()
+	self.object = object
+	self.tipSideIndex = tipSideIndex
+	self.state = state
+	return self
 end
-
 function TrailerToggleManualDoorEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.state = streamReadBool(streamId)
 	self.tipSideIndex = streamReadUIntN(streamId, Trailer.TIP_SIDE_NUM_BITS)
 	self:run(connection)
 end
-
 function TrailerToggleManualDoorEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	streamWriteBool(streamId, self.state)
 	streamWriteUIntN(streamId, self.tipSideIndex, Trailer.TIP_SIDE_NUM_BITS)
 end
-
 function TrailerToggleManualDoorEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -37,7 +31,6 @@ function TrailerToggleManualDoorEvent:run(connection)
 		self.object:setTrailerDoorState(self.tipSideIndex, self.state, true)
 	end
 end
-
 function TrailerToggleManualDoorEvent.sendEvent(vehicle, tipSideIndex, state, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

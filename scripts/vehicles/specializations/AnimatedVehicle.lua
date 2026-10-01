@@ -4,39 +4,37 @@ source("dataS/scripts/vehicles/AnimationValueFloat.lua")
 source("dataS/scripts/vehicles/AnimationValueBool.lua")
 AnimatedVehicle = {}
 AnimatedVehicle.ANIMATION_PART_XML_KEY = "vehicle.animations.animation(?).part(?)"
-
 function AnimatedVehicle.prerequisitesPresent(specializations)
 	return true
 end
 function AnimatedVehicle.initSpecialization()
 	g_vehicleConfigurationManager:addConfigurationType("animation", g_i18n:getText("shop_configuration"), "animations", VehicleConfigurationItem)
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("AnimatedVehicle")
-	AnimatedVehicle.registerAnimationXMLPaths(v1_, "vehicle.animations.animation(?)")
-	AnimatedVehicle.registerAnimationXMLPaths(v1_, "vehicle.animations.animationConfigurations.animationConfiguration(?).animation(?)")
-	v1_:register(XMLValueType.STRING, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#animName", "Animation name")
-	v1_:register(XMLValueType.BOOL, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#animOuterRange", "Anim limit outer range", false)
-	v1_:register(XMLValueType.FLOAT, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#animMinLimit", "Min. anim limit", 0)
-	v1_:register(XMLValueType.FLOAT, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#animMaxLimit", "Max. anim limit", 1)
-	v1_:register(XMLValueType.STRING, WorkArea.WORK_AREA_XML_KEY .. "#animName", "Animation name")
-	v1_:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_KEY .. "#animMinLimit", "Min. anim limit", 0)
-	v1_:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_KEY .. "#animMaxLimit", "Max. anim limit", 1)
-	v1_:register(XMLValueType.STRING, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#animName", "Animation name")
-	v1_:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#animMinLimit", "Min. anim limit", 0)
-	v1_:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#animMaxLimit", "Max. anim limit", 1)
-	v1_:addDelayedRegistrationFunc("Cylindered:movingTool", function(p2_, p3_)
-		p2_:register(XMLValueType.STRING, p3_ .. "#requiredAnimation", "Name of the animation that needs to be in a certain range")
-		p2_:register(XMLValueType.FLOAT, p3_ .. "#requiredAnimationMinTime", "Min. time of the animation that is allowed for the movingTool update [0-1]", 0)
-		p2_:register(XMLValueType.FLOAT, p3_ .. "#requiredAnimationMaxTime", "Max. time of the animation that is allowed for the movingTool update [0-1]", 1)
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("AnimatedVehicle")
+	AnimatedVehicle.registerAnimationXMLPaths(schema, "vehicle.animations.animation(?)")
+	AnimatedVehicle.registerAnimationXMLPaths(schema, "vehicle.animations.animationConfigurations.animationConfiguration(?).animation(?)")
+	schema:register(XMLValueType.STRING, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#animName", "Animation name")
+	schema:register(XMLValueType.BOOL, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#animOuterRange", "Anim limit outer range", false)
+	schema:register(XMLValueType.FLOAT, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#animMinLimit", "Min. anim limit", 0)
+	schema:register(XMLValueType.FLOAT, SpeedRotatingParts.SPEED_ROTATING_PART_XML_KEY .. "#animMaxLimit", "Max. anim limit", 1)
+	schema:register(XMLValueType.STRING, WorkArea.WORK_AREA_XML_KEY .. "#animName", "Animation name")
+	schema:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_KEY .. "#animMinLimit", "Min. anim limit", 0)
+	schema:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_KEY .. "#animMaxLimit", "Max. anim limit", 1)
+	schema:register(XMLValueType.STRING, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#animName", "Animation name")
+	schema:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#animMinLimit", "Min. anim limit", 0)
+	schema:register(XMLValueType.FLOAT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#animMaxLimit", "Max. anim limit", 1)
+	schema:addDelayedRegistrationFunc("Cylindered:movingTool", function(cSchema, cKey)
+		cSchema:register(XMLValueType.STRING, cKey .. "#requiredAnimation", "Name of the animation that needs to be in a certain range")
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#requiredAnimationMinTime", "Min. time of the animation that is allowed for the movingTool update [0-1]", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#requiredAnimationMaxTime", "Max. time of the animation that is allowed for the movingTool update [0-1]", 1)
 	end)
-	v1_:addDelayedRegistrationFunc("Cylindered:movingPart", function(p4_, p5_)
-		p4_:register(XMLValueType.STRING, p5_ .. "#requiredAnimation", "Name of the animation that needs to be in a certain range")
-		p4_:register(XMLValueType.FLOAT, p5_ .. "#requiredAnimationMinTime", "Min. time of the animation that is allowed for the movingPart update [0-1]", 0)
-		p4_:register(XMLValueType.FLOAT, p5_ .. "#requiredAnimationMaxTime", "Max. time of the animation that is allowed for the movingPart update [0-1]", 1)
+	schema:addDelayedRegistrationFunc("Cylindered:movingPart", function(cSchema, cKey)
+		cSchema:register(XMLValueType.STRING, cKey .. "#requiredAnimation", "Name of the animation that needs to be in a certain range")
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#requiredAnimationMinTime", "Min. time of the animation that is allowed for the movingPart update [0-1]", 0)
+		cSchema:register(XMLValueType.FLOAT, cKey .. "#requiredAnimationMaxTime", "Max. time of the animation that is allowed for the movingPart update [0-1]", 1)
 	end)
-	v1_:setXMLSpecializationType()
+	schema:setXMLSpecializationType()
 end
-
 function AnimatedVehicle.registerAnimationXMLPaths(schema, basePath)
 	schema:addDelayedRegistrationPath(basePath, "AnimatedVehicle:animation")
 	schema:register(XMLValueType.STRING, basePath .. "#name", "Name of animation")
@@ -118,7 +116,6 @@ function AnimatedVehicle.registerAnimationXMLPaths(schema, basePath)
 	SoundManager.registerSampleXMLPaths(schema, basePath, "stopTimePosSound(?)")
 	SoundManager.registerSampleXMLPaths(schema, basePath, "stopTimeNegSound(?)")
 end
-
 function AnimatedVehicle.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onRegisterAnimationValueTypes")
 	SpecializationUtil.registerEvent(vehicleType, "onPlayAnimation")
@@ -128,7 +125,6 @@ function AnimatedVehicle.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onStopAnimation")
 	SpecializationUtil.registerEvent(vehicleType, "onAnimationPartChanged")
 end
-
 function AnimatedVehicle.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "registerAnimationValueType", AnimatedVehicle.registerAnimationValueType)
 	SpecializationUtil.registerFunction(vehicleType, "loadAnimation", AnimatedVehicle.loadAnimation)
@@ -156,7 +152,6 @@ function AnimatedVehicle.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "updateAnimationPart", AnimatedVehicle.updateAnimationPart)
 	SpecializationUtil.registerFunction(vehicleType, "getNumOfActiveAnimations", AnimatedVehicle.getNumOfActiveAnimations)
 end
-
 function AnimatedVehicle.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "loadSpeedRotatingPartFromXML", AnimatedVehicle.loadSpeedRotatingPartFromXML)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getIsSpeedRotatingPartActive", AnimatedVehicle.getIsSpeedRotatingPartActive)
@@ -167,7 +162,6 @@ function AnimatedVehicle.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "loadMovingPartFromXML", AnimatedVehicle.loadMovingPartFromXML)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getIsMovingPartActive", AnimatedVehicle.getIsMovingPartActive)
 end
-
 function AnimatedVehicle.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreLoad", AnimatedVehicle)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AnimatedVehicle)
@@ -176,390 +170,337 @@ function AnimatedVehicle.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", AnimatedVehicle)
 	SpecializationUtil.registerEventListener(vehicleType, "onRegisterAnimationValueTypes", AnimatedVehicle)
 end
-
--- Local values: spec
 function AnimatedVehicle:onPreLoad(savegame)
-	self.spec_animatedVehicle.animationValueTypes = {}
+	local spec = self.spec_animatedVehicle
+	spec.animationValueTypes = {}
 	SpecializationUtil.raiseEvent(self, "onRegisterAnimationValueTypes")
 end
-
--- Local values: spec, _, key, animation, configurationId, configKey, _, key, animation
 function AnimatedVehicle:onLoad(savegame)
-	local v14_ = self.spec_animatedVehicle
-	v14_.animations = {}
-	for _, v15_ in self.xmlFile:iterator("vehicle.animations.animation") do
-		local v16_ = {}
-		if self:loadAnimation(self.xmlFile, v15_, v16_) then
-			v14_.animations[v16_.name] = v16_
+	local spec = self.spec_animatedVehicle
+	spec.animations = {}
+	for _, key in self.xmlFile:iterator("vehicle.animations.animation") do
+		local animation = {}
+		if self:loadAnimation(self.xmlFile, key, animation) then
+			spec.animations[animation.name] = animation
 		end
 	end
-	local v17_ = self.configurations.animation or 1
-	local v18_ = string.format("vehicle.animations.animationConfigurations.animationConfiguration(%d)", v17_ - 1)
-	if self.xmlFile:hasProperty(v18_) then
-		for _, v19_ in self.xmlFile:iterator(v18_ .. ".animation") do
-			local v20_ = {}
-			if self:loadAnimation(self.xmlFile, v19_, v20_) then
-				v14_.animations[v20_.name] = v20_
+	local configurationId = self.configurations.animation or 1
+	local configKey = string.format("vehicle.animations.animationConfigurations.animationConfiguration(%d)", configurationId - 1)
+	if self.xmlFile:hasProperty(configKey) then
+		for _, key in self.xmlFile:iterator(configKey .. ".animation") do
+			local animation = {}
+			if self:loadAnimation(self.xmlFile, key, animation) then
+				spec.animations[animation.name] = animation
 			end
 		end
 	end
-	v14_.activeAnimations = {}
-	v14_.numActiveAnimations = 0
-	v14_.fixedTimeSamplesDirtyDelay = 0
+	spec.activeAnimations = {}
+	spec.numActiveAnimations = 0
+	spec.fixedTimeSamplesDirtyDelay = 0
 end
-
--- Local values: spec, name, animation
 function AnimatedVehicle:onPostLoad(savegame)
-	local v22_ = self.spec_animatedVehicle
-	for v23_, v24_ in pairs(v22_.animations) do
-		if v24_.resetOnStart then
-			self:setAnimationTime(v23_, 1, true, false)
-			self:setAnimationStopTime(v23_, v24_.startTime)
-			self:playAnimation(v23_, -1, 1, true, false)
-			AnimatedVehicle.updateAnimationByName(self, v23_, 9999999, true)
+	local spec = self.spec_animatedVehicle
+	for name, animation in pairs(spec.animations) do
+		if animation.resetOnStart then
+			self:setAnimationTime(name, 1, true, false)
+			self:setAnimationStopTime(name, animation.startTime)
+			self:playAnimation(name, -1, 1, true, false)
+			AnimatedVehicle.updateAnimationByName(self, name, 9999999, true)
 		end
 	end
-	if next(v22_.animations) == nil then
+	if next(spec.animations) == nil then
 		SpecializationUtil.removeEventListener(self, "onUpdate", AnimatedVehicle)
 	end
 end
-
--- Local values: spec, _, animation
 function AnimatedVehicle:onDelete()
-	local v26_ = self.spec_animatedVehicle
-	if self.isClient and v26_.animations ~= nil then
-		for _, v27_ in pairs(v26_.animations) do
-			g_soundManager:deleteSamples(v27_.samples)
-			if v27_.eventSamples ~= nil then
-				g_soundManager:deleteSamples(v27_.eventSamples.stopTimePos)
-				g_soundManager:deleteSamples(v27_.eventSamples.stopTimeNeg)
+	local spec = self.spec_animatedVehicle
+	if self.isClient and spec.animations ~= nil then
+		for _, animation in pairs(spec.animations) do
+			g_soundManager:deleteSamples(animation.samples)
+			if animation.eventSamples == nil then
+				continue
 			end
+			g_soundManager:deleteSamples(animation.eventSamples.stopTimePos)
+			g_soundManager:deleteSamples(animation.eventSamples.stopTimeNeg)
 		end
 	end
 end
-
--- Local values: spec, _, animation, i, sample
 function AnimatedVehicle:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	AnimatedVehicle.updateAnimations(self, dt)
-	local v30_ = self.spec_animatedVehicle
-	if v30_.fixedTimeSamplesDirtyDelay > 0 then
-		v30_.fixedTimeSamplesDirtyDelay = v30_.fixedTimeSamplesDirtyDelay - 1
-		if v30_.fixedTimeSamplesDirtyDelay <= 0 then
-			for _, v31_ in pairs(v30_.animations) do
-				if not table.hasElement(v30_.activeAnimations, v31_) and self.isClient then
-					for v32_ = 1, #v31_.samples do
-						local v33_ = v31_.samples[v32_]
-						if g_soundManager:getIsSamplePlaying(v33_) and v33_.loops == 0 then
-							g_soundManager:stopSample(v33_)
+	local spec = self.spec_animatedVehicle
+	if 0 < spec.fixedTimeSamplesDirtyDelay then
+		spec.fixedTimeSamplesDirtyDelay = spec.fixedTimeSamplesDirtyDelay - 1
+		if spec.fixedTimeSamplesDirtyDelay <= 0 then
+			for _, animation in pairs(spec.animations) do
+				if table.hasElement(spec.activeAnimations, animation) then
+					continue
+				end
+				if self.isClient then
+					for i = 1, #animation.samples do
+						local sample = animation.samples[i]
+						if g_soundManager:getIsSamplePlaying(sample) and sample.loops == 0 then
+							g_soundManager:stopSample(sample)
 						end
 					end
 				end
 			end
-			v30_.fixedTimeSamplesDirtyDelay = 0
+			spec.fixedTimeSamplesDirtyDelay = 0
 		end
 	end
-	if v30_.numActiveAnimations > 0 then
+	if 0 < spec.numActiveAnimations then
 		self:raiseActive()
 	end
 end
-
--- Local values: spec, animationValueType
 function AnimatedVehicle:registerAnimationValueType(name, startName, endName, initialUpdate, classObject, load, get, set)
-	local v43_ = self.spec_animatedVehicle
-	if v43_.animationValueTypes[name] == nil then
-		v43_.animationValueTypes[name] = {
-			["classObject"] = classObject,
-			["name"] = name,
-			["startName"] = startName,
-			["endName"] = endName,
-			["initialUpdate"] = initialUpdate,
-			["load"] = load,
-			["get"] = get,
-			["set"] = set
-		}
+	local spec = self.spec_animatedVehicle
+	if spec.animationValueTypes[name] == nil then
+		local animationValueType = { ["classObject"] = classObject, ["name"] = name, ["startName"] = startName, ["endName"] = endName, ["initialUpdate"] = initialUpdate, ["load"] = load, ["get"] = get, ["set"] = set }
+		spec.animationValueTypes[name] = animationValueType
 	end
 end
-
--- Local values: name, partI, partKey, animationPart, _, part, _, part, node, curve, i, soundKey, baseKey, sample
 function AnimatedVehicle:loadAnimation(xmlFile, key, animation, components)
-	local v49_ = xmlFile:getValue(key .. "#name")
-	if v49_ == nil then
-		return false
-	end
-	animation.name = v49_
-	animation.parts = {}
-	animation.currentTime = 0
-	animation.previousTime = 0
-	animation.currentSpeed = 1
-	animation.looping = xmlFile:getValue(key .. "#looping", false)
-	animation.resetOnStart = xmlFile:getValue(key .. "#resetOnStart", true)
-	animation.soundVolumeFactor = xmlFile:getValue(key .. "#soundVolumeFactor", 1)
-	animation.isKeyframe = xmlFile:getValue(key .. "#isKeyframe", false)
-	local v50_
-	if animation.isKeyframe then
-		animation.curvesByNode = {}
-		v50_ = 0
-	else
-		v50_ = 0
-	end
-	while true do
-		local v51_ = key .. string.format(".part(%d)", v50_)
-		if not xmlFile:hasProperty(v51_) then
-			break
-		end
-		local v52_ = {}
+	local name = xmlFile:getValue(key .. "#name")
+	if name ~= nil then
+		animation.name = name
+		animation.parts = {}
+		animation.currentTime = 0
+		animation.previousTime = 0
+		animation.currentSpeed = 1
+		animation.looping = xmlFile:getValue(key .. "#looping", false)
+		animation.resetOnStart = xmlFile:getValue(key .. "#resetOnStart", true)
+		animation.soundVolumeFactor = xmlFile:getValue(key .. "#soundVolumeFactor", 1)
+		animation.isKeyframe = xmlFile:getValue(key .. "#isKeyframe", false)
 		if animation.isKeyframe then
-			self:loadStaticAnimationPart(xmlFile, v51_, v52_, animation, components)
-		elseif self:loadAnimationPart(xmlFile, v51_, v52_, animation, components) then
-			local v53_ = animation.parts
-			table.insert(v53_, v52_)
+			animation.curvesByNode = {}
 		end
-		v50_ = v50_ + 1
-	end
-	animation.partsReverse = {}
-	for _, v54_ in ipairs(animation.parts) do
-		local v55_ = animation.partsReverse
-		table.insert(v55_, v54_)
-	end
-	table.sort(animation.parts, AnimatedVehicle.animPartSorter)
-	table.sort(animation.partsReverse, AnimatedVehicle.animPartSorterReverse)
-	self:initializeAnimationParts(animation)
-	animation.currentPartIndex = 1
-	animation.duration = 0
-	for _, v56_ in ipairs(animation.parts) do
-		local v57_ = animation.duration
-		local v58_ = v56_.startTime + v56_.duration
-		animation.duration = math.max(v57_, v58_)
-	end
-	if animation.isKeyframe then
-		for _, v59_ in pairs(animation.curvesByNode) do
-			local v60_ = animation.duration
-			local v61_ = v59_.maxTime
-			animation.duration = math.max(v60_, v61_)
-		end
-	end
-	animation.startTime = xmlFile:getValue(key .. "#startAnimTime", 0)
-	animation.currentTime = animation.startTime * animation.duration
-	if self.isClient then
-		animation.samples = {}
-		local v62_ = 0
+		local partI = 0
 		while true do
-			local v63_ = string.format("sound(%d)", v62_)
-			local v64_ = key .. "." .. v63_
-			if not xmlFile:hasProperty(v64_) then
+			local partKey = key .. string.format(".part(%d)", partI)
+			if not xmlFile:hasProperty(partKey) then
 				break
 			end
-			local v65_ = g_soundManager:loadSampleFromXML(xmlFile, key, v63_, self.baseDirectory, components or self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-			if v65_ ~= nil then
-				v65_.startTime = xmlFile:getValue(v64_ .. "#startTime", 0)
-				v65_.endTime = xmlFile:getValue(v64_ .. "#endTime")
-				v65_.direction = xmlFile:getValue(v64_ .. "#direction", 0)
-				v65_.startPitchScale = xmlFile:getValue(v64_ .. "#startPitchScale")
-				v65_.endPitchScale = xmlFile:getValue(v64_ .. "#endPitchScale")
-				if v65_.startPitchScale ~= nil and v65_.endPitchScale == nil or v65_.startPitchScale == nil and v65_.endPitchScale ~= nil then
-					v65_.startPitchScale = nil
-					v65_.endPitchScale = nil
-					Logging.xmlWarning(xmlFile, "Animation sound requires both, startPitchScale and endPitchScale, not only one. (%s)", v64_)
+			local animationPart = {}
+			if not animation.isKeyframe then
+				if self:loadAnimationPart(xmlFile, partKey, animationPart, animation, components) then
+					table.insert(animation.parts, animationPart)
 				end
-				if v65_.endTime == nil and v65_.loops == 0 then
-					v65_.loops = 1
-				end
-				g_soundManager:setSampleVolumeScale(v65_, g_soundManager:getSampleVolumeScale(v65_) * animation.soundVolumeFactor)
-				local v66_ = animation.samples
-				table.insert(v66_, v65_)
+			else
+				self:loadStaticAnimationPart(xmlFile, partKey, animationPart, animation, components)
 			end
-			v62_ = v62_ + 1
+			partI = partI + 1
 		end
-		xmlFile:iterate(key .. ".stopTimePosSound", function(p67_, _)
-			-- upvalues: (copy) xmlFile, (copy) key, (copy) self, (copy) components, (copy) animation
-			local v68_ = g_soundManager:loadSampleFromXML(xmlFile, key, string.format("stopTimePosSound(%d)", p67_ - 1), self.baseDirectory, components or self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-			if v68_ ~= nil then
-				animation.eventSamples = animation.eventSamples or {}
-				animation.eventSamples.stopTimePos = animation.eventSamples.stopTimePos or {}
-				local v69_ = animation.eventSamples.stopTimePos
-				table.insert(v69_, v68_)
+		animation.partsReverse = {}
+		for _, part in ipairs(animation.parts) do
+			table.insert(animation.partsReverse, part)
+		end
+		table.sort(animation.parts, AnimatedVehicle.animPartSorter)
+		table.sort(animation.partsReverse, AnimatedVehicle.animPartSorterReverse)
+		self:initializeAnimationParts(animation)
+		animation.currentPartIndex = 1
+		animation.duration = 0
+		for _, part in ipairs(animation.parts) do
+			animation.duration = math.max(animation.duration, part.startTime + part.duration)
+		end
+		if animation.isKeyframe then
+			for node, curve in pairs(animation.curvesByNode) do
+				animation.duration = math.max(animation.duration, curve.maxTime)
 			end
-		end)
-		xmlFile:iterate(key .. ".stopTimeNegSound", function(p70_, _)
-			-- upvalues: (copy) xmlFile, (copy) key, (copy) self, (copy) components, (copy) animation
-			local v71_ = g_soundManager:loadSampleFromXML(xmlFile, key, string.format("stopTimeNegSound(%d)", p70_ - 1), self.baseDirectory, components or self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-			if v71_ ~= nil then
-				animation.eventSamples = animation.eventSamples or {}
-				animation.eventSamples.stopTimeNeg = animation.eventSamples.stopTimeNeg or {}
-				local v72_ = animation.eventSamples.stopTimeNeg
-				table.insert(v72_, v71_)
+		end
+		animation.startTime = xmlFile:getValue(key .. "#startAnimTime", 0)
+		animation.currentTime = animation.startTime * animation.duration
+		if self.isClient then
+			animation.samples = {}
+			local i = 0
+			while true do
+				local soundKey = string.format("sound(%d)", i)
+				local baseKey = key .. "." .. soundKey
+				if not xmlFile:hasProperty(baseKey) then
+					break
+				end
+				local sample = g_soundManager:loadSampleFromXML(xmlFile, key, soundKey, self.baseDirectory, components or self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+				if sample ~= nil then
+					sample.startTime = xmlFile:getValue(baseKey .. "#startTime", 0)
+					sample.endTime = xmlFile:getValue(baseKey .. "#endTime")
+					sample.direction = xmlFile:getValue(baseKey .. "#direction", 0)
+					sample.startPitchScale = xmlFile:getValue(baseKey .. "#startPitchScale")
+					sample.endPitchScale = xmlFile:getValue(baseKey .. "#endPitchScale")
+					if sample.startPitchScale ~= nil and (sample.endPitchScale == nil or sample.startPitchScale == nil and sample.endPitchScale ~= nil) then
+						sample.startPitchScale = nil
+						sample.endPitchScale = nil
+						Logging.xmlWarning(xmlFile, "Animation sound requires both, startPitchScale and endPitchScale, not only one. (%s)", baseKey)
+					end
+					if sample.endTime == nil and sample.loops == 0 then
+						sample.loops = 1
+					end
+					g_soundManager:setSampleVolumeScale(sample, g_soundManager:getSampleVolumeScale(sample) * animation.soundVolumeFactor)
+					table.insert(animation.samples, sample)
+				end
+				i = i + 1
 			end
-		end)
+			xmlFile:iterate(key .. ".stopTimePosSound", function(index, _)
+				local sample = g_soundManager:loadSampleFromXML(xmlFile, key, string.format("stopTimePosSound(%d)", index - 1), self.baseDirectory, components or self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+				if sample ~= nil then
+					animation.eventSamples = animation.eventSamples or {}
+					animation.eventSamples.stopTimePos = animation.eventSamples.stopTimePos or {}
+					table.insert(animation.eventSamples.stopTimePos, sample)
+				end
+			end)
+			xmlFile:iterate(key .. ".stopTimeNegSound", function(index, _)
+				local sample = g_soundManager:loadSampleFromXML(xmlFile, key, string.format("stopTimeNegSound(%d)", index - 1), self.baseDirectory, components or self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+				if sample ~= nil then
+					animation.eventSamples = animation.eventSamples or {}
+					animation.eventSamples.stopTimeNeg = animation.eventSamples.stopTimeNeg or {}
+					table.insert(animation.eventSamples.stopTimeNeg, sample)
+				end
+			end)
+		end
+		return true
+	else
+		return false
 	end
-	return true
 end
-
--- Local values: startTime, duration, endTime, direction, spec, _, animationValueType, animationValueObject, requiredAnimation, requiredAnimationRange, requiredConfigurationName, requiredConfigurationIndex, i
 function AnimatedVehicle:loadAnimationPart(xmlFile, partKey, part, animation, components)
-	local v79_ = xmlFile:getValue(partKey .. "#startTime")
-	local v80_ = xmlFile:getValue(partKey .. "#duration")
-	local v81_ = xmlFile:getValue(partKey .. "#endTime")
-	local v82_ = xmlFile:getValue(partKey .. "#direction", 0)
-	local v83_ = math.sign(v82_)
+	local startTime = xmlFile:getValue(partKey .. "#startTime")
+	local duration = xmlFile:getValue(partKey .. "#duration")
+	local endTime = xmlFile:getValue(partKey .. "#endTime")
+	local direction = math.sign(xmlFile:getValue(partKey .. "#direction", 0))
 	part.components = components or self.components
 	part.i3dMappings = self.i3dMappings
 	part.animationValues = {}
-	local v84_ = self.spec_animatedVehicle
-	for _, v85_ in pairs(v84_.animationValueTypes) do
-		local v86_ = v85_.classObject.new(self, animation, part, v85_.startName, v85_.endName, v85_.name, v85_.initialUpdate, v85_.get, v85_.set, v85_.load)
-		if v86_:load(xmlFile, partKey) then
-			local v87_ = part.animationValues
-			table.insert(v87_, v86_)
+	local spec = self.spec_animatedVehicle
+	for _, animationValueType in pairs(spec.animationValueTypes) do
+		local animationValueObject = animationValueType.classObject.new(self, animation, part, animationValueType.startName, animationValueType.endName, animationValueType.name, animationValueType.initialUpdate, animationValueType.get, animationValueType.set, animationValueType.load)
+		if animationValueObject:load(xmlFile, partKey) then
+			table.insert(part.animationValues, animationValueObject)
 		end
 	end
-	local v88_ = xmlFile:getValue(partKey .. "#requiredAnimation")
-	local v89_ = xmlFile:getValue(partKey .. "#requiredAnimationRange", nil, true)
-	local v90_ = xmlFile:getValue(partKey .. "#requiredConfigurationName")
-	local v91_ = xmlFile:getValue(partKey .. "#requiredConfigurationIndex")
-	for v92_ = 1, #part.animationValues do
-		part.animationValues[v92_].requiredAnimation = v88_
-		part.animationValues[v92_]:addCompareParameters("requiredAnimation")
-		if v89_ ~= nil then
-			part.animationValues[v92_].requiredAnimationRange = string.format("%.2f %.2f", v89_[1], v89_[2])
-			part.animationValues[v92_]:addCompareParameters("requiredAnimationRange")
+	local requiredAnimation = xmlFile:getValue(partKey .. "#requiredAnimation")
+	local requiredAnimationRange = xmlFile:getValue(partKey .. "#requiredAnimationRange", nil, true)
+	local requiredConfigurationName = xmlFile:getValue(partKey .. "#requiredConfigurationName")
+	local requiredConfigurationIndex = xmlFile:getValue(partKey .. "#requiredConfigurationIndex")
+	for i = 1, #part.animationValues do
+		part.animationValues[i].requiredAnimation = requiredAnimation
+		part.animationValues[i]:addCompareParameters("requiredAnimation")
+		if requiredAnimationRange ~= nil then
+			part.animationValues[i].requiredAnimationRange = string.format("%.2f %.2f", requiredAnimationRange[1], requiredAnimationRange[2])
+			part.animationValues[i]:addCompareParameters("requiredAnimationRange")
 		end
-		part.animationValues[v92_].requiredConfigurationName = v90_
-		part.animationValues[v92_]:addCompareParameters("requiredConfigurationName")
-		part.animationValues[v92_].requiredConfigurationIndex = v91_
-		part.animationValues[v92_]:addCompareParameters("requiredConfigurationIndex")
+		part.animationValues[i].requiredConfigurationName = requiredConfigurationName
+		part.animationValues[i]:addCompareParameters("requiredConfigurationName")
+		part.animationValues[i].requiredConfigurationIndex = requiredConfigurationIndex
+		part.animationValues[i]:addCompareParameters("requiredConfigurationIndex")
 	end
 	if #part.animationValues == 0 then
 		return false
-	end
-	if v79_ == nil or v80_ == nil and v81_ == nil then
+	else
+		if startTime ~= nil and (duration ~= nil or endTime ~= nil) then
+			if endTime ~= nil then
+				duration = endTime - startTime
+			end
+			part.startTime = startTime * 1000
+			part.duration = duration * 1000
+			part.direction = direction
+			part.requiredAnimation = requiredAnimation
+			part.requiredAnimationRange = requiredAnimationRange
+			part.requiredConfigurationName = requiredConfigurationName
+			part.requiredConfigurationIndex = requiredConfigurationIndex
+			return true
+		end
 		return false
 	end
-	if v81_ ~= nil then
-		v80_ = v81_ - v79_
-	end
-	part.startTime = v79_ * 1000
-	part.duration = v80_ * 1000
-	part.direction = v83_
-	part.requiredAnimation = v88_
-	part.requiredAnimationRange = v89_
-	part.requiredConfigurationName = v90_
-	part.requiredConfigurationIndex = v91_
-	return true
 end
-
--- Local values: node, time, startTime, endTime, curve
 function AnimatedVehicle:loadStaticAnimationPart(xmlFile, partKey, part, animation, components)
-	local v97_ = xmlFile:getValue(partKey .. "#node", nil, self.components, self.i3dMappings)
-	if v97_ == nil then
+	local node = xmlFile:getValue(partKey .. "#node", nil, self.components, self.i3dMappings)
+	if node ~= nil then
+		local time = xmlFile:getValue(partKey .. "#time")
+		local startTime = xmlFile:getValue(partKey .. "#startTime")
+		local endTime = xmlFile:getValue(partKey .. "#endTime")
+		if animation.curvesByNode[node] == nil then
+			animation.curvesByNode[node] = AnimCurve.new(linearInterpolatorTransRotScale)
+		end
+		local curve = animation.curvesByNode[node]
+		if time ~= nil then
+			self:loadStaticAnimationPartValues(xmlFile, partKey, curve, node, "translation", "rotation", "scale", time * 1000, animation)
+		elseif startTime ~= nil or endTime ~= nil then
+			if startTime ~= nil then
+				startTime = startTime * 1000
+				if curve.maxTime == 0 or curve.maxTime ~= startTime then
+					self:loadStaticAnimationPartValues(xmlFile, partKey, curve, node, "startTrans", "startRot", "startScale", startTime, animation)
+				end
+			end
+			if endTime ~= nil then
+				endTime = endTime * 1000
+				if curve.maxTime == 0 or curve.maxTime ~= endTime then
+					self:loadStaticAnimationPartValues(xmlFile, partKey, curve, node, "endTrans", "endRot", "endScale", endTime, animation)
+				end
+			end
+		end
+		return true
+	else
 		return false
 	end
-	local v98_ = xmlFile:getValue(partKey .. "#time")
-	local v99_ = xmlFile:getValue(partKey .. "#startTime")
-	local v100_ = xmlFile:getValue(partKey .. "#endTime")
-	if animation.curvesByNode[v97_] == nil then
-		animation.curvesByNode[v97_] = AnimCurve.new(linearInterpolatorTransRotScale)
-	end
-	local v101_ = animation.curvesByNode[v97_]
-	if v98_ == nil then
-		if v99_ ~= nil or v100_ ~= nil then
-			if v99_ ~= nil then
-				local v102_ = v99_ * 1000
-				if v101_.maxTime == 0 or v101_.maxTime ~= v102_ then
-					self:loadStaticAnimationPartValues(xmlFile, partKey, v101_, v97_, "startTrans", "startRot", "startScale", v102_, animation)
-				end
-			end
-			if v100_ ~= nil then
-				local v103_ = v100_ * 1000
-				if v101_.maxTime == 0 or v101_.maxTime ~= v103_ then
-					self:loadStaticAnimationPartValues(xmlFile, partKey, v101_, v97_, "endTrans", "endRot", "endScale", v103_, animation)
-				end
-			end
-		end
-	else
-		self:loadStaticAnimationPartValues(xmlFile, partKey, v101_, v97_, "translation", "rotation", "scale", v98_ * 1000, animation)
-	end
-	return true
 end
-
--- Local values: hasTranslation, hasRotation, hasScale, x, y, z, rx, ry, rz, sx, sy, sz
 function AnimatedVehicle:loadStaticAnimationPartValues(xmlFile, partKey, curve, node, transName, rotName, scaleName, time, animation)
-	local v113_ = false
-	local v114_ = false
-	local v115_ = false
-	local v116_, v117_, v118_ = xmlFile:getValue(partKey .. "#" .. transName)
-	if v116_ == nil then
-		v116_, v117_, v118_ = getTranslation(node)
+	local hasTranslation = false
+	local hasRotation = false
+	local hasScale = false
+	local x, y, z = xmlFile:getValue(partKey .. "#" .. transName)
+	if x == nil then
+		x, y, z = getTranslation(node)
 	else
-		v113_ = true
+		hasTranslation = true
 	end
-	local v119_, v120_, v121_ = xmlFile:getValue(partKey .. "#" .. rotName)
-	if v119_ == nil then
-		v119_, v120_, v121_ = getRotation(node)
+	local rx, ry, rz = xmlFile:getValue(partKey .. "#" .. rotName)
+	if rx == nil then
+		rx, ry, rz = getRotation(node)
 	else
-		v114_ = true
+		hasRotation = true
 	end
-	local v122_, v123_, v124_ = xmlFile:getValue(partKey .. "#" .. scaleName)
-	if v122_ == nil then
-		v122_, v123_, v124_ = getScale(node)
+	local sx, sy, sz = xmlFile:getValue(partKey .. "#" .. scaleName)
+	if sx == nil then
+		sx, sy, sz = getScale(node)
 	else
-		v115_ = true
+		hasScale = true
 	end
-	if v113_ or (v114_ or v115_) then
-		if curve.hasTranslation == nil or (curve.hasRotation == nil or curve.hasScale == nil) then
-			curve.hasTranslation = v113_
-			curve.hasRotation = v114_
-			curve.hasScale = v115_
-		elseif curve.hasTranslation ~= v113_ or (curve.hasRotation ~= v114_ or curve.hasScale ~= v115_) then
-			Logging.xmlWarning(xmlFile, "All animation parts for node \'%s\' require the same attributes (translation/rotation/scale) in animation \'%s\'! \'%s\'", getName(node), animation.name, partKey)
+	if hasTranslation or hasRotation or hasScale then
+		if curve.hasTranslation == nil or curve.hasRotation == nil or curve.hasScale == nil then
+			curve.hasTranslation = hasTranslation
+			curve.hasRotation = hasRotation
+			curve.hasScale = hasScale
+		else
+			if curve.hasTranslation ~= hasTranslation or curve.hasRotation ~= hasRotation or curve.hasScale ~= hasScale then
+				Logging.xmlWarning(xmlFile, "All animation parts for node '%s' require the same attributes (translation/rotation/scale) in animation '%s'! '%s'", getName(node), animation.name, partKey)
+			end
 		end
 	end
-	curve:addKeyframe({
-		["x"] = v116_,
-		["y"] = v117_,
-		["z"] = v118_,
-		["rx"] = v119_,
-		["ry"] = v120_,
-		["rz"] = v121_,
-		["sx"] = v122_,
-		["sy"] = v123_,
-		["sz"] = v124_,
-		["time"] = time
-	})
+	curve:addKeyframe({ x = x, y = y, z = z, rx = rx, ry = ry, rz = rz, sx = sx, sy = sy, sz = sz, time = time })
 end
-
--- Local values: numParts, i, part, i, part
 function AnimatedVehicle:initializeAnimationParts(animation)
-	local v127_ = #animation.parts
-	for v128_, v129_ in ipairs(animation.parts) do
-		self:initializeAnimationPart(animation, v129_, v128_, v127_)
+	local numParts = #animation.parts
+	for i, part in ipairs(animation.parts) do
+		self:initializeAnimationPart(animation, part, i, numParts)
 	end
-	for v130_, v131_ in ipairs(animation.parts) do
-		self:postInitializeAnimationPart(animation, v131_, v130_, v127_)
+	for i, part in ipairs(animation.parts) do
+		self:postInitializeAnimationPart(animation, part, i, numParts)
 	end
 end
-
--- Local values: index
 function AnimatedVehicle:initializeAnimationPart(animation, part, i, numParts)
-	for v135_ = 1, #part.animationValues do
-		part.animationValues[v135_]:init(i, numParts)
+	for index = 1, #part.animationValues do
+		part.animationValues[index]:init(i, numParts)
 	end
 end
-
--- Local values: index
 function AnimatedVehicle:postInitializeAnimationPart(animation, part, i, numParts)
-	for v137_ = 1, #part.animationValues do
-		part.animationValues[v137_]:postInit()
+	for index = 1, #part.animationValues do
+		part.animationValues[index]:postInit()
 	end
 end
-
--- Local values: spec, animation
 function AnimatedVehicle:playAnimation(name, speed, animTime, noEventSend, allowSounds)
-	local v143_ = self.spec_animatedVehicle
-	local v144_ = v143_.animations[name]
-	if v144_ ~= nil then
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	if animation ~= nil then
 		SpecializationUtil.raiseEvent(self, "onPlayAnimation", name)
 		if speed == nil then
-			speed = v144_.currentSpeed
+			speed = animation.currentSpeed
 		end
 		if speed == nil or speed == 0 then
 			return
@@ -568,295 +509,290 @@ function AnimatedVehicle:playAnimation(name, speed, animTime, noEventSend, allow
 			if self:getIsAnimationPlaying(name) then
 				animTime = self:getAnimationTime(name)
 			else
-				animTime = speed > 0 and 0 or 1
+				animTime = 0 < speed and 0 or 1
 			end
 		end
 		if noEventSend == nil or noEventSend == false then
-			if g_server == nil then
-				g_client:getServerConnection():sendEvent(AnimatedVehicleStartEvent.new(self, name, speed, animTime))
-			else
+			if g_server ~= nil then
 				g_server:broadcastEvent(AnimatedVehicleStartEvent.new(self, name, speed, animTime), nil, nil, self)
+			else
+				g_client:getServerConnection():sendEvent(AnimatedVehicleStartEvent.new(self, name, speed, animTime))
 			end
 		end
-		if not table.hasElement(v143_.activeAnimations, v144_) then
-			table.addElement(v143_.activeAnimations, v144_)
-			v143_.numActiveAnimations = v143_.numActiveAnimations + 1
+		if not table.hasElement(spec.activeAnimations, animation) then
+			table.addElement(spec.activeAnimations, animation)
+			spec.numActiveAnimations = spec.numActiveAnimations + 1
 			SpecializationUtil.raiseEvent(self, "onStartAnimation", name, speed)
 		end
-		v144_.currentSpeed = speed
-		v144_.currentTime = animTime * v144_.duration
-		self:resetAnimationValues(v144_)
+		animation.currentSpeed = speed
+		animation.currentTime = animTime * animation.duration
+		self:resetAnimationValues(animation)
 		self:raiseActive()
 	end
 end
-
--- Local values: spec, animation, i, sample
 function AnimatedVehicle:stopAnimation(name, noEventSend)
-	local v148_ = self.spec_animatedVehicle
+	local spec = self.spec_animatedVehicle
 	if noEventSend == nil or noEventSend == false then
-		if g_server == nil then
-			g_client:getServerConnection():sendEvent(AnimatedVehicleStopEvent.new(self, name))
-		else
+		if g_server ~= nil then
 			g_server:broadcastEvent(AnimatedVehicleStopEvent.new(self, name), nil, nil, self)
+		else
+			g_client:getServerConnection():sendEvent(AnimatedVehicleStopEvent.new(self, name))
 		end
 	end
-	local v149_ = v148_.animations[name]
-	if v149_ ~= nil then
+	local animation = spec.animations[name]
+	if animation ~= nil then
 		SpecializationUtil.raiseEvent(self, "onStopAnimation", name)
-		v149_.stopTime = nil
+		animation.stopTime = nil
 		if self.isClient then
-			for v150_ = 1, #v149_.samples do
-				local v151_ = v149_.samples[v150_]
-				if v151_.loops == 0 then
-					g_soundManager:stopSample(v151_)
+			for i = 1, #animation.samples do
+				local sample = animation.samples[i]
+				if sample.loops == 0 then
+					g_soundManager:stopSample(sample)
 				end
 			end
 		end
 	end
-	if table.hasElement(v148_.activeAnimations, v149_) then
-		table.removeElement(v148_.activeAnimations, v149_)
-		v148_.numActiveAnimations = v148_.numActiveAnimations - 1
+	if table.hasElement(spec.activeAnimations, animation) then
+		table.removeElement(spec.activeAnimations, animation)
+		spec.numActiveAnimations = spec.numActiveAnimations - 1
 		SpecializationUtil.raiseEvent(self, "onFinishAnimation", name)
 	end
 end
-
--- Local values: spec
 function AnimatedVehicle:getAnimationExists(name)
-	return self.spec_animatedVehicle.animations[name] ~= nil
+	local spec = self.spec_animatedVehicle
+	return spec.animations[name] ~= nil
 end
-
 function AnimatedVehicle:getAnimationByName(name)
 	return self.spec_animatedVehicle.animations[name]
 end
-
--- Local values: spec, animation
 function AnimatedVehicle:getIsAnimationPlaying(name)
-	local v158_ = self.spec_animatedVehicle
-	local v159_ = v158_.animations[name]
-	return table.hasElement(v158_.activeAnimations, v159_)
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	return table.hasElement(spec.activeAnimations, animation)
 end
-
--- Local values: spec, animation
 function AnimatedVehicle:getRealAnimationTime(name)
-	local v162_ = self.spec_animatedVehicle.animations[name]
-	return v162_ == nil and 0 or v162_.currentTime
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	if animation ~= nil then
+		return animation.currentTime
+	else
+		return 0
+	end
 end
-
--- Local values: spec, animation, currentSpeed, dtToUse, _
 function AnimatedVehicle:setRealAnimationTime(name, animTime, update, playSounds)
-	local v168_ = self.spec_animatedVehicle.animations[name]
-	if v168_ ~= nil then
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	if animation ~= nil then
 		if update == nil or update then
-			local v169_ = v168_.currentSpeed
-			v168_.currentSpeed = 1
-			if animTime < v168_.currentTime then
-				v168_.currentSpeed = -1
+			local currentSpeed = animation.currentSpeed
+			animation.currentSpeed = 1
+			if animTime < animation.currentTime then
+				animation.currentSpeed = -1
 			end
-			self:resetAnimationValues(v168_)
-			local v170_, _ = AnimatedVehicle.updateAnimationCurrentTime(self, v168_, 99999999, animTime)
-			AnimatedVehicle.updateAnimation(self, v168_, v170_, true, true, playSounds)
-			v168_.currentSpeed = v169_
+			self:resetAnimationValues(animation)
+			local dtToUse, _ = AnimatedVehicle.updateAnimationCurrentTime(self, animation, 99999999, animTime)
+			AnimatedVehicle.updateAnimation(self, animation, dtToUse, true, true, playSounds)
+			animation.currentSpeed = currentSpeed
 			return
 		end
-		v168_.currentTime = animTime
+		animation.currentTime = animTime
 	end
 end
-
--- Local values: spec, animation
 function AnimatedVehicle:getAnimationTime(name)
-	local v173_ = self.spec_animatedVehicle.animations[name]
-	return (v173_ == nil or v173_.duration <= 0) and 0 or v173_.currentTime / v173_.duration
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	if animation ~= nil and 0 < animation.duration then
+		return animation.currentTime / animation.duration
+	end
+	return 0
 end
-
--- Local values: spec, animation
 function AnimatedVehicle:setAnimationTime(name, animTime, update, playSounds)
-	local v179_ = self.spec_animatedVehicle
-	if v179_.animations == nil then
+	local spec = self.spec_animatedVehicle
+	if spec.animations == nil then
 		printCallstack()
 	end
-	local v180_ = v179_.animations[name]
-	if v180_ ~= nil then
-		self:setRealAnimationTime(name, animTime * v180_.duration, update, playSounds)
+	local animation = spec.animations[name]
+	if animation ~= nil then
+		self:setRealAnimationTime(name, animTime * animation.duration, update, playSounds)
 	end
 end
-
--- Local values: spec, animation
 function AnimatedVehicle:getAnimationDuration(name)
-	local v183_ = self.spec_animatedVehicle.animations[name]
-	return v183_ == nil and 1 or v183_.duration
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	if animation ~= nil then
+		return animation.duration
+	else
+		return 1
+	end
 end
-
--- Local values: spec, animation, speedReversed
 function AnimatedVehicle:setAnimationSpeed(name, speed)
-	local v187_ = self.spec_animatedVehicle.animations[name]
-	if v187_ ~= nil then
-		local v188_ = v187_.currentSpeed > 0 ~= (speed > 0) and true or false
-		v187_.currentSpeed = speed
-		if self:getIsAnimationPlaying(name) and v188_ then
-			self:resetAnimationValues(v187_)
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	if animation ~= nil then
+		local speedReversed = false
+		if 0 < animation.currentSpeed ~= (0 < speed) then
+			speedReversed = true
+		end
+		animation.currentSpeed = speed
+		if self:getIsAnimationPlaying(name) and speedReversed then
+			self:resetAnimationValues(animation)
 		end
 	end
 end
-
--- Local values: spec, animation
 function AnimatedVehicle:getAnimationSpeed(name)
-	local v191_ = self.spec_animatedVehicle.animations[name]
-	return v191_ == nil and 0 or v191_.currentSpeed
-end
-
--- Local values: spec, animation
-function AnimatedVehicle:setAnimationStopTime(name, stopTime)
-	local v195_ = self.spec_animatedVehicle.animations[name]
-	if v195_ ~= nil then
-		v195_.stopTime = stopTime * v195_.duration
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	if animation ~= nil then
+		return animation.currentSpeed
+	else
+		return 0
 	end
 end
-
--- Local values: _, part
+function AnimatedVehicle:setAnimationStopTime(name, stopTime)
+	local spec = self.spec_animatedVehicle
+	local animation = spec.animations[name]
+	if animation ~= nil then
+		animation.stopTime = stopTime * animation.duration
+	end
+end
 function AnimatedVehicle:resetAnimationValues(animation)
 	AnimatedVehicle.findCurrentPartIndex(animation)
-	for _, v198_ in ipairs(animation.parts) do
-		self:resetAnimationPartValues(v198_)
+	for _, part in ipairs(animation.parts) do
+		self:resetAnimationPartValues(part)
 	end
 end
-
--- Local values: index
 function AnimatedVehicle:resetAnimationPartValues(part)
-	for v200_ = 1, #part.animationValues do
-		part.animationValues[v200_]:reset()
+	for index = 1, #part.animationValues do
+		part.animationValues[index]:reset()
 	end
 end
-
 function AnimatedVehicle:loadSpeedRotatingPartFromXML(superFunc, speedRotatingPart, xmlFile, key)
 	if not superFunc(self, speedRotatingPart, xmlFile, key) then
 		return false
+	else
+		speedRotatingPart.animName = xmlFile:getValue(key .. "#animName")
+		speedRotatingPart.animOuterRange = xmlFile:getValue(key .. "#animOuterRange", false)
+		speedRotatingPart.animMinLimit = xmlFile:getValue(key .. "#animMinLimit", 0)
+		speedRotatingPart.animMaxLimit = xmlFile:getValue(key .. "#animMaxLimit", 1)
+		return true
 	end
-	speedRotatingPart.animName = xmlFile:getValue(key .. "#animName")
-	speedRotatingPart.animOuterRange = xmlFile:getValue(key .. "#animOuterRange", false)
-	speedRotatingPart.animMinLimit = xmlFile:getValue(key .. "#animMinLimit", 0)
-	speedRotatingPart.animMaxLimit = xmlFile:getValue(key .. "#animMaxLimit", 1)
-	return true
 end
-
--- Local values: animTime
 function AnimatedVehicle:getIsSpeedRotatingPartActive(superFunc, speedRotatingPart)
 	if speedRotatingPart.animName ~= nil then
-		local v209_ = self:getAnimationTime(speedRotatingPart.animName)
+		local animTime = self:getAnimationTime(speedRotatingPart.animName)
 		if speedRotatingPart.animOuterRange then
-			if speedRotatingPart.animMinLimit < v209_ or v209_ < speedRotatingPart.animMaxLimit then
+			if speedRotatingPart.animMinLimit < animTime or animTime < speedRotatingPart.animMaxLimit then
 				return false
 			end
-		elseif speedRotatingPart.animMaxLimit < v209_ or v209_ < speedRotatingPart.animMinLimit then
+		elseif speedRotatingPart.animMaxLimit < animTime or animTime < speedRotatingPart.animMinLimit then
 			return false
 		end
 	end
 	return superFunc(self, speedRotatingPart)
 end
-
 function AnimatedVehicle:loadWorkAreaFromXML(superFunc, workArea, xmlFile, key)
 	workArea.animName = xmlFile:getValue(key .. "#animName")
 	workArea.animMinLimit = xmlFile:getValue(key .. "#animMinLimit", 0)
 	workArea.animMaxLimit = xmlFile:getValue(key .. "#animMaxLimit", 1)
 	return superFunc(self, workArea, xmlFile, key)
 end
-
--- Local values: animTime
 function AnimatedVehicle:getIsWorkAreaActive(superFunc, workArea)
 	if workArea.animName ~= nil then
-		local v218_ = self:getAnimationTime(workArea.animName)
-		if workArea.animMaxLimit < v218_ or v218_ < workArea.animMinLimit then
+		local animTime = self:getAnimationTime(workArea.animName)
+		if workArea.animMaxLimit < animTime or animTime < workArea.animMinLimit then
 			return false
 		end
 	end
 	return superFunc(self, workArea)
 end
-
 function AnimatedVehicle:loadMovingToolFromXML(superFunc, xmlFile, key, entry)
 	if not superFunc(self, xmlFile, key, entry) then
 		return false
+	else
+		entry.requiredAnimation = xmlFile:getValue(key .. "#requiredAnimation")
+		if entry.requiredAnimation ~= nil then
+			entry.requiredAnimationMin = xmlFile:getValue(key .. "#requiredAnimationMinTime", 0)
+			entry.requiredAnimationMax = xmlFile:getValue(key .. "#requiredAnimationMaxTime", 1)
+		end
+		return true
 	end
-	entry.requiredAnimation = xmlFile:getValue(key .. "#requiredAnimation")
-	if entry.requiredAnimation ~= nil then
-		entry.requiredAnimationMin = xmlFile:getValue(key .. "#requiredAnimationMinTime", 0)
-		entry.requiredAnimationMax = xmlFile:getValue(key .. "#requiredAnimationMaxTime", 1)
-	end
-	return true
 end
-
--- Local values: animationTime
 function AnimatedVehicle:getIsMovingToolActive(superFunc, movingTool)
 	if movingTool.requiredAnimation ~= nil then
-		local v227_ = self:getAnimationTime(movingTool.requiredAnimation)
-		if v227_ < movingTool.requiredAnimationMin or movingTool.requiredAnimationMax < v227_ then
+		local animationTime = self:getAnimationTime(movingTool.requiredAnimation)
+		if animationTime < movingTool.requiredAnimationMin or movingTool.requiredAnimationMax < animationTime then
 			return false
 		end
 	end
 	return superFunc(self, movingTool)
 end
-
 function AnimatedVehicle:loadMovingPartFromXML(superFunc, xmlFile, key, entry)
 	if not superFunc(self, xmlFile, key, entry) then
 		return false
+	else
+		entry.requiredAnimation = xmlFile:getValue(key .. "#requiredAnimation")
+		if entry.requiredAnimation ~= nil then
+			entry.requiredAnimationMin = xmlFile:getValue(key .. "#requiredAnimationMinTime", 0)
+			entry.requiredAnimationMax = xmlFile:getValue(key .. "#requiredAnimationMaxTime", 1)
+		end
+		return true
 	end
-	entry.requiredAnimation = xmlFile:getValue(key .. "#requiredAnimation")
-	if entry.requiredAnimation ~= nil then
-		entry.requiredAnimationMin = xmlFile:getValue(key .. "#requiredAnimationMinTime", 0)
-		entry.requiredAnimationMax = xmlFile:getValue(key .. "#requiredAnimationMaxTime", 1)
-	end
-	return true
 end
-
--- Local values: animationTime
 function AnimatedVehicle:getIsMovingPartActive(superFunc, movingPart)
 	if movingPart.requiredAnimation ~= nil then
-		local v236_ = self:getAnimationTime(movingPart.requiredAnimation)
-		if v236_ < movingPart.requiredAnimationMin or movingPart.requiredAnimationMax < v236_ then
+		local animationTime = self:getAnimationTime(movingPart.requiredAnimation)
+		if animationTime < movingPart.requiredAnimationMin or movingPart.requiredAnimationMax < animationTime then
 			return false
 		end
 	end
 	return superFunc(self, movingPart)
 end
-
--- Local values: j, part2, additionalCompare, sameRequiredRange, n, v, sameConfiguration
 function AnimatedVehicle:initializeAnimationPartAttribute(animation, part, i, numParts, nextName, prevName, startName, endName, warningName, startName2, endName2, additionalCompareParam)
 	if part[endName] ~= nil then
-		for v250_ = i + 1, numParts do
-			local v251_ = animation.parts[v250_]
-			local v252_ = additionalCompareParam == nil or part[additionalCompareParam] == v251_[additionalCompareParam]
-			local v253_ = true
-			if part.requiredAnimation ~= nil and part.requiredAnimation == v251_.requiredAnimation then
-				for v254_, v255_ in ipairs(part.requiredAnimationRange) do
-					if v251_.requiredAnimationRange[v254_] ~= v255_ then
-						v253_ = false
+		for j = i + 1, numParts do
+			local part2 = animation.parts[j]
+			local additionalCompare = true
+			if additionalCompareParam ~= nil and part[additionalCompareParam] ~= part2[additionalCompareParam] then
+				additionalCompare = false
+			end
+			local sameRequiredRange = true
+			if part.requiredAnimation ~= nil and part.requiredAnimation == part2.requiredAnimation then
+				for n, v in ipairs(part.requiredAnimationRange) do
+					if part2.requiredAnimationRange[n] == v then
+						continue
 					end
+					sameRequiredRange = false
 				end
 			end
-			local v256_ = part.requiredConfigurationName == nil or (part.requiredConfigurationName ~= v251_.requiredConfigurationName or part.requiredConfigurationIndex == v251_.requiredConfigurationIndex)
-			if part.direction == v251_.direction and (part.node == v251_.node and (v251_[endName] ~= nil and (v252_ and (v253_ and v256_)))) then
-				if part.direction == v251_.direction and part.startTime + part.duration > v251_.startTime + 0.001 then
-					Logging.xmlWarning(self.xmlFile, "Overlapping %s parts for node \'%s\' in animation \'%s\'", warningName, getName(part.node), animation.name)
+			local sameConfiguration = true
+			if part.requiredConfigurationName ~= nil and (part.requiredConfigurationName == part2.requiredConfigurationName and part.requiredConfigurationIndex ~= part2.requiredConfigurationIndex) then
+				sameConfiguration = false
+			end
+			if part.direction == part2.direction and part.node == part2.node then
+				if part2[endName] == nil then
+					continue
 				end
-				part[nextName] = v251_
-				v251_[prevName] = part
-				if v251_[startName] == nil then
-					local v257_ = {}
-					local v258_ = part[endName]
-					__set_list(v257_, 1, {unpack(v258_)})
-					v251_[startName] = v257_
+				if additionalCompare and (sameRequiredRange and sameConfiguration) then
+					if part.direction == part2.direction and part2.startTime + 0.001 < part.startTime + part.duration then
+						Logging.xmlWarning(self.xmlFile, "Overlapping %s parts for node '%s' in animation '%s'", warningName, getName(part.node), animation.name)
+					end
+					part[nextName] = part2
+					part2[prevName] = part
+					if part2[startName] == nil then
+						part2[startName] = { unpack(part[endName]) }
+					end
+					if startName2 == nil or endName2 == nil then
+						break
+					end
+					if part2[startName2] == nil then
+						part2[startName2] = { unpack(part[endName2]) }
+						return
+					end
 				end
-				if startName2 ~= nil and (endName2 ~= nil and v251_[startName2] == nil) then
-					local v259_ = {}
-					local v260_ = part[endName2]
-					__set_list(v259_, 1, {unpack(v260_)})
-					v251_[startName2] = v259_
-					return
-				end
-				break
 			end
 		end
 	end
 end
-
 function AnimatedVehicle.animPartSorter(a, b)
 	if a.startTime < b.startTime then
 		return true
@@ -866,850 +802,790 @@ function AnimatedVehicle.animPartSorter(a, b)
 		return false
 	end
 end
-
--- Local values: endTimeA, endTimeB
 function AnimatedVehicle.animPartSorterReverse(a, b)
-	local v265_ = a.startTime + a.duration
-	local v266_ = b.startTime + b.duration
-	if v266_ < v265_ then
+	local endTimeA = a.startTime + a.duration
+	local endTimeB = b.startTime + b.duration
+	if endTimeB < endTimeA then
 		return true
-	elseif v265_ == v266_ then
-		return a.startTime > b.startTime
+	elseif endTimeA == endTimeB then
+		return b.startTime < a.startTime
 	else
 		return false
 	end
 end
-
--- Local values: limitF
 function AnimatedVehicle.getMovedLimitedValue(currentValue, destValue, speed, dt)
 	if destValue == currentValue then
 		return currentValue
 	else
-		return (destValue < currentValue and math.max or math.min)(currentValue + speed * dt, destValue)
+		local limitF = destValue < currentValue and math.max or math.min
+		return limitF(currentValue + speed * dt, destValue)
 	end
 end
-
--- Local values: hasChanged, i, newValue
 function AnimatedVehicle.setMovedLimitedValuesN(n, currentValues, destValues, speeds, dt)
-	local v276_ = false
-	for v277_ = 1, n do
-		local v278_ = AnimatedVehicle.getMovedLimitedValue(currentValues[v277_], destValues[v277_], speeds[v277_], dt)
-		if currentValues[v277_] ~= v278_ then
-			currentValues[v277_] = v278_
-			v276_ = true
+	local hasChanged = false
+	for i = 1, n do
+		local newValue = AnimatedVehicle.getMovedLimitedValue(currentValues[i], destValues[i], speeds[i], dt)
+		if currentValues[i] == newValue then
+			continue
 		end
+		hasChanged = true
+		currentValues[i] = newValue
 	end
-	return v276_
+	return hasChanged
 end
-
 function AnimatedVehicle.setMovedLimitedValues3(currentValues, destValues, speeds, dt)
 	return AnimatedVehicle.setMovedLimitedValuesN(3, currentValues, destValues, speeds, dt)
 end
-
 function AnimatedVehicle.setMovedLimitedValues4(currentValues, destValues, speeds, dt)
 	return AnimatedVehicle.setMovedLimitedValuesN(4, currentValues, destValues, speeds, dt)
 end
-
--- Local values: i, part, i, part
 function AnimatedVehicle.findCurrentPartIndex(animation)
-	if animation.currentSpeed > 0 then
+	if 0 < animation.currentSpeed then
 		animation.currentPartIndex = #animation.parts + 1
-		for v288_, v289_ in ipairs(animation.parts) do
-			if v289_.startTime + v289_.duration >= animation.currentTime then
-				animation.currentPartIndex = v288_
+		for i, part in ipairs(animation.parts) do
+			if animation.currentTime <= part.startTime + part.duration then
+				animation.currentPartIndex = i
 				return
 			end
 		end
 	else
 		animation.currentPartIndex = #animation.partsReverse + 1
-		for v290_, v291_ in ipairs(animation.partsReverse) do
-			if v291_.startTime <= animation.currentTime then
-				animation.currentPartIndex = v290_
+		for i, part in ipairs(animation.partsReverse) do
+			if part.startTime <= animation.currentTime then
+				animation.currentPartIndex = i
 				return
 			end
 		end
 	end
 end
-
 function AnimatedVehicle.getDurationToEndOfPart(part, anim)
-	if anim.currentSpeed > 0 then
+	if 0 < anim.currentSpeed then
 		return part.startTime + part.duration - anim.currentTime
 	else
 		return anim.currentTime - part.startTime
 	end
 end
-
 function AnimatedVehicle.getNextPartIsPlaying(nextPart, prevPart, anim, default)
-	if anim.currentSpeed > 0 then
+	if 0 < anim.currentSpeed then
 		if nextPart ~= nil then
-			return nextPart.startTime > anim.currentTime
+			return anim.currentTime < nextPart.startTime
 		end
 	elseif prevPart ~= nil then
 		return prevPart.startTime + prevPart.duration < anim.currentTime
 	end
 	return default
 end
-
--- Local values: spec, i, animation, dtToUse, stopAnim
 function AnimatedVehicle:updateAnimations(dt, fixedTimeUpdate)
-	local v301_ = self.spec_animatedVehicle
-	for v302_ = #v301_.activeAnimations, 1, -1 do
-		local v303_ = v301_.activeAnimations[v302_]
-		local v304_, v305_ = AnimatedVehicle.updateAnimationCurrentTime(self, v303_, dt, v303_.stopTime)
-		AnimatedVehicle.updateAnimation(self, v303_, v304_, v305_, fixedTimeUpdate)
+	local spec = self.spec_animatedVehicle
+	for i = #spec.activeAnimations, 1, -1 do
+		local animation = spec.activeAnimations[i]
+		local dtToUse, stopAnim = AnimatedVehicle.updateAnimationCurrentTime(self, animation, dt, animation.stopTime)
+		AnimatedVehicle.updateAnimation(self, animation, dtToUse, stopAnim, fixedTimeUpdate)
 	end
 end
-
--- Local values: spec, anim, dtToUse, stopAnim
 function AnimatedVehicle:updateAnimationByName(animName, dt, fixedTimeUpdate)
-	local v310_ = self.spec_animatedVehicle.animations[animName]
-	if v310_ ~= nil then
-		local v311_, v312_ = AnimatedVehicle.updateAnimationCurrentTime(self, v310_, dt, v310_.stopTime)
-		AnimatedVehicle.updateAnimation(self, v310_, v311_, v312_, fixedTimeUpdate)
+	local spec = self.spec_animatedVehicle
+	local anim = spec.animations[animName]
+	if anim ~= nil then
+		local dtToUse, stopAnim = AnimatedVehicle.updateAnimationCurrentTime(self, anim, dt, anim.stopTime)
+		AnimatedVehicle.updateAnimation(self, anim, dtToUse, stopAnim, fixedTimeUpdate)
 	end
 end
-
--- Local values: absSpeed, dtToUse, stopAnim
 function AnimatedVehicle:updateAnimationCurrentTime(anim, dt, stopTime)
 	anim.previousTime = anim.currentTime
 	anim.currentTime = anim.currentTime + dt * anim.currentSpeed
-	local v316_ = anim.currentSpeed
-	local v317_ = dt * math.abs(v316_)
-	local v318_ = false
+	local absSpeed = math.abs(anim.currentSpeed)
+	local dtToUse = dt * absSpeed
+	local stopAnim = false
 	if stopTime ~= nil then
-		if anim.currentSpeed > 0 then
+		if 0 < anim.currentSpeed then
 			if stopTime <= anim.currentTime then
-				local v319_ = v317_ - (anim.currentTime - stopTime)
+				dtToUse = dtToUse - (anim.currentTime - stopTime)
 				anim.currentTime = stopTime
-				return v319_, true
+				stopAnim = true
+				return dtToUse, stopAnim
 			end
 		elseif anim.currentTime <= stopTime then
-			v317_ = v317_ - (stopTime - anim.currentTime)
+			dtToUse = dtToUse - (stopTime - anim.currentTime)
 			anim.currentTime = stopTime
-			v318_ = true
+			stopAnim = true
 		end
 	end
-	return v317_, v318_
+	return dtToUse, stopAnim
 end
-
--- Local values: spec, isStopTimeStop, numParts, parts, hasChanged, nothingToChangeYet, partI, part, isInRange, time, sameConfiguration, durationToEnd, realDt, startT, startT, endTime, node, curve, x, y, z, rx, ry, rz, sx, sy, sz, i, sample, alpha, inRange, allowLooping, i, sample, i, i
 function AnimatedVehicle:updateAnimation(anim, dtToUse, stopAnim, fixedTimeUpdate, playSounds)
-	local v326_ = self.spec_animatedVehicle
-	local v327_ = #anim.parts
-	local v328_ = anim.parts
+	local spec = self.spec_animatedVehicle
+	local isStopTimeStop = stopAnim
+	local numParts = #anim.parts
+	local parts = anim.parts
 	if anim.currentSpeed < 0 then
-		v328_ = anim.partsReverse
+		parts = anim.partsReverse
 	end
-	local v329_
-	if dtToUse > 0 then
-		local v330_ = false
-		local v331_ = false
-		if anim.isKeyframe then
-			for v332_, v333_ in pairs(anim.curvesByNode) do
-				local v334_, v335_, v336_, v337_, v338_, v339_, v340_, v341_, v342_ = v333_:get(anim.currentTime)
-				if v333_.hasTranslation then
-					setTranslation(v332_, v334_, v335_, v336_)
-				end
-				if v333_.hasRotation then
-					setRotation(v332_, v337_, v338_, v339_)
-				end
-				if v333_.hasScale then
-					setScale(v332_, v340_, v341_, v342_)
-				end
-				SpecializationUtil.raiseEvent(self, "onAnimationPartChanged", v332_)
-			end
-			v329_ = anim.currentTime <= 0 and true or anim.currentTime >= anim.duration
-		else
-			local v343_ = stopAnim
-			for v344_ = anim.currentPartIndex, v327_ do
-				local v345_ = v328_[v344_]
-				local v346_ = true
-				if v345_.requiredAnimation ~= nil then
-					local v347_ = self:getAnimationTime(v345_.requiredAnimation)
-					if v347_ < v345_.requiredAnimationRange[1] or v345_.requiredAnimationRange[2] < v347_ then
-						v346_ = false
+	if 0 < dtToUse then
+		local hasChanged = false
+		local nothingToChangeYet = false
+		if not anim.isKeyframe then
+			for partI = anim.currentPartIndex, numParts do
+				local part = parts[partI]
+				local isInRange = true
+				if part.requiredAnimation ~= nil then
+					local time = self:getAnimationTime(part.requiredAnimation)
+					if time < part.requiredAnimationRange[1] or part.requiredAnimationRange[2] < time then
+						isInRange = false
 					end
 				end
-				local v348_ = v345_.requiredConfigurationName == nil or (self.configurations[v345_.requiredConfigurationName] == nil or self.configurations[v345_.requiredConfigurationName] == v345_.requiredConfigurationIndex)
-				if (v345_.direction == 0 or v345_.direction > 0 == (anim.currentSpeed >= 0)) and (v346_ and v348_) then
-					local v349_ = AnimatedVehicle.getDurationToEndOfPart(v345_, anim)
-					if v345_.duration < v349_ then
-						v331_ = true
+				local sameConfiguration = true
+				if part.requiredConfigurationName ~= nil and (self.configurations[part.requiredConfigurationName] ~= nil and self.configurations[part.requiredConfigurationName] ~= part.requiredConfigurationIndex) then
+					sameConfiguration = false
+				end
+				if part.direction ~= 0 then
+					if 0 < part.direction == (0 <= anim.currentSpeed) then
+					else
+						if partI == anim.currentPartIndex and (0 < anim.currentSpeed and (part.startTime + part.duration < anim.currentTime or anim.currentSpeed <= 0 and anim.currentTime < part.startTime)) then
+							self:resetAnimationPartValues(part)
+							anim.currentPartIndex = anim.currentPartIndex + 1
+						end
+					end
+				end
+				if isInRange and sameConfiguration then
+					local durationToEnd = AnimatedVehicle.getDurationToEndOfPart(part, anim)
+					if part.duration < durationToEnd then
+						nothingToChangeYet = true
 						break
 					end
-					local v350_
-					if anim.currentSpeed > 0 then
-						local v351_ = anim.currentTime - dtToUse
-						if v351_ < v345_.startTime then
-							v350_ = dtToUse - v345_.startTime + v351_
-						else
-							v350_ = dtToUse
+					local realDt = dtToUse
+					if 0 < anim.currentSpeed then
+						local startT = anim.currentTime - dtToUse
+						if startT < part.startTime then
+							realDt = dtToUse - part.startTime + startT
 						end
 					else
-						local v352_ = anim.currentTime + dtToUse
-						local v353_ = v345_.startTime + v345_.duration
-						if v353_ < v352_ then
-							v350_ = dtToUse - (v352_ - v353_)
-						else
-							v350_ = dtToUse
+						local startT = anim.currentTime + dtToUse
+						local endTime = part.startTime + part.duration
+						if endTime < startT then
+							realDt = dtToUse - (startT - endTime)
 						end
 					end
-					v330_ = self:updateAnimationPart(anim, v345_, v349_ + v350_, dtToUse, v350_, fixedTimeUpdate) and true or v330_
-				end
-				if v344_ == anim.currentPartIndex and (anim.currentSpeed > 0 and v345_.startTime + v345_.duration < anim.currentTime or anim.currentSpeed <= 0 and v345_.startTime > anim.currentTime) then
-					self:resetAnimationPartValues(v345_)
-					anim.currentPartIndex = anim.currentPartIndex + 1
+					durationToEnd = durationToEnd + realDt
+					if self:updateAnimationPart(anim, part, durationToEnd, dtToUse, realDt, fixedTimeUpdate) then
+						hasChanged = true
+					end
 				end
 			end
-			if v331_ or (v330_ or v327_ > anim.currentPartIndex) then
-				v329_ = stopAnim
-				stopAnim = v343_
-			else
+			if not nothingToChangeYet and (not hasChanged and numParts <= anim.currentPartIndex) then
 				anim.previousTime = anim.currentTime
-				if anim.currentSpeed > 0 then
+				if 0 < anim.currentSpeed then
 					anim.currentTime = anim.duration
-					stopAnim = v343_
-					v329_ = true
 				else
 					anim.currentTime = 0
-					stopAnim = v343_
-					v329_ = true
 				end
+				stopAnim = true
 			end
+		else
+			for node, curve in pairs(anim.curvesByNode) do
+				local x, y, z, rx, ry, rz, sx, sy, sz = curve:get(anim.currentTime)
+				if curve.hasTranslation then
+					setTranslation(node, x, y, z)
+				end
+				if curve.hasRotation then
+					setRotation(node, rx, ry, rz)
+				end
+				if curve.hasScale then
+					setScale(node, sx, sy, sz)
+				end
+				SpecializationUtil.raiseEvent(self, "onAnimationPartChanged", node)
+			end
+			stopAnim = anim.currentTime <= 0 or anim.duration <= anim.currentTime
 		end
-		if table.hasElement(v326_.activeAnimations, anim) or playSounds == true then
+		if table.hasElement(spec.activeAnimations, anim) or playSounds == true then
 			if fixedTimeUpdate ~= true or playSounds == true then
-				for v354_ = 1, #anim.samples do
-					local v355_ = anim.samples[v354_]
-					if g_soundManager:getIsSamplePlaying(v355_) then
-						if v355_.endTime ~= nil then
-							if v355_.startPitchScale ~= nil then
-								local v356_ = MathUtil.inverseLerp(v355_.startTime, v355_.endTime, anim.currentTime)
-								v355_.pitchScale = (v355_.endPitchScale - v355_.startPitchScale) * v356_ + v355_.startPitchScale
-							end
-							if anim.currentSpeed > 0 then
-								if anim.currentTime > v355_.endTime then
-									g_soundManager:stopSample(v355_)
-								end
-							elseif anim.currentTime < v355_.startTime then
-								g_soundManager:stopSample(v355_)
-							end
-							if v355_.direction ~= 0 and v355_.direction >= 0 ~= (anim.currentSpeed >= 0) then
-								g_soundManager:stopSample(v355_)
-							end
+				for i = 1, #anim.samples do
+					local sample = anim.samples[i]
+					if g_soundManager:getIsSamplePlaying(sample) then
+						if sample.endTime == nil then
+							continue
 						end
-					elseif v355_.direction == 0 or v355_.direction >= 0 == (anim.currentSpeed >= 0) then
-						if v355_.loops == 0 then
-							v355_.readyToStart = true
-						elseif v355_.endTime == nil then
-							if anim.currentSpeed < 0 then
-								v355_.readyToStart = anim.previousTime > v355_.startTime
+						if sample.startPitchScale ~= nil then
+							local alpha = MathUtil.inverseLerp(sample.startTime, sample.endTime, anim.currentTime)
+							sample.pitchScale = (sample.endPitchScale - sample.startPitchScale) * alpha + sample.startPitchScale
+						end
+						if 0 < anim.currentSpeed then
+							if sample.endTime < anim.currentTime then
+								g_soundManager:stopSample(sample)
+							end
+						elseif anim.currentTime < sample.startTime then
+							g_soundManager:stopSample(sample)
+						end
+						if sample.direction == 0 or 0 <= sample.direction == (0 <= anim.currentSpeed) then
+							continue
+						end
+						g_soundManager:stopSample(sample)
+					elseif sample.direction == 0 or 0 <= sample.direction == (0 <= anim.currentSpeed) then
+						if sample.loops ~= 0 then
+							if sample.endTime ~= nil then
+								sample.readyToStart = anim.previousTime < sample.startTime or sample.endTime < anim.previousTime
+							elseif anim.currentSpeed < 0 then
+								sample.readyToStart = sample.startTime < anim.previousTime
 							else
-								v355_.readyToStart = anim.previousTime < v355_.startTime
+								sample.readyToStart = anim.previousTime < sample.startTime
 							end
 						else
-							v355_.readyToStart = anim.previousTime < v355_.startTime and true or anim.previousTime > v355_.endTime
+							sample.readyToStart = true
 						end
-						local v357_ = anim.currentTime >= v355_.startTime
-						if v355_.endTime == nil then
-							if anim.currentSpeed < 0 then
-								v357_ = anim.currentTime <= v355_.startTime
-							end
-						elseif anim.currentTime >= v355_.startTime then
-							v357_ = anim.currentTime <= v355_.endTime
-						else
-							v357_ = false
+						local inRange = sample.startTime <= anim.currentTime
+						if sample.endTime ~= nil then
+							inRange = sample.startTime <= anim.currentTime and anim.currentTime <= sample.endTime
+						elseif anim.currentSpeed < 0 then
+							inRange = anim.currentTime <= sample.startTime
 						end
-						if v355_.readyToStart and v357_ then
-							g_soundManager:playSample(v355_)
+						if sample.readyToStart and inRange then
+							g_soundManager:playSample(sample)
 						end
 					end
 				end
 			end
 			SpecializationUtil.raiseEvent(self, "onUpdateAnimation", anim.name)
-			if not table.hasElement(v326_.activeAnimations, anim) then
-				v326_.fixedTimeSamplesDirtyDelay = 2
+			if not table.hasElement(spec.activeAnimations, anim) then
+				spec.fixedTimeSamplesDirtyDelay = 2
 			end
 		end
-	else
-		v329_ = stopAnim
 	end
-	if v329_ or v327_ > 0 and (v327_ < anim.currentPartIndex or anim.currentPartIndex < 1) then
+	if not stopAnim and (0 < numParts and (not (numParts < anim.currentPartIndex) and anim.currentPartIndex < 1)) then
 		anim.previousTime = anim.currentTime
-		if not v329_ then
-			if anim.currentSpeed > 0 then
+		if not stopAnim then
+			if 0 < anim.currentSpeed then
 				anim.currentTime = anim.duration
 			else
 				anim.currentTime = 0
 			end
 		end
-		local v358_ = anim.currentTime
-		local v359_ = math.max(v358_, 0)
-		local v360_ = anim.duration
-		anim.currentTime = math.min(v359_, v360_)
-		local v361_ = anim.stopTime ~= anim.currentTime
+		anim.currentTime = math.min(math.max(anim.currentTime, 0), anim.duration)
+		local allowLooping = anim.stopTime ~= anim.currentTime
 		anim.stopTime = nil
-		if table.hasElement(v326_.activeAnimations, anim) then
+		if table.hasElement(spec.activeAnimations, anim) then
 			if self.isClient then
-				for v362_ = 1, #anim.samples do
-					local v363_ = anim.samples[v362_]
-					if v363_.loops == 0 then
-						g_soundManager:stopSample(v363_)
+				for i = 1, #anim.samples do
+					local sample = anim.samples[i]
+					if sample.loops == 0 then
+						g_soundManager:stopSample(sample)
 					end
 				end
-				if stopAnim and anim.eventSamples ~= nil then
-					if anim.currentSpeed > 0 then
+				if isStopTimeStop and anim.eventSamples ~= nil then
+					if 0 < anim.currentSpeed then
 						if anim.eventSamples.stopTimePos ~= nil then
-							for v364_ = 1, #anim.eventSamples.stopTimePos do
-								g_soundManager:playSample(anim.eventSamples.stopTimePos[v364_])
+							for i = 1, #anim.eventSamples.stopTimePos do
+								g_soundManager:playSample(anim.eventSamples.stopTimePos[i])
 							end
 						end
 					elseif anim.eventSamples.stopTimeNeg ~= nil then
-						for v365_ = 1, #anim.eventSamples.stopTimeNeg do
-							g_soundManager:playSample(anim.eventSamples.stopTimeNeg[v365_])
+						for i = 1, #anim.eventSamples.stopTimeNeg do
+							g_soundManager:playSample(anim.eventSamples.stopTimeNeg[i])
 						end
 					end
 				end
 			end
-			table.removeElement(v326_.activeAnimations, anim)
-			v326_.numActiveAnimations = v326_.numActiveAnimations - 1
+			table.removeElement(spec.activeAnimations, anim)
+			spec.numActiveAnimations = spec.numActiveAnimations - 1
 			SpecializationUtil.raiseEvent(self, "onFinishAnimation", anim.name)
 		end
-		if v361_ and (fixedTimeUpdate ~= true and anim.looping) then
-			local v366_ = anim.name
-			local v367_ = anim.currentTime
-			local v368_ = anim.duration
-			local v369_ = v367_ / math.max(v368_, 0.0001) - 1
-			self:setAnimationTime(v366_, math.abs(v369_), true)
+		if allowLooping and (fixedTimeUpdate ~= true and anim.looping) then
+			self:setAnimationTime(anim.name, math.abs(anim.currentTime / math.max(anim.duration, 0.0001) - 1), true)
 			self:playAnimation(anim.name, anim.currentSpeed, nil, true)
 		end
 	end
 end
-
--- Local values: hasPartChanged, index, valueChanged
 function AnimatedVehicle:updateAnimationPart(animation, part, durationToEnd, dtToUse, realDt, fixedTimeUpdate)
-	local v375_ = false
-	for v376_ = 1, #part.animationValues do
-		v375_ = v375_ or part.animationValues[v376_]:update(durationToEnd, dtToUse, realDt, fixedTimeUpdate)
+	local hasPartChanged = false
+	for index = 1, #part.animationValues do
+		local valueChanged = part.animationValues[index]:update(durationToEnd, dtToUse, realDt, fixedTimeUpdate)
+		hasPartChanged = hasPartChanged or valueChanged
 	end
-	return v375_
+	return hasPartChanged
 end
-
 function AnimatedVehicle:getNumOfActiveAnimations()
 	return self.spec_animatedVehicle.numActiveAnimations
 end
-
--- Local values: loadNodeFunction, updateShaderParameterMask
 function AnimatedVehicle:onRegisterAnimationValueTypes()
-	local function v382_(p379_, p380_, p381_)
-		p379_.node = p380_:getValue(p381_ .. "#node", nil, p379_.part.components, p379_.part.i3dMappings)
-		if p379_.node == nil then
-			return false
-		end
-		p379_:setWarningInformation("node: " .. getName(p379_.node))
-		p379_:addCompareParameters("node")
-		return true
-	end
-	self:registerAnimationValueType("rotation", "startRot", "endRot", false, AnimationValueFloat, v382_, function(p383_)
-		return getRotation(p383_.node)
-	end, function(p384_, ...)
-		-- upvalues: (copy) self
-		setRotation(p384_.node, ...)
-		SpecializationUtil.raiseEvent(self, "onAnimationPartChanged", p384_.node)
-	end)
-	self:registerAnimationValueType("translation", "startTrans", "endTrans", false, AnimationValueFloat, v382_, function(p385_)
-		return getTranslation(p385_.node)
-	end, function(p386_, ...)
-		-- upvalues: (copy) self
-		setTranslation(p386_.node, ...)
-		SpecializationUtil.raiseEvent(self, "onAnimationPartChanged", p386_.node)
-	end)
-	self:registerAnimationValueType("scale", "startScale", "endScale", false, AnimationValueFloat, v382_, function(p387_)
-		return getScale(p387_.node)
-	end, function(p388_, ...)
-		-- upvalues: (copy) self
-		setScale(p388_.node, ...)
-		SpecializationUtil.raiseEvent(self, "onAnimationPartChanged", p388_.node)
-	end)
-	self:registerAnimationValueType("shaderParameter", "shaderStartValues", "shaderEndValues", false, AnimationValueFloat, function(p389_, p390_, p391_)
-		p389_.node = p390_:getValue(p391_ .. "#node", nil, p389_.part.components, p389_.part.i3dMappings)
-		p389_.shaderParameter = p390_:getValue(p391_ .. "#shaderParameter")
-		p389_.shaderParameterPrev = p390_:getValue(p391_ .. "#shaderParameterPrev")
-		if p389_.node ~= nil and p389_.shaderParameter ~= nil then
-			if getHasClassId(p389_.node, ClassIds.SHAPE) and getHasShaderParameter(p389_.node, p389_.shaderParameter) then
-				p389_:setWarningInformation("node: " .. getName(p389_.node) .. "with shaderParam: " .. p389_.shaderParameter)
-				p389_:addCompareParameters("node", "shaderParameter")
-				p389_.shaderParameterMask = {
-					1,
-					1,
-					1,
-					1
-				}
-				local v392_ = p391_ .. "#shaderStartValues"
-				local v393_ = p389_.shaderParameterMask
-				local v394_ = false
-				local v395_ = p390_:getValue(v392_)
-				if v395_ ~= nil then
-					for v396_ = 1, #v395_ do
-						if v395_[v396_] == "-" then
-							v393_[v396_] = 0
-							v394_ = true
-						end
-					end
-				end
-				p389_.customShaderParameterMask = v394_
-				local v397_ = p391_ .. "#shaderEndValues"
-				local v398_ = p389_.shaderParameterMask
-				local v399_ = false
-				local v400_ = p390_:getValue(v397_)
-				if v400_ ~= nil then
-					for v401_ = 1, #v400_ do
-						if v400_[v401_] == "-" then
-							v398_[v401_] = 0
-							v399_ = true
-						end
-					end
-				end
-				p389_.customShaderParameterMask = v399_ or p389_.customShaderParameterMask
-				if p389_.shaderParameterPrev == nil then
-					local v402_ = string.upper
-					local v403_ = p389_.shaderParameter
-					local v404_ = v402_((string.sub(v403_, 1, 1)))
-					local v405_ = p389_.shaderParameter
-					local v406_ = "prev" .. v404_ .. string.sub(v405_, 2)
-					if getHasShaderParameter(p389_.node, v406_) then
-						p389_.shaderParameterPrev = v406_
-					end
-				elseif not getHasShaderParameter(p389_.node, p389_.shaderParameterPrev) then
-					Logging.xmlWarning(p390_, "Node \'%s\' has no shaderParameterPrev \'%s\' for animation part \'%s\'!", getName(p389_.node), p389_.shaderParameterPrev, p391_)
-					return false
-				end
-				return true
-			end
-			Logging.xmlWarning(p390_, "Node \'%s\' has no shaderParameter \'%s\' for animation part \'%s\'!", getName(p389_.node), p389_.shaderParameter, p391_)
-		end
-		return false
-	end, function(p407_)
-		return getShaderParameter(p407_.node, p407_.shaderParameter)
-	end, function(p408_, p409_, p410_, p411_, p412_)
-		if p408_.customShaderParameterMask then
-			if p408_.shaderParameterMask[1] == 0 then
-				p409_ = nil
-			end
-			if p408_.shaderParameterMask[2] == 0 then
-				p410_ = nil
-			end
-			if p408_.shaderParameterMask[3] == 0 then
-				p411_ = nil
-			end
-			if p408_.shaderParameterMask[4] == 0 then
-				p412_ = nil
-			end
-		end
-		if p408_.shaderParameterPrev == nil then
-			setShaderParameter(p408_.node, p408_.shaderParameter, p409_, p410_, p411_, p412_, false)
+	local loadNodeFunction = function(value, xmlFile, xmlKey)
+		value.node = xmlFile:getValue(xmlKey .. "#node", nil, value.part.components, value.part.i3dMappings)
+		if value.node ~= nil then
+			value:setWarningInformation("node: " .. getName(value.node))
+			value:addCompareParameters("node")
+			return true
 		else
-			g_animationManager:setPrevShaderParameter(p408_.node, p408_.shaderParameter, p409_, p410_, p411_, p412_, false, p408_.shaderParameterPrev)
-		end
-	end)
-	self:registerAnimationValueType("visibility", "visibility", "", false, AnimationValueBool, v382_, function(p413_)
-		return getVisibility(p413_.node)
-	end, function(p414_, ...)
-		setVisibility(p414_.node, ...)
-	end)
-	self:registerAnimationValueType("visibilityInter", "startVisibility", "endVisibility", false, AnimationValueFloat, function(p415_, p416_, p417_)
-		p415_.node = p416_:getValue(p417_ .. "#node", nil, p415_.part.components, p415_.part.i3dMappings)
-		if p415_.node == nil or (p415_.startValue == nil or p415_.endValue == nil) then
 			return false
 		end
-		p415_:setWarningInformation("node: " .. getName(p415_.node))
-		p415_:addCompareParameters("node")
-		return true
-	end, function(p418_)
-		return p418_.lastVisibilityValue == nil and (getVisibility(p418_.node) and 1 or 0) or p418_.lastVisibilityValue
-	end, function(p419_, p420_)
-		p419_.lastVisibilityValue = p420_
-		setVisibility(p419_.node, p420_ >= 0.5)
+	end
+	self:registerAnimationValueType("rotation", "startRot", "endRot", false, AnimationValueFloat, loadNodeFunction, function(value)
+		return getRotation(value.node)
+	end, function(value, ...)
+		setRotation(value.node, ...)
+		SpecializationUtil.raiseEvent(self, "onAnimationPartChanged", value.node)
 	end)
-	self:registerAnimationValueType("animationClip", "clipStartTime", "clipEndTime", true, AnimationValueFloat, function(p421_, p422_, p423_)
-		p421_.node = p422_:getValue(p423_ .. "#node", nil, p421_.part.components, p421_.part.i3dMappings)
-		p421_.animationClip = p422_:getValue(p423_ .. "#animationClip")
-		if p421_.node ~= nil and p421_.animationClip ~= nil then
-			p421_.animationCharSet = getAnimCharacterSet(p421_.node)
-			if p421_.animationCharSet ~= 0 then
-				p421_.animationClipIndex = getAnimClipIndex(p421_.animationCharSet, p421_.animationClip)
-				p421_:setWarningInformation("node: " .. getName(p421_.node) .. "with animationClip: " .. p421_.animationClip)
-				p421_:addCompareParameters("node", "animationClip")
+	self:registerAnimationValueType("translation", "startTrans", "endTrans", false, AnimationValueFloat, loadNodeFunction, function(value)
+		return getTranslation(value.node)
+	end, function(value, ...)
+		setTranslation(value.node, ...)
+		SpecializationUtil.raiseEvent(self, "onAnimationPartChanged", value.node)
+	end)
+	self:registerAnimationValueType("scale", "startScale", "endScale", false, AnimationValueFloat, loadNodeFunction, function(value)
+		return getScale(value.node)
+	end, function(value, ...)
+		setScale(value.node, ...)
+		SpecializationUtil.raiseEvent(self, "onAnimationPartChanged", value.node)
+	end)
+	local updateShaderParameterMask = function(xmlFile, xmlKey, mask)
+		local customMask = false
+		local rawValues = xmlFile:getValue(xmlKey)
+		if rawValues ~= nil then
+			for i = 1, #rawValues do
+				if rawValues[i] == "-" then
+					mask[i] = 0
+					customMask = true
+				end
+			end
+		end
+		return customMask
+	end
+	self:registerAnimationValueType("shaderParameter", "shaderStartValues", "shaderEndValues", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+		value.node = xmlFile:getValue(xmlKey .. "#node", nil, value.part.components, value.part.i3dMappings)
+		value.shaderParameter = xmlFile:getValue(xmlKey .. "#shaderParameter")
+		value.shaderParameterPrev = xmlFile:getValue(xmlKey .. "#shaderParameterPrev")
+		if value.node ~= nil and value.shaderParameter ~= nil then
+			if getHasClassId(value.node, ClassIds.SHAPE) and getHasShaderParameter(value.node, value.shaderParameter) then
+				value:setWarningInformation("node: " .. getName(value.node) .. "with shaderParam: " .. value.shaderParameter)
+				value:addCompareParameters("node", "shaderParameter")
+				value.shaderParameterMask = { 1, 1, 1, 1 }
+				local xmlKey = xmlKey .. "#shaderStartValues"
+				local mask = value.shaderParameterMask
+				local customMask = false
+				local rawValues = xmlFile:getValue(xmlKey)
+				if rawValues ~= nil then
+					for i = 1, #rawValues do
+						if rawValues[i] == "-" then
+							mask[i] = 0
+							customMask = true
+						end
+					end
+				end
+				value.customShaderParameterMask = customMask
+				local xmlKey = xmlKey .. "#shaderEndValues"
+				local mask = value.shaderParameterMask
+				local customMask = false
+				local rawValues = xmlFile:getValue(xmlKey)
+				if rawValues ~= nil then
+					for i = 1, #rawValues do
+						if rawValues[i] == "-" then
+							mask[i] = 0
+							customMask = true
+						end
+					end
+				end
+				value.customShaderParameterMask = customMask or value.customShaderParameterMask
+				if value.shaderParameterPrev ~= nil then
+					if not getHasShaderParameter(value.node, value.shaderParameterPrev) then
+						Logging.xmlWarning(xmlFile, "Node '%s' has no shaderParameterPrev '%s' for animation part '%s'!", getName(value.node), value.shaderParameterPrev, xmlKey)
+						return false
+					end
+				else
+					local prevName = "prev" .. string.upper(string.sub(value.shaderParameter, 1, 1)) .. string.sub(value.shaderParameter, 2)
+					if getHasShaderParameter(value.node, prevName) then
+						value.shaderParameterPrev = prevName
+					end
+				end
 				return true
 			end
-			Logging.xmlWarning(p422_, "Unable to find animation clip \'%s\' on node \'%s\' in \'%s\'", p421_.animationClip, getName(p421_.node), p423_)
+			Logging.xmlWarning(xmlFile, "Node '%s' has no shaderParameter '%s' for animation part '%s'!", getName(value.node), value.shaderParameter, xmlKey)
 		end
 		return false
-	end, function(p424_)
-		local v425_ = getAnimTrackAssignedClip(p424_.animationCharSet, 0)
-		clearAnimTrackClip(p424_.animationCharSet, 0)
-		assignAnimTrackClip(p424_.animationCharSet, 0, p424_.animationClipIndex)
-		if v425_ == p424_.animationClipIndex then
-			return getAnimTrackTime(p424_.animationCharSet, 0)
+	end, function(value)
+		return getShaderParameter(value.node, value.shaderParameter)
+	end, function(value, x, y, z, w)
+		if value.customShaderParameterMask then
+			if value.shaderParameterMask[1] == 0 then
+				x = nil
+			end
+			if value.shaderParameterMask[2] == 0 then
+				y = nil
+			end
+			if value.shaderParameterMask[3] == 0 then
+				z = nil
+			end
+			if value.shaderParameterMask[4] == 0 then
+				w = nil
+			end
 		end
-		local v426_ = p424_.startValue or p424_.endValue
-		if p424_.animation.currentSpeed < 0 then
-			v426_ = p424_.endValue or p424_.startValue
+		if value.shaderParameterPrev ~= nil then
+			g_animationManager:setPrevShaderParameter(value.node, value.shaderParameter, x, y, z, w, false, value.shaderParameterPrev)
+		else
+			setShaderParameter(value.node, value.shaderParameter, x, y, z, w, false)
 		end
-		return v426_[1]
-	end, function(p427_, p428_)
-		if getAnimTrackAssignedClip(p427_.animationCharSet, 0) ~= p427_.animationClipIndex then
-			clearAnimTrackClip(p427_.animationCharSet, 0)
-			assignAnimTrackClip(p427_.animationCharSet, 0, p427_.animationClipIndex)
-		end
-		enableAnimTrack(p427_.animationCharSet, 0)
-		setAnimTrackTime(p427_.animationCharSet, 0, p428_, true)
-		disableAnimTrack(p427_.animationCharSet, 0)
 	end)
-	self:registerAnimationValueType("dependentAnimation", "dependentAnimationStartTime", "dependentAnimationEndTime", true, AnimationValueFloat, function(p429_, p430_, p431_)
-		p429_.dependentAnimation = p430_:getValue(p431_ .. "#dependentAnimation")
-		if p429_.dependentAnimation == nil then
+	self:registerAnimationValueType("visibility", "visibility", "", false, AnimationValueBool, loadNodeFunction, function(value)
+		return getVisibility(value.node)
+	end, function(value, ...)
+		setVisibility(value.node, ...)
+	end)
+	self:registerAnimationValueType("visibilityInter", "startVisibility", "endVisibility", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+		value.node = xmlFile:getValue(xmlKey .. "#node", nil, value.part.components, value.part.i3dMappings)
+		if value.node ~= nil and (value.startValue ~= nil and value.endValue ~= nil) then
+			value:setWarningInformation("node: " .. getName(value.node))
+			value:addCompareParameters("node")
+			return true
+		end
+		return false
+	end, function(value)
+		if value.lastVisibilityValue ~= nil then
+			return value.lastVisibilityValue
+		elseif getVisibility(value.node) then
+			return 1
+		else
+			return 0
+		end
+	end, function(value, visibility)
+		value.lastVisibilityValue = visibility
+		setVisibility(value.node, 0.5 <= visibility)
+	end)
+	self:registerAnimationValueType("animationClip", "clipStartTime", "clipEndTime", true, AnimationValueFloat, function(value, xmlFile, xmlKey)
+		value.node = xmlFile:getValue(xmlKey .. "#node", nil, value.part.components, value.part.i3dMappings)
+		value.animationClip = xmlFile:getValue(xmlKey .. "#animationClip")
+		if value.node ~= nil and value.animationClip ~= nil then
+			value.animationCharSet = getAnimCharacterSet(value.node)
+			if value.animationCharSet ~= 0 then
+				value.animationClipIndex = getAnimClipIndex(value.animationCharSet, value.animationClip)
+				value:setWarningInformation("node: " .. getName(value.node) .. "with animationClip: " .. value.animationClip)
+				value:addCompareParameters("node", "animationClip")
+				return true
+			end
+			Logging.xmlWarning(xmlFile, "Unable to find animation clip '%s' on node '%s' in '%s'", value.animationClip, getName(value.node), xmlKey)
+		end
+		return false
+	end, function(value)
+		local oldClipIndex = getAnimTrackAssignedClip(value.animationCharSet, 0)
+		clearAnimTrackClip(value.animationCharSet, 0)
+		assignAnimTrackClip(value.animationCharSet, 0, value.animationClipIndex)
+		if oldClipIndex == value.animationClipIndex then
+			return getAnimTrackTime(value.animationCharSet, 0)
+		else
+			local startTime = value.startValue or value.endValue
+			if value.animation.currentSpeed < 0 then
+				startTime = value.endValue or value.startValue
+			end
+			return startTime[1]
+		end
+	end, function(value, time)
+		local oldClipIndex = getAnimTrackAssignedClip(value.animationCharSet, 0)
+		if oldClipIndex ~= value.animationClipIndex then
+			clearAnimTrackClip(value.animationCharSet, 0)
+			assignAnimTrackClip(value.animationCharSet, 0, value.animationClipIndex)
+		end
+		enableAnimTrack(value.animationCharSet, 0)
+		setAnimTrackTime(value.animationCharSet, 0, time, true)
+		disableAnimTrack(value.animationCharSet, 0)
+	end)
+	self:registerAnimationValueType("dependentAnimation", "dependentAnimationStartTime", "dependentAnimationEndTime", true, AnimationValueFloat, function(value, xmlFile, xmlKey)
+		value.dependentAnimation = xmlFile:getValue(xmlKey .. "#dependentAnimation")
+		if value.dependentAnimation ~= nil then
+			value:setWarningInformation("dependentAnimation: " .. value.dependentAnimation)
+			value:addCompareParameters("dependentAnimation")
+			return true
+		else
 			return false
 		end
-		p429_:setWarningInformation("dependentAnimation: " .. p429_.dependentAnimation)
-		p429_:addCompareParameters("dependentAnimation")
-		return true
-	end, function(p432_)
-		return p432_.vehicle:getAnimationTime(p432_.dependentAnimation)
-	end, function(p433_, p434_)
-		p433_.vehicle:setAnimationTime(p433_.dependentAnimation, p434_, true)
+	end, function(value)
+		return value.vehicle:getAnimationTime(value.dependentAnimation)
+	end, function(value, time)
+		value.vehicle:setAnimationTime(value.dependentAnimation, time, true)
 	end)
 	if self.isServer then
-		self:registerAnimationValueType("rotLimit", "", "", false, AnimationValueFloat, function(p435_, p436_, p437_)
-			p435_.startRotLimit = p436_:getValue(p437_ .. "#startRotLimit", nil, true)
-			p435_.startRotMinLimit = p436_:getValue(p437_ .. "#startRotMinLimit", nil, true)
-			p435_.startRotMaxLimit = p436_:getValue(p437_ .. "#startRotMaxLimit", nil, true)
-			if p435_.startRotLimit ~= nil then
-				if p435_.startRotMinLimit ~= nil then
-					Logging.xmlWarning(p436_, "Invalid rotLimit definition. \'startRotMinLimit\' defined but overwritten by defined \'startRotLimit\'! (%s)", p437_)
+		self:registerAnimationValueType("rotLimit", "", "", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+			value.startRotLimit = xmlFile:getValue(xmlKey .. "#startRotLimit", nil, true)
+			value.startRotMinLimit = xmlFile:getValue(xmlKey .. "#startRotMinLimit", nil, true)
+			value.startRotMaxLimit = xmlFile:getValue(xmlKey .. "#startRotMaxLimit", nil, true)
+			if value.startRotLimit ~= nil then
+				if value.startRotMinLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Invalid rotLimit definition. 'startRotMinLimit' defined but overwritten by defined 'startRotLimit'! (%s)", xmlKey)
 				end
-				if p435_.startRotMaxLimit ~= nil then
-					Logging.xmlWarning(p436_, "Invalid rotLimit definition. \'startRotMaxLimit\' defined but overwritten by defined \'startRotLimit\'! (%s)", p437_)
+				if value.startRotMaxLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Invalid rotLimit definition. 'startRotMaxLimit' defined but overwritten by defined 'startRotLimit'! (%s)", xmlKey)
 				end
-				p435_.startRotMinLimit = { -p435_.startRotLimit[1], -p435_.startRotLimit[2], -p435_.startRotLimit[3] }
-				p435_.startRotMaxLimit = { p435_.startRotLimit[1], p435_.startRotLimit[2], p435_.startRotLimit[3] }
+				value.startRotMinLimit = { -value.startRotLimit[1], -value.startRotLimit[2], -value.startRotLimit[3] }
+				value.startRotMaxLimit = { value.startRotLimit[1], value.startRotLimit[2], value.startRotLimit[3] }
 			end
-			p435_.endRotLimit = p436_:getValue(p437_ .. "#endRotLimit", nil, true)
-			p435_.endRotMinLimit = p436_:getValue(p437_ .. "#endRotMinLimit", nil, true)
-			p435_.endRotMaxLimit = p436_:getValue(p437_ .. "#endRotMaxLimit", nil, true)
-			if p435_.endRotLimit ~= nil then
-				if p435_.endRotMinLimit ~= nil then
-					Logging.xmlWarning(p436_, "Invalid rotLimit definition. \'endRotMinLimit\' defined but overwritten by defined \'endRotLimit\'! (%s)", p437_)
+			value.endRotLimit = xmlFile:getValue(xmlKey .. "#endRotLimit", nil, true)
+			value.endRotMinLimit = xmlFile:getValue(xmlKey .. "#endRotMinLimit", nil, true)
+			value.endRotMaxLimit = xmlFile:getValue(xmlKey .. "#endRotMaxLimit", nil, true)
+			if value.endRotLimit ~= nil then
+				if value.endRotMinLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Invalid rotLimit definition. 'endRotMinLimit' defined but overwritten by defined 'endRotLimit'! (%s)", xmlKey)
 				end
-				if p435_.endRotMaxLimit ~= nil then
-					Logging.xmlWarning(p436_, "Invalid rotLimit definition. \'endRotMaxLimit\' defined but overwritten by defined \'endRotLimit\'! (%s)", p437_)
+				if value.endRotMaxLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Invalid rotLimit definition. 'endRotMaxLimit' defined but overwritten by defined 'endRotLimit'! (%s)", xmlKey)
 				end
-				p435_.endRotMinLimit = { -p435_.endRotLimit[1], -p435_.endRotLimit[2], -p435_.endRotLimit[3] }
-				p435_.endRotMaxLimit = { p435_.endRotLimit[1], p435_.endRotLimit[2], p435_.endRotLimit[3] }
+				value.endRotMinLimit = { -value.endRotLimit[1], -value.endRotLimit[2], -value.endRotLimit[3] }
+				value.endRotMaxLimit = { value.endRotLimit[1], value.endRotLimit[2], value.endRotLimit[3] }
 			end
-			local v438_ = p436_:getValue(p437_ .. "#componentJointIndex")
-			if v438_ ~= nil then
-				if v438_ >= 1 then
-					p435_.componentJoint = p435_.vehicle.componentJoints[v438_]
+			local componentJointIndex = xmlFile:getValue(xmlKey .. "#componentJointIndex")
+			if componentJointIndex ~= nil then
+				if 1 <= componentJointIndex then
+					value.componentJoint = value.vehicle.componentJoints[componentJointIndex]
 				end
-				if p435_.componentJoint == nil then
-					Logging.xmlWarning(p436_, "Invalid componentJointIndex for animation part \'%s\'. Indexing starts with 1!", p437_)
+				if value.componentJoint == nil then
+					Logging.xmlWarning(xmlFile, "Invalid componentJointIndex for animation part '%s'. Indexing starts with 1!", xmlKey)
 					return false
 				end
 			end
-			if p435_.endRotMinLimit ~= nil and p435_.endRotMaxLimit == nil or p435_.endRotMinLimit == nil and p435_.endRotMaxLimit ~= nil then
-				Logging.xmlWarning(p436_, "Incomplete end trans limit for animation part \'%s\'.", p437_)
+			if value.endRotMinLimit == nil or value.endRotMaxLimit ~= nil then
+				if value.endRotMinLimit == nil and value.endRotMaxLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Incomplete end trans limit for animation part '%s'.", xmlKey)
+					return false
+				end
+				if value.componentJoint ~= nil and (value.endRotMinLimit ~= nil and value.endRotMaxLimit ~= nil) then
+					if value.startRotMinLimit ~= nil and value.startRotMaxLimit ~= nil then
+						value.startValue = { value.startRotMinLimit[1], value.startRotMinLimit[2], value.startRotMinLimit[3], value.startRotMaxLimit[1], value.startRotMaxLimit[2], value.startRotMaxLimit[3] }
+					end
+					if value.endRotMinLimit ~= nil and value.endRotMaxLimit ~= nil then
+						value.endValue = { value.endRotMinLimit[1], value.endRotMinLimit[2], value.endRotMinLimit[3], value.endRotMaxLimit[1], value.endRotMaxLimit[2], value.endRotMaxLimit[3] }
+					end
+					if value.endValue == nil then
+						Logging.xmlWarning(xmlFile, "Missing end rot limit for animation part '%s'.", xmlKey)
+						return false
+					else
+						value.endName = "rotLimit"
+						value:setWarningInformation("componentJointIndex: " .. componentJointIndex)
+						value:addCompareParameters("componentJoint")
+						return true
+					end
+				end
 				return false
 			end
-			if p435_.componentJoint == nil or (p435_.endRotMinLimit == nil or p435_.endRotMaxLimit == nil) then
-				return false
-			end
-			if p435_.startRotMinLimit ~= nil and p435_.startRotMaxLimit ~= nil then
-				p435_.startValue = {
-					p435_.startRotMinLimit[1],
-					p435_.startRotMinLimit[2],
-					p435_.startRotMinLimit[3],
-					p435_.startRotMaxLimit[1],
-					p435_.startRotMaxLimit[2],
-					p435_.startRotMaxLimit[3]
-				}
-			end
-			if p435_.endRotMinLimit ~= nil and p435_.endRotMaxLimit ~= nil then
-				p435_.endValue = {
-					p435_.endRotMinLimit[1],
-					p435_.endRotMinLimit[2],
-					p435_.endRotMinLimit[3],
-					p435_.endRotMaxLimit[1],
-					p435_.endRotMaxLimit[2],
-					p435_.endRotMaxLimit[3]
-				}
-			end
-			if p435_.endValue == nil then
-				Logging.xmlWarning(p436_, "Missing end rot limit for animation part \'%s\'.", p437_)
-				return false
-			end
-			p435_.endName = "rotLimit"
-			p435_:setWarningInformation("componentJointIndex: " .. v438_)
-			p435_:addCompareParameters("componentJoint")
-			return true
-		end, function(p439_)
-			return p439_.componentJoint.rotMinLimit[1], p439_.componentJoint.rotMinLimit[2], p439_.componentJoint.rotMinLimit[3], p439_.componentJoint.rotLimit[1], p439_.componentJoint.rotLimit[2], p439_.componentJoint.rotLimit[3]
-		end, function(p440_, p441_, p442_, p443_, p444_, p445_, p446_)
-			p440_.vehicle:setComponentJointRotLimit(p440_.componentJoint, 1, p441_, p444_)
-			p440_.vehicle:setComponentJointRotLimit(p440_.componentJoint, 2, p442_, p445_)
-			p440_.vehicle:setComponentJointRotLimit(p440_.componentJoint, 3, p443_, p446_)
+		end, function(value)
+			return value.componentJoint.rotMinLimit[1], value.componentJoint.rotMinLimit[2], value.componentJoint.rotMinLimit[3], value.componentJoint.rotLimit[1], value.componentJoint.rotLimit[2], value.componentJoint.rotLimit[3]
+		end, function(value, minX, minY, minZ, maxX, maxY, maxZ)
+			value.vehicle:setComponentJointRotLimit(value.componentJoint, 1, minX, maxX)
+			value.vehicle:setComponentJointRotLimit(value.componentJoint, 2, minY, maxY)
+			value.vehicle:setComponentJointRotLimit(value.componentJoint, 3, minZ, maxZ)
 		end)
-		self:registerAnimationValueType("transLimit", "", "", false, AnimationValueFloat, function(p447_, p448_, p449_)
-			p447_.startTransLimit = p448_:getValue(p449_ .. "#startTransLimit", nil, true)
-			p447_.startTransMinLimit = p448_:getValue(p449_ .. "#startTransMinLimit", nil, true)
-			p447_.startTransMaxLimit = p448_:getValue(p449_ .. "#startTransMaxLimit", nil, true)
-			if p447_.startTransLimit ~= nil then
-				if p447_.startTransMinLimit ~= nil then
-					Logging.xmlWarning(p448_, "Invalid transLimit definition. \'startTransMinLimit\' defined but overwritten by defined \'startTransLimit\'! (%s)", p449_)
+		self:registerAnimationValueType("transLimit", "", "", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+			value.startTransLimit = xmlFile:getValue(xmlKey .. "#startTransLimit", nil, true)
+			value.startTransMinLimit = xmlFile:getValue(xmlKey .. "#startTransMinLimit", nil, true)
+			value.startTransMaxLimit = xmlFile:getValue(xmlKey .. "#startTransMaxLimit", nil, true)
+			if value.startTransLimit ~= nil then
+				if value.startTransMinLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Invalid transLimit definition. 'startTransMinLimit' defined but overwritten by defined 'startTransLimit'! (%s)", xmlKey)
 				end
-				if p447_.startTransMaxLimit ~= nil then
-					Logging.xmlWarning(p448_, "Invalid transLimit definition. \'startTransMaxLimit\' defined but overwritten by defined \'startTransLimit\'! (%s)", p449_)
+				if value.startTransMaxLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Invalid transLimit definition. 'startTransMaxLimit' defined but overwritten by defined 'startTransLimit'! (%s)", xmlKey)
 				end
-				p447_.startTransMinLimit = { -p447_.startTransLimit[1], -p447_.startTransLimit[2], -p447_.startTransLimit[3] }
-				p447_.startTransMaxLimit = { p447_.startTransLimit[1], p447_.startTransLimit[2], p447_.startTransLimit[3] }
+				value.startTransMinLimit = { -value.startTransLimit[1], -value.startTransLimit[2], -value.startTransLimit[3] }
+				value.startTransMaxLimit = { value.startTransLimit[1], value.startTransLimit[2], value.startTransLimit[3] }
 			end
-			p447_.endTransLimit = p448_:getValue(p449_ .. "#endTransLimit", nil, true)
-			p447_.endTransMinLimit = p448_:getValue(p449_ .. "#endTransMinLimit", nil, true)
-			p447_.endTransMaxLimit = p448_:getValue(p449_ .. "#endTransMaxLimit", nil, true)
-			if p447_.endTransLimit ~= nil then
-				if p447_.endTransMinLimit ~= nil then
-					Logging.xmlWarning(p448_, "Invalid transLimit definition. \'endTransMinLimit\' defined but overwritten by defined \'endTransLimit\'! (%s)", p449_)
+			value.endTransLimit = xmlFile:getValue(xmlKey .. "#endTransLimit", nil, true)
+			value.endTransMinLimit = xmlFile:getValue(xmlKey .. "#endTransMinLimit", nil, true)
+			value.endTransMaxLimit = xmlFile:getValue(xmlKey .. "#endTransMaxLimit", nil, true)
+			if value.endTransLimit ~= nil then
+				if value.endTransMinLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Invalid transLimit definition. 'endTransMinLimit' defined but overwritten by defined 'endTransLimit'! (%s)", xmlKey)
 				end
-				if p447_.endTransMaxLimit ~= nil then
-					Logging.xmlWarning(p448_, "Invalid transLimit definition. \'endTransMaxLimit\' defined but overwritten by defined \'endTransLimit\'! (%s)", p449_)
+				if value.endTransMaxLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Invalid transLimit definition. 'endTransMaxLimit' defined but overwritten by defined 'endTransLimit'! (%s)", xmlKey)
 				end
-				p447_.endTransMinLimit = { -p447_.endTransLimit[1], -p447_.endTransLimit[2], -p447_.endTransLimit[3] }
-				p447_.endTransMaxLimit = { p447_.endTransLimit[1], p447_.endTransLimit[2], p447_.endTransLimit[3] }
+				value.endTransMinLimit = { -value.endTransLimit[1], -value.endTransLimit[2], -value.endTransLimit[3] }
+				value.endTransMaxLimit = { value.endTransLimit[1], value.endTransLimit[2], value.endTransLimit[3] }
 			end
-			local v450_ = p448_:getValue(p449_ .. "#componentJointIndex")
-			if v450_ ~= nil then
-				if v450_ >= 1 then
-					p447_.componentJoint = p447_.vehicle.componentJoints[v450_]
+			local componentJointIndex = xmlFile:getValue(xmlKey .. "#componentJointIndex")
+			if componentJointIndex ~= nil then
+				if 1 <= componentJointIndex then
+					value.componentJoint = value.vehicle.componentJoints[componentJointIndex]
 				end
-				if p447_.componentJoint == nil then
-					Logging.xmlWarning(p448_, "Invalid componentJointIndex for animation part \'%s\'. Indexing starts with 1!", p449_)
+				if value.componentJoint == nil then
+					Logging.xmlWarning(xmlFile, "Invalid componentJointIndex for animation part '%s'. Indexing starts with 1!", xmlKey)
 					return false
 				end
 			end
-			if p447_.endTransMinLimit ~= nil and p447_.endTransMaxLimit == nil or p447_.endTransMinLimit == nil and p447_.endTransMaxLimit ~= nil then
-				Logging.xmlWarning(p448_, "Incomplete end trans limit for animation part \'%s\'.", p449_)
+			if value.endTransMinLimit == nil or value.endTransMaxLimit ~= nil then
+				if value.endTransMinLimit == nil and value.endTransMaxLimit ~= nil then
+					Logging.xmlWarning(xmlFile, "Incomplete end trans limit for animation part '%s'.", xmlKey)
+					return false
+				end
+				if value.componentJoint ~= nil and (value.endTransMinLimit ~= nil and value.endTransMaxLimit ~= nil) then
+					if value.startTransMinLimit ~= nil and value.startTransMaxLimit ~= nil then
+						value.startValue = { value.startTransMinLimit[1], value.startTransMinLimit[2], value.startTransMinLimit[3], value.startTransMaxLimit[1], value.startTransMaxLimit[2], value.startTransMaxLimit[3] }
+					end
+					if value.endTransMinLimit ~= nil and value.endTransMaxLimit ~= nil then
+						value.endValue = { value.endTransMinLimit[1], value.endTransMinLimit[2], value.endTransMinLimit[3], value.endTransMaxLimit[1], value.endTransMaxLimit[2], value.endTransMaxLimit[3] }
+					end
+					if value.endValue == nil then
+						Logging.xmlWarning(xmlFile, "Missing end trans limit for animation part '%s'.", xmlKey)
+						return false
+					else
+						value.endName = "transLimit"
+						value:setWarningInformation("componentJointIndex: " .. componentJointIndex)
+						value:addCompareParameters("componentJoint")
+						return true
+					end
+				end
 				return false
 			end
-			if p447_.componentJoint == nil or (p447_.endTransMinLimit == nil or p447_.endTransMaxLimit == nil) then
-				return false
-			end
-			if p447_.startTransMinLimit ~= nil and p447_.startTransMaxLimit ~= nil then
-				p447_.startValue = {
-					p447_.startTransMinLimit[1],
-					p447_.startTransMinLimit[2],
-					p447_.startTransMinLimit[3],
-					p447_.startTransMaxLimit[1],
-					p447_.startTransMaxLimit[2],
-					p447_.startTransMaxLimit[3]
-				}
-			end
-			if p447_.endTransMinLimit ~= nil and p447_.endTransMaxLimit ~= nil then
-				p447_.endValue = {
-					p447_.endTransMinLimit[1],
-					p447_.endTransMinLimit[2],
-					p447_.endTransMinLimit[3],
-					p447_.endTransMaxLimit[1],
-					p447_.endTransMaxLimit[2],
-					p447_.endTransMaxLimit[3]
-				}
-			end
-			if p447_.endValue == nil then
-				Logging.xmlWarning(p448_, "Missing end trans limit for animation part \'%s\'.", p449_)
-				return false
-			end
-			p447_.endName = "transLimit"
-			p447_:setWarningInformation("componentJointIndex: " .. v450_)
-			p447_:addCompareParameters("componentJoint")
-			return true
-		end, function(p451_)
-			return p451_.componentJoint.transMinLimit[1], p451_.componentJoint.transMinLimit[2], p451_.componentJoint.transMinLimit[3], p451_.componentJoint.transLimit[1], p451_.componentJoint.transLimit[2], p451_.componentJoint.transLimit[3]
-		end, function(p452_, p453_, p454_, p455_, p456_, p457_, p458_)
-			p452_.vehicle:setComponentJointTransLimit(p452_.componentJoint, 1, p453_, p456_)
-			p452_.vehicle:setComponentJointTransLimit(p452_.componentJoint, 2, p454_, p457_)
-			p452_.vehicle:setComponentJointTransLimit(p452_.componentJoint, 3, p455_, p458_)
+		end, function(value)
+			return value.componentJoint.transMinLimit[1], value.componentJoint.transMinLimit[2], value.componentJoint.transMinLimit[3], value.componentJoint.transLimit[1], value.componentJoint.transLimit[2], value.componentJoint.transLimit[3]
+		end, function(value, minX, minY, minZ, maxX, maxY, maxZ)
+			value.vehicle:setComponentJointTransLimit(value.componentJoint, 1, minX, maxX)
+			value.vehicle:setComponentJointTransLimit(value.componentJoint, 2, minY, maxY)
+			value.vehicle:setComponentJointTransLimit(value.componentJoint, 3, minZ, maxZ)
 		end)
-		self:registerAnimationValueType("rotationLimitSpring", "", "", false, AnimationValueFloat, function(p459_, p460_, p461_)
-			p459_.startRotLimitSpring = p460_:getValue(p461_ .. "#startRotLimitSpring", nil, true)
-			p459_.startRotLimitDamping = p460_:getValue(p461_ .. "#startRotLimitDamping", nil, true)
-			p459_.endRotLimitSpring = p460_:getValue(p461_ .. "#endRotLimitSpring", nil, true)
-			p459_.endRotLimitDamping = p460_:getValue(p461_ .. "#endRotLimitDamping", nil, true)
-			local v462_ = p460_:getValue(p461_ .. "#componentJointIndex")
-			if v462_ ~= nil then
-				if v462_ >= 1 then
-					p459_.componentJoint = p459_.vehicle.componentJoints[v462_]
+		self:registerAnimationValueType("rotationLimitSpring", "", "", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+			value.startRotLimitSpring = xmlFile:getValue(xmlKey .. "#startRotLimitSpring", nil, true)
+			value.startRotLimitDamping = xmlFile:getValue(xmlKey .. "#startRotLimitDamping", nil, true)
+			value.endRotLimitSpring = xmlFile:getValue(xmlKey .. "#endRotLimitSpring", nil, true)
+			value.endRotLimitDamping = xmlFile:getValue(xmlKey .. "#endRotLimitDamping", nil, true)
+			local componentJointIndex = xmlFile:getValue(xmlKey .. "#componentJointIndex")
+			if componentJointIndex ~= nil then
+				if 1 <= componentJointIndex then
+					value.componentJoint = value.vehicle.componentJoints[componentJointIndex]
 				end
-				if p459_.componentJoint == nil then
-					Logging.xmlWarning(p460_, "Invalid componentJointIndex for animation part \'%s\'. Indexing starts with 1!", p461_)
+				if value.componentJoint == nil then
+					Logging.xmlWarning(xmlFile, "Invalid componentJointIndex for animation part '%s'. Indexing starts with 1!", xmlKey)
 					return false
 				end
 			end
-			if p459_.componentJoint == nil or p459_.endRotLimitSpring == nil and p459_.startRotLimitDamping == nil then
-				return false
+			if value.componentJoint ~= nil and (value.endRotLimitSpring ~= nil or value.startRotLimitDamping ~= nil) then
+				if value.startRotLimitSpring ~= nil and value.startRotLimitDamping ~= nil then
+					value.startValue = { value.startRotLimitSpring[1], value.startRotLimitSpring[2], value.startRotLimitSpring[3], value.startRotLimitDamping[1], value.startRotLimitDamping[2], value.startRotLimitDamping[3] }
+				end
+				if value.endRotLimitSpring ~= nil and value.endRotLimitDamping ~= nil then
+					value.endValue = { value.endRotLimitSpring[1], value.endRotLimitSpring[2], value.endRotLimitSpring[3], value.endRotLimitDamping[1], value.endRotLimitDamping[2], value.endRotLimitDamping[3] }
+				end
+				if value.endValue == nil then
+					Logging.xmlWarning(xmlFile, "Missing 'endRotLimitSpring' or 'endRotLimitDamping' for animation part '%s'.", xmlKey)
+					return false
+				else
+					value.endName = "rotationLimitSpring"
+					value:setWarningInformation("componentJointIndex: " .. componentJointIndex)
+					value:addCompareParameters("componentJoint")
+					return true
+				end
 			end
-			if p459_.startRotLimitSpring ~= nil and p459_.startRotLimitDamping ~= nil then
-				p459_.startValue = {
-					p459_.startRotLimitSpring[1],
-					p459_.startRotLimitSpring[2],
-					p459_.startRotLimitSpring[3],
-					p459_.startRotLimitDamping[1],
-					p459_.startRotLimitDamping[2],
-					p459_.startRotLimitDamping[3]
-				}
-			end
-			if p459_.endRotLimitSpring ~= nil and p459_.endRotLimitDamping ~= nil then
-				p459_.endValue = {
-					p459_.endRotLimitSpring[1],
-					p459_.endRotLimitSpring[2],
-					p459_.endRotLimitSpring[3],
-					p459_.endRotLimitDamping[1],
-					p459_.endRotLimitDamping[2],
-					p459_.endRotLimitDamping[3]
-				}
-			end
-			if p459_.endValue == nil then
-				Logging.xmlWarning(p460_, "Missing \'endRotLimitSpring\' or \'endRotLimitDamping\' for animation part \'%s\'.", p461_)
-				return false
-			end
-			p459_.endName = "rotationLimitSpring"
-			p459_:setWarningInformation("componentJointIndex: " .. v462_)
-			p459_:addCompareParameters("componentJoint")
-			return true
-		end, function(p463_)
-			return p463_.componentJoint.rotLimitSpring[1], p463_.componentJoint.rotLimitSpring[2], p463_.componentJoint.rotLimitSpring[3], p463_.componentJoint.rotLimitDamping[1], p463_.componentJoint.rotLimitDamping[2], p463_.componentJoint.rotLimitDamping[3]
-		end, function(p464_, p465_, p466_, p467_, p468_, p469_, p470_)
-			local v471_ = p464_.componentJoint.rotLimitSpring
-			local v472_ = p464_.componentJoint.rotLimitSpring
-			local v473_ = p464_.componentJoint.rotLimitSpring
-			v471_[1] = p465_
-			v472_[2] = p466_
-			v473_[3] = p467_
-			local v474_ = p464_.componentJoint.rotLimitDamping
-			local v475_ = p464_.componentJoint.rotLimitDamping
-			local v476_ = p464_.componentJoint.rotLimitDamping
-			v474_[1] = p468_
-			v475_[2] = p469_
-			v476_[3] = p470_
-			if p464_.componentJoint.jointIndex ~= nil then
-				for v477_ = 1, 3 do
-					setJointRotationLimitSpring(p464_.componentJoint.jointIndex, v477_ - 1, p464_.componentJoint.rotLimitSpring[v477_], p464_.componentJoint.rotLimitDamping[v477_])
+			return false
+		end, function(value)
+			return value.componentJoint.rotLimitSpring[1], value.componentJoint.rotLimitSpring[2], value.componentJoint.rotLimitSpring[3], value.componentJoint.rotLimitDamping[1], value.componentJoint.rotLimitDamping[2], value.componentJoint.rotLimitDamping[3]
+		end, function(value, spring1, spring2, spring3, damping1, damping2, damping3)
+			value.componentJoint.rotLimitSpring[1] = spring1
+			value.componentJoint.rotLimitSpring[2] = spring2
+			value.componentJoint.rotLimitSpring[3] = spring3
+			value.componentJoint.rotLimitDamping[1] = damping1
+			value.componentJoint.rotLimitDamping[2] = damping2
+			value.componentJoint.rotLimitDamping[3] = damping3
+			if value.componentJoint.jointIndex ~= nil then
+				for i = 1, 3 do
+					setJointRotationLimitSpring(value.componentJoint.jointIndex, i - 1, value.componentJoint.rotLimitSpring[i], value.componentJoint.rotLimitDamping[i])
 				end
 			end
 		end)
-		self:registerAnimationValueType("componentMass", "startMass", "endMass", false, AnimationValueFloat, function(p478_, p479_, p480_)
-			local v481_ = p479_:getValue(p480_ .. "#componentIndex")
-			if v481_ ~= nil then
-				if v481_ >= 1 then
-					p478_.component = p478_.vehicle.components[v481_]
+		self:registerAnimationValueType("componentMass", "startMass", "endMass", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+			local componentIndex = xmlFile:getValue(xmlKey .. "#componentIndex")
+			if componentIndex ~= nil then
+				if 1 <= componentIndex then
+					value.component = value.vehicle.components[componentIndex]
 				end
-				if p478_.component == nil then
-					Logging.xmlWarning(p479_, "Invalid component for animation part \'%s\'. Indexing starts with 1!", p480_)
+				if value.component == nil then
+					Logging.xmlWarning(xmlFile, "Invalid component for animation part '%s'. Indexing starts with 1!", xmlKey)
 					return false
 				end
 			end
-			if p478_.component == nil then
+			if value.component ~= nil then
+				value:setWarningInformation("componentIndex: " .. componentIndex)
+				value:addCompareParameters("component")
+				return true
+			else
 				return false
 			end
-			p478_:setWarningInformation("componentIndex: " .. v481_)
-			p478_:addCompareParameters("component")
-			return true
-		end, function(p482_)
-			return (p482_.component.defaultMass or getMass(p482_.component.node)) * 1000
-		end, function(p483_, p484_)
-			-- upvalues: (copy) self
-			p483_.component.defaultMass = p484_ * 0.001
+		end, function(value)
+			return (value.component.defaultMass or getMass(value.component.node)) * 1000
+		end, function(value, mass)
+			value.component.defaultMass = mass * 0.001
 			self:setMassDirty()
 		end)
-		self:registerAnimationValueType("centerOfMass", "startCenterOfMass", "endCenterOfMass", false, AnimationValueFloat, function(p485_, p486_, p487_)
-			local v488_ = p486_:getValue(p487_ .. "#componentIndex")
-			if v488_ ~= nil then
-				if v488_ >= 1 then
-					p485_.component = p485_.vehicle.components[v488_]
+		self:registerAnimationValueType("centerOfMass", "startCenterOfMass", "endCenterOfMass", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+			local componentIndex = xmlFile:getValue(xmlKey .. "#componentIndex")
+			if componentIndex ~= nil then
+				if 1 <= componentIndex then
+					value.component = value.vehicle.components[componentIndex]
 				end
-				if p485_.component == nil then
-					Logging.xmlWarning(p486_, "Invalid component for animation part \'%s\'. Indexing starts with 1!", p487_)
+				if value.component == nil then
+					Logging.xmlWarning(xmlFile, "Invalid component for animation part '%s'. Indexing starts with 1!", xmlKey)
 					return false
 				end
 			end
-			if p485_.component == nil then
+			if value.component ~= nil then
+				value:setWarningInformation("componentIndex: " .. componentIndex)
+				value:addCompareParameters("component")
+				return true
+			else
 				return false
 			end
-			p485_:setWarningInformation("componentIndex: " .. v488_)
-			p485_:addCompareParameters("component")
-			return true
-		end, function(p489_)
-			return getCenterOfMass(p489_.component.node)
-		end, function(p490_, p491_, p492_, p493_)
-			setCenterOfMass(p490_.component.node, p491_, p492_, p493_)
+		end, function(value)
+			return getCenterOfMass(value.component.node)
+		end, function(value, x, y, z)
+			setCenterOfMass(value.component.node, x, y, z)
 		end)
-		self:registerAnimationValueType("frictionVelocity", "startFrictionVelocity", "endFrictionVelocity", false, AnimationValueFloat, v382_, function(p494_)
-			return p494_.lastFrictionVelocity or 0
-		end, function(p495_, p496_)
-			setFrictionVelocity(p495_.node, p496_)
-			p495_.lastFrictionVelocity = p496_
-			if p495_.origTransX == nil then
-				local v497_, v498_, v499_ = getTranslation(p495_.node)
-				p495_.origTransX = v497_
-				p495_.origTransY = v498_
-				p495_.origTransZ = v499_
+		self:registerAnimationValueType("frictionVelocity", "startFrictionVelocity", "endFrictionVelocity", false, AnimationValueFloat, loadNodeFunction, function(value)
+			return value.lastFrictionVelocity or 0
+		end, function(value, velocity)
+			setFrictionVelocity(value.node, velocity)
+			value.lastFrictionVelocity = velocity
+			if value.origTransX == nil then
+				value.origTransX, value.origTransY, value.origTransZ = getTranslation(value.node)
 			end
-			setTranslation(p495_.node, p495_.origTransX + math.random() * 0.001, p495_.origTransY, p495_.origTransZ)
+			setTranslation(value.node, value.origTransX + math.random() * 0.001, value.origTransY, value.origTransZ)
 		end)
 	end
-	self:registerAnimationValueType("spline", "startSplinePos", "endSplinePos", false, AnimationValueFloat, function(p500_, p501_, p502_)
-		p500_.node = p501_:getValue(p502_ .. "#node", nil, p500_.part.components, p500_.part.i3dMappings)
-		p500_.spline = p501_:getValue(p502_ .. "#spline", nil, p500_.part.components, p500_.part.i3dMappings)
-		if p500_.node == nil or p500_.spline == nil then
-			return false
+	self:registerAnimationValueType("spline", "startSplinePos", "endSplinePos", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+		value.node = xmlFile:getValue(xmlKey .. "#node", nil, value.part.components, value.part.i3dMappings)
+		value.spline = xmlFile:getValue(xmlKey .. "#spline", nil, value.part.components, value.part.i3dMappings)
+		if value.node ~= nil and value.spline ~= nil then
+			value:setWarningInformation("node:" .. getName(value.node) .. " with spline: " .. getName(value.spline))
+			value:addCompareParameters("node", "spline")
+			return true
 		end
-		p500_:setWarningInformation("node:" .. getName(p500_.node) .. " with spline: " .. getName(p500_.spline))
-		p500_:addCompareParameters("node", "spline")
-		return true
-	end, function(p503_)
-		if p503_.lastSplineTime ~= nil then
-			return p503_.lastSplineTime
+		return false
+	end, function(value)
+		if value.lastSplineTime ~= nil then
+			return value.lastSplineTime
+		else
+			local startTime = value.startValue or value.endValue
+			if value.animation.currentSpeed < 0 then
+				startTime = value.endValue or value.startValue
+			end
+			return startTime[1]
 		end
-		local v504_ = p503_.startValue or p503_.endValue
-		if p503_.animation.currentSpeed < 0 then
-			v504_ = p503_.endValue or p503_.startValue
-		end
-		return v504_[1]
-	end, function(p505_, p506_)
-		local v507_, v508_, v509_ = getSplinePosition(p505_.spline, p506_ % 1)
-		local v510_, v511_, v512_ = worldToLocal(getParent(p505_.node), v507_, v508_, v509_)
-		setTranslation(p505_.node, v510_, v511_, v512_)
-		p505_.lastSplineTime = p506_
-		for _, v513_ in ipairs(p505_.animation.parts) do
-			for v514_ = 1, #v513_.animationValues do
-				local v515_ = v513_.animationValues[v514_]
-				if v515_.node == p505_.node and v515_.name == p505_.name then
-					v515_.lastSplineTime = p506_
+	end, function(value, splineTime)
+		local x, y, z = getSplinePosition(value.spline, splineTime % 1)
+		x, y, z = worldToLocal(getParent(value.node), x, y, z)
+		setTranslation(value.node, x, y, z)
+		value.lastSplineTime = splineTime
+		for _, part2 in ipairs(value.animation.parts) do
+			for index = 1, #part2.animationValues do
+				local value2 = part2.animationValues[index]
+				if value2.node == value.node and value2.name == value.name then
+					value2.lastSplineTime = splineTime
 				end
 			end
 		end
 	end)
-	self:registerAnimationValueType("rollingGate", "startGatePos", "endGatePos", false, AnimationValueFloat, function(p516_, p517_, p518_)
-		if p517_:hasProperty(p518_ .. ".rollingGateAnimation") then
-			local v519_ = RollingGateAnimation.new()
-			if v519_:load(p517_, p518_ .. ".rollingGateAnimation", p516_.part.components, p516_.part.i3dMappings) then
-				p516_:setWarningInformation("rollingGateAnimation:" .. getName(v519_.splineNode))
-				p516_.rollingGate = v519_
+	self:registerAnimationValueType("rollingGate", "startGatePos", "endGatePos", false, AnimationValueFloat, function(value, xmlFile, xmlKey)
+		if xmlFile:hasProperty(xmlKey .. ".rollingGateAnimation") then
+			local rollingGate = RollingGateAnimation.new()
+			if rollingGate:load(xmlFile, xmlKey .. ".rollingGateAnimation", value.part.components, value.part.i3dMappings) then
+				value:setWarningInformation("rollingGateAnimation:" .. getName(rollingGate.splineNode))
+				value.rollingGate = rollingGate
 				return true
 			end
 		end
 		return false
-	end, function(p520_)
-		return p520_.rollingGate.state
-	end, function(p521_, p522_)
-		p521_.rollingGate:setState(p522_)
+	end, function(value)
+		return value.rollingGate.state
+	end, function(value, state)
+		value.rollingGate:setState(state)
 	end)
 end

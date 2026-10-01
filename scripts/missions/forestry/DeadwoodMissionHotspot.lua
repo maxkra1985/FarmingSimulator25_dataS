@@ -1,25 +1,17 @@
--- Local values: DeadwoodMissionHotspot_mt
 DeadwoodMissionHotspot = {}
 local DeadwoodMissionHotspot_mt = Class(DeadwoodMissionHotspot, MapHotspot)
-
--- Upvalues: DeadwoodMissionHotspot_mt
--- Local values: self
 function DeadwoodMissionHotspot.new(customMt)
-	-- upvalues: (copy) DeadwoodMissionHotspot_mt
-	local v3_ = MapHotspot.new(customMt or DeadwoodMissionHotspot_mt)
-	local v4_, v5_ = getNormalizedScreenValues(50, 50)
-	v3_.width = v4_
-	v3_.height = v5_
-	v3_.icon = g_overlayManager:createOverlay("mapHotspots.contractDeadwood", 0, 0, v3_.width, v3_.height)
-	v3_.circle = g_overlayManager:createOverlay("mapHotspots.circle", 0, 0, v3_.width, v3_.height)
-	v3_.circle:setColor(0.5089, 0.016, 0.016, 1)
-	v3_.iconSmall = g_overlayManager:createOverlay("mapHotspots.miniMapHotspot", 0, 0, v3_.width, v3_.height)
-	v3_.iconSmall:setColor(0.00303, 0.20155, 0.01599, 1)
-	v3_.worldRadius = 50
-	v3_.forceNoRotation = true
-	return v3_
+	local self = MapHotspot.new(customMt or DeadwoodMissionHotspot_mt)
+	self.width, self.height = getNormalizedScreenValues(50, 50)
+	self.icon = g_overlayManager:createOverlay("mapHotspots.contractDeadwood", 0, 0, self.width, self.height)
+	self.circle = g_overlayManager:createOverlay("mapHotspots.circle", 0, 0, self.width, self.height)
+	self.circle:setColor(0.5089, 0.016, 0.016, 1)
+	self.iconSmall = g_overlayManager:createOverlay("mapHotspots.miniMapHotspot", 0, 0, self.width, self.height)
+	self.iconSmall:setColor(0.00303, 0.20155, 0.01599, 1)
+	self.worldRadius = 50
+	self.forceNoRotation = true
+	return self
 end
-
 function DeadwoodMissionHotspot:delete()
 	DeadwoodMissionHotspot:superClass().delete(self)
 	if self.icon ~= nil then
@@ -35,50 +27,46 @@ function DeadwoodMissionHotspot:delete()
 		self.iconSmall = nil
 	end
 end
-
 function DeadwoodMissionHotspot:setWorldRadius(worldRadius)
 	self.worldRadius = worldRadius
 end
-
--- Local values: ingameMap, layout, mapWidth, mapHeight, width, height
 function DeadwoodMissionHotspot:postUpdate(dt)
-	local v10_ = g_currentMission.hud:getIngameMap()
-	local v11_, v12_ = v10_.layout:getMapSize()
-	local v13_ = self.worldRadius / v10_.worldSizeX * v11_
-	local v14_ = self.worldRadius / v10_.worldSizeZ * v12_
+	local ingameMap = g_currentMission.hud:getIngameMap()
+	local layout = ingameMap.layout
+	local mapWidth, mapHeight = layout:getMapSize()
+	local width = self.worldRadius / ingameMap.worldSizeX * mapWidth
+	local height = self.worldRadius / ingameMap.worldSizeZ * mapHeight
 	if self.circle ~= nil then
-		self.circle:setDimension(v13_, v14_)
+		self.circle:setDimension(width, height)
 	end
 end
-
 function DeadwoodMissionHotspot:getWidth()
-	if self.circle == nil then
-		return self.lastRenderedIcon == nil and 0 or self.lastRenderedIcon.width
-	else
+	if self.circle ~= nil then
 		return self.circle.width
+	elseif self.lastRenderedIcon ~= nil then
+		return self.lastRenderedIcon.width
+	else
+		return 0
 	end
 end
-
 function DeadwoodMissionHotspot:getHeight()
-	if self.circle == nil then
-		return self.lastRenderedIcon == nil and 0 or self.lastRenderedIcon.height
-	else
+	if self.circle ~= nil then
 		return self.circle.height
-	end
-end
-
-function DeadwoodMissionHotspot:getDimension()
-	if self.circle == nil then
-		if self.lastRenderedIcon == nil then
-			return 0, 0
-		else
-			return self.lastRenderedIcon.width, self.lastRenderedIcon.height
-		end
+	elseif self.lastRenderedIcon ~= nil then
+		return self.lastRenderedIcon.height
 	else
-		return self.circle.width, self.circle.height
+		return 0
 	end
 end
-
+function DeadwoodMissionHotspot:getDimension()
+	if self.circle ~= nil then
+		return self.circle.width, self.circle.height
+	elseif self.lastRenderedIcon ~= nil then
+		return self.lastRenderedIcon.width, self.lastRenderedIcon.height
+	else
+		return 0, 0
+	end
+end
 function DeadwoodMissionHotspot:setScale(scale)
 	if self.icon ~= nil then
 		self.icon:setScale(scale, scale)
@@ -87,41 +75,36 @@ function DeadwoodMissionHotspot:setScale(scale)
 		self.iconSmall:setScale(scale, scale)
 	end
 end
-
 function DeadwoodMissionHotspot:getCategory()
 	return MapHotspot.CATEGORY_MISSION
 end
-
 function DeadwoodMissionHotspot:getIsPersistent()
 	return false
 end
-
 function DeadwoodMissionHotspot:getRenderLast()
 	return false
 end
-
--- Local values: icon, circle
 function DeadwoodMissionHotspot:render(x, y, rotation, small)
-	local v24_ = self.icon
+	local icon = self.icon
 	if small then
-		v24_ = self.iconSmall
+		icon = self.iconSmall
 	end
-	self.lastRenderedIcon = v24_
-	local v25_ = self.circle
-	if v25_ ~= nil then
-		v25_:setPosition(x, y)
-		v25_:setColor(nil, nil, nil, IngameMap.alpha)
-		v25_:render()
-		x = x + v25_.width * 0.5
-		y = y + v25_.height * 0.5
-		if v24_ ~= nil then
-			x = x - v24_.width * 0.5
-			y = y - v24_.height * 0.5
+	self.lastRenderedIcon = icon
+	local circle = self.circle
+	if circle ~= nil then
+		circle:setPosition(x, y)
+		circle:setColor(nil, nil, nil, IngameMap.alpha)
+		circle:render()
+		x = x + circle.width * 0.5
+		y = y + circle.height * 0.5
+		if icon ~= nil then
+			x = x - icon.width * 0.5
+			y = y - icon.height * 0.5
 		end
 	end
-	if v24_ ~= nil then
-		v24_:setPosition(x, y)
-		v24_:setColor(nil, nil, nil, self.isBlinking and (self:getCanBlink() and IngameMap.alpha) or 1)
-		v24_:render()
+	if icon ~= nil then
+		icon:setPosition(x, y)
+		icon:setColor(nil, nil, nil, self.isBlinking and self:getCanBlink() and IngameMap.alpha or 1)
+		icon:render()
 	end
 end

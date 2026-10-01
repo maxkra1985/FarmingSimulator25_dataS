@@ -1,53 +1,48 @@
--- Local values: FootballShootEvent_mt
 FootballShootEvent = {}
 local FootballShootEvent_mt = Class(FootballShootEvent, Event)
 InitStaticEventClass(FootballShootEvent, "FootballShootEvent")
 function FootballShootEvent.emptyNew()
-	-- upvalues: (copy) FootballShootEvent_mt
-	return Event.new(FootballShootEvent_mt)
+	local self = Event.new(FootballShootEvent_mt)
+	return self
 end
-
--- Local values: self
 function FootballShootEvent.new(football, dirX, dirZ, angleDeg, velocity, shotType)
-	local v8_ = FootballShootEvent.emptyNew()
-	v8_.football = football
-	v8_.dirX = dirX
-	v8_.dirZ = dirZ
-	v8_.angleDeg = angleDeg
-	v8_.velocity = velocity
-	v8_.shotType = shotType
-	return v8_
+	local self = FootballShootEvent.emptyNew()
+	self.football = football
+	self.dirX = dirX
+	self.dirZ = dirZ
+	self.angleDeg = angleDeg
+	self.velocity = velocity
+	self.shotType = shotType
+	return self
 end
-
--- Local values: self
 function FootballShootEvent.newServerToClient(football, shotType)
-	local v11_ = FootballShootEvent.emptyNew()
-	v11_.football = football
-	v11_.shotType = shotType
-	return v11_
+	local self = FootballShootEvent.emptyNew()
+	self.football = football
+	self.shotType = shotType
+	return self
 end
-
--- Local values: football, rot, yRot, angleDeg, velocity, dirX, dirZ, shotType, football, shotType
 function FootballShootEvent:readStream(streamId, connection)
-	if connection:getIsServer() then
-		NetworkUtil.readNodeObject(streamId):onShot((streamReadUIntN(streamId, 2)))
+	if not connection:getIsServer() then
+		local football = NetworkUtil.readNodeObject(streamId)
+		local rot = streamReadUIntN(streamId, 9)
+		local yRot = math.rad(rot)
+		local angleDeg = streamReadUIntN(streamId, 9)
+		local velocity = streamReadUInt8(streamId) * 0.1
+		local dirX, dirZ = MathUtil.getDirectionFromYRotation(yRot)
+		local shotType = streamReadUIntN(streamId, 2)
+		football:shoot(dirX, dirZ, angleDeg, velocity, shotType, connection)
 	else
-		local v14_ = NetworkUtil.readNodeObject(streamId)
-		local v15_ = streamReadUIntN(streamId, 9)
-		local v16_ = math.rad(v15_)
-		local v17_ = streamReadUIntN(streamId, 9)
-		local v18_ = streamReadUInt8(streamId) * 0.1
-		local v19_, v20_ = MathUtil.getDirectionFromYRotation(v16_)
-		v14_:shoot(v19_, v20_, v17_, v18_, streamReadUIntN(streamId, 2), connection)
+		local football = NetworkUtil.readNodeObject(streamId)
+		local shotType = streamReadUIntN(streamId, 2)
+		football:onShot(shotType)
 	end
 end
-
--- Local values: yRot
 function FootballShootEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
-		local v24_ = MathUtil.getYRotationFromDirection(self.dirX, self.dirZ) % 6.283185307179586
+		local yRot = MathUtil.getYRotationFromDirection(self.dirX, self.dirZ)
+		yRot = yRot % 6.283185307179586
 		NetworkUtil.writeNodeObject(streamId, self.football)
-		streamWriteUIntN(streamId, math.deg(v24_), 9)
+		streamWriteUIntN(streamId, math.deg(yRot), 9)
 		streamWriteUIntN(streamId, self.angleDeg, 9)
 		streamWriteUInt8(streamId, self.velocity * 10)
 		streamWriteUIntN(streamId, self.shotType, 2)
@@ -56,5 +51,4 @@ function FootballShootEvent:writeStream(streamId, connection)
 		streamWriteUIntN(streamId, self.shotType, 2)
 	end
 end
-
 function FootballShootEvent:run(connection) end

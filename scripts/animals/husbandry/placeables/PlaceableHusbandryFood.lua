@@ -1,9 +1,7 @@
 PlaceableHusbandryFood = {}
-
 function PlaceableHusbandryFood.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(PlaceableHusbandryAnimals, specializations)
 end
-
 function PlaceableHusbandryFood.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "updateFillPlanes", PlaceableHusbandryFood.updateFillPlanes)
 	SpecializationUtil.registerFunction(placeableType, "updateFoodPlaces", PlaceableHusbandryFood.updateFoodPlaces)
@@ -15,7 +13,6 @@ function PlaceableHusbandryFood.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "getFreeFoodCapacity", PlaceableHusbandryFood.getFreeFoodCapacity)
 	SpecializationUtil.registerFunction(placeableType, "getFoodLitersPerHour", PlaceableHusbandryFood.getFoodLitersPerHour)
 end
-
 function PlaceableHusbandryFood.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "updateInfo", PlaceableHusbandryFood.updateInfo)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "updateFeeding", PlaceableHusbandryFood.updateFeeding)
@@ -23,7 +20,6 @@ function PlaceableHusbandryFood.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "collectPickObjects", PlaceableHusbandryFood.collectPickObjects)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getAnimalDescription", PlaceableHusbandryFood.getAnimalDescription)
 end
-
 function PlaceableHusbandryFood.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableHusbandryFood)
 	SpecializationUtil.registerEventListener(placeableType, "onPostLoad", PlaceableHusbandryFood)
@@ -37,21 +33,19 @@ function PlaceableHusbandryFood.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onHusbandryAnimalsUpdate", PlaceableHusbandryFood)
 	SpecializationUtil.registerEventListener(placeableType, "onHusbandryAnimalsCreated", PlaceableHusbandryFood)
 end
-
 function PlaceableHusbandryFood.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Husbandry")
-	local v7_ = basePath .. ".husbandry.food"
-	schema:register(XMLValueType.INT, v7_ .. "#capacity", "Trough capacity", 5000)
-	schema:register(XMLValueType.NODE_INDEX, v7_ .. ".foodPlaces.foodPlace(?)#node", "Foodplace")
-	schema:register(XMLValueType.NODE_INDEX, v7_ .. ".dynamicFoodPlane#node", "Node")
-	schema:register(XMLValueType.STRING, v7_ .. ".dynamicFoodPlane#defaultFillType", "Fillplane default filltype")
-	FillPlaneUtil.registerFillPlaneXMLPaths(schema, v7_ .. ".dynamicFoodPlane")
-	FillPlane.registerXMLPaths(schema, v7_ .. ".foodPlane")
-	schema:register(XMLValueType.STRING, v7_ .. ".foodPlane#defaultFillType", "Fillplane default filltype")
-	UnloadTrigger.registerTriggerXMLPaths(schema, v7_)
+	basePath = basePath .. ".husbandry.food"
+	schema:register(XMLValueType.INT, basePath .. "#capacity", "Trough capacity", 5000)
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".foodPlaces.foodPlace(?)#node", "Foodplace")
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".dynamicFoodPlane#node", "Node")
+	schema:register(XMLValueType.STRING, basePath .. ".dynamicFoodPlane#defaultFillType", "Fillplane default filltype")
+	FillPlaneUtil.registerFillPlaneXMLPaths(schema, basePath .. ".dynamicFoodPlane")
+	FillPlane.registerXMLPaths(schema, basePath .. ".foodPlane")
+	schema:register(XMLValueType.STRING, basePath .. ".foodPlane#defaultFillType", "Fillplane default filltype")
+	UnloadTrigger.registerTriggerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType()
 end
-
 function PlaceableHusbandryFood.registerSavegameXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Husbandry")
 	schema:register(XMLValueType.STRING, basePath .. ".fillLevel(?)#fillType", "Fill type")
@@ -61,574 +55,503 @@ end
 function PlaceableHusbandryFood.initSpecialization()
 	g_storeManager:addSpecType("animalFoodFillTypes", "shopListAttributeIconFillTypes", PlaceableHusbandryFood.loadSpecValueAnimalFoodFillTypes, PlaceableHusbandryFood.getSpecValueAnimalFoodFillTypes, StoreSpecies.PLACEABLE)
 end
-
--- Local values: spec, target, fillPlane, defaultFillTypeName, defaultFillTypeIndex, defaultFillTypeName, defaultFillTypeIndex
 function PlaceableHusbandryFood:onLoad(savegame)
-	local v_u_11_ = self.spec_husbandryFood
-	v_u_11_.animalTypeIndex = nil
-	v_u_11_.litersPerHour = 0
-	v_u_11_.fillLevels = {}
-	v_u_11_.supportedFillTypes = {}
-	v_u_11_.fillTypes = {}
-	v_u_11_.lastPositionInfoSent = { 0, 0 }
-	v_u_11_.lastPositionInfo = { 0, 0 }
-	v_u_11_.foodPlaces = {}
-	v_u_11_.info = {
-		["title"] = g_i18n:getText("ui_animalFood"),
-		["text"] = ""
-	}
-	v_u_11_.dirtyFlagPosition = self:getNextDirtyFlag()
-	v_u_11_.dirtyFlagFillLevel = self:getNextDirtyFlag()
-	v_u_11_.capacity = self.xmlFile:getValue("placeable.husbandry.food#capacity", 5000)
-	v_u_11_.FILLLEVEL_NUM_BITS = MathUtil.getNumRequiredBits(v_u_11_.capacity)
-	v_u_11_.feedingTroughs = UnloadTrigger.createTriggers(self.isServer, self.isClient, self.xmlFile, "placeable.husbandry.food", self.components, {
-		["getIsFillTypeAllowed"] = function(_, p12_)
-			-- upvalues: (copy) v_u_11_
-			return v_u_11_.supportedFillTypes[p12_]
-		end,
-		["getIsToolTypeAllowed"] = function(_, _)
-			return true
-		end,
-		["addFillLevelFromTool"] = function(_, ...)
-			-- upvalues: (copy) self
-			return self:addFood(...)
-		end,
-		["getFreeCapacity"] = function(_, p13_)
-			-- upvalues: (copy) self
-			return self:getFreeFoodCapacity(p13_)
-		end
-	}, nil, self.i3dMappings)
-	if #v_u_11_.feedingTroughs == 0 then
+	local spec = self.spec_husbandryFood
+	spec.animalTypeIndex = nil
+	spec.litersPerHour = 0
+	spec.fillLevels = {}
+	spec.supportedFillTypes = {}
+	spec.fillTypes = {}
+	spec.lastPositionInfoSent = { 0, 0 }
+	spec.lastPositionInfo = { 0, 0 }
+	spec.foodPlaces = {}
+	spec.info = { title = g_i18n:getText("ui_animalFood"), text = "" }
+	spec.dirtyFlagPosition = self:getNextDirtyFlag()
+	spec.dirtyFlagFillLevel = self:getNextDirtyFlag()
+	spec.capacity = self.xmlFile:getValue("placeable.husbandry.food#capacity", 5000)
+	spec.FILLLEVEL_NUM_BITS = MathUtil.getNumRequiredBits(spec.capacity)
+	local target = {}
+	function target.getIsFillTypeAllowed(_, fillTypeIndex)
+		return spec.supportedFillTypes[fillTypeIndex]
+	end
+	function target.getIsToolTypeAllowed(_, fillTypeIndex)
+		return true
+	end
+	function target.addFillLevelFromTool(_, ...)
+		return self:addFood(...)
+	end
+	function target.getFreeCapacity(_, fillTypeIndex)
+		return self:getFreeFoodCapacity(fillTypeIndex)
+	end
+	spec.feedingTroughs = UnloadTrigger.createTriggers(self.isServer, self.isClient, self.xmlFile, "placeable.husbandry.food", self.components, target, nil, self.i3dMappings)
+	if #spec.feedingTroughs == 0 then
 		Logging.xmlWarning(self.xmlFile, "Missing no unload triggers defined for husbandry food")
 		self:setLoadingState(PlaceableLoadingState.ERROR)
 	else
-		v_u_11_.baseNode = self.xmlFile:getValue("placeable.husbandry.food.dynamicFoodPlane#node", nil, self.components, self.i3dMappings)
-		if v_u_11_.baseNode ~= nil then
-			local v14_ = FillPlaneUtil.createFromXML(self.xmlFile, "placeable.husbandry.food.dynamicFoodPlane", v_u_11_.baseNode, v_u_11_.capacity)
-			local v15_ = self.xmlFile:getValue("placeable.husbandry.food.dynamicFoodPlane#defaultFillType")
-			local v16_ = g_fillTypeManager:getFillTypeIndexByName(v15_) or FillType.FORAGE
-			if v14_ ~= nil then
-				FillPlaneUtil.assignDefaultMaterialsFromTerrain(v14_, g_terrainNode)
-				FillPlaneUtil.setFillType(v14_, v16_)
-				v_u_11_.dynamicFoodPlane = v14_
+		spec.baseNode = self.xmlFile:getValue("placeable.husbandry.food.dynamicFoodPlane#node", nil, self.components, self.i3dMappings)
+		if spec.baseNode ~= nil then
+			local fillPlane = FillPlaneUtil.createFromXML(self.xmlFile, "placeable.husbandry.food.dynamicFoodPlane", spec.baseNode, spec.capacity)
+			local defaultFillTypeName = self.xmlFile:getValue("placeable.husbandry.food.dynamicFoodPlane#defaultFillType")
+			local defaultFillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(defaultFillTypeName) or FillType.FORAGE
+			if fillPlane ~= nil then
+				FillPlaneUtil.assignDefaultMaterialsFromTerrain(fillPlane, g_terrainNode)
+				FillPlaneUtil.setFillType(fillPlane, defaultFillTypeIndex)
+				spec.dynamicFoodPlane = fillPlane
 			end
 		end
-		v_u_11_.foodPlane = FillPlane.new()
-		if v_u_11_.foodPlane:load(self.components, self.xmlFile, "placeable.husbandry.food.foodPlane", self.i3dMappings) then
-			local v17_ = self.xmlFile:getValue("placeable.husbandry.food.foodPlane#defaultFillType")
-			local v18_ = g_fillTypeManager:getFillTypeIndexByName(v17_) or FillType.DRYGRASS_WINDROW
-			FillPlaneUtil.assignDefaultMaterialsFromTerrain(v_u_11_.foodPlane.node, g_terrainNode)
-			FillPlaneUtil.setFillType(v_u_11_.foodPlane.node, v18_)
-			setShaderParameter(v_u_11_.foodPlane.node, "isCustomShape", 1, 0, 0, 0, false)
-			v_u_11_.foodPlane:setState(0)
+		spec.foodPlane = FillPlane.new()
+		if spec.foodPlane:load(self.components, self.xmlFile, "placeable.husbandry.food.foodPlane", self.i3dMappings) then
+			local defaultFillTypeName = self.xmlFile:getValue("placeable.husbandry.food.foodPlane#defaultFillType")
+			local defaultFillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(defaultFillTypeName) or FillType.DRYGRASS_WINDROW
+			FillPlaneUtil.assignDefaultMaterialsFromTerrain(spec.foodPlane.node, g_terrainNode)
+			FillPlaneUtil.setFillType(spec.foodPlane.node, defaultFillTypeIndex)
+			setShaderParameter(spec.foodPlane.node, "isCustomShape", 1, 0, 0, 0, false)
+			spec.foodPlane:setState(0)
 		else
-			v_u_11_.foodPlane:delete()
-			v_u_11_.foodPlane = nil
+			spec.foodPlane:delete()
+			spec.foodPlane = nil
 		end
-		self.xmlFile:iterate("placeable.husbandry.food.foodPlaces.foodPlace", function(_, p19_)
-			-- upvalues: (copy) self, (copy) v_u_11_
-			local v20_ = self.xmlFile:getValue(p19_ .. "#node", nil, self.components, self.i3dMappings)
-			local v21_ = v_u_11_.foodPlaces
-			table.insert(v21_, {
-				["node"] = v20_,
-				["place"] = nil
-			})
+		self.xmlFile:iterate("placeable.husbandry.food.foodPlaces.foodPlace", function(_, key)
+			local node = self.xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
+			table.insert(spec.foodPlaces, { node = node, place = nil })
 		end)
 	end
 end
-
--- Local values: spec, animalFood, mixtures, _, foodGroup, _, fillTypeIndex, _, foodMixtureFillType
 function PlaceableHusbandryFood:onPostLoad()
-	local v23_ = self.spec_husbandryFood
-	v23_.animalTypeIndex = self:getAnimalTypeIndex()
-	local v24_ = g_currentMission.animalFoodSystem:getAnimalFood(v23_.animalTypeIndex)
-	local v25_ = g_currentMission.animalFoodSystem:getMixturesByAnimalTypeIndex(v23_.animalTypeIndex)
-	if v24_ ~= nil then
-		for _, v26_ in pairs(v24_.groups) do
-			for _, v27_ in pairs(v26_.fillTypes) do
-				if v23_.fillLevels[v27_] == nil then
-					v23_.fillLevels[v27_] = 0
-					v23_.supportedFillTypes[v27_] = true
-					local v28_ = v23_.fillTypes
-					table.insert(v28_, v27_)
+	local spec = self.spec_husbandryFood
+	spec.animalTypeIndex = self:getAnimalTypeIndex()
+	local animalFood = g_currentMission.animalFoodSystem:getAnimalFood(spec.animalTypeIndex)
+	local mixtures = g_currentMission.animalFoodSystem:getMixturesByAnimalTypeIndex(spec.animalTypeIndex)
+	if animalFood ~= nil then
+		for _, foodGroup in pairs(animalFood.groups) do
+			for _, fillTypeIndex in pairs(foodGroup.fillTypes) do
+				if spec.fillLevels[fillTypeIndex] == nil then
+					spec.fillLevels[fillTypeIndex] = 0
+					spec.supportedFillTypes[fillTypeIndex] = true
+					table.insert(spec.fillTypes, fillTypeIndex)
 				end
 			end
 		end
 	end
-	if v25_ ~= nil then
-		for _, v29_ in ipairs(v25_) do
-			v23_.supportedFillTypes[v29_] = true
-			local v30_ = v23_.fillTypes
-			table.insert(v30_, v29_)
+	if mixtures ~= nil then
+		for _, foodMixtureFillType in ipairs(mixtures) do
+			spec.supportedFillTypes[foodMixtureFillType] = true
+			table.insert(spec.fillTypes, foodMixtureFillType)
 		end
 	end
 end
-
--- Local values: spec, _, trigger
 function PlaceableHusbandryFood:onDelete()
-	local v32_ = self.spec_husbandryFood
-	if v32_.feedingTroughs ~= nil then
-		for _, v33_ in ipairs(v32_.feedingTroughs) do
-			v33_:delete()
+	local spec = self.spec_husbandryFood
+	if spec.feedingTroughs ~= nil then
+		for _, trigger in ipairs(spec.feedingTroughs) do
+			trigger:delete()
 		end
-		v32_.feedingTroughs = nil
+		spec.feedingTroughs = nil
 	end
-	if v32_.dynamicFoodPlane ~= nil then
-		delete(v32_.dynamicFoodPlane)
-		v32_.dynamicFoodPlane = nil
+	if spec.dynamicFoodPlane ~= nil then
+		delete(spec.dynamicFoodPlane)
+		spec.dynamicFoodPlane = nil
 	end
-	if v32_.foodPlane ~= nil then
-		v32_.foodPlane:delete()
-		v32_.foodPlane = nil
+	if spec.foodPlane ~= nil then
+		spec.foodPlane:delete()
+		spec.foodPlane = nil
 	end
 end
-
--- Local values: spec, _, trigger
 function PlaceableHusbandryFood:onFinalizePlacement()
-	local v35_ = self.spec_husbandryFood
-	if v35_.feedingTroughs ~= nil then
-		for _, v36_ in ipairs(v35_.feedingTroughs) do
-			v36_:register(true)
+	local spec = self.spec_husbandryFood
+	if spec.feedingTroughs ~= nil then
+		for _, trigger in ipairs(spec.feedingTroughs) do
+			trigger:register(true)
 		end
 	end
 end
-
 function PlaceableHusbandryFood:onPostFinalizePlacement()
 	self:updateFillPlanes()
 end
-
--- Local values: spec, _, fillTypeIndex, _, trigger, feedingTroughId
 function PlaceableHusbandryFood:onReadStream(streamId, connection)
-	local v41_ = self.spec_husbandryFood
-	for _, v42_ in ipairs(v41_.fillTypes) do
-		if v41_.fillLevels[v42_] ~= nil then
-			v41_.fillLevels[v42_] = streamReadUIntN(streamId, v41_.FILLLEVEL_NUM_BITS)
+	local spec = self.spec_husbandryFood
+	for _, fillTypeIndex in ipairs(spec.fillTypes) do
+		if spec.fillLevels[fillTypeIndex] == nil then
+			continue
 		end
+		spec.fillLevels[fillTypeIndex] = streamReadUIntN(streamId, spec.FILLLEVEL_NUM_BITS)
 	end
-	if v41_.feedingTroughs ~= nil then
-		for _, v43_ in ipairs(v41_.feedingTroughs) do
-			local v44_ = NetworkUtil.readNodeObjectId(streamId)
-			v43_:readStream(streamId, connection)
-			g_client:finishRegisterObject(v43_, v44_)
+	if spec.feedingTroughs ~= nil then
+		for _, trigger in ipairs(spec.feedingTroughs) do
+			local feedingTroughId = NetworkUtil.readNodeObjectId(streamId)
+			trigger:readStream(streamId, connection)
+			g_client:finishRegisterObject(trigger, feedingTroughId)
 		end
 	end
 end
-
--- Local values: spec, _, fillTypeIndex, _, trigger
 function PlaceableHusbandryFood:onWriteStream(streamId, connection)
-	local v48_ = self.spec_husbandryFood
-	for _, v49_ in ipairs(v48_.fillTypes) do
-		if v48_.fillLevels[v49_] ~= nil then
-			streamWriteUIntN(streamId, v48_.fillLevels[v49_], v48_.FILLLEVEL_NUM_BITS)
+	local spec = self.spec_husbandryFood
+	for _, fillTypeIndex in ipairs(spec.fillTypes) do
+		if spec.fillLevels[fillTypeIndex] == nil then
+			continue
 		end
+		streamWriteUIntN(streamId, spec.fillLevels[fillTypeIndex], spec.FILLLEVEL_NUM_BITS)
 	end
-	if v48_.feedingTroughs ~= nil then
-		for _, v50_ in ipairs(v48_.feedingTroughs) do
-			NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v50_))
-			v50_:writeStream(streamId, connection)
-			g_server:registerObjectInStream(connection, v50_)
+	if spec.feedingTroughs ~= nil then
+		for _, trigger in ipairs(spec.feedingTroughs) do
+			NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(trigger))
+			trigger:writeStream(streamId, connection)
+			g_server:registerObjectInStream(connection, trigger)
 		end
 	end
 end
-
--- Local values: spec, _, fillTypeIndex, newFillLevel, delta
 function PlaceableHusbandryFood:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
-		local v54_ = self.spec_husbandryFood
+		local spec = self.spec_husbandryFood
 		if streamReadBool(streamId) then
-			v54_.lastPositionInfo[1] = FillVolume.readStreamCompressedPosition(streamId)
-			v54_.lastPositionInfo[2] = FillVolume.readStreamCompressedPosition(streamId)
+			spec.lastPositionInfo[1] = FillVolume.readStreamCompressedPosition(streamId)
+			spec.lastPositionInfo[2] = FillVolume.readStreamCompressedPosition(streamId)
 		end
 		if streamReadBool(streamId) then
-			for _, v55_ in ipairs(v54_.fillTypes) do
-				if v54_.fillLevels[v55_] ~= nil then
-					local v56_ = streamReadUIntN(streamId, v54_.FILLLEVEL_NUM_BITS) - v54_.fillLevels[v55_]
-					if v56_ > 0 then
-						self:addFood(self:getOwnerFarmId(), v56_, v55_, nil, nil, nil)
-					else
-						self:removeFood(math.abs(v56_), v55_)
-					end
+			for _, fillTypeIndex in ipairs(spec.fillTypes) do
+				if spec.fillLevels[fillTypeIndex] == nil then
+					continue
+				end
+				local newFillLevel = streamReadUIntN(streamId, spec.FILLLEVEL_NUM_BITS)
+				local delta = newFillLevel - spec.fillLevels[fillTypeIndex]
+				if 0 < delta then
+					self:addFood(self:getOwnerFarmId(), delta, fillTypeIndex, nil, nil, nil)
+				else
+					self:removeFood(math.abs(delta), fillTypeIndex)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, _, fillTypeIndex
 function PlaceableHusbandryFood:onWriteUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
-		local v61_ = self.spec_husbandryFood
-		local v62_ = streamWriteBool
-		local v63_ = v61_.dirtyFlagPosition
-		if v62_(streamId, bit32.band(dirtyMask, v63_) ~= 0) then
-			FillVolume.writeStreamCompressedPosition(streamId, v61_.lastPositionInfoSent[1])
-			FillVolume.writeStreamCompressedPosition(streamId, v61_.lastPositionInfoSent[2])
+		local spec = self.spec_husbandryFood
+		if streamWriteBool(streamId, bit32.band(dirtyMask, spec.dirtyFlagPosition) ~= 0) then
+			FillVolume.writeStreamCompressedPosition(streamId, spec.lastPositionInfoSent[1])
+			FillVolume.writeStreamCompressedPosition(streamId, spec.lastPositionInfoSent[2])
 		end
-		local v64_ = streamWriteBool
-		local v65_ = v61_.dirtyFlagFillLevel
-		if v64_(streamId, bit32.band(dirtyMask, v65_) ~= 0) then
-			for _, v66_ in ipairs(v61_.fillTypes) do
-				if v61_.fillLevels[v66_] ~= nil then
-					streamWriteUIntN(streamId, v61_.fillLevels[v66_], v61_.FILLLEVEL_NUM_BITS)
+		if streamWriteBool(streamId, bit32.band(dirtyMask, spec.dirtyFlagFillLevel) ~= 0) then
+			for _, fillTypeIndex in ipairs(spec.fillTypes) do
+				if spec.fillLevels[fillTypeIndex] == nil then
+					continue
 				end
+				streamWriteUIntN(streamId, spec.fillLevels[fillTypeIndex], spec.FILLLEVEL_NUM_BITS)
 			end
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableHusbandryFood:loadFromXMLFile(xmlFile, key)
-	local v_u_70_ = self.spec_husbandryFood
-	xmlFile:iterate(key .. ".fillLevel", function(_, p71_)
-		-- upvalues: (copy) xmlFile, (copy) v_u_70_, (copy) self
-		local v72_ = xmlFile:getValue(p71_ .. "#fillType")
-		local v73_ = xmlFile:getValue(p71_ .. "#fillLevel")
-		if v72_ ~= nil and v73_ ~= nil then
-			local v74_ = g_fillTypeManager:getFillTypeIndexByName(v72_)
-			if v74_ ~= nil and v_u_70_.supportedFillTypes[v74_] ~= nil then
-				self:addFood(self:getOwnerFarmId(), v73_, v74_, nil, nil, nil)
+	local spec = self.spec_husbandryFood
+	xmlFile:iterate(key .. ".fillLevel", function(_, fillLevelKey)
+		local fillTypeName = xmlFile:getValue(fillLevelKey .. "#fillType")
+		local fillLevel = xmlFile:getValue(fillLevelKey .. "#fillLevel")
+		if fillTypeName ~= nil and fillLevel ~= nil then
+			local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
+			if fillTypeIndex ~= nil and spec.supportedFillTypes[fillTypeIndex] ~= nil then
+				self:addFood(self:getOwnerFarmId(), fillLevel, fillTypeIndex, nil, nil, nil)
 			end
 		end
 	end)
 end
-
--- Local values: spec, index, fillTypeIndex, fillLevel, fillTypeName, fillLevelKey
 function PlaceableHusbandryFood:saveToXMLFile(xmlFile, key, usedModNames)
-	local v78_ = self.spec_husbandryFood
-	local v79_ = 0
-	for v80_, v81_ in pairs(v78_.fillLevels) do
-		if v81_ > 0 then
-			local v82_ = g_fillTypeManager:getFillTypeNameByIndex(v80_)
-			if v82_ ~= nil then
-				local v83_ = string.format("%s.fillLevel(%d)", key, v79_)
-				xmlFile:setValue(v83_ .. "#fillType", v82_)
-				xmlFile:setValue(v83_ .. "#fillLevel", v81_)
-				v79_ = v79_ + 1
+	local spec = self.spec_husbandryFood
+	local index = 0
+	for fillTypeIndex, fillLevel in pairs(spec.fillLevels) do
+		if 0 < fillLevel then
+			local fillTypeName = g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex)
+			if fillTypeName == nil then
+				continue
 			end
+			local fillLevelKey = string.format("%s.fillLevel(%d)", key, index)
+			xmlFile:setValue(fillLevelKey .. "#fillType", fillTypeName)
+			xmlFile:setValue(fillLevelKey .. "#fillLevel", fillLevel)
+			index = index + 1
 		end
 	end
 end
-
--- Local values: factor, spec, consumedFood, fillTypeIndex, delta
 function PlaceableHusbandryFood:updateFeeding(superFunc)
-	local v86_ = superFunc(self)
-	local v87_ = self.spec_husbandryFood
-	if self.isServer and v87_.animalTypeIndex ~= nil then
-		local v88_ = {}
-		v86_ = v86_ * g_currentMission.animalFoodSystem:consumeFood(v87_.animalTypeIndex, v87_.litersPerHour * g_currentMission.environment.timeAdjustment, self, v88_)
-		for v89_, v90_ in pairs(v88_) do
-			self:removeFood(v90_, v89_)
+	local factor = superFunc(self)
+	local spec = self.spec_husbandryFood
+	if self.isServer and spec.animalTypeIndex ~= nil then
+		local consumedFood = {}
+		factor = factor * g_currentMission.animalFoodSystem:consumeFood(spec.animalTypeIndex, spec.litersPerHour * g_currentMission.environment.timeAdjustment, self, consumedFood)
+		for fillTypeIndex, delta in pairs(consumedFood) do
+			self:removeFood(delta, fillTypeIndex)
 		end
 	end
-	return v86_
+	return factor
 end
-
--- Local values: spec
 function PlaceableHusbandryFood:getFoodLitersPerHour()
-	return self.spec_husbandryFood.litersPerHour
+	local spec = self.spec_husbandryFood
+	return spec.litersPerHour
 end
-
--- Local values: spec, fillLevel
 function PlaceableHusbandryFood:updateInfo(superFunc, infoTable)
 	superFunc(self, infoTable)
-	local v95_ = self.spec_husbandryFood
-	local v96_ = self:getTotalFood()
-	v95_.info.text = string.format("%d l", v96_)
-	local v97_ = v95_.info
-	table.insert(infoTable, v97_)
+	local spec = self.spec_husbandryFood
+	local fillLevel = self:getTotalFood()
+	spec.info.text = string.format("%d l", fillLevel)
+	table.insert(infoTable, spec.info)
 end
-
--- Local values: foodInfos, spec, animalFood, _, foodGroup, title, fillLevel, capacity, _, fillTypeIndex, info
 function PlaceableHusbandryFood:getFoodInfos(superFunc)
-	local v100_ = superFunc(self)
-	local v101_ = self.spec_husbandryFood
-	local v102_ = g_currentMission.animalFoodSystem:getAnimalFood(v101_.animalTypeIndex)
-	if v102_ ~= nil then
-		for _, v103_ in pairs(v102_.groups) do
-			local v104_ = v103_.title
-			local v105_ = v101_.capacity
-			local v106_ = 0
-			for _, v107_ in pairs(v103_.fillTypes) do
-				if v101_.fillLevels[v107_] ~= nil then
-					v106_ = v106_ + v101_.fillLevels[v107_]
+	local foodInfos = superFunc(self)
+	local spec = self.spec_husbandryFood
+	local animalFood = g_currentMission.animalFoodSystem:getAnimalFood(spec.animalTypeIndex)
+	if animalFood ~= nil then
+		for _, foodGroup in pairs(animalFood.groups) do
+			local title = foodGroup.title
+			local fillLevel = 0
+			local capacity = spec.capacity
+			for _, fillTypeIndex in pairs(foodGroup.fillTypes) do
+				if spec.fillLevels[fillTypeIndex] == nil then
+					continue
 				end
+				fillLevel = fillLevel + spec.fillLevels[fillTypeIndex]
 			end
-			local v108_ = {
-				["title"] = string.format("%s (%d%%)", v104_, MathUtil.round(v103_.productionWeight * 100)),
-				["value"] = v106_,
-				["capacity"] = v105_,
-				["ratio"] = 0
-			}
-			if v105_ > 0 then
-				v108_.ratio = v106_ / v105_
+			local info = {}
+			info.title = string.format("%s (%d%%)", title, MathUtil.round(foodGroup.productionWeight * 100))
+			info.value = fillLevel
+			info.capacity = capacity
+			info.ratio = 0
+			if 0 < capacity then
+				info.ratio = fillLevel / capacity
 			end
-			table.insert(v100_, v108_)
+			table.insert(foodInfos, info)
 		end
 	end
-	return v100_
+	return foodInfos
 end
-
--- Local values: spec, fillLevel, capacity, state
 function PlaceableHusbandryFood:updateFillPlanes(fillTypeIndex)
-	local v111_ = self.spec_husbandryFood
-	if v111_.foodPlane ~= nil then
-		local v112_ = self:getTotalFood()
-		local v113_ = self:getFoodCapacity()
-		local v114_
-		if v113_ > 0 then
-			local v115_ = v112_ / v113_
-			v114_ = math.clamp(v115_, 0, 1)
-		else
-			v114_ = 0
+	local spec = self.spec_husbandryFood
+	if spec.foodPlane ~= nil then
+		local fillLevel = self:getTotalFood()
+		local capacity = self:getFoodCapacity()
+		local state = 0
+		if 0 < capacity then
+			state = math.clamp(fillLevel / capacity, 0, 1)
 		end
-		v111_.foodPlane:setState(v114_)
-		if v114_ > 0 and fillTypeIndex ~= nil then
-			FillPlaneUtil.assignDefaultMaterialsFromTerrain(v111_.foodPlane.node, g_terrainNode)
-			FillPlaneUtil.setFillType(v111_.foodPlane.node, fillTypeIndex)
-			setShaderParameter(v111_.foodPlane.node, "isCustomShape", 1, 0, 0, 0, false)
+		spec.foodPlane:setState(state)
+		if 0 < state and fillTypeIndex ~= nil then
+			FillPlaneUtil.assignDefaultMaterialsFromTerrain(spec.foodPlane.node, g_terrainNode)
+			FillPlaneUtil.setFillType(spec.foodPlane.node, fillTypeIndex)
+			setShaderParameter(spec.foodPlane.node, "isCustomShape", 1, 0, 0, 0, false)
 		end
 	end
 end
-
--- Local values: spec, _, trigger
 function PlaceableHusbandryFood:collectPickObjects(superFunc, node)
-	local v119_ = self.spec_husbandryFood
-	if v119_.feedingTroughs ~= nil then
-		for _, v120_ in ipairs(v119_.feedingTroughs) do
-			if node == v120_.exactFillRootNode then
+	local spec = self.spec_husbandryFood
+	if spec.feedingTroughs ~= nil then
+		for _, trigger in ipairs(spec.feedingTroughs) do
+			if node == trigger.exactFillRootNode then
 				return
 			end
 		end
 	end
 	superFunc(self, node)
 end
-
--- Local values: spec, _, foodPlace, feedingPlaceIndex, isAccessible
 function PlaceableHusbandryFood:onHusbandryAnimalsCreated(husbandryId)
 	if husbandryId ~= nil then
-		local v123_ = self.spec_husbandryFood
-		v123_.husbandryId = husbandryId
-		for _, v124_ in ipairs(v123_.foodPlaces) do
-			local v125_, v126_ = addFeedingPlace(husbandryId, v124_.node, 0, AnimalHusbandryFeedingType.FOOD)
-			if v126_ then
-				v124_.place = v125_
+		local spec = self.spec_husbandryFood
+		spec.husbandryId = husbandryId
+		for _, foodPlace in ipairs(spec.foodPlaces) do
+			local feedingPlaceIndex, isAccessible = addFeedingPlace(husbandryId, foodPlace.node, 0, AnimalHusbandryFeedingType.FOOD)
+			if isAccessible then
+				foodPlace.place = feedingPlaceIndex
 			end
 		end
 	end
 end
-
--- Local values: spec, fillLevel, _, foodPlace
 function PlaceableHusbandryFood:updateFoodPlaces()
-	local v128_ = self.spec_husbandryFood
-	if v128_.husbandryId ~= nil then
-		local v129_ = self:getTotalFood()
-		for _, v130_ in pairs(v128_.foodPlaces) do
-			if v130_.place ~= nil then
-				updateFeedingPlace(v128_.husbandryId, v130_.place, v129_)
+	local spec = self.spec_husbandryFood
+	if spec.husbandryId ~= nil then
+		local fillLevel = self:getTotalFood()
+		for _, foodPlace in pairs(spec.foodPlaces) do
+			if foodPlace.place == nil then
+				continue
 			end
+			updateFeedingPlace(spec.husbandryId, foodPlace.place, fillLevel)
 		end
 	end
 end
-
--- Local values: spec, fillLevel, _, level
 function PlaceableHusbandryFood:getTotalFood()
-	local v132_ = self.spec_husbandryFood
-	local v133_ = 0
-	for _, v134_ in pairs(v132_.fillLevels) do
-		v133_ = v133_ + v134_
+	local spec = self.spec_husbandryFood
+	local fillLevel = 0
+	for _, level in pairs(spec.fillLevels) do
+		fillLevel = fillLevel + level
 	end
-	return v133_
+	return fillLevel
 end
-
--- Local values: spec
 function PlaceableHusbandryFood:getAvailableFood(fillTypeIndex)
-	return self.spec_husbandryFood.fillLevels[fillTypeIndex]
+	local spec = self.spec_husbandryFood
+	return spec.fillLevels[fillTypeIndex]
 end
-
 function PlaceableHusbandryFood:getFoodCapacity()
 	return self.spec_husbandryFood.capacity
 end
-
--- Local values: spec
 function PlaceableHusbandryFood:getFreeFoodCapacity(fillTypeIndex)
-	local v140_ = self.spec_husbandryFood
-	return v140_.supportedFillTypes[fillTypeIndex] == nil and 0 or v140_.capacity - self:getTotalFood()
+	local spec = self.spec_husbandryFood
+	if spec.supportedFillTypes[fillTypeIndex] == nil then
+		return 0
+	else
+		return spec.capacity - self:getTotalFood()
+	end
 end
-
--- Local values: spec, mixture, filled, maxDelta, _, ingredient, delta, ingredientFillType, filledDelta, freeCapacity, data, x0, y0, z0, d1x, d1y, d1z, d2x, d2y, d2z, x, y, z, d1x, d1y, d1z, d2x, d2y, d2z, steps, _
 function PlaceableHusbandryFood:addFood(farmId, deltaFillLevel, fillTypeIndex, fillPositionData, toolType, extraAttributes)
-	local v148_ = self.spec_husbandryFood
-	if v148_.supportedFillTypes[fillTypeIndex] == nil then
+	local spec = self.spec_husbandryFood
+	if spec.supportedFillTypes[fillTypeIndex] == nil then
 		return 0
 	end
-	local v149_ = g_currentMission.animalFoodSystem:getMixtureByFillType(fillTypeIndex)
-	if v149_ ~= nil then
-		local v150_ = math.min(deltaFillLevel, self:getFreeFoodCapacity(fillTypeIndex))
-		local v151_ = 0
-		for _, v152_ in ipairs(v149_.ingredients) do
-			v151_ = v151_ + self:addFood(farmId, v150_ * v152_.weight, v152_.fillTypes[1], fillPositionData, toolType, extraAttributes)
+	local mixture = g_currentMission.animalFoodSystem:getMixtureByFillType(fillTypeIndex)
+	if mixture ~= nil then
+		local filled = 0
+		local maxDelta = math.min(deltaFillLevel, self:getFreeFoodCapacity(fillTypeIndex))
+		for _, ingredient in ipairs(mixture.ingredients) do
+			local delta = maxDelta * ingredient.weight
+			local ingredientFillType = ingredient.fillTypes[1]
+			local filledDelta = self:addFood(farmId, delta, ingredientFillType, fillPositionData, toolType, extraAttributes)
+			filled = filled + filledDelta
 		end
-		if v151_ > 0 then
+		if 0 < filled then
 			self:updateFillPlanes(fillTypeIndex)
 		end
-		return v151_
-	end
-	local v153_ = self:getFreeFoodCapacity(fillTypeIndex)
-	if v153_ == 0 then
-		return 0
-	end
-	local v154_ = math.min(v153_, deltaFillLevel)
-	if v148_.dynamicFoodPlane == nil then
-		::l13::
-		if self.isServer then
-			self:raiseDirtyFlags(v148_.dirtyFlagFillLevel)
-		end
-		v148_.fillLevels[fillTypeIndex] = v148_.fillLevels[fillTypeIndex] + v154_
-		self:updateFillPlanes(fillTypeIndex)
-		self:updateFoodPlaces()
-		return v154_
-	end
-	if fillPositionData == nil then
-		local v155_, v156_, v157_ = localToWorld(v148_.dynamicFoodPlane, 0, 0, 0)
-		local v158_, v159_, v160_ = localDirectionToWorld(v148_.dynamicFoodPlane, 0.1, 0, 0)
-		local v161_, v162_, v163_ = localDirectionToWorld(v148_.dynamicFoodPlane, 0, 0, 0.1)
-		if not self.isServer and (v148_.lastPositionInfo[1] ~= 0 and v148_.lastPositionInfo[2] ~= 0) then
-			v155_, v156_, v157_ = localToWorld(v148_.dynamicFoodPlane, v148_.lastPositionInfo[1], 0, v148_.lastPositionInfo[2])
-		end
-		local v164_ = v154_ / 400
-		local v165_ = math.floor(v164_)
-		local v166_ = math.clamp(v165_, 1, 25)
-		for _ = 1, v166_ do
-			fillPlaneAdd(v148_.dynamicFoodPlane, v154_ / v166_, v155_, v156_, v157_, v158_, v159_, v160_, v161_, v162_, v163_)
-		end
-		goto l13
-	end
-	local v167_, v168_, v169_ = getWorldTranslation(fillPositionData.node)
-	local v170_, v171_, v172_ = localDirectionToWorld(fillPositionData.node, fillPositionData.width, 0, 0)
-	local v173_, v174_, v175_ = localDirectionToWorld(fillPositionData.node, 0, 0, fillPositionData.length)
-	if VehicleDebug.state == VehicleDebug.DEBUG then
-		drawDebugLine(v167_, v168_, v169_, 1, 0, 0, v167_ + v170_, v168_ + v171_, v169_ + v172_, 1, 0, 0)
-		drawDebugLine(v167_, v168_, v169_, 0, 0, 1, v167_ + v173_, v168_ + v174_, v169_ + v175_, 0, 0, 1)
-		drawDebugPoint(v167_, v168_, v169_, 1, 1, 1, 1)
-		drawDebugPoint(v167_ + v170_, v168_ + v171_, v169_ + v172_, 1, 0, 0, 1)
-		drawDebugPoint(v167_ + v173_, v168_ + v174_, v169_ + v175_, 0, 0, 1, 1)
-	end
-	local v176_ = v167_ - (v170_ + v173_) / 2
-	local v177_ = v168_ - (v171_ + v174_) / 2
-	local v178_ = v169_ - (v172_ + v175_) / 2
-	fillPlaneAdd(v148_.dynamicFoodPlane, v154_, v176_, v177_, v178_, v170_, v171_, v172_, v173_, v174_, v175_)
-	if self.isServer then
-		local v179_ = v176_ - v148_.lastPositionInfoSent[1]
-		if math.abs(v179_) > FillVolume.SEND_PRECISION then
-			::l20::
-			v148_.lastPositionInfoSent[1] = v176_
-			v148_.lastPositionInfoSent[2] = v178_
-			self:raiseDirtyFlags(v148_.dirtyFlagPosition)
-			goto l13
+		return filled
+	else
+		local freeCapacity = self:getFreeFoodCapacity(fillTypeIndex)
+		if freeCapacity == 0 then
+			return 0
+		else
+			deltaFillLevel = math.min(freeCapacity, deltaFillLevel)
+			if spec.dynamicFoodPlane ~= nil then
+				if fillPositionData ~= nil then
+					local x0, y0, z0 = getWorldTranslation(fillPositionData.node)
+					local d1x, d1y, d1z = localDirectionToWorld(fillPositionData.node, fillPositionData.width, 0, 0)
+					local d2x, d2y, d2z = localDirectionToWorld(fillPositionData.node, 0, 0, fillPositionData.length)
+					if VehicleDebug.state == VehicleDebug.DEBUG then
+						drawDebugLine(x0, y0, z0, 1, 0, 0, x0 + d1x, y0 + d1y, z0 + d1z, 1, 0, 0)
+						drawDebugLine(x0, y0, z0, 0, 0, 1, x0 + d2x, y0 + d2y, z0 + d2z, 0, 0, 1)
+						drawDebugPoint(x0, y0, z0, 1, 1, 1, 1)
+						drawDebugPoint(x0 + d1x, y0 + d1y, z0 + d1z, 1, 0, 0, 1)
+						drawDebugPoint(x0 + d2x, y0 + d2y, z0 + d2z, 0, 0, 1, 1)
+					end
+					x0 = x0 - (d1x + d2x) / 2
+					y0 = y0 - (d1y + d2y) / 2
+					z0 = z0 - (d1z + d2z) / 2
+					fillPlaneAdd(spec.dynamicFoodPlane, deltaFillLevel, x0, y0, z0, d1x, d1y, d1z, d2x, d2y, d2z)
+					if self.isServer and (FillVolume.SEND_PRECISION < math.abs(x0 - spec.lastPositionInfoSent[1]) or FillVolume.SEND_PRECISION < math.abs(z0 - spec.lastPositionInfoSent[2])) then
+						spec.lastPositionInfoSent[1] = x0
+						spec.lastPositionInfoSent[2] = z0
+						self:raiseDirtyFlags(spec.dirtyFlagPosition)
+					end
+				else
+					local x, y, z = localToWorld(spec.dynamicFoodPlane, 0, 0, 0)
+					local d1x, d1y, d1z = localDirectionToWorld(spec.dynamicFoodPlane, 0.1, 0, 0)
+					local d2x, d2y, d2z = localDirectionToWorld(spec.dynamicFoodPlane, 0, 0, 0.1)
+					if not self.isServer and (spec.lastPositionInfo[1] ~= 0 and spec.lastPositionInfo[2] ~= 0) then
+						x, y, z = localToWorld(spec.dynamicFoodPlane, spec.lastPositionInfo[1], 0, spec.lastPositionInfo[2])
+					end
+					local steps = math.clamp(math.floor(deltaFillLevel / 400), 1, 25)
+					for _ = 1, steps do
+						fillPlaneAdd(spec.dynamicFoodPlane, deltaFillLevel / steps, x, y, z, d1x, d1y, d1z, d2x, d2y, d2z)
+					end
+				end
+			end
+			if self.isServer then
+				self:raiseDirtyFlags(spec.dirtyFlagFillLevel)
+			end
+			spec.fillLevels[fillTypeIndex] = spec.fillLevels[fillTypeIndex] + deltaFillLevel
+			self:updateFillPlanes(fillTypeIndex)
+			self:updateFoodPlaces()
+			return deltaFillLevel
 		end
 	end
-	local v180_ = v178_ - v148_.lastPositionInfoSent[2]
-	if math.abs(v180_) <= FillVolume.SEND_PRECISION then
-		goto l13
-	end
-	goto l20
 end
-
--- Local values: spec, x, y, z, d1x, d1y, d1z, d2x, d2y, d2z, steps, delta, _
 function PlaceableHusbandryFood:removeFood(absDeltaFillLevel, fillTypeIndex)
-	local v184_ = self.spec_husbandryFood
-	if v184_.supportedFillTypes[fillTypeIndex] == nil then
+	local spec = self.spec_husbandryFood
+	if spec.supportedFillTypes[fillTypeIndex] == nil then
 		return 0
-	end
-	if absDeltaFillLevel <= 0 then
+	elseif absDeltaFillLevel <= 0 then
 		return 0
-	end
-	local v185_ = math.abs(absDeltaFillLevel)
-	local v186_ = v184_.fillLevels[fillTypeIndex]
-	local v187_ = math.min(v185_, v186_)
-	if v184_.dynamicFoodPlane ~= nil then
-		local v188_, v189_, v190_ = localToWorld(v184_.dynamicFoodPlane, 0, 0, 0)
-		local v191_, v192_, v193_ = localDirectionToWorld(v184_.dynamicFoodPlane, 0.1, 0, 0)
-		local v194_, v195_, v196_ = localDirectionToWorld(v184_.dynamicFoodPlane, 0, 0, 0.1)
-		local v197_ = v187_ / 400
-		local v198_ = math.floor(v197_)
-		local v199_ = math.clamp(v198_, 1, 25)
-		local v200_ = v187_ / v199_
-		for _ = 1, v199_ do
-			fillPlaneAdd(v184_.dynamicFoodPlane, -v200_, v188_, v189_, v190_, v191_, v192_, v193_, v194_, v195_, v196_)
-		end
-	end
-	v184_.fillLevels[fillTypeIndex] = v184_.fillLevels[fillTypeIndex] - v187_
-	if self.isServer then
-		self:raiseDirtyFlags(v184_.dirtyFlagFillLevel)
-	end
-	self:updateFillPlanes()
-	self:updateFoodPlaces()
-	return v187_
-end
-
--- Local values: spec, _, cluster, subType, food, age, litersPerAnimal, litersPerDay
-function PlaceableHusbandryFood:onHusbandryAnimalsUpdate(clusters)
-	local v203_ = self.spec_husbandryFood
-	v203_.litersPerHour = 0
-	for _, v204_ in ipairs(clusters) do
-		local v205_ = g_currentMission.animalSystem:getSubTypeByIndex(v204_.subTypeIndex)
-		if v205_ ~= nil then
-			local v206_ = v205_.input.food
-			if v206_ ~= nil then
-				local v207_ = v206_:get((v204_:getAge())) * v204_:getNumAnimals()
-				v203_.litersPerHour = v203_.litersPerHour + v207_ / 24
+	else
+		absDeltaFillLevel = math.min(math.abs(absDeltaFillLevel), spec.fillLevels[fillTypeIndex])
+		if spec.dynamicFoodPlane ~= nil then
+			local x, y, z = localToWorld(spec.dynamicFoodPlane, 0, 0, 0)
+			local d1x, d1y, d1z = localDirectionToWorld(spec.dynamicFoodPlane, 0.1, 0, 0)
+			local d2x, d2y, d2z = localDirectionToWorld(spec.dynamicFoodPlane, 0, 0, 0.1)
+			local steps = math.clamp(math.floor(absDeltaFillLevel / 400), 1, 25)
+			local delta = absDeltaFillLevel / steps
+			for _ = 1, steps do
+				fillPlaneAdd(spec.dynamicFoodPlane, -delta, x, y, z, d1x, d1y, d1z, d2x, d2y, d2z)
 			end
 		end
+		spec.fillLevels[fillTypeIndex] = spec.fillLevels[fillTypeIndex] - absDeltaFillLevel
+		if self.isServer then
+			self:raiseDirtyFlags(spec.dirtyFlagFillLevel)
+		end
+		self:updateFillPlanes()
+		self:updateFoodPlaces()
+		return absDeltaFillLevel
 	end
 end
-
--- Local values: text
-function PlaceableHusbandryFood:getAnimalDescription(superFunc, cluster)
-	return superFunc(self, cluster) .. " " .. g_i18n:getText("animal_descriptionPercentage")
+function PlaceableHusbandryFood:onHusbandryAnimalsUpdate(clusters)
+	local spec = self.spec_husbandryFood
+	spec.litersPerHour = 0
+	for _, cluster in ipairs(clusters) do
+		local subType = g_currentMission.animalSystem:getSubTypeByIndex(cluster.subTypeIndex)
+		if subType == nil then
+			continue
+		end
+		local food = subType.input.food
+		if food == nil then
+			continue
+		end
+		local age = cluster:getAge()
+		local litersPerAnimal = food:get(age)
+		local litersPerDay = litersPerAnimal * cluster:getNumAnimals()
+		spec.litersPerHour = spec.litersPerHour + litersPerDay / 24
+	end
 end
-
--- Local values: data
+function PlaceableHusbandryFood:getAnimalDescription(superFunc, cluster)
+	local text = superFunc(self, cluster)
+	return text .. " " .. g_i18n:getText("animal_descriptionPercentage")
+end
 function PlaceableHusbandryFood.loadSpecValueAnimalFoodFillTypes(xmlFile, customEnvironment, baseDir)
-	local v212_ = nil
+	local data = nil
 	if xmlFile:hasProperty("placeable.husbandry.animals") then
-		v212_ = v212_ or {}
-		v212_.animalTypeName = xmlFile:getString("placeable.husbandry.animals#type")
+		data = data or {}
+		data.animalTypeName = xmlFile:getString("placeable.husbandry.animals#type")
 	end
 	if xmlFile:hasProperty("placeable.husbandry.water") then
-		v212_ = v212_ or {}
-		v212_.needsWater = not xmlFile:getValue("placeable.husbandry.water#automaticWaterSupply", false)
+		data = data or {}
+		data.needsWater = not xmlFile:getValue("placeable.husbandry.water#automaticWaterSupply", false)
 	end
-	return v212_
+	return data
 end
-
--- Local values: data, fillTypes, animalType, animalFood, mixtures, _, foodGroup, _, fillTypeIndex, _, foodMixtureFillType
 function PlaceableHusbandryFood.getSpecValueAnimalFoodFillTypes(storeItem, realItem)
-	local v214_ = storeItem.specs.animalFoodFillTypes
-	if v214_ == nil then
+	local data = storeItem.specs.animalFoodFillTypes
+	if data == nil then
 		return nil
 	end
-	local v215_ = {}
-	local v216_ = g_currentMission.animalSystem:getTypeByName(v214_.animalTypeName)
-	if v216_ == nil then
+	local fillTypes = {}
+	local animalType = g_currentMission.animalSystem:getTypeByName(data.animalTypeName)
+	if animalType == nil then
 		return nil
-	end
-	local v217_ = g_currentMission.animalFoodSystem:getAnimalFood(v216_.typeIndex)
-	local v218_ = g_currentMission.animalFoodSystem:getMixturesByAnimalTypeIndex(v216_.typeIndex)
-	if v217_ ~= nil then
-		for _, v219_ in pairs(v217_.groups) do
-			for _, v220_ in pairs(v219_.fillTypes) do
-				table.addElement(v215_, v220_)
+	else
+		local animalFood = g_currentMission.animalFoodSystem:getAnimalFood(animalType.typeIndex)
+		local mixtures = g_currentMission.animalFoodSystem:getMixturesByAnimalTypeIndex(animalType.typeIndex)
+		if animalFood ~= nil then
+			for _, foodGroup in pairs(animalFood.groups) do
+				for _, fillTypeIndex in pairs(foodGroup.fillTypes) do
+					table.addElement(fillTypes, fillTypeIndex)
+				end
 			end
 		end
-	end
-	if v218_ ~= nil then
-		for _, v221_ in ipairs(v218_) do
-			table.addElement(v215_, v221_)
+		if mixtures ~= nil then
+			for _, foodMixtureFillType in ipairs(mixtures) do
+				table.addElement(fillTypes, foodMixtureFillType)
+			end
 		end
+		if data.needsWater then
+			table.addElement(fillTypes, FillType.WATER)
+		end
+		return fillTypes
 	end
-	if v214_.needsWater then
-		table.addElement(v215_, FillType.WATER)
-	end
-	return v215_
 end

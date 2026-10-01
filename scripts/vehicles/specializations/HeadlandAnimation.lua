@@ -1,115 +1,100 @@
 HeadlandAnimation = {}
-
-function HeadlandAnimation.prerequisitesPresent(vehicleType)
+function HeadlandAnimation.prerequisitesPresent(specializations)
 	return true
 end
 function HeadlandAnimation.initSpecialization()
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("HeadlandAnimation")
-	v1_:register(XMLValueType.TIME, "vehicle.headlandAnimation#activationDelay", "Headland is activated after this time above activationAngle", 0.5)
-	v1_:register(XMLValueType.TIME, "vehicle.headlandAnimation#deactivationDelay", "Headland is deactivated after this time below deactivationAngle", 4)
-	v1_:register(XMLValueType.FLOAT, "vehicle.headlandAnimation#activationAngle", "Headland is activated above this steering percentage [0-1]", 0.2)
-	v1_:register(XMLValueType.FLOAT, "vehicle.headlandAnimation#deactivationAngle", "Headland is deactivated below this steering percentage [0-1]", 0.13)
-	v1_:register(XMLValueType.STRING, "vehicle.headlandAnimation#requiredGroundTypes", "Headland is only activated one of these ground types is below vehicle")
-	v1_:register(XMLValueType.STRING, "vehicle.headlandAnimation.animation(?)#name", "Animation name")
-	v1_:register(XMLValueType.FLOAT, "vehicle.headlandAnimation.animation(?)#speed", "Animation speed")
-	v1_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("HeadlandAnimation")
+	schema:register(XMLValueType.TIME, "vehicle.headlandAnimation#activationDelay", "Headland is activated after this time above activationAngle", 0.5)
+	schema:register(XMLValueType.TIME, "vehicle.headlandAnimation#deactivationDelay", "Headland is deactivated after this time below deactivationAngle", 4)
+	schema:register(XMLValueType.FLOAT, "vehicle.headlandAnimation#activationAngle", "Headland is activated above this steering percentage [0-1]", 0.2)
+	schema:register(XMLValueType.FLOAT, "vehicle.headlandAnimation#deactivationAngle", "Headland is deactivated below this steering percentage [0-1]", 0.13)
+	schema:register(XMLValueType.STRING, "vehicle.headlandAnimation#requiredGroundTypes", "Headland is only activated one of these ground types is below vehicle")
+	schema:register(XMLValueType.STRING, "vehicle.headlandAnimation.animation(?)#name", "Animation name")
+	schema:register(XMLValueType.FLOAT, "vehicle.headlandAnimation.animation(?)#speed", "Animation speed")
+	schema:setXMLSpecializationType()
 end
-
 function HeadlandAnimation.registerFunctions(vehicleType) end
-
 function HeadlandAnimation.registerOverwrittenFunctions(vehicleType) end
-
 function HeadlandAnimation.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", HeadlandAnimation)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", HeadlandAnimation)
 end
-
--- Local values: spec, requiredGroundTypesStr, i, name, groundType, i, baseKey, animation
 function HeadlandAnimation:onLoad(savegame)
-	local v4_ = self.spec_headlandAnimation
-	v4_.isAvailable = self.xmlFile:hasProperty("vehicle.headlandAnimation")
-	if v4_.isAvailable then
-		v4_.headlandActivationDelay = self.xmlFile:getValue("vehicle.headlandAnimation#activationDelay", 0.5)
-		v4_.headlandDeactivationDelay = self.xmlFile:getValue("vehicle.headlandAnimation#deactivationDelay", 4)
-		v4_.headlandActivationAngle = self.xmlFile:getValue("vehicle.headlandAnimation#activationAngle", 0.2)
-		v4_.headlandDeactivationAngle = self.xmlFile:getValue("vehicle.headlandAnimation#deactivationAngle", 0.13)
-		local v5_ = self.xmlFile:getValue("vehicle.headlandAnimation#requiredGroundTypes"):split(" ")
-		v4_.requiredGroundTypes = {}
-		for v6_ = 1, #v5_ do
-			local v7_ = v5_[v6_]
-			if v7_ ~= nil and v7_ ~= "" then
-				local v8_ = FieldGroundType[v7_]
-				if v8_ == nil then
-					Logging.xmlWarning(self.xmlFile, "Unknown ground type \'%s\' defined for headland animation", v7_)
-				else
-					v4_.requiredGroundTypes[v8_] = true
-				end
+	local spec = self.spec_headlandAnimation
+	spec.isAvailable = self.xmlFile:hasProperty("vehicle.headlandAnimation")
+	if spec.isAvailable then
+		spec.headlandActivationDelay = self.xmlFile:getValue("vehicle.headlandAnimation#activationDelay", 0.5)
+		spec.headlandDeactivationDelay = self.xmlFile:getValue("vehicle.headlandAnimation#deactivationDelay", 4)
+		spec.headlandActivationAngle = self.xmlFile:getValue("vehicle.headlandAnimation#activationAngle", 0.2)
+		spec.headlandDeactivationAngle = self.xmlFile:getValue("vehicle.headlandAnimation#deactivationAngle", 0.13)
+		local requiredGroundTypesStr = self.xmlFile:getValue("vehicle.headlandAnimation#requiredGroundTypes")
+		requiredGroundTypesStr = requiredGroundTypesStr:split(" ")
+		spec.requiredGroundTypes = {}
+		for i = 1, #requiredGroundTypesStr do
+			local name = requiredGroundTypesStr[i]
+			if name == nil or name == "" then
+				continue
+			end
+			local groundType = FieldGroundType[name]
+			if groundType ~= nil then
+				spec.requiredGroundTypes[groundType] = true
+			else
+				Logging.xmlWarning(self.xmlFile, "Unknown ground type '%s' defined for headland animation", name)
 			end
 		end
-		v4_.headlandDeactivationTime = 0
-		v4_.headlandState = false
-		v4_.lastHeadlandState = false
-		v4_.animations = {}
-		local v9_ = 0
+		spec.headlandDeactivationTime = 0
+		spec.headlandState = false
+		spec.lastHeadlandState = false
+		spec.animations = {}
+		local i = 0
 		while true do
-			local v10_ = string.format("vehicle.headlandAnimation.animation(%d)", v9_)
-			if not self.xmlFile:hasProperty(v10_) then
+			local baseKey = string.format("vehicle.headlandAnimation.animation(%d)", i)
+			if not self.xmlFile:hasProperty(baseKey) then
 				break
 			end
-			local v11_ = {
-				["name"] = self.xmlFile:getValue(v10_ .. "#name"),
-				["speed"] = self.xmlFile:getValue(v10_ .. "#speed")
-			}
-			if v11_.name ~= nil then
-				local v12_ = v4_.animations
-				table.insert(v12_, v11_)
+			local animation = {}
+			animation.name = self.xmlFile:getValue(baseKey .. "#name")
+			animation.speed = self.xmlFile:getValue(baseKey .. "#speed")
+			if animation.name ~= nil then
+				table.insert(spec.animations, animation)
 			end
-			v9_ = v9_ + 1
+			i = i + 1
 		end
 	else
 		SpecializationUtil.removeEventListener(self, "onUpdate", HeadlandAnimation)
 	end
 end
-
--- Local values: spec, validGround, x, y, z, _, _, groundType, direction, i, animation
 function HeadlandAnimation:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v15_ = self.spec_headlandAnimation
-	local v16_ = true
-	if v15_.headlandRequiredDensityBits ~= 0 then
-		local v17_, v18_, v19_ = getWorldTranslation(self.components[1].node)
-		local _, _, v20_ = FSDensityMapUtil.getFieldDataAtWorldPosition(v17_, v18_, v19_)
-		if v15_.requiredGroundTypes[v20_] ~= true then
-			v16_ = false
+	local spec = self.spec_headlandAnimation
+	local validGround = true
+	if spec.headlandRequiredDensityBits ~= 0 then
+		local x, y, z = getWorldTranslation(self.components[1].node)
+		local _, _, groundType = FSDensityMapUtil.getFieldDataAtWorldPosition(x, y, z)
+		if spec.requiredGroundTypes[groundType] ~= true then
+			validGround = false
 		end
 	end
-	if v16_ then
-		local v21_ = self.rotatedTime
-		if math.abs(v21_) > v15_.headlandActivationAngle then
-			v15_.headlandDeactivationTime = v15_.headlandDeactivationTime + dt
-			if v15_.headlandDeactivationTime > v15_.headlandActivationDelay then
-				v15_.headlandState = true
-				v15_.headlandDeactivationTime = v15_.headlandDeactivationDelay
+	if validGround then
+		if spec.headlandActivationAngle < math.abs(self.rotatedTime) then
+			spec.headlandDeactivationTime = spec.headlandDeactivationTime + dt
+			if spec.headlandActivationDelay < spec.headlandDeactivationTime then
+				spec.headlandState = true
+				spec.headlandDeactivationTime = spec.headlandDeactivationDelay
 			end
-			::l8::
-			if v15_.headlandDeactivationTime == 0 then
-				v15_.headlandState = false
-			end
-			if v15_.headlandState ~= v15_.lastHeadlandState then
-				local v22_ = v15_.headlandState and 1 or -1
-				for v23_ = 1, #v15_.animations do
-					local v24_ = v15_.animations[v23_]
-					self:playAnimation(v24_.name, v24_.speed * v22_, self:getAnimationTime(v24_.name))
-				end
-				v15_.lastHeadlandState = v15_.headlandState
-			end
-			return
+		elseif math.abs(self.rotatedTime) < spec.headlandDeactivationAngle then
+			spec.headlandDeactivationTime = math.max(spec.headlandDeactivationTime - dt, 0)
 		end
 	end
-	local v25_ = self.rotatedTime
-	if math.abs(v25_) < v15_.headlandDeactivationAngle then
-		local v26_ = v15_.headlandDeactivationTime - dt
-		v15_.headlandDeactivationTime = math.max(v26_, 0)
+	if spec.headlandDeactivationTime == 0 then
+		spec.headlandState = false
 	end
-	goto l8
+	if spec.headlandState ~= spec.lastHeadlandState then
+		local direction = spec.headlandState and 1 or -1
+		for i = 1, #spec.animations do
+			local animation = spec.animations[i]
+			self:playAnimation(animation.name, animation.speed * direction, self:getAnimationTime(animation.name))
+		end
+		spec.lastHeadlandState = spec.headlandState
+	end
 end

@@ -1,78 +1,80 @@
 GuidedTourUtil = {}
-
--- Local values: xmlFile, className, class, guidedTour
 function GuidedTourUtil.createFromXML(xmlFilename)
-	local v2_ = XMLFile.load("guidedTour", xmlFilename, GuidedTour.xmlSchema)
-	if v2_ == nil then
+	local xmlFile = XMLFile.load("guidedTour", xmlFilename, GuidedTour.xmlSchema)
+	if xmlFile == nil then
 		return nil
 	end
-	local v3_ = v2_:getValue("guidedTour.class", "GuidedTour")
-	v2_:delete()
-	local v4_ = ClassUtil.getClassObject(v3_)
-	if v4_ == nil then
-		Logging.xmlWarning(v2_, "GuidedTour controller class \'%s\' not found!", v3_)
+	local className = xmlFile:getValue("guidedTour.class", "GuidedTour")
+	xmlFile:delete()
+	local class = ClassUtil.getClassObject(className)
+	if class == nil then
+		Logging.xmlWarning(xmlFile, "GuidedTour controller class '%s' not found!", className)
 		return nil
 	end
-	local v5_ = v4_.new()
-	if v5_:load(xmlFilename) then
-		return v5_
+	local guidedTour = class.new()
+	if not guidedTour:load(xmlFilename) then
+		guidedTour:delete()
+		return nil
+	else
+		return guidedTour
 	end
-	v5_:delete()
-	return nil
 end
-
--- Local values: actions, actionClasses, name, actionClass, actionIteratorKey, _, actionKey, action
 function GuidedTourUtil.loadActionsFromXMLFile(xmlFile, key, baseDirectory, customEnvironment, stepIndex)
-	local v11_ = g_guidedTourManager:getAllActionClasses()
-	local v12_ = nil
-	for v13_, v14_ in pairs(v11_) do
-		for _, v15_ in xmlFile:iterator(key .. ".actions." .. v13_) do
-			local v16_ = v14_.createFromXML(xmlFile, v15_, baseDirectory, customEnvironment, stepIndex)
-			if v16_ == nil then
-				Logging.xmlWarning(xmlFile, "Could not create guided tour action in \'%s\'", v15_)
+	local actions = nil
+	local actionClasses = g_guidedTourManager:getAllActionClasses()
+	for name, actionClass in pairs(actionClasses) do
+		local actionIteratorKey = key .. ".actions." .. name
+		for _, actionKey in xmlFile:iterator(actionIteratorKey) do
+			local action = actionClass.createFromXML(xmlFile, actionKey, baseDirectory, customEnvironment, stepIndex)
+			if action ~= nil then
+				if actions == nil then
+					actions = {}
+				end
+				table.insert(actions, action)
 			else
-				v12_ = v12_ == nil and {} or v12_
-				table.insert(v12_, v16_)
+				Logging.xmlWarning(xmlFile, "Could not create guided tour action in '%s'", actionKey)
 			end
 		end
 	end
-	return v12_
+	return actions
 end
-
--- Local values: goals, goalClasses, name, goalClass, goalIteratorKey, _, goalKey, goal
 function GuidedTourUtil.loadGoalsFromXMLFile(xmlFile, key, baseDirectory, customEnvironment)
-	local v21_ = g_guidedTourManager:getAllGoalClasses()
-	local v22_ = nil
-	for v23_, v24_ in pairs(v21_) do
-		for _, v25_ in xmlFile:iterator(key .. ".goals." .. v23_) do
-			local v26_ = v24_.createFromXML(xmlFile, v25_, baseDirectory, customEnvironment)
-			if v26_ == nil then
-				Logging.xmlWarning(xmlFile, "Could not create guided tour goal in \'%s\'", v25_)
+	local goals = nil
+	local goalClasses = g_guidedTourManager:getAllGoalClasses()
+	for name, goalClass in pairs(goalClasses) do
+		local goalIteratorKey = key .. ".goals." .. name
+		for _, goalKey in xmlFile:iterator(goalIteratorKey) do
+			local goal = goalClass.createFromXML(xmlFile, goalKey, baseDirectory, customEnvironment)
+			if goal ~= nil then
+				if goals == nil then
+					goals = {}
+				end
+				goal.name = name
+				table.insert(goals, goal)
 			else
-				v22_ = v22_ == nil and {} or v22_
-				v26_.name = v23_
-				table.insert(v22_, v26_)
+				Logging.xmlWarning(xmlFile, "Could not create guided tour goal in '%s'", goalKey)
 			end
 		end
 	end
-	return v22_
+	return goals
 end
-
--- Local values: progresses, progressClasses, name, progressClass, progressIteratorKey, _, progressKey, progress
 function GuidedTourUtil.loadProgressesFromXMLFile(xmlFile, key, baseDirectory, customEnvironment)
-	local v31_ = g_guidedTourManager:getAllProgressClasses()
-	local v32_ = nil
-	for v33_, v34_ in pairs(v31_) do
-		for _, v35_ in xmlFile:iterator(key .. ".progresses." .. v33_) do
-			local v36_ = v34_.createFromXML(xmlFile, v35_, baseDirectory, customEnvironment)
-			if v36_ == nil then
-				Logging.xmlWarning(xmlFile, "Could not create guided tour progress in \'%s\'", v35_)
+	local progresses = nil
+	local progressClasses = g_guidedTourManager:getAllProgressClasses()
+	for name, progressClass in pairs(progressClasses) do
+		local progressIteratorKey = key .. ".progresses." .. name
+		for _, progressKey in xmlFile:iterator(progressIteratorKey) do
+			local progress = progressClass.createFromXML(xmlFile, progressKey, baseDirectory, customEnvironment)
+			if progress ~= nil then
+				if progresses == nil then
+					progresses = {}
+				end
+				progress.name = name
+				table.insert(progresses, progress)
 			else
-				v32_ = v32_ == nil and {} or v32_
-				v36_.name = v33_
-				table.insert(v32_, v36_)
+				Logging.xmlWarning(xmlFile, "Could not create guided tour progress in '%s'", progressKey)
 			end
 		end
 	end
-	return v32_
+	return progresses
 end

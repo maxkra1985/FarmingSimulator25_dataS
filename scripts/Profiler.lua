@@ -36,27 +36,17 @@ function Profiler.init()
 	if not StartParams.getIsSet("profilerStatsOutputPath") then
 		return
 	end
-	local v1_ = Profiler
-	if StartParams.getIsSet("profilerStatsSavegameSlot") then
-		local v2_ = StartParams.getValue
-		v3_ = tonumber(v2_("profilerStatsSavegameSlot"))
-		if v3_ then
-			goto l9
-		end
-	end
-	local v3_ = Profiler.SAVEGAME_NUMBER
-	::l9::
-	v1_.SAVEGAME_NUMBER = v3_
+	Profiler.SAVEGAME_NUMBER = StartParams.getIsSet("profilerStatsSavegameSlot") and tonumber(StartParams.getValue("profilerStatsSavegameSlot")) or Profiler.SAVEGAME_NUMBER
 	Profiler.OUTPUT_DIRECTORY = StartParams.getValue("profilerStatsOutputPath")
 	Profiler.IS_GPU_BENCHMARK_MODE = StartParams.getIsSet("profilerGpuBenchmarkMode")
 	if Profiler.IS_GPU_BENCHMARK_MODE then
 		Profiler.GRID_ROTATION_DELTA = 0.02617993877991494
 		Profiler.GRID_ROTATION_NUM_STEPS = 240
-		local v4_ = StartParams.getValue("gpuBenchmarkOutputFile")
-		Profiler.OUTPUT_FILENAME = Profiler.OUTPUT_DIRECTORY .. "/" .. v4_
+		local filename = StartParams.getValue("gpuBenchmarkOutputFile")
+		Profiler.OUTPUT_FILENAME = Profiler.OUTPUT_DIRECTORY .. "/" .. filename
 		if StartParams.getIsSet("profilerGpuBenchmarOnly6GBVram") then
-			local v5_ = profilerGetCurrentGpuVRAM()
-			if v5_ > 0 and v5_ < 5120 then
+			local dedicatedVramInMB = profilerGetCurrentGpuVRAM()
+			if 0 < dedicatedVramInMB and dedicatedVramInMB < 5120 then
 				Logging.info("Skip benchmark, " .. getGPUName() .. " do not have 6GB ore more VRAM ")
 				profilerWriteGpuBenchmarkStats(Profiler.OUTPUT_FILENAME)
 				doExit()
@@ -69,52 +59,48 @@ function Profiler.init()
 			return
 		end
 	end
-	if folderExists(Profiler.OUTPUT_DIRECTORY) then
-		Profiler.MAP = StartParams.getValue("profilerStatsMap")
-		Profiler.MAP_FILENAME = StartParams.getValue("profilerStatsMapFilename") or "default"
-		local v6_
-		if StartParams.getIsSet("profilerStatsSamplingGridSize") then
-			local v7_ = StartParams.getValue
-			local v8_ = tonumber(v7_("profilerStatsSamplingGridSize"))
-			if v8_ == nil or v8_ <= 0 then
-				Logging.error("Invalid \'profilerStatsSamplingGridSize\' parameter")
-				return
-			end
-			local v9_ = math.huge
-			local v10_ = nil
-			for v11_ = 4, 15 do
-				local v12_ = math.pow(2, v11_)
-				local v13_ = v8_ - v12_
-				local v14_ = math.abs(v13_)
-				if v14_ < v9_ then
-					v10_ = v12_
-					v9_ = v14_
-				end
-			end
-			if v9_ ~= 0 then
-				Logging.warning("Grid size \'%s\' was not a power of 2, changed to \'%s\'!", v8_, v10_)
-			end
-			Profiler.SAMPLING_GRID_SIZE = v10_
-			v6_ = true
-		else
-			v6_ = false
-		end
-		if StartParams.getIsSet("profilerStatsSamplingCustomNode") then
-			Profiler.SAMPLING_CUSTOM_NODE = StartParams.getValue("profilerStatsSamplingCustomNode")
-			v6_ = true
-		end
-		if v6_ then
-			Profiler.CAMERA = createCamera("cameraProfiler", 1.0471975511965976, 1, 10000)
-			g_cameraManager:addCamera(Profiler.CAMERA, nil, false)
-			link(getRootNode(), Profiler.CAMERA)
-			Logging.info("Profiler initialized successfully")
-			Profiler.IS_INITIALIZED = true
-		else
-			Logging.error("Profiler needs \'profilerStatsSamplingGridSize\' or \'profilerStatsSamplingCustomNode\' parameter set")
-		end
-	else
+	if not folderExists(Profiler.OUTPUT_DIRECTORY) then
 		Logging.error("Unable to write to profilerStatsOutputPath %q. Is it an absolute path and does the directory exist?", getAppBasePath() .. Profiler.OUTPUT_DIRECTORY)
 		return
+	end
+	Profiler.MAP = StartParams.getValue("profilerStatsMap")
+	Profiler.MAP_FILENAME = StartParams.getValue("profilerStatsMapFilename") or "default"
+	local hasSamplingParameterSet = false
+	if StartParams.getIsSet("profilerStatsSamplingGridSize") then
+		local gridSizeParam = tonumber(StartParams.getValue("profilerStatsSamplingGridSize"))
+		if gridSizeParam == nil or gridSizeParam <= 0 then
+			Logging.error("Invalid 'profilerStatsSamplingGridSize' parameter")
+			return
+		end
+		local gridSize = nil
+		local gridSizeBest = nil
+		local delta = math.huge
+		for i = 4, 15 do
+			gridSize = math.pow(2, i)
+			local deltaNew = math.abs(gridSizeParam - gridSize)
+			if deltaNew < delta then
+				delta = deltaNew
+				gridSizeBest = gridSize
+			end
+		end
+		if delta ~= 0 then
+			Logging.warning("Grid size '%s' was not a power of 2, changed to '%s'!", gridSizeParam, gridSizeBest)
+		end
+		Profiler.SAMPLING_GRID_SIZE = gridSizeBest
+		hasSamplingParameterSet = true
+	end
+	if StartParams.getIsSet("profilerStatsSamplingCustomNode") then
+		Profiler.SAMPLING_CUSTOM_NODE = StartParams.getValue("profilerStatsSamplingCustomNode")
+		hasSamplingParameterSet = true
+	end
+	if not hasSamplingParameterSet then
+		Logging.error("Profiler needs 'profilerStatsSamplingGridSize' or 'profilerStatsSamplingCustomNode' parameter set")
+	else
+		Profiler.CAMERA = createCamera("cameraProfiler", 1.0471975511965976, 1, 10000)
+		g_cameraManager:addCamera(Profiler.CAMERA, nil, false)
+		link(getRootNode(), Profiler.CAMERA)
+		Logging.info("Profiler initialized successfully")
+		Profiler.IS_INITIALIZED = true
 	end
 end
 function Profiler.delete()
@@ -134,138 +120,120 @@ function Profiler.startProfiler()
 		g_gui:showGui("CareerScreen")
 	end
 end
-
--- Local values: mapName, profileName
 function Profiler.setMapRootNode(node)
 	Profiler.MAP_ROOT_NODE = node
 	if Profiler.SAMPLING_CUSTOM_NODE ~= "" then
 		Profiler.PROFILING_ROOT_NODE = getChild(node, Profiler.SAMPLING_CUSTOM_NODE)
 		if Profiler.PROFILING_ROOT_NODE == 0 then
 			Profiler.IS_INITIALIZED = false
-			Logging.error("Profiler SamplingCustomNode \'%s\' not found", Profiler.SAMPLING_CUSTOM_NODE)
+			Logging.error("Profiler SamplingCustomNode '%s' not found", Profiler.SAMPLING_CUSTOM_NODE)
 			return
 		end
 		Profiler.NUM_NODES = getNumOfChildren(Profiler.PROFILING_ROOT_NODE)
 	end
-	if Profiler.IS_GPU_BENCHMARK_MODE or not Profiler.IS_INITIALIZED then
-		return
-	elseif profilerStatsExportInit() then
-		local v16_
-		if g_currentMission == nil or g_currentMission.missionInfo == nil then
-			v16_ = ""
+	if not Profiler.IS_GPU_BENCHMARK_MODE and Profiler.IS_INITIALIZED then
+		if profilerStatsExportInit() then
+			local mapName = ""
+			if g_currentMission ~= nil and g_currentMission.missionInfo ~= nil then
+				mapName = tostring(g_currentMission.missionInfo.mapId)
+			end
+			local profileName = Utils.getDirectoryName(getUserProfileAppPath())
+			profilerStatsExportAddMetadata("map", mapName)
+			profilerStatsExportAddMetadata("mapWidth", tostring(g_currentMission.mapWidth))
+			profilerStatsExportAddMetadata("mapHeight", tostring(g_currentMission.mapHeight))
+			profilerStatsExportAddMetadata("date", getDate("%Y-%m-%dT%H:%M:%SZ"))
+			profilerStatsExportAddMetadata("revision", getEngineRevision())
+			profilerStatsExportAddMetadata("defaultNodeType", "grid")
+			profilerStatsExportAddMetadata("appName", profileName)
+			Profiler.OUTPUT_FILENAME = Profiler.OUTPUT_DIRECTORY .. "/" .. getDate("%Y-%m-%d_%H-%M-%S") .. "_" .. profileName .. "_" .. mapName .. ".json"
 		else
-			local v17_ = g_currentMission.missionInfo.mapId
-			v16_ = tostring(v17_)
+			Logging.error("Profiler stats export could not be initialized engine side")
+			Profiler.IS_INITIALIZED = false
 		end
-		local v18_ = Utils.getDirectoryName(getUserProfileAppPath())
-		profilerStatsExportAddMetadata("map", v16_)
-		local v19_ = profilerStatsExportAddMetadata
-		local v20_ = g_currentMission.mapWidth
-		v19_("mapWidth", (tostring(v20_)))
-		local v21_ = profilerStatsExportAddMetadata
-		local v22_ = g_currentMission.mapHeight
-		v21_("mapHeight", (tostring(v22_)))
-		profilerStatsExportAddMetadata("date", getDate("%Y-%m-%dT%H:%M:%SZ"))
-		profilerStatsExportAddMetadata("revision", getEngineRevision())
-		profilerStatsExportAddMetadata("defaultNodeType", "grid")
-		profilerStatsExportAddMetadata("appName", v18_)
-		Profiler.OUTPUT_FILENAME = Profiler.OUTPUT_DIRECTORY .. "/" .. getDate("%Y-%m-%d_%H-%M-%S") .. "_" .. v18_ .. "_" .. v16_ .. ".json"
-	else
-		Logging.error("Profiler stats export could not be initialized engine side")
-		Profiler.IS_INITIALIZED = false
 	end
 end
 function Profiler.setIsReady()
 	Profiler.IS_READY = true
 end
-
--- Local values: x, z, rotY, y, rotX, rotY, rotZ, node, x, y, z, rotX, rotY, rotZ, x, z, y
 function Profiler.update(dt)
 	if Profiler.IS_READY then
 		setFramerateLimiter(false, Platform.defaultFrameLimit)
 		if Profiler.IS_GRID_INITIALIZED then
-			if Profiler.INITIAL_FRAMES_PAUSED <= Profiler.STARTUP_FRAME_PAUSE then
-				Profiler.INITIAL_FRAMES_PAUSED = Profiler.INITIAL_FRAMES_PAUSED + 1
-				return
-			end
-			if Profiler.IS_GRID_FINISHED or (Profiler.FRAME_COUNT <= Profiler.FRAMES_BETWEEN_SAMPLES or Profiler.SAMPLING_GRID_SIZE <= 0) then
-				if Profiler.FRAME_COUNT > Profiler.FRAMES_BETWEEN_SAMPLES and Profiler.NUM_NODES > 0 then
+			if Profiler.STARTUP_FRAME_PAUSE < Profiler.INITIAL_FRAMES_PAUSED then
+				if not Profiler.IS_GRID_FINISHED and (Profiler.FRAMES_BETWEEN_SAMPLES < Profiler.FRAME_COUNT and 0 < Profiler.SAMPLING_GRID_SIZE) then
+					if not Profiler.IS_GPU_BENCHMARK_MODE then
+						profilerStatsExportAddSampleBegin()
+						profilerStatsExportAddSampleData("rotY", tostring(Profiler.GRID_CURRENT_ROTATION * 90))
+						profilerStatsExportAddSampleEnd()
+					end
+					local x = Profiler.GRID_CURRENT_X - Profiler.MAP_SIZE * 0.5
+					local z = Profiler.GRID_CURRENT_Z - Profiler.MAP_SIZE * 0.5
+					local rotY = Profiler.GRID_CURRENT_ROTATION * Profiler.GRID_ROTATION_DELTA
+					if Profiler.IS_GPU_BENCHMARK_MODE then
+						x = x + 5 * Profiler.GRID_CURRENT_ROTATION / Profiler.GRID_ROTATION_NUM_STEPS
+						z = z + 5 * Profiler.GRID_CURRENT_ROTATION / Profiler.GRID_ROTATION_NUM_STEPS
+						profilerGpuBenchmarkSample()
+					end
+					local y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z) + 1.8
+					setTranslation(Profiler.CAMERA, x, y, z)
+					setRotation(Profiler.CAMERA, 0, rotY, 0)
+					Profiler.GRID_CURRENT_ROTATION = Profiler.GRID_CURRENT_ROTATION + 1
+					if Profiler.GRID_CURRENT_ROTATION == Profiler.GRID_ROTATION_NUM_STEPS then
+						Profiler.GRID_CURRENT_ROTATION = 0
+						Profiler.GRID_CURRENT_X = Profiler.GRID_CURRENT_X + Profiler.SAMPLING_GRID_SIZE
+						if Profiler.MAP_SIZE < Profiler.GRID_CURRENT_X then
+							Profiler.GRID_CURRENT_X = Profiler.SAMPLING_GRID_SIZE * 0.5
+							Profiler.GRID_CURRENT_Z = Profiler.GRID_CURRENT_Z + Profiler.SAMPLING_GRID_SIZE
+							if Profiler.MAP_SIZE < Profiler.GRID_CURRENT_Z then
+								if not Profiler.IS_GPU_BENCHMARK_MODE then
+									profilerStatsExportAddSampleBegin()
+									profilerStatsExportAddSampleData("rotY", tostring(Profiler.GRID_CURRENT_ROTATION * 90))
+									profilerStatsExportAddSampleEnd()
+								end
+								Profiler.IS_GRID_FINISHED = true
+							end
+						end
+						if Profiler.IS_GPU_BENCHMARK_MODE then
+							Profiler.FRAME_COUNT = 0
+							g_currentMission.environment:consoleCommandSetDayTime(8, true)
+						end
+					end
+					if not Profiler.IS_GPU_BENCHMARK_MODE then
+						Profiler.FRAME_COUNT = 0
+						return
+					end
+				end
+				if Profiler.FRAMES_BETWEEN_SAMPLES < Profiler.FRAME_COUNT and 0 < Profiler.NUM_NODES then
 					if Profiler.CURRENT_NODE_ID == Profiler.NUM_NODES then
 						Profiler.finish()
+						return
 					else
-						if Profiler.CURRENT_NODE_ID > 0 and not Profiler.IS_GPU_BENCHMARK_MODE then
-							local v23_, v24_, v25_ = getRotation(Profiler.CAMERA)
+						if 0 < Profiler.CURRENT_NODE_ID and not Profiler.IS_GPU_BENCHMARK_MODE then
+							local rotX, rotY, rotZ = getRotation(Profiler.CAMERA)
 							profilerStatsExportAddSampleBegin()
-							local v26_ = profilerStatsExportAddSampleData
-							local v27_ = v23_ * 180 / 3.141592653589793
-							v26_("rotX", (tostring(v27_)))
-							local v28_ = profilerStatsExportAddSampleData
-							local v29_ = v24_ * 180 / 3.141592653589793
-							v28_("rotY", (tostring(v29_)))
-							local v30_ = profilerStatsExportAddSampleData
-							local v31_ = v25_ * 180 / 3.141592653589793
-							v30_("rotZ", (tostring(v31_)))
+							profilerStatsExportAddSampleData("rotX", tostring(rotX * 180 / 3.141592653589793))
+							profilerStatsExportAddSampleData("rotY", tostring(rotY * 180 / 3.141592653589793))
+							profilerStatsExportAddSampleData("rotZ", tostring(rotZ * 180 / 3.141592653589793))
 							profilerStatsExportAddSampleData("type", "custom")
 							profilerStatsExportAddSampleEnd()
 						end
-						local v32_ = getChildAt(Profiler.PROFILING_ROOT_NODE, Profiler.CURRENT_NODE_ID)
-						local v33_, v34_, v35_ = getWorldTranslation(v32_)
-						local v36_, v37_, v38_ = getWorldRotation(v32_)
-						setTranslation(Profiler.CAMERA, v33_, v34_, v35_)
-						setRotation(Profiler.CAMERA, v36_, v37_, v38_)
+						local node = getChildAt(Profiler.PROFILING_ROOT_NODE, Profiler.CURRENT_NODE_ID)
+						local x, y, z = getWorldTranslation(node)
+						local rotX, rotY, rotZ = getWorldRotation(node)
+						setTranslation(Profiler.CAMERA, x, y, z)
+						setRotation(Profiler.CAMERA, rotX, rotY, rotZ)
 						Profiler.CURRENT_NODE_ID = Profiler.CURRENT_NODE_ID + 1
 						Profiler.FRAME_COUNT = 0
+						return
 					end
-				elseif Profiler.IS_GRID_FINISHED and Profiler.NUM_NODES == 0 then
+				end
+				if Profiler.IS_GRID_FINISHED and Profiler.NUM_NODES == 0 then
 					Profiler.finish()
-				else
-					Profiler.FRAME_COUNT = Profiler.FRAME_COUNT + 1
+					return
 				end
-			end
-			if not Profiler.IS_GPU_BENCHMARK_MODE then
-				profilerStatsExportAddSampleBegin()
-				local v39_ = profilerStatsExportAddSampleData
-				local v40_ = Profiler.GRID_CURRENT_ROTATION * 90
-				v39_("rotY", (tostring(v40_)))
-				profilerStatsExportAddSampleEnd()
-			end
-			local v41_ = Profiler.GRID_CURRENT_X - Profiler.MAP_SIZE * 0.5
-			local v42_ = Profiler.GRID_CURRENT_Z - Profiler.MAP_SIZE * 0.5
-			local v43_ = Profiler.GRID_CURRENT_ROTATION * Profiler.GRID_ROTATION_DELTA
-			if Profiler.IS_GPU_BENCHMARK_MODE then
-				v41_ = v41_ + 5 * Profiler.GRID_CURRENT_ROTATION / Profiler.GRID_ROTATION_NUM_STEPS
-				v42_ = v42_ + 5 * Profiler.GRID_CURRENT_ROTATION / Profiler.GRID_ROTATION_NUM_STEPS
-				profilerGpuBenchmarkSample()
-			end
-			local v44_ = getTerrainHeightAtWorldPos(g_terrainNode, v41_, 0, v42_) + 1.8
-			setTranslation(Profiler.CAMERA, v41_, v44_, v42_)
-			setRotation(Profiler.CAMERA, 0, v43_, 0)
-			Profiler.GRID_CURRENT_ROTATION = Profiler.GRID_CURRENT_ROTATION + 1
-			if Profiler.GRID_CURRENT_ROTATION == Profiler.GRID_ROTATION_NUM_STEPS then
-				Profiler.GRID_CURRENT_ROTATION = 0
-				Profiler.GRID_CURRENT_X = Profiler.GRID_CURRENT_X + Profiler.SAMPLING_GRID_SIZE
-				if Profiler.GRID_CURRENT_X > Profiler.MAP_SIZE then
-					Profiler.GRID_CURRENT_X = Profiler.SAMPLING_GRID_SIZE * 0.5
-					Profiler.GRID_CURRENT_Z = Profiler.GRID_CURRENT_Z + Profiler.SAMPLING_GRID_SIZE
-					if Profiler.GRID_CURRENT_Z > Profiler.MAP_SIZE then
-						if not Profiler.IS_GPU_BENCHMARK_MODE then
-							profilerStatsExportAddSampleBegin()
-							local v45_ = profilerStatsExportAddSampleData
-							local v46_ = Profiler.GRID_CURRENT_ROTATION * 90
-							v45_("rotY", (tostring(v46_)))
-							profilerStatsExportAddSampleEnd()
-						end
-						Profiler.IS_GRID_FINISHED = true
-					end
-				end
-				if Profiler.IS_GPU_BENCHMARK_MODE then
-					Profiler.FRAME_COUNT = 0
-					g_currentMission.environment:consoleCommandSetDayTime(8, true)
-				end
-			end
-			if not Profiler.IS_GPU_BENCHMARK_MODE then
-				Profiler.FRAME_COUNT = 0
-				return
+				Profiler.FRAME_COUNT = Profiler.FRAME_COUNT + 1
+			else
+				Profiler.INITIAL_FRAMES_PAUSED = Profiler.INITIAL_FRAMES_PAUSED + 1
 			end
 		else
 			g_cameraManager:setActiveCamera(Profiler.CAMERA)
@@ -273,13 +241,13 @@ function Profiler.update(dt)
 			if Profiler.IS_GPU_BENCHMARK_MODE then
 				Profiler.MAP_SIZE = Profiler.MAP_SIZE * 0.666
 			end
-			if Profiler.SAMPLING_GRID_SIZE > 0 then
+			if 0 < Profiler.SAMPLING_GRID_SIZE then
 				Profiler.GRID_CURRENT_X = Profiler.SAMPLING_GRID_SIZE * 0.5
 				Profiler.GRID_CURRENT_Z = Profiler.SAMPLING_GRID_SIZE * 0.5
-				local v47_ = Profiler.GRID_CURRENT_X - Profiler.MAP_SIZE * 0.5
-				local v48_ = Profiler.GRID_CURRENT_Z - Profiler.MAP_SIZE * 0.5
-				local v49_ = getTerrainHeightAtWorldPos(g_terrainNode, v47_, 0, v48_) + 1.8
-				setTranslation(Profiler.CAMERA, v47_, v49_, v48_)
+				local x = Profiler.GRID_CURRENT_X - Profiler.MAP_SIZE * 0.5
+				local z = Profiler.GRID_CURRENT_Z - Profiler.MAP_SIZE * 0.5
+				local y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z) + 1.8
+				setTranslation(Profiler.CAMERA, x, y, z)
 				setRotation(Profiler.CAMERA, 0, 0, 0)
 				Profiler.IS_GRID_INITIALIZED = true
 			end

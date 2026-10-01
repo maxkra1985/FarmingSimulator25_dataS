@@ -1,18 +1,14 @@
 PlaceableClearAreas = {}
-
 function PlaceableClearAreas.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableClearAreas.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "loadClearArea", PlaceableClearAreas.loadClearArea)
 end
-
 function PlaceableClearAreas.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableClearAreas)
 	SpecializationUtil.registerEventListener(placeableType, "onPostFinalizePlacement", PlaceableClearAreas)
 end
-
 function PlaceableClearAreas.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("ClearAreas")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".clearAreas.clearArea(?)#startNode", "Start node")
@@ -20,61 +16,54 @@ function PlaceableClearAreas.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".clearAreas.clearArea(?)#heightNode", "Height node")
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec
 function PlaceableClearAreas:onLoad(savegame)
-	local v_u_6_ = self.spec_clearAreas
-	v_u_6_.areas = {}
-	self.xmlFile:iterate("placeable.clearAreas.clearArea", function(_, p7_)
-		-- upvalues: (copy) self, (copy) v_u_6_
-		local v8_ = {}
-		if self:loadClearArea(self.xmlFile, p7_, v8_) then
-			local v9_ = v_u_6_.areas
-			table.insert(v9_, v8_)
+	local spec = self.spec_clearAreas
+	spec.areas = {}
+	self.xmlFile:iterate("placeable.clearAreas.clearArea", function(_, key)
+		local area = {}
+		if self:loadClearArea(self.xmlFile, key, area) then
+			table.insert(spec.areas, area)
 		end
 	end)
 	if not self.xmlFile:hasProperty("placeable.clearAreas") then
 		Logging.xmlWarning(self.xmlFile, "Missing clear areas")
 	end
 end
-
--- Local values: start, width, height
 function PlaceableClearAreas:loadClearArea(xmlFile, key, area)
-	local v14_ = xmlFile:getValue(key .. "#startNode", nil, self.components, self.i3dMappings)
-	if v14_ == nil then
-		Logging.xmlWarning(xmlFile, "Clear area start node not defined for \'%s\'", key)
+	local start = xmlFile:getValue(key .. "#startNode", nil, self.components, self.i3dMappings)
+	if start == nil then
+		Logging.xmlWarning(xmlFile, "Clear area start node not defined for '%s'", key)
 		return false
 	end
-	local v15_ = xmlFile:getValue(key .. "#widthNode", nil, self.components, self.i3dMappings)
-	if v15_ == nil then
-		Logging.xmlWarning(xmlFile, "Clear area width node not defined for \'%s\'", key)
+	local width = xmlFile:getValue(key .. "#widthNode", nil, self.components, self.i3dMappings)
+	if width == nil then
+		Logging.xmlWarning(xmlFile, "Clear area width node not defined for '%s'", key)
 		return false
 	end
-	local v16_ = xmlFile:getValue(key .. "#heightNode", nil, self.components, self.i3dMappings)
-	if v16_ == nil then
-		Logging.xmlWarning(xmlFile, "Clear area height node not defined for \'%s\'", key)
+	local height = xmlFile:getValue(key .. "#heightNode", nil, self.components, self.i3dMappings)
+	if height == nil then
+		Logging.xmlWarning(xmlFile, "Clear area height node not defined for '%s'", key)
 		return false
+	else
+		area.start = start
+		area.width = width
+		area.height = height
+		return true
 	end
-	area.start = v14_
-	area.width = v15_
-	area.height = v16_
-	return true
 end
-
--- Local values: spec, _, area, x, _, z, x1, _, z1, x2, _, z2
 function PlaceableClearAreas:onPostFinalizePlacement()
 	if self.isServer and not self.isLoadedFromSavegame then
-		local v18_ = self.spec_clearAreas
-		for _, v19_ in pairs(v18_.areas) do
-			local v20_, _, v21_ = getWorldTranslation(v19_.start)
-			local v22_, _, v23_ = getWorldTranslation(v19_.width)
-			local v24_, _, v25_ = getWorldTranslation(v19_.height)
-			FSDensityMapUtil.removeFieldArea(v20_, v21_, v22_, v23_, v24_, v25_, false)
-			FSDensityMapUtil.removeWeedArea(v20_, v21_, v22_, v23_, v24_, v25_)
-			FSDensityMapUtil.removeStoneArea(v20_, v21_, v22_, v23_, v24_, v25_)
-			FSDensityMapUtil.eraseTireTrack(v20_, v21_, v22_, v23_, v24_, v25_)
-			FSDensityMapUtil.clearDecoArea(v20_, v21_, v22_, v23_, v24_, v25_)
-			DensityMapHeightUtil.clearArea(v20_, v21_, v22_, v23_, v24_, v25_)
+		local spec = self.spec_clearAreas
+		for _, area in pairs(spec.areas) do
+			local x, _, z = getWorldTranslation(area.start)
+			local x1, _, z1 = getWorldTranslation(area.width)
+			local x2, _, z2 = getWorldTranslation(area.height)
+			FSDensityMapUtil.removeFieldArea(x, z, x1, z1, x2, z2, false)
+			FSDensityMapUtil.removeWeedArea(x, z, x1, z1, x2, z2)
+			FSDensityMapUtil.removeStoneArea(x, z, x1, z1, x2, z2)
+			FSDensityMapUtil.eraseTireTrack(x, z, x1, z1, x2, z2)
+			FSDensityMapUtil.clearDecoArea(x, z, x1, z1, x2, z2)
+			DensityMapHeightUtil.clearArea(x, z, x1, z1, x2, z2)
 		end
 	end
 end

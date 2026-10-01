@@ -1,102 +1,80 @@
--- Local values: ShipSystem_mt
 ShipSystem = {}
 local ShipSystem_mt = Class(ShipSystem)
-
--- Upvalues: ShipSystem_mt
--- Local values: self
 function ShipSystem.new(customMt)
-	-- upvalues: (copy) ShipSystem_mt
-	local v3_ = customMt or ShipSystem_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.splines = {}
-	v4_.crossingNodes = {}
-	return v4_
+	local self = setmetatable({}, customMt or ShipSystem_mt)
+	self.splines = {}
+	self.crossingNodes = {}
+	return self
 end
-
 function ShipSystem:delete() end
-
 function ShipSystem:addCrossingNode(owner, node)
 	if self.crossingNodes[node] == nil then
 		self.crossingNodes[node] = {}
 		self:updateSplineCrossing(owner, node)
 	end
 end
-
 function ShipSystem:removeCrossingNode(owner, node)
 	self.crossingNodes[node] = nil
 end
-
--- Local values: splines, wx, wy, wz, _, data, x, y, z, time, distance, isValid
 function ShipSystem:updateSplineCrossing(owner, node)
-	if self.crossingNodes[node] ~= nil then
-		local v13_, v14_, v15_ = getWorldTranslation(node)
-		local v16_ = {}
-		for _, v17_ in ipairs(self.splines) do
-			if v17_.owner ~= owner then
-				local v18_, v19_, v20_, v21_ = getClosestSplinePosition(v17_.spline, v13_, v14_, v15_, 0.01)
-				if MathUtil.vector3Length(v18_ - v13_, v19_ - v14_, v20_ - v15_) < 1 then
-					local v22_ = {
-						["owner"] = v17_.owner,
-						["spline"] = v17_.spline,
-						["time"] = v21_
-					}
-					table.insert(v16_, v22_)
-				end
+	local splines = self.crossingNodes[node]
+	if splines ~= nil then
+		splines = {}
+		local wx, wy, wz = getWorldTranslation(node)
+		for _, data in ipairs(self.splines) do
+			if data.owner == owner then
+				continue
+			end
+			local x, y, z, time = getClosestSplinePosition(data.spline, wx, wy, wz, 0.01)
+			local distance = MathUtil.vector3Length(x - wx, y - wy, z - wz)
+			local isValid = distance < 1
+			if isValid then
+				table.insert(splines, { time = time, owner = data.owner, spline = data.spline })
 			end
 		end
-		self.crossingNodes[node] = v16_
+		self.crossingNodes[node] = splines
 	end
 end
-
--- Local values: splines, _, data
 function ShipSystem:getIsShipCrossingPoint(node, duration)
-	local v26_ = self.crossingNodes[node]
-	if v26_ == nil then
+	local splines = self.crossingNodes[node]
+	if splines == nil then
+		return false
+	else
+		for _, data in ipairs(splines) do
+			if data.owner:getIsShipCrossingPoint(data.spline, data.time, duration) then
+				return true
+			end
+		end
 		return false
 	end
-	for _, v27_ in ipairs(v26_) do
-		if v27_.owner:getIsShipCrossingPoint(v27_.spline, v27_.time, duration) then
-			return true
-		end
-	end
-	return false
 end
-
--- Local values: splineData, node, _
 function ShipSystem:addSpline(splineNode, owner)
 	if splineNode == nil then
 		Logging.warning("No spline node given")
-		return
-	elseif getHasClassId(getGeometry(splineNode), ClassIds.SPLINE) then
-		table.addElement(self.splines, {
-			["spline"] = splineNode,
-			["owner"] = owner
-		})
-		for v31_, _ in pairs(self.crossingNodes) do
-			self:updateSplineCrossing(v31_)
-		end
+	elseif not getHasClassId(getGeometry(splineNode), ClassIds.SPLINE) then
+		Logging.warning("Given node '%s' is not a spline", getName(splineNode))
 	else
-		Logging.warning("Given node \'%s\' is not a spline", getName(splineNode))
+		local splineData = { spline = splineNode, owner = owner }
+		table.addElement(self.splines, splineData)
+		for node, _ in pairs(self.crossingNodes) do
+			self:updateSplineCrossing(node)
+		end
 	end
 end
-
--- Local values: k, data, node, _
 function ShipSystem:removeSpline(splineNode, owner)
 	if splineNode == nil then
 		Logging.warning("No spline node given")
-		return
-	end
-	if not getHasClassId(getGeometry(splineNode), ClassIds.SPLINE) then
-		Logging.warning("Given node \'%s\' is not a spline", getName(splineNode))
-		return
-	end
-	for v34_, v35_ in ipairs(self.splines) do
-		if v35_.spline == splineNode then
-			table.remove(self.splines, v34_)
-			break
+	elseif not getHasClassId(getGeometry(splineNode), ClassIds.SPLINE) then
+		Logging.warning("Given node '%s' is not a spline", getName(splineNode))
+	else
+		for k, data in ipairs(self.splines) do
+			if data.spline == splineNode then
+				table.remove(self.splines, k)
+				break
+			end
 		end
-	end
-	for v36_, _ in pairs(self.crossingNodes) do
-		self:updateSplineCrossing(v36_)
+		for node, _ in pairs(self.crossingNodes) do
+			self:updateSplineCrossing(node)
+		end
 	end
 end

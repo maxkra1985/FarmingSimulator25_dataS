@@ -1,36 +1,27 @@
--- Local values: VehicleSchemaOverlayData_mt
 VehicleSchemaOverlayData = {}
 local VehicleSchemaOverlayData_mt = Class(VehicleSchemaOverlayData)
-
--- Upvalues: VehicleSchemaOverlayData_mt
--- Local values: self
 function VehicleSchemaOverlayData.new(offsetX, offsetY, schemaName, invisibleBorderRight, invisibleBorderLeft)
-	-- upvalues: (copy) VehicleSchemaOverlayData_mt
-	local v7_ = VehicleSchemaOverlayData_mt
-	local v8_ = setmetatable({}, v7_)
-	v8_.offsetX = offsetX or 0
-	v8_.offsetY = offsetY or 0
-	v8_.schemaName = schemaName
-	v8_.invisibleBorderRight = invisibleBorderRight or 0.05
-	v8_.invisibleBorderLeft = invisibleBorderLeft or 0.05
-	v8_.attacherJoints = nil
-	return v8_
+	local self = setmetatable({}, VehicleSchemaOverlayData_mt)
+	self.offsetX = offsetX or 0
+	self.offsetY = offsetY or 0
+	self.schemaName = schemaName
+	self.invisibleBorderRight = invisibleBorderRight or 0.05
+	self.invisibleBorderLeft = invisibleBorderLeft or 0.05
+	self.attacherJoints = nil
+	return self
 end
-
--- Local values: attacherJointData
 function VehicleSchemaOverlayData:addAttacherJoint(attacherOffsetX, attacherOffsetY, rotation, invertX, liftedOffsetX, liftedOffsetY)
 	if not self.attacherJoints then
 		self.attacherJoints = {}
 	end
-	local v16_ = self.attacherJoints
-	table.insert(v16_, {
-		["x"] = attacherOffsetX or 0,
-		["y"] = attacherOffsetY or 0,
-		["rotation"] = rotation or 0,
-		["invertX"] = invertX and true or false,
-		["liftedOffsetX"] = liftedOffsetX or 0,
-		["liftedOffsetY"] = liftedOffsetY or 5
-	})
+	local attacherJointData = {}
+	attacherJointData.x = attacherOffsetX or 0
+	attacherJointData.y = attacherOffsetY or 0
+	attacherJointData.rotation = rotation or 0
+	attacherJointData.invertX = not not invertX
+	attacherJointData.liftedOffsetX = liftedOffsetX or 0
+	attacherJointData.liftedOffsetY = liftedOffsetY or 5
+	table.insert(self.attacherJoints, attacherJointData)
 end
 VehicleSchemaOverlayData.SCHEMA_OVERLAY = {}
 VehicleSchemaOverlayData.SCHEMA_OVERLAY.VEHICLE = "VEHICLE"

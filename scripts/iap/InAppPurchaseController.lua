@@ -1,22 +1,18 @@
--- Local values: InAppPurchaseController_mt
 InAppPurchaseController = {}
 local InAppPurchaseController_mt = Class(InAppPurchaseController)
 InAppPurchaseController.PENDING_DELAY = 1000
 function InAppPurchaseController.new()
-	-- upvalues: (copy) InAppPurchaseController_mt
-	local v2_ = InAppPurchaseController_mt
-	local v3_ = setmetatable({}, v2_)
-	v3_.isLoaded = false
-	v3_.isInitialized = false
-	v3_.callbacks = {}
-	v3_.pendingTimer = InAppPurchaseController.PENDING_DELAY
-	v3_.lastNumOfPendingPurchases = 0
-	v3_.ignoreNextPendingPurchaseChange = false
-	v3_.pendingProductsToRestore = {}
-	v3_.xmlPath = "dataS/inAppProducts.xml"
-	return v3_
+	local self = setmetatable({}, InAppPurchaseController_mt)
+	self.isLoaded = false
+	self.isInitialized = false
+	self.callbacks = {}
+	self.pendingTimer = InAppPurchaseController.PENDING_DELAY
+	self.lastNumOfPendingPurchases = 0
+	self.ignoreNextPendingPurchaseChange = false
+	self.pendingProductsToRestore = {}
+	self.xmlPath = "dataS/inAppProducts.xml"
+	return self
 end
-
 function InAppPurchaseController:load()
 	if not self.isLoaded then
 		self:loadProductsFromXML()
@@ -26,211 +22,172 @@ function InAppPurchaseController:load()
 		self.isLoaded = true
 	end
 end
-
--- Local values: xmlFile
 function InAppPurchaseController:loadProductsFromXML()
 	self.products = {}
 	self.productIdToProduct = {}
-	local v_u_6_ = XMLFile.load("products", self.xmlPath)
-	if v_u_6_ ~= nil then
-		v_u_6_:iterate("inAppPurchases.inAppPurchase", function(_, p7_)
-			-- upvalues: (copy) v_u_6_, (copy) self
-			local v8_ = v_u_6_:getInt(p7_ .. "#productId")
-			if v8_ == nil then
-				Logging.xmlWarning(v_u_6_, "Failed to load IAP Product. Missing productId. (%s)", p7_)
+	local xmlFile = XMLFile.load("products", self.xmlPath)
+	if xmlFile ~= nil then
+		xmlFile:iterate("inAppPurchases.inAppPurchase", function(index, key)
+			local productId = xmlFile:getInt(key .. "#productId")
+			if productId == nil then
+				Logging.xmlWarning(xmlFile, "Failed to load IAP Product. Missing productId. (%s)", key)
 				return
+			end
+			local isConsumable = xmlFile:getBool(key .. "#isConsumable", true)
+			local className = xmlFile:getString(key .. ".product#className")
+			if className == nil or className == "" then
+				Logging.xmlWarning(xmlFile, "Failed to load IAP Product. Missing product #className (%s)", key)
+				return
+			end
+			local class = ClassUtil.getClassObject(className)
+			if class == nil then
+				Logging.xmlWarning(xmlFile, "Failed to load IAP Product. Unknown class '%s'. (%s)", className, key)
 			else
-				local v9_ = v_u_6_:getBool(p7_ .. "#isConsumable", true)
-				local v10_ = v_u_6_:getString(p7_ .. ".product#className")
-				if v10_ == nil or v10_ == "" then
-					Logging.xmlWarning(v_u_6_, "Failed to load IAP Product. Missing product #className (%s)", p7_)
-					return
-				else
-					local v11_ = ClassUtil.getClassObject(v10_)
-					if v11_ == nil then
-						Logging.xmlWarning(v_u_6_, "Failed to load IAP Product. Unknown class \'%s\'. (%s)", v10_, p7_)
-					else
-						local v12_ = v11_.new(v8_, v9_)
-						if v12_ ~= nil and v12_:loadFromXMLFile(v_u_6_, p7_ .. ".product") then
-							local v13_ = self.products
-							table.insert(v13_, v12_)
-							self.productIdToProduct[v8_] = v12_
-						end
-					end
+				local product = class.new(productId, isConsumable)
+				if product ~= nil and product:loadFromXMLFile(xmlFile, key .. ".product") then
+					table.insert(self.products, product)
+					self.productIdToProduct[productId] = product
 				end
 			end
 		end)
-		v_u_6_:delete()
+		xmlFile:delete()
 	end
 end
-
 function InAppPurchaseController:setMission(mission)
 	self.mission = mission
 end
-
 function InAppPurchaseController:getIsAvailable()
-	if self.isInitialized then
+	if not self.isInitialized then
+		if inAppIsLoaded ~= nil and inAppIsLoaded() then
+			self.isInitialized = true
+			return true
+		end
+		return false
+	else
 		return true
 	end
-	if inAppIsLoaded == nil or not inAppIsLoaded() then
-		return false
-	end
-	self.isInitialized = true
-	return true
 end
-
 function InAppPurchaseController:getProducts()
 	return self.products
 end
-
--- Local values: i, product
 function InAppPurchaseController:getProductById(id)
-	for v20_ = 1, #self.products do
-		local v21_ = self.products[v20_]
-		if v21_:getId() == id then
-			return v21_
+	for i = 1, #self.products do
+		local product = self.products[i]
+		if product:getId() == id then
+			return product
 		end
 	end
 	return nil
 end
-
 function InAppPurchaseController:purchase(product, callback)
-	local v25_
-	if product == nil then
-		v25_ = false
-	else
-		v25_ = callback ~= nil
-	end
-	assert(v25_)
+	assert(product ~= nil and callback ~= nil)
 	if self.mission ~= nil then
 		self.callbacks[product] = callback
 		inAppStartPurchase(product:getId(), "onPurchaseEnd", self)
 	end
 end
-
--- Local values: product
 function InAppPurchaseController:onPurchaseEnd(errorCode, productId)
-	local v_u_29_ = self.productIdToProduct[productId]
+	local product = self.productIdToProduct[productId]
 	if errorCode == InAppPurchase.ERROR_OK then
 		if self.mission ~= nil then
-			v_u_29_:onProductBought(function(p30_, _)
-				-- upvalues: (copy) productId, (copy) self, (copy) v_u_29_, (copy) errorCode
-				if p30_ then
+			product:onProductBought(function(success, warningText)
+				if success then
 					inAppFinishPurchase(productId)
-					self.callbacks[v_u_29_](true, false, errorCode)
+					self.callbacks[product](true, false, errorCode)
 					self:onPendingPurchasesChanged(0)
 				else
-					self.callbacks[v_u_29_](false, true, InAppPurchase.ERROR_FAILED)
+					self.callbacks[product](false, true, InAppPurchase.ERROR_FAILED)
 					self.ignoreNextPendingPurchaseChange = true
 				end
 			end)
-			return
 		end
 	else
-		self.callbacks[v_u_29_](false, errorCode == InAppPurchase.ERROR_CANCELLED, errorCode)
+		self.callbacks[product](false, errorCode == InAppPurchase.ERROR_CANCELLED, errorCode)
 	end
 end
-
--- Local values: numRecoverablePurchases, productId, i, pendingProductId
 function InAppPurchaseController:getHasPendingPurchase(product)
-	local v32_ = inAppGetNumPendingPurchases()
-	local v33_ = product:getId()
-	for v34_ = 0, v32_ - 1 do
-		if inAppGetPendingPurchaseProductId(v34_) == v33_ then
+	local numRecoverablePurchases = inAppGetNumPendingPurchases()
+	local productId = product:getId()
+	for i = 0, numRecoverablePurchases - 1 do
+		local pendingProductId = inAppGetPendingPurchaseProductId(i)
+		if pendingProductId == productId then
 			return true
 		end
 	end
 	return false
 end
-
 function InAppPurchaseController:getHasAnyPendingPurchases()
-	return inAppGetNumPendingPurchases() > 0
+	return 0 < inAppGetNumPendingPurchases()
 end
-
--- Local values: num
 function InAppPurchaseController:checkPendingPurchasesChanged()
 	self.pendingTimer = InAppPurchaseController.PENDING_DELAY
-	local v36_ = inAppGetNumPendingPurchases()
-	if v36_ ~= self.lastNumOfPendingPurchases then
-		if self.ignoreNextPendingPurchaseChange then
-			self.ignoreNextPendingPurchaseChange = false
+	local num = inAppGetNumPendingPurchases()
+	if num ~= self.lastNumOfPendingPurchases then
+		if not self.ignoreNextPendingPurchaseChange then
+			self:onPendingPurchasesChanged(num - self.lastNumOfPendingPurchases)
 		else
-			self:onPendingPurchasesChanged(v36_ - self.lastNumOfPendingPurchases)
+			self.ignoreNextPendingPurchaseChange = false
 		end
-		self.lastNumOfPendingPurchases = v36_
+		self.lastNumOfPendingPurchases = num
 	end
 end
-
--- Local values: numPendingPurchases, i, productId, product, restoreNextProduct
 function InAppPurchaseController:onPendingPurchasesChanged(changeAmount)
 	if self.pendingPurchaseCallback ~= nil then
 		self.pendingPurchaseCallback()
 	end
-	if changeAmount > 0 then
-		local v39_ = inAppGetNumPendingPurchases()
-		if v39_ > 0 then
+	if 0 < changeAmount then
+		local numPendingPurchases = inAppGetNumPendingPurchases()
+		if 0 < numPendingPurchases then
 			self.pendingProductsToRestore = {}
-			for v40_ = v39_ - changeAmount, v39_ - 1 do
-				local v41_ = self:getProductById((inAppGetPendingPurchaseProductId(v40_)))
-				if v41_ ~= nil then
-					local v42_ = self.pendingProductsToRestore
-					table.insert(v42_, v41_)
+			for i = numPendingPurchases - changeAmount, numPendingPurchases - 1 do
+				local productId = inAppGetPendingPurchaseProductId(i)
+				local product = self:getProductById(productId)
+				if product == nil then
+					continue
 				end
+				table.insert(self.pendingProductsToRestore, product)
 			end
-			local function v_u_50_()
-				-- upvalues: (copy) self, (copy) v_u_50_
-				if #self.pendingProductsToRestore > 0 then
-					local v_u_43_ = self.pendingProductsToRestore[1]
-					local function v48_(_, p44_)
-						-- upvalues: (ref) self, (copy) v_u_43_, (ref) v_u_50_
-						if p44_ then
-							self:tryPerformPendingPurchase(v_u_43_, function(p45_, p46_)
-								-- upvalues: (ref) v_u_50_
-								local v47_ = g_i18n:getText(p45_ and "ui_iap_purchaseComplete" or "ui_iap_errorFailed")
-								if p46_ ~= nil then
-									v47_ = v47_ .. "\n" .. p46_
+			local function restoreNextProduct()
+				if 0 < #self.pendingProductsToRestore then
+					local product = self.pendingProductsToRestore[1]
+					local callback = function(_, yes)
+						if yes then
+							self:tryPerformPendingPurchase(product, function(success, warningText)
+								local text = g_i18n:getText(success and "ui_iap_purchaseComplete" or "ui_iap_errorFailed")
+								if warningText ~= nil then
+									text = text .. "\n" .. warningText
 								end
-								InfoDialog.show(v47_, function()
-									-- upvalues: (ref) v_u_50_
-									v_u_50_()
+								InfoDialog.show(text, function()
+									restoreNextProduct()
 								end)
 							end)
 						else
-							v_u_50_()
+							restoreNextProduct()
 						end
 					end
-					local v49_ = string.format(g_i18n:getText("ui_iap_pendingPurchaseFound"), v_u_43_:getTitle())
-					YesNoDialog.show(v48_, self, v49_)
+					local text = string.format(g_i18n:getText("ui_iap_pendingPurchaseFound"), product:getTitle())
+					YesNoDialog.show(callback, self, text)
 					table.remove(self.pendingProductsToRestore, 1)
 				end
 			end
-			v_u_50_()
+			restoreNextProduct()
 		end
 	end
 end
-
 function InAppPurchaseController:setPendingPurchaseCallback(callback)
 	self.pendingPurchaseCallback = callback
 end
-
--- Local values: numRecoverablePurchases, productId, i, pendingProductId
 function InAppPurchaseController:tryPerformPendingPurchase(product, callback)
-	local v55_
-	if product == nil then
-		v55_ = false
-	else
-		v55_ = callback ~= nil
-	end
-	assert(v55_)
-	local v56_ = inAppGetNumPendingPurchases()
-	local v57_ = product:getId()
-	for v_u_58_ = 0, v56_ - 1 do
-		if inAppGetPendingPurchaseProductId(v_u_58_) == v57_ then
-			product:onProductBought(function(p59_, p60_)
-				-- upvalues: (copy) callback, (copy) v_u_58_
-				callback(p59_, p60_)
-				if p59_ then
-					inAppFinishPendingPurchase(v_u_58_)
+	assert(product ~= nil and callback ~= nil)
+	local numRecoverablePurchases = inAppGetNumPendingPurchases()
+	local productId = product:getId()
+	for i = 0, numRecoverablePurchases - 1 do
+		local pendingProductId = inAppGetPendingPurchaseProductId(i)
+		if pendingProductId == productId then
+			product:onProductBought(function(success, warningText)
+				callback(success, warningText)
+				if success then
+					inAppFinishPendingPurchase(i)
 				end
 			end)
 			return true
@@ -238,16 +195,15 @@ function InAppPurchaseController:tryPerformPendingPurchase(product, callback)
 	end
 	return false
 end
-
 function InAppPurchaseController:getHasPurchasesToRestore()
-	return inAppHasRestorePurchases == nil and true or inAppHasRestorePurchases()
+	if inAppHasRestorePurchases ~= nil then
+		inAppHasRestorePurchases()
+	end
+	return true
 end
-
 function InAppPurchaseController:restorePurchases()
 	inAppRestorePurchases("onPurchasesRestored", self)
 end
-
--- Local values: k, v, i, product
 function InAppPurchaseController:onPurchasesRestored(errorCode)
 	if errorCode == InAppPurchaseResponse.OK then
 		InfoDialog.show(g_i18n:getText("ui_iap_purchaseRestoreCompleted"), nil, nil, DialogElement.TYPE_INFO)
@@ -256,17 +212,16 @@ function InAppPurchaseController:onPurchasesRestored(errorCode)
 	else
 		InfoDialog.show(g_i18n:getText("ui_iap_purchaseRestoreFailed"), nil, nil, DialogElement.TYPE_WARNING)
 	end
-	for v64_, v65_ in pairs(InAppPurchaseResponse) do
-		if v65_ == errorCode then
-			Logging.devInfo("Restored In-app purchases (%s):", v64_)
+	for k, v in pairs(InAppPurchaseResponse) do
+		if v == errorCode then
+			Logging.devInfo("Restored In-app purchases (%s):", k)
 		end
 	end
-	for v66_ = 1, #self.products do
-		local v67_ = self.products[v66_]
-		Logging.devInfo("Product %d (%s) has been bought: %s", v67_:getId(), v67_:getTitle(), v67_:getHasBeenBought() and "Yes" or "No")
+	for i = 1, #self.products do
+		local product = self.products[i]
+		Logging.devInfo("Product %d (%s) has been bought: %s", product:getId(), product:getTitle(), product:getHasBeenBought() and "Yes" or "No")
 	end
 end
-
 function InAppPurchaseController:update(dt)
 	if self.isLoaded and self.isInitialized then
 		self.pendingTimer = self.pendingTimer - dt

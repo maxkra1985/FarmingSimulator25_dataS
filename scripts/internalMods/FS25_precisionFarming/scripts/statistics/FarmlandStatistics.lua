@@ -1,177 +1,141 @@
--- Local values: FarmlandStatistics_mt
 FarmlandStatistics = {}
 source(g_currentModDirectory .. "scripts/gui/FarmlandStatsDialog.lua")
 FarmlandStatistics.MOD_NAME = g_currentModName
 local FarmlandStatistics_mt = Class(FarmlandStatistics)
-
--- Upvalues: FarmlandStatistics_mt
--- Local values: self
 function FarmlandStatistics.new(pfModule, customMt)
-	-- upvalues: (copy) FarmlandStatistics_mt
-	local v4_ = customMt or FarmlandStatistics_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.statistics = {}
-	v5_.statisticsByFarmland = {}
-	v5_.mapFrame = nil
-	v5_.pfModule = pfModule
-	return v5_
+	local self = setmetatable({}, customMt or FarmlandStatistics_mt)
+	self.statistics = {}
+	self.statisticsByFarmland = {}
+	self.mapFrame = nil
+	self.pfModule = pfModule
+	return self
 end
-
 function FarmlandStatistics:loadFromXML(xmlFile, key, baseDirectory, configFileName, mapFilename)
 	g_messageCenter:subscribe(MessageType.FARMLAND_OWNER_CHANGED, self.onFarmlandStateChanged, self)
 	return true
 end
-
--- Local values: i, statistic, statKey
 function FarmlandStatistics:loadFromItemsXML(xmlFile, key)
-	local v10_ = key .. ".farmlandStatistics"
-	for v11_ = 1, #self.statistics do
-		local v12_ = self.statistics[v11_]
-		local v13_ = string.format("%s.farmlandStatistic(%d)", v10_, v11_ - 1)
-		if not xmlFile:hasProperty(v13_) then
-			break
+	key = key .. ".farmlandStatistics"
+	for i = 1, #self.statistics do
+		local statistic = self.statistics[i]
+		local statKey = string.format("%s.farmlandStatistic(%d)", key, i - 1)
+		if xmlFile:hasProperty(statKey) then
+			statistic:loadFromItemsXML(xmlFile, statKey)
 		end
-		v12_:loadFromItemsXML(xmlFile, v13_)
 	end
 end
-
--- Local values: i, statistic, statKey
 function FarmlandStatistics:saveToXMLFile(xmlFile, key, usedModNames)
-	local v18_ = key .. ".farmlandStatistics"
-	for v19_ = 1, #self.statistics do
-		self.statistics[v19_]:saveToXMLFile(xmlFile, string.format("%s.farmlandStatistic(%d)", v18_, v19_ - 1), usedModNames)
+	key = key .. ".farmlandStatistics"
+	for i = 1, #self.statistics do
+		local statistic = self.statistics[i]
+		local statKey = string.format("%s.farmlandStatistic(%d)", key, i - 1)
+		statistic:saveToXMLFile(xmlFile, statKey, usedModNames)
 	end
 end
-
 function FarmlandStatistics:delete()
 	g_messageCenter:unsubscribeAll(self)
 	self.statistics = {}
 	self.statisticsByFarmland = {}
 end
-
--- Local values: totalFieldArea, farmland, statistic
 function FarmlandStatistics:readStatisticFromStream(farmlandId, streamId, connection)
 	if streamReadBool(streamId) then
-		local v25_ = streamReadFloat32(streamId)
-		local v26_ = g_farmlandManager.farmlands[farmlandId]
-		if v26_ ~= nil then
-			v26_.totalFieldArea = v25_
+		local totalFieldArea = streamReadFloat32(streamId)
+		local farmland = g_farmlandManager.farmlands[farmlandId]
+		if farmland ~= nil then
+			farmland.totalFieldArea = totalFieldArea
 		end
 	end
-	local v27_ = self.statisticsByFarmland[farmlandId]
-	if v27_ ~= nil then
-		v27_:onReadStream(streamId, connection)
+	local statistic = self.statisticsByFarmland[farmlandId]
+	if statistic ~= nil then
+		statistic:onReadStream(streamId, connection)
 	end
 	self.selectedFarmlandId = farmlandId
 	self:openStatistics(farmlandId, true)
 end
-
--- Local values: farmland, statistic
 function FarmlandStatistics:writeStatisticToStream(farmlandId, streamId, connection)
-	local v32_ = g_farmlandManager.farmlands[farmlandId]
-	if streamWriteBool(streamId, v32_ ~= nil) then
-		streamWriteFloat32(streamId, v32_.totalFieldArea or 0)
+	local farmland = g_farmlandManager.farmlands[farmlandId]
+	if streamWriteBool(streamId, farmland ~= nil) then
+		streamWriteFloat32(streamId, farmland.totalFieldArea or 0)
 	end
-	local v33_ = self.statisticsByFarmland[farmlandId]
-	if v33_ ~= nil then
-		v33_:onWriteStream(streamId, connection)
+	local statistic = self.statisticsByFarmland[farmlandId]
+	if statistic ~= nil then
+		statistic:onWriteStream(streamId, connection)
 	end
 end
-
 function FarmlandStatistics:setMapFrame(mapFrame)
 	self.mapFrame = mapFrame
 end
-
 function FarmlandStatistics:collectFarmlandHotspotActions(actions)
-	local v38_ = {
-		["title"] = g_i18n:getText("ui_economicAnalysis"),
-		["callback"] = self.openStatistics,
-		["callbackTarget"] = self
-	}
-	table.insert(actions, v38_)
+	table.insert(actions, { callbackTarget = self, title = g_i18n:getText("ui_economicAnalysis"), callback = self.openStatistics })
 end
-
--- Local values: statistic, fieldNumber, fieldArea
 function FarmlandStatistics:openStatistics(farmlandId, noEventSend)
 	self.mapFrame:setMapSelectionItem(nil)
-	local v42_ = self.statisticsByFarmland[farmlandId]
-	if v42_ ~= nil then
-		local v43_, v44_ = self:getFarmlandFieldInfo(farmlandId)
-		if v44_ >= 0.01 then
-			FarmlandStatsDialog.show(farmlandId, v43_, v44_, v42_)
+	local statistic = self.statisticsByFarmland[farmlandId]
+	if statistic ~= nil then
+		local fieldNumber, fieldArea = self:getFarmlandFieldInfo(farmlandId)
+		if 0.01 <= fieldArea then
+			FarmlandStatsDialog.show(farmlandId, fieldNumber, fieldArea, statistic)
 		end
 	end
 	if not noEventSend and (g_server == nil and g_client ~= nil) then
 		g_client:getServerConnection():sendEvent(RequestFarmlandStatisticsEvent.new(farmlandId))
 	end
 end
-
 function FarmlandStatistics:getFarmlandFieldInfo(farmlandId)
 	return self.pfModule:getFarmlandFieldInfo(farmlandId)
 end
-
--- Local values: statistic
 function FarmlandStatistics:updateStatistic(farmlandId, name, value)
-	local v51_ = self.statisticsByFarmland[farmlandId]
-	if v51_ ~= nil then
-		v51_:updateStatistic(name, value)
+	local statistic = self.statisticsByFarmland[farmlandId]
+	if statistic ~= nil then
+		statistic:updateStatistic(name, value)
 	end
 end
-
--- Local values: statistic
 function FarmlandStatistics:resetStatistic(farmlandId, clearTotal)
-	local v55_ = self.statisticsByFarmland[farmlandId]
-	if v55_ ~= nil then
-		v55_:reset(clearTotal)
+	local statistic = self.statisticsByFarmland[farmlandId]
+	if statistic ~= nil then
+		statistic:reset(clearTotal)
 	end
 end
-
--- Local values: fillType
 function FarmlandStatistics:getFillLevelWeight(fillLevel, fillTypeIndex)
-	local v58_ = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
-	if v58_ == nil then
-		return fillLevel
+	local fillType = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
+	if fillType ~= nil then
+		return fillLevel * (fillType.massPerLiter / FillTypeManager.MASS_SCALE)
 	else
-		return fillLevel * (v58_.massPerLiter / FillTypeManager.MASS_SCALE)
+		return fillLevel
 	end
 end
-
--- Local values: price, fillType
 function FarmlandStatistics:getFillLevelPrice(fillLevel, fillTypeIndex)
 	if fillTypeIndex == "soilSamples" then
-		return fillLevel * (self.pfModule.soilMap.pricePerSample[g_currentMission.missionInfo.economicDifficulty] or 0)
+		local price = self.pfModule.soilMap.pricePerSample[g_currentMission.missionInfo.economicDifficulty] or 0
+		return fillLevel * price
+	end
+	local fillType = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
+	if fillType ~= nil then
+		return fillLevel * fillType.pricePerLiter
 	else
-		local v62_ = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
-		if v62_ == nil then
-			return fillLevel
-		else
-			return fillLevel * v62_.pricePerLiter
-		end
+		return fillLevel
 	end
 end
-
 function FarmlandStatistics:onFarmlandStateChanged(farmlandId, farmId, loadFromSavegame)
 	if not loadFromSavegame then
 		self:resetStatistic(farmlandId, true)
 	end
 end
-
 function FarmlandStatistics:overwriteGameFunctions(pfModule)
 	FarmlandStatsDialog.register()
-	pfModule:overwriteGameFunction(FarmlandManager, "loadFarmlandData", function(p68_, p69_, p70_)
-		-- upvalues: (copy) self
-		if not p68_(p69_, p70_) then
+	pfModule:overwriteGameFunction(FarmlandManager, "loadFarmlandData", function(superFunc, farmlandManager, xmlFile)
+		if not superFunc(farmlandManager, xmlFile) then
 			return false
-		end
-		local v71_ = g_farmlandManager:getFarmlands()
-		if v71_ ~= nil then
-			for v72_, _ in pairs(v71_) do
-				local v73_ = FarmlandStatistic.new(v72_)
-				self.statisticsByFarmland[v72_] = v73_
-				local v74_ = self.statistics
-				table.insert(v74_, v73_)
+		else
+			local farmlands = g_farmlandManager:getFarmlands()
+			if farmlands ~= nil then
+				for id, farmland in pairs(farmlands) do
+					local statistic = FarmlandStatistic.new(id)
+					self.statisticsByFarmland[id] = statistic
+					table.insert(self.statistics, statistic)
+				end
 			end
+			return true
 		end
-		return true
 	end)
 end

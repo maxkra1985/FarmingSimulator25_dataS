@@ -1,4 +1,3 @@
--- Local values: AIFieldCourse_mt
 AIFieldCourse = {}
 source("dataS/scripts/field/course/ai/AIFieldCourseState.lua")
 source("dataS/scripts/field/course/ai/AIFieldCourseUtil.lua")
@@ -22,68 +21,56 @@ AIFieldCourse.SEGMENT_INITIALIZATION_BUDGET = 0.00025
 AIFieldCourse.SEGMENT_INITIALIZATION_STEP = 10
 AIFieldCourse.QUEUE_MIN_LENGTH = 2
 local AIFieldCourse_mt = Class(AIFieldCourse)
-
--- Upvalues: AIFieldCourse_mt
--- Local values: self
 function AIFieldCourse.new(fieldCourse)
-	-- upvalues: (copy) AIFieldCourse_mt
-	local v3_ = AIFieldCourse_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.fieldCourse = fieldCourse
-	v4_.fieldCourseSettings = fieldCourse.fieldCourseSettings
-	v4_.fieldRootBoundary = fieldCourse.courseField.fieldRootBoundary
-	v4_.islands = fieldCourse.courseField.islands
-	v4_.headlandBoundaries = fieldCourse.courseField.headlandBoundaries
-	v4_.implementWidth = v4_.fieldCourseSettings.implementWidth
-	v4_.segmentAreaValidityFunc = nil
-	v4_.startX = nil
-	v4_.startZ = nil
-	v4_.startYRot = nil
-	v4_.startDirX = nil
-	v4_.startDirZ = nil
-	v4_.lastVehicleX = nil
-	v4_.lastVehicleZ = nil
-	v4_.alternativeTurnSegments = {}
-	v4_.segmentQueue = {}
-	v4_.segmentPosition = 0
-	v4_.segmentLength = 1
-	v4_.subSegmentPosition = 0
-	v4_.subSegmentLength = 1
-	v4_.usedSegments = {}
-	v4_.state = AIFieldCourseState.NONE
-	v4_.lastSegmentLength = -1
-	v4_.segmentInitializeIndex = 1
-	v4_.segmentInitializeTime = 0
-	v4_.segmentInitializeFrames = 0
-	v4_.segmentsToSkip = {}
-	v4_.lastActiveSegmentId = nil
-	v4_.headlandTailAvoidanceIndex = 1
-	v4_.headlandTailAvoidanceMaxIndex = -1
-	return v4_
+	local self = setmetatable({}, AIFieldCourse_mt)
+	self.fieldCourse = fieldCourse
+	self.fieldCourseSettings = fieldCourse.fieldCourseSettings
+	self.fieldRootBoundary = fieldCourse.courseField.fieldRootBoundary
+	self.islands = fieldCourse.courseField.islands
+	self.headlandBoundaries = fieldCourse.courseField.headlandBoundaries
+	self.implementWidth = self.fieldCourseSettings.implementWidth
+	self.segmentAreaValidityFunc = nil
+	self.startX = nil
+	self.startZ = nil
+	self.startYRot = nil
+	self.startDirX = nil
+	self.startDirZ = nil
+	self.lastVehicleX = nil
+	self.lastVehicleZ = nil
+	self.alternativeTurnSegments = {}
+	self.segmentQueue = {}
+	self.segmentPosition = 0
+	self.segmentLength = 1
+	self.subSegmentPosition = 0
+	self.subSegmentLength = 1
+	self.usedSegments = {}
+	self.state = AIFieldCourseState.NONE
+	self.lastSegmentLength = -1
+	self.segmentInitializeIndex = 1
+	self.segmentInitializeTime = 0
+	self.segmentInitializeFrames = 0
+	self.segmentsToSkip = {}
+	self.lastActiveSegmentId = nil
+	self.headlandTailAvoidanceIndex = 1
+	self.headlandTailAvoidanceMaxIndex = -1
+	return self
 end
-
 function AIFieldCourse:setStartPosition(x, z, yRot)
 	self.startX = x
 	self.startZ = z
 	self.startYRot = yRot
-	local v9_, v10_ = MathUtil.getDirectionFromYRotation(yRot)
-	self.startDirX = v9_
-	self.startDirZ = v10_
+	self.startDirX, self.startDirZ = MathUtil.getDirectionFromYRotation(yRot)
 end
-
 function AIFieldCourse:setInitialSegmentCallback(callback)
 	self.initialSegmentCallback = callback
 	self.initialSegmentDone = false
 end
-
 function AIFieldCourse:setSegmentsToSkip(segmentsToSkip)
 	self.segmentsToSkip = segmentsToSkip
 end
-
 function AIFieldCourse:setLastActiveSegmentId(lastActiveSegmentId)
 	self.lastActiveSegmentId = lastActiveSegmentId
 end
-
 function AIFieldCourse:finalize(finalizeCallback, finalizeCallbackTarget)
 	if self.fieldCourse.courseField == nil then
 		Logging.error("Invalid AIFieldCourse. Missing field data in FieldCourse.")
@@ -104,16 +91,12 @@ function AIFieldCourse:finalize(finalizeCallback, finalizeCallbackTarget)
 		self.state = AIFieldCourseState.INITIALIZATION
 	end
 end
-
 function AIFieldCourse:setOverwrittenSegments(overwrittenSegments)
 	self.overwrittenSegments = overwrittenSegments
 end
-
 function AIFieldCourse:setSegmentSwitchedCallback(segmentSwitchedCallback)
 	self.segmentSwitchedCallback = segmentSwitchedCallback
 end
-
--- Local values: nextAvailableSegment, i, segment
 function AIFieldCourse:onNextSegmentFound(segmentData, direction, isTurn, addStraighting, nextTurn, isLast)
 	if segmentData == nil then
 		if self.state ~= AIFieldCourseState.NO_MORE_SEGMENTS_FOUND then
@@ -122,174 +105,159 @@ function AIFieldCourse:onNextSegmentFound(segmentData, direction, isTurn, addStr
 		end
 		return
 	end
-	local v30_ = nil
-	for v31_ = 1, #self.segmentQueue do
-		local v32_ = self.segmentQueue[v31_]
-		if not v32_:isValid() and v32_:isReady() then
-			v30_ = v32_
+	local nextAvailableSegment = nil
+	for i = 1, #self.segmentQueue do
+		local segment = self.segmentQueue[i]
+		if segment:isValid() then
+			continue
+		end
+		if segment:isReady() then
+			nextAvailableSegment = segment
 			break
 		end
 	end
-	if v30_ == nil then
-		local v33_ = self.segmentQueue
-		local v34_ = AIFieldCourseSegment.new
-		local v35_ = self.fieldCourseSettings
-		table.insert(v33_, v34_(v35_))
-		v30_ = self.segmentQueue[#self.segmentQueue]
+	if nextAvailableSegment == nil then
+		table.insert(self.segmentQueue, AIFieldCourseSegment.new(self.fieldCourseSettings))
+		nextAvailableSegment = self.segmentQueue[#self.segmentQueue]
 	end
 	if isTurn then
 		self.lastTurn = segmentData
-		v30_:setTurn(segmentData, addStraighting)
+		nextAvailableSegment:setTurn(segmentData, addStraighting)
 	else
-		v30_:setSegment(segmentData, direction, self.lastTurn, nextTurn)
+		nextAvailableSegment:setSegment(segmentData, direction, self.lastTurn, nextTurn)
 	end
 end
-
--- Local values: segment
 function AIFieldCourse:skipCurrentSubSegment(maxDistance)
-	local v38_ = self.segmentQueue[1]
-	if v38_ ~= nil and (v38_:isReady() and v38_:isValid()) then
-		v38_:skipCurrentSubSegment(maxDistance)
+	local segment = self.segmentQueue[1]
+	if segment ~= nil and (segment:isReady() and segment:isValid()) then
+		segment:skipCurrentSubSegment(maxDistance)
 		self:update(999)
 	end
 end
-
 function AIFieldCourse:setSegmentAreaValidityFunction(segmentAreaValidityFunc)
 	self.segmentAreaValidityFunc = segmentAreaValidityFunc
 end
-
 function AIFieldCourse:getIsSegmentAreaValid(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
-	return self.segmentAreaValidityFunc == nil and true or self.segmentAreaValidityFunc(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+	if self.segmentAreaValidityFunc ~= nil then
+		self.segmentAreaValidityFunc(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+	end
+	return true
 end
-
--- Local values: segment
 function AIFieldCourse:getActiveSegment()
-	local v49_ = self.segmentQueue[1]
-	if v49_ == nil or not (v49_:isValid() and v49_:isReady()) then
-		return nil
-	else
-		return v49_
+	local segment = self.segmentQueue[1]
+	if segment ~= nil and (segment:isValid() and segment:isReady()) then
+		return segment
 	end
+	return nil
 end
-
--- Local values: segment
 function AIFieldCourse:getActiveSegmentData()
-	local v51_ = self.segmentQueue[1]
-	if v51_ == nil or not (v51_:isValid() and v51_:isReady()) then
-		return nil, nil, nil, nil, nil
-	else
-		return not v51_:getIsOnActualLine(), v51_.isInitialLine, self.segmentPosition, self.segmentLength, self.subSegmentPosition, self.subSegmentLength
+	local segment = self.segmentQueue[1]
+	if segment ~= nil and (segment:isValid() and segment:isReady()) then
+		return not segment:getIsOnActualLine(), segment.isInitialLine, self.segmentPosition, self.segmentLength, self.subSegmentPosition, self.subSegmentLength
 	end
+	return nil, nil, nil, nil, nil
 end
-
--- Local values: segment
 function AIFieldCourse:getIsCornerCutOutActive()
-	local v53_ = self.segmentQueue[1]
-	if v53_ == nil or not (v53_:isValid() and v53_:isReady()) then
-		return false
-	else
-		return v53_.isCornerCutOut
+	local segment = self.segmentQueue[1]
+	if segment ~= nil and (segment:isValid() and segment:isReady()) then
+		return segment.isCornerCutOut
 	end
+	return false
 end
-
--- Local values: segment
 function AIFieldCourse:getNextSegmentData()
-	local v55_ = self.segmentQueue[2]
-	if v55_ == nil or not (v55_:isValid() and v55_:isReady()) then
-		return nil, nil
-	else
-		return v55_.isInitialLine, v55_.sideOffset
+	local segment = self.segmentQueue[2]
+	if segment ~= nil and (segment:isValid() and segment:isReady()) then
+		return segment.isInitialLine, segment.sideOffset
 	end
+	return nil, nil
 end
-
--- Local values: segment
 function AIFieldCourse:getActiveSegmentSideOffset()
-	local v57_ = self.segmentQueue[1]
-	return (v57_ == nil or not (v57_:isValid() and v57_:isReady())) and 0 or v57_.sideOffset
+	local segment = self.segmentQueue[1]
+	if segment ~= nil and (segment:isValid() and segment:isReady()) then
+		return segment.sideOffset
+	end
+	return 0
 end
-
--- Local values: segment
 function AIFieldCourse:getPositionOffsetToActiveSegment(x, z)
-	local v61_ = self.segmentQueue[1]
-	return (v61_ == nil or not (v61_:isValid() and v61_:isReady())) and math.huge or v61_:getSignedOffsetToSegment(x, z)
+	local segment = self.segmentQueue[1]
+	if segment ~= nil and (segment:isValid() and segment:isReady()) then
+		return segment:getSignedOffsetToSegment(x, z)
+	end
+	return math.huge
 end
-
--- Local values: startTime, delta, index, segment, sideOffset, _, segment, i, segment, i, segment, index, segment, index, segment, numSegmentsLeft, _, segment, segment, segmentId
 function AIFieldCourse:update(dt, forceSegmentSkip)
 	if self.state == AIFieldCourseState.INITIALIZATION then
-		local v64_ = getTimeSec()
+		local startTime = getTimeSec()
 		while self:updateSegmentInitialization() do
-			local v65_ = getTimeSec() - v64_
-			if AIFieldCourse.SEGMENT_INITIALIZATION_BUDGET < v65_ then
+			local delta = getTimeSec() - startTime
+			if AIFieldCourse.SEGMENT_INITIALIZATION_BUDGET < delta then
 				self.segmentInitializeFrames = self.segmentInitializeFrames + 1
-				self.segmentInitializeTime = self.segmentInitializeTime + v65_
+				self.segmentInitializeTime = self.segmentInitializeTime + delta
 				return
 			end
 		end
 		self.segmentInitializeFrames = self.segmentInitializeFrames + 1
-		self.segmentInitializeTime = self.segmentInitializeTime + (getTimeSec() - v64_)
-		for v66_, v67_ in ipairs(self.fieldCourse.segments) do
-			v67_.index = v66_
+		self.segmentInitializeTime = self.segmentInitializeTime + (getTimeSec() - startTime)
+		for index, segment in ipairs(self.fieldCourse.segments) do
+			segment.index = index
 		end
-		local v68_ = self.fieldCourseSettings.sideOffset
-		if v68_ ~= 0 then
-			for _, v69_ in ipairs(self.fieldCourse.segments) do
-				if v69_.isHeadlandSegment or v69_.isIslandSegment then
+		local sideOffset = self.fieldCourseSettings.sideOffset
+		if sideOffset ~= 0 then
+			for _, segment in ipairs(self.fieldCourse.segments) do
+				if segment.isHeadlandSegment or segment.isIslandSegment then
 					if self.fieldCourseSettings.sideOffsetHeadlandAlternate then
-						if v69_.headlandIndex % 2 == 0 then
-							v69_.sideOffset = -v68_
-							v69_.sideOffsetToApply = -math.abs(v68_)
-							v69_.lockedDirection = -math.sign(v68_)
+						if segment.headlandIndex % 2 == 0 then
+							segment.sideOffset = -sideOffset
+							segment.sideOffsetToApply = -math.abs(sideOffset)
+							segment.lockedDirection = -math.sign(sideOffset)
 						else
-							v69_.sideOffset = v68_
-							v69_.sideOffsetToApply = math.abs(v68_)
-							v69_.lockedDirection = math.sign(v68_)
+							segment.sideOffset = sideOffset
+							segment.sideOffsetToApply = math.abs(sideOffset)
+							segment.lockedDirection = math.sign(sideOffset)
 						end
-					elseif v68_ > 0 then
-						v69_.sideOffset = -v68_
-						v69_.sideOffsetToApply = -v68_
-						v69_.lockedDirection = -1
+					elseif 0 < sideOffset then
+						segment.sideOffset = -sideOffset
+						segment.sideOffsetToApply = -sideOffset
+						segment.lockedDirection = -1
 					else
-						v69_.sideOffset = v68_
-						v69_.sideOffsetToApply = v68_
-						v69_.lockedDirection = 1
+						segment.sideOffset = sideOffset
+						segment.sideOffsetToApply = sideOffset
+						segment.lockedDirection = 1
 					end
 				end
 			end
 		end
-		if self.fieldCourseSettings.skipNumLines > 0 then
-			for v70_ = #self.fieldCourse.segments, 1, -1 do
-				local v71_ = self.fieldCourse.segments[v70_]
-				if v71_.lineGroupIndex ~= nil and (v71_.offsetLineIndex - 1) % (self.fieldCourseSettings.skipNumLines + 1) ~= 0 then
-					table.remove(self.fieldCourse.segments, v70_)
+		if 0 < self.fieldCourseSettings.skipNumLines then
+			for i = #self.fieldCourse.segments, 1, -1 do
+				local segment = self.fieldCourse.segments[i]
+				if segment.lineGroupIndex == nil or (segment.offsetLineIndex - 1) % (self.fieldCourseSettings.skipNumLines + 1) == 0 then
+					continue
 				end
+				table.remove(self.fieldCourse.segments, i)
 			end
 		end
 		if not self.fieldCourseSettings.workHeadlands then
-			for v72_ = #self.fieldCourse.segments, 1, -1 do
-				local v73_ = self.fieldCourse.segments[v72_]
-				if v73_.isHeadlandSegment or v73_.isIslandSegment then
-					table.remove(self.fieldCourse.segments, v72_)
+			for i = #self.fieldCourse.segments, 1, -1 do
+				local segment = self.fieldCourse.segments[i]
+				if segment.isHeadlandSegment or segment.isIslandSegment then
+					table.remove(self.fieldCourse.segments, i)
 				end
 			end
 		end
-		for v74_, v75_ in ipairs(self.fieldCourse.segments) do
-			v75_.index = v74_
+		for index, segment in ipairs(self.fieldCourse.segments) do
+			segment.index = index
 		end
 		self.state = AIFieldCourseState.HEADLAND_TAIL_AVOIDANCE
 		self:debugPrint("Segment initialization took %.1fms / %d frames", self.segmentInitializeTime * 1000, self.segmentInitializeFrames)
 	elseif self.state == AIFieldCourseState.HEADLAND_TAIL_AVOIDANCE then
-		if not (self.fieldCourseSettings.headlandTailAvoidance and self.fieldCourseSettings.workHeadlands) then
-			self.state = AIFieldCourseState.INITIAL_SEGMENT_CREATION
-			return
-		end
-		if not self:updateHeadlandTailAvoidance() then
-			for v76_, v77_ in ipairs(self.fieldCourse.segments) do
-				v77_.index = v76_
+		if self.fieldCourseSettings.headlandTailAvoidance and (self.fieldCourseSettings.workHeadlands and not self:updateHeadlandTailAvoidance()) then
+			for index, segment in ipairs(self.fieldCourse.segments) do
+				segment.index = index
 			end
 			self.state = AIFieldCourseState.INITIAL_SEGMENT_CREATION
 			return
 		end
+		self.state = AIFieldCourseState.INITIAL_SEGMENT_CREATION
 	elseif self.state == AIFieldCourseState.INITIAL_SEGMENT_CREATION then
 		if self.initialSegment == nil then
 			if #self.fieldCourse.segments == 0 then
@@ -302,11 +270,10 @@ function AIFieldCourse:update(dt, forceSegmentSkip)
 			else
 				self:debugPrint("Initial segment detection")
 				self.initialSegment = AIFieldCourseInitialSegment.new(self)
-				self.initialSegment:setCallback(function(p78_, p79_, p80_, p81_, p82_, p83_, p84_)
-					-- upvalues: (copy) self
-					if p78_ then
-						self:onNextSegmentFound(p80_, p81_, p82_, p83_, p84_)
-						if p79_ then
+				self.initialSegment:setCallback(function(success, isLast, segment, segmentDirection, segmentIsTurn, addStraighting, nextTurn)
+					if success then
+						self:onNextSegmentFound(segment, segmentDirection, segmentIsTurn, addStraighting, nextTurn)
+						if isLast then
 							if self.initialSegment.intoFieldSegment == nil then
 								self:debugPrint("No into field segment found. Directly prepare for work.")
 								if not self.initialSegmentDone then
@@ -333,324 +300,285 @@ function AIFieldCourse:update(dt, forceSegmentSkip)
 			end
 		end
 	elseif self.state == AIFieldCourseState.REGULAR_SEGMENTS or self.state == AIFieldCourseState.NO_MORE_SEGMENTS_FOUND then
-		local v85_ = 0
-		for _, v86_ in ipairs(self.segmentQueue) do
-			if v86_:isValid() or not v86_:isReady() then
-				v85_ = v85_ + 1
+		local numSegmentsLeft = 0
+		for _, segment in ipairs(self.segmentQueue) do
+			if segment:isValid() or not segment:isReady() then
+				numSegmentsLeft = numSegmentsLeft + 1
 			end
 		end
-		if v85_ > 0 then
-			local v87_ = self.segmentQueue[1]
-			if v87_ ~= nil and v87_:isReady() then
-				if v87_:isValid() then
-					if self.lastSegmentLength ~= v87_.length then
-						self.lastSegmentLength = v87_.length
-						if self.segmentSwitchedCallback ~= nil then
-							self.segmentSwitchedCallback(v87_)
-						end
-					end
-					if forceSegmentSkip then
-						v87_:skipCurrentSubSegment(math.huge)
-					end
-				else
-					local v88_ = self.segmentQueue[1].segmentId
-					if v88_ ~= nil then
-						self.usedSegments[v88_] = true
+		if 0 < numSegmentsLeft then
+			local segment = self.segmentQueue[1]
+			if segment ~= nil and segment:isReady() then
+				if not segment:isValid() then
+					local segmentId = self.segmentQueue[1].segmentId
+					if segmentId ~= nil then
+						self.usedSegments[segmentId] = true
 					end
 					table.remove(self.segmentQueue, 1)
-					local v89_ = self.segmentQueue
-					table.insert(v89_, v87_)
-					v87_:reset()
+					table.insert(self.segmentQueue, segment)
+					segment:reset()
 					if not self.initialSegmentDone then
 						if self.initialSegmentCallback ~= nil then
 							self.initialSegmentCallback()
 						end
 						self.initialSegmentDone = true
 					end
+				else
+					if self.lastSegmentLength ~= segment.length then
+						self.lastSegmentLength = segment.length
+						if self.segmentSwitchedCallback ~= nil then
+							self.segmentSwitchedCallback(segment)
+						end
+					end
+					if forceSegmentSkip then
+						segment:skipCurrentSubSegment(math.huge)
+					end
 				end
 			end
 		end
-		if v85_ < AIFieldCourse.QUEUE_MIN_LENGTH then
-			if self.state == AIFieldCourseState.NO_MORE_SEGMENTS_FOUND then
-				if v85_ == 0 then
-					self.state = AIFieldCourseState.FINISHED
+		if numSegmentsLeft < AIFieldCourse.QUEUE_MIN_LENGTH then
+			if self.state ~= AIFieldCourseState.NO_MORE_SEGMENTS_FOUND then
+				if not self.segmentOrderTask:getSegmentSearchPending() then
+					self.segmentOrderTask:next(self.onNextSegmentFound, self)
 				end
-			elseif not self.segmentOrderTask:getSegmentSearchPending() then
-				self.segmentOrderTask:next(self.onNextSegmentFound, self)
-				return
+			elseif numSegmentsLeft == 0 then
+				self.state = AIFieldCourseState.FINISHED
 			end
 		end
 	end
 end
-
--- Local values: halfWidth, segment, step, state, i, p1, p2, dirX, dirZ, length, startPos, endPos, startPosClamped, endPosClamped, offsetLeft, offsetRight, segmentValidityCheckOffset, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, j, newSegment, j, j, removedSegmentId, segmentIdStillValid, _, otherSegment
 function AIFieldCourse:updateSegmentInitialization()
-	local v91_ = self.implementWidth * 0.5 - 0.15
-	local v92_ = self.fieldCourse.segments[self.segmentInitializeIndex]
-	local v93_ = self.fieldCourseSettings.segmentSplitDistance
-	if v92_ == nil then
+	local halfWidth = self.implementWidth * 0.5 - 0.15
+	local segment = self.fieldCourse.segments[self.segmentInitializeIndex]
+	local step = self.fieldCourseSettings.segmentSplitDistance
+	if segment ~= nil then
+		local state = nil
+		for i = 1, #segment.positions - 1 do
+			local p1 = segment.positions[i]
+			local p2 = segment.positions[i + 1]
+			local dirX = p2[1] - p1[1]
+			local dirZ = p2[2] - p1[2]
+			local length = MathUtil.vector2Length(dirX, dirZ)
+			dirX = dirX / length
+			dirZ = dirZ / length
+			local startPos = 0
+			for endPos = step, length + step - 0.01, step do
+				local startPosClamped = math.min(startPos / length, 1) * length
+				local endPosClamped = math.min(endPos / length, 1) * length
+				local offsetLeft = halfWidth
+				local offsetRight = halfWidth
+				if segment.isHeadlandSegment then
+					if segment.headlandIndex == 1 then
+						offsetLeft = math.max(halfWidth - 0.25, 0.5)
+					elseif segment.headlandIndex == self.fieldCourse.numHeadlands then
+						offsetRight = math.max(halfWidth - 0.5, 0.5)
+					end
+				end
+				local segmentValidityCheckOffset = self.fieldCourseSettings.segmentValidityCheckOffset
+				if segmentValidityCheckOffset ~= 0 then
+					offsetLeft = math.max(offsetLeft - segmentValidityCheckOffset, 0.5)
+					offsetRight = math.max(offsetRight - segmentValidityCheckOffset, 0.5)
+				end
+				local startWorldX = p1[1] + dirX * startPos - dirZ * offsetRight
+				local startWorldZ = p1[2] + dirZ * startPos + dirX * offsetRight
+				local widthWorldX = p1[1] + dirX * startPos + dirZ * offsetLeft
+				local widthWorldZ = p1[2] + dirZ * startPos - dirX * offsetLeft
+				local heightWorldX = p1[1] + dirX * endPos - dirZ * offsetRight
+				local heightWorldZ = p1[2] + dirZ * endPos + dirX * offsetRight
+				if self:getIsSegmentAreaValid(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ) then
+					if state == false then
+						segment.positions[i] = { p1[1] + dirX * startPosClamped, p1[2] + dirZ * startPosClamped }
+						for j = i - 1, 1, -1 do
+							table.remove(segment.positions, j)
+						end
+						FieldCourseUtil.removeShortSegments(segment.positions, 0.01, false)
+						segment.length = FieldCourseUtil.getSegmentLength(segment.positions)
+						if segment.length <= 0 or #segment.positions < 2 then
+							self.usedSegments[segment.segmentId] = true
+							table.remove(self.fieldCourse.segments, self.segmentInitializeIndex)
+						end
+						return true
+					end
+					state = true
+				else
+					if state == true then
+						local newSegment = {}
+						newSegment.positions = {}
+						for j = 1, i do
+							table.insert(newSegment.positions, segment.positions[j])
+						end
+						table.insert(newSegment.positions, { p1[1] + dirX * startPosClamped, p1[2] + dirZ * startPosClamped })
+						for j = i, 1, -1 do
+							table.remove(segment.positions, j)
+						end
+						table.insert(segment.positions, 1, { p1[1] + dirX * endPosClamped, p1[2] + dirZ * endPosClamped })
+						FieldCourseUtil.removeShortSegments(segment.positions, 0.01, false)
+						segment.length = FieldCourseUtil.getSegmentLength(segment.positions)
+						if segment.length <= 0 or #segment.positions < 2 then
+							table.remove(self.fieldCourse.segments, self.segmentInitializeIndex)
+						end
+						FieldCourseUtil.removeShortSegments(newSegment.positions, 0.01, false)
+						newSegment.length = FieldCourseUtil.getSegmentLength(newSegment.positions)
+						if 0 < newSegment.length and 2 <= #newSegment.positions then
+							newSegment.lineGroupIndex = segment.lineGroupIndex
+							newSegment.isHeadlandSegment = segment.isHeadlandSegment
+							newSegment.isIslandSegment = segment.isIslandSegment
+							newSegment.islandIndex = segment.islandIndex
+							newSegment.headlandIndex = segment.headlandIndex
+							newSegment.segmentId = segment.segmentId
+							newSegment.offsetLineIndex = segment.offsetLineIndex
+							table.insert(self.fieldCourse.segments, self.segmentInitializeIndex, newSegment)
+							self.segmentInitializeIndex = self.segmentInitializeIndex + 1
+						end
+						return true
+					end
+					state = false
+				end
+				startPos = endPos
+			end
+		end
+		if state == false then
+			local removedSegmentId = segment.segmentId
+			table.remove(self.fieldCourse.segments, self.segmentInitializeIndex)
+			local segmentIdStillValid = false
+			for _, otherSegment in ipairs(self.fieldCourse.segments) do
+				if otherSegment.segmentId == removedSegmentId then
+					segmentIdStillValid = true
+				end
+			end
+			if not segmentIdStillValid then
+				self.usedSegments[segment.segmentId] = true
+			end
+		else
+			self.segmentInitializeIndex = self.segmentInitializeIndex + 1
+		end
+		return true
+	else
 		return false
 	end
-	local v94_ = nil
-	for v95_ = 1, #v92_.positions - 1 do
-		local v96_ = v92_.positions[v95_]
-		local v97_ = v92_.positions[v95_ + 1]
-		local v98_ = v97_[1] - v96_[1]
-		local v99_ = v97_[2] - v96_[2]
-		local v100_ = MathUtil.vector2Length(v98_, v99_)
-		local v101_ = v98_ / v100_
-		local v102_ = v99_ / v100_
-		local v103_ = 0
-		for v104_ = v93_, v100_ + v93_ - 0.01, v93_ do
-			local v105_ = v103_ / v100_
-			local v106_ = math.min(v105_, 1) * v100_
-			local v107_ = v104_ / v100_
-			local v108_ = math.min(v107_, 1) * v100_
-			local v109_, v110_
-			if v92_.isHeadlandSegment then
-				if v92_.headlandIndex == 1 then
-					local v111_ = v91_ - 0.25
-					v109_ = math.max(v111_, 0.5)
-					v110_ = v91_
-				elseif v92_.headlandIndex == self.fieldCourse.numHeadlands then
-					local v112_ = v91_ - 0.5
-					v110_ = math.max(v112_, 0.5)
-					v109_ = v91_
-				else
-					v109_ = v91_
-					v110_ = v109_
-					local v113_ = v109_
-					v109_ = v110_
-					v113_ = v110_
-				end
-			else
-				v109_ = v91_
-				v110_ = v109_
-				local v114_ = v109_
-				v109_ = v110_
-				v114_ = v110_
-			end
-			local v115_ = self.fieldCourseSettings.segmentValidityCheckOffset
-			if v115_ ~= 0 then
-				local v116_ = v109_ - v115_
-				v109_ = math.max(v116_, 0.5)
-				local v117_ = v110_ - v115_
-				v110_ = math.max(v117_, 0.5)
-			end
-			if self:getIsSegmentAreaValid(v96_[1] + v101_ * v103_ - v102_ * v110_, v96_[2] + v102_ * v103_ + v101_ * v110_, v96_[1] + v101_ * v103_ + v102_ * v109_, v96_[2] + v102_ * v103_ - v101_ * v109_, v96_[1] + v101_ * v104_ - v102_ * v110_, v96_[2] + v102_ * v104_ + v101_ * v110_) then
-				if v94_ == false then
-					v92_.positions[v95_] = { v96_[1] + v101_ * v106_, v96_[2] + v102_ * v106_ }
-					for v118_ = v95_ - 1, 1, -1 do
-						table.remove(v92_.positions, v118_)
-					end
-					FieldCourseUtil.removeShortSegments(v92_.positions, 0.01, false)
-					v92_.length = FieldCourseUtil.getSegmentLength(v92_.positions)
-					if v92_.length <= 0 or #v92_.positions < 2 then
-						self.usedSegments[v92_.segmentId] = true
-						table.remove(self.fieldCourse.segments, self.segmentInitializeIndex)
-					end
-					return true
-				end
-				v94_ = true
-			else
-				if v94_ == true then
-					local v119_ = {
-						["positions"] = {}
-					}
-					for v120_ = 1, v95_ do
-						local v121_ = v119_.positions
-						local v122_ = v92_.positions[v120_]
-						table.insert(v121_, v122_)
-					end
-					local v123_ = v119_.positions
-					local v124_ = { v96_[1] + v101_ * v106_, v96_[2] + v102_ * v106_ }
-					table.insert(v123_, v124_)
-					for v125_ = v95_, 1, -1 do
-						table.remove(v92_.positions, v125_)
-					end
-					local v126_ = v92_.positions
-					local v127_ = { v96_[1] + v101_ * v108_, v96_[2] + v102_ * v108_ }
-					table.insert(v126_, 1, v127_)
-					FieldCourseUtil.removeShortSegments(v92_.positions, 0.01, false)
-					v92_.length = FieldCourseUtil.getSegmentLength(v92_.positions)
-					if v92_.length <= 0 or #v92_.positions < 2 then
-						table.remove(self.fieldCourse.segments, self.segmentInitializeIndex)
-					end
-					FieldCourseUtil.removeShortSegments(v119_.positions, 0.01, false)
-					v119_.length = FieldCourseUtil.getSegmentLength(v119_.positions)
-					if v119_.length > 0 and #v119_.positions >= 2 then
-						v119_.lineGroupIndex = v92_.lineGroupIndex
-						v119_.isHeadlandSegment = v92_.isHeadlandSegment
-						v119_.isIslandSegment = v92_.isIslandSegment
-						v119_.islandIndex = v92_.islandIndex
-						v119_.headlandIndex = v92_.headlandIndex
-						v119_.segmentId = v92_.segmentId
-						v119_.offsetLineIndex = v92_.offsetLineIndex
-						local v128_ = self.fieldCourse.segments
-						local v129_ = self.segmentInitializeIndex
-						table.insert(v128_, v129_, v119_)
-						self.segmentInitializeIndex = self.segmentInitializeIndex + 1
-					end
-					return true
-				end
-				v94_ = false
-			end
-			v103_ = v104_
-		end
-	end
-	if v94_ == false then
-		local v130_ = v92_.segmentId
-		table.remove(self.fieldCourse.segments, self.segmentInitializeIndex)
-		local v131_ = false
-		for _, v132_ in ipairs(self.fieldCourse.segments) do
-			if v132_.segmentId == v130_ then
-				v131_ = true
-			end
-		end
-		if not v131_ then
-			self.usedSegments[v92_.segmentId] = true
-		end
-	else
-		self.segmentInitializeIndex = self.segmentInitializeIndex + 1
-	end
-	return true
 end
-
--- Local values: headlandDirection, _, segment, cutDistance, agentBackOffset, _, segment, x1, z1, x2, z2, dx, dz, boundary, i, sx, sz, ex, ez, intersect, ix, iz, distance, segmentCutDistance, i, _, segment, x1, z1, x2, z2, dx, dz, minDistance, minX, minZ, boundary, i, sx, sz, ex, ez, intersect, ix, iz, distance, _, segment
 function AIFieldCourse:updateHeadlandTailAvoidance()
-	local v134_ = self.fieldCourseSettings.sideOffset == 0 and 1 or -1
+	local headlandDirection = self.fieldCourseSettings.sideOffset ~= 0 and -1 or 1
 	if self.headlandTailAvoidanceMaxIndex < 0 then
-		for _, v135_ in ipairs(self.fieldCourse.segments) do
-			if v135_.isHeadlandSegment then
-				local v136_ = v135_.headlandIndex
-				local v137_ = self.headlandTailAvoidanceMaxIndex
-				self.headlandTailAvoidanceMaxIndex = math.max(v136_, v137_)
+		for _, segment in ipairs(self.fieldCourse.segments) do
+			if segment.isHeadlandSegment then
+				self.headlandTailAvoidanceMaxIndex = math.max(segment.headlandIndex, self.headlandTailAvoidanceMaxIndex)
 			end
 		end
 	end
-	local v138_ = self.fieldCourseSettings.implementWidth * (self.headlandTailAvoidanceIndex + 0.5)
-	local v139_ = self.fieldCourseSettings.agentBackOffset
-	local v140_ = self.fieldCourseSettings.toolBackOffset
-	local v141_ = v139_ + math.max(v140_, 0)
-	for _, v142_ in ipairs(self.fieldCourse.segments) do
-		if v142_.isHeadlandSegment and v142_.headlandIndex == self.headlandTailAvoidanceIndex then
-			local v143_, v144_ = AIFieldCourseUtil.getSegmentPosition(true, v142_, v134_, 0)
-			local v145_, v146_ = AIFieldCourseUtil.getSegmentPosition(true, v142_, v134_, 1)
-			local v147_, v148_ = MathUtil.vector2Normalize(v143_ - v145_, v144_ - v146_)
-			local v149_ = self.fieldRootBoundary.boundaryLine
-			for v150_ = 1, #v149_ - 1 do
-				local v151_ = v149_[v150_][1]
-				local v152_ = v149_[v150_][2]
-				local v153_ = v149_[v150_ + 1][1]
-				local v154_ = v149_[v150_ + 1][2]
-				local v155_, v156_, v157_ = MathUtil.getLineSegmentsIntersection(v151_, v152_, v153_, v154_, v143_, v144_, v143_ + v147_ * v141_, v144_ + v148_ * v141_)
-				if v155_ then
-					local v158_ = v141_ - MathUtil.vector2Length(v156_ - v143_, v157_ - v144_)
-					if AIFieldCourseUtil.cutSegmentByDistance(v142_, v134_, v158_) then
-						v142_.cutDistance = v158_
+	local cutDistance = self.fieldCourseSettings.implementWidth * (self.headlandTailAvoidanceIndex + 0.5)
+	local agentBackOffset = self.fieldCourseSettings.agentBackOffset + math.max(self.fieldCourseSettings.toolBackOffset, 0)
+	for _, segment in ipairs(self.fieldCourse.segments) do
+		if segment.isHeadlandSegment and segment.headlandIndex == self.headlandTailAvoidanceIndex then
+			local x1, z1 = AIFieldCourseUtil.getSegmentPosition(true, segment, headlandDirection, 0)
+			local x2, z2 = AIFieldCourseUtil.getSegmentPosition(true, segment, headlandDirection, 1)
+			local dx, dz = MathUtil.vector2Normalize(x1 - x2, z1 - z2)
+			local boundary = self.fieldRootBoundary.boundaryLine
+			for i = 1, #boundary - 1 do
+				local sx = boundary[i][1]
+				local sz = boundary[i][2]
+				local ex = boundary[i + 1][1]
+				local ez = boundary[i + 1][2]
+				local intersect, ix, iz = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, x1, z1, x1 + dx * agentBackOffset, z1 + dz * agentBackOffset)
+				if intersect then
+					local distance = MathUtil.vector2Length(ix - x1, iz - z1)
+					local segmentCutDistance = agentBackOffset - distance
+					if not AIFieldCourseUtil.cutSegmentByDistance(segment, headlandDirection, segmentCutDistance) then
+						segment.isInvalid = true
 					else
-						v142_.isInvalid = true
+						segment.cutDistance = segmentCutDistance
 					end
-					break
 				end
 			end
 		end
 	end
-	for v159_ = #self.fieldCourse.segments, 1, -1 do
-		if self.fieldCourse.segments[v159_].isInvalid then
-			self.usedSegments[self.fieldCourse.segments[v159_].segmentId] = true
-			table.remove(self.fieldCourse.segments, v159_)
+	for i = #self.fieldCourse.segments, 1, -1 do
+		if self.fieldCourse.segments[i].isInvalid then
+			self.usedSegments[self.fieldCourse.segments[i].segmentId] = true
+			table.remove(self.fieldCourse.segments, i)
 		end
 	end
-	for _, v160_ in ipairs(self.fieldCourse.segments) do
-		if v160_.isHeadlandSegment and v160_.headlandIndex == self.headlandTailAvoidanceIndex then
-			local v161_, v162_ = AIFieldCourseUtil.getSegmentPosition(false, v160_, v134_, 0)
-			local v163_, v164_ = AIFieldCourseUtil.getSegmentPosition(false, v160_, v134_, 1)
-			local v165_, v166_ = MathUtil.vector2Normalize(v161_ - v163_, v162_ - v164_)
-			local v167_ = self.fieldRootBoundary.boundaryLine
-			local v168_ = math.huge
-			local v169_ = nil
-			local v170_ = nil
-			for v171_ = 1, #v167_ - 1 do
-				local v172_ = v167_[v171_][1]
-				local v173_ = v167_[v171_][2]
-				local v174_ = v167_[v171_ + 1][1]
-				local v175_ = v167_[v171_ + 1][2]
-				local v176_, v177_, v178_ = MathUtil.getLineSegmentsIntersection(v172_, v173_, v174_, v175_, v161_, v162_, v161_ + v165_ * v138_, v162_ + v166_ * v138_)
-				if v176_ then
-					if MathUtil.vector2Length(v177_ - v161_, v178_ - v162_) < v168_ then
-						v170_ = v178_
-						v169_ = v177_
+	for _, segment in ipairs(self.fieldCourse.segments) do
+		if segment.isHeadlandSegment and segment.headlandIndex == self.headlandTailAvoidanceIndex then
+			local x1, z1 = AIFieldCourseUtil.getSegmentPosition(false, segment, headlandDirection, 0)
+			local x2, z2 = AIFieldCourseUtil.getSegmentPosition(false, segment, headlandDirection, 1)
+			local dx, dz = MathUtil.vector2Normalize(x1 - x2, z1 - z2)
+			local minDistance = math.huge
+			local minX = nil
+			local minZ = nil
+			local boundary = self.fieldRootBoundary.boundaryLine
+			for i = 1, #boundary - 1 do
+				local sx = boundary[i][1]
+				local sz = boundary[i][2]
+				local ex = boundary[i + 1][1]
+				local ez = boundary[i + 1][2]
+				local intersect, ix, iz = MathUtil.getLineSegmentsIntersection(sx, sz, ex, ez, x1, z1, x1 + dx * cutDistance, z1 + dz * cutDistance)
+				if intersect then
+					local distance = MathUtil.vector2Length(ix - x1, iz - z1)
+					if distance < minDistance then
+						minDistance = distance
+						minX = ix
+						minZ = iz
+						break
 					end
-					break
-				end
-			end
-			if v169_ ~= nil then
-				if v134_ == 1 then
-					v160_.positions[#v160_.positions] = { v169_, v170_ }
-				else
-					v160_.positions[1] = { v169_, v170_ }
+					if minX ~= nil then
+						if headlandDirection == 1 then
+							segment.positions[#segment.positions] = { minX, minZ }
+						else
+							segment.positions[1] = { minX, minZ }
+						end
+					end
 				end
 			end
 		end
 	end
-	for _, v179_ in ipairs(self.fieldCourse.segments) do
-		if v179_.isHeadlandSegment then
-			v179_.lockedDirection = v134_
+	for _, segment in ipairs(self.fieldCourse.segments) do
+		if segment.isHeadlandSegment then
+			segment.lockedDirection = headlandDirection
 		end
 	end
 	self.headlandTailAvoidanceIndex = self.headlandTailAvoidanceIndex + 1
 	return self.headlandTailAvoidanceIndex <= self.headlandTailAvoidanceMaxIndex
 end
-
--- Local values: segment, steeringFactorLength, steeringFactor, tx, tz, direction, segmentPosition, segmentLength, subSegmentPosition, subSegmentLength, maxSpeed, distanceToEnd
 function AIFieldCourse:getDriveData(dt, vX, vY, vZ, vSpeed, steeringOffset, toolReverserDirectionNode)
-	if self.state == AIFieldCourseState.FINISHED then
+	if self.state ~= AIFieldCourseState.FINISHED then
+		self.lastVehicleX = vX
+		self.lastVehicleZ = vZ
+		local segment = self.segmentQueue[1]
+		if segment ~= nil and (segment:isReady() and segment:isValid()) then
+			local steeringFactorLength = math.min(self.subSegmentLength * 0.5, 4)
+			local steeringFactor = nil
+			steeringFactor = self.subSegmentPosition < 0.5 and math.clamp(self.subSegmentPosition * self.subSegmentLength, 0, steeringFactorLength) / steeringFactorLength or math.clamp((1 - self.subSegmentPosition) * self.subSegmentLength, 0, steeringFactorLength) / steeringFactorLength
+			steeringFactor = 0.35 + steeringFactor * 0.65
+			local tx, tz, direction, segmentPosition, segmentLength, subSegmentPosition, subSegmentLength = segment:getDriveData(dt, vX, vY, vZ, vSpeed, steeringOffset * steeringFactor, toolReverserDirectionNode)
+			if tx ~= nil and tz ~= nil then
+				if segmentPosition ~= nil then
+					self.segmentPosition = segmentPosition
+					self.segmentLength = segmentLength
+					self.subSegmentPosition = subSegmentPosition
+					self.subSegmentLength = subSegmentLength
+				end
+				local maxSpeed = 25
+				if segment.isTurn or direction == -1 then
+					maxSpeed = self.subSegmentLength < 15 and 10 or 15
+				end
+				local distanceToEnd = (1 - self.subSegmentPosition) * self.subSegmentLength
+				if distanceToEnd < 3 then
+					maxSpeed = math.max(maxSpeed * math.min(distanceToEnd / 3, 1), 4)
+				end
+				return tx, tz, direction == 1, maxSpeed, 10
+			end
+		end
+		return 0, 0, true, 0, 0
+	else
 		return nil, nil, true, 0, 0
 	end
-	self.lastVehicleX = vX
-	self.lastVehicleZ = vZ
-	local v188_ = self.segmentQueue[1]
-	if v188_ ~= nil and (v188_:isReady() and v188_:isValid()) then
-		local v189_ = self.subSegmentLength * 0.5
-		local v190_ = math.min(v189_, 4)
-		local v191_
-		if self.subSegmentPosition < 0.5 then
-			local v192_ = self.subSegmentPosition * self.subSegmentLength
-			v191_ = math.clamp(v192_, 0, v190_) / v190_
-		else
-			local v193_ = (1 - self.subSegmentPosition) * self.subSegmentLength
-			v191_ = math.clamp(v193_, 0, v190_) / v190_
-		end
-		local v194_, v195_, v196_, v197_, v198_, v199_, v200_ = v188_:getDriveData(dt, vX, vY, vZ, vSpeed, steeringOffset * (0.35 + v191_ * 0.65), toolReverserDirectionNode)
-		if v194_ ~= nil and v195_ ~= nil then
-			if v197_ ~= nil then
-				self.segmentPosition = v197_
-				self.segmentLength = v198_
-				self.subSegmentPosition = v199_
-				self.subSegmentLength = v200_
-			end
-			local v201_ = (v188_.isTurn or v196_ == -1) and (self.subSegmentLength < 15 and 10 or 15) or 25
-			local v202_ = (1 - self.subSegmentPosition) * self.subSegmentLength
-			if v202_ < 3 then
-				local v203_ = v202_ / 3
-				local v204_ = v201_ * math.min(v203_, 1)
-				v201_ = math.max(v204_, 4)
-			end
-			return v194_, v195_, v196_ == 1, v201_, 10
-		end
-	end
-	return 0, 0, true, 0, 0
 end
-
--- Local values: i
 function AIFieldCourse:clearAlternativeSegments()
-	for v206_ = #self.alternativeTurnSegments, 1, -1 do
-		self.alternativeTurnSegments[v206_] = nil
+	for i = #self.alternativeTurnSegments, 1, -1 do
+		self.alternativeTurnSegments[i] = nil
 	end
 end
-
--- Local values: _, island, _, segment, r, g, b, a, numPositions, i, x1, z1, x2, z2, y1, y2, _, turnSegment, i, segment
 function AIFieldCourse:draw()
 	if self.fieldRootBoundary ~= nil then
 		self.fieldRootBoundary:draw(0, 0, 1, 0.2)
@@ -658,79 +586,81 @@ function AIFieldCourse:draw()
 	if self.protectedBoundary ~= nil then
 		self.protectedBoundary:draw(1, 0, 0, 0.2)
 	end
-	for _, v208_ in ipairs(self.islands) do
-		v208_.rootBoundary:draw(1, 0, 1, 0.2)
-		if v208_.protectedBoundary ~= nil then
-			v208_.protectedBoundary:draw(1, 0, 0, 0.15)
+	for _, island in ipairs(self.islands) do
+		island.rootBoundary:draw(1, 0, 1, 0.2)
+		if island.protectedBoundary == nil then
+			continue
 		end
+		island.protectedBoundary:draw(1, 0, 0, 0.15)
 	end
-	for _, v209_ in pairs(self.fieldCourse.segments) do
-		local v210_ = 0.1
-		local v211_ = 0.1
-		local v212_ = 0.1
-		local v213_ = 0.1
-		if self.segmentsToSkip[v209_.segmentId] then
-			v211_ = 0
-			v212_ = 0
-			v213_ = 0.1
-			v210_ = 0.1
-		elseif v209_.isHeadlandSegment then
-			v211_ = 0
-			v212_ = 0.1
-			v213_ = 0.1
-			v210_ = 0
-		elseif v209_.isIslandSegment then
-			v211_ = 0
-			v212_ = 0.1
-			v213_ = 0.1
-			v210_ = 0.1
+	for _, segment in pairs(self.fieldCourse.segments) do
+		local r = 0.1
+		local g = 0.1
+		local b = 0.1
+		local a = 0.1
+		if self.segmentsToSkip[segment.segmentId] then
+			r = 0.1
+			g = 0
+			b = 0
+			a = 0.1
+		elseif segment.isHeadlandSegment then
+			r = 0
+			g = 0
+			b = 0.1
+			a = 0.1
+		elseif segment.isIslandSegment then
+			r = 0.1
+			g = 0
+			b = 0.1
+			a = 0.1
 		end
-		local v214_ = #v209_.positions
-		for v215_ = 1, v214_ - 1 do
-			local v216_ = v209_.positions[v215_][1]
-			local v217_ = v209_.positions[v215_][2]
-			local v218_ = v209_.positions[v215_ + 1][1]
-			local v219_ = v209_.positions[v215_ + 1][2]
-			local v220_ = getTerrainHeightAtWorldPos(g_terrainNode, v216_, 0, v217_)
-			local v221_ = getTerrainHeightAtWorldPos(g_terrainNode, v218_, 0, v219_)
-			drawDebugLine(v216_, v220_, v217_, v210_, v211_, v212_, v218_, v221_, v219_, v210_, v211_, v212_, false)
-			drawDebugPoint(v216_, v220_, v217_, v210_, v211_, v212_, v213_, false)
-			if v215_ + 1 == v214_ then
-				drawDebugPoint(v218_, v221_, v219_, v210_, v211_, v212_, v213_, false)
+		local numPositions = #segment.positions
+		for i = 1, numPositions - 1 do
+			local x1 = segment.positions[i][1]
+			local z1 = segment.positions[i][2]
+			local x2 = segment.positions[i + 1][1]
+			local z2 = segment.positions[i + 1][2]
+			local y1 = getTerrainHeightAtWorldPos(g_terrainNode, x1, 0, z1)
+			local y2 = getTerrainHeightAtWorldPos(g_terrainNode, x2, 0, z2)
+			drawDebugLine(x1, y1, z1, r, g, b, x2, y2, z2, r, g, b, false)
+			drawDebugPoint(x1, y1, z1, r, g, b, a, false)
+			if i + 1 == numPositions then
+				drawDebugPoint(x2, y2, z2, r, g, b, a, false)
 			end
 		end
 	end
-	for _, v222_ in ipairs(self.alternativeTurnSegments) do
-		v222_:draw(0.1, 0.1, 0.1)
+	for _, turnSegment in ipairs(self.alternativeTurnSegments) do
+		turnSegment:draw(0.1, 0.1, 0.1)
 	end
-	for v223_, v224_ in ipairs(self.segmentQueue) do
-		if v224_:isReady() then
-			if v223_ == 1 then
-				v224_:draw(0, 1, 0)
+	for i, segment in ipairs(self.segmentQueue) do
+		if segment:isReady() then
+			if i == 1 then
+				segment:draw(0, 1, 0)
 			else
-				v224_:draw(1, 1, 0)
+				segment:draw(1, 1, 0)
 			end
 		end
 	end
 end
-
--- Local values: i, segment
 function AIFieldCourse:addDebugTexts(vehicle)
 	vehicle:addAIDebugText(string.format(" Segment Queue (%d):", #self.segmentQueue))
-	local v227_ = #self.segmentQueue
-	for v228_ = 1, math.min(v227_, 10) do
-		local v229_ = self.segmentQueue[v228_]
-		if v229_:isValid() and v229_:isReady() then
-			vehicle:addAIDebugText(string.format("%s%d: (%s) L:%.1fm Side:%.2fm", v228_ == 1 and "   A" or "     ", v228_, v229_.isTurn and "turn" or "straight", v229_.length, v229_.sideOffset))
-		elseif v229_:isValid() and not v229_:isReady() then
-			vehicle:addAIDebugText(string.format("     %d: Getting Ready", v228_))
-		else
-			vehicle:addAIDebugText(string.format("     %d: Invalid", v228_))
+	for i = 1, math.min(#self.segmentQueue, 10) do
+		local segment = self.segmentQueue[i]
+		if segment:isValid() then
+			if segment:isReady() then
+				vehicle:addAIDebugText(string.format("%s%d: (%s) L:%.1fm Side:%.2fm", i == 1 and "   A" or "     ", i, segment.isTurn and "turn" or "straight", segment.length, segment.sideOffset))
+			elseif segment:isValid() then
+				if not segment:isReady() then
+					vehicle:addAIDebugText(string.format("     %d: Getting Ready", i))
+				else
+					vehicle:addAIDebugText(string.format("     %d: Invalid", i))
+				end
+			end
 		end
 	end
 end
-function AIFieldCourse.debugPrint(_, p230_, ...)
+function AIFieldCourse:debugPrint(text, ...)
 	if VehicleDebug.state == VehicleDebug.DEBUG_AI then
-		print("AIFieldCourse: " .. string.format(p230_, ...))
+		print("AIFieldCourse: " .. string.format(text, ...))
 	end
 end

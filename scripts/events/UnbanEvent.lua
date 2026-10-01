@@ -1,45 +1,38 @@
--- Local values: UnbanEvent_mt
 UnbanEvent = {}
 local UnbanEvent_mt = Class(UnbanEvent, Event)
 InitStaticEventClass(UnbanEvent, "UnbanEvent")
 function UnbanEvent.emptyNew()
-	-- upvalues: (copy) UnbanEvent_mt
-	return Event.new(UnbanEvent_mt)
+	local self = Event.new(UnbanEvent_mt)
+	return self
 end
-
--- Local values: self
 function UnbanEvent.new(uniqueUserId)
-	local v3_ = UnbanEvent.emptyNew()
-	v3_.uniqueUserId = uniqueUserId
-	return v3_
+	local self = UnbanEvent.emptyNew()
+	self.uniqueUserId = uniqueUserId
+	return self
 end
-
 function UnbanEvent:readStream(streamId, connection)
-	local v7_ = g_currentMission:getIsServer()
-	assert(v7_, "UnbanEvent is a client to server only event")
+	assert(g_currentMission:getIsServer(), "UnbanEvent is a client to server only event")
 	self.uniqueUserId = streamReadString(streamId)
 	self:run(connection)
 end
-
 function UnbanEvent:writeStream(streamId, connection)
 	streamWriteString(streamId, self.uniqueUserId)
 end
-
--- Local values: i, uniqueUserId, platformUserId, platformId, _
 function UnbanEvent:run(connection)
-	if connection:getIsServer() then
-		printError("Error: UnbanEvent is a client to server only event")
-		return
-	elseif g_currentMission.userManager:getIsConnectionMasterUser(connection) then
-		for v12_ = 0, getNumOfBlockedUsers() - 1 do
-			local v13_, v14_, v15_, _ = getBlockedUser(v12_)
-			if v13_ == self.uniqueUserId then
-				setIsUserBlocked(v13_, v14_, v15_, false, "")
+	if not connection:getIsServer() then
+		if not g_currentMission.userManager:getIsConnectionMasterUser(connection) then
+			print("Connection is not a master user")
+			return
+		end
+		for i = 0, getNumOfBlockedUsers() - 1 do
+			local uniqueUserId, platformUserId, platformId, _ = getBlockedUser(i)
+			if uniqueUserId == self.uniqueUserId then
+				setIsUserBlocked(uniqueUserId, platformUserId, platformId, false, "")
 				g_messageCenter:publish(MessageType.BLOCK_LIST_CHANGED)
 				return
 			end
 		end
 	else
-		print("Connection is not a master user")
+		printError("Error: UnbanEvent is a client to server only event")
 	end
 end

@@ -14,34 +14,33 @@ Baler.UNLOADING_CLOSING = 4
 Baler.CLIENT_DM_UPDATE_RADIUS = 50
 function Baler.initSpecialization()
 	g_vehicleConfigurationManager:addConfigurationType("baler", g_i18n:getText("shop_configuration"), "baler", VehicleConfigurationItem)
-	AIFieldWorker.registerDriveStrategy(function(p1_)
-		return SpecializationUtil.hasSpecialization(Baler, p1_.specializations)
+	AIFieldWorker.registerDriveStrategy(function(vehicle)
+		return SpecializationUtil.hasSpecialization(Baler, vehicle.specializations)
 	end, AIDriveStrategyBaler)
 	g_workAreaTypeManager:addWorkAreaType("baler", false, false, true)
 	g_storeManager:addSpecType("balerBaleSizeRound", "shopListAttributeIconBaleSizeRound", Baler.loadSpecValueBaleSizeRound, Baler.getSpecValueBaleSizeRound, StoreSpecies.VEHICLE)
 	g_storeManager:addSpecType("balerBaleSizeSquare", "shopListAttributeIconBaleSizeSquare", Baler.loadSpecValueBaleSizeSquare, Baler.getSpecValueBaleSizeSquare, StoreSpecies.VEHICLE)
-	local v2_ = Vehicle.xmlSchema
-	v2_:setXMLSpecializationType("Baler")
-	Baler.registerBalerXMLPaths(v2_, "vehicle.baler")
-	Baler.registerBalerXMLPaths(v2_, "vehicle.baler.balerConfigurations.balerConfiguration(?)")
-	v2_:register(XMLValueType.BOOL, FillUnit.ALARM_TRIGGER_XML_KEY .. "#needsBaleLoaded", "Alarm triggers only when a full bale is loaded", false)
-	v2_:setXMLSpecializationType()
-	local v3_ = Vehicle.xmlSchemaSavegame
-	v3_:register(XMLValueType.INT, "vehicles.vehicle(?).baler#numBales", "Number of bales")
-	v3_:register(XMLValueType.STRING, "vehicles.vehicle(?).baler.bale(?)#filename", "XML Filename of bale")
-	v3_:register(XMLValueType.STRING, "vehicles.vehicle(?).baler.bale(?)#variationId", "Variation ID of the bale")
-	v3_:register(XMLValueType.INT, "vehicles.vehicle(?).baler.bale(?)#ownerFarmId", "Owner of the bale")
-	v3_:register(XMLValueType.STRING, "vehicles.vehicle(?).baler.bale(?)#fillType", "Bale fill type index")
-	v3_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).baler.bale(?)#fillLevel", "Bale fill level")
-	v3_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).baler.bale(?)#baleTime", "Bale time")
-	v3_:register(XMLValueType.BOOL, "vehicles.vehicle(?).baler#platformReadyToDrop", "Platform is ready to drop", false)
-	v3_:register(XMLValueType.INT, "vehicles.vehicle(?).baler#baleTypeIndex", "Current bale type index", 1)
-	v3_:register(XMLValueType.INT, "vehicles.vehicle(?).baler#preSelectedBaleTypeIndex", "Pre selected bale type index", 1)
-	v3_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).baler#fillUnitCapacity", "Current baler capacity depending on bale size")
-	v3_:register(XMLValueType.BOOL, "vehicles.vehicle(?).baler#bufferUnloadingStarted", "Baler buffer unloading in progress")
-	v3_:register(XMLValueType.STRING, "vehicles.vehicle(?).baler#workAreaMissionUniqueId", "Workarea mission unique id")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Baler")
+	Baler.registerBalerXMLPaths(schema, "vehicle.baler")
+	Baler.registerBalerXMLPaths(schema, "vehicle.baler.balerConfigurations.balerConfiguration(?)")
+	schema:register(XMLValueType.BOOL, FillUnit.ALARM_TRIGGER_XML_KEY .. "#needsBaleLoaded", "Alarm triggers only when a full bale is loaded", false)
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).baler#numBales", "Number of bales")
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).baler.bale(?)#filename", "XML Filename of bale")
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).baler.bale(?)#variationId", "Variation ID of the bale")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).baler.bale(?)#ownerFarmId", "Owner of the bale")
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).baler.bale(?)#fillType", "Bale fill type index")
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).baler.bale(?)#fillLevel", "Bale fill level")
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).baler.bale(?)#baleTime", "Bale time")
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).baler#platformReadyToDrop", "Platform is ready to drop", false)
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).baler#baleTypeIndex", "Current bale type index", 1)
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).baler#preSelectedBaleTypeIndex", "Pre selected bale type index", 1)
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).baler#fillUnitCapacity", "Current baler capacity depending on bale size")
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).baler#bufferUnloadingStarted", "Baler buffer unloading in progress")
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).baler#workAreaMissionUniqueId", "Workarea mission unique id")
 end
-
 function Baler.registerBalerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. "#fillScale", "Fill scale", 1)
 	schema:register(XMLValueType.INT, basePath .. "#fillUnitIndex", "Fill unit index", 1)
@@ -116,7 +115,7 @@ function Baler.registerBalerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.TIME, basePath .. ".buffer#overloadingDuration", "Duration of overloading from buffer to baler unit (sec)", 0.5)
 	schema:register(XMLValueType.TIME, basePath .. ".buffer#overloadingDelay", "Time until the real overloading is starting (can be used to wait for the effects to be fully fade in) (sec)", 0)
 	schema:register(XMLValueType.FLOAT, basePath .. ".buffer#overloadingStartFillLevelPct", "Fill level percentage [0-1] of the buffer to start the overloading", 1)
-	schema:register(XMLValueType.BOOL, basePath .. ".buffer#fillMainUnitAfterOverload", "After overloading the full buffer to the main unit it will continue filling the main unit until it\'s full", false)
+	schema:register(XMLValueType.BOOL, basePath .. ".buffer#fillMainUnitAfterOverload", "After overloading the full buffer to the main unit it will continue filling the main unit until it's full", false)
 	schema:register(XMLValueType.STRING, basePath .. ".buffer#balerDisplayType", "Forced fill type to display on baler unit")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".buffer.dummyBale#node", "Dummy bale link node")
 	schema:register(XMLValueType.VECTOR_3, basePath .. ".buffer.dummyBale#scaleComponents", "Dummy bale link scale components", "1 1 0")
@@ -139,20 +138,13 @@ function Baler.registerBalerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. ".additives#fillTypes", "Fill types to apply additives", "GRASS_WINDROW")
 	schema:register(XMLValueType.BOOL, basePath .. ".additives#appliedByBufferOverloading", "Additives are applied while the buffer unit is overloaded into main unit", false)
 end
-
 function Baler.prerequisitesPresent(specializations)
-	local v7_ = SpecializationUtil.hasSpecialization(FillUnit, specializations) and SpecializationUtil.hasSpecialization(WorkArea, specializations) and (SpecializationUtil.hasSpecialization(TurnOnVehicle, specializations) and SpecializationUtil.hasSpecialization(AnimatedVehicle, specializations))
-	if v7_ then
-		v7_ = SpecializationUtil.hasSpecialization(Consumable, specializations)
-	end
-	return v7_
+	return SpecializationUtil.hasSpecialization(FillUnit, specializations) and SpecializationUtil.hasSpecialization(WorkArea, specializations) and SpecializationUtil.hasSpecialization(TurnOnVehicle, specializations) and SpecializationUtil.hasSpecialization(AnimatedVehicle, specializations) and SpecializationUtil.hasSpecialization(Consumable, specializations)
 end
-
 function Baler.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onBalerUnloadingStarted")
 	SpecializationUtil.registerEvent(vehicleType, "onBalerUnloadingFinished")
 end
-
 function Baler.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "processBalerArea", Baler.processBalerArea)
 	SpecializationUtil.registerFunction(vehicleType, "setBaleTypeIndex", Baler.setBaleTypeIndex)
@@ -176,7 +168,6 @@ function Baler.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getBalerBaleOwnerFarmId", Baler.getBalerBaleOwnerFarmId)
 	SpecializationUtil.registerFunction(vehicleType, "getIsRoundBaler", Baler.getIsRoundBaler)
 end
-
 function Baler.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "loadSpeedRotatingPartFromXML", Baler.loadSpeedRotatingPartFromXML)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "doCheckSpeedLimit", Baler.doCheckSpeedLimit)
@@ -195,7 +186,6 @@ function Baler.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "addToPhysics", Baler.addToPhysics)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "removeFromPhysics", Baler.removeFromPhysics)
 end
-
 function Baler.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Baler)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", Baler)
@@ -219,14 +209,12 @@ function Baler.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onFillUnitFillLevelChanged", Baler)
 	SpecializationUtil.registerEventListener(vehicleType, "onConsumableVariationChanged", Baler)
 end
-
--- Local values: spec, baseKey, configurationId, configKey, baleAnimCurve, keyframes, lastX, lastY, lastZ, totalLength, i, keyframe, t, defaultBaleTypeIndex, defaultBaleType, closeAnimation, fillTypeName, fillTypeIndex, additivesFillTypeNames, baleTypeIndex, preSelectedBaleTypeIndex, fillUnitCapacity
 function Baler:onLoad(savegame)
-	local v_u_14_ = self.spec_baler
+	local spec = self.spec_baler
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.fillScale#value", "vehicle.baler#fillScale")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.turnedOnRotationNodes.turnedOnRotationNode#type", "vehicle.baler.animationNodes.animationNode", "baler")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler.balingAnimation#name", "vehicle.turnOnVehicle.turnedOnAnimation#name")
-	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler.fillParticleSystems", "vehicle.baler.fillEffect with effectClass \'ParticleEffect\'")
+	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler.fillParticleSystems", "vehicle.baler.fillEffect with effectClass 'ParticleEffect'")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler.uvScrollParts.uvScrollPart", "vehicle.baler.animationNodes.animationNode")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler.balerAlarm", "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration.fillUnits.fillUnit.alarmTriggers.alarmTrigger.alarmSound")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler.baleAnimation#node", "vehicle.baler.baleTypes.baleType#baleNode")
@@ -239,1551 +227,1473 @@ function Baler:onLoad(savegame)
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler#toggleAutomaticDropTextPos", "vehicle.baler.automaticDrop#textPos")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler#toggleAutomaticDropTextNeg", "vehicle.baler.automaticDrop#textNeg")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baler.baleAnimation#firstBaleMarker", "Please adjust bale nodes to match the default balers")
-	local v15_ = self.configurations.baler or 1
-	local v16_ = string.format("vehicle.baler.balerConfigurations.balerConfiguration(%d)", v15_ - 1)
-	local v17_ = not self.xmlFile:hasProperty(v16_) and "vehicle.baler" or v16_
-	v_u_14_.fillScale = self.xmlFile:getValue(v17_ .. "#fillScale", 1)
-	v_u_14_.fillUnitIndex = self.xmlFile:getValue(v17_ .. "#fillUnitIndex", 1)
-	v_u_14_.consumableUsage = self.xmlFile:getValue(v17_ .. "#consumableUsage", 0.025)
-	v_u_14_.useDropLandOwnershipForBales = self.xmlFile:getValue(v17_ .. "#useDropLandOwnershipForBales", false)
-	if self.xmlFile:hasProperty(v17_ .. ".baleAnimation") then
-		local v18_ = AnimCurve.new(linearInterpolatorN)
-		local v_u_19_ = {}
-		local v_u_20_ = nil
-		local v_u_21_ = nil
-		local v_u_22_ = nil
-		local v_u_23_ = 0
-		self.xmlFile:iterate(v17_ .. ".baleAnimation.key", function(_, p24_)
-			-- upvalues: (copy) self, (ref) v_u_20_, (ref) v_u_21_, (ref) v_u_22_, (ref) v_u_23_, (copy) v_u_19_
-			XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p24_ .. "#time")
-			local v25_ = {}
-			local v26_, v27_, v28_ = self.xmlFile:getValue(p24_ .. "#pos")
-			v25_.x = v26_
-			v25_.y = v27_
-			v25_.z = v28_
-			if v25_.x == nil then
-				Logging.xmlWarning(self.xmlFile, "Missing values for \'%s\'", p24_ .. "#pos")
+	local baseKey = "vehicle.baler"
+	local configurationId = self.configurations.baler or 1
+	local configKey = string.format("vehicle.baler.balerConfigurations.balerConfiguration(%d)", configurationId - 1)
+	if self.xmlFile:hasProperty(configKey) then
+		baseKey = configKey
+	end
+	spec.fillScale = self.xmlFile:getValue(baseKey .. "#fillScale", 1)
+	spec.fillUnitIndex = self.xmlFile:getValue(baseKey .. "#fillUnitIndex", 1)
+	spec.consumableUsage = self.xmlFile:getValue(baseKey .. "#consumableUsage", 0.025)
+	spec.useDropLandOwnershipForBales = self.xmlFile:getValue(baseKey .. "#useDropLandOwnershipForBales", false)
+	if self.xmlFile:hasProperty(baseKey .. ".baleAnimation") then
+		local baleAnimCurve = AnimCurve.new(linearInterpolatorN)
+		local keyframes = {}
+		local lastX = nil
+		local lastY = nil
+		local lastZ = nil
+		local totalLength = 0
+		self.xmlFile:iterate(baseKey .. ".baleAnimation.key", function(_, key)
+			XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#time")
+			local keyframe = {}
+			keyframe.x, keyframe.y, keyframe.z = self.xmlFile:getValue(key .. "#pos")
+			if keyframe.x == nil then
+				Logging.xmlWarning(self.xmlFile, "Missing values for '%s'", key .. "#pos")
 			else
-				local v29_, v30_, v31_ = self.xmlFile:getValue(p24_ .. "#rot", "0 0 0")
-				v25_.rx = v29_
-				v25_.ry = v30_
-				v25_.rz = v31_
-				if v_u_20_ ~= nil then
-					v25_.length = MathUtil.vector3Length(v_u_20_ - v25_.x, v_u_21_ - v25_.y, v_u_22_ - v25_.z)
-					v_u_23_ = v_u_23_ + v25_.length
-					v25_.pos = v_u_23_
+				keyframe.rx, keyframe.ry, keyframe.rz = self.xmlFile:getValue(key .. "#rot", "0 0 0")
+				if lastX ~= nil then
+					keyframe.length = MathUtil.vector3Length(lastX - keyframe.x, lastY - keyframe.y, lastZ - keyframe.z)
+					totalLength = totalLength + keyframe.length
+					keyframe.pos = totalLength
 				end
-				local v32_ = v_u_19_
-				table.insert(v32_, v25_)
-				local v33_ = v25_.x
-				local v34_ = v25_.y
-				local v35_ = v25_.z
-				v_u_20_ = v33_
-				v_u_21_ = v34_
-				v_u_22_ = v35_
+				table.insert(keyframes, keyframe)
+				lastX = keyframe.x
+				lastY = keyframe.y
+				lastZ = keyframe.z
 			end
 		end)
-		local v36_ = v_u_23_
-		for v37_ = 1, #v_u_19_ do
-			local v38_ = v_u_19_[v37_]
-			local v39_ = v38_.pos == nil and 0 or v38_.pos / v36_
-			v18_:addKeyframe({
-				v38_.x,
-				v38_.y,
-				v38_.z,
-				v38_.rx,
-				v38_.ry,
-				v38_.rz,
-				["time"] = v39_
-			})
+		for i = 1, #keyframes do
+			local keyframe = keyframes[i]
+			local t = 0
+			if keyframe.pos ~= nil then
+				t = keyframe.pos / totalLength
+			end
+			baleAnimCurve:addKeyframe({ keyframe.x, keyframe.y, keyframe.z, keyframe.rx, keyframe.ry, keyframe.rz, ["time"] = t })
 		end
-		if #v_u_19_ > 0 then
-			v_u_14_.baleAnimCurve = v18_
-			v_u_14_.baleAnimLength = v36_
-			v_u_14_.baleAnimSpacing = self.xmlFile:getValue(v17_ .. ".baleAnimation#spacing", 0)
-			v_u_14_.baleAnimEnableCollision = self.xmlFile:getValue(v17_ .. ".baleAnimation#enableCollision", true)
+		if 0 < #keyframes then
+			spec.baleAnimCurve = baleAnimCurve
+			spec.baleAnimLength = totalLength
+			spec.baleAnimSpacing = self.xmlFile:getValue(baseKey .. ".baleAnimation#spacing", 0)
+			spec.baleAnimEnableCollision = self.xmlFile:getValue(baseKey .. ".baleAnimation#enableCollision", true)
 		end
 	end
-	v_u_14_.hasUnloadingAnimation = true
-	v_u_14_.isRoundBaler = false
-	v_u_14_.lastBaleVariationId = nil
-	local v_u_40_ = 1
-	v_u_14_.baleTypes = {}
-	self.xmlFile:iterate(v17_ .. ".baleTypes.baleType", function(p41_, p42_)
-		-- upvalues: (copy) v_u_14_, (copy) self, (ref) v_u_40_
-		if #v_u_14_.baleTypes >= BalerBaleTypeEvent.MAX_NUM_BALE_TYPES then
-			Logging.xmlError(self.xmlFile, "Too many bale types defined. Max. amount is \'%d\'! \'%s\'", BalerBaleTypeEvent.MAX_NUM_BALE_TYPES, p42_)
+	spec.hasUnloadingAnimation = true
+	spec.isRoundBaler = false
+	spec.lastBaleVariationId = nil
+	local defaultBaleTypeIndex = 1
+	spec.baleTypes = {}
+	self.xmlFile:iterate(baseKey .. ".baleTypes.baleType", function(index, key)
+		if BalerBaleTypeEvent.MAX_NUM_BALE_TYPES <= #spec.baleTypes then
+			Logging.xmlError(self.xmlFile, "Too many bale types defined. Max. amount is '%d'! '%s'", BalerBaleTypeEvent.MAX_NUM_BALE_TYPES, key)
 			return false
-		else
-			local v_u_43_ = {
-				["index"] = p41_,
-				["isRoundBale"] = self.xmlFile:getValue(p42_ .. "#isRoundBale", false),
-				["width"] = MathUtil.round(self.xmlFile:getValue(p42_ .. "#width", 1.2), 2),
-				["height"] = MathUtil.round(self.xmlFile:getValue(p42_ .. "#height", 0.9), 2),
-				["length"] = MathUtil.round(self.xmlFile:getValue(p42_ .. "#length", 2.4), 2),
-				["diameter"] = MathUtil.round(self.xmlFile:getValue(p42_ .. "#diameter", 1.8), 2)
-			}
-			if v_u_43_.isRoundBale then
-				v_u_14_.isRoundBaler = true
-			end
-			v_u_43_.isDefault = self.xmlFile:getValue(p42_ .. "#isDefault", false)
-			if v_u_43_.isDefault then
-				v_u_40_ = p41_
-			end
-			v_u_43_.consumableUsage = self.xmlFile:getValue(p42_ .. "#consumableUsage", v_u_14_.consumableUsage)
-			v_u_43_.chamberBaleVariationId = self.xmlFile:getValue(p42_ .. "#chamberBaleVariationId", "DEFAULT")
-			v_u_43_.defaultBaleVariationId = self.xmlFile:getValue(p42_ .. "#defaultBaleVariationId", "DEFAULT")
-			v_u_43_.baleNode = self.xmlFile:getValue(p42_ .. ".nodes#baleNode", nil, self.components, self.i3dMappings)
-			local v44_, v45_ = self.xmlFile:getValue(p42_ .. ".nodes#baleRootNode", v_u_43_.baleNode, self.components, self.i3dMappings)
-			v_u_43_.baleRootNode = v44_
-			v_u_43_.baleNodeComponent = v45_
-			if v_u_43_.baleRootNode ~= nil and v_u_43_.baleNodeComponent == nil then
-				v_u_43_.baleNodeComponent = self:getParentComponent(v_u_43_.baleRootNode)
-			end
-			if v_u_43_.baleNode == nil then
-				Logging.xmlError(self.xmlFile, "Missing baleNode for bale type. \'%s\'", p42_)
-			else
-				v_u_43_.scaleNode = self.xmlFile:getValue(p42_ .. ".nodes#scaleNode", nil, self.components, self.i3dMappings)
-				v_u_43_.scaleComponents = self.xmlFile:getValue(p42_ .. ".nodes#scaleComponents", nil, true)
-				v_u_43_.animations = {}
-				v_u_43_.animations.fill = self.xmlFile:getValue(p42_ .. ".animations#fillAnimation")
-				v_u_43_.animations.unloading = self.xmlFile:getValue(p42_ .. ".animations#unloadAnimation")
-				v_u_43_.animations.unloadingSpeed = self.xmlFile:getValue(p42_ .. ".animations#unloadAnimationSpeed", 1)
-				v_u_43_.animations.dropAnimationTime = self.xmlFile:getValue(p42_ .. ".animations#dropAnimationTime", self:getAnimationDuration(v_u_43_.animations.unloading) / 1000)
-				v_u_43_.detailVisibilityCutNodes = {}
-				self.xmlFile:iterate(p42_ .. ".detailVisibilityCutNode", function(_, p46_)
-					-- upvalues: (ref) self, (copy) v_u_43_
-					local v47_ = {
-						["node"] = self.xmlFile:getValue(p46_ .. "#node", nil, self.components, self.i3dMappings)
-					}
-					if v47_.node ~= nil then
-						v47_.axis = self.xmlFile:getValue(p46_ .. "#axis", 3)
-						v47_.direction = self.xmlFile:getValue(p46_ .. "#direction", 1)
-						local v48_ = v_u_43_.detailVisibilityCutNodes
-						table.insert(v48_, v47_)
-					end
-				end)
-				v_u_43_.changeObjects = {}
-				ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, p42_, v_u_43_.changeObjects, self.components, self)
-				local v49_ = v_u_14_.baleTypes
-				table.insert(v49_, v_u_43_)
-				local v50_ = v_u_14_
-				local v51_ = v_u_14_.hasUnloadingAnimation
-				if v51_ then
-					v51_ = v_u_43_.animations.unloading ~= nil
+		end
+		local baleTypeDefinition = {}
+		baleTypeDefinition.index = index
+		baleTypeDefinition.isRoundBale = self.xmlFile:getValue(key .. "#isRoundBale", false)
+		baleTypeDefinition.width = MathUtil.round(self.xmlFile:getValue(key .. "#width", 1.2), 2)
+		baleTypeDefinition.height = MathUtil.round(self.xmlFile:getValue(key .. "#height", 0.9), 2)
+		baleTypeDefinition.length = MathUtil.round(self.xmlFile:getValue(key .. "#length", 2.4), 2)
+		baleTypeDefinition.diameter = MathUtil.round(self.xmlFile:getValue(key .. "#diameter", 1.8), 2)
+		if baleTypeDefinition.isRoundBale then
+			spec.isRoundBaler = true
+		end
+		baleTypeDefinition.isDefault = self.xmlFile:getValue(key .. "#isDefault", false)
+		if baleTypeDefinition.isDefault then
+			defaultBaleTypeIndex = index
+		end
+		baleTypeDefinition.consumableUsage = self.xmlFile:getValue(key .. "#consumableUsage", spec.consumableUsage)
+		baleTypeDefinition.chamberBaleVariationId = self.xmlFile:getValue(key .. "#chamberBaleVariationId", "DEFAULT")
+		baleTypeDefinition.defaultBaleVariationId = self.xmlFile:getValue(key .. "#defaultBaleVariationId", "DEFAULT")
+		baleTypeDefinition.baleNode = self.xmlFile:getValue(key .. ".nodes#baleNode", nil, self.components, self.i3dMappings)
+		baleTypeDefinition.baleRootNode, baleTypeDefinition.baleNodeComponent = self.xmlFile:getValue(key .. ".nodes#baleRootNode", baleTypeDefinition.baleNode, self.components, self.i3dMappings)
+		if baleTypeDefinition.baleRootNode ~= nil and baleTypeDefinition.baleNodeComponent == nil then
+			baleTypeDefinition.baleNodeComponent = self:getParentComponent(baleTypeDefinition.baleRootNode)
+		end
+		if baleTypeDefinition.baleNode ~= nil then
+			baleTypeDefinition.scaleNode = self.xmlFile:getValue(key .. ".nodes#scaleNode", nil, self.components, self.i3dMappings)
+			baleTypeDefinition.scaleComponents = self.xmlFile:getValue(key .. ".nodes#scaleComponents", nil, true)
+			baleTypeDefinition.animations = {}
+			baleTypeDefinition.animations.fill = self.xmlFile:getValue(key .. ".animations#fillAnimation")
+			baleTypeDefinition.animations.unloading = self.xmlFile:getValue(key .. ".animations#unloadAnimation")
+			baleTypeDefinition.animations.unloadingSpeed = self.xmlFile:getValue(key .. ".animations#unloadAnimationSpeed", 1)
+			baleTypeDefinition.animations.dropAnimationTime = self.xmlFile:getValue(key .. ".animations#dropAnimationTime", self:getAnimationDuration(baleTypeDefinition.animations.unloading) / 1000)
+			baleTypeDefinition.detailVisibilityCutNodes = {}
+			self.xmlFile:iterate(key .. ".detailVisibilityCutNode", function(_, detailsVisNodeKey)
+				local detailVisibilityCutNode = {}
+				detailVisibilityCutNode.node = self.xmlFile:getValue(detailsVisNodeKey .. "#node", nil, self.components, self.i3dMappings)
+				if detailVisibilityCutNode.node ~= nil then
+					detailVisibilityCutNode.axis = self.xmlFile:getValue(detailsVisNodeKey .. "#axis", 3)
+					detailVisibilityCutNode.direction = self.xmlFile:getValue(detailsVisNodeKey .. "#direction", 1)
+					table.insert(baleTypeDefinition.detailVisibilityCutNodes, detailVisibilityCutNode)
 				end
-				v50_.hasUnloadingAnimation = v51_
-			end
+			end)
+			baleTypeDefinition.changeObjects = {}
+			ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, key, baleTypeDefinition.changeObjects, self.components, self)
+			table.insert(spec.baleTypes, baleTypeDefinition)
+			spec.hasUnloadingAnimation = spec.hasUnloadingAnimation and baleTypeDefinition.animations.unloading ~= nil
+		else
+			Logging.xmlError(self.xmlFile, "Missing baleNode for bale type. '%s'", key)
 		end
 	end)
-	local v52_ = v_u_14_.baleTypes[v_u_40_]
-	if v52_ ~= nil then
-		ObjectChangeUtil.setObjectChanges(v52_.changeObjects, true, self, self.setMovingToolDirty)
+	local defaultBaleType = spec.baleTypes[defaultBaleTypeIndex]
+	if defaultBaleType ~= nil then
+		ObjectChangeUtil.setObjectChanges(defaultBaleType.changeObjects, true, self, self.setMovingToolDirty)
 	end
-	v_u_14_.changeBaleTypeText = self.xmlFile:getValue(v17_ .. ".baleTypes#changeText", "action_changeBaleSize", self.customEnvironment)
-	v_u_14_.preSelectedBaleTypeIndex = v_u_40_
-	v_u_14_.currentBaleTypeIndex = v_u_40_
-	v_u_14_.currentBaleXMLFilename = nil
-	v_u_14_.currentBaleTypeDefinition = nil
-	if #v_u_14_.baleTypes == 0 then
+	spec.changeBaleTypeText = self.xmlFile:getValue(baseKey .. ".baleTypes#changeText", "action_changeBaleSize", self.customEnvironment)
+	spec.preSelectedBaleTypeIndex = defaultBaleTypeIndex
+	spec.currentBaleTypeIndex = defaultBaleTypeIndex
+	spec.currentBaleXMLFilename = nil
+	spec.currentBaleTypeDefinition = nil
+	if #spec.baleTypes == 0 then
 		Logging.xmlError(self.xmlFile, "No baleTypes definded for baler.")
 	end
-	if v_u_14_.hasUnloadingAnimation then
-		v_u_14_.automaticDrop = self.xmlFile:getValue(v17_ .. ".automaticDrop#enabled", Platform.gameplay.automaticBaleDrop)
-		v_u_14_.toggleableAutomaticDrop = self.xmlFile:getValue(v17_ .. ".automaticDrop#toggleable", not Platform.gameplay.automaticBaleDrop)
-		v_u_14_.toggleAutomaticDropTextPos = self.xmlFile:getValue(v17_ .. ".automaticDrop#textPos", "action_toggleAutomaticBaleDropPos", self.customEnvironment)
-		v_u_14_.toggleAutomaticDropTextNeg = self.xmlFile:getValue(v17_ .. ".automaticDrop#textNeg", "action_toggleAutomaticBaleDropNeg", self.customEnvironment)
-		v_u_14_.baleCloseAnimationName = self.xmlFile:getValue(v17_ .. ".baleAnimation#closeAnimationName")
-		v_u_14_.baleCloseAnimationSpeed = self.xmlFile:getValue(v17_ .. ".baleAnimation#closeAnimationSpeed", 1)
-		local v53_ = self:getAnimationByName(v_u_14_.baleCloseAnimationName)
-		if v_u_14_.baleCloseAnimationName == nil or v53_ == nil then
-			Logging.xmlError(self.xmlFile, "Failed to find baler close animation. (%s)", v17_ .. ".baleAnimation#closeAnimationName")
+	if spec.hasUnloadingAnimation then
+		spec.automaticDrop = self.xmlFile:getValue(baseKey .. ".automaticDrop#enabled", Platform.gameplay.automaticBaleDrop)
+		spec.toggleableAutomaticDrop = self.xmlFile:getValue(baseKey .. ".automaticDrop#toggleable", not Platform.gameplay.automaticBaleDrop)
+		spec.toggleAutomaticDropTextPos = self.xmlFile:getValue(baseKey .. ".automaticDrop#textPos", "action_toggleAutomaticBaleDropPos", self.customEnvironment)
+		spec.toggleAutomaticDropTextNeg = self.xmlFile:getValue(baseKey .. ".automaticDrop#textNeg", "action_toggleAutomaticBaleDropNeg", self.customEnvironment)
+		spec.baleCloseAnimationName = self.xmlFile:getValue(baseKey .. ".baleAnimation#closeAnimationName")
+		spec.baleCloseAnimationSpeed = self.xmlFile:getValue(baseKey .. ".baleAnimation#closeAnimationSpeed", 1)
+		local closeAnimation = self:getAnimationByName(spec.baleCloseAnimationName)
+		if spec.baleCloseAnimationName == nil or closeAnimation == nil then
+			Logging.xmlError(self.xmlFile, "Failed to find baler close animation. (%s)", baseKey .. ".baleAnimation#closeAnimationName")
 		else
-			v53_.resetOnStart = false
+			closeAnimation.resetOnStart = false
 		end
 	end
-	v_u_14_.unfinishedBaleThreshold = self.xmlFile:getValue(v17_ .. "#unfinishedBaleThreshold", 2000)
-	v_u_14_.canUnloadUnfinishedBale = self.xmlFile:getValue(v17_ .. "#canUnloadUnfinishedBale", false)
-	v_u_14_.lastBaleFillLevel = nil
+	spec.unfinishedBaleThreshold = self.xmlFile:getValue(baseKey .. "#unfinishedBaleThreshold", 2000)
+	spec.canUnloadUnfinishedBale = self.xmlFile:getValue(baseKey .. "#canUnloadUnfinishedBale", false)
+	spec.lastBaleFillLevel = nil
 	if self.isClient then
-		v_u_14_.samples = {}
-		v_u_14_.samples.work = g_soundManager:loadSampleFromXML(self.xmlFile, v17_ .. ".sounds", "work", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_14_.samples.eject = g_soundManager:loadSampleFromXML(self.xmlFile, v17_ .. ".sounds", "eject", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_14_.samples.unload = g_soundManager:loadSampleFromXML(self.xmlFile, v17_ .. ".sounds", "unload", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_14_.samples.door = g_soundManager:loadSampleFromXML(self.xmlFile, v17_ .. ".sounds", "door", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_14_.samples.knotCleaning = g_soundManager:loadSampleFromXML(self.xmlFile, v17_ .. ".sounds", "knotCleaning", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_14_.knotCleaningTimer = 10000
-		v_u_14_.knotCleaningTime = 120000
-		v_u_14_.animationNodes = g_animationManager:loadAnimations(self.xmlFile, v17_ .. ".animationNodes", self.components, self, self.i3dMappings)
-		v_u_14_.unloadAnimationNodes = g_animationManager:loadAnimations(self.xmlFile, v17_ .. ".unloadAnimationNodes", self.components, self, self.i3dMappings)
-		v_u_14_.fillEffects = g_effectManager:loadEffect(self.xmlFile, v17_ .. ".fillEffect", self.components, self, self.i3dMappings)
-		v_u_14_.fillEffectType = FillType.UNKNOWN
-		v_u_14_.additiveEffects = g_effectManager:loadEffect(self.xmlFile, v17_ .. ".additiveEffects", self.components, self, self.i3dMappings)
-		v_u_14_.knotingAnimation = self.xmlFile:getValue(v17_ .. ".knotingAnimation#name")
-		v_u_14_.knotingAnimationSpeed = self.xmlFile:getValue(v17_ .. ".knotingAnimation#speed", 1)
-		v_u_14_.compactingAnimation = self.xmlFile:getValue(v17_ .. ".compactingAnimation#name")
-		v_u_14_.compactingAnimationInterval = self.xmlFile:getValue(v17_ .. ".compactingAnimation#interval", 60) * 1000
-		v_u_14_.compactingAnimationCompactTime = self.xmlFile:getValue(v17_ .. ".compactingAnimation#compactTime", 5) * 1000
-		v_u_14_.compactingAnimationCompactTimer = v_u_14_.compactingAnimationCompactTime
-		v_u_14_.compactingAnimationTime = v_u_14_.compactingAnimationInterval
-		v_u_14_.compactingAnimationSpeed = self.xmlFile:getValue(v17_ .. ".compactingAnimation#speed", 1)
-		v_u_14_.compactingAnimationMinTime = self.xmlFile:getValue(v17_ .. ".compactingAnimation#minFillLevelTime", 1)
-		v_u_14_.compactingAnimationMaxTime = self.xmlFile:getValue(v17_ .. ".compactingAnimation#maxFillLevelTime", 0.1)
+		spec.samples = {}
+		spec.samples.work = g_soundManager:loadSampleFromXML(self.xmlFile, baseKey .. ".sounds", "work", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.eject = g_soundManager:loadSampleFromXML(self.xmlFile, baseKey .. ".sounds", "eject", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.unload = g_soundManager:loadSampleFromXML(self.xmlFile, baseKey .. ".sounds", "unload", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.door = g_soundManager:loadSampleFromXML(self.xmlFile, baseKey .. ".sounds", "door", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.knotCleaning = g_soundManager:loadSampleFromXML(self.xmlFile, baseKey .. ".sounds", "knotCleaning", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.knotCleaningTimer = 10000
+		spec.knotCleaningTime = 120000
+		spec.animationNodes = g_animationManager:loadAnimations(self.xmlFile, baseKey .. ".animationNodes", self.components, self, self.i3dMappings)
+		spec.unloadAnimationNodes = g_animationManager:loadAnimations(self.xmlFile, baseKey .. ".unloadAnimationNodes", self.components, self, self.i3dMappings)
+		spec.fillEffects = g_effectManager:loadEffect(self.xmlFile, baseKey .. ".fillEffect", self.components, self, self.i3dMappings)
+		spec.fillEffectType = FillType.UNKNOWN
+		spec.additiveEffects = g_effectManager:loadEffect(self.xmlFile, baseKey .. ".additiveEffects", self.components, self, self.i3dMappings)
+		spec.knotingAnimation = self.xmlFile:getValue(baseKey .. ".knotingAnimation#name")
+		spec.knotingAnimationSpeed = self.xmlFile:getValue(baseKey .. ".knotingAnimation#speed", 1)
+		spec.compactingAnimation = self.xmlFile:getValue(baseKey .. ".compactingAnimation#name")
+		spec.compactingAnimationInterval = self.xmlFile:getValue(baseKey .. ".compactingAnimation#interval", 60) * 1000
+		spec.compactingAnimationCompactTime = self.xmlFile:getValue(baseKey .. ".compactingAnimation#compactTime", 5) * 1000
+		spec.compactingAnimationCompactTimer = spec.compactingAnimationCompactTime
+		spec.compactingAnimationTime = spec.compactingAnimationInterval
+		spec.compactingAnimationSpeed = self.xmlFile:getValue(baseKey .. ".compactingAnimation#speed", 1)
+		spec.compactingAnimationMinTime = self.xmlFile:getValue(baseKey .. ".compactingAnimation#minFillLevelTime", 1)
+		spec.compactingAnimationMaxTime = self.xmlFile:getValue(baseKey .. ".compactingAnimation#maxFillLevelTime", 0.1)
 	end
-	v_u_14_.lastAreaBiggerZero = false
-	v_u_14_.lastAreaBiggerZeroSent = false
-	v_u_14_.lastAreaBiggerZeroTime = 0
-	v_u_14_.workAreaParameters = {}
-	v_u_14_.workAreaParameters.lastPickedUpLiters = 0
-	v_u_14_.fillUnitOverflowFillLevel = 0
-	v_u_14_.maxPickupLitersPerSecond = self.xmlFile:getValue(v17_ .. "#maxPickupLitersPerSecond", 500)
-	v_u_14_.pickUpLitersBuffer = ValueBuffer.new(750)
-	v_u_14_.unloadingState = Baler.UNLOADING_CLOSED
-	v_u_14_.pickupFillTypes = {}
-	v_u_14_.bales = {}
-	v_u_14_.dummyBale = {}
-	v_u_14_.dummyBale.currentBaleFillType = FillType.UNKNOWN
-	v_u_14_.dummyBale.currentBale = nil
-	v_u_14_.dummyBale.currentBaleLength = 0
-	v_u_14_.allowsBaleUnloading = self.xmlFile:getValue(v17_ .. ".baleUnloading#allowed", false)
-	v_u_14_.baleUnloadingTime = self.xmlFile:getValue(v17_ .. ".baleUnloading#time", 4) * 1000
-	v_u_14_.baleFoldThreshold = self.xmlFile:getValue(v17_ .. ".baleUnloading#foldThreshold", 0.25) * self:getFillUnitCapacity(v_u_14_.fillUnitIndex)
-	v_u_14_.platformAnimation = self.xmlFile:getValue(v17_ .. ".platform#animationName")
-	v_u_14_.platformAnimationNextBaleTime = self.xmlFile:getValue(v17_ .. ".platform#nextBaleTime", 0)
-	v_u_14_.platformAutomaticDrop = self.xmlFile:getValue(v17_ .. ".platform#automaticDrop", Platform.gameplay.automaticBaleDrop)
-	v_u_14_.platformAIDropSpeed = self.xmlFile:getValue(v17_ .. ".platform#aiSpeed", 3)
-	v_u_14_.hasPlatform = v_u_14_.platformAnimation ~= nil
-	v_u_14_.hasDynamicMountPlatform = SpecializationUtil.hasSpecialization(DynamicMountAttacher, self.specializations)
-	if v_u_14_.hasPlatform then
-		v_u_14_.automaticDrop = true
+	spec.lastAreaBiggerZero = false
+	spec.lastAreaBiggerZeroSent = false
+	spec.lastAreaBiggerZeroTime = 0
+	spec.workAreaParameters = {}
+	spec.workAreaParameters.lastPickedUpLiters = 0
+	spec.fillUnitOverflowFillLevel = 0
+	spec.maxPickupLitersPerSecond = self.xmlFile:getValue(baseKey .. "#maxPickupLitersPerSecond", 500)
+	spec.pickUpLitersBuffer = ValueBuffer.new(750)
+	spec.unloadingState = Baler.UNLOADING_CLOSED
+	spec.pickupFillTypes = {}
+	spec.bales = {}
+	spec.dummyBale = {}
+	spec.dummyBale.currentBaleFillType = FillType.UNKNOWN
+	spec.dummyBale.currentBale = nil
+	spec.dummyBale.currentBaleLength = 0
+	spec.allowsBaleUnloading = self.xmlFile:getValue(baseKey .. ".baleUnloading#allowed", false)
+	spec.baleUnloadingTime = self.xmlFile:getValue(baseKey .. ".baleUnloading#time", 4) * 1000
+	spec.baleFoldThreshold = self.xmlFile:getValue(baseKey .. ".baleUnloading#foldThreshold", 0.25) * self:getFillUnitCapacity(spec.fillUnitIndex)
+	spec.platformAnimation = self.xmlFile:getValue(baseKey .. ".platform#animationName")
+	spec.platformAnimationNextBaleTime = self.xmlFile:getValue(baseKey .. ".platform#nextBaleTime", 0)
+	spec.platformAutomaticDrop = self.xmlFile:getValue(baseKey .. ".platform#automaticDrop", Platform.gameplay.automaticBaleDrop)
+	spec.platformAIDropSpeed = self.xmlFile:getValue(baseKey .. ".platform#aiSpeed", 3)
+	spec.hasPlatform = spec.platformAnimation ~= nil
+	spec.hasDynamicMountPlatform = SpecializationUtil.hasSpecialization(DynamicMountAttacher, self.specializations)
+	if spec.hasPlatform then
+		spec.automaticDrop = true
 	end
-	v_u_14_.platformReadyToDrop = false
-	v_u_14_.platformDropInProgress = false
-	v_u_14_.platformDelayedDropping = false
-	v_u_14_.platformMountDelay = -1
-	v_u_14_.buffer = {}
-	v_u_14_.buffer.fillUnitIndex = self.xmlFile:getValue(v17_ .. ".buffer#fillUnitIndex")
-	v_u_14_.buffer.unloadInfoIndex = self.xmlFile:getValue(v17_ .. ".buffer#unloadInfoIndex", 1)
-	v_u_14_.buffer.capacityPercentage = self.xmlFile:getValue(v17_ .. ".buffer#capacityPercentage")
-	v_u_14_.buffer.overloadingDuration = self.xmlFile:getValue(v17_ .. ".buffer#overloadingDuration", 1)
-	v_u_14_.buffer.overloadingDelay = self.xmlFile:getValue(v17_ .. ".buffer#overloadingDelay", 0)
-	v_u_14_.buffer.overloadingTimer = 0
-	v_u_14_.buffer.overloadingStartFillLevelPct = MathUtil.round(self.xmlFile:getValue(v17_ .. ".buffer#overloadingStartFillLevelPct", 1), 2)
-	v_u_14_.buffer.fillMainUnitAfterOverload = self.xmlFile:getValue(v17_ .. ".buffer#fillMainUnitAfterOverload", false)
-	v_u_14_.buffer.unloadingStarted = false
-	v_u_14_.buffer.fillLevelToEmpty = 0
-	v_u_14_.buffer.dummyBale = {}
-	v_u_14_.buffer.dummyBale.available = self.xmlFile:hasProperty(v17_ .. ".buffer.dummyBale")
-	v_u_14_.buffer.dummyBale.linkNode = self.xmlFile:getValue(v17_ .. ".buffer.dummyBale#node", nil, self.components, self.i3dMappings)
-	v_u_14_.buffer.dummyBale.scaleComponents = self.xmlFile:getValue(v17_ .. ".buffer.dummyBale#scaleComponents", "1 1 0", true)
-	v_u_14_.buffer.overloadAnimation = self.xmlFile:getValue(v17_ .. ".buffer.overloadAnimation#name")
-	v_u_14_.buffer.overloadAnimationSpeed = self.xmlFile:getValue(v17_ .. ".buffer.overloadAnimation#speedScale", 1)
-	v_u_14_.buffer.loadingStateAnimation = self.xmlFile:getValue(v17_ .. ".buffer.loadingStateAnimation#name")
-	v_u_14_.buffer.loadingStateAnimationSpeed = self.xmlFile:getValue(v17_ .. ".buffer.loadingStateAnimation#speedScale", 1)
+	spec.platformReadyToDrop = false
+	spec.platformDropInProgress = false
+	spec.platformDelayedDropping = false
+	spec.platformMountDelay = -1
+	spec.buffer = {}
+	spec.buffer.fillUnitIndex = self.xmlFile:getValue(baseKey .. ".buffer#fillUnitIndex")
+	spec.buffer.unloadInfoIndex = self.xmlFile:getValue(baseKey .. ".buffer#unloadInfoIndex", 1)
+	spec.buffer.capacityPercentage = self.xmlFile:getValue(baseKey .. ".buffer#capacityPercentage")
+	spec.buffer.overloadingDuration = self.xmlFile:getValue(baseKey .. ".buffer#overloadingDuration", 1)
+	spec.buffer.overloadingDelay = self.xmlFile:getValue(baseKey .. ".buffer#overloadingDelay", 0)
+	spec.buffer.overloadingTimer = 0
+	spec.buffer.overloadingStartFillLevelPct = MathUtil.round(self.xmlFile:getValue(baseKey .. ".buffer#overloadingStartFillLevelPct", 1), 2)
+	spec.buffer.fillMainUnitAfterOverload = self.xmlFile:getValue(baseKey .. ".buffer#fillMainUnitAfterOverload", false)
+	spec.buffer.unloadingStarted = false
+	spec.buffer.fillLevelToEmpty = 0
+	spec.buffer.dummyBale = {}
+	spec.buffer.dummyBale.available = self.xmlFile:hasProperty(baseKey .. ".buffer.dummyBale")
+	spec.buffer.dummyBale.linkNode = self.xmlFile:getValue(baseKey .. ".buffer.dummyBale#node", nil, self.components, self.i3dMappings)
+	spec.buffer.dummyBale.scaleComponents = self.xmlFile:getValue(baseKey .. ".buffer.dummyBale#scaleComponents", "1 1 0", true)
+	spec.buffer.overloadAnimation = self.xmlFile:getValue(baseKey .. ".buffer.overloadAnimation#name")
+	spec.buffer.overloadAnimationSpeed = self.xmlFile:getValue(baseKey .. ".buffer.overloadAnimation#speedScale", 1)
+	spec.buffer.loadingStateAnimation = self.xmlFile:getValue(baseKey .. ".buffer.loadingStateAnimation#name")
+	spec.buffer.loadingStateAnimationSpeed = self.xmlFile:getValue(baseKey .. ".buffer.loadingStateAnimation#speedScale", 1)
 	if self.isClient then
-		v_u_14_.buffer.overloadingEffects = g_effectManager:loadEffect(self.xmlFile, v17_ .. ".buffer.overloadingEffect", self.components, self, self.i3dMappings)
-		v_u_14_.buffer.overloadingAnimationNodes = g_animationManager:loadAnimations(self.xmlFile, v17_ .. ".buffer.overloadingAnimationNodes", self.components, self, self.i3dMappings)
-		v_u_14_.buffer.samplesOverloadingStart = g_soundManager:loadSamplesFromXML(self.xmlFile, v17_ .. ".sounds", "bufferOverloadingStart", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_14_.buffer.samplesOverloadingStop = g_soundManager:loadSamplesFromXML(self.xmlFile, v17_ .. ".sounds", "bufferOverloadingStop", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_14_.buffer.samplesOverloadingWork = g_soundManager:loadSamplesFromXML(self.xmlFile, v17_ .. ".sounds", "bufferOverloadingWork", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.buffer.overloadingEffects = g_effectManager:loadEffect(self.xmlFile, baseKey .. ".buffer.overloadingEffect", self.components, self, self.i3dMappings)
+		spec.buffer.overloadingAnimationNodes = g_animationManager:loadAnimations(self.xmlFile, baseKey .. ".buffer.overloadingAnimationNodes", self.components, self, self.i3dMappings)
+		spec.buffer.samplesOverloadingStart = g_soundManager:loadSamplesFromXML(self.xmlFile, baseKey .. ".sounds", "bufferOverloadingStart", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.buffer.samplesOverloadingStop = g_soundManager:loadSamplesFromXML(self.xmlFile, baseKey .. ".sounds", "bufferOverloadingStop", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.buffer.samplesOverloadingWork = g_soundManager:loadSamplesFromXML(self.xmlFile, baseKey .. ".sounds", "bufferOverloadingWork", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
 	end
-	v_u_14_.nonStopBaling = v_u_14_.buffer.fillUnitIndex ~= nil
-	if v_u_14_.nonStopBaling ~= nil then
-		local v54_ = self.xmlFile:getValue(v17_ .. ".buffer#balerDisplayType")
-		local v55_ = g_fillTypeManager:getFillTypeIndexByName(v54_)
-		if v55_ ~= nil then
-			self:setFillUnitFillTypeToDisplay(v_u_14_.fillUnitIndex, v55_, true)
+	spec.nonStopBaling = spec.buffer.fillUnitIndex ~= nil
+	if spec.nonStopBaling ~= nil then
+		local fillTypeName = self.xmlFile:getValue(baseKey .. ".buffer#balerDisplayType")
+		local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
+		if fillTypeIndex ~= nil then
+			self:setFillUnitFillTypeToDisplay(spec.fillUnitIndex, fillTypeIndex, true)
 		end
 	end
-	v_u_14_.variableSpeedLimit = {}
-	v_u_14_.variableSpeedLimit.enabled = self.xmlFile:hasProperty(v17_ .. ".variableSpeedLimit")
-	v_u_14_.variableSpeedLimit.pickupPerSecond = 0
-	v_u_14_.variableSpeedLimit.pickupPerSecondTimer = 0
-	v_u_14_.variableSpeedLimit.targetLiterPerSecond = self.xmlFile:getValue(v17_ .. ".variableSpeedLimit#targetLiterPerSecond", 200)
-	v_u_14_.variableSpeedLimit.changeInterval = self.xmlFile:getValue(v17_ .. ".variableSpeedLimit#changeInterval", 1)
-	v_u_14_.variableSpeedLimit.minSpeedLimit = self.xmlFile:getValue(v17_ .. ".variableSpeedLimit#minSpeedLimit", 5)
-	v_u_14_.variableSpeedLimit.maxSpeedLimit = self.xmlFile:getValue(v17_ .. ".variableSpeedLimit#maxSpeedLimit", 15)
-	v_u_14_.variableSpeedLimit.defaultSpeedLimit = self.xmlFile:getValue(v17_ .. ".variableSpeedLimit#defaultSpeedLimit", 10)
-	v_u_14_.variableSpeedLimit.backupSpeedLimit = self.speedLimit
-	v_u_14_.variableSpeedLimit.usedBackupSpeedLimit = false
-	v_u_14_.variableSpeedLimit.lastAdjustedSpeedLimit = nil
-	v_u_14_.variableSpeedLimit.lastAdjustedSpeedLimitType = nil
-	v_u_14_.variableSpeedLimit.fillTypeToTargetLiterPerSecond = {}
-	self.xmlFile:iterate(v17_ .. ".variableSpeedLimit.target", function(_, p56_)
-		-- upvalues: (copy) self, (copy) v_u_14_
-		local v57_ = g_fillTypeManager:getFillTypeIndexByName(self.xmlFile:getValue(p56_ .. "#fillType"))
-		if v57_ ~= nil then
-			local v58_ = {
-				["targetLiterPerSecond"] = self.xmlFile:getValue(p56_ .. "#targetLiterPerSecond", 200),
-				["defaultSpeedLimit"] = self.xmlFile:getValue(p56_ .. "#defaultSpeedLimit", 10)
-			}
-			v_u_14_.variableSpeedLimit.fillTypeToTargetLiterPerSecond[v57_] = v58_
+	spec.variableSpeedLimit = {}
+	spec.variableSpeedLimit.enabled = self.xmlFile:hasProperty(baseKey .. ".variableSpeedLimit")
+	spec.variableSpeedLimit.pickupPerSecond = 0
+	spec.variableSpeedLimit.pickupPerSecondTimer = 0
+	spec.variableSpeedLimit.targetLiterPerSecond = self.xmlFile:getValue(baseKey .. ".variableSpeedLimit#targetLiterPerSecond", 200)
+	spec.variableSpeedLimit.changeInterval = self.xmlFile:getValue(baseKey .. ".variableSpeedLimit#changeInterval", 1)
+	spec.variableSpeedLimit.minSpeedLimit = self.xmlFile:getValue(baseKey .. ".variableSpeedLimit#minSpeedLimit", 5)
+	spec.variableSpeedLimit.maxSpeedLimit = self.xmlFile:getValue(baseKey .. ".variableSpeedLimit#maxSpeedLimit", 15)
+	spec.variableSpeedLimit.defaultSpeedLimit = self.xmlFile:getValue(baseKey .. ".variableSpeedLimit#defaultSpeedLimit", 10)
+	spec.variableSpeedLimit.backupSpeedLimit = self.speedLimit
+	spec.variableSpeedLimit.usedBackupSpeedLimit = false
+	spec.variableSpeedLimit.lastAdjustedSpeedLimit = nil
+	spec.variableSpeedLimit.lastAdjustedSpeedLimitType = nil
+	spec.variableSpeedLimit.fillTypeToTargetLiterPerSecond = {}
+	self.xmlFile:iterate(baseKey .. ".variableSpeedLimit.target", function(index, key)
+		local fillType = g_fillTypeManager:getFillTypeIndexByName(self.xmlFile:getValue(key .. "#fillType"))
+		if fillType ~= nil then
+			local targetLiterPerSecond = self.xmlFile:getValue(key .. "#targetLiterPerSecond", 200)
+			local defaultSpeedLimit = self.xmlFile:getValue(key .. "#defaultSpeedLimit", 10)
+			spec.variableSpeedLimit.fillTypeToTargetLiterPerSecond[fillType] = { targetLiterPerSecond = targetLiterPerSecond, defaultSpeedLimit = defaultSpeedLimit }
 		end
 	end)
-	v_u_14_.additives = {}
-	v_u_14_.additives.fillUnitIndex = self.xmlFile:getValue(v17_ .. ".additives#fillUnitIndex")
-	v_u_14_.additives.available = self:getFillUnitByIndex(v_u_14_.additives.fillUnitIndex) ~= nil
-	v_u_14_.additives.usage = self.xmlFile:getValue(v17_ .. ".additives#usage", 0.0000275)
-	local v59_ = self.xmlFile:getValue(v17_ .. ".additives#fillTypes", "GRASS_WINDROW")
-	v_u_14_.additives.fillTypes = g_fillTypeManager:getFillTypesByNames(v59_, "Warning: \'" .. self.xmlFile:getFilename() .. "\' has invalid fillType \'%s\'.")
-	v_u_14_.additives.appliedByBufferOverloading = self.xmlFile:getValue(v17_ .. ".additives#appliedByBufferOverloading", false)
-	v_u_14_.additives.isActiveTimer = 0
-	v_u_14_.additives.isActive = false
-	v_u_14_.isBaleUnloading = false
-	v_u_14_.balesToUnload = 0
-	v_u_14_.texts = {}
-	v_u_14_.texts.warningFoldingBaleLoaded = g_i18n:getText("warning_foldingNotWhileBaleLoaded")
-	v_u_14_.texts.warningFoldingTurnedOn = g_i18n:getText("warning_foldingNotWhileTurnedOn")
-	v_u_14_.texts.warningTooManyBales = g_i18n:getText("warning_tooManyBales")
-	v_u_14_.texts.unloadUnfinishedBale = g_i18n:getText("action_unloadUnfinishedBale")
-	v_u_14_.texts.unloadBaler = g_i18n:getText("action_unloadBaler")
-	v_u_14_.texts.closeBack = g_i18n:getText("action_closeBack")
-	v_u_14_.showBaleLimitWarning = false
-	v_u_14_.dirtyFlag = self:getNextDirtyFlag()
+	spec.additives = {}
+	spec.additives.fillUnitIndex = self.xmlFile:getValue(baseKey .. ".additives#fillUnitIndex")
+	spec.additives.available = self:getFillUnitByIndex(spec.additives.fillUnitIndex) ~= nil
+	spec.additives.usage = self.xmlFile:getValue(baseKey .. ".additives#usage", 0.0000275)
+	local additivesFillTypeNames = self.xmlFile:getValue(baseKey .. ".additives#fillTypes", "GRASS_WINDROW")
+	spec.additives.fillTypes = g_fillTypeManager:getFillTypesByNames(additivesFillTypeNames, "Warning: '" .. self.xmlFile:getFilename() .. "' has invalid fillType '%s'.")
+	spec.additives.appliedByBufferOverloading = self.xmlFile:getValue(baseKey .. ".additives#appliedByBufferOverloading", false)
+	spec.additives.isActiveTimer = 0
+	spec.additives.isActive = false
+	spec.isBaleUnloading = false
+	spec.balesToUnload = 0
+	spec.texts = {}
+	spec.texts.warningFoldingBaleLoaded = g_i18n:getText("warning_foldingNotWhileBaleLoaded")
+	spec.texts.warningFoldingTurnedOn = g_i18n:getText("warning_foldingNotWhileTurnedOn")
+	spec.texts.warningTooManyBales = g_i18n:getText("warning_tooManyBales")
+	spec.texts.unloadUnfinishedBale = g_i18n:getText("action_unloadUnfinishedBale")
+	spec.texts.unloadBaler = g_i18n:getText("action_unloadBaler")
+	spec.texts.closeBack = g_i18n:getText("action_closeBack")
+	spec.showBaleLimitWarning = false
+	spec.dirtyFlag = self:getNextDirtyFlag()
 	if savegame ~= nil and not savegame.resetVehicles then
-		self:setBaleTypeIndex(savegame.xmlFile:getValue(savegame.key .. ".baler#baleTypeIndex", v_u_14_.currentBaleTypeIndex), true, true)
-		self:setBaleTypeIndex(savegame.xmlFile:getValue(savegame.key .. ".baler#preSelectedBaleTypeIndex", v_u_14_.preSelectedBaleTypeIndex), nil, true)
-		local v60_ = savegame.xmlFile:getValue(savegame.key .. ".baler#fillUnitCapacity")
-		if v60_ ~= nil then
-			local v61_ = v60_ == 0 and math.huge or v60_
-			self:setFillUnitCapacity(v_u_14_.fillUnitIndex, v61_)
-			if v_u_14_.buffer.capacityPercentage ~= nil then
-				self:setFillUnitCapacity(v_u_14_.fillUnitIndex, v61_ * v_u_14_.buffer.capacityPercentage, false)
+		local baleTypeIndex = savegame.xmlFile:getValue(savegame.key .. ".baler#baleTypeIndex", spec.currentBaleTypeIndex)
+		self:setBaleTypeIndex(baleTypeIndex, true, true)
+		local preSelectedBaleTypeIndex = savegame.xmlFile:getValue(savegame.key .. ".baler#preSelectedBaleTypeIndex", spec.preSelectedBaleTypeIndex)
+		self:setBaleTypeIndex(preSelectedBaleTypeIndex, nil, true)
+		local fillUnitCapacity = savegame.xmlFile:getValue(savegame.key .. ".baler#fillUnitCapacity")
+		if fillUnitCapacity ~= nil then
+			if fillUnitCapacity == 0 then
+				fillUnitCapacity = math.huge
+			end
+			self:setFillUnitCapacity(spec.fillUnitIndex, fillUnitCapacity)
+			if spec.buffer.capacityPercentage ~= nil then
+				self:setFillUnitCapacity(spec.fillUnitIndex, fillUnitCapacity * spec.buffer.capacityPercentage, false)
 			end
 		end
-		v_u_14_.workAreaParameters.lastMissionUniqueId = savegame.xmlFile:getValue(savegame.key .. ".baler#workAreaMissionUniqueId")
-		if v_u_14_.nonStopBaling then
-			v_u_14_.buffer.unloadingStarted = savegame.xmlFile:getValue(savegame.key .. ".baler#bufferUnloadingStarted", v_u_14_.buffer.unloadingStarted)
+		spec.workAreaParameters.lastMissionUniqueId = savegame.xmlFile:getValue(savegame.key .. ".baler#workAreaMissionUniqueId")
+		if spec.nonStopBaling then
+			spec.buffer.unloadingStarted = savegame.xmlFile:getValue(savegame.key .. ".baler#bufferUnloadingStarted", spec.buffer.unloadingStarted)
 		end
 	end
 end
-
--- Local values: spec, fillTypeIndex, enabled, numBales, i, baleKey, bale, filename, fillTypeStr, fillType
 function Baler:onPostLoad(savegame)
-	local v64_ = self.spec_baler
-	for v65_, v66_ in pairs(self:getFillUnitSupportedFillTypes(v64_.fillUnitIndex)) do
-		if v66_ and v65_ ~= FillType.UNKNOWN then
-			v64_.pickupFillTypes[v65_] = 0
+	local spec = self.spec_baler
+	for fillTypeIndex, enabled in pairs(self:getFillUnitSupportedFillTypes(spec.fillUnitIndex)) do
+		if enabled then
+			if fillTypeIndex == FillType.UNKNOWN then
+				continue
+			end
+			spec.pickupFillTypes[fillTypeIndex] = 0
 		end
 	end
 	if savegame ~= nil and not savegame.resetVehicles then
-		local v67_ = savegame.xmlFile:getValue(savegame.key .. ".baler#numBales")
-		if v67_ ~= nil then
-			v64_.balesToLoad = {}
-			for v68_ = 1, v67_ do
-				local v69_ = string.format("%s.baler.bale(%d)", savegame.key, v68_ - 1)
-				local v70_ = {}
-				local v71_ = savegame.xmlFile:getValue(v69_ .. "#filename")
-				local v72_ = savegame.xmlFile:getValue(v69_ .. "#fillType")
-				local v73_ = g_fillTypeManager:getFillTypeByName(v72_)
-				if v71_ ~= nil and v73_ ~= nil then
-					v70_.filename = v71_
-					v70_.fillType = v73_.index
-					v70_.fillLevel = savegame.xmlFile:getValue(v69_ .. "#fillLevel")
-					v70_.baleTime = savegame.xmlFile:getValue(v69_ .. "#baleTime")
-					v70_.variationId = savegame.xmlFile:getValue(v69_ .. "#variationId")
-					v70_.ownerFarmId = savegame.xmlFile:getValue(v69_ .. "#ownerFarmId")
-					local v74_ = v64_.balesToLoad
-					table.insert(v74_, v70_)
+		local numBales = savegame.xmlFile:getValue(savegame.key .. ".baler#numBales")
+		if numBales ~= nil then
+			spec.balesToLoad = {}
+			for i = 1, numBales do
+				local baleKey = string.format("%s.baler.bale(%d)", savegame.key, i - 1)
+				local bale = {}
+				local filename = savegame.xmlFile:getValue(baleKey .. "#filename")
+				local fillTypeStr = savegame.xmlFile:getValue(baleKey .. "#fillType")
+				local fillType = g_fillTypeManager:getFillTypeByName(fillTypeStr)
+				if filename == nil or fillType == nil then
+					continue
 				end
+				bale.filename = filename
+				bale.fillType = fillType.index
+				bale.fillLevel = savegame.xmlFile:getValue(baleKey .. "#fillLevel")
+				bale.baleTime = savegame.xmlFile:getValue(baleKey .. "#baleTime")
+				bale.variationId = savegame.xmlFile:getValue(baleKey .. "#variationId")
+				bale.ownerFarmId = savegame.xmlFile:getValue(baleKey .. "#ownerFarmId")
+				table.insert(spec.balesToLoad, bale)
 			end
 		end
-		if v64_.hasPlatform then
-			v64_.platformReadyToDrop = savegame.xmlFile:getValue(savegame.key .. ".baler#platformReadyToDrop", v64_.platformReadyToDrop)
-			if v64_.platformReadyToDrop then
-				self:setAnimationTime(v64_.platformAnimation, 1, true)
-				self:setAnimationTime(v64_.platformAnimation, 0, true)
-				v64_.platformMountDelay = 1
+		if spec.hasPlatform then
+			spec.platformReadyToDrop = savegame.xmlFile:getValue(savegame.key .. ".baler#platformReadyToDrop", spec.platformReadyToDrop)
+			if spec.platformReadyToDrop then
+				self:setAnimationTime(spec.platformAnimation, 1, true)
+				self:setAnimationTime(spec.platformAnimation, 0, true)
+				spec.platformMountDelay = 1
 			end
 		end
 	end
 end
-
--- Local values: spec, _, v
 function Baler:onLoadFinished(savegame)
-	local v76_ = self.spec_baler
-	if self.isServer and (v76_.createBaleNextFrame ~= nil and v76_.createBaleNextFrame) then
+	local spec = self.spec_baler
+	if self.isServer and (spec.createBaleNextFrame ~= nil and spec.createBaleNextFrame) then
 		self:finishBale()
-		v76_.createBaleNextFrame = nil
+		spec.createBaleNextFrame = nil
 	end
-	if v76_.balesToLoad ~= nil then
-		for _, v77_ in ipairs(v76_.balesToLoad) do
-			if self:createBale(v77_.fillType, v77_.fillLevel, nil, v77_.baleTime, v77_.filename, v77_.ownerFarmId, v77_.variationId, true) then
-				self:setBaleTime(#v76_.bales, v77_.baleTime, true)
+	if spec.balesToLoad ~= nil then
+		for _, v in ipairs(spec.balesToLoad) do
+			if self:createBale(v.fillType, v.fillLevel, nil, v.baleTime, v.filename, v.ownerFarmId, v.variationId, true) then
+				self:setBaleTime(#spec.bales, v.baleTime, true)
 			end
 		end
-		v76_.balesToLoad = nil
+		spec.balesToLoad = nil
 	end
 end
-
--- Local values: spec, dropBales, k, _, _, bale
 function Baler:onDelete()
-	local v79_ = self.spec_baler
-	if v79_.bales ~= nil then
-		if (v79_.dropBalesOnDelete or v79_.dropBalesOnDelete == nil) and (self.isReconfigurating == nil or not self.isReconfigurating) then
-			for v80_, _ in pairs(v79_.bales) do
-				self:dropBale(v80_)
-			end
-		else
-			for _, v81_ in pairs(v79_.bales) do
-				if v81_.baleObject ~= nil then
-					v81_.baleObject:delete()
+	local spec = self.spec_baler
+	if spec.bales ~= nil then
+		local dropBales = spec.dropBalesOnDelete or spec.dropBalesOnDelete == nil
+		if dropBales then
+			if self.isReconfigurating == nil or not self.isReconfigurating then
+				for k, _ in pairs(spec.bales) do
+					self:dropBale(k)
 				end
-			end
-		end
-	end
-	self:deleteDummyBale(v79_.dummyBale)
-	if v79_.buffer ~= nil then
-		if v79_.buffer.dummyBale.available then
-			self:deleteDummyBale(v79_.buffer.dummyBale)
-		end
-		g_soundManager:deleteSamples(v79_.buffer.samplesOverloadingStart)
-		g_soundManager:deleteSamples(v79_.buffer.samplesOverloadingWork)
-		g_soundManager:deleteSamples(v79_.buffer.samplesOverloadingStop)
-		g_effectManager:deleteEffects(v79_.buffer.overloadingEffects)
-		g_animationManager:deleteAnimations(v79_.buffer.overloadingAnimationNodes)
-	end
-	g_soundManager:deleteSamples(v79_.samples)
-	g_effectManager:deleteEffects(v79_.fillEffects)
-	g_effectManager:deleteEffects(v79_.additiveEffects)
-	g_animationManager:deleteAnimations(v79_.animationNodes)
-	g_animationManager:deleteAnimations(v79_.unloadAnimationNodes)
-end
-
--- Local values: spec, k, bale, baleKey, fillTypeStr, mission
-function Baler:saveToXMLFile(xmlFile, key, usedModNames)
-	local v85_ = self.spec_baler
-	if not v85_.hasUnloadingAnimation or self:getFillUnitFreeCapacity(v85_.fillUnitIndex) > 0 then
-		xmlFile:setValue(key .. "#numBales", #v85_.bales)
-		for v86_, v87_ in ipairs(v85_.bales) do
-			local v88_ = string.format("%s.bale(%d)", key, v86_ - 1)
-			xmlFile:setValue(v88_ .. "#filename", v87_.filename)
-			xmlFile:setValue(v88_ .. "#variationId", v87_.baleObject:getVariationId())
-			xmlFile:setValue(v88_ .. "#ownerFarmId", v87_.baleObject:getOwnerFarmId())
-			local v89_ = v87_.fillType == FillType.UNKNOWN and "UNKNOWN" or g_fillTypeManager:getFillTypeNameByIndex(v87_.fillType)
-			xmlFile:setValue(v88_ .. "#fillType", v89_)
-			xmlFile:setValue(v88_ .. "#fillLevel", v87_.fillLevel)
-			if v85_.baleAnimCurve ~= nil then
-				xmlFile:setValue(v88_ .. "#baleTime", v87_.time)
-			end
-		end
-	end
-	if v85_.hasPlatform then
-		xmlFile:setValue(key .. "#platformReadyToDrop", v85_.platformReadyToDrop)
-	end
-	xmlFile:setValue(key .. "#baleTypeIndex", v85_.currentBaleTypeIndex)
-	xmlFile:setValue(key .. "#preSelectedBaleTypeIndex", v85_.preSelectedBaleTypeIndex)
-	xmlFile:setValue(key .. "#fillUnitCapacity", self:getFillUnitCapacity(v85_.fillUnitIndex))
-	local v90_ = g_missionManager:getMissionByUniqueId(v85_.workAreaParameters.lastMissionUniqueId)
-	if v90_ ~= nil and v90_:getIsRunning() then
-		xmlFile:setValue(key .. "#workAreaMissionUniqueId", v90_:getUniqueId())
-	end
-	if v85_.nonStopBaling then
-		xmlFile:setValue(key .. "#bufferUnloadingStarted", v85_.buffer.unloadingStarted)
-	end
-end
-
--- Local values: spec, state, animTime, numBales, i, fillType, fillLevel, baleTime, capacity, fillLevel, fillUnit
-function Baler:onReadStream(streamId, connection)
-	local v93_ = self.spec_baler
-	if v93_.hasUnloadingAnimation then
-		local v94_ = streamReadUIntN(streamId, 7)
-		local v95_ = streamReadFloat32(streamId)
-		if v94_ == Baler.UNLOADING_CLOSED or v94_ == Baler.UNLOADING_CLOSING then
-			self:setIsUnloadingBale(false, true)
-			self:setRealAnimationTime(v93_.baleCloseAnimationName, v95_)
-		elseif v94_ == Baler.UNLOADING_OPEN or v94_ == Baler.UNLOADING_OPENING then
-			self:setIsUnloadingBale(true, true)
-			self:setRealAnimationTime(v93_.baleUnloadAnimationName, v95_)
-		end
-	end
-	for v96_ = 1, streamReadUInt8(streamId) do
-		self:createBale(streamReadIntN(streamId, FillTypeManager.SEND_NUM_BITS), (streamReadFloat32(streamId)))
-		if v93_.baleAnimCurve ~= nil then
-			self:setBaleTime(v96_, (streamReadFloat32(streamId)))
-		end
-	end
-	v93_.lastAreaBiggerZero = streamReadBool(streamId)
-	if v93_.hasPlatform then
-		v93_.platformReadyToDrop = streamReadBool(streamId)
-		if v93_.platformReadyToDrop then
-			self:setAnimationTime(v93_.platformAnimation, 1, true)
-			self:setAnimationTime(v93_.platformAnimation, 0, true)
-		end
-	end
-	v93_.currentBaleTypeIndex = streamReadUIntN(streamId, BalerBaleTypeEvent.BALE_TYPE_SEND_NUM_BITS)
-	v93_.preSelectedBaleTypeIndex = streamReadUIntN(streamId, BalerBaleTypeEvent.BALE_TYPE_SEND_NUM_BITS)
-	local v97_ = streamReadFloat32(streamId)
-	self:setFillUnitCapacity(v93_.fillUnitIndex, v97_)
-	local v98_ = streamReadFloat32(streamId)
-	local v99_ = self:getFillUnitByIndex(v93_.fillUnitIndex)
-	if v99_ ~= nil then
-		v99_.fillLevel = v98_
-	end
-end
-
--- Local values: spec, animTime, i, bale
-function Baler:onWriteStream(streamId, connection)
-	local v102_ = self.spec_baler
-	if v102_.hasUnloadingAnimation then
-		streamWriteUIntN(streamId, v102_.unloadingState, 7)
-		local v103_ = 0
-		if v102_.unloadingState == Baler.UNLOADING_CLOSED or v102_.unloadingState == Baler.UNLOADING_CLOSING then
-			v103_ = self:getRealAnimationTime(v102_.baleCloseAnimationName)
-		elseif v102_.unloadingState == Baler.UNLOADING_OPEN or v102_.unloadingState == Baler.UNLOADING_OPENING then
-			v103_ = self:getRealAnimationTime(v102_.baleUnloadAnimationName)
-		end
-		streamWriteFloat32(streamId, v103_)
-	end
-	streamWriteUInt8(streamId, #v102_.bales)
-	for v104_ = 1, #v102_.bales do
-		local v105_ = v102_.bales[v104_]
-		streamWriteIntN(streamId, v105_.fillType, FillTypeManager.SEND_NUM_BITS)
-		streamWriteFloat32(streamId, v105_.fillLevel)
-		if v102_.baleAnimCurve ~= nil then
-			streamWriteFloat32(streamId, v105_.time)
-		end
-	end
-	streamWriteBool(streamId, v102_.lastAreaBiggerZero)
-	if v102_.hasPlatform then
-		streamWriteBool(streamId, v102_.platformReadyToDrop)
-	end
-	streamWriteUIntN(streamId, v102_.currentBaleTypeIndex, BalerBaleTypeEvent.BALE_TYPE_SEND_NUM_BITS)
-	streamWriteUIntN(streamId, v102_.preSelectedBaleTypeIndex, BalerBaleTypeEvent.BALE_TYPE_SEND_NUM_BITS)
-	streamWriteFloat32(streamId, self:getFillUnitCapacity(v102_.fillUnitIndex))
-	streamWriteFloat32(streamId, self:getFillUnitFillLevel(v102_.fillUnitIndex))
-end
-
--- Local values: spec, fillType
-function Baler:onReadUpdateStream(streamId, timestamp, connection)
-	local v109_ = self.spec_baler
-	if connection:getIsServer() and streamReadBool(streamId) then
-		v109_.lastAreaBiggerZero = streamReadBool(streamId)
-		v109_.fillEffectType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
-		v109_.showBaleLimitWarning = streamReadBool(streamId)
-		if v109_.nonStopBaling then
-			v109_.buffer.unloadingStarted = streamReadBool(streamId)
-			if v109_.buffer.unloadingStarted then
-				local v110_ = self:getFillUnitFillType(v109_.buffer.fillUnitIndex)
-				if v110_ == FillType.UNKNOWN then
-					v110_ = self:getFillUnitFillType(v109_.fillUnitIndex)
-				end
-				g_effectManager:setEffectTypeInfo(v109_.buffer.overloadingEffects, v110_)
-				g_effectManager:startEffects(v109_.buffer.overloadingEffects)
-				g_soundManager:playSamples(v109_.buffer.samplesOverloadingStart)
-				g_soundManager:playSamples(v109_.buffer.samplesOverloadingWork, 0, v109_.buffer.samplesOverloadingStart[0])
-				g_animationManager:startAnimations(v109_.buffer.overloadingAnimationNodes)
 			else
-				g_effectManager:stopEffects(v109_.buffer.overloadingEffects)
-				g_soundManager:stopSamples(v109_.buffer.samplesOverloadingStart)
-				if g_soundManager:getIsSamplePlaying(v109_.buffer.samplesOverloadingWork[0]) then
-					g_soundManager:stopSamples(v109_.buffer.samplesOverloadingWork)
-					g_soundManager:playSamples(v109_.buffer.samplesOverloadingStop)
+				for _, bale in pairs(spec.bales) do
+					if bale.baleObject == nil then
+						continue
+					end
+					bale.baleObject:delete()
 				end
-				g_animationManager:stopAnimations(v109_.buffer.overloadingAnimationNodes)
 			end
 		end
-		v109_.additives.isActive = streamReadBool(streamId)
-		if v109_.additives.isActive then
-			g_effectManager:setEffectTypeInfo(v109_.additiveEffects, FillType.LIQUIDFERTILIZER)
-			g_effectManager:startEffects(v109_.additiveEffects)
+	end
+	self:deleteDummyBale(spec.dummyBale)
+	if spec.buffer ~= nil then
+		if spec.buffer.dummyBale.available then
+			self:deleteDummyBale(spec.buffer.dummyBale)
+		end
+		g_soundManager:deleteSamples(spec.buffer.samplesOverloadingStart)
+		g_soundManager:deleteSamples(spec.buffer.samplesOverloadingWork)
+		g_soundManager:deleteSamples(spec.buffer.samplesOverloadingStop)
+		g_effectManager:deleteEffects(spec.buffer.overloadingEffects)
+		g_animationManager:deleteAnimations(spec.buffer.overloadingAnimationNodes)
+	end
+	g_soundManager:deleteSamples(spec.samples)
+	g_effectManager:deleteEffects(spec.fillEffects)
+	g_effectManager:deleteEffects(spec.additiveEffects)
+	g_animationManager:deleteAnimations(spec.animationNodes)
+	g_animationManager:deleteAnimations(spec.unloadAnimationNodes)
+end
+function Baler:saveToXMLFile(xmlFile, key, usedModNames)
+	local spec = self.spec_baler
+	if not spec.hasUnloadingAnimation or 0 < self:getFillUnitFreeCapacity(spec.fillUnitIndex) then
+		xmlFile:setValue(key .. "#numBales", #spec.bales)
+		for k, bale in ipairs(spec.bales) do
+			local baleKey = string.format("%s.bale(%d)", key, k - 1)
+			xmlFile:setValue(baleKey .. "#filename", bale.filename)
+			xmlFile:setValue(baleKey .. "#variationId", bale.baleObject:getVariationId())
+			xmlFile:setValue(baleKey .. "#ownerFarmId", bale.baleObject:getOwnerFarmId())
+			local fillTypeStr = "UNKNOWN"
+			if bale.fillType ~= FillType.UNKNOWN then
+				fillTypeStr = g_fillTypeManager:getFillTypeNameByIndex(bale.fillType)
+			end
+			xmlFile:setValue(baleKey .. "#fillType", fillTypeStr)
+			xmlFile:setValue(baleKey .. "#fillLevel", bale.fillLevel)
+			if spec.baleAnimCurve == nil then
+				continue
+			end
+			xmlFile:setValue(baleKey .. "#baleTime", bale.time)
+		end
+	end
+	if spec.hasPlatform then
+		xmlFile:setValue(key .. "#platformReadyToDrop", spec.platformReadyToDrop)
+	end
+	xmlFile:setValue(key .. "#baleTypeIndex", spec.currentBaleTypeIndex)
+	xmlFile:setValue(key .. "#preSelectedBaleTypeIndex", spec.preSelectedBaleTypeIndex)
+	xmlFile:setValue(key .. "#fillUnitCapacity", self:getFillUnitCapacity(spec.fillUnitIndex))
+	local mission = g_missionManager:getMissionByUniqueId(spec.workAreaParameters.lastMissionUniqueId)
+	if mission ~= nil and mission:getIsRunning() then
+		xmlFile:setValue(key .. "#workAreaMissionUniqueId", mission:getUniqueId())
+	end
+	if spec.nonStopBaling then
+		xmlFile:setValue(key .. "#bufferUnloadingStarted", spec.buffer.unloadingStarted)
+	end
+end
+function Baler:onReadStream(streamId, connection)
+	local spec = self.spec_baler
+	if spec.hasUnloadingAnimation then
+		local state = streamReadUIntN(streamId, 7)
+		local animTime = streamReadFloat32(streamId)
+		if state == Baler.UNLOADING_CLOSED or state == Baler.UNLOADING_CLOSING then
+			self:setIsUnloadingBale(false, true)
+			self:setRealAnimationTime(spec.baleCloseAnimationName, animTime)
+		else
+			if state == Baler.UNLOADING_OPEN or state == Baler.UNLOADING_OPENING then
+				self:setIsUnloadingBale(true, true)
+				self:setRealAnimationTime(spec.baleUnloadAnimationName, animTime)
+			end
+		end
+	end
+	local numBales = streamReadUInt8(streamId)
+	for i = 1, numBales do
+		local fillType = streamReadIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+		local fillLevel = streamReadFloat32(streamId)
+		self:createBale(fillType, fillLevel)
+		if spec.baleAnimCurve == nil then
+			continue
+		end
+		local baleTime = streamReadFloat32(streamId)
+		self:setBaleTime(i, baleTime)
+	end
+	spec.lastAreaBiggerZero = streamReadBool(streamId)
+	if spec.hasPlatform then
+		spec.platformReadyToDrop = streamReadBool(streamId)
+		if spec.platformReadyToDrop then
+			self:setAnimationTime(spec.platformAnimation, 1, true)
+			self:setAnimationTime(spec.platformAnimation, 0, true)
+		end
+	end
+	spec.currentBaleTypeIndex = streamReadUIntN(streamId, BalerBaleTypeEvent.BALE_TYPE_SEND_NUM_BITS)
+	spec.preSelectedBaleTypeIndex = streamReadUIntN(streamId, BalerBaleTypeEvent.BALE_TYPE_SEND_NUM_BITS)
+	local capacity = streamReadFloat32(streamId)
+	self:setFillUnitCapacity(spec.fillUnitIndex, capacity)
+	local fillLevel = streamReadFloat32(streamId)
+	local fillUnit = self:getFillUnitByIndex(spec.fillUnitIndex)
+	if fillUnit ~= nil then
+		fillUnit.fillLevel = fillLevel
+	end
+end
+function Baler:onWriteStream(streamId, connection)
+	local spec = self.spec_baler
+	if spec.hasUnloadingAnimation then
+		streamWriteUIntN(streamId, spec.unloadingState, 7)
+		local animTime = 0
+		if spec.unloadingState == Baler.UNLOADING_CLOSED or spec.unloadingState == Baler.UNLOADING_CLOSING then
+			animTime = self:getRealAnimationTime(spec.baleCloseAnimationName)
+		else
+			if spec.unloadingState == Baler.UNLOADING_OPEN or spec.unloadingState == Baler.UNLOADING_OPENING then
+				animTime = self:getRealAnimationTime(spec.baleUnloadAnimationName)
+			end
+		end
+		streamWriteFloat32(streamId, animTime)
+	end
+	streamWriteUInt8(streamId, #spec.bales)
+	for i = 1, #spec.bales do
+		local bale = spec.bales[i]
+		streamWriteIntN(streamId, bale.fillType, FillTypeManager.SEND_NUM_BITS)
+		streamWriteFloat32(streamId, bale.fillLevel)
+		if spec.baleAnimCurve == nil then
+			continue
+		end
+		streamWriteFloat32(streamId, bale.time)
+	end
+	streamWriteBool(streamId, spec.lastAreaBiggerZero)
+	if spec.hasPlatform then
+		streamWriteBool(streamId, spec.platformReadyToDrop)
+	end
+	streamWriteUIntN(streamId, spec.currentBaleTypeIndex, BalerBaleTypeEvent.BALE_TYPE_SEND_NUM_BITS)
+	streamWriteUIntN(streamId, spec.preSelectedBaleTypeIndex, BalerBaleTypeEvent.BALE_TYPE_SEND_NUM_BITS)
+	streamWriteFloat32(streamId, self:getFillUnitCapacity(spec.fillUnitIndex))
+	streamWriteFloat32(streamId, self:getFillUnitFillLevel(spec.fillUnitIndex))
+end
+function Baler:onReadUpdateStream(streamId, timestamp, connection)
+	local spec = self.spec_baler
+	if connection:getIsServer() and streamReadBool(streamId) then
+		spec.lastAreaBiggerZero = streamReadBool(streamId)
+		spec.fillEffectType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+		spec.showBaleLimitWarning = streamReadBool(streamId)
+		if spec.nonStopBaling then
+			spec.buffer.unloadingStarted = streamReadBool(streamId)
+			if spec.buffer.unloadingStarted then
+				local fillType = self:getFillUnitFillType(spec.buffer.fillUnitIndex)
+				if fillType == FillType.UNKNOWN then
+					fillType = self:getFillUnitFillType(spec.fillUnitIndex)
+				end
+				g_effectManager:setEffectTypeInfo(spec.buffer.overloadingEffects, fillType)
+				g_effectManager:startEffects(spec.buffer.overloadingEffects)
+				g_soundManager:playSamples(spec.buffer.samplesOverloadingStart)
+				g_soundManager:playSamples(spec.buffer.samplesOverloadingWork, 0, spec.buffer.samplesOverloadingStart[0])
+				g_animationManager:startAnimations(spec.buffer.overloadingAnimationNodes)
+			else
+				g_effectManager:stopEffects(spec.buffer.overloadingEffects)
+				g_soundManager:stopSamples(spec.buffer.samplesOverloadingStart)
+				if g_soundManager:getIsSamplePlaying(spec.buffer.samplesOverloadingWork[0]) then
+					g_soundManager:stopSamples(spec.buffer.samplesOverloadingWork)
+					g_soundManager:playSamples(spec.buffer.samplesOverloadingStop)
+				end
+				g_animationManager:stopAnimations(spec.buffer.overloadingAnimationNodes)
+			end
+		end
+		spec.additives.isActive = streamReadBool(streamId)
+		if spec.additives.isActive then
+			g_effectManager:setEffectTypeInfo(spec.additiveEffects, FillType.LIQUIDFERTILIZER)
+			g_effectManager:startEffects(spec.additiveEffects)
 			return
 		end
-		g_effectManager:stopEffects(v109_.additiveEffects)
+		g_effectManager:stopEffects(spec.additiveEffects)
 	end
 end
-
--- Local values: spec
 function Baler:onWriteUpdateStream(streamId, connection, dirtyMask)
-	local v115_ = self.spec_baler
-	if not connection:getIsServer() then
-		local v116_ = streamWriteBool
-		local v117_ = v115_.dirtyFlag
-		if v116_(streamId, bit32.band(dirtyMask, v117_) ~= 0) then
-			streamWriteBool(streamId, v115_.lastAreaBiggerZero)
-			streamWriteUIntN(streamId, v115_.fillEffectTypeSent, FillTypeManager.SEND_NUM_BITS)
-			streamWriteBool(streamId, v115_.showBaleLimitWarning)
-			if v115_.nonStopBaling then
-				streamWriteBool(streamId, v115_.buffer.unloadingStarted)
-			end
-			streamWriteBool(streamId, v115_.additives.isActive)
+	local spec = self.spec_baler
+	if not connection:getIsServer() and streamWriteBool(streamId, bit32.band(dirtyMask, spec.dirtyFlag) ~= 0) then
+		streamWriteBool(streamId, spec.lastAreaBiggerZero)
+		streamWriteUIntN(streamId, spec.fillEffectTypeSent, FillTypeManager.SEND_NUM_BITS)
+		streamWriteBool(streamId, spec.showBaleLimitWarning)
+		if spec.nonStopBaling then
+			streamWriteBool(streamId, spec.buffer.unloadingStarted)
 		end
+		streamWriteBool(streamId, spec.additives.isActive)
 	end
 end
-
--- Local values: spec, baleObject, baleTypeDef, i, bale, j, detailVisibilityCutNode, j, detailVisibilityCutNode, defaultSpeedLimit, targetLiterPerSecond, fillTypeIndex, target, litersPerSecond, threshold, changeAmount
 function Baler:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v120_ = self.spec_baler
+	local spec = self.spec_baler
 	if self.isClient then
-		if v120_.baleToMount ~= nil then
-			local v121_ = NetworkUtil.getObject(v120_.baleToMount.baleServerId)
-			if v121_ ~= nil then
-				v121_:mountKinematic(self, v120_.baleToMount.jointNode, 0, 0, 0, 0, 0, 0)
-				v120_.baleToMount.baleInfo.baleObject = v121_
-				v120_.baleToMount.baleInfo.baleServerId = v120_.baleToMount.baleServerId
-				v120_.baleToMount = nil
+		if spec.baleToMount ~= nil then
+			local baleObject = NetworkUtil.getObject(spec.baleToMount.baleServerId)
+			if baleObject ~= nil then
+				baleObject:mountKinematic(self, spec.baleToMount.jointNode, 0, 0, 0, 0, 0, 0)
+				spec.baleToMount.baleInfo.baleObject = baleObject
+				spec.baleToMount.baleInfo.baleServerId = spec.baleToMount.baleServerId
+				spec.baleToMount = nil
 			end
 		end
-		local v122_ = v120_.baleTypes[v120_.currentBaleTypeIndex]
-		if v122_ ~= nil and #v122_.detailVisibilityCutNodes > 0 then
-			for v123_ = 1, #v120_.bales do
-				local v124_ = v120_.bales[v123_]
-				if v124_.baleObject ~= nil then
-					v124_.baleObject:resetDetailVisibilityCut()
-					if v124_.time < 1 then
-						for v125_ = 1, #v122_.detailVisibilityCutNodes do
-							local v126_ = v122_.detailVisibilityCutNodes[v125_]
-							v124_.baleObject:setDetailVisibilityCutNode(v126_.node, v126_.axis, v126_.direction)
+		local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+		if baleTypeDef ~= nil and 0 < #baleTypeDef.detailVisibilityCutNodes then
+			for i = 1, #spec.bales do
+				local bale = spec.bales[i]
+				if bale.baleObject ~= nil then
+					bale.baleObject:resetDetailVisibilityCut()
+					if bale.time < 1 then
+						for j = 1, #baleTypeDef.detailVisibilityCutNodes do
+							local detailVisibilityCutNode = baleTypeDef.detailVisibilityCutNodes[j]
+							bale.baleObject:setDetailVisibilityCutNode(detailVisibilityCutNode.node, detailVisibilityCutNode.axis, detailVisibilityCutNode.direction)
 						end
 					end
 				end
 			end
-			if v120_.dummyBale.currentBale ~= nil then
-				for v127_ = 1, #v122_.detailVisibilityCutNodes do
-					local v128_ = v122_.detailVisibilityCutNodes[v127_]
-					Bale.setBaleMeshVisibilityCut(v120_.dummyBale.currentBale, v128_.node, v128_.axis, v128_.direction, true)
+			if spec.dummyBale.currentBale ~= nil then
+				for j = 1, #baleTypeDef.detailVisibilityCutNodes do
+					local detailVisibilityCutNode = baleTypeDef.detailVisibilityCutNodes[j]
+					Bale.setBaleMeshVisibilityCut(spec.dummyBale.currentBale, detailVisibilityCutNode.node, detailVisibilityCutNode.axis, detailVisibilityCutNode.direction, true)
 				end
 			end
 		end
 	end
 	if self.isServer then
-		if self.isAddedToPhysics and (v120_.createBaleNextFrame ~= nil and v120_.createBaleNextFrame) then
+		if self.isAddedToPhysics and (spec.createBaleNextFrame ~= nil and spec.createBaleNextFrame) then
 			self:finishBale()
-			v120_.createBaleNextFrame = nil
+			spec.createBaleNextFrame = nil
 		end
-		if v120_.variableSpeedLimit.enabled then
-			v120_.variableSpeedLimit.pickupPerSecondTimer = v120_.variableSpeedLimit.pickupPerSecondTimer + dt
-			if v120_.variableSpeedLimit.pickupPerSecondTimer > v120_.variableSpeedLimit.changeInterval then
-				local v129_ = v120_.variableSpeedLimit.defaultSpeedLimit
-				local v130_ = v120_.variableSpeedLimit.targetLiterPerSecond
-				local v131_ = self:getFillUnitFillType(v120_.fillUnitIndex)
-				if v131_ == FillType.UNKNOWN and v120_.nonStopBaling then
-					v131_ = self:getFillUnitFillType(v120_.buffer.fillUnitIndex)
+		if spec.variableSpeedLimit.enabled then
+			spec.variableSpeedLimit.pickupPerSecondTimer = spec.variableSpeedLimit.pickupPerSecondTimer + dt
+			if spec.variableSpeedLimit.changeInterval < spec.variableSpeedLimit.pickupPerSecondTimer then
+				local defaultSpeedLimit = spec.variableSpeedLimit.defaultSpeedLimit
+				local targetLiterPerSecond = spec.variableSpeedLimit.targetLiterPerSecond
+				local fillTypeIndex = self:getFillUnitFillType(spec.fillUnitIndex)
+				if fillTypeIndex == FillType.UNKNOWN and spec.nonStopBaling then
+					fillTypeIndex = self:getFillUnitFillType(spec.buffer.fillUnitIndex)
 				end
-				if v131_ ~= nil and v120_.variableSpeedLimit.fillTypeToTargetLiterPerSecond[v131_] ~= nil then
-					local v132_ = v120_.variableSpeedLimit.fillTypeToTargetLiterPerSecond[v131_]
-					v129_ = v132_.defaultSpeedLimit
-					v130_ = v132_.targetLiterPerSecond
+				if fillTypeIndex ~= nil and spec.variableSpeedLimit.fillTypeToTargetLiterPerSecond[fillTypeIndex] ~= nil then
+					local target = spec.variableSpeedLimit.fillTypeToTargetLiterPerSecond[fillTypeIndex]
+					defaultSpeedLimit = target.defaultSpeedLimit
+					targetLiterPerSecond = target.targetLiterPerSecond
 				end
-				local v133_ = v120_.variableSpeedLimit.pickupPerSecond / (v120_.variableSpeedLimit.changeInterval / 1000)
-				if v133_ > 0 then
-					if v120_.variableSpeedLimit.usedBackupSpeedLimit then
-						v120_.variableSpeedLimit.usedBackupSpeedLimit = false
-						self.speedLimit = v120_.variableSpeedLimit.lastAdjustedSpeedLimit or v129_
-						if (v120_.variableSpeedLimit.lastAdjustedSpeedLimitType or v131_) ~= v131_ then
-							self.speedLimit = v129_
+				local litersPerSecond = spec.variableSpeedLimit.pickupPerSecond / (spec.variableSpeedLimit.changeInterval / 1000)
+				if 0 < litersPerSecond then
+					if spec.variableSpeedLimit.usedBackupSpeedLimit then
+						spec.variableSpeedLimit.usedBackupSpeedLimit = false
+						self.speedLimit = spec.variableSpeedLimit.lastAdjustedSpeedLimit or defaultSpeedLimit
+						if (spec.variableSpeedLimit.lastAdjustedSpeedLimitType or fillTypeIndex) ~= fillTypeIndex then
+							self.speedLimit = defaultSpeedLimit
 						end
 					end
-					local v134_ = v130_ * 0.15
-					local v135_ = v133_ * 2 / v130_
-					local v136_ = math.floor(v135_)
-					local v137_ = math.max(v136_, 1)
-					if v130_ + v134_ < v133_ then
-						local v138_ = self.speedLimit - v137_
-						local v139_ = v120_.variableSpeedLimit.minSpeedLimit
-						self.speedLimit = math.max(v138_, v139_)
-					elseif v133_ < v130_ - v134_ then
-						local v140_ = self.speedLimit + v137_
-						local v141_ = v120_.variableSpeedLimit.maxSpeedLimit
-						self.speedLimit = math.min(v140_, v141_)
+					local threshold = targetLiterPerSecond * 0.15
+					local changeAmount = math.max(math.floor(litersPerSecond * 2 / targetLiterPerSecond), 1)
+					if targetLiterPerSecond + threshold < litersPerSecond then
+						self.speedLimit = math.max(self.speedLimit - changeAmount, spec.variableSpeedLimit.minSpeedLimit)
+					elseif litersPerSecond < targetLiterPerSecond - threshold then
+						self.speedLimit = math.min(self.speedLimit + changeAmount, spec.variableSpeedLimit.maxSpeedLimit)
 					end
-					v120_.variableSpeedLimit.lastAdjustedSpeedLimit = self.speedLimit
-					v120_.variableSpeedLimit.lastAdjustedSpeedLimitType = v131_
+					spec.variableSpeedLimit.lastAdjustedSpeedLimit = self.speedLimit
+					spec.variableSpeedLimit.lastAdjustedSpeedLimitType = fillTypeIndex
 				else
-					v120_.variableSpeedLimit.usedBackupSpeedLimit = true
-					self.speedLimit = v120_.variableSpeedLimit.backupSpeedLimit
+					spec.variableSpeedLimit.usedBackupSpeedLimit = true
+					self.speedLimit = spec.variableSpeedLimit.backupSpeedLimit
 				end
-				v120_.variableSpeedLimit.pickupPerSecondTimer = 0
-				v120_.variableSpeedLimit.pickupPerSecond = 0
+				spec.variableSpeedLimit.pickupPerSecondTimer = 0
+				spec.variableSpeedLimit.pickupPerSecond = 0
 			end
 		end
 	end
 end
-
--- Local values: spec, showBaleLimitWarning, isTurnedOn, loadPercentage, fillLevel, stopTime, deltaTime, baleTypeDef, baleTypeDef, isPlaying, animTime, fillType, _, lastUnloadingStarted, bufferLevel, capacity, delta, sourceFillType, unloadInfo, realDelta, targetFillType, overloadedLiters, fillTypeSupported, i, additivesFillLevel, usage, availableUsage, fillType
 function Baler:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v144_ = self.spec_baler
-	local v145_ = false
-	local v146_ = self:getIsTurnedOn()
-	if v146_ then
-		v145_ = not g_currentMission.slotSystem:getCanAddLimitedObjects(SlotSystem.LIMITED_OBJECT_BALE, 1) and true or v145_
+	local spec = self.spec_baler
+	local showBaleLimitWarning = false
+	local isTurnedOn = self:getIsTurnedOn()
+	if isTurnedOn then
+		if not g_currentMission.slotSystem:getCanAddLimitedObjects(SlotSystem.LIMITED_OBJECT_BALE, 1) then
+			showBaleLimitWarning = true
+		end
 		if self.isClient then
-			if v144_.lastAreaBiggerZero and v144_.fillEffectType ~= FillType.UNKNOWN then
-				v144_.lastAreaBiggerZeroTime = 500
-			elseif v144_.lastAreaBiggerZeroTime > 0 then
-				local v147_ = v144_.lastAreaBiggerZeroTime - dt
-				v144_.lastAreaBiggerZeroTime = math.max(v147_, 0)
-			end
-			if v144_.lastAreaBiggerZeroTime > 0 then
-				if v144_.fillEffectType ~= FillType.UNKNOWN then
-					g_effectManager:setEffectTypeInfo(v144_.fillEffects, v144_.fillEffectType)
+			if spec.lastAreaBiggerZero then
+				if spec.fillEffectType ~= FillType.UNKNOWN then
+					spec.lastAreaBiggerZeroTime = 500
+				elseif 0 < spec.lastAreaBiggerZeroTime then
+					spec.lastAreaBiggerZeroTime = math.max(spec.lastAreaBiggerZeroTime - dt, 0)
 				end
-				g_effectManager:startEffects(v144_.fillEffects)
-				local v148_ = v144_.pickUpLitersBuffer:get(1000) / v144_.maxPickupLitersPerSecond
-				g_effectManager:setDensity(v144_.fillEffects, (math.max(v148_, 0.4)))
+			end
+			if 0 < spec.lastAreaBiggerZeroTime then
+				if spec.fillEffectType ~= FillType.UNKNOWN then
+					g_effectManager:setEffectTypeInfo(spec.fillEffects, spec.fillEffectType)
+				end
+				g_effectManager:startEffects(spec.fillEffects)
+				local loadPercentage = spec.pickUpLitersBuffer:get(1000) / spec.maxPickupLitersPerSecond
+				g_effectManager:setDensity(spec.fillEffects, math.max(loadPercentage, 0.4))
 			else
-				g_effectManager:stopEffects(v144_.fillEffects)
+				g_effectManager:stopEffects(spec.fillEffects)
 			end
-			if v144_.knotCleaningTimer <= g_currentMission.time then
-				g_soundManager:playSample(v144_.samples.knotCleaning)
-				v144_.knotCleaningTimer = g_currentMission.time + v144_.knotCleaningTime
+			if spec.knotCleaningTimer <= g_currentMission.time then
+				g_soundManager:playSample(spec.samples.knotCleaning)
+				spec.knotCleaningTimer = g_currentMission.time + spec.knotCleaningTime
 			end
-			if v144_.compactingAnimation ~= nil and v144_.unloadingState == Baler.UNLOADING_CLOSED then
-				if v144_.compactingAnimationTime <= g_currentMission.time then
-					local v149_ = self:getFillUnitFillLevelPercentage(v144_.fillUnitIndex)
-					local v150_ = MathUtil.lerp(v144_.compactingAnimationMinTime, v144_.compactingAnimationMaxTime, v149_)
-					if v150_ > 0 then
-						self:setAnimationStopTime(v144_.compactingAnimation, (math.clamp(v150_, 0, 1)))
-						self:playAnimation(v144_.compactingAnimation, v144_.compactingAnimationSpeed, self:getAnimationTime(v144_.compactingAnimation), false)
-						v144_.compactingAnimationTime = math.huge
+			if spec.compactingAnimation ~= nil and spec.unloadingState == Baler.UNLOADING_CLOSED then
+				if spec.compactingAnimationTime <= g_currentMission.time then
+					local fillLevel = self:getFillUnitFillLevelPercentage(spec.fillUnitIndex)
+					local stopTime = MathUtil.lerp(spec.compactingAnimationMinTime, spec.compactingAnimationMaxTime, fillLevel)
+					if 0 < stopTime then
+						self:setAnimationStopTime(spec.compactingAnimation, math.clamp(stopTime, 0, 1))
+						self:playAnimation(spec.compactingAnimation, spec.compactingAnimationSpeed, self:getAnimationTime(spec.compactingAnimation), false)
+						spec.compactingAnimationTime = math.huge
 					end
 				end
-				if v144_.compactingAnimationTime == math.huge and not self:getIsAnimationPlaying(v144_.compactingAnimation) then
-					v144_.compactingAnimationCompactTimer = v144_.compactingAnimationCompactTimer - dt
-					if v144_.compactingAnimationCompactTimer < 0 then
-						self:playAnimation(v144_.compactingAnimation, -v144_.compactingAnimationSpeed, self:getAnimationTime(v144_.compactingAnimation), false)
-						v144_.compactingAnimationCompactTimer = v144_.compactingAnimationCompactTime
+				if spec.compactingAnimationTime == math.huge and not self:getIsAnimationPlaying(spec.compactingAnimation) then
+					spec.compactingAnimationCompactTimer = spec.compactingAnimationCompactTimer - dt
+					if spec.compactingAnimationCompactTimer < 0 then
+						self:playAnimation(spec.compactingAnimation, -spec.compactingAnimationSpeed, self:getAnimationTime(spec.compactingAnimation), false)
+						spec.compactingAnimationCompactTimer = spec.compactingAnimationCompactTime
 					end
-					if self:getAnimationTime(v144_.compactingAnimation) == 0 then
-						v144_.compactingAnimationTime = g_currentMission.time + v144_.compactingAnimationInterval
+					if self:getAnimationTime(spec.compactingAnimation) == 0 then
+						spec.compactingAnimationTime = g_currentMission.time + spec.compactingAnimationInterval
 					end
 				end
 			end
 		end
-	elseif v144_.isBaleUnloading and self.isServer then
-		self:moveBales(dt / v144_.baleUnloadingTime)
-	end
-	if self.isClient and v144_.unloadingState == Baler.UNLOADING_OPEN then
-		local v151_ = v144_.baleTypes[v144_.currentBaleTypeIndex]
-		if getNumOfChildren(v151_.baleNode) > 0 then
-			delete(getChildAt(v151_.baleNode, 0))
+	elseif spec.isBaleUnloading then
+		if self.isServer then
+			local deltaTime = dt / spec.baleUnloadingTime
+			self:moveBales(deltaTime)
 		end
 	end
-	if v144_.unloadingState == Baler.UNLOADING_OPENING then
-		local v152_ = v144_.baleTypes[v144_.currentBaleTypeIndex]
-		local v153_ = self:getIsAnimationPlaying(v152_.animations.unloading)
-		if v153_ and self:getRealAnimationTime(v152_.animations.unloading) < v152_.animations.dropAnimationTime then
-			g_animationManager:startAnimations(v144_.unloadAnimationNodes)
-		else
-			if #v144_.bales > 0 then
+	if self.isClient and spec.unloadingState == Baler.UNLOADING_OPEN then
+		local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+		if 0 < getNumOfChildren(baleTypeDef.baleNode) then
+			delete(getChildAt(baleTypeDef.baleNode, 0))
+		end
+	end
+	if spec.unloadingState == Baler.UNLOADING_OPENING then
+		local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+		local isPlaying = self:getIsAnimationPlaying(baleTypeDef.animations.unloading)
+		local animTime = self:getRealAnimationTime(baleTypeDef.animations.unloading)
+		if not isPlaying or baleTypeDef.animations.dropAnimationTime <= animTime then
+			if 0 < #spec.bales then
 				self:dropBale(1)
 				if self.isServer then
-					self:addFillUnitFillLevel(self:getOwnerFarmId(), v144_.fillUnitIndex, -math.huge, self:getFillUnitFillType(v144_.fillUnitIndex), ToolType.UNDEFINED)
-					v144_.buffer.unloadingStarted = false
-					for v154_, _ in pairs(v144_.pickupFillTypes) do
-						v144_.pickupFillTypes[v154_] = 0
+					self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.fillUnitIndex, -math.huge, self:getFillUnitFillType(spec.fillUnitIndex), ToolType.UNDEFINED)
+					spec.buffer.unloadingStarted = false
+					for fillType, _ in pairs(spec.pickupFillTypes) do
+						spec.pickupFillTypes[fillType] = 0
 					end
-					if self:getFillUnitFillLevel(v144_.fillUnitIndex) == 0 and v144_.preSelectedBaleTypeIndex ~= v144_.currentBaleTypeIndex then
-						self:setBaleTypeIndex(v144_.preSelectedBaleTypeIndex, true)
+					if self:getFillUnitFillLevel(spec.fillUnitIndex) == 0 and spec.preSelectedBaleTypeIndex ~= spec.currentBaleTypeIndex then
+						self:setBaleTypeIndex(spec.preSelectedBaleTypeIndex, true)
 					end
 				end
 			end
-			if not v153_ then
-				v144_.unloadingState = Baler.UNLOADING_OPEN
+			if not isPlaying then
+				spec.unloadingState = Baler.UNLOADING_OPEN
 				if self.isClient then
-					g_soundManager:stopSample(v144_.samples.eject)
-					g_soundManager:stopSample(v144_.samples.door)
-					g_animationManager:stopAnimations(v144_.unloadAnimationNodes)
+					g_soundManager:stopSample(spec.samples.eject)
+					g_soundManager:stopSample(spec.samples.door)
+					g_animationManager:stopAnimations(spec.unloadAnimationNodes)
 				end
 			end
+		else
+			g_animationManager:startAnimations(spec.unloadAnimationNodes)
 		end
-	elseif v144_.unloadingState == Baler.UNLOADING_CLOSING and not self:getIsAnimationPlaying(v144_.baleCloseAnimationName) then
-		v144_.unloadingState = Baler.UNLOADING_CLOSED
-		if self.isClient then
-			g_soundManager:stopSample(v144_.samples.door)
+	elseif spec.unloadingState == Baler.UNLOADING_CLOSING then
+		if not self:getIsAnimationPlaying(spec.baleCloseAnimationName) then
+			spec.unloadingState = Baler.UNLOADING_CLOSED
+			if self.isClient then
+				g_soundManager:stopSample(spec.samples.door)
+			end
 		end
 	end
-	if (v144_.unloadingState == Baler.UNLOADING_OPEN or v144_.unloadingState == Baler.UNLOADING_CLOSING) and (not self.isServer and #v144_.bales > 0) then
+	if (spec.unloadingState == Baler.UNLOADING_OPEN or spec.unloadingState == Baler.UNLOADING_CLOSING) and (not self.isServer and 0 < #spec.bales) then
 		self:dropBale(1)
 	end
 	Baler.updateActionEvents(self)
 	if self.isServer then
-		if v144_.automaticDrop ~= nil and v144_.automaticDrop or self:getIsAIActive() then
-			if self:isUnloadingAllowed() and (v144_.hasUnloadingAnimation or v144_.allowsBaleUnloading) and (v144_.unloadingState == Baler.UNLOADING_CLOSED and #v144_.bales > 0) then
+		if spec.automaticDrop ~= nil and (not spec.automaticDrop and self:getIsAIActive()) then
+			if self:isUnloadingAllowed() and ((spec.hasUnloadingAnimation or spec.allowsBaleUnloading) and (spec.unloadingState == Baler.UNLOADING_CLOSED and 0 < #spec.bales)) then
 				self:setIsUnloadingBale(true)
 			end
-			if v144_.hasUnloadingAnimation and v144_.unloadingState == Baler.UNLOADING_OPEN then
+			if spec.hasUnloadingAnimation and spec.unloadingState == Baler.UNLOADING_OPEN then
 				self:setIsUnloadingBale(false)
 			end
 		end
-		v144_.pickUpLitersBuffer:add(v144_.workAreaParameters.lastPickedUpLiters)
-		if v144_.additives.isActiveTimer > 0 then
-			v144_.additives.isActiveTimer = v144_.additives.isActiveTimer - dt
-			if v144_.additives.isActiveTimer < 0 then
-				v144_.additives.isActiveTimer = 0
-				v144_.additives.isActive = false
+		spec.pickUpLitersBuffer:add(spec.workAreaParameters.lastPickedUpLiters)
+		if 0 < spec.additives.isActiveTimer then
+			spec.additives.isActiveTimer = spec.additives.isActiveTimer - dt
+			if spec.additives.isActiveTimer < 0 then
+				spec.additives.isActiveTimer = 0
+				spec.additives.isActive = false
 				if self.isClient then
-					g_effectManager:stopEffects(v144_.additiveEffects)
+					g_effectManager:stopEffects(spec.additiveEffects)
 				end
-				self:raiseDirtyFlags(v144_.dirtyFlag)
+				self:raiseDirtyFlags(spec.dirtyFlag)
 			end
 		end
-		if v144_.platformAutomaticDrop and v144_.platformReadyToDrop then
+		if spec.platformAutomaticDrop and spec.platformReadyToDrop then
 			self:dropBaleFromPlatform(true)
 		end
-		if v144_.hasPlatform then
-			if #v144_.bales > 0 and v144_.platformReadyToDrop then
+		if spec.hasPlatform then
+			if 0 < #spec.bales and spec.platformReadyToDrop then
 				self:dropBaleFromPlatform(true)
 			end
-			if v144_.hasDynamicMountPlatform then
-				if v144_.platformMountDelay > 0 then
-					v144_.platformMountDelay = v144_.platformMountDelay - 1
-					if v144_.platformMountDelay == 0 then
+			if spec.hasDynamicMountPlatform then
+				if 0 < spec.platformMountDelay then
+					spec.platformMountDelay = spec.platformMountDelay - 1
+					if spec.platformMountDelay == 0 then
 						self:forceDynamicMountPendingObjects(true)
 					end
-				elseif v144_.platformReadyToDrop and not self:getHasDynamicMountedObjects() then
-					self:dropBaleFromPlatform(false)
+				elseif spec.platformReadyToDrop then
+					if not self:getHasDynamicMountedObjects() then
+						self:dropBaleFromPlatform(false)
+					end
 				end
 			end
 		end
-		if v144_.nonStopBaling then
-			local v155_ = v144_.buffer.unloadingStarted
-			local v156_ = self:getFillUnitFillLevel(v144_.buffer.fillUnitIndex)
-			if v156_ > 0 then
-				local v157_ = self:getFillUnitCapacity(v144_.buffer.fillUnitIndex)
-				if v146_ and MathUtil.round(v156_ / v157_, 2) >= v144_.buffer.overloadingStartFillLevelPct then
-					local v158_ = self:getFillUnitCapacity(v144_.fillUnitIndex)
-					if (v158_ == 0 or (v158_ == math.huge or self:getFillUnitFreeCapacity(v144_.fillUnitIndex) > 0)) and (not v144_.buffer.unloadingStarted and v144_.unloadingState == Baler.UNLOADING_CLOSED) then
-						v144_.buffer.unloadingStarted = true
-						v144_.buffer.overloadingTimer = 0
-						if v144_.buffer.overloadAnimation ~= nil then
-							self:playAnimation(v144_.buffer.overloadAnimation, v144_.buffer.overloadAnimationSpeed)
+		if spec.nonStopBaling then
+			local lastUnloadingStarted = spec.buffer.unloadingStarted
+			local bufferLevel = self:getFillUnitFillLevel(spec.buffer.fillUnitIndex)
+			if 0 < bufferLevel then
+				local capacity = self:getFillUnitCapacity(spec.buffer.fillUnitIndex)
+				if isTurnedOn and spec.buffer.overloadingStartFillLevelPct <= MathUtil.round(bufferLevel / capacity, 2) then
+					capacity = self:getFillUnitCapacity(spec.fillUnitIndex)
+					if (capacity == 0 or capacity == math.huge or 0 < self:getFillUnitFreeCapacity(spec.fillUnitIndex)) and (not spec.buffer.unloadingStarted and spec.unloadingState == Baler.UNLOADING_CLOSED) then
+						spec.buffer.unloadingStarted = true
+						spec.buffer.overloadingTimer = 0
+						if spec.buffer.overloadAnimation ~= nil then
+							self:playAnimation(spec.buffer.overloadAnimation, spec.buffer.overloadAnimationSpeed)
 						end
 					end
 				end
-				if v144_.buffer.unloadingStarted then
-					v144_.buffer.overloadingTimer = v144_.buffer.overloadingTimer + dt
-					if v144_.buffer.overloadingTimer >= v144_.buffer.overloadingDelay and self:getFillUnitFreeCapacity(v144_.fillUnitIndex) > 0 then
-						local v159_ = self:getFillUnitCapacity(v144_.buffer.fillUnitIndex) / v144_.buffer.overloadingDuration * dt
-						local v160_ = math.min(v159_, v156_)
-						local v161_ = self:getFillUnitFillType(v144_.buffer.fillUnitIndex)
-						local v162_ = self:getFillVolumeUnloadInfo(v144_.buffer.unloadInfoIndex)
-						local v163_ = self:addFillUnitFillLevel(self:getOwnerFarmId(), v144_.buffer.fillUnitIndex, -v160_, v161_, ToolType.UNDEFINED, v162_)
-						local v164_ = self:getFillUnitFillType(v144_.fillUnitIndex)
-						if v164_ ~= FillType.UNKNOWN then
-							v161_ = v164_
+				if spec.buffer.unloadingStarted then
+					spec.buffer.overloadingTimer = spec.buffer.overloadingTimer + dt
+					if spec.buffer.overloadingDelay <= spec.buffer.overloadingTimer and 0 < self:getFillUnitFreeCapacity(spec.fillUnitIndex) then
+						capacity = self:getFillUnitCapacity(spec.buffer.fillUnitIndex)
+						local delta = math.min(capacity / spec.buffer.overloadingDuration * dt, bufferLevel)
+						local sourceFillType = self:getFillUnitFillType(spec.buffer.fillUnitIndex)
+						local unloadInfo = self:getFillVolumeUnloadInfo(spec.buffer.unloadInfoIndex)
+						local realDelta = self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.buffer.fillUnitIndex, -delta, sourceFillType, ToolType.UNDEFINED, unloadInfo)
+						local targetFillType = self:getFillUnitFillType(spec.fillUnitIndex)
+						if targetFillType == FillType.UNKNOWN then
+							targetFillType = sourceFillType
 						end
-						local v165_ = -v163_
-						if v144_.additives.available and v144_.additives.appliedByBufferOverloading then
-							local v166_ = false
-							for v167_ = 1, #v144_.additives.fillTypes do
-								if v161_ == v144_.additives.fillTypes[v167_] then
-									v166_ = true
+						local overloadedLiters = -realDelta
+						if spec.additives.available and spec.additives.appliedByBufferOverloading then
+							local fillTypeSupported = false
+							for i = 1, #spec.additives.fillTypes do
+								if targetFillType == spec.additives.fillTypes[i] then
+									fillTypeSupported = true
 									break
 								end
 							end
-							if v166_ then
-								local v168_ = self:getFillUnitFillLevel(v144_.additives.fillUnitIndex)
-								if v168_ > 0 then
-									local v169_ = v144_.additives.usage * v165_
-									if v169_ > 0 then
-										local v170_ = v168_ / v169_
-										v165_ = v165_ * (1 + 0.05 * math.min(v170_, 1))
-										self:addFillUnitFillLevel(self:getOwnerFarmId(), v144_.additives.fillUnitIndex, -v169_, self:getFillUnitFillType(v144_.additives.fillUnitIndex), ToolType.UNDEFINED)
-										v144_.additives.isActiveTimer = 250
-										v144_.additives.isActive = true
-										self:raiseDirtyFlags(v144_.dirtyFlag)
+							if fillTypeSupported then
+								local additivesFillLevel = self:getFillUnitFillLevel(spec.additives.fillUnitIndex)
+								if 0 < additivesFillLevel then
+									local usage = spec.additives.usage * overloadedLiters
+									if 0 < usage then
+										local availableUsage = math.min(additivesFillLevel / usage, 1)
+										overloadedLiters = overloadedLiters * (1 + 0.05 * availableUsage)
+										self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.additives.fillUnitIndex, -usage, self:getFillUnitFillType(spec.additives.fillUnitIndex), ToolType.UNDEFINED)
+										spec.additives.isActiveTimer = 250
+										spec.additives.isActive = true
+										self:raiseDirtyFlags(spec.dirtyFlag)
 										if self.isClient then
-											g_effectManager:setEffectTypeInfo(v144_.additiveEffects, FillType.LIQUIDFERTILIZER)
-											g_effectManager:startEffects(v144_.additiveEffects)
+											g_effectManager:setEffectTypeInfo(spec.additiveEffects, FillType.LIQUIDFERTILIZER)
+											g_effectManager:startEffects(spec.additiveEffects)
 										end
 									end
 								end
 							end
 						end
-						self:addFillUnitFillLevel(self:getOwnerFarmId(), v144_.fillUnitIndex, v165_, v161_, ToolType.UNDEFINED, nil)
-						if v144_.buffer.fillLevelToEmpty > 0 then
-							local v171_ = v144_.buffer
-							local v172_ = v144_.buffer.fillLevelToEmpty - v160_
-							v171_.fillLevelToEmpty = math.max(v172_, 0)
-							if v144_.buffer.fillLevelToEmpty == 0 then
-								v144_.platformDelayedDropping = true
-								v144_.buffer.unloadingStarted = false
+						self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.fillUnitIndex, overloadedLiters, targetFillType, ToolType.UNDEFINED, nil)
+						if 0 < spec.buffer.fillLevelToEmpty then
+							spec.buffer.fillLevelToEmpty = math.max(spec.buffer.fillLevelToEmpty - delta, 0)
+							if spec.buffer.fillLevelToEmpty == 0 then
+								spec.platformDelayedDropping = true
+								spec.buffer.unloadingStarted = false
 							end
 						end
 					end
-					if self:getFillUnitFillLevelPercentage(v144_.fillUnitIndex) == 1 or not v146_ then
-						v144_.buffer.unloadingStarted = false
+					if self:getFillUnitFillLevelPercentage(spec.fillUnitIndex) == 1 or not isTurnedOn then
+						spec.buffer.unloadingStarted = false
 					end
 				end
-			elseif not v144_.buffer.fillMainUnitAfterOverload then
-				v144_.buffer.unloadingStarted = false
+			elseif not spec.buffer.fillMainUnitAfterOverload then
+				spec.buffer.unloadingStarted = false
 			end
-			if v155_ ~= v144_.buffer.unloadingStarted then
+			if lastUnloadingStarted ~= spec.buffer.unloadingStarted then
 				if self.isClient then
-					if v144_.buffer.unloadingStarted then
-						local v173_ = self:getFillUnitFillType(v144_.buffer.fillUnitIndex)
-						g_effectManager:setEffectTypeInfo(v144_.buffer.overloadingEffects, v173_)
-						g_effectManager:startEffects(v144_.buffer.overloadingEffects)
-						g_animationManager:startAnimations(v144_.buffer.overloadingAnimationNodes)
-						g_soundManager:playSamples(v144_.buffer.samplesOverloadingStart)
-						g_soundManager:playSamples(v144_.buffer.samplesOverloadingWork, 0, v144_.buffer.samplesOverloadingStart[1])
+					if spec.buffer.unloadingStarted then
+						local fillType = self:getFillUnitFillType(spec.buffer.fillUnitIndex)
+						g_effectManager:setEffectTypeInfo(spec.buffer.overloadingEffects, fillType)
+						g_effectManager:startEffects(spec.buffer.overloadingEffects)
+						g_animationManager:startAnimations(spec.buffer.overloadingAnimationNodes)
+						g_soundManager:playSamples(spec.buffer.samplesOverloadingStart)
+						g_soundManager:playSamples(spec.buffer.samplesOverloadingWork, 0, spec.buffer.samplesOverloadingStart[1])
 					else
-						g_effectManager:stopEffects(v144_.buffer.overloadingEffects)
-						g_animationManager:stopAnimations(v144_.buffer.overloadingAnimationNodes)
-						g_soundManager:stopSamples(v144_.buffer.samplesOverloadingStart)
-						if g_soundManager:getIsSamplePlaying(v144_.buffer.samplesOverloadingWork[1]) then
-							g_soundManager:stopSamples(v144_.buffer.samplesOverloadingWork)
-							g_soundManager:playSamples(v144_.buffer.samplesOverloadingStop)
+						g_effectManager:stopEffects(spec.buffer.overloadingEffects)
+						g_animationManager:stopAnimations(spec.buffer.overloadingAnimationNodes)
+						g_soundManager:stopSamples(spec.buffer.samplesOverloadingStart)
+						if g_soundManager:getIsSamplePlaying(spec.buffer.samplesOverloadingWork[1]) then
+							g_soundManager:stopSamples(spec.buffer.samplesOverloadingWork)
+							g_soundManager:playSamples(spec.buffer.samplesOverloadingStop)
 						end
 					end
 				end
-				self:raiseDirtyFlags(v144_.dirtyFlag)
+				self:raiseDirtyFlags(spec.dirtyFlag)
 			end
-			if v144_.buffer.overloadAnimation ~= nil and (not self:getIsAnimationPlaying(v144_.buffer.overloadAnimation) and self:getAnimationTime(v144_.buffer.overloadAnimation) > 0.5) then
-				self:playAnimation(v144_.buffer.overloadAnimation, -v144_.buffer.overloadAnimationSpeed)
+			if spec.buffer.overloadAnimation ~= nil and (not self:getIsAnimationPlaying(spec.buffer.overloadAnimation) and 0.5 < self:getAnimationTime(spec.buffer.overloadAnimation)) then
+				self:playAnimation(spec.buffer.overloadAnimation, -spec.buffer.overloadAnimationSpeed)
 			end
-			if v146_ then
+			if isTurnedOn then
 				self:raiseActive()
 			end
 		end
 	end
-	if self.isServer and v144_.showBaleLimitWarning ~= v145_ then
-		v144_.showBaleLimitWarning = v145_
-		self:raiseDirtyFlags(v144_.dirtyFlag)
+	if self.isServer and spec.showBaleLimitWarning ~= showBaleLimitWarning then
+		spec.showBaleLimitWarning = showBaleLimitWarning
+		self:raiseDirtyFlags(spec.dirtyFlag)
 	end
-	if v144_.hasPlatform then
-		if v144_.platformDelayedDropping and not v144_.platformDropInProgress then
+	if spec.hasPlatform then
+		if spec.platformDelayedDropping and not spec.platformDropInProgress then
 			Baler.actionEventUnloading(self)
-			v144_.platformDelayedDropping = false
+			spec.platformDelayedDropping = false
 		end
-		if v144_.platformDropInProgress and not self:getIsAnimationPlaying(v144_.platformAnimation) then
-			v144_.platformDropInProgress = false
+		if spec.platformDropInProgress and not self:getIsAnimationPlaying(spec.platformAnimation) then
+			spec.platformDropInProgress = false
 		end
 	end
 end
-
--- Local values: spec
 function Baler:onDraw()
-	local v175_ = self.spec_baler
-	if v175_.showBaleLimitWarning then
-		g_currentMission:showBlinkingWarning(v175_.texts.warningTooManyBales, 100)
+	local spec = self.spec_baler
+	if spec.showBaleLimitWarning then
+		g_currentMission:showBlinkingWarning(spec.texts.warningTooManyBales, 100)
 	end
 end
-
--- Local values: spec
 function Baler:getIsFoldAllowed(superFunc, direction, onAiTurnOn)
-	local v180_ = self.spec_baler
-	if #v180_.bales > 0 and self:getFillUnitFillLevel(v180_.fillUnitIndex) > v180_.baleFoldThreshold then
-		return false, v180_.texts.warningFoldingBaleLoaded
-	elseif #v180_.bales > 1 then
-		return false, v180_.texts.warningFoldingBaleLoaded
+	local spec = self.spec_baler
+	if 0 < #spec.bales and spec.baleFoldThreshold < self:getFillUnitFillLevel(spec.fillUnitIndex) then
+		return false, spec.texts.warningFoldingBaleLoaded
+	end
+	if 1 < #spec.bales then
+		return false, spec.texts.warningFoldingBaleLoaded
 	elseif self:getIsTurnedOn() then
-		return false, v180_.texts.warningFoldingTurnedOn
-	elseif v180_.hasPlatform and (v180_.platformReadyToDrop or v180_.platformDropInProgress) then
-		return false, v180_.texts.warningFoldingBaleLoaded
+		return false, spec.texts.warningFoldingTurnedOn
 	else
+		if spec.hasPlatform and (spec.platformReadyToDrop or spec.platformDropInProgress) then
+			return false, spec.texts.warningFoldingBaleLoaded
+		end
 		return superFunc(self, direction, onAiTurnOn)
 	end
 end
-
--- Local values: spec, mainFillTypeIndex, baleTypeDef, baleCapacity
 function Baler:onChangedFillType(fillUnitIndex, fillTypeIndex, oldFillTypeIndex)
-	local v184_ = self.spec_baler
-	if fillUnitIndex == v184_.fillUnitIndex or fillUnitIndex == v184_.buffer.fillUnitIndex then
-		local v185_ = self:getFillUnitFillType(v184_.fillUnitIndex)
-		if v185_ == FillType.UNKNOWN then
-			v185_ = fillTypeIndex
+	local spec = self.spec_baler
+	if fillUnitIndex == spec.fillUnitIndex or fillUnitIndex == spec.buffer.fillUnitIndex then
+		local mainFillTypeIndex = self:getFillUnitFillType(spec.fillUnitIndex)
+		if mainFillTypeIndex ~= FillType.UNKNOWN then
+			fillTypeIndex = mainFillTypeIndex
 		end
-		if v185_ ~= FillType.UNKNOWN then
-			local v186_ = v184_.baleTypes[v184_.currentBaleTypeIndex]
-			v184_.currentBaleTypeDefinition = v186_
-			local v187_, v188_ = g_baleManager:getBaleXMLFilename(v185_, v186_.isRoundBale, v186_.width, v186_.height, v186_.length, v186_.diameter, self.customEnvironment)
-			v184_.currentBaleXMLFilename = v187_
-			v184_.currentBaleIndex = v188_
-			local v189_ = g_baleManager:getBaleCapacityByBaleIndex(v184_.currentBaleIndex, v185_)
-			if fillUnitIndex == v184_.fillUnitIndex then
-				self:setFillUnitCapacity(fillUnitIndex, v189_, false)
-			elseif v184_.buffer.capacityPercentage ~= nil then
-				self:setFillUnitCapacity(fillUnitIndex, v189_ * v184_.buffer.capacityPercentage, false)
+		if fillTypeIndex ~= FillType.UNKNOWN then
+			local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+			spec.currentBaleTypeDefinition = baleTypeDef
+			spec.currentBaleXMLFilename, spec.currentBaleIndex = g_baleManager:getBaleXMLFilename(fillTypeIndex, baleTypeDef.isRoundBale, baleTypeDef.width, baleTypeDef.height, baleTypeDef.length, baleTypeDef.diameter, self.customEnvironment)
+			local baleCapacity = g_baleManager:getBaleCapacityByBaleIndex(spec.currentBaleIndex, fillTypeIndex)
+			if fillUnitIndex == spec.fillUnitIndex then
+				self:setFillUnitCapacity(fillUnitIndex, baleCapacity, false)
+			elseif spec.buffer.capacityPercentage ~= nil then
+				self:setFillUnitCapacity(fillUnitIndex, baleCapacity * spec.buffer.capacityPercentage, false)
 			end
-			ObjectChangeUtil.setObjectChanges(v186_.changeObjects, true, self, self.setMovingToolDirty)
-			if v184_.currentBaleXMLFilename == nil then
-				Logging.warning("Could not find bale for given bale type definition \'%s\'", v186_.index)
+			ObjectChangeUtil.setObjectChanges(baleTypeDef.changeObjects, true, self, self.setMovingToolDirty)
+			if spec.currentBaleXMLFilename == nil then
+				Logging.warning("Could not find bale for given bale type definition '%s'", baleTypeDef.index)
 			end
 		end
 	end
 end
-
--- Local values: spec, baleTypeDef, fillLevel, capacity, i, overflow, fillLevel, capacity
 function Baler:onFillUnitFillLevelChanged(fillUnitIndex, fillLevelDelta, fillTypeIndex, toolType, fillPositionData, appliedDelta)
-	local v196_ = self.spec_baler
-	if fillUnitIndex == v196_.fillUnitIndex then
-		local v197_ = v196_.baleTypes[v196_.currentBaleTypeIndex]
-		local v198_ = self:getFillUnitFillLevel(v196_.fillUnitIndex)
-		local v199_ = self:getFillUnitCapacity(v196_.fillUnitIndex)
-		if self:updateDummyBale(v196_.dummyBale, fillTypeIndex, v198_, v199_) then
-			for v200_ = 1, #v196_.baleTypes do
-				self:setAnimationTime(v196_.baleTypes[v200_].animations.fill, 0)
+	local spec = self.spec_baler
+	if fillUnitIndex == spec.fillUnitIndex then
+		local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+		local fillLevel = self:getFillUnitFillLevel(spec.fillUnitIndex)
+		local capacity = self:getFillUnitCapacity(spec.fillUnitIndex)
+		if self:updateDummyBale(spec.dummyBale, fillTypeIndex, fillLevel, capacity) then
+			for i = 1, #spec.baleTypes do
+				self:setAnimationTime(spec.baleTypes[i].animations.fill, 0)
 			end
 		end
-		if v198_ > 0 then
-			self:setAnimationTime(v197_.animations.fill, v198_ / v199_)
+		if 0 < fillLevel then
+			self:setAnimationTime(baleTypeDef.animations.fill, fillLevel / capacity)
 		end
-		if self.isServer and fillLevelDelta > 0 then
-			if self:getFillUnitFreeCapacity(v196_.fillUnitIndex) <= 0 then
+		if self.isServer and 0 < fillLevelDelta then
+			if self:getFillUnitFreeCapacity(spec.fillUnitIndex) <= 0 then
 				if self.isAddedToPhysics then
 					self:finishBale()
 				else
-					v196_.createBaleNextFrame = true
+					spec.createBaleNextFrame = true
 				end
-				v196_.fillUnitOverflowFillLevel = fillLevelDelta - appliedDelta
+				spec.fillUnitOverflowFillLevel = fillLevelDelta - appliedDelta
 				return
 			end
-			if v196_.fillUnitOverflowFillLevel > 0 and fillLevelDelta > 0 then
-				local v201_ = v196_.fillUnitOverflowFillLevel
-				v196_.fillUnitOverflowFillLevel = 0
-				v196_.fillUnitOverflowFillLevel = v201_ - self:addFillUnitFillLevel(self:getOwnerFarmId(), v196_.fillUnitIndex, v201_, fillTypeIndex, toolType)
-				return
+			if 0 < spec.fillUnitOverflowFillLevel and 0 < fillLevelDelta then
+				local overflow = spec.fillUnitOverflowFillLevel
+				spec.fillUnitOverflowFillLevel = 0
+				overflow = overflow - self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.fillUnitIndex, overflow, fillTypeIndex, toolType)
+				spec.fillUnitOverflowFillLevel = overflow
 			end
 		end
-	elseif v196_.nonStopBaling and (fillUnitIndex == v196_.buffer.fillUnitIndex and v196_.buffer.dummyBale.available) then
-		local v202_ = self:getFillUnitFillLevel(v196_.buffer.fillUnitIndex)
-		local v203_ = self:getFillUnitCapacity(v196_.buffer.fillUnitIndex)
-		if v196_.buffer.overloadAnimation ~= nil and (self:getAnimationTime(v196_.buffer.overloadAnimation) > 0 and v202_ > 0) then
-			return
+	elseif spec.nonStopBaling then
+		if fillUnitIndex == spec.buffer.fillUnitIndex and spec.buffer.dummyBale.available then
+			local fillLevel = self:getFillUnitFillLevel(spec.buffer.fillUnitIndex)
+			local capacity = self:getFillUnitCapacity(spec.buffer.fillUnitIndex)
+			if spec.buffer.overloadAnimation ~= nil and (0 < self:getAnimationTime(spec.buffer.overloadAnimation) and 0 < fillLevel) then
+				return
+			end
+			self:updateDummyBale(spec.buffer.dummyBale, fillTypeIndex, fillLevel, capacity)
 		end
-		self:updateDummyBale(v196_.buffer.dummyBale, fillTypeIndex, v202_, v203_)
 	end
 end
-
--- Local values: spec
 function Baler:onConsumableVariationChanged(variationIndex, metaData)
 	if metaData.bale_variation ~= nil then
-		self.spec_baler.lastBaleVariationId = metaData.bale_variation
+		local spec = self.spec_baler
+		spec.lastBaleVariationId = metaData.bale_variation
 	end
 end
-
--- Local values: spec
 function Baler:onTurnedOn()
-	if self.setFoldState ~= nil and #self.spec_foldable.foldingParts > 0 then
+	if self.setFoldState ~= nil and 0 < #self.spec_foldable.foldingParts then
 		self:setFoldState(self.spec_foldable.turnOnFoldDirection, false, true)
 	end
 	if self.isClient then
-		local v207_ = self.spec_baler
-		g_animationManager:startAnimations(v207_.animationNodes)
-		g_soundManager:playSample(v207_.samples.work)
+		local spec = self.spec_baler
+		g_animationManager:startAnimations(spec.animationNodes)
+		g_soundManager:playSample(spec.samples.work)
 	end
 	self:raiseActive()
 end
-
--- Local values: spec
 function Baler:onTurnedOff()
 	if self.isClient then
-		local v209_ = self.spec_baler
-		g_effectManager:stopEffects(v209_.fillEffects)
-		g_effectManager:stopEffects(v209_.additiveEffects)
-		g_effectManager:stopEffects(v209_.buffer.overloadingEffects)
-		g_animationManager:stopAnimations(v209_.animationNodes)
-		g_soundManager:stopSample(v209_.samples.work)
-		g_soundManager:stopSample(v209_.samples.eject)
-		g_soundManager:stopSample(v209_.samples.unload)
-		g_soundManager:stopSample(v209_.samples.door)
-		g_soundManager:stopSample(v209_.samples.knotCleaning)
-		g_soundManager:stopSamples(v209_.buffer.samplesOverloadingStart)
-		if g_soundManager:getIsSamplePlaying(v209_.buffer.samplesOverloadingWork[1]) then
-			g_soundManager:stopSamples(v209_.buffer.samplesOverloadingWork)
-			g_soundManager:playSamples(v209_.buffer.samplesOverloadingStop)
+		local spec = self.spec_baler
+		g_effectManager:stopEffects(spec.fillEffects)
+		g_effectManager:stopEffects(spec.additiveEffects)
+		g_effectManager:stopEffects(spec.buffer.overloadingEffects)
+		g_animationManager:stopAnimations(spec.animationNodes)
+		g_soundManager:stopSample(spec.samples.work)
+		g_soundManager:stopSample(spec.samples.eject)
+		g_soundManager:stopSample(spec.samples.unload)
+		g_soundManager:stopSample(spec.samples.door)
+		g_soundManager:stopSample(spec.samples.knotCleaning)
+		g_soundManager:stopSamples(spec.buffer.samplesOverloadingStart)
+		if g_soundManager:getIsSamplePlaying(spec.buffer.samplesOverloadingWork[1]) then
+			g_soundManager:stopSamples(spec.buffer.samplesOverloadingWork)
+			g_soundManager:playSamples(spec.buffer.samplesOverloadingStop)
 		end
 	end
 end
-
--- Local values: spec, actionController
 function Baler:onRootVehicleChanged(rootVehicle)
-	local v212_ = self.spec_baler
-	local v213_ = rootVehicle.actionController
-	if v213_ == nil then
-		if v212_.controlledAction ~= nil then
-			v212_.controlledAction:remove()
-			v212_.controlledAction = nil
+	local spec = self.spec_baler
+	local actionController = rootVehicle.actionController
+	if actionController ~= nil then
+		if spec.controlledAction ~= nil then
+			spec.controlledAction:updateParent(actionController)
+			return
+		else
+			spec.controlledAction = actionController:registerAction("baleUnload", nil, 1)
+			spec.controlledAction:setCallback(self, Baler.actionControllerBaleUnloadEvent)
+			spec.controlledAction:setFinishedFunctions(self, Baler.getIsBaleUnloading, false, false)
+			return
 		end
-		return
-	elseif v212_.controlledAction == nil then
-		v212_.controlledAction = v213_:registerAction("baleUnload", nil, 1)
-		v212_.controlledAction:setCallback(self, Baler.actionControllerBaleUnloadEvent)
-		v212_.controlledAction:setFinishedFunctions(self, Baler.getIsBaleUnloading, false, false)
-	else
-		v212_.controlledAction:updateParent(v213_)
+	end
+	if spec.controlledAction ~= nil then
+		spec.controlledAction:remove()
+		spec.controlledAction = nil
 	end
 end
-
--- Local values: spec
 function Baler:actionControllerBaleUnloadEvent(direction)
 	if direction < 0 then
-		local v216_ = self.spec_baler
-		if self:isUnloadingAllowed() and (v216_.allowsBaleUnloading and (v216_.unloadingState == Baler.UNLOADING_CLOSED and #v216_.bales > 0)) then
+		local spec = self.spec_baler
+		if self:isUnloadingAllowed() and (spec.allowsBaleUnloading and (spec.unloadingState == Baler.UNLOADING_CLOSED and 0 < #spec.bales)) then
 			self:setIsUnloadingBale(true)
 		end
 	end
 	return true
 end
-
 function Baler:doCheckSpeedLimit(superFunc)
-	local v219_ = not superFunc(self) and self:getIsTurnedOn()
-	if v219_ then
-		v219_ = self:getIsLowered()
+	local _v4 = superFunc(self)
+	if not _v4 then
+		self:getIsTurnedOn()
+		self:getIsLowered()
 	end
-	return v219_
+	return _v4
 end
-
--- Local values: spec
 function Baler:setBaleTypeIndex(baleTypeIndex, force, noEventSend)
-	local v224_ = self.spec_baler
-	v224_.preSelectedBaleTypeIndex = baleTypeIndex
-	if self:getFillUnitFillLevel(v224_.fillUnitIndex) == 0 or force then
-		v224_.currentBaleTypeIndex = baleTypeIndex
+	local spec = self.spec_baler
+	spec.preSelectedBaleTypeIndex = baleTypeIndex
+	if self:getFillUnitFillLevel(spec.fillUnitIndex) == 0 or force then
+		spec.currentBaleTypeIndex = baleTypeIndex
 	end
 	Baler.updateActionEvents(self)
 	BalerBaleTypeEvent.sendEvent(self, baleTypeIndex, force, noEventSend)
 end
-
--- Local values: spec
 function Baler:isUnloadingAllowed()
-	local v226_ = self.spec_baler
-	if (v226_.platformReadyToDrop or v226_.platformDropInProgress) and v226_.unloadingState ~= Baler.UNLOADING_OPEN then
+	local spec = self.spec_baler
+	if (spec.platformReadyToDrop or spec.platformDropInProgress) and spec.unloadingState ~= Baler.UNLOADING_OPEN then
 		return false
 	end
-	if self.spec_baleWrapper ~= nil then
+	if self.spec_baleWrapper == nil then
+		return not spec.allowsBaleUnloading
+	else
 		return self:allowsGrabbingBale()
 	end
-	local v227_ = (v226_.allowsBaleUnloading and true or false) and (v226_.allowsBaleUnloading and not self:getIsTurnedOn())
-	if v227_ then
-		v227_ = not v226_.isBaleUnloading
-	end
-	return v227_
 end
-
--- Local values: spec
 function Baler:handleUnloadingBaleEvent()
-	local v229_ = self.spec_baler
-	if self:isUnloadingAllowed() and (v229_.hasUnloadingAnimation or v229_.allowsBaleUnloading) then
-		if v229_.unloadingState == Baler.UNLOADING_CLOSED then
-			if #v229_.bales > 0 or self:getCanUnloadUnfinishedBale() then
+	local spec = self.spec_baler
+	if self:isUnloadingAllowed() and (spec.hasUnloadingAnimation or spec.allowsBaleUnloading) then
+		if spec.unloadingState == Baler.UNLOADING_CLOSED then
+			if 0 < #spec.bales or self:getCanUnloadUnfinishedBale() then
 				self:setIsUnloadingBale(true)
-				return
 			end
-		elseif v229_.unloadingState == Baler.UNLOADING_OPEN and v229_.hasUnloadingAnimation then
-			self:setIsUnloadingBale(false)
+		elseif spec.unloadingState == Baler.UNLOADING_OPEN then
+			if spec.hasUnloadingAnimation then
+				self:setIsUnloadingBale(false)
+			end
 		end
 	end
 end
-
--- Local values: spec
 function Baler:dropBaleFromPlatform(waitForNextBale, noEventSend)
-	local v233_ = self.spec_baler
-	if v233_.platformReadyToDrop then
-		self:setAnimationTime(v233_.platformAnimation, 0, false)
-		self:playAnimation(v233_.platformAnimation, 1, self:getAnimationTime(v233_.platformAnimation), true)
+	local spec = self.spec_baler
+	if spec.platformReadyToDrop then
+		self:setAnimationTime(spec.platformAnimation, 0, false)
+		self:playAnimation(spec.platformAnimation, 1, self:getAnimationTime(spec.platformAnimation), true)
 		if waitForNextBale == true then
-			self:setAnimationStopTime(v233_.platformAnimation, v233_.platformAnimationNextBaleTime)
+			self:setAnimationStopTime(spec.platformAnimation, spec.platformAnimationNextBaleTime)
 		end
-		v233_.platformReadyToDrop = false
-		v233_.platformDropInProgress = true
-		if self.isServer and v233_.hasDynamicMountPlatform then
+		spec.platformReadyToDrop = false
+		spec.platformDropInProgress = true
+		if self.isServer and spec.hasDynamicMountPlatform then
 			self:forceUnmountDynamicMountedObjects()
 		end
 	end
 	BalerDropFromPlatformEvent.sendEvent(self, waitForNextBale, noEventSend)
 end
-
--- Local values: spec, ownerFarmId, farmlandId
 function Baler:getBalerBaleOwnerFarmId(x, z)
-	local v237_
-	if self.spec_baler.useDropLandOwnershipForBales then
-		local v238_ = g_farmlandManager:getFarmlandIdAtWorldPosition(x, z)
-		v237_ = g_farmlandManager:getFarmlandOwner(v238_)
+	local spec = self.spec_baler
+	local ownerFarmId = nil
+	if spec.useDropLandOwnershipForBales then
+		local farmlandId = g_farmlandManager:getFarmlandIdAtWorldPosition(x, z)
+		ownerFarmId = g_farmlandManager:getFarmlandOwner(farmlandId)
 	else
-		v237_ = self:getLastTouchedFarmlandFarmId()
+		ownerFarmId = self:getLastTouchedFarmlandFarmId()
 	end
-	if v237_ == FarmManager.SPECTATOR_FARM_ID then
-		v237_ = self:getOwnerFarmId()
+	if ownerFarmId == FarmManager.SPECTATOR_FARM_ID then
+		ownerFarmId = self:getOwnerFarmId()
 	end
-	return v237_
+	return ownerFarmId
 end
-
--- Local values: spec
 function Baler:getIsRoundBaler()
-	return self.spec_baler.isRoundBaler
+	local spec = self.spec_baler
+	return spec.isRoundBaler
 end
-
--- Local values: spec, fillTypeIndex, fillLevel, delta, mainFillLevel, baleTypeDef
 function Baler:setIsUnloadingBale(isUnloadingBale, noEventSend)
-	local v243_ = self.spec_baler
-	if v243_.hasUnloadingAnimation then
+	local spec = self.spec_baler
+	if spec.hasUnloadingAnimation then
 		if isUnloadingBale then
-			if v243_.unloadingState ~= Baler.UNLOADING_OPENING then
-				if #v243_.bales == 0 and v243_.canUnloadUnfinishedBale then
-					local v244_ = self:getFillUnitFillType(v243_.fillUnitIndex)
-					local v245_ = self:getFillUnitFillLevel(v243_.fillUnitIndex)
-					if v243_.buffer.fillUnitIndex ~= nil then
-						v245_ = v245_ + self:getFillUnitFillLevel(v243_.buffer.fillUnitIndex)
-						if v244_ == FillType.UNKNOWN then
-							v244_ = self:getFillUnitFillType(v243_.buffer.fillUnitIndex)
+			if spec.unloadingState ~= Baler.UNLOADING_OPENING then
+				if #spec.bales == 0 and spec.canUnloadUnfinishedBale then
+					local fillTypeIndex = self:getFillUnitFillType(spec.fillUnitIndex)
+					local fillLevel = self:getFillUnitFillLevel(spec.fillUnitIndex)
+					if spec.buffer.fillUnitIndex ~= nil then
+						fillLevel = fillLevel + self:getFillUnitFillLevel(spec.buffer.fillUnitIndex)
+						if fillTypeIndex == FillType.UNKNOWN then
+							fillTypeIndex = self:getFillUnitFillType(spec.buffer.fillUnitIndex)
 						end
 					end
-					if v243_.unfinishedBaleThreshold < v245_ then
-						local v246_ = self:getFillUnitFreeCapacity(v243_.fillUnitIndex)
-						local v247_ = v243_.fillUnitIndex
-						local v248_ = math.min(v245_, self:getFillUnitCapacity(v247_))
-						if v243_.buffer.fillUnitIndex ~= nil then
-							local v249_ = self:getFillUnitFillLevel(v243_.fillUnitIndex)
-							local v250_ = self:getOwnerFarmId()
-							local v251_ = v243_.buffer.fillUnitIndex
-							local v252_ = v248_ - v249_
-							self:addFillUnitFillLevel(v250_, v251_, -math.max(v252_, 0), self:getFillUnitFillType(v243_.buffer.fillUnitIndex), ToolType.UNDEFINED)
+					if spec.unfinishedBaleThreshold < fillLevel then
+						local delta = self:getFillUnitFreeCapacity(spec.fillUnitIndex)
+						fillLevel = math.min(fillLevel, self:getFillUnitCapacity(spec.fillUnitIndex))
+						if spec.buffer.fillUnitIndex ~= nil then
+							local mainFillLevel = self:getFillUnitFillLevel(spec.fillUnitIndex)
+							self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.buffer.fillUnitIndex, -math.max(fillLevel - mainFillLevel, 0), self:getFillUnitFillType(spec.buffer.fillUnitIndex), ToolType.UNDEFINED)
 						end
-						v243_.lastBaleFillLevel = v248_
-						self:setFillUnitFillLevelToDisplay(v243_.fillUnitIndex, v248_)
-						self:addFillUnitFillLevel(self:getOwnerFarmId(), v243_.fillUnitIndex, v246_, v244_, ToolType.UNDEFINED)
-						v243_.buffer.unloadingStarted = false
+						spec.lastBaleFillLevel = fillLevel
+						self:setFillUnitFillLevelToDisplay(spec.fillUnitIndex, fillLevel)
+						self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.fillUnitIndex, delta, fillTypeIndex, ToolType.UNDEFINED)
+						spec.buffer.unloadingStarted = false
 					end
 				end
 				BalerSetIsUnloadingBaleEvent.sendEvent(self, isUnloadingBale, noEventSend)
-				v243_.unloadingState = Baler.UNLOADING_OPENING
+				spec.unloadingState = Baler.UNLOADING_OPENING
 				if self.isClient then
-					g_soundManager:playSample(v243_.samples.eject)
-					g_soundManager:playSample(v243_.samples.door)
+					g_soundManager:playSample(spec.samples.eject)
+					g_soundManager:playSample(spec.samples.door)
 				end
-				local v253_ = v243_.baleTypes[v243_.currentBaleTypeIndex]
-				self:playAnimation(v253_.animations.unloading, v253_.animations.unloadingSpeed, nil, true)
-				return
+				local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+				self:playAnimation(baleTypeDef.animations.unloading, baleTypeDef.animations.unloadingSpeed, nil, true)
 			end
-		elseif v243_.unloadingState ~= Baler.UNLOADING_CLOSING and v243_.unloadingState ~= Baler.UNLOADING_CLOSED then
+		elseif spec.unloadingState ~= Baler.UNLOADING_CLOSING then
+			if spec.unloadingState ~= Baler.UNLOADING_CLOSED then
+				BalerSetIsUnloadingBaleEvent.sendEvent(self, isUnloadingBale, noEventSend)
+				spec.unloadingState = Baler.UNLOADING_CLOSING
+				if self.isClient then
+					g_soundManager:playSample(spec.samples.door)
+				end
+				self:playAnimation(spec.baleCloseAnimationName, spec.baleCloseAnimationSpeed, nil, true)
+			end
+		end
+	elseif spec.allowsBaleUnloading then
+		if isUnloadingBale then
 			BalerSetIsUnloadingBaleEvent.sendEvent(self, isUnloadingBale, noEventSend)
-			v243_.unloadingState = Baler.UNLOADING_CLOSING
+			spec.isBaleUnloading = true
+			spec.balesToUnload = #spec.bales
 			if self.isClient then
-				g_soundManager:playSample(v243_.samples.door)
+				g_soundManager:playSample(spec.samples.unload)
 			end
-			self:playAnimation(v243_.baleCloseAnimationName, v243_.baleCloseAnimationSpeed, nil, true)
-			return
+			SpecializationUtil.raiseEvent(self, "onBalerUnloadingStarted", spec.balesToUnload)
 		end
-	elseif v243_.allowsBaleUnloading and isUnloadingBale then
-		BalerSetIsUnloadingBaleEvent.sendEvent(self, isUnloadingBale, noEventSend)
-		v243_.isBaleUnloading = true
-		v243_.balesToUnload = #v243_.bales
-		if self.isClient then
-			g_soundManager:playSample(v243_.samples.unload)
-		end
-		SpecializationUtil.raiseEvent(self, "onBalerUnloadingStarted", v243_.balesToUnload)
 	end
 end
-
 function Baler:getIsBaleUnloading()
 	return self.spec_baler.isBaleUnloading
 end
-
--- Local values: spec, baleLength
 function Baler:getTimeFromLevel(level)
-	local v257_ = self.spec_baler
-	if v257_.currentBaleTypeDefinition == nil then
+	local spec = self.spec_baler
+	if spec.currentBaleTypeDefinition ~= nil then
+		local baleLength = spec.currentBaleTypeDefinition.length + spec.baleAnimSpacing
+		return level / self:getFillUnitCapacity(spec.fillUnitIndex) * (baleLength / spec.baleAnimLength)
+	else
 		return 0
 	end
-	local v258_ = v257_.currentBaleTypeDefinition.length + v257_.baleAnimSpacing
-	return level / self:getFillUnitCapacity(v257_.fillUnitIndex) * (v258_ / v257_.baleAnimLength)
 end
-
--- Local values: spec, i
 function Baler:moveBales(dt)
-	for v261_ = #self.spec_baler.bales, 1, -1 do
-		self:moveBale(v261_, dt)
+	local spec = self.spec_baler
+	for i = #spec.bales, 1, -1 do
+		self:moveBale(i, dt)
 	end
 end
-
--- Local values: spec, bale
 function Baler:moveBale(i, dt, noEventSend)
-	self:setBaleTime(i, self.spec_baler.bales[i].time + dt, noEventSend)
+	local spec = self.spec_baler
+	local bale = spec.bales[i]
+	self:setBaleTime(i, bale.time + dt, noEventSend)
 end
-
--- Local values: spec, bale, x, y, z, rx, ry, rz
 function Baler:setBaleTime(i, baleTime, noEventSend)
-	local v270_ = self.spec_baler
-	if v270_.baleAnimCurve ~= nil then
-		local v271_ = v270_.bales[i]
-		if v271_ ~= nil then
-			v271_.time = baleTime
+	local spec = self.spec_baler
+	if spec.baleAnimCurve ~= nil then
+		local bale = spec.bales[i]
+		if bale ~= nil then
+			bale.time = baleTime
 			if self.isServer then
-				local v272_, v273_, v274_, v275_, v276_, v277_ = v270_.baleAnimCurve:get(v271_.time)
-				setTranslation(v271_.baleJointNode, v272_, v273_, v274_)
-				setRotation(v271_.baleJointNode, v275_, v276_, v277_)
-				if v271_.baleJointIndex ~= 0 then
-					setJointFrame(v271_.baleJointIndex, 0, v271_.baleJointNode)
+				local x, y, z, rx, ry, rz = spec.baleAnimCurve:get(bale.time)
+				setTranslation(bale.baleJointNode, x, y, z)
+				setRotation(bale.baleJointNode, rx, ry, rz)
+				if bale.baleJointIndex ~= 0 then
+					setJointFrame(bale.baleJointIndex, 0, bale.baleJointNode)
 				end
 			end
-			if v271_.time >= 1 then
+			if 1 <= bale.time then
 				self:dropBale(i)
 			end
-			if #v270_.bales == 0 then
-				v270_.isBaleUnloading = false
+			if #spec.bales == 0 then
+				spec.isBaleUnloading = false
 				if self.isClient then
-					g_soundManager:stopSample(v270_.samples.unload)
+					g_soundManager:stopSample(spec.samples.unload)
 				end
-				SpecializationUtil.raiseEvent(self, "onBalerUnloadingFinished", v270_.balesToUnload)
+				SpecializationUtil.raiseEvent(self, "onBalerUnloadingFinished", spec.balesToUnload)
 			end
 			if self.isServer and (noEventSend == nil or not noEventSend) then
-				g_server:broadcastEvent(BalerSetBaleTimeEvent.new(self, i, v271_.time), nil, nil, self)
+				g_server:broadcastEvent(BalerSetBaleTimeEvent.new(self, i, bale.time), nil, nil, self)
 			end
 		end
 	end
 end
-
--- Local values: spec, fillTypeIndex, fillType, _, bale, bale
 function Baler:finishBale()
-	local v279_ = self.spec_baler
-	if v279_.baleTypes ~= nil then
-		local v280_ = self:getFillUnitFillType(v279_.fillUnitIndex)
-		if v279_.hasUnloadingAnimation then
-			if self:createBale(v280_, self:getFillUnitCapacity(v279_.fillUnitIndex)) then
-				local v281_ = v279_.bales[#v279_.bales]
-				g_server:broadcastEvent(BalerCreateBaleEvent.new(self, v280_, 0, NetworkUtil.getObjectId(v281_.baleObject)), nil, nil, self)
+	local spec = self.spec_baler
+	if spec.baleTypes ~= nil then
+		local fillTypeIndex = self:getFillUnitFillType(spec.fillUnitIndex)
+		if not spec.hasUnloadingAnimation then
+			self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.fillUnitIndex, -math.huge, fillTypeIndex, ToolType.UNDEFINED)
+			spec.buffer.unloadingStarted = false
+			for fillType, _ in pairs(spec.pickupFillTypes) do
+				spec.pickupFillTypes[fillType] = 0
+			end
+			if self:createBale(fillTypeIndex, self:getFillUnitCapacity(spec.fillUnitIndex)) then
+				local bale = spec.bales[#spec.bales]
+				g_server:broadcastEvent(BalerCreateBaleEvent.new(self, fillTypeIndex, bale.time), nil, nil, self)
+				if self:getFillUnitFillLevel(spec.fillUnitIndex) == 0 and spec.preSelectedBaleTypeIndex ~= spec.currentBaleTypeIndex then
+					self:setBaleTypeIndex(spec.preSelectedBaleTypeIndex, true)
+				end
+			else
+				Logging.error("Failed to create bale!")
+			end
+		else
+			if self:createBale(fillTypeIndex, self:getFillUnitCapacity(spec.fillUnitIndex)) then
+				local bale = spec.bales[#spec.bales]
+				g_server:broadcastEvent(BalerCreateBaleEvent.new(self, fillTypeIndex, 0, NetworkUtil.getObjectId(bale.baleObject)), nil, nil, self)
 				return
 			end
 			Logging.error("Failed to create bale!")
-		else
-			self:addFillUnitFillLevel(self:getOwnerFarmId(), v279_.fillUnitIndex, -math.huge, v280_, ToolType.UNDEFINED)
-			v279_.buffer.unloadingStarted = false
-			for v282_, _ in pairs(v279_.pickupFillTypes) do
-				v279_.pickupFillTypes[v282_] = 0
-			end
-			if not self:createBale(v280_, self:getFillUnitCapacity(v279_.fillUnitIndex)) then
-				Logging.error("Failed to create bale!")
-				return
-			end
-			local v283_ = v279_.bales[#v279_.bales]
-			g_server:broadcastEvent(BalerCreateBaleEvent.new(self, v280_, v283_.time), nil, nil, self)
-			if self:getFillUnitFillLevel(v279_.fillUnitIndex) == 0 and v279_.preSelectedBaleTypeIndex ~= v279_.currentBaleTypeIndex then
-				self:setBaleTypeIndex(v279_.preSelectedBaleTypeIndex, true)
-				return
-			end
 		end
 	end
 end
-
--- Local values: spec, isValid, baleTypeDef, bale, baleObject, x, y, z, rx, ry, rz, baleObject, x, y, z, rx, ry, rz, baleJointNode, baleObject, constr, i, baleJointIndex, i, otherBale
 function Baler:createBale(baleFillType, fillLevel, baleServerId, baleTime, xmlFilename, ownerFarmId, variationId, loadFromSavegame)
-	local v293_ = self.spec_baler
-	if v293_.knotingAnimation ~= nil and not loadFromSavegame then
-		self:playAnimation(v293_.knotingAnimation, v293_.knotingAnimationSpeed, nil, true)
+	local spec = self.spec_baler
+	if spec.knotingAnimation ~= nil and not loadFromSavegame then
+		self:playAnimation(spec.knotingAnimation, spec.knotingAnimationSpeed, nil, true)
 	end
-	local v294_ = false
-	local v295_ = v293_.baleTypes[v293_.currentBaleTypeIndex]
+	local isValid = false
+	local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
 	if baleTime == nil then
-		self:deleteDummyBale(v293_.dummyBale)
+		self:deleteDummyBale(spec.dummyBale)
 	end
-	local v296_ = {
-		["filename"] = xmlFilename or v293_.currentBaleXMLFilename,
-		["time"] = baleTime
-	}
-	if v296_.time == nil and v293_.baleAnimLength ~= nil then
-		v296_.time = v295_.length * 0.5 / v293_.baleAnimLength
+	local bale = {}
+	bale.filename = xmlFilename or spec.currentBaleXMLFilename
+	bale.time = baleTime
+	if bale.time == nil and spec.baleAnimLength ~= nil then
+		bale.time = baleTypeDef.length * 0.5 / spec.baleAnimLength
 	end
-	v296_.fillType = baleFillType
-	v296_.fillLevel = fillLevel
-	if v293_.hasUnloadingAnimation then
+	bale.fillType = baleFillType
+	bale.fillLevel = fillLevel
+	if spec.hasUnloadingAnimation then
 		if not loadFromSavegame then
-			self:updateConsumable(Baler.CONSUMABLE_TYPE_NAME_ROUND, -v295_.consumableUsage)
+			self:updateConsumable(Baler.CONSUMABLE_TYPE_NAME_ROUND, -baleTypeDef.consumableUsage)
 		end
 		if self.isServer then
-			local v297_ = Bale.new(self.isServer, self.isClient)
-			local v298_, v299_, v300_ = getWorldTranslation(v295_.baleRootNode)
-			local v301_, v302_, v303_ = getWorldRotation(v295_.baleRootNode)
-			if v297_:loadFromConfigXML(v296_.filename, v298_, v299_, v300_, v301_, v302_, v303_) then
-				v297_:setFillType(baleFillType)
-				v297_:setFillLevel(fillLevel)
-				v297_:setVariationId(variationId or (v293_.lastBaleVariationId or v295_.defaultBaleVariationId))
-				if ownerFarmId == nil then
-					v297_:setOwnerFarmId(self:getBalerBaleOwnerFarmId(v298_, v300_), true)
+			local baleObject = Bale.new(self.isServer, self.isClient)
+			local x, y, z = getWorldTranslation(baleTypeDef.baleRootNode)
+			local rx, ry, rz = getWorldRotation(baleTypeDef.baleRootNode)
+			if baleObject:loadFromConfigXML(bale.filename, x, y, z, rx, ry, rz) then
+				baleObject:setFillType(baleFillType)
+				baleObject:setFillLevel(fillLevel)
+				baleObject:setVariationId(variationId or spec.lastBaleVariationId or baleTypeDef.defaultBaleVariationId)
+				if ownerFarmId ~= nil then
+					baleObject:setOwnerFarmId(ownerFarmId, true)
 				else
-					v297_:setOwnerFarmId(ownerFarmId, true)
+					baleObject:setOwnerFarmId(self:getBalerBaleOwnerFarmId(x, z), true)
 				end
-				v297_:register()
-				v297_:mountKinematic(self, v295_.baleRootNode, 0, 0, 0, 0, 0, 0)
-				v296_.baleObject = v297_
-				v294_ = true
+				baleObject:register()
+				baleObject:mountKinematic(self, baleTypeDef.baleRootNode, 0, 0, 0, 0, 0, 0)
+				bale.baleObject = baleObject
+				isValid = true
 			end
 		elseif baleServerId ~= nil then
-			local v304_ = NetworkUtil.getObject(baleServerId)
-			if v304_ == nil then
-				v293_.baleToMount = {
-					["baleServerId"] = baleServerId,
-					["jointNode"] = v295_.baleRootNode,
-					["baleInfo"] = v296_
-				}
-				v294_ = true
+			local baleObject = NetworkUtil.getObject(baleServerId)
+			if baleObject ~= nil then
+				bale.baleServerId = baleServerId
+				baleObject:mountKinematic(self, baleTypeDef.baleRootNode, 0, 0, 0, 0, 0, 0)
 			else
-				v296_.baleServerId = baleServerId
-				v304_:mountKinematic(self, v295_.baleRootNode, 0, 0, 0, 0, 0, 0)
-				v294_ = true
+				spec.baleToMount = { baleServerId = baleServerId, baleInfo = bale, jointNode = baleTypeDef.baleRootNode }
 			end
+			isValid = true
 		end
 	elseif not loadFromSavegame then
-		self:updateConsumable(Baler.CONSUMABLE_TYPE_NAME_SQUARE, -v295_.consumableUsage)
+		self:updateConsumable(Baler.CONSUMABLE_TYPE_NAME_SQUARE, -baleTypeDef.consumableUsage)
 	end
-	if self.isServer and not v293_.hasUnloadingAnimation then
-		local v305_, v306_, v307_ = getWorldTranslation(v295_.baleRootNode)
-		local v308_, v309_, v310_ = getWorldRotation(v295_.baleRootNode)
-		local v311_ = createTransformGroup("BaleJointTG")
-		link(v295_.baleRootNode, v311_)
-		if v296_.time == nil then
-			setTranslation(v311_, 0, 0, 0)
-			setRotation(v311_, 0, 0, 0)
-		else
-			local v312_, v313_, v314_, v315_, v316_, v317_ = v293_.baleAnimCurve:get(v296_.time)
-			setTranslation(v311_, v312_, v313_, v314_)
-			setRotation(v311_, v315_, v316_, v317_)
-			v305_, v306_, v307_ = getWorldTranslation(v311_)
-			v308_, v309_, v310_ = getWorldRotation(v311_)
-		end
-		local v318_ = Bale.new(self.isServer, self.isClient)
-		if v318_:loadFromConfigXML(v296_.filename, v305_, v306_, v307_, v308_, v309_, v310_) then
-			v318_:setFillType(baleFillType)
-			v318_:setFillLevel(fillLevel)
-			v318_:setVariationId(variationId or (v293_.lastBaleVariationId or v295_.defaultBaleVariationId))
-			if ownerFarmId == nil then
-				v318_:setOwnerFarmId(self:getBalerBaleOwnerFarmId(v305_, v307_), true)
+	if self.isServer then
+		if not spec.hasUnloadingAnimation then
+			local x, y, z = getWorldTranslation(baleTypeDef.baleRootNode)
+			local rx, ry, rz = getWorldRotation(baleTypeDef.baleRootNode)
+			local baleJointNode = createTransformGroup("BaleJointTG")
+			link(baleTypeDef.baleRootNode, baleJointNode)
+			if bale.time ~= nil then
+				x, y, z, rx, ry, rz = spec.baleAnimCurve:get(bale.time)
+				setTranslation(baleJointNode, x, y, z)
+				setRotation(baleJointNode, rx, ry, rz)
+				x, y, z = getWorldTranslation(baleJointNode)
+				rx, ry, rz = getWorldRotation(baleJointNode)
 			else
-				v318_:setOwnerFarmId(ownerFarmId, true)
+				setTranslation(baleJointNode, 0, 0, 0)
+				setRotation(baleJointNode, 0, 0, 0)
 			end
-			v318_:register()
-			v318_:setCanBeSold(false)
-			v318_:setNeedsSaving(false)
-			local v319_ = JointConstructor.new()
-			v319_:setActors(v295_.baleNodeComponent, v318_.nodeId)
-			v319_:setJointTransforms(v311_, v318_.nodeId)
-			for v320_ = 1, 3 do
-				v319_:setRotationLimit(v320_ - 1, 0, 0)
-				v319_:setTranslationLimit(v320_ - 1, true, 0, 0)
+			local baleObject = Bale.new(self.isServer, self.isClient)
+			if baleObject:loadFromConfigXML(bale.filename, x, y, z, rx, ry, rz) then
+				baleObject:setFillType(baleFillType)
+				baleObject:setFillLevel(fillLevel)
+				baleObject:setVariationId(variationId or spec.lastBaleVariationId or baleTypeDef.defaultBaleVariationId)
+				if ownerFarmId ~= nil then
+					baleObject:setOwnerFarmId(ownerFarmId, true)
+				else
+					baleObject:setOwnerFarmId(self:getBalerBaleOwnerFarmId(x, z), true)
+				end
+				baleObject:register()
+				baleObject:setCanBeSold(false)
+				baleObject:setNeedsSaving(false)
+				local constr = JointConstructor.new()
+				constr:setActors(baleTypeDef.baleNodeComponent, baleObject.nodeId)
+				constr:setJointTransforms(baleJointNode, baleObject.nodeId)
+				for i = 1, 3 do
+					constr:setRotationLimit(i - 1, 0, 0)
+					constr:setTranslationLimit(i - 1, true, 0, 0)
+				end
+				constr:setEnableCollision(false)
+				local baleJointIndex = constr:finalize()
+				bale.baleJointNode = baleJointNode
+				bale.baleJointIndex = baleJointIndex
+				bale.baleObject = baleObject
+				baleObject.baleJointIndex = baleJointIndex
+				for i = 1, #spec.bales do
+					local otherBale = spec.bales[i]
+					setPairCollision(otherBale.baleObject.nodeId, baleObject.nodeId, false)
+				end
+				if not spec.baleAnimEnableCollision then
+					setCollisionFilterMask(baleObject.nodeId, 0)
+				end
+				isValid = true
 			end
-			v319_:setEnableCollision(false)
-			local v321_ = v319_:finalize()
-			v296_.baleJointNode = v311_
-			v296_.baleJointIndex = v321_
-			v296_.baleObject = v318_
-			v318_.baleJointIndex = v321_
-			for v322_ = 1, #v293_.bales do
-				local v323_ = v293_.bales[v322_]
-				setPairCollision(v323_.baleObject.nodeId, v318_.nodeId, false)
-			end
-			if v293_.baleAnimEnableCollision then
-				v294_ = true
-			else
-				setCollisionFilterMask(v318_.nodeId, 0)
-				v294_ = true
+		elseif not self.isServer then
+			if not spec.hasUnloadingAnimation then
+				isValid = true
 			end
 		end
-	elseif not (self.isServer or v293_.hasUnloadingAnimation) then
-		v294_ = true
 	end
-	if v294_ then
-		local v324_ = v293_.bales
-		table.insert(v324_, v296_)
+	if isValid then
+		table.insert(spec.bales, bale)
 	end
-	return v294_
+	return isValid
 end
-
--- Local values: spec, bale, mission, baleObject, i, otherBale, baleTypeDef, x, y, z, vx, vy, vz, baleObject
 function Baler:dropBale(baleIndex)
-	local v327_ = self.spec_baler
-	local v328_ = v327_.bales[baleIndex]
-	if v328_.baleObject ~= nil then
-		local v329_ = g_missionManager:getMissionByUniqueId(v327_.workAreaParameters.lastMissionUniqueId)
-		if v329_ ~= nil and v329_.addBale ~= nil then
-			v329_:addBale(v328_.baleObject)
+	local spec = self.spec_baler
+	local bale = spec.bales[baleIndex]
+	if bale.baleObject ~= nil then
+		local mission = g_missionManager:getMissionByUniqueId(spec.workAreaParameters.lastMissionUniqueId)
+		if mission ~= nil and mission.addBale ~= nil then
+			mission:addBale(bale.baleObject)
 		end
 	end
 	if self.isServer then
-		local v330_ = v328_.baleObject
-		if v328_.baleJointIndex == nil then
-			v330_:unmountKinematic()
+		local baleObject = bale.baleObject
+		if bale.baleJointIndex ~= nil then
+			removeJoint(bale.baleJointIndex)
+			delete(bale.baleJointNode)
 		else
-			removeJoint(v328_.baleJointIndex)
-			delete(v328_.baleJointNode)
+			baleObject:unmountKinematic()
 		end
-		if not v327_.baleAnimEnableCollision then
-			setCollisionFilterMask(v330_.nodeId, CollisionPreset.BALE.mask)
+		if not spec.baleAnimEnableCollision then
+			setCollisionFilterMask(baleObject.nodeId, CollisionPreset.BALE.mask)
 		end
-		for v331_ = 1, #v327_.bales do
-			if v331_ ~= baleIndex then
-				local v332_ = v327_.bales[v331_]
-				setPairCollision(v332_.baleObject.nodeId, v330_.nodeId, true)
+		for i = 1, #spec.bales do
+			if i == baleIndex then
+				continue
 			end
+			local otherBale = spec.bales[i]
+			setPairCollision(otherBale.baleObject.nodeId, baleObject.nodeId, true)
 		end
-		if v327_.lastBaleFillLevel ~= nil and #v327_.bales == 1 then
-			v330_:setFillLevel(v327_.lastBaleFillLevel)
-			v327_.lastBaleFillLevel = nil
+		if spec.lastBaleFillLevel ~= nil and #spec.bales == 1 then
+			baleObject:setFillLevel(spec.lastBaleFillLevel)
+			spec.lastBaleFillLevel = nil
 		end
-		v330_.baleJointIndex = nil
-		v330_:setCanBeSold(true)
-		v330_:setNeedsSaving(true)
-		if v330_.nodeId ~= nil and v330_.nodeId ~= 0 then
-			local v333_ = v327_.baleTypes[v327_.currentBaleTypeIndex]
-			local v334_, v335_, v336_ = getWorldTranslation(v330_.nodeId)
-			local v337_, v338_, v339_ = getVelocityAtWorldPos(v333_.baleNodeComponent or self.components[1].node, v334_, v335_, v336_)
-			setLinearVelocity(v330_.nodeId, v337_, v338_, v339_)
-			g_farmManager:updateFarmStats(self:getBalerBaleOwnerFarmId(v334_, v336_), "baleCount", 1)
+		baleObject.baleJointIndex = nil
+		baleObject:setCanBeSold(true)
+		baleObject:setNeedsSaving(true)
+		if baleObject.nodeId ~= nil and baleObject.nodeId ~= 0 then
+			local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+			local x, y, z = getWorldTranslation(baleObject.nodeId)
+			local vx, vy, vz = getVelocityAtWorldPos(baleTypeDef.baleNodeComponent or self.components[1].node, x, y, z)
+			setLinearVelocity(baleObject.nodeId, vx, vy, vz)
+			g_farmManager:updateFarmStats(self:getBalerBaleOwnerFarmId(x, z), "baleCount", 1)
 		end
-	elseif v327_.hasUnloadingAnimation then
-		local v340_ = NetworkUtil.getObject(v328_.baleServerId)
-		if v340_ ~= nil then
-			v340_:unmountKinematic()
+	elseif spec.hasUnloadingAnimation then
+		local baleObject = NetworkUtil.getObject(bale.baleServerId)
+		if baleObject ~= nil then
+			baleObject:unmountKinematic()
 		end
 	end
-	table.remove(v327_.bales, baleIndex)
-	if v327_.hasPlatform then
-		if not v327_.platformReadyToDrop then
-			v327_.platformReadyToDrop = true
+	table.remove(spec.bales, baleIndex)
+	if spec.hasPlatform then
+		if not spec.platformReadyToDrop then
+			spec.platformReadyToDrop = true
 		end
-		if v327_.hasDynamicMountPlatform then
-			v327_.platformMountDelay = 5
+		if spec.hasDynamicMountPlatform then
+			spec.platformMountDelay = 5
 		end
 	end
 end
-
--- Local values: spec, baleTypeDef, generatedBale, baleNode, scaleNode, percentage, x, y, z, scaleComponents, axis, value
 function Baler:updateDummyBale(dummyBaleData, fillTypeIndex, fillLevel, capacity)
-	local v346_ = self.spec_baler
-	local v347_ = dummyBaleData.baleTypeDef or v346_.baleTypes[v346_.currentBaleTypeIndex]
-	local v348_
-	if (dummyBaleData.linkNode or v347_.baleNode) == nil or (fillLevel <= 0 or (fillLevel >= capacity or dummyBaleData.currentBale ~= nil and dummyBaleData.currentBaleFillType == fillTypeIndex)) then
-		v348_ = false
-	else
+	local spec = self.spec_baler
+	local baleTypeDef = dummyBaleData.baleTypeDef or spec.baleTypes[spec.currentBaleTypeIndex]
+	local generatedBale = false
+	local baleNode = dummyBaleData.linkNode or baleTypeDef.baleNode
+	if baleNode ~= nil and (0 < fillLevel and (fillLevel < capacity and (dummyBaleData.currentBale == nil or dummyBaleData.currentBaleFillType ~= fillTypeIndex))) then
 		if dummyBaleData.currentBale ~= nil then
 			self:deleteDummyBale(dummyBaleData)
 		end
 		self:createDummyBale(dummyBaleData, fillTypeIndex)
-		v348_ = true
+		generatedBale = true
 	end
 	if dummyBaleData.currentBale ~= nil then
-		local v349_ = dummyBaleData.linkNode or v347_.scaleNode
-		if v349_ ~= nil and capacity > 0 then
-			local v350_ = fillLevel / capacity
-			local v351_ = v347_.isRoundBale and v350_ and v350_ or 1
-			local v352_ = dummyBaleData.scaleComponents or v347_.scaleComponents
-			local v353_, v354_
-			if v352_ == nil then
-				v353_ = v350_
-				v354_ = 1
-			else
-				v354_ = 1
-				v351_ = 1
-				v353_ = 1
-				for v355_, v356_ in ipairs(v352_) do
-					if v356_ > 0 then
-						if v355_ == 1 then
-							v354_ = v350_ * v356_
-						elseif v355_ == 2 then
-							v351_ = v350_ * v356_
+		local scaleNode = dummyBaleData.linkNode or baleTypeDef.scaleNode
+		if scaleNode ~= nil and 0 < capacity then
+			local percentage = fillLevel / capacity
+			local x = 1
+			local y = baleTypeDef.isRoundBale and percentage or 1
+			local z = percentage
+			local scaleComponents = dummyBaleData.scaleComponents or baleTypeDef.scaleComponents
+			if scaleComponents ~= nil then
+				x = 1
+				y = 1
+				z = 1
+				for axis, value in ipairs(scaleComponents) do
+					if 0 < value then
+						if axis == 1 then
+							x = percentage * value
+						elseif axis == 2 then
+							y = percentage * value
 						else
-							v353_ = v350_ * v356_
+							z = percentage * value
 						end
 					end
 				end
 			end
-			setScale(v349_, v354_, v351_, v353_)
+			setScale(scaleNode, x, y, z)
 		end
 	end
-	return v348_
+	return generatedBale
 end
-
 function Baler:deleteDummyBale(dummyBaleData)
 	if dummyBaleData ~= nil then
 		if dummyBaleData.currentBale ~= nil then
@@ -1796,651 +1706,572 @@ function Baler:deleteDummyBale(dummyBaleData)
 		end
 	end
 end
-
--- Local values: spec, baleTypeDef, baleId, sharedLoadRequestId, linkNode
 function Baler:createDummyBale(dummyBaleData, fillTypeIndex)
-	local v361_ = self.spec_baler
-	if v361_.currentBaleXMLFilename ~= nil then
-		local v362_ = v361_.baleTypes[v361_.currentBaleTypeIndex]
-		local v363_, v364_ = Bale.createDummyBale(v361_.currentBaleXMLFilename, fillTypeIndex, v362_.chamberBaleVariationId)
-		local v365_ = dummyBaleData.linkNode or v362_.baleNode
-		link(v365_, v363_)
-		dummyBaleData.currentBale = v363_
-		dummyBaleData.baleTypeDef = v362_
+	local spec = self.spec_baler
+	if spec.currentBaleXMLFilename ~= nil then
+		local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+		local baleId, sharedLoadRequestId = Bale.createDummyBale(spec.currentBaleXMLFilename, fillTypeIndex, baleTypeDef.chamberBaleVariationId)
+		local linkNode = dummyBaleData.linkNode or baleTypeDef.baleNode
+		link(linkNode, baleId)
+		dummyBaleData.currentBale = baleId
+		dummyBaleData.baleTypeDef = baleTypeDef
 		dummyBaleData.currentBaleFillType = fillTypeIndex
-		dummyBaleData.sharedLoadRequestId = v364_
+		dummyBaleData.sharedLoadRequestId = sharedLoadRequestId
 	end
 end
-
--- Local values: spec, fillLevel
 function Baler:getCanUnloadUnfinishedBale()
-	local v367_ = self.spec_baler
-	local v368_ = self:getFillUnitFillLevel(v367_.fillUnitIndex)
-	if v367_.buffer.fillUnitIndex ~= nil then
-		v368_ = v368_ + self:getFillUnitFillLevel(v367_.buffer.fillUnitIndex)
+	local spec = self.spec_baler
+	local fillLevel = self:getFillUnitFillLevel(spec.fillUnitIndex)
+	if spec.buffer.fillUnitIndex ~= nil then
+		fillLevel = fillLevel + self:getFillUnitFillLevel(spec.buffer.fillUnitIndex)
 	end
-	local v369_ = v367_.canUnloadUnfinishedBale
-	if v369_ then
-		v369_ = v367_.unfinishedBaleThreshold < v368_
-	end
-	return v369_
+	return spec.canUnloadUnfinishedBale and spec.unfinishedBaleThreshold < fillLevel
 end
-
--- Local values: spec
 function Baler:setBalerAutomaticDrop(state, noEventSend)
-	local v373_ = self.spec_baler
+	local spec = self.spec_baler
 	if state == nil then
-		if v373_.hasPlatform then
-			state = not v373_.platformAutomaticDrop
+		if spec.hasPlatform then
+			state = not spec.platformAutomaticDrop
 		else
-			state = not v373_.automaticDrop
+			state = not spec.automaticDrop
 		end
 	end
-	if v373_.hasPlatform then
-		v373_.platformAutomaticDrop = state
+	if spec.hasPlatform then
+		spec.platformAutomaticDrop = state
 	else
-		v373_.automaticDrop = state
+		spec.automaticDrop = state
 	end
 	self:requestActionEventUpdate()
 	BalerAutomaticDropEvent.sendEvent(self, state, noEventSend)
 end
-
--- Local values: spec
 function Baler:getCanBeTurnedOn(superFunc)
-	if self.spec_baler.isBaleUnloading then
+	local spec = self.spec_baler
+	if spec.isBaleUnloading then
 		return false
 	else
 		return superFunc(self)
 	end
 end
-
 function Baler:loadSpeedRotatingPartFromXML(superFunc, speedRotatingPart, xmlFile, key)
 	speedRotatingPart.rotateOnlyIfFillLevelIncreased = xmlFile:getValue(key .. "#rotateOnlyIfFillLevelIncreased", false)
 	return superFunc(self, speedRotatingPart, xmlFile, key)
 end
-
--- Local values: spec
 function Baler:getIsSpeedRotatingPartActive(superFunc, speedRotatingPart)
-	local v384_ = self.spec_baler
-	if speedRotatingPart.rotateOnlyIfFillLevelIncreased == nil or (not speedRotatingPart.rotateOnlyIfFillLevelIncreased or v384_.lastAreaBiggerZeroTime ~= 0) then
-		return superFunc(self, speedRotatingPart)
-	else
+	local spec = self.spec_baler
+	if speedRotatingPart.rotateOnlyIfFillLevelIncreased ~= nil and (speedRotatingPart.rotateOnlyIfFillLevelIncreased and spec.lastAreaBiggerZeroTime == 0) then
 		return false
 	end
+	return superFunc(self, speedRotatingPart)
 end
 function Baler.getDefaultSpeedLimit()
 	return 25
 end
-
--- Local values: spec
 function Baler:getIsWorkAreaActive(superFunc, workArea)
-	local v388_ = self.spec_baler
-	if g_currentMission.slotSystem:getCanAddLimitedObjects(SlotSystem.LIMITED_OBJECT_BALE, 1) or not self:getIsTurnedOn() then
-		if self:getFillUnitFreeCapacity(v388_.buffer.fillUnitIndex or v388_.fillUnitIndex) == 0 then
-			return false
-		elseif self.allowPickingUp == nil or self:allowPickingUp() then
-			if self:getConsumableIsAvailable(Baler.CONSUMABLE_TYPE_NAME_ROUND) and self:getConsumableIsAvailable(Baler.CONSUMABLE_TYPE_NAME_SQUARE) then
-				if v388_.hasUnloadingAnimation and (not v388_.nonStopBaling and (#v388_.bales > 0 or v388_.unloadingState ~= Baler.UNLOADING_CLOSED)) then
-					return false
-				else
-					return superFunc(self, workArea)
-				end
-			else
-				return false
-			end
-		else
-			return false
-		end
-	else
+	local spec = self.spec_baler
+	if not g_currentMission.slotSystem:getCanAddLimitedObjects(SlotSystem.LIMITED_OBJECT_BALE, 1) and self:getIsTurnedOn() then
 		return false
 	end
+	if self:getFillUnitFreeCapacity(spec.buffer.fillUnitIndex or spec.fillUnitIndex) == 0 then
+		return false
+	elseif self.allowPickingUp ~= nil and not self:allowPickingUp() then
+		return false
+	elseif not self:getConsumableIsAvailable(Baler.CONSUMABLE_TYPE_NAME_ROUND) or not self:getConsumableIsAvailable(Baler.CONSUMABLE_TYPE_NAME_SQUARE) then
+		return false
+	elseif spec.hasUnloadingAnimation and (not spec.nonStopBaling and (0 < #spec.bales or spec.unloadingState ~= Baler.UNLOADING_CLOSED)) then
+		return false
+	else
+		return superFunc(self, workArea)
+	end
 end
-
--- Local values: value, count, spec, loadPercentage
 function Baler:getConsumingLoad(superFunc)
-	local v391_, v392_ = superFunc(self)
-	local v393_ = self.spec_baler
-	return v391_ + v393_.pickUpLitersBuffer:get(1000) / v393_.maxPickupLitersPerSecond, v392_ + 1
+	local value, count = superFunc(self)
+	local spec = self.spec_baler
+	local loadPercentage = spec.pickUpLitersBuffer:get(1000) / spec.maxPickupLitersPerSecond
+	return value + loadPercentage, count + 1
 end
-
--- Local values: spec, bufferFillLevelPercentage
 function Baler:getRequiresPower(superFunc)
-	local v396_ = self.spec_baler
-	if v396_.nonStopBaling then
-		if self:getFillUnitFillLevelPercentage(v396_.buffer.fillUnitIndex) > v396_.buffer.overloadingStartFillLevelPct then
+	local spec = self.spec_baler
+	if spec.nonStopBaling then
+		local bufferFillLevelPercentage = self:getFillUnitFillLevelPercentage(spec.buffer.fillUnitIndex)
+		if spec.buffer.overloadingStartFillLevelPct < bufferFillLevelPercentage then
 			return true
 		end
-		if v396_.buffer.unloadingStarted then
+		if spec.buffer.unloadingStarted then
 			return true
 		end
 	end
-	return v396_.unloadingState ~= Baler.UNLOADING_CLOSED and true or (self:getIsTurnedOn() and true or superFunc(self))
+	if spec.unloadingState ~= Baler.UNLOADING_CLOSED then
+		return true
+	elseif self:getIsTurnedOn() then
+		return true
+	else
+		return superFunc(self)
+	end
 end
-
 function Baler:getCanBeSelected(superFunc)
 	return true
 end
-
--- Local values: spec, i
 function Baler:getIsAttachedTo(superFunc, vehicle)
 	if superFunc(self, vehicle) then
 		return true
-	end
-	local v400_ = self.spec_baler
-	for v401_ = 1, #v400_.bales do
-		if v400_.bales[v401_].baleObject == vehicle then
-			return true
+	else
+		local spec = self.spec_baler
+		for i = 1, #spec.bales do
+			if spec.bales[i].baleObject == vehicle then
+				return true
+			end
 		end
+		return false
 	end
-	return false
 end
-
 function Baler:getAllowDynamicMountFillLevelInfo(superFunc)
 	return false
 end
-
--- Local values: ret
 function Baler:getAlarmTriggerIsActive(superFunc, alarmTrigger)
-	local v405_ = superFunc(self, alarmTrigger)
+	local ret = superFunc(self, alarmTrigger)
 	if alarmTrigger.needsBaleLoaded and (self.spec_baler ~= nil and #self.spec_baler.bales == 0) then
 		return false
-	else
-		return v405_
 	end
+	return ret
 end
-
--- Local values: ret
 function Baler:loadAlarmTrigger(superFunc, xmlFile, key, alarmTrigger, fillUnit)
-	local v412_ = superFunc(self, xmlFile, key, alarmTrigger, fillUnit)
+	local ret = superFunc(self, xmlFile, key, alarmTrigger, fillUnit)
 	alarmTrigger.needsBaleLoaded = xmlFile:getValue(key .. "#needsBaleLoaded", false)
-	return v412_
+	return ret
 end
-
 function Baler:getShowConsumableEmptyWarning(superFunc, typeName)
-	if typeName ~= Baler.CONSUMABLE_TYPE_NAME_ROUND and typeName ~= Baler.CONSUMABLE_TYPE_NAME_SQUARE then
-		return superFunc(self, typeName)
+	if typeName == Baler.CONSUMABLE_TYPE_NAME_ROUND or typeName == Baler.CONSUMABLE_TYPE_NAME_SQUARE then
+		return self:getIsTurnedOn() and superFunc(self, typeName)
 	end
-	local v416_ = self:getIsTurnedOn()
-	if v416_ then
-		v416_ = superFunc(self, typeName)
-	end
-	return v416_
+	return superFunc(self, typeName)
 end
-
--- Local values: spec, baleTypeDef, baleIndex, bale, baleObject, constr, i, baleJointIndex, otherBaleIndex, otherBale
 function Baler:addToPhysics(superFunc)
 	if not superFunc(self) then
 		return false
-	end
-	local v419_ = self.spec_baler
-	local v420_ = v419_.baleTypes[v419_.currentBaleTypeIndex]
-	for v421_, v422_ in pairs(v419_.bales) do
-		local v423_ = v422_.baleObject
-		if v423_ ~= nil then
-			v422_.baleObject:addToPhysics()
-			if not v419_.hasUnloadingAnimation then
-				local v424_ = JointConstructor.new()
-				v424_:setActors(v420_.baleNodeComponent, v423_.nodeId)
-				v424_:setJointTransforms(v422_.baleJointNode, v423_.nodeId)
-				for v425_ = 1, 3 do
-					v424_:setRotationLimit(v425_ - 1, 0, 0)
-					v424_:setTranslationLimit(v425_ - 1, true, 0, 0)
+	else
+		local spec = self.spec_baler
+		local baleTypeDef = spec.baleTypes[spec.currentBaleTypeIndex]
+		for baleIndex, bale in pairs(spec.bales) do
+			local baleObject = bale.baleObject
+			if baleObject == nil then
+				continue
+			end
+			bale.baleObject:addToPhysics()
+			if spec.hasUnloadingAnimation then
+				continue
+			end
+			local constr = JointConstructor.new()
+			constr:setActors(baleTypeDef.baleNodeComponent, baleObject.nodeId)
+			constr:setJointTransforms(bale.baleJointNode, baleObject.nodeId)
+			for i = 1, 3 do
+				constr:setRotationLimit(i - 1, 0, 0)
+				constr:setTranslationLimit(i - 1, true, 0, 0)
+			end
+			constr:setEnableCollision(false)
+			local baleJointIndex = constr:finalize()
+			bale.baleJointIndex = baleJointIndex
+			bale.baleObject = baleObject
+			for otherBaleIndex, otherBale in pairs(spec.bales) do
+				if otherBaleIndex == baleIndex then
+					continue
 				end
-				v424_:setEnableCollision(false)
-				v422_.baleJointIndex = v424_:finalize()
-				v422_.baleObject = v423_
-				for v426_, v427_ in pairs(v419_.bales) do
-					if v426_ ~= v421_ then
-						setPairCollision(v427_.baleObject.nodeId, v423_.nodeId, false)
-					end
-				end
+				setPairCollision(otherBale.baleObject.nodeId, baleObject.nodeId, false)
 			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: spec, baleIndex, bale
 function Baler:removeFromPhysics(superFunc)
 	if not superFunc(self) then
 		return false
-	end
-	local v430_ = self.spec_baler
-	for _, v431_ in pairs(v430_.bales) do
-		if v431_.baleObject ~= nil then
-			v431_.baleObject:removeFromPhysics()
-			if not v430_.hasUnloadingAnimation and v431_.baleJointIndex ~= nil then
-				removeJoint(v431_.baleJointIndex)
-				v431_.baleJointIndex = nil
+	else
+		local spec = self.spec_baler
+		for baleIndex, bale in pairs(spec.bales) do
+			if bale.baleObject == nil then
+				continue
 			end
+			bale.baleObject:removeFromPhysics()
+			if spec.hasUnloadingAnimation or bale.baleJointIndex == nil then
+				continue
+			end
+			removeJoint(bale.baleJointIndex)
+			bale.baleJointIndex = nil
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: spec, lsx, lsy, lsz, lex, ley, lez, lineRadius, mission, fillTypeIndex, _, pickedUpLiters, fillTypeSupported, i, additivesFillLevel, usage, availableUsage
 function Baler:processBalerArea(workArea, dt)
-	local v434_ = self.spec_baler
-	if not self.isServer and self.currentUpdateDistance > Baler.CLIENT_DM_UPDATE_RADIUS then
+	local spec = self.spec_baler
+	if not self.isServer and Baler.CLIENT_DM_UPDATE_RADIUS < self.currentUpdateDistance then
 		return 0, 0
 	end
-	local v435_, v436_, v437_, v438_, v439_, v440_, v441_ = DensityMapHeightUtil.getLineByArea(workArea.start, workArea.width, workArea.height)
+	local lsx, lsy, lsz, lex, ley, lez, lineRadius = DensityMapHeightUtil.getLineByArea(workArea.start, workArea.width, workArea.height)
 	if self.isServer then
-		v434_.fillEffectType = FillType.UNKNOWN
+		spec.fillEffectType = FillType.UNKNOWN
 	end
-	local v442_ = self:getMissionByWorkArea(workArea)
-	for v443_, _ in pairs(v434_.pickupFillTypes) do
-		local v444_ = -DensityMapHeightUtil.tipToGroundAroundLine(self, -math.huge, v443_, v435_, v436_, v437_, v438_, v439_, v440_, v441_, nil, nil, false, nil)
-		if v444_ > 0 then
+	local mission = self:getMissionByWorkArea(workArea)
+	for fillTypeIndex, _ in pairs(spec.pickupFillTypes) do
+		local pickedUpLiters = -DensityMapHeightUtil.tipToGroundAroundLine(self, -math.huge, fillTypeIndex, lsx, lsy, lsz, lex, ley, lez, lineRadius, nil, nil, false, nil)
+		if 0 < pickedUpLiters then
 			if self.isServer then
-				v434_.fillEffectType = v443_
-				if v434_.additives.available and not v434_.additives.appliedByBufferOverloading then
-					local v445_ = false
-					for v446_ = 1, #v434_.additives.fillTypes do
-						if v443_ == v434_.additives.fillTypes[v446_] then
-							v445_ = true
+				spec.fillEffectType = fillTypeIndex
+				if spec.additives.available and not spec.additives.appliedByBufferOverloading then
+					local fillTypeSupported = false
+					for i = 1, #spec.additives.fillTypes do
+						if fillTypeIndex == spec.additives.fillTypes[i] then
+							fillTypeSupported = true
 							break
 						end
 					end
-					if v445_ then
-						local v447_ = self:getFillUnitFillLevel(v434_.additives.fillUnitIndex)
-						if v447_ > 0 then
-							local v448_ = v434_.additives.usage * v444_
-							if v448_ > 0 then
-								local v449_ = v447_ / v448_
-								v444_ = v444_ * (1 + 0.05 * math.min(v449_, 1))
-								self:addFillUnitFillLevel(self:getOwnerFarmId(), v434_.additives.fillUnitIndex, -v448_, self:getFillUnitFillType(v434_.additives.fillUnitIndex), ToolType.UNDEFINED)
-								v434_.additives.isActiveTimer = 250
-								v434_.additives.isActive = true
-								self:raiseDirtyFlags(v434_.dirtyFlag)
+					if fillTypeSupported then
+						local additivesFillLevel = self:getFillUnitFillLevel(spec.additives.fillUnitIndex)
+						if 0 < additivesFillLevel then
+							local usage = spec.additives.usage * pickedUpLiters
+							if 0 < usage then
+								local availableUsage = math.min(additivesFillLevel / usage, 1)
+								pickedUpLiters = pickedUpLiters * (1 + 0.05 * availableUsage)
+								self:addFillUnitFillLevel(self:getOwnerFarmId(), spec.additives.fillUnitIndex, -usage, self:getFillUnitFillType(spec.additives.fillUnitIndex), ToolType.UNDEFINED)
+								spec.additives.isActiveTimer = 250
+								spec.additives.isActive = true
+								self:raiseDirtyFlags(spec.dirtyFlag)
 								if self.isClient then
-									g_effectManager:setEffectTypeInfo(v434_.additiveEffects, FillType.LIQUIDFERTILIZER)
-									g_effectManager:startEffects(v434_.additiveEffects)
+									g_effectManager:setEffectTypeInfo(spec.additiveEffects, FillType.LIQUIDFERTILIZER)
+									g_effectManager:startEffects(spec.additiveEffects)
 								end
 							end
 						end
 					end
 				end
 			end
-			v434_.pickupFillTypes[v443_] = v434_.pickupFillTypes[v443_] + v444_
-			local v450_ = v434_.workAreaParameters
-			local v451_
-			if v442_ == nil then
-				v451_ = nil
-			else
-				v451_ = v442_:getUniqueId() or nil
-			end
-			v450_.lastMissionUniqueId = v451_
-			v434_.workAreaParameters.lastPickedUpLiters = v434_.workAreaParameters.lastPickedUpLiters + v444_
-			return v444_, v444_
+			spec.pickupFillTypes[fillTypeIndex] = spec.pickupFillTypes[fillTypeIndex] + pickedUpLiters
+			spec.workAreaParameters.lastMissionUniqueId = mission ~= nil and mission:getUniqueId() or nil
+			spec.workAreaParameters.lastPickedUpLiters = spec.workAreaParameters.lastPickedUpLiters + pickedUpLiters
+			return pickedUpLiters, pickedUpLiters
 		end
 	end
 	return 0, 0
 end
-
--- Local values: spec, _, actionEventId, _, actionEventId, _, actionEventId, automaticDropState
 function Baler:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v454_ = self.spec_baler
-		self:clearActionEventsTable(v454_.actionEvents)
+		local spec = self.spec_baler
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			if not (v454_.automaticDrop and v454_.platformAutomaticDrop) then
-				local _, v455_ = self:addPoweredActionEvent(v454_.actionEvents, InputAction.IMPLEMENT_EXTRA3, self, Baler.actionEventUnloading, false, true, false, true, nil)
-				g_inputBinding:setActionEventTextPriority(v455_, GS_PRIO_HIGH)
+			if not spec.automaticDrop or not spec.platformAutomaticDrop then
+				local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.IMPLEMENT_EXTRA3, self, Baler.actionEventUnloading, false, true, false, true, nil)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
 			end
-			if #v454_.baleTypes > 1 then
-				local _, v456_ = self:addPoweredActionEvent(v454_.actionEvents, InputAction.TOGGLE_BALE_TYPES, self, Baler.actionEventToggleSize, false, true, false, true, nil)
-				g_inputBinding:setActionEventTextPriority(v456_, GS_PRIO_HIGH)
+			if 1 < #spec.baleTypes then
+				local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.TOGGLE_BALE_TYPES, self, Baler.actionEventToggleSize, false, true, false, true, nil)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
 			end
-			if v454_.toggleableAutomaticDrop then
-				local _, v457_ = self:addPoweredActionEvent(v454_.actionEvents, InputAction.IMPLEMENT_EXTRA4, self, Baler.actionEventToggleAutomaticDrop, false, true, false, true, nil)
-				local v458_ = v454_.automaticDrop
-				if v454_.hasPlatform then
-					v458_ = v454_.platformAutomaticDrop
+			if spec.toggleableAutomaticDrop then
+				local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.IMPLEMENT_EXTRA4, self, Baler.actionEventToggleAutomaticDrop, false, true, false, true, nil)
+				local automaticDropState = spec.automaticDrop
+				if spec.hasPlatform then
+					automaticDropState = spec.platformAutomaticDrop
 				end
-				g_inputBinding:setActionEventText(v457_, v458_ and v454_.toggleAutomaticDropTextNeg or v454_.toggleAutomaticDropTextPos)
-				g_inputBinding:setActionEventTextPriority(v457_, GS_PRIO_HIGH)
+				g_inputBinding:setActionEventText(actionEventId, automaticDropState and spec.toggleAutomaticDropTextNeg or spec.toggleAutomaticDropTextPos)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
 			end
 			Baler.updateActionEvents(self)
 		end
 	end
 end
-
--- Local values: spec
 function Baler:onRegisterExternalActionEvents(trigger, name, xmlFile, key)
-	local v462_ = self.spec_baler
+	local spec = self.spec_baler
 	if name == "balerDrop" then
 		self:registerExternalActionEvent(trigger, name, Baler.externalActionEventUnloadRegister, Baler.externalActionEventUnloadUpdate)
-	elseif name == "balerAutomaticDrop" then
-		if v462_.toggleableAutomaticDrop then
-			self:registerExternalActionEvent(trigger, name, Baler.externalActionEventAutomaticUnloadRegister, Baler.externalActionEventAutomaticUnloadUpdate)
+	else
+		if name == "balerAutomaticDrop" then
+			if spec.toggleableAutomaticDrop then
+				self:registerExternalActionEvent(trigger, name, Baler.externalActionEventAutomaticUnloadRegister, Baler.externalActionEventAutomaticUnloadUpdate)
+			end
+		elseif name == "balerBaleSize" then
+			if 1 < #spec.baleTypes then
+				self:registerExternalActionEvent(trigger, name, Baler.externalActionEventBaleTypeRegister, Baler.externalActionEventBaleTypeUpdate)
+			end
+		end
+	end
+end
+function Baler:onStartWorkAreaProcessing(dt)
+	local spec = self.spec_baler
+	if self.isServer then
+		spec.lastAreaBiggerZero = false
+		spec.workAreaParameters.lastPickedUpLiters = 0
+	end
+end
+function Baler:onEndWorkAreaProcessing(dt, hasProcessed)
+	local spec = self.spec_baler
+	if self.isServer then
+		local maxFillType = FillType.UNKNOWN
+		local maxFillTypeFillLevel = 0
+		for fillTypeIndex, fillLevel in pairs(spec.pickupFillTypes) do
+			if maxFillTypeFillLevel < fillLevel then
+				maxFillType = fillTypeIndex
+				maxFillTypeFillLevel = fillLevel
+			end
+		end
+		local pickedUpLiters = spec.workAreaParameters.lastPickedUpLiters
+		if 0 < pickedUpLiters then
+			spec.lastAreaBiggerZero = true
+			local deltaLevel = pickedUpLiters * spec.fillScale
+			spec.variableSpeedLimit.pickupPerSecond = spec.variableSpeedLimit.pickupPerSecond + deltaLevel
+			if not spec.hasUnloadingAnimation then
+				local deltaTime = self:getTimeFromLevel(deltaLevel)
+				self:moveBales(deltaTime)
+			end
+			local fillUnitIndex = spec.fillUnitIndex
+			if spec.nonStopBaling then
+				if not spec.buffer.fillMainUnitAfterOverload or not spec.buffer.unloadingStarted then
+					fillUnitIndex = spec.buffer.fillUnitIndex
+				else
+					if self:getFillUnitFreeCapacity(spec.fillUnitIndex) <= 0 then
+						fillUnitIndex = spec.buffer.fillUnitIndex
+					end
+				end
+			end
+			if spec.buffer.loadingStateAnimation ~= nil then
+				local animTime = self:getAnimationTime(spec.buffer.loadingStateAnimation)
+				if fillUnitIndex == spec.fillUnitIndex then
+					if 0.99 <= animTime then
+						self:playAnimation(spec.buffer.loadingStateAnimation, -spec.buffer.loadingStateAnimationSpeed)
+					end
+				elseif animTime <= 0.01 then
+					self:playAnimation(spec.buffer.loadingStateAnimation, spec.buffer.loadingStateAnimationSpeed)
+				end
+			end
+			self:setFillUnitFillType(fillUnitIndex, maxFillType)
+			self:addFillUnitFillLevel(self:getOwnerFarmId(), fillUnitIndex, deltaLevel, maxFillType, ToolType.UNDEFINED)
+		end
+		if spec.lastAreaBiggerZero ~= spec.lastAreaBiggerZeroSent then
+			self:raiseDirtyFlags(spec.dirtyFlag)
+			spec.lastAreaBiggerZeroSent = spec.lastAreaBiggerZero
+		end
+		if spec.fillEffectType ~= spec.fillEffectTypeSent then
+			spec.fillEffectTypeSent = spec.fillEffectType
+			self:raiseDirtyFlags(spec.dirtyFlag)
+		end
+	end
+end
+function Baler:actionEventUnloading(actionName, inputValue, callbackState, isAnalog)
+	local spec = self.spec_baler
+	if not spec.hasPlatform then
+		self:handleUnloadingBaleEvent()
+	else
+		if self:getCanUnloadUnfinishedBale() and not spec.platformReadyToDrop then
+			self:handleUnloadingBaleEvent()
 			return
 		end
-	elseif name == "balerBaleSize" and #v462_.baleTypes > 1 then
-		self:registerExternalActionEvent(trigger, name, Baler.externalActionEventBaleTypeRegister, Baler.externalActionEventBaleTypeUpdate)
+		self:dropBaleFromPlatform(false)
 	end
 end
-
--- Local values: spec
-function Baler:onStartWorkAreaProcessing(dt)
-	local v464_ = self.spec_baler
-	if self.isServer then
-		v464_.lastAreaBiggerZero = false
-		v464_.workAreaParameters.lastPickedUpLiters = 0
-	end
-end
-
--- Local values: spec, maxFillType, maxFillTypeFillLevel, fillTypeIndex, fillLevel, pickedUpLiters, deltaLevel, deltaTime, fillUnitIndex, animTime
-function Baler:onEndWorkAreaProcessing(dt, hasProcessed)
-	local v466_ = self.spec_baler
-	if self.isServer then
-		local v467_ = FillType.UNKNOWN
-		local v468_ = 0
-		for v469_, v470_ in pairs(v466_.pickupFillTypes) do
-			if v468_ < v470_ then
-				v467_ = v469_
-				v468_ = v470_
-			end
-		end
-		local v471_ = v466_.workAreaParameters.lastPickedUpLiters
-		if v471_ > 0 then
-			v466_.lastAreaBiggerZero = true
-			local v472_ = v471_ * v466_.fillScale
-			v466_.variableSpeedLimit.pickupPerSecond = v466_.variableSpeedLimit.pickupPerSecond + v472_
-			if not v466_.hasUnloadingAnimation then
-				self:moveBales((self:getTimeFromLevel(v472_)))
-			end
-			local v473_ = v466_.fillUnitIndex
-			if v466_.nonStopBaling then
-				if v466_.buffer.fillMainUnitAfterOverload and v466_.buffer.unloadingStarted then
-					if self:getFillUnitFreeCapacity(v466_.fillUnitIndex) <= 0 then
-						v473_ = v466_.buffer.fillUnitIndex
-					end
-				else
-					v473_ = v466_.buffer.fillUnitIndex
-				end
-			end
-			if v466_.buffer.loadingStateAnimation ~= nil then
-				local v474_ = self:getAnimationTime(v466_.buffer.loadingStateAnimation)
-				if v473_ == v466_.fillUnitIndex then
-					if v474_ >= 0.99 then
-						self:playAnimation(v466_.buffer.loadingStateAnimation, -v466_.buffer.loadingStateAnimationSpeed)
-					end
-				elseif v474_ <= 0.01 then
-					self:playAnimation(v466_.buffer.loadingStateAnimation, v466_.buffer.loadingStateAnimationSpeed)
-				end
-			end
-			self:setFillUnitFillType(v473_, v467_)
-			self:addFillUnitFillLevel(self:getOwnerFarmId(), v473_, v472_, v467_, ToolType.UNDEFINED)
-		end
-		if v466_.lastAreaBiggerZero ~= v466_.lastAreaBiggerZeroSent then
-			self:raiseDirtyFlags(v466_.dirtyFlag)
-			v466_.lastAreaBiggerZeroSent = v466_.lastAreaBiggerZero
-		end
-		if v466_.fillEffectType ~= v466_.fillEffectTypeSent then
-			v466_.fillEffectTypeSent = v466_.fillEffectType
-			self:raiseDirtyFlags(v466_.dirtyFlag)
-		end
-	end
-end
-
--- Local values: spec
-function Baler:actionEventUnloading(actionName, inputValue, callbackState, isAnalog)
-	local v476_ = self.spec_baler
-	if v476_.hasPlatform then
-		if self:getCanUnloadUnfinishedBale() and not v476_.platformReadyToDrop then
-			self:handleUnloadingBaleEvent()
-		else
-			self:dropBaleFromPlatform(false)
-		end
-	else
-		self:handleUnloadingBaleEvent()
-		return
-	end
-end
-
--- Local values: spec, newIndex
 function Baler:actionEventToggleSize(actionName, inputValue, callbackState, isAnalog)
-	local v478_ = self.spec_baler
-	local v479_ = v478_.preSelectedBaleTypeIndex + 1
-	self:setBaleTypeIndex(#v478_.baleTypes < v479_ and 1 or v479_)
+	local spec = self.spec_baler
+	local newIndex = spec.preSelectedBaleTypeIndex + 1
+	if #spec.baleTypes < newIndex then
+		newIndex = 1
+	end
+	self:setBaleTypeIndex(newIndex)
 end
-
 function Baler:actionEventToggleAutomaticDrop(actionName, inputValue, callbackState, isAnalog)
 	self:setBalerAutomaticDrop()
 end
-
--- Local values: spec, actionEvent, showAction, automaticDropState, baleTypeDef, baleSize
 function Baler:updateActionEvents()
-	local v482_ = self.spec_baler
-	local v483_ = v482_.actionEvents[InputAction.IMPLEMENT_EXTRA3]
-	if v483_ ~= nil then
-		local v484_ = false
-		if not v482_.automaticDrop and (self:isUnloadingAllowed() and (v482_.hasUnloadingAnimation or v482_.allowsBaleUnloading)) then
-			if v482_.unloadingState == Baler.UNLOADING_CLOSED then
+	local spec = self.spec_baler
+	local actionEvent = spec.actionEvents[InputAction.IMPLEMENT_EXTRA3]
+	if actionEvent ~= nil then
+		local showAction = false
+		if not spec.automaticDrop and (self:isUnloadingAllowed() and (spec.hasUnloadingAnimation or spec.allowsBaleUnloading)) then
+			if spec.unloadingState == Baler.UNLOADING_CLOSED then
 				if self:getCanUnloadUnfinishedBale() then
-					g_inputBinding:setActionEventText(v483_.actionEventId, v482_.texts.unloadUnfinishedBale)
-					v484_ = true
+					g_inputBinding:setActionEventText(actionEvent.actionEventId, spec.texts.unloadUnfinishedBale)
+					showAction = true
 				end
-				if #v482_.bales > 0 then
-					g_inputBinding:setActionEventText(v483_.actionEventId, v482_.texts.unloadBaler)
-					v484_ = true
+				if 0 < #spec.bales then
+					g_inputBinding:setActionEventText(actionEvent.actionEventId, spec.texts.unloadBaler)
+					showAction = true
 				end
-			elseif v482_.unloadingState == Baler.UNLOADING_OPEN and v482_.hasUnloadingAnimation then
-				g_inputBinding:setActionEventText(v483_.actionEventId, v482_.texts.closeBack)
-				v484_ = true
+			elseif spec.unloadingState == Baler.UNLOADING_OPEN then
+				if spec.hasUnloadingAnimation then
+					g_inputBinding:setActionEventText(actionEvent.actionEventId, spec.texts.closeBack)
+					showAction = true
+				end
 			end
 		end
-		if v482_.platformReadyToDrop then
-			g_inputBinding:setActionEventText(v483_.actionEventId, v482_.texts.unloadBaler)
-			v484_ = true
-		elseif v482_.hasPlatform and (v482_.automaticDrop and (self:isUnloadingAllowed() and (v482_.hasUnloadingAnimation or v482_.allowsBaleUnloading))) and (v482_.unloadingState == Baler.UNLOADING_CLOSED and self:getCanUnloadUnfinishedBale()) then
-			g_inputBinding:setActionEventText(v483_.actionEventId, v482_.texts.unloadUnfinishedBale)
-			v484_ = true
+		if spec.platformReadyToDrop then
+			g_inputBinding:setActionEventText(actionEvent.actionEventId, spec.texts.unloadBaler)
+			showAction = true
+		elseif spec.hasPlatform then
+			if spec.automaticDrop and (self:isUnloadingAllowed() and ((spec.hasUnloadingAnimation or spec.allowsBaleUnloading) and (spec.unloadingState == Baler.UNLOADING_CLOSED and self:getCanUnloadUnfinishedBale()))) then
+				g_inputBinding:setActionEventText(actionEvent.actionEventId, spec.texts.unloadUnfinishedBale)
+				showAction = true
+			end
 		end
-		g_inputBinding:setActionEventActive(v483_.actionEventId, v484_)
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, showAction)
 	end
-	if v482_.toggleableAutomaticDrop then
-		local v485_ = v482_.actionEvents[InputAction.IMPLEMENT_EXTRA4]
-		if v485_ ~= nil then
-			local v486_ = v482_.automaticDrop
-			if v482_.hasPlatform then
-				v486_ = v482_.platformAutomaticDrop
+	if spec.toggleableAutomaticDrop then
+		actionEvent = spec.actionEvents[InputAction.IMPLEMENT_EXTRA4]
+		if actionEvent ~= nil then
+			local automaticDropState = spec.automaticDrop
+			if spec.hasPlatform then
+				automaticDropState = spec.platformAutomaticDrop
 			end
-			g_inputBinding:setActionEventText(v485_.actionEventId, v486_ and v482_.toggleAutomaticDropTextNeg or v482_.toggleAutomaticDropTextPos)
+			g_inputBinding:setActionEventText(actionEvent.actionEventId, automaticDropState and spec.toggleAutomaticDropTextNeg or spec.toggleAutomaticDropTextPos)
 		end
 	end
-	if #v482_.baleTypes > 1 then
-		local v487_ = v482_.actionEvents[InputAction.TOGGLE_BALE_TYPES]
-		if v487_ ~= nil then
-			local v488_ = v482_.baleTypes[v482_.preSelectedBaleTypeIndex]
-			local v489_
-			if v482_.hasUnloadingAnimation then
-				v489_ = v488_.diameter
-			else
-				v489_ = v488_.length
-			end
-			g_inputBinding:setActionEventText(v487_.actionEventId, v482_.changeBaleTypeText:format(v489_ * 100))
+	if 1 < #spec.baleTypes then
+		actionEvent = spec.actionEvents[InputAction.TOGGLE_BALE_TYPES]
+		if actionEvent ~= nil then
+			local baleTypeDef = spec.baleTypes[spec.preSelectedBaleTypeIndex]
+			local baleSize = nil
+			baleSize = spec.hasUnloadingAnimation and baleTypeDef.diameter or baleTypeDef.length
+			g_inputBinding:setActionEventText(actionEvent.actionEventId, spec.changeBaleTypeText:format(baleSize * 100))
 		end
 	end
 end
-
--- Local values: actionEvent, _
 function Baler.externalActionEventUnloadRegister(data, vehicle)
-	local _, v496_ = g_inputBinding:registerActionEvent(InputAction.IMPLEMENT_EXTRA3, data, function(_, p492_, p493_, p494_, p495_)
-		-- upvalues: (copy) vehicle
+	local actionEvent = function(_, actionName, inputValue, callbackState, isAnalog)
 		if not vehicle.spec_baler.automaticDrop then
-			Baler.actionEventUnloading(vehicle, p492_, p493_, p494_, p495_)
+			Baler.actionEventUnloading(vehicle, actionName, inputValue, callbackState, isAnalog)
 		end
-	end, false, true, false, true)
-	data.actionEventId = v496_
+	end
+	local _ = nil
+	_, data.actionEventId = g_inputBinding:registerActionEvent(InputAction.IMPLEMENT_EXTRA3, data, actionEvent, false, true, false, true)
 	g_inputBinding:setActionEventTextPriority(data.actionEventId, GS_PRIO_HIGH)
 end
-
--- Local values: spec, showAction
 function Baler.externalActionEventUnloadUpdate(data, vehicle)
-	local v499_ = vehicle.spec_baler
-	local v500_ = false
-	if vehicle:isUnloadingAllowed() and (v499_.hasUnloadingAnimation or v499_.allowsBaleUnloading) then
-		if v499_.unloadingState == Baler.UNLOADING_CLOSED then
+	local spec = vehicle.spec_baler
+	local showAction = false
+	if vehicle:isUnloadingAllowed() and (spec.hasUnloadingAnimation or spec.allowsBaleUnloading) then
+		if spec.unloadingState == Baler.UNLOADING_CLOSED then
 			if vehicle:getCanUnloadUnfinishedBale() then
-				g_inputBinding:setActionEventText(data.actionEventId, v499_.texts.unloadUnfinishedBale)
-				v500_ = true
+				g_inputBinding:setActionEventText(data.actionEventId, spec.texts.unloadUnfinishedBale)
+				showAction = true
 			end
-			if #v499_.bales > 0 then
-				g_inputBinding:setActionEventText(data.actionEventId, v499_.texts.unloadBaler)
-				v500_ = true
+			if 0 < #spec.bales then
+				g_inputBinding:setActionEventText(data.actionEventId, spec.texts.unloadBaler)
+				showAction = true
 			end
-		elseif v499_.unloadingState == Baler.UNLOADING_OPEN and v499_.hasUnloadingAnimation then
-			g_inputBinding:setActionEventText(data.actionEventId, v499_.texts.closeBack)
-			v500_ = true
+		elseif spec.unloadingState == Baler.UNLOADING_OPEN then
+			if spec.hasUnloadingAnimation then
+				g_inputBinding:setActionEventText(data.actionEventId, spec.texts.closeBack)
+				showAction = true
+			end
 		end
 	end
-	if v499_.platformReadyToDrop then
-		g_inputBinding:setActionEventText(data.actionEventId, v499_.texts.unloadBaler)
-		v500_ = true
+	if spec.platformReadyToDrop then
+		g_inputBinding:setActionEventText(data.actionEventId, spec.texts.unloadBaler)
+		showAction = true
 	end
-	g_inputBinding:setActionEventActive(data.actionEventId, v500_)
+	g_inputBinding:setActionEventActive(data.actionEventId, showAction)
 end
-
--- Local values: actionEvent, _
 function Baler.externalActionEventAutomaticUnloadRegister(data, vehicle)
-	local _, v507_ = g_inputBinding:registerActionEvent(InputAction.IMPLEMENT_EXTRA4, data, function(_, p503_, p504_, p505_, p506_)
-		-- upvalues: (copy) vehicle
-		Baler.actionEventToggleAutomaticDrop(vehicle, p503_, p504_, p505_, p506_)
-	end, false, true, false, true)
-	data.actionEventId = v507_
+	local actionEvent = function(_, actionName, inputValue, callbackState, isAnalog)
+		Baler.actionEventToggleAutomaticDrop(vehicle, actionName, inputValue, callbackState, isAnalog)
+	end
+	local _ = nil
+	_, data.actionEventId = g_inputBinding:registerActionEvent(InputAction.IMPLEMENT_EXTRA4, data, actionEvent, false, true, false, true)
 	g_inputBinding:setActionEventTextPriority(data.actionEventId, GS_PRIO_HIGH)
 end
-
--- Local values: spec, automaticDropState
 function Baler.externalActionEventAutomaticUnloadUpdate(data, vehicle)
-	local v510_ = vehicle.spec_baler
-	local v511_ = v510_.automaticDrop
-	if v510_.hasPlatform then
-		v511_ = v510_.platformAutomaticDrop
+	local spec = vehicle.spec_baler
+	local automaticDropState = spec.automaticDrop
+	if spec.hasPlatform then
+		automaticDropState = spec.platformAutomaticDrop
 	end
-	g_inputBinding:setActionEventText(data.actionEventId, v511_ and v510_.toggleAutomaticDropTextNeg or v510_.toggleAutomaticDropTextPos)
+	g_inputBinding:setActionEventText(data.actionEventId, automaticDropState and spec.toggleAutomaticDropTextNeg or spec.toggleAutomaticDropTextPos)
 end
-
--- Local values: actionEvent, _
 function Baler.externalActionEventBaleTypeRegister(data, vehicle)
-	local _, v518_ = g_inputBinding:registerActionEvent(InputAction.TOGGLE_BALE_TYPES, data, function(_, p514_, p515_, p516_, p517_)
-		-- upvalues: (copy) vehicle
-		Baler.actionEventToggleSize(vehicle, p514_, p515_, p516_, p517_)
-	end, false, true, false, true)
-	data.actionEventId = v518_
+	local actionEvent = function(_, actionName, inputValue, callbackState, isAnalog)
+		Baler.actionEventToggleSize(vehicle, actionName, inputValue, callbackState, isAnalog)
+	end
+	local _ = nil
+	_, data.actionEventId = g_inputBinding:registerActionEvent(InputAction.TOGGLE_BALE_TYPES, data, actionEvent, false, true, false, true)
 	g_inputBinding:setActionEventTextPriority(data.actionEventId, GS_PRIO_HIGH)
 end
-
--- Local values: spec, baleTypeDef, baleSize
 function Baler.externalActionEventBaleTypeUpdate(data, vehicle)
-	local v521_ = vehicle.spec_baler
-	local v522_ = v521_.baleTypes[v521_.preSelectedBaleTypeIndex]
-	local v523_
-	if v521_.hasUnloadingAnimation then
-		v523_ = v522_.diameter
-	else
-		v523_ = v522_.length
-	end
-	g_inputBinding:setActionEventText(data.actionEventId, v521_.changeBaleTypeText:format(v523_ * 100))
+	local spec = vehicle.spec_baler
+	local baleTypeDef = spec.baleTypes[spec.preSelectedBaleTypeIndex]
+	local baleSize = nil
+	baleSize = spec.hasUnloadingAnimation and baleTypeDef.diameter or baleTypeDef.length
+	g_inputBinding:setActionEventText(data.actionEventId, spec.changeBaleTypeText:format(baleSize * 100))
 end
-
--- Local values: rootName, baleSizeAttributes
 function Baler.loadSpecValueBaleSize(xmlFile, customEnvironment, baseDir)
-	local v_u_525_ = {
-		["isRoundBaler"] = false,
-		["minDiameter"] = math.huge,
-		["maxDiameter"] = -math.huge,
-		["minLength"] = math.huge,
-		["maxLength"] = -math.huge
-	}
-	xmlFile:iterate(xmlFile:getRootName() .. ".baler.baleTypes.baleType", function(_, p526_)
-		-- upvalues: (copy) v_u_525_, (copy) xmlFile
-		v_u_525_.isRoundBaler = xmlFile:getValue(p526_ .. "#isRoundBale", v_u_525_.isRoundBaler)
-		local v527_ = MathUtil.round(xmlFile:getValue(p526_ .. "#diameter", 0), 2)
-		local v528_ = v_u_525_
-		local v529_ = v_u_525_.minDiameter
-		v528_.minDiameter = math.min(v529_, v527_)
-		local v530_ = v_u_525_
-		local v531_ = v_u_525_.maxDiameter
-		v530_.maxDiameter = math.max(v531_, v527_)
-		local v532_ = MathUtil.round(xmlFile:getValue(p526_ .. "#length", 0), 2)
-		local v533_ = v_u_525_
-		local v534_ = v_u_525_.minLength
-		v533_.minLength = math.min(v534_, v532_)
-		local v535_ = v_u_525_
-		local v536_ = v_u_525_.maxLength
-		v535_.maxLength = math.max(v536_, v532_)
+	local rootName = xmlFile:getRootName()
+	local baleSizeAttributes = {}
+	baleSizeAttributes.isRoundBaler = false
+	baleSizeAttributes.minDiameter = math.huge
+	baleSizeAttributes.maxDiameter = -math.huge
+	baleSizeAttributes.minLength = math.huge
+	baleSizeAttributes.maxLength = -math.huge
+	xmlFile:iterate(rootName .. ".baler.baleTypes.baleType", function(_, key)
+		baleSizeAttributes.isRoundBaler = xmlFile:getValue(key .. "#isRoundBale", baleSizeAttributes.isRoundBaler)
+		local diameter = MathUtil.round(xmlFile:getValue(key .. "#diameter", 0), 2)
+		baleSizeAttributes.minDiameter = math.min(baleSizeAttributes.minDiameter, diameter)
+		baleSizeAttributes.maxDiameter = math.max(baleSizeAttributes.maxDiameter, diameter)
+		local length = MathUtil.round(xmlFile:getValue(key .. "#length", 0), 2)
+		baleSizeAttributes.minLength = math.min(baleSizeAttributes.minLength, length)
+		baleSizeAttributes.maxLength = math.max(baleSizeAttributes.maxLength, length)
 	end)
-	if v_u_525_.minDiameter == math.huge and v_u_525_.minLength == math.huge then
-		return nil
-	else
-		return v_u_525_
+	if baleSizeAttributes.minDiameter ~= math.huge or baleSizeAttributes.minLength ~= math.huge then
+		return baleSizeAttributes
 	end
+	return nil
 end
-
--- Local values: baleSizeAttributes, minValue, maxValue, unit, size
 function Baler.getSpecValueBaleSize(storeItem, realItem, configurations, saleItem, returnValues, returnRange, roundBale)
-	local v541_ = roundBale and storeItem.specs.balerBaleSizeRound or storeItem.specs.balerBaleSizeSquare
-	if v541_ == nil then
+	local baleSizeAttributes = roundBale and storeItem.specs.balerBaleSizeRound or storeItem.specs.balerBaleSizeSquare
+	if baleSizeAttributes ~= nil then
+		local minValue = baleSizeAttributes.isRoundBaler and baleSizeAttributes.minDiameter or baleSizeAttributes.minLength
+		local maxValue = baleSizeAttributes.isRoundBaler and baleSizeAttributes.maxDiameter or baleSizeAttributes.maxLength
+		if returnValues == nil or not returnValues then
+			local unit = g_i18n:getText("unit_cmShort")
+			local size = nil
+			if maxValue ~= minValue then
+				size = string.format("%d%s-%d%s", minValue * 100, unit, maxValue * 100, unit)
+				return size
+			else
+				size = string.format("%d%s", minValue * 100, unit)
+				return size
+			end
+		end
+		if returnRange == true and maxValue ~= minValue then
+			return minValue * 100, maxValue * 100, g_i18n:getText("unit_cmShort")
+		end
+		return minValue * 100, g_i18n:getText("unit_cmShort")
+	else
 		if returnValues and returnRange then
 			return 0, 0, ""
-		elseif returnValues then
+		end
+		if returnValues then
 			return 0, ""
 		else
 			return ""
 		end
-	else
-		local v542_ = v541_.isRoundBaler and v541_.minDiameter or v541_.minLength
-		local v543_ = v541_.isRoundBaler and v541_.maxDiameter or v541_.maxLength
-		if returnValues == nil or not returnValues then
-			local v544_ = g_i18n:getText("unit_cmShort")
-			if v543_ == v542_ then
-				return string.format("%d%s", v542_ * 100, v544_)
-			else
-				return string.format("%d%s-%d%s", v542_ * 100, v544_, v543_ * 100, v544_)
-			end
-		elseif returnRange == true and v543_ ~= v542_ then
-			return v542_ * 100, v543_ * 100, g_i18n:getText("unit_cmShort")
-		else
-			return v542_ * 100, g_i18n:getText("unit_cmShort")
-		end
 	end
 end
-
--- Local values: baleSizeAttributes
 function Baler.loadSpecValueBaleSizeRound(xmlFile, customEnvironment, baseDir)
-	local v548_ = Baler.loadSpecValueBaleSize(xmlFile, customEnvironment, baseDir)
-	if v548_ == nil or not v548_.isRoundBaler then
-		return nil
-	else
-		return v548_
+	local baleSizeAttributes = Baler.loadSpecValueBaleSize(xmlFile, customEnvironment, baseDir)
+	if baleSizeAttributes ~= nil and baleSizeAttributes.isRoundBaler then
+		return baleSizeAttributes
 	end
+	return nil
 end
-
--- Local values: baleSizeAttributes
 function Baler.loadSpecValueBaleSizeSquare(xmlFile, customEnvironment, baseDir)
-	local v552_ = Baler.loadSpecValueBaleSize(xmlFile, customEnvironment, baseDir)
-	if v552_ == nil or v552_.isRoundBaler then
-		return nil
-	else
-		return v552_
+	local baleSizeAttributes = Baler.loadSpecValueBaleSize(xmlFile, customEnvironment, baseDir)
+	if baleSizeAttributes ~= nil and not baleSizeAttributes.isRoundBaler then
+		return baleSizeAttributes
 	end
+	return nil
 end
-
 function Baler.getSpecValueBaleSizeRound(storeItem, realItem, configurations, saleItem, returnValues, returnRange)
-	if storeItem.specs.balerBaleSizeRound == nil or not storeItem.specs.balerBaleSizeRound.isRoundBaler then
-		return nil
-	else
+	if storeItem.specs.balerBaleSizeRound ~= nil and storeItem.specs.balerBaleSizeRound.isRoundBaler then
 		return Baler.getSpecValueBaleSize(storeItem, realItem, configurations, saleItem, returnValues, returnRange, true)
 	end
+	return nil
 end
-
 function Baler.getSpecValueBaleSizeSquare(storeItem, realItem, configurations, saleItem, returnValues, returnRange)
-	if storeItem.specs.balerBaleSizeSquare == nil or storeItem.specs.balerBaleSizeSquare.isRoundBaler then
-		return nil
-	else
+	if storeItem.specs.balerBaleSizeSquare ~= nil and not storeItem.specs.balerBaleSizeSquare.isRoundBaler then
 		return Baler.getSpecValueBaleSize(storeItem, realItem, configurations, saleItem, returnValues, returnRange, false)
 	end
+	return nil
 end

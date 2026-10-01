@@ -1,36 +1,27 @@
--- Local values: MultiplayerScreen_mt
 MultiplayerScreen = {}
 MultiplayerScreen.NUM_HINTS = 7
 MultiplayerScreen.HINTS_KEY = "ui_joinMultiplayerHint"
 local MultiplayerScreen_mt = Class(MultiplayerScreen, ScreenElement)
 function MultiplayerScreen.register()
-	local v2_ = MultiplayerScreen.new()
-	g_gui:loadGui("dataS/gui/MultiplayerScreen.xml", "MultiplayerScreen", v2_)
-	return v2_
+	local multiplayerScreen = MultiplayerScreen.new()
+	g_gui:loadGui("dataS/gui/MultiplayerScreen.xml", "MultiplayerScreen", multiplayerScreen)
+	return multiplayerScreen
 end
-
--- Upvalues: MultiplayerScreen_mt
--- Local values: self
 function MultiplayerScreen.new(target, custom_mt)
-	-- upvalues: (copy) MultiplayerScreen_mt
-	local v5_ = ScreenElement.new(target, custom_mt or MultiplayerScreen_mt)
-	v5_.returnScreenClass = MainScreen
-	v5_.gameplayHintsInitialized = false
-	v5_.gameplayHintDuration = 6500
-	v5_.gameplayHintTime = v5_.gameplayHintDuration
-	return v5_
+	local self = ScreenElement.new(target, custom_mt or MultiplayerScreen_mt)
+	self.returnScreenClass = MainScreen
+	self.gameplayHintsInitialized = false
+	self.gameplayHintDuration = 6500
+	self.gameplayHintTime = self.gameplayHintDuration
+	return self
 end
-
--- Local values: newGui
 function MultiplayerScreen.createFromExistingGui(gui, guiName)
-	local v8_ = MultiplayerScreen.new()
+	local newGui = MultiplayerScreen.new()
 	g_gui.guis[guiName]:delete()
 	g_gui.guis[guiName].target:delete()
-	g_gui:loadGui(gui.xmlFilename, guiName, v8_)
-	return v8_
+	g_gui:loadGui(gui.xmlFilename, guiName, newGui)
+	return newGui
 end
-
--- Local values: hints, i
 function MultiplayerScreen:onOpen()
 	MultiplayerScreen:superClass().onOpen(self)
 	self:initJoinGameScreen()
@@ -46,18 +37,15 @@ function MultiplayerScreen:onOpen()
 	FocusManager:linkElements(self.listCoop, FocusManager.RIGHT, nil)
 	FocusManager:linkElements(self.listCoop, FocusManager.TOP, nil)
 	FocusManager:setFocus(self.listCoop)
-	local v10_ = {}
-	for v11_ = 1, MultiplayerScreen.NUM_HINTS do
-		local v12_ = g_i18n
-		local v13_ = MultiplayerScreen.HINTS_KEY .. tostring(v11_)
-		table.insert(v10_, v12_:getText(v13_))
+	local hints = {}
+	for i = 1, MultiplayerScreen.NUM_HINTS do
+		table.insert(hints, g_i18n:getText(MultiplayerScreen.HINTS_KEY .. tostring(i)))
 	end
 	self.gameplayHintsInitialized = true
-	self.gameplayHintSelector:setTexts(v10_)
+	self.gameplayHintSelector:setTexts(hints)
 	self.hintStateBox:setPageCount(MultiplayerScreen.NUM_HINTS)
 	self.gameplayHintTime = self.gameplayHintDuration
 end
-
 function MultiplayerScreen:updateOnlinePresenceName()
 	self.onlineNameText:setText(g_gameSettings:getValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME))
 	if self.onlineNameBox ~= nil then
@@ -71,45 +59,39 @@ function MultiplayerScreen:updateOnlinePresenceName()
 	end
 	self.changeNameButton.parent:invalidateLayout()
 end
-
 function MultiplayerScreen:initJoinGameScreen()
 	g_connectionManager:startupWithWorkingPort(g_gameSettings:getValue(GameSettings.SETTING.DEFAULT_SERVER_PORT))
 	g_connectToMasterServerScreen:setNextScreenClass(JoinGameScreen)
 	g_connectToMasterServerScreen:setPrevScreenClass(MultiplayerScreen)
 end
-
--- Local values: index
 function MultiplayerScreen:onContinue()
 	if FocusManager:getFocusedElement() == self.listCoop then
-		local v16_ = self.listCoop.selectedIndex
-		if v16_ == 1 then
+		local index = self.listCoop.selectedIndex
+		if index == 1 then
 			g_startMissionInfo.canStart = false
 			self:changeScreen(ConnectToMasterServerScreen)
 			g_connectToMasterServerScreen:connectToFront()
 			return
 		end
-		if v16_ == 2 then
+		if index == 2 then
 			g_startMissionInfo.canStart = false
 			g_createGameScreen.usePendingInvites = false
 			self:changeScreen(CareerScreen)
 			return
 		end
-		if v16_ == 3 then
+		if index == 3 then
 			openWebFile(Platform.urlDedicatedServer, "")
 		end
 	end
 end
-
 function MultiplayerScreen:onClickCreateGame()
 	self.listCoop:setSelectedIndex(2)
 	self:onContinue()
 end
-
 function MultiplayerScreen:onClickJoinGame()
 	self.listCoop:setSelectedIndex(1)
 	self:onContinue()
 end
-
 function MultiplayerScreen:update(dt)
 	MultiplayerScreen:superClass().update(self, dt)
 	Platform.verifyMultiplayerAvailabilityInMenu()
@@ -122,29 +104,27 @@ function MultiplayerScreen:update(dt)
 		self.gameplayHintSelector.soundDisabled = false
 	end
 end
-
--- Local values: text, callback, defaultText, confirmText
 function MultiplayerScreen:onClickChangeName()
-	local v22_ = g_i18n:getText("ui_enterName")
-	local v23_ = g_gameSettings:getValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME)
-	local v24_ = g_i18n:getText("button_change")
-	TextInputDialog.show(function(p25_)
-		-- upvalues: (copy) self
-		if p25_ ~= g_gameSettings:getValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME) then
-			g_gameSettings:setValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME, p25_, true)
+	local text = g_i18n:getText("ui_enterName")
+	local callback = function(newName)
+		if newName ~= g_gameSettings:getValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME) then
+			g_gameSettings:setValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME, newName, true)
 			self:updateOnlinePresenceName()
 		end
-	end, nil, v23_, nil, nil, nil, v24_, nil, v22_)
+	end
+	local defaultText = g_gameSettings:getValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME)
+	local confirmText = g_i18n:getText("button_change")
+	TextInputDialog.show(callback, nil, defaultText, nil, nil, nil, confirmText, nil, text)
 end
-
 function MultiplayerScreen:onClickOpenBlocklist()
 	UnBanDialog.show(nil, nil, true)
 end
-
 function MultiplayerScreen:getNumberOfItemsInSection(list, section)
-	return Platform.showRentServerWebButton and list == self.listCoop and 3 or 2
+	if Platform.showRentServerWebButton and list == self.listCoop then
+		return 3
+	end
+	return 2
 end
-
 function MultiplayerScreen:populateCellForItemInSection(list, section, index, cell)
 	if list == self.listCoop then
 		if index == 1 then

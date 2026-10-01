@@ -1,4 +1,3 @@
--- Local values: NPCManager_mt
 source("dataS/scripts/ai/npcs/NPCSpot.lua")
 source("dataS/scripts/ai/npcs/NPCConversationFailedState.lua")
 NPCManager = {}
@@ -9,22 +8,19 @@ g_xmlManager:addCreateSchemaFunction(function()
 	NPCManager.xmlSchemaSavegame = XMLSchema.new("savegame_npcs")
 end)
 g_xmlManager:addInitSchemaFunction(function()
-	Mission00.xmlSchema:register(XMLValueType.STRING, "map.npcs#filename", "Filename of the npcs available on the map")
-	local v2_ = NPCManager.xmlSchema
-	v2_:register(XMLValueType.STRING, "map.npcs.npc(?)#name", "Name identifier of npc", nil, true)
-	v2_:register(XMLValueType.STRING, "map.npcs.npc(?)", "Path to npc config file", nil, true)
-	NPCManager.xmlSchemaSavegame:register(XMLValueType.STRING, "npcs.npc(?)#name", "Name identifier of npc")
+	local missionXMLSchema = Mission00.xmlSchema
+	missionXMLSchema:register(XMLValueType.STRING, "map.npcs#filename", "Filename of the npcs available on the map")
+	local schema = NPCManager.xmlSchema
+	schema:register(XMLValueType.STRING, "map.npcs.npc(?)#name", "Name identifier of npc", nil, true)
+	schema:register(XMLValueType.STRING, "map.npcs.npc(?)", "Path to npc config file", nil, true)
+	local savegameSchema = NPCManager.xmlSchemaSavegame
+	savegameSchema:register(XMLValueType.STRING, "npcs.npc(?)#name", "Name identifier of npc")
 end)
-
--- Upvalues: NPCManager_mt
--- Local values: self
 function NPCManager.new(customMt)
-	-- upvalues: (copy) NPCManager_mt
-	local v4_ = AbstractManager.new(customMt or NPCManager_mt)
-	v4_.drawDebug = false
-	return v4_
+	local self = AbstractManager.new(customMt or NPCManager_mt)
+	self.drawDebug = false
+	return self
 end
-
 function NPCManager:initDataStructures()
 	self.npcs = {}
 	self.nameToNPC = {}
@@ -37,18 +33,15 @@ function NPCManager:initDataStructures()
 	self.conversationInputClasses = {}
 	self.conversationOptionPrerequisiteClasses = {}
 end
-
 function NPCManager:loadDefaultTypes(missionInfo, baseDirectory) end
-
--- Local values: _, spot
 function NPCManager:unloadMapData()
 	g_messageCenter:unsubscribeAll(self)
 	if self.npcXMLFile ~= nil then
 		self.npcXMLFile:delete()
 		self.npcXMLFile = nil
 	end
-	for _, v7_ in pairs(self.uniqueIdToSpot) do
-		v7_:deactivate()
+	for _, spot in pairs(self.uniqueIdToSpot) do
+		spot:deactivate()
 	end
 	removeConsoleCommand("gsNPCValidate")
 	removeConsoleCommand("gsNPCAnimationReload")
@@ -56,25 +49,21 @@ function NPCManager:unloadMapData()
 	removeConsoleCommand("gsNPCSetNextConversation")
 	NPCManager:superClass().unloadMapData(self)
 end
-
--- Local values: filename, xmlFilename, _, key
 function NPCManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	NPCManager:superClass().loadMapData(self)
-	local v12_ = getXMLString(xmlFile, "map.npcs#filename")
-	if v12_ ~= nil then
-		local v13_ = Utils.getFilename(v12_, baseDirectory)
-		self.npcXMLFile = XMLFile.load("npcsXML", v13_, NPCManager.xmlSchema)
+	local filename = getXMLString(xmlFile, "map.npcs#filename")
+	if filename ~= nil then
+		local xmlFilename = Utils.getFilename(filename, baseDirectory)
+		self.npcXMLFile = XMLFile.load("npcsXML", xmlFilename, NPCManager.xmlSchema)
 		if self.npcXMLFile == nil then
 			return false
 		end
-		for _, v_u_14_ in self.npcXMLFile:iterator("map.npcs.npc") do
+		for _, key in self.npcXMLFile:iterator("map.npcs.npc") do
 			g_asyncTaskManager:addSubtask(function()
-				-- upvalues: (copy) self, (copy) v_u_14_, (copy) missionInfo, (copy) baseDirectory
-				self:loadNPC(self.npcXMLFile, v_u_14_, missionInfo, baseDirectory)
-			end, "NPCManager - loadNPC " .. v_u_14_)
+				self:loadNPC(self.npcXMLFile, key, missionInfo, baseDirectory)
+			end, "NPCManager - loadNPC " .. key)
 		end
 		g_asyncTaskManager:addSubtask(function()
-			-- upvalues: (copy) self
 			if self.npcXMLFile ~= nil then
 				self.npcXMLFile:delete()
 				self.npcXMLFile = nil
@@ -90,153 +79,150 @@ function NPCManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	end
 	return true
 end
-
--- Local values: xmlFilename, name, upperName, npc, isDLCMissing
 function NPCManager:loadNPC(xmlFile, key, missionInfo, baseDirectory)
-	local v19_ = Utils.getFilename(xmlFile:getValue(key), baseDirectory)
-	if v19_ == nil then
-		Logging.xmlWarning(xmlFile, "Missing xmlFilename for npc \'%s\'", key)
+	local xmlFilename = Utils.getFilename(xmlFile:getValue(key), baseDirectory)
+	if xmlFilename == nil then
+		Logging.xmlWarning(xmlFile, "Missing xmlFilename for npc '%s'", key)
+		return
+	end
+	local name = xmlFile:getValue(key .. "#name")
+	if name == nil then
+		Logging.xmlWarning(xmlFile, "Missing name for npc '%s'", key)
+		return
+	end
+	local upperName = string.upper(name)
+	if self.nameToNPC[upperName] ~= nil then
+		Logging.xmlWarning(xmlFile, "NPC with name '%s' already exists for '%s'!", name, key)
+		return
+	end
+	local npc, isDLCMissing = NPCUtil.createFromXML(xmlFilename)
+	if isDLCMissing then
+		return
+	elseif npc == nil then
+		Logging.xmlWarning(xmlFile, "Could not create NPC from file '%s' for '%s'!", xmlFilename, key)
 		return
 	else
-		local v20_ = xmlFile:getValue(key .. "#name")
-		if v20_ == nil then
-			Logging.xmlWarning(xmlFile, "Missing name for npc \'%s\'", key)
-			return
-		else
-			local v21_ = string.upper(v20_)
-			if self.nameToNPC[v21_] == nil then
-				local v22_, v23_ = NPCUtil.createFromXML(v19_)
-				if not v23_ then
-					if v22_ ~= nil then
-						local v24_ = self.npcs
-						table.insert(v24_, v22_)
-						self.nameToNPC[v21_] = v22_
-						self.nameToIndex[v21_] = #self.npcs
-						v22_.name = v21_
-						v22_.index = #self.npcs
-						v22_:register(true)
-						g_currentMission.onCreateObjectSystem:add(v22_)
-						return true
-					end
-					Logging.xmlWarning(xmlFile, "Could not create NPC from file \'%s\' for \'%s\'!", v19_, key)
-				end
-			else
-				Logging.xmlWarning(xmlFile, "NPC with name \'%s\' already exists for \'%s\'!", v20_, key)
-				return
-			end
-		end
+		table.insert(self.npcs, npc)
+		self.nameToNPC[upperName] = npc
+		self.nameToIndex[upperName] = #self.npcs
+		npc.name = upperName
+		npc.index = #self.npcs
+		npc:register(true)
+		g_currentMission.onCreateObjectSystem:add(npc)
+		return true
 	end
 end
-
--- Local values: xmlFile, k, npc, key, index, _, spot, key
 function NPCManager:saveToXMLFile(xmlFilename)
-	local v27_ = XMLFile.create("npcsXML", xmlFilename, "npcs", NPCManager.xmlSchemaSavegame)
-	if v27_ == nil then
+	local xmlFile = XMLFile.create("npcsXML", xmlFilename, "npcs", NPCManager.xmlSchemaSavegame)
+	if xmlFile == nil then
 		Logging.error("Failed to create npc xml file")
 		return false
-	end
-	for v28_, v29_ in ipairs(self.npcs) do
-		local v30_ = string.format("npcs.npc(%d)", v28_ - 1)
-		v27_:setValue(v30_ .. "#name", v29_.name)
-		v29_:saveToSavegameXMLFile(v27_, v30_)
-	end
-	local v31_ = 0
-	for _, v32_ in pairs(self.uniqueIdToSpot) do
-		if v32_.needsSaving then
-			v32_:saveToSavegameXMLFile(v27_, (string.format("npcs.spots.spot(%d)", v31_)))
-			v31_ = v31_ + 1
+	else
+		for k, npc in ipairs(self.npcs) do
+			local key = string.format("npcs.npc(%d)", k - 1)
+			xmlFile:setValue(key .. "#name", npc.name)
+			npc:saveToSavegameXMLFile(xmlFile, key)
 		end
+		local index = 0
+		for _, spot in pairs(self.uniqueIdToSpot) do
+			if spot.needsSaving then
+				local key = string.format("npcs.spots.spot(%d)", index)
+				spot:saveToSavegameXMLFile(xmlFile, key)
+				index = index + 1
+			end
+		end
+		xmlFile:save()
+		xmlFile:delete()
+		return true
 	end
-	v27_:save()
-	v27_:delete()
-	return true
 end
-
--- Local values: xmlFile, _, key, name, npc, _, key, spot
 function NPCManager:loadFromSavegameXMLFile(xmlFilename)
 	if xmlFilename == nil then
 		return false
 	end
-	local v35_ = XMLFile.load("npcXML", xmlFilename, NPCManager.xmlSchemaSavegame)
-	if v35_ == nil then
+	local xmlFile = XMLFile.load("npcXML", xmlFilename, NPCManager.xmlSchemaSavegame)
+	if xmlFile == nil then
 		return false
-	end
-	for _, v36_ in v35_:iterator("npcs.npc") do
-		local v37_ = v35_:getValue(v36_ .. "#name")
-		local v38_ = self:getNPCByName(v37_)
-		if v38_ == nil then
-			Logging.xmlWarning(v35_, "Npc \'%s\' not found!", v37_)
-		else
-			v38_:loadFromSavegameXMLFile(v35_, v36_)
-		end
-	end
-	for _, v39_ in v35_:iterator("npcs.spots.spot") do
-		local v40_ = NPCSpot.new()
-		if v40_:loadFromSavegameXMLFile(v35_, v39_) then
-			self:addSpot(v40_)
-		else
-			Logging.xmlWarning(v35_, "Npc spot could not be loaded - %s!", v39_)
-			v40_:delete()
-		end
-	end
-	v35_:delete()
-	return true
-end
-
--- Local values: x, y, z, _, npc, needNewSpot, isActive, distance, spot, spot
-function NPCManager:update(dt)
-	local v42_, v43_, v44_ = getWorldTranslation(g_cameraManager:getActiveCamera())
-	for _, v45_ in ipairs(self.npcs) do
-		local v46_ = false
-		local v47_ = v45_:getIsActive()
-		local v48_
-		if v47_ then
-			v45_:setDistanceToCamera((MathUtil.vector3Length(v45_.x - v42_, v45_.y + PlayerCamera.FIRST_PERSON_Y_OFFSET - v43_, v45_.z - v44_)))
-			v48_ = g_server ~= nil and not v45_:getSpot():getIsAvailable() and true or v46_
-		else
-			v48_ = true
-		end
-		if g_server ~= nil and v48_ then
-			local v49_ = g_npcManager:getAvailableSpot(v45_)
-			if v49_ == nil then
-				if v47_ then
-					v45_:setSpot(nil)
-				end
+	else
+		for _, key in xmlFile:iterator("npcs.npc") do
+			local name = xmlFile:getValue(key .. "#name")
+			local npc = self:getNPCByName(name)
+			if npc ~= nil then
+				npc:loadFromSavegameXMLFile(xmlFile, key)
 			else
-				v45_:setSpot(v49_)
+				Logging.xmlWarning(xmlFile, "Npc '%s' not found!", name)
+			end
+		end
+		for _, key in xmlFile:iterator("npcs.spots.spot") do
+			local spot = NPCSpot.new()
+			if spot:loadFromSavegameXMLFile(xmlFile, key) then
+				self:addSpot(spot)
+			else
+				Logging.xmlWarning(xmlFile, "Npc spot could not be loaded - %s!", key)
+				spot:delete()
+			end
+		end
+		xmlFile:delete()
+		return true
+	end
+end
+function NPCManager:update(dt)
+	local x, y, z = getWorldTranslation(g_cameraManager:getActiveCamera())
+	for _, npc in ipairs(self.npcs) do
+		local needNewSpot = false
+		local isActive = npc:getIsActive()
+		if isActive then
+			local distance = MathUtil.vector3Length(npc.x - x, npc.y + PlayerCamera.FIRST_PERSON_Y_OFFSET - y, npc.z - z)
+			npc:setDistanceToCamera(distance)
+			if g_server ~= nil then
+				local spot = npc:getSpot()
+				if not spot:getIsAvailable() then
+					needNewSpot = true
+				end
+			end
+		else
+			needNewSpot = true
+		end
+		if g_server == nil then
+			continue
+		end
+		if needNewSpot then
+			local spot = g_npcManager:getAvailableSpot(npc)
+			if spot ~= nil then
+				npc:setSpot(spot)
+			elseif isActive then
+				npc:setSpot(nil)
 			end
 		end
 	end
 end
-
--- Local values: _, npc, spots, spot, _, spot
 function NPCManager:onMissionStarted(isNewSavegame)
 	if isNewSavegame then
-		for _, v52_ in pairs(self.nameToNPC) do
-			local v53_ = self.startSpots[v52_]
-			if v53_ ~= nil then
-				v52_:setSpot(v53_[math.random(1, #v53_)])
+		for _, npc in pairs(self.nameToNPC) do
+			local spots = self.startSpots[npc]
+			if spots == nil then
+				continue
 			end
+			local spot = spots[math.random(1, #spots)]
+			npc:setSpot(spot)
 		end
 	end
-	for _, v54_ in pairs(self.uniqueIdToSpot) do
-		v54_:activate()
+	for _, spot in pairs(self.uniqueIdToSpot) do
+		spot:activate()
 	end
 end
-
--- Local values: npc
 function NPCManager:addSpot(spot)
-	local v57_ = spot.npc
-	if v57_ ~= nil then
-		if self.spots[v57_] == nil then
-			self.spots[v57_] = {}
+	local npc = spot.npc
+	if npc ~= nil then
+		if self.spots[npc] == nil then
+			self.spots[npc] = {}
 		end
-		table.addElement(self.spots[v57_], spot)
+		table.addElement(self.spots[npc], spot)
 		if spot.isStartSpot then
-			if self.startSpots[v57_] == nil then
-				self.startSpots[v57_] = {}
+			if self.startSpots[npc] == nil then
+				self.startSpots[npc] = {}
 			end
-			table.addElement(self.startSpots[v57_], spot)
+			table.addElement(self.startSpots[npc], spot)
 		end
 		if g_currentMission.isMissionStarted then
 			spot:activate()
@@ -244,29 +230,26 @@ function NPCManager:addSpot(spot)
 	end
 	self.uniqueIdToSpot[spot.uniqueId] = spot
 end
-
--- Local values: _, npc, npc
 function NPCManager:removeSpot(spot)
-	for _, v60_ in ipairs(self.npcs) do
-		if v60_:getSpot() == spot then
-			v60_:setSpot(nil)
+	for _, npc in ipairs(self.npcs) do
+		if npc:getSpot() == spot then
+			npc:setSpot(nil)
 		end
 	end
 	spot:deactivate()
-	local v61_ = spot.npc
-	if v61_ ~= nil then
-		if self.spots[v61_] ~= nil then
-			table.removeElement(self.spots[v61_], spot)
+	local npc = spot.npc
+	if npc ~= nil then
+		if self.spots[npc] ~= nil then
+			table.removeElement(self.spots[npc], spot)
 		end
-		if spot.isStartSpot and self.startSpots[v61_] ~= nil then
-			table.removeElement(self.startSpots[v61_], spot)
+		if spot.isStartSpot and self.startSpots[npc] ~= nil then
+			table.removeElement(self.startSpots[npc], spot)
 		end
 	end
 	if spot.uniqueId ~= nil then
 		self.uniqueIdToSpot[spot.uniqueId] = nil
 	end
 end
-
 function NPCManager:getSpotByUniqueId(uniqueId)
 	if uniqueId == nil then
 		return nil
@@ -274,142 +257,124 @@ function NPCManager:getSpotByUniqueId(uniqueId)
 		return self.uniqueIdToSpot[uniqueId]
 	end
 end
-
--- Local values: spots, availableSpots, _, spot
 function NPCManager:getAvailableSpot(npc)
-	local v66_ = self.spots[npc]
-	if v66_ == nil then
+	local spots = self.spots[npc]
+	if spots == nil then
 		return nil
-	else
-		local v67_ = {}
-		for _, v68_ in ipairs(v66_) do
-			if v68_:getIsAvailable() then
-				table.insert(v67_, v68_)
-			end
-		end
-		if #v67_ > 0 then
-			return v67_[math.random(1, #v67_)]
-		else
-			return nil
+	end
+	local availableSpots = {}
+	for _, spot in ipairs(spots) do
+		if spot:getIsAvailable() then
+			table.insert(availableSpots, spot)
 		end
 	end
+	if 0 < #availableSpots then
+		return availableSpots[math.random(1, #availableSpots)]
+	else
+		return nil
+	end
 end
-
 function NPCManager:getRandomNPC()
 	return self.npcs[self:getRandomIndex()]
 end
-
 function NPCManager:getRandomIndex()
-	return #self.npcs > 0 and math.random(1, #self.npcs) or 0
+	return 0 < #self.npcs and math.random(1, #self.npcs) or 0
 end
-
 function NPCManager:getNPCByIndex(index)
-	if index == nil then
-		return nil
-	else
+	if index ~= nil then
 		return self.npcs[index]
-	end
-end
-
-function NPCManager:getNPCByName(name)
-	if name == nil then
+	else
 		return nil
 	end
-	local v75_ = string.upper(name)
-	return self.nameToNPC[v75_]
 end
-
+function NPCManager:getNPCByName(name)
+	if name ~= nil then
+		name = string.upper(name)
+		return self.nameToNPC[name]
+	else
+		return nil
+	end
+end
 function NPCManager:registerConversationActionClass(name, class)
 	self.conversationActionClasses[name] = class
 end
-
 function NPCManager:getAllConverationActionClasses()
 	return self.conversationActionClasses
 end
-
 function NPCManager:registerConversationPrerequisiteClass(name, class)
 	self.conversationPrerequisiteClasses[name] = class
 end
-
 function NPCManager:getAllConverationPrerequisiteClasses()
 	return self.conversationPrerequisiteClasses
 end
-
 function NPCManager:registerConversationInputClass(name, class)
 	self.conversationInputClasses[name] = class
 end
-
 function NPCManager:getAllConverationInputClasses()
 	return self.conversationInputClasses
 end
-
 function NPCManager:registerConversationOptionPrerequisiteClass(name, class)
 	self.conversationOptionPrerequisiteClasses[name] = class
 end
-
 function NPCManager:getAllConverationOptionPrerequisiteClasses()
 	return self.conversationOptionPrerequisiteClasses
 end
-
--- Local values: _, npc
 function NPCManager:consoleCommandAnimationReload()
-	for _, v93_ in ipairs(self.npcs) do
-		if v93_.playerGraphics ~= nil then
-			v93_.playerGraphics:loadAnimation()
+	for _, npc in ipairs(self.npcs) do
+		if npc.playerGraphics == nil then
+			continue
 		end
+		npc.playerGraphics:loadAnimation()
 	end
 	return "Reloaded animation"
 end
-
 function NPCManager:consoleCommandAnimationDebug()
 	NPCManager.DEBUG_ANIMATIONS = not NPCManager.DEBUG_ANIMATIONS
 	return string.format("Animation debug: %s", NPCManager.DEBUG_ANIMATIONS)
 end
-
--- Local values: _, npc, conversation
 function NPCManager:consoleCommandSetNextConversation(npcName, conversationUniqueId)
-	for _, v97_ in ipairs(self.npcs) do
-		if string.upper(npcName) == v97_.name then
-			local v98_ = v97_:getConversationById(conversationUniqueId)
-			if v98_ == nil then
-				return string.format("Conversation \'%s\' not defined for NPC \'%s\'", conversationUniqueId, npcName)
+	for _, npc in ipairs(self.npcs) do
+		if string.upper(npcName) == npc.name then
+			local conversation = npc:getConversationById(conversationUniqueId)
+			if conversation ~= nil then
+				npc:setNextConversation(conversation)
+				return "Done"
+			else
+				return string.format("Conversation '%s' not defined for NPC '%s'", conversationUniqueId, npcName)
 			end
-			v97_:setNextConversation(v98_)
-			return "Done"
 		end
 	end
-	return string.format("NPC \'%s\' not found", npcName)
+	return string.format("NPC '%s' not found", npcName)
 end
-
--- Local values: doAll, index, _, npc, oldSuffix
 function NPCManager:consoleCommandValidate(languageSuffix, npcName)
-	local v102_ = languageSuffix == "all"
-	if not v102_ then
+	local doAll = languageSuffix == "all"
+	if not doAll then
 		languageSuffix = languageSuffix or g_languageSuffix
 		if not string.startsWith(languageSuffix, "_") then
-			return "Invalid language suffix. Please only use \'_en\', \'_de\' or similar"
+			return "Invalid language suffix. Please only use '_en', '_de' or similar"
 		end
 	end
-	local v103_ = 0
-	for _, v104_ in ipairs(self.npcs) do
-		if npcName == nil or string.upper(npcName) == v104_.name then
-			while true do
-				if v102_ then
-					v103_ = v103_ + 1
-					if getNumOfLanguages() <= v103_ then
-						break
-					end
-					languageSuffix = "_" .. getLanguageCode(v103_)
+	local index = 0
+	for _, npc in ipairs(self.npcs) do
+		if npcName ~= nil and string.upper(npcName) == npc.name then
+			while doAll do
+				index = index + 1
+				if not (getNumOfLanguages() <= index) then
+					languageSuffix = getLanguageCode(index)
+					languageSuffix = "_" .. languageSuffix
+					break
 				end
-				local v105_ = g_languageSuffix
+			end
+			while true do
+				local oldSuffix = g_languageSuffix
 				g_languageSuffix = languageSuffix
 				NPCText.FALLBACK_TEXT_SUFFIX = languageSuffix
-				Logging.info("Start NPC Validation: \'%s\' for language: %s", v104_.xmlFilename, languageSuffix)
-				v104_:validate()
+				Logging.info("Start NPC Validation: '%s' for language: %s", npc.xmlFilename, languageSuffix)
+				npc:validate()
 				Logging.info("Finished NPC Validation")
-				g_languageSuffix = v105_
+				g_languageSuffix = oldSuffix
 				NPCText.FALLBACK_TEXT_SUFFIX = "_en"
-				if not v102_ then
+				if not doAll then
 					break
 				end
 			end

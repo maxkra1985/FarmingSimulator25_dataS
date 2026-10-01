@@ -1,50 +1,40 @@
--- Local values: SavegameUploadProgressDialog_mt
 SavegameUploadProgressDialog = {}
 local SavegameUploadProgressDialog_mt = Class(SavegameUploadProgressDialog, DialogElement)
 function SavegameUploadProgressDialog.register()
-	local v2_ = SavegameUploadProgressDialog.new()
-	g_gui:loadGui("dataS/gui/dialogs/SavegameUploadProgressDialog.xml", "SavegameUploadProgressDialog", v2_)
-	SavegameUploadProgressDialog.INSTANCE = v2_
-	return v2_
+	local savegameUploadProgressDialog = SavegameUploadProgressDialog.new()
+	g_gui:loadGui("dataS/gui/dialogs/SavegameUploadProgressDialog.xml", "SavegameUploadProgressDialog", savegameUploadProgressDialog)
+	SavegameUploadProgressDialog.INSTANCE = savegameUploadProgressDialog
+	return savegameUploadProgressDialog
 end
-
--- Local values: dialog
 function SavegameUploadProgressDialog.show(progress)
 	if SavegameUploadProgressDialog.INSTANCE ~= nil then
-		local v4_ = SavegameUploadProgressDialog.INSTANCE
-		v4_:setDialogType(DialogElement.TYPE_LOADING)
-		v4_:setIsCloseAllowed(false)
-		v4_:setProgress(progress or 0)
+		local dialog = SavegameUploadProgressDialog.INSTANCE
+		dialog:setDialogType(DialogElement.TYPE_LOADING)
+		dialog:setIsCloseAllowed(false)
+		dialog:setProgress(progress or 0)
 		g_gui:showDialog("SavegameUploadProgressDialog")
 	end
 end
 function SavegameUploadProgressDialog.hide()
 	g_gui:closeDialogByName("SavegameUploadProgressDialog")
 end
-
--- Upvalues: SavegameUploadProgressDialog_mt
--- Local values: self
 function SavegameUploadProgressDialog.new(target, custom_mt)
-	-- upvalues: (copy) SavegameUploadProgressDialog_mt
-	return DialogElement.new(target, custom_mt or SavegameUploadProgressDialog_mt)
+	local self = DialogElement.new(target, custom_mt or SavegameUploadProgressDialog_mt)
+	return self
 end
-
--- Local values: newGui, dialogType, isCloseAllowed, text, progress
 function SavegameUploadProgressDialog.createFromExistingGui(gui, guiName)
-	local v9_ = SavegameUploadProgressDialog.new()
-	g_gui:loadGui(gui.xmlFilename, guiName, v9_)
-	local v10_ = gui.dialogType
-	local v11_ = gui.isCloseAllowed
-	local v12_ = gui.messageText
-	local v13_ = gui.progress
-	SavegameUploadProgressDialog.show(v12_, v13_, v10_, v11_)
-	return v9_
+	local newGui = SavegameUploadProgressDialog.new()
+	g_gui:loadGui(gui.xmlFilename, guiName, newGui)
+	local dialogType = gui.dialogType
+	local isCloseAllowed = gui.isCloseAllowed
+	local text = gui.messageText
+	local progress = gui.progress
+	SavegameUploadProgressDialog.show(text, progress, dialogType, isCloseAllowed)
+	return newGui
 end
-
 function SavegameUploadProgressDialog:onCreate(element)
 	self:setDialogType(DialogElement.TYPE_LOADING)
 end
-
 function SavegameUploadProgressDialog:onOpen()
 	SavegameUploadProgressDialog:superClass().onOpen(self)
 	SavegameUploadProgressDialog.INSTANCE.isOpen = true
@@ -66,25 +56,22 @@ function SavegameUploadProgressDialog:onOpen()
 		self.dialogElement:applyProfile("dialogElementNoMenu", true)
 	end
 end
-
 function SavegameUploadProgressDialog:onClose()
 	SavegameUploadProgressDialog:superClass().onClose(self)
 	SavegameUploadProgressDialog.INSTANCE.isOpen = false
 end
-
 function SavegameUploadProgressDialog:setText(text)
 	if self.dialogTextElement ~= nil then
 		self.dialogTextElement:setText(Utils.getNoNil(text, self.defaultText))
 	end
 end
 function SavegameUploadProgressDialog.getIsOpen()
-	if SavegameUploadProgressDialog.INSTANCE == nil then
-		return false
-	else
+	if SavegameUploadProgressDialog.INSTANCE ~= nil then
 		return SavegameUploadProgressDialog.INSTANCE.isOpen
+	else
+		return false
 	end
 end
-
 function SavegameUploadProgressDialog:setProgress(progress)
 	self.progress = progress
 	self.progressElement:setText(string.format("%d%%", progress))

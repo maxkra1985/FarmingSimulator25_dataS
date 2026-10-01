@@ -1,110 +1,95 @@
 FertilizingCultivator = {}
 FertilizingCultivator.CLIENT_DM_UPDATE_RADIUS = 50
-
 function FertilizingCultivator.prerequisitesPresent(specializations)
-	local v2_ = SpecializationUtil.hasSpecialization(Cultivator, specializations)
-	if v2_ then
-		v2_ = SpecializationUtil.hasSpecialization(Sprayer, specializations)
-	end
-	return v2_
+	return SpecializationUtil.hasSpecialization(Cultivator, specializations) and SpecializationUtil.hasSpecialization(Sprayer, specializations)
 end
 function FertilizingCultivator.initSpecialization()
-	local v3_ = Vehicle.xmlSchema
-	v3_:setXMLSpecializationType("FertilizingCultivator")
-	v3_:register(XMLValueType.BOOL, "vehicle.fertilizingCultivator#needsSetIsTurnedOn", "Needs to be turned on to spray", false)
-	v3_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("FertilizingCultivator")
+	schema:register(XMLValueType.BOOL, "vehicle.fertilizingCultivator#needsSetIsTurnedOn", "Needs to be turned on to spray", false)
+	schema:setXMLSpecializationType()
 end
-
 function FertilizingCultivator.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "processCultivatorArea", FertilizingCultivator.processCultivatorArea)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "setSprayerAITerrainDetailProhibitedRange", FertilizingCultivator.setSprayerAITerrainDetailProhibitedRange)
 end
-
 function FertilizingCultivator.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", FertilizingCultivator)
 end
-
--- Local values: spec
 function FertilizingCultivator:onLoad(savegame)
-	self.spec_fertilizingCultivator.needsSetIsTurnedOn = self.xmlFile:getValue("vehicle.fertilizingCultivator#needsSetIsTurnedOn", false)
+	local spec = self.spec_fertilizingCultivator
+	spec.needsSetIsTurnedOn = self.xmlFile:getValue("vehicle.fertilizingCultivator#needsSetIsTurnedOn", false)
 	self.spec_sprayer.useSpeedLimit = false
 	self:clearAITerrainDetailRequiredRange()
 	self:updateCultivatorAIRequirements()
 end
-
--- Local values: spec, specCultivator, specSpray, cultivatorParams, sprayerParams, rootVehicle, xs, _, zs, xw, _, zw, xh, _, zh, sprayTypeIndex, cultivatorChangedArea, cultivatorTotalArea, sprayAmount, sprayChangedArea, sprayTotalArea
 function FertilizingCultivator:processCultivatorArea(superFunc, workArea, dt)
-	local v9_ = self.spec_fertilizingCultivator
-	local v10_ = self.spec_cultivator
-	local v11_ = self.spec_sprayer
-	local v12_ = v10_.workAreaParameters
-	local v13_ = v11_.workAreaParameters
-	if (v11_.isSlurryTanker and g_currentMission.missionInfo.helperSlurrySource == 1 or (v11_.isManureSpreader and g_currentMission.missionInfo.helperManureSource == 1 or v11_.isFertilizerSprayer and not g_currentMission.missionInfo.helperBuyFertilizer)) and self:getIsAIActive() then
-		if v13_.sprayFillType == nil or v13_.sprayFillType == FillType.UNKNOWN then
-			if v13_.lastAIHasSprayed ~= nil then
-				self.rootVehicle:stopCurrentAIJob(AIMessageErrorOutOfFill.new())
-				v13_.lastAIHasSprayed = nil
+	local spec = self.spec_fertilizingCultivator
+	local specCultivator = self.spec_cultivator
+	local specSpray = self.spec_sprayer
+	local cultivatorParams = specCultivator.workAreaParameters
+	local sprayerParams = specSpray.workAreaParameters
+	if specSpray.isSlurryTanker and ((g_currentMission.missionInfo.helperSlurrySource == 1 or specSpray.isManureSpreader and g_currentMission.missionInfo.helperManureSource == 1 or specSpray.isFertilizerSprayer and not g_currentMission.missionInfo.helperBuyFertilizer) and self:getIsAIActive()) then
+		if sprayerParams.sprayFillType == nil or sprayerParams.sprayFillType == FillType.UNKNOWN then
+			if sprayerParams.lastAIHasSprayed ~= nil then
+				local rootVehicle = self.rootVehicle
+				rootVehicle:stopCurrentAIJob(AIMessageErrorOutOfFill.new())
+				sprayerParams.lastAIHasSprayed = nil
 			end
 		else
-			v13_.lastAIHasSprayed = true
+			sprayerParams.lastAIHasSprayed = true
 		end
 	end
-	local v14_, _, v15_ = getWorldTranslation(workArea.start)
-	local v16_, _, v17_ = getWorldTranslation(workArea.width)
-	local v18_, _, v19_ = getWorldTranslation(workArea.height)
-	FSDensityMapUtil.eraseTireTrack(v14_, v15_, v16_, v17_, v18_, v19_)
-	if not self.isServer and self.currentUpdateDistance > FertilizingCultivator.CLIENT_DM_UPDATE_RADIUS then
+	local xs, _, zs = getWorldTranslation(workArea.start)
+	local xw, _, zw = getWorldTranslation(workArea.width)
+	local xh, _, zh = getWorldTranslation(workArea.height)
+	FSDensityMapUtil.eraseTireTrack(xs, zs, xw, zw, xh, zh)
+	if not self.isServer and FertilizingCultivator.CLIENT_DM_UPDATE_RADIUS < self.currentUpdateDistance then
 		return 0, 0
 	end
-	local v20_ = SprayType.FERTILIZER
-	if v13_.sprayFillLevel <= 0 or v9_.needsSetIsTurnedOn and not self:getIsTurnedOn() then
-		v20_ = nil
+	local sprayTypeIndex = SprayType.FERTILIZER
+	if sprayerParams.sprayFillLevel <= 0 or spec.needsSetIsTurnedOn and not self:getIsTurnedOn() then
+		sprayTypeIndex = nil
 	end
-	local v21_, v22_
-	if v10_.isEnabled then
-		if v10_.useDeepMode then
-			local v23_
-			v23_, v21_ = FSDensityMapUtil.updateCultivatorArea(v14_, v15_, v16_, v17_, v18_, v19_, not v12_.limitToField, v12_.limitFruitDestructionToField, v12_.angle, v20_)
-			v22_ = v23_ + FSDensityMapUtil.updateVineCultivatorArea(v14_, v15_, v16_, v17_, v18_, v19_)
+	local cultivatorChangedArea = 0
+	local cultivatorTotalArea = 0
+	if specCultivator.isEnabled then
+		if specCultivator.useDeepMode then
+			cultivatorChangedArea, cultivatorTotalArea = FSDensityMapUtil.updateCultivatorArea(xs, zs, xw, zw, xh, zh, not cultivatorParams.limitToField, cultivatorParams.limitFruitDestructionToField, cultivatorParams.angle, sprayTypeIndex)
+			cultivatorChangedArea = cultivatorChangedArea + FSDensityMapUtil.updateVineCultivatorArea(xs, zs, xw, zw, xh, zh)
 		else
-			local v24_
-			v24_, v21_ = FSDensityMapUtil.updateDiscHarrowArea(v14_, v15_, v16_, v17_, v18_, v19_, not v12_.limitToField, v12_.limitFruitDestructionToField, v12_.angle, v20_)
-			v22_ = v24_ + FSDensityMapUtil.updateVineCultivatorArea(v14_, v15_, v16_, v17_, v18_, v19_)
+			cultivatorChangedArea, cultivatorTotalArea = FSDensityMapUtil.updateDiscHarrowArea(xs, zs, xw, zw, xh, zh, not cultivatorParams.limitToField, cultivatorParams.limitFruitDestructionToField, cultivatorParams.angle, sprayTypeIndex)
+			cultivatorChangedArea = cultivatorChangedArea + FSDensityMapUtil.updateVineCultivatorArea(xs, zs, xw, zw, xh, zh)
 		end
-		v12_.lastChangedArea = v12_.lastChangedArea + v22_
-		v12_.lastTotalArea = v12_.lastTotalArea + v21_
-		v12_.lastStatsArea = v12_.lastStatsArea + v22_
-	else
-		v22_ = 0
-		v21_ = 0
+		cultivatorParams.lastChangedArea = cultivatorParams.lastChangedArea + cultivatorChangedArea
+		cultivatorParams.lastTotalArea = cultivatorParams.lastTotalArea + cultivatorTotalArea
+		cultivatorParams.lastStatsArea = cultivatorParams.lastStatsArea + cultivatorChangedArea
 	end
-	if v10_.isSubsoiler then
-		FSDensityMapUtil.updateSubsoilerArea(v14_, v15_, v16_, v17_, v18_, v19_)
+	if specCultivator.isSubsoiler then
+		FSDensityMapUtil.updateSubsoilerArea(xs, zs, xw, zw, xh, zh)
 	end
-	if v20_ ~= nil then
-		local v25_ = v11_.doubledAmountIsActive and 2 or 1
-		local v26_, v27_ = FSDensityMapUtil.updateSprayArea(v14_, v15_, v16_, v17_, v18_, v19_, v20_, v25_)
-		v13_.lastChangedArea = v13_.lastChangedArea + v26_
-		v13_.lastTotalArea = v13_.lastTotalArea + v27_
-		v13_.lastStatsArea = 0
-		v13_.isActive = true
+	if sprayTypeIndex ~= nil then
+		local sprayAmount = specSpray.doubledAmountIsActive and 2 or 1
+		local sprayChangedArea, sprayTotalArea = FSDensityMapUtil.updateSprayArea(xs, zs, xw, zw, xh, zh, sprayTypeIndex, sprayAmount)
+		sprayerParams.lastChangedArea = sprayerParams.lastChangedArea + sprayChangedArea
+		sprayerParams.lastTotalArea = sprayerParams.lastTotalArea + sprayTotalArea
+		sprayerParams.lastStatsArea = 0
+		sprayerParams.isActive = true
 	end
-	v10_.isWorking = self:getLastSpeed() > 0.5
-	return v22_, v21_
+	specCultivator.isWorking = 0.5 < self:getLastSpeed()
+	return cultivatorChangedArea, cultivatorTotalArea
 end
-
--- Local values: sprayTypeDesc, mission, sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels, sprayLevelMapId, sprayLevelFirstChannel, sprayLevelNumChannels, sprayLevelMaxValue
 function FertilizingCultivator:setSprayerAITerrainDetailProhibitedRange(superFunc, fillType)
 	if self.addAITerrainDetailProhibitedRange ~= nil then
 		self:clearAITerrainDetailProhibitedRange()
-		local v30_ = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
-		if v30_ ~= nil then
-			local v31_ = g_currentMission
-			local v32_, v33_, v34_ = v31_.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_TYPE)
-			local v35_, v36_, v37_ = v31_.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_LEVEL)
-			local v38_ = v31_.fieldGroundSystem:getMaxValue(FieldDensityMap.SPRAY_LEVEL)
-			self:addAIFruitProhibitions(0, v30_.sprayGroundType, v30_.sprayGroundType, v32_, v33_, v34_)
-			self:addAIFruitProhibitions(0, v38_, v38_, v35_, v36_, v37_)
+		local sprayTypeDesc = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
+		if sprayTypeDesc ~= nil then
+			local mission = g_currentMission
+			local sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels = mission.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_TYPE)
+			local sprayLevelMapId, sprayLevelFirstChannel, sprayLevelNumChannels = mission.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_LEVEL)
+			local sprayLevelMaxValue = mission.fieldGroundSystem:getMaxValue(FieldDensityMap.SPRAY_LEVEL)
+			self:addAIFruitProhibitions(0, sprayTypeDesc.sprayGroundType, sprayTypeDesc.sprayGroundType, sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels)
+			self:addAIFruitProhibitions(0, sprayLevelMaxValue, sprayLevelMaxValue, sprayLevelMapId, sprayLevelFirstChannel, sprayLevelNumChannels)
 		end
 	end
 end

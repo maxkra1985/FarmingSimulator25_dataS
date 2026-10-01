@@ -1,31 +1,25 @@
--- Local values: TreePlanterLoadPalletEvent_mt
 TreePlanterLoadPalletEvent = {}
 local TreePlanterLoadPalletEvent_mt = Class(TreePlanterLoadPalletEvent, Event)
 InitStaticEventClass(TreePlanterLoadPalletEvent, "TreePlanterLoadPalletEvent")
 function TreePlanterLoadPalletEvent.emptyNew()
-	-- upvalues: (copy) TreePlanterLoadPalletEvent_mt
-	return Event.new(TreePlanterLoadPalletEvent_mt)
+	local self = Event.new(TreePlanterLoadPalletEvent_mt)
+	return self
 end
-
--- Local values: self
 function TreePlanterLoadPalletEvent.new(object, palletObjectId)
-	local v4_ = TreePlanterLoadPalletEvent.emptyNew()
-	v4_.object = object
-	v4_.palletObjectId = palletObjectId
-	return v4_
+	local self = TreePlanterLoadPalletEvent.emptyNew()
+	self.object = object
+	self.palletObjectId = palletObjectId
+	return self
 end
-
 function TreePlanterLoadPalletEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.palletObjectId = NetworkUtil.readNodeObjectId(streamId)
 	self:run(connection)
 end
-
 function TreePlanterLoadPalletEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	NetworkUtil.writeNodeObjectId(streamId, self.palletObjectId)
 end
-
 function TreePlanterLoadPalletEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -34,7 +28,6 @@ function TreePlanterLoadPalletEvent:run(connection)
 		self.object:loadPallet(self.palletObjectId, true)
 	end
 end
-
 function TreePlanterLoadPalletEvent.sendEvent(object, palletObjectId, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

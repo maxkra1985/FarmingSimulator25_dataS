@@ -1,9 +1,7 @@
 AIVehicleObstacle = {}
-
-function AIVehicleObstacle.prerequisitesPresent(self)
+function AIVehicleObstacle.prerequisitesPresent(specializations)
 	return true
 end
-
 function AIVehicleObstacle.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "createAIVehicleObstacle", AIVehicleObstacle.createAIVehicleObstacle)
 	SpecializationUtil.registerFunction(vehicleType, "removeAIVehicleObstacle", AIVehicleObstacle.removeAIVehicleObstacle)
@@ -14,12 +12,10 @@ function AIVehicleObstacle.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "setAIVehicleObstacleStateDirty", AIVehicleObstacle.setAIVehicleObstacleStateDirty)
 	SpecializationUtil.registerFunction(vehicleType, "getAIVehicleObstacleIsPassable", AIVehicleObstacle.getAIVehicleObstacleIsPassable)
 end
-
 function AIVehicleObstacle.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "addToPhysics", AIVehicleObstacle.addToPhysics)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "removeFromPhysics", AIVehicleObstacle.removeFromPhysics)
 end
-
 function AIVehicleObstacle.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AIVehicleObstacle)
 	SpecializationUtil.registerEventListener(vehicleType, "onDelete", AIVehicleObstacle)
@@ -27,113 +23,102 @@ function AIVehicleObstacle.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onEnterVehicle", AIVehicleObstacle)
 	SpecializationUtil.registerEventListener(vehicleType, "onLeaveVehicle", AIVehicleObstacle)
 end
-
--- Local values: spec
 function AIVehicleObstacle:onLoad(savegame)
-	self.spec_aiVehicleObstacle.needsUpdate = false
+	local spec = self.spec_aiVehicleObstacle
+	spec.needsUpdate = false
 end
-
 function AIVehicleObstacle:onDelete()
 	self:removeAIVehicleObstacle()
 end
-
--- Local values: spec
 function AIVehicleObstacle:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v7_ = self.spec_aiVehicleObstacle
-	if self.isServer and v7_.needsUpdate then
+	local spec = self.spec_aiVehicleObstacle
+	if self.isServer and spec.needsUpdate then
 		self:updateAIVehicleObstacleState()
-		v7_.needsUpdate = false
+		spec.needsUpdate = false
 	end
 end
-
--- Local values: maxBrakeAcceleration, _, component
 function AIVehicleObstacle:createAIVehicleObstacle()
 	if self.isAddedToPhysics then
-		local v9_ = self:getAIVehicleObstacleMaxBrakeAcceleration()
-		for _, v10_ in ipairs(self.components) do
-			if v10_.obstacleId == nil then
-				g_currentMission.aiSystem:addObstacle(v10_.node, 0, 0, 0, 0, 0, 0, v9_)
-				v10_.obstacleId = v10_.node
+		local maxBrakeAcceleration = self:getAIVehicleObstacleMaxBrakeAcceleration()
+		for _, component in ipairs(self.components) do
+			if component.obstacleId == nil then
+				g_currentMission.aiSystem:addObstacle(component.node, 0, 0, 0, 0, 0, 0, maxBrakeAcceleration)
+				component.obstacleId = component.node
 			end
-			g_currentMission.aiSystem:setObstacleIsPassable(v10_.node, self:getAIVehicleObstacleIsPassable())
+			g_currentMission.aiSystem:setObstacleIsPassable(component.node, self:getAIVehicleObstacleIsPassable())
 		end
 	end
 end
-
--- Local values: _, component
 function AIVehicleObstacle:removeAIVehicleObstacle()
 	if self.components ~= nil then
-		for _, v12_ in ipairs(self.components) do
-			if v12_.obstacleId ~= nil then
-				g_currentMission.aiSystem:removeObstacle(v12_.node)
-				v12_.obstacleId = nil
+		for _, component in ipairs(self.components) do
+			if component.obstacleId == nil then
+				continue
 			end
+			g_currentMission.aiSystem:removeObstacle(component.node)
+			component.obstacleId = nil
 		end
 	end
 end
-
 function AIVehicleObstacle:updateAIVehicleObstacleState()
 	if self.isServer then
 		if self:getCanHaveAIVehicleObstacle() then
 			if self:getNeedAIVehicleObstacle() then
 				self:createAIVehicleObstacle()
-				return
 			end
 		else
 			self:removeAIVehicleObstacle()
 		end
 	end
 end
-
 function AIVehicleObstacle:setAIVehicleObstacleStateDirty()
 	self.spec_aiVehicleObstacle.needsUpdate = true
 	self:raiseActive()
 end
-
 function AIVehicleObstacle:getCanHaveAIVehicleObstacle()
-	if self.isAddedToPhysics then
-		if self.propertyState == VehiclePropertyState.SHOP_CONFIG then
-			return false
-		else
-			return (self.rootVehicle == self or (self.rootVehicle.getCanHaveAIVehicleObstacle == nil or self.rootVehicle:getCanHaveAIVehicleObstacle())) and true or false
-		end
-	else
+	if not self.isAddedToPhysics then
 		return false
+	elseif self.propertyState == VehiclePropertyState.SHOP_CONFIG then
+		return false
+	else
+		if self.rootVehicle ~= self and (self.rootVehicle.getCanHaveAIVehicleObstacle ~= nil and not self.rootVehicle:getCanHaveAIVehicleObstacle()) then
+			return false
+		end
+		return true
 	end
 end
-
-function AIVehicleObstacle.getNeedAIVehicleObstacle(self)
+function AIVehicleObstacle:getNeedAIVehicleObstacle()
 	return true
 end
-
 function AIVehicleObstacle:getAIVehicleObstacleIsPassable()
-	return self.getIsControlled == nil and true or not self:getIsControlled()
+	local _v3 = true
+	if self.getIsControlled ~= nil then
+		_v3 = not self:getIsControlled()
+	end
+	return _v3
 end
-
 function AIVehicleObstacle:getAIVehicleObstacleMaxBrakeAcceleration()
 	return 5
 end
-
 function AIVehicleObstacle:onEnterVehicle(isControlling)
 	self:setAIVehicleObstacleStateDirty()
 end
-
 function AIVehicleObstacle:onLeaveVehicle()
 	self:setAIVehicleObstacleStateDirty()
 end
-
 function AIVehicleObstacle:addToPhysics(superFunc)
 	if not superFunc(self) then
 		return false
+	else
+		self:setAIVehicleObstacleStateDirty()
+		return true
 	end
-	self:setAIVehicleObstacleStateDirty()
-	return true
 end
-
 function AIVehicleObstacle:removeFromPhysics(superFunc)
 	if not superFunc(self) then
 		return false
+	else
+		self:setAIVehicleObstacleStateDirty()
+		return true
 	end
-	self:setAIVehicleObstacleStateDirty()
-	return true
 end

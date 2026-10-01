@@ -1,24 +1,20 @@
--- Local values: TreeAttachEvent_mt
 TreeAttachEvent = {}
 local TreeAttachEvent_mt = Class(TreeAttachEvent, Event)
 InitStaticEventClass(TreeAttachEvent, "TreeAttachEvent")
 function TreeAttachEvent.emptyNew()
-	-- upvalues: (copy) TreeAttachEvent_mt
-	return Event.new(TreeAttachEvent_mt)
+	local self = Event.new(TreeAttachEvent_mt)
+	return self
 end
-
--- Local values: self
 function TreeAttachEvent.new(object, splitShapeId, x, y, z, ropeIndex)
-	local v8_ = TreeAttachEvent.emptyNew()
-	v8_.object = object
-	v8_.splitShapeId = splitShapeId
-	v8_.x = x
-	v8_.y = y
-	v8_.z = z
-	v8_.ropeIndex = ropeIndex
-	return v8_
+	local self = TreeAttachEvent.emptyNew()
+	self.object = object
+	self.splitShapeId = splitShapeId
+	self.x = x
+	self.y = y
+	self.z = z
+	self.ropeIndex = ropeIndex
+	return self
 end
-
 function TreeAttachEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.splitShapeId = readSplitShapeIdFromStream(streamId)
@@ -30,7 +26,6 @@ function TreeAttachEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function TreeAttachEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	writeSplitShapeIdToStream(streamId, self.splitShapeId)
@@ -41,7 +36,6 @@ function TreeAttachEvent:writeStream(streamId, connection)
 		streamWriteUIntN(streamId, self.ropeIndex, 4)
 	end
 end
-
 function TreeAttachEvent:run(connection)
 	if self.object ~= nil and self.object:getIsSynchronized() then
 		if self.object.attachTreeToCarriage ~= nil then
@@ -53,7 +47,6 @@ function TreeAttachEvent:run(connection)
 		end
 	end
 end
-
 function TreeAttachEvent.sendEvent(vehicle, splitShapeId, x, y, z, ropeIndex, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

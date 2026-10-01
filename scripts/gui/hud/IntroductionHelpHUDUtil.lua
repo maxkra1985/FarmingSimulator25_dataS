@@ -1,12 +1,9 @@
--- Local values: wasActive, oldUIScale
-local v1_, v2_
-if IntroductionHelpHUDUtil == nil then
-	v1_ = false
-	v2_ = nil
-else
+local wasActive = false
+local oldUIScale = nil
+if IntroductionHelpHUDUtil ~= nil then
 	IntroductionHelpHUDUtil.delete()
-	v2_ = IntroductionHelpHUDUtil.uiScale
-	v1_ = true
+	oldUIScale = IntroductionHelpHUDUtil.uiScale
+	wasActive = true
 end
 IntroductionHelpHUDUtil = {}
 IntroductionHelpHUDUtil.ARROW_POSITION_TOP = 1
@@ -14,302 +11,278 @@ IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM = 2
 IntroductionHelpHUDUtil.ARROW_POSITION_LEFT = 3
 IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT = 4
 function IntroductionHelpHUDUtil.init()
-	local v3_ = IntroductionHelpHUDUtil
-	local v4_ = g_overlayManager:createOverlay("gui.tourdialogue_side", 0, 0, 0, 0)
-	v4_:setColor(0.8148, 0.1779, 0.0052, 1)
-	local v5_ = g_overlayManager:createOverlay("gui.tourdialogue_side", 0, 0, 0, 0)
-	v5_:setColor(0.8148, 0.1779, 0.0052, 1)
-	local v6_ = g_overlayManager:createOverlay("gui.tourdialogue_top", 0, 0, 0, 0)
-	v6_:setColor(0.8148, 0.1779, 0.0052, 1)
-	local v7_ = g_overlayManager:createOverlay("gui.tourdialogue_top", 0, 0, 0, 0)
-	v7_:setColor(0.8148, 0.1779, 0.0052, 1)
-	v3_.arrows = {}
-	v3_.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT] = v4_
-	v3_.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT] = v5_
-	v3_.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_TOP] = v6_
-	v3_.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM] = v7_
-	local v8_ = g_overlayManager:createOverlay("gui.tourdialogue_arrow", 0, 0, 0, 0)
-	local v9_ = g_overlayManager:createOverlay("gui.tourdialogue_arrow", 0, 0, 0, 0)
-	local v10_ = g_overlayManager:createOverlay("gui.tourdialogue_arrow", 0, 0, 0, 0)
-	local v11_ = g_overlayManager:createOverlay("gui.tourdialogue_arrow", 0, 0, 0, 0)
-	v3_.smallArrows = {}
-	v3_.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT] = v8_
-	v3_.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT] = v9_
-	v3_.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_TOP] = v10_
-	v3_.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM] = v11_
-	v3_.bgScale = g_overlayManager:createOverlay("gui.tourdialogue_boxMiddle", 0, 0, 0, 0)
-	v3_.bgScale:setColor(0.8148, 0.1779, 0.0052, 1)
-	v3_.bgLeft = g_overlayManager:createOverlay("gui.tourdialogue_boxLeft", 0, 0, 0, 0)
-	v3_.bgLeft:setColor(0.8148, 0.1779, 0.0052, 1)
-	v3_.bgRight = g_overlayManager:createOverlay("gui.tourdialogue_boxRight", 0, 0, 0, 0)
-	v3_.bgRight:setColor(0.8148, 0.1779, 0.0052, 1)
-	v3_.continueText = g_i18n:getText("introduction_continueText")
-	v3_.continueTextGamepad = g_i18n:getText("introduction_continueTextGamepad") .. " "
-	v3_.glyphElement = InputGlyphElement.new(g_inputDisplayManager, 0, 0)
-	v3_.glyphElement:setAction(InputAction.INTRODUCTION_HELP_SKIP)
-	v3_.glyphElement:setButtonGlyphColor({
-		0.22323,
-		0.40724,
-		0.00368,
-		1
-	})
-	return v3_
+	local self = IntroductionHelpHUDUtil
+	local r = 0.8148
+	local g = 0.1779
+	local b = 0.0052
+	local a = 1
+	local arrowLeft = g_overlayManager:createOverlay("gui.tourdialogue_side", 0, 0, 0, 0)
+	arrowLeft:setColor(0.8148, 0.1779, 0.0052, 1)
+	local arrowRight = g_overlayManager:createOverlay("gui.tourdialogue_side", 0, 0, 0, 0)
+	arrowRight:setColor(0.8148, 0.1779, 0.0052, 1)
+	local arrowTop = g_overlayManager:createOverlay("gui.tourdialogue_top", 0, 0, 0, 0)
+	arrowTop:setColor(0.8148, 0.1779, 0.0052, 1)
+	local arrowBottom = g_overlayManager:createOverlay("gui.tourdialogue_top", 0, 0, 0, 0)
+	arrowBottom:setColor(0.8148, 0.1779, 0.0052, 1)
+	self.arrows = {}
+	self.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT] = arrowLeft
+	self.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT] = arrowRight
+	self.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_TOP] = arrowTop
+	self.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM] = arrowBottom
+	local arrowSmallLeft = g_overlayManager:createOverlay("gui.tourdialogue_arrow", 0, 0, 0, 0)
+	local arrowSmallRight = g_overlayManager:createOverlay("gui.tourdialogue_arrow", 0, 0, 0, 0)
+	local arrowSmallTop = g_overlayManager:createOverlay("gui.tourdialogue_arrow", 0, 0, 0, 0)
+	local arrowSmallBottom = g_overlayManager:createOverlay("gui.tourdialogue_arrow", 0, 0, 0, 0)
+	self.smallArrows = {}
+	self.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT] = arrowSmallLeft
+	self.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT] = arrowSmallRight
+	self.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_TOP] = arrowSmallTop
+	self.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM] = arrowSmallBottom
+	self.bgScale = g_overlayManager:createOverlay("gui.tourdialogue_boxMiddle", 0, 0, 0, 0)
+	self.bgScale:setColor(0.8148, 0.1779, 0.0052, 1)
+	self.bgLeft = g_overlayManager:createOverlay("gui.tourdialogue_boxLeft", 0, 0, 0, 0)
+	self.bgLeft:setColor(0.8148, 0.1779, 0.0052, 1)
+	self.bgRight = g_overlayManager:createOverlay("gui.tourdialogue_boxRight", 0, 0, 0, 0)
+	self.bgRight:setColor(0.8148, 0.1779, 0.0052, 1)
+	self.continueText = g_i18n:getText("introduction_continueText")
+	self.continueTextGamepad = g_i18n:getText("introduction_continueTextGamepad") .. " "
+	self.glyphElement = InputGlyphElement.new(g_inputDisplayManager, 0, 0)
+	self.glyphElement:setAction(InputAction.INTRODUCTION_HELP_SKIP)
+	self.glyphElement:setButtonGlyphColor({ 0.22323, 0.40724, 0.00368, 1 })
+	return self
 end
 function IntroductionHelpHUDUtil.delete()
-	local v12_ = IntroductionHelpHUDUtil
-	for _, v13_ in pairs(v12_.arrows) do
-		v13_:delete()
+	local self = IntroductionHelpHUDUtil
+	for _, arrow in pairs(self.arrows) do
+		arrow:delete()
 	end
-	for _, v14_ in pairs(v12_.smallArrows) do
-		v14_:delete()
+	for _, arrow in pairs(self.smallArrows) do
+		arrow:delete()
 	end
-	v12_.bgScale:delete()
-	v12_.bgLeft:delete()
-	v12_.bgRight:delete()
-	v12_.glyphElement:delete()
+	self.bgScale:delete()
+	self.bgLeft:delete()
+	self.bgRight:delete()
+	self.glyphElement:delete()
 end
-
--- Local values: self, bgLeftWidth, bgHeight, bgRightWidth, _, arrowSideWidth, arrowSideHeight, rightArrow, arrowTopWidth, arrowTopHeight, bottomArrow, arrowSmallWidth, arrowSmallHeight, _, arrow, bottomSmallArrow, leftSmallArrow, rightSmallArrow, _, textSize, textOffsetX, textOffsetY, _, messageTextSize, messageTextPaddingX, messageTextPaddingY, messageTextOffsetX, messageTextOffsetY, boxMaxWidth, _, _, messageTextToTextOffsetY, glyphOffsetX, _, glyphWidth, glyphHeight
 function IntroductionHelpHUDUtil.setScale(uiScale)
-	local v16_ = IntroductionHelpHUDUtil
-	v16_.uiScale = uiScale
-	local v17_, v18_ = getNormalizedScreenValues(10, 37)
-	local v19_, _ = getNormalizedScreenValues(10, 0)
-	v16_.bgLeft:setDimension(v17_ * uiScale, v18_ * uiScale)
-	v16_.bgScale:setDimension(0, v18_ * uiScale)
-	v16_.bgRight:setDimension(v19_ * uiScale, v18_ * uiScale)
-	local v20_, v21_ = getNormalizedScreenValues(5, 29)
-	v16_.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT]:setDimension(v20_ * uiScale, v21_ * uiScale)
-	local v22_ = v16_.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT]
-	v22_:setDimension(v20_ * uiScale, v21_ * uiScale)
-	v22_:setRotation(3.141592653589793, v22_.width * 0.5, v22_.height * 0.5)
-	local v23_, v24_ = getNormalizedScreenValues(46, 7)
-	v16_.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_TOP]:setDimension(v23_ * uiScale, v24_ * uiScale)
-	local v25_ = v16_.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM]
-	v25_:setDimension(v23_ * uiScale, v24_ * uiScale)
-	v25_:setRotation(3.141592653589793, v25_.width * 0.5, v25_.height * 0.5)
-	local v26_, v27_ = getNormalizedScreenValues(6, 6)
-	for _, v28_ in pairs(v16_.smallArrows) do
-		v28_:setDimension(v26_ * uiScale, v27_ * uiScale)
+	local self = IntroductionHelpHUDUtil
+	self.uiScale = uiScale
+	local bgLeftWidth, bgHeight = getNormalizedScreenValues(10, 37)
+	local bgRightWidth, _ = getNormalizedScreenValues(10, 0)
+	self.bgLeft:setDimension(bgLeftWidth * uiScale, bgHeight * uiScale)
+	self.bgScale:setDimension(0, bgHeight * uiScale)
+	self.bgRight:setDimension(bgRightWidth * uiScale, bgHeight * uiScale)
+	local arrowSideWidth, arrowSideHeight = getNormalizedScreenValues(5, 29)
+	self.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT]:setDimension(arrowSideWidth * uiScale, arrowSideHeight * uiScale)
+	local rightArrow = self.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT]
+	rightArrow:setDimension(arrowSideWidth * uiScale, arrowSideHeight * uiScale)
+	rightArrow:setRotation(3.141592653589793, rightArrow.width * 0.5, rightArrow.height * 0.5)
+	local arrowTopWidth, arrowTopHeight = getNormalizedScreenValues(46, 7)
+	self.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_TOP]:setDimension(arrowTopWidth * uiScale, arrowTopHeight * uiScale)
+	local bottomArrow = self.arrows[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM]
+	bottomArrow:setDimension(arrowTopWidth * uiScale, arrowTopHeight * uiScale)
+	bottomArrow:setRotation(3.141592653589793, bottomArrow.width * 0.5, bottomArrow.height * 0.5)
+	local arrowSmallWidth, arrowSmallHeight = getNormalizedScreenValues(6, 6)
+	for _, arrow in pairs(self.smallArrows) do
+		arrow:setDimension(arrowSmallWidth * uiScale, arrowSmallHeight * uiScale)
 	end
-	local v29_ = v16_.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM]
-	v29_:setRotation(3.141592653589793, v29_.width * 0.5, v29_.height * 0.5)
-	local v30_ = v16_.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT]
-	v30_:setRotation(1.5707963267948966, v30_.width * 0.5, v30_.height * 0.5)
-	local v31_ = v16_.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT]
-	v31_:setRotation(-1.5707963267948966, v31_.width * 0.5, v31_.height * 0.5)
-	v16_.smallArrowsOffset = {}
-	v16_.smallArrowsOffset[IntroductionHelpHUDUtil.ARROW_POSITION_TOP] = { getNormalizedScreenValues(20, -5) }
-	v16_.smallArrowsOffset[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM] = { getNormalizedScreenValues(20, 5) }
-	v16_.smallArrowsOffset[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT] = { getNormalizedScreenValues(6, 12) }
-	v16_.smallArrowsOffset[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT] = { getNormalizedScreenValues(-6, 12) }
-	local _, v32_ = getNormalizedScreenValues(0, 14)
-	v16_.textSize = v32_ * uiScale
-	local v33_, v34_ = getNormalizedScreenValues(15, 13)
-	local v35_ = v33_ * uiScale
-	local v36_ = v34_ * uiScale
-	v16_.textOffsetX = v35_
-	v16_.textOffsetY = v36_
-	local v37_, v38_ = getNormalizedScreenValues(20, 0)
-	v16_.borderX = v37_
-	v16_.borderY = v38_
-	local _, v39_ = getNormalizedScreenValues(0, 14)
-	v16_.messageTextSize = v39_ * uiScale
-	local v40_, v41_ = getNormalizedScreenValues(15, 15)
-	local v42_ = v40_ * uiScale
-	local v43_ = v41_ * uiScale
-	v16_.messageTextPaddingX = v42_
-	v16_.messageTextPaddingY = v43_
-	local v44_, v45_ = getNormalizedScreenValues(0, 2)
-	local v46_ = v44_ * uiScale
-	local v47_ = v45_ * uiScale
-	v16_.messageTextOffsetX = v46_
-	v16_.messageTextOffsetY = v47_
-	local v48_, _ = getNormalizedScreenValues(800, 0)
-	v16_.messageBoxMaxWidth = v48_ * uiScale
-	local _, v49_ = getNormalizedScreenValues(0, 25)
-	v16_.messageTextToTextOffsetY = v49_ * uiScale
-	local v50_, _ = getNormalizedScreenValues(10, 0)
-	v16_.glyphOffsetX = v50_ * uiScale
-	local v51_, v52_ = getNormalizedScreenValues(35, 35)
-	v16_.glyphElement:setBaseSize(v51_, v52_)
+	local bottomSmallArrow = self.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM]
+	bottomSmallArrow:setRotation(3.141592653589793, bottomSmallArrow.width * 0.5, bottomSmallArrow.height * 0.5)
+	local leftSmallArrow = self.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT]
+	leftSmallArrow:setRotation(1.5707963267948966, leftSmallArrow.width * 0.5, leftSmallArrow.height * 0.5)
+	local rightSmallArrow = self.smallArrows[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT]
+	rightSmallArrow:setRotation(-1.5707963267948966, rightSmallArrow.width * 0.5, rightSmallArrow.height * 0.5)
+	self.smallArrowsOffset = {}
+	self.smallArrowsOffset[IntroductionHelpHUDUtil.ARROW_POSITION_TOP] = { getNormalizedScreenValues(20, -5) }
+	self.smallArrowsOffset[IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM] = { getNormalizedScreenValues(20, 5) }
+	self.smallArrowsOffset[IntroductionHelpHUDUtil.ARROW_POSITION_LEFT] = { getNormalizedScreenValues(6, 12) }
+	self.smallArrowsOffset[IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT] = { getNormalizedScreenValues(-6, 12) }
+	local _, textSize = getNormalizedScreenValues(0, 14)
+	self.textSize = textSize * uiScale
+	local textOffsetX, textOffsetY = getNormalizedScreenValues(15, 13)
+	self.textOffsetX = textOffsetX * uiScale
+	self.textOffsetY = textOffsetY * uiScale
+	self.borderX, self.borderY = getNormalizedScreenValues(20, 0)
+	local _, messageTextSize = getNormalizedScreenValues(0, 14)
+	self.messageTextSize = messageTextSize * uiScale
+	local messageTextPaddingX, messageTextPaddingY = getNormalizedScreenValues(15, 15)
+	self.messageTextPaddingX = messageTextPaddingX * uiScale
+	self.messageTextPaddingY = messageTextPaddingY * uiScale
+	local messageTextOffsetX, messageTextOffsetY = getNormalizedScreenValues(0, 2)
+	self.messageTextOffsetX = messageTextOffsetX * uiScale
+	self.messageTextOffsetY = messageTextOffsetY * uiScale
+	local boxMaxWidth, _ = getNormalizedScreenValues(800, 0)
+	self.messageBoxMaxWidth = boxMaxWidth * uiScale
+	local _, messageTextToTextOffsetY = getNormalizedScreenValues(0, 25)
+	self.messageTextToTextOffsetY = messageTextToTextOffsetY * uiScale
+	local glyphOffsetX, _ = getNormalizedScreenValues(10, 0)
+	self.glyphOffsetX = glyphOffsetX * uiScale
+	local glyphWidth, glyphHeight = getNormalizedScreenValues(35, 35)
+	self.glyphElement:setBaseSize(glyphWidth, glyphHeight)
 end
-
--- Local values: self, arrow, smallArrow, bgPosX, bgPosY, textSize, textWidth, bgWidth, bgHeight, arrowX, arrowY, minX, maxX, offset
 function IntroductionHelpHUDUtil.drawHelp(x, y, text, arrowPosition)
-	if not g_gui:getIsGuiVisible() then
-		local v57_ = IntroductionHelpHUDUtil
-		local v58_ = v57_.arrows[arrowPosition]
-		local v59_ = v57_.smallArrows[arrowPosition]
+	if g_gui:getIsGuiVisible() then
+		return
+	else
+		local self = IntroductionHelpHUDUtil
+		local arrow = self.arrows[arrowPosition]
+		local smallArrow = self.smallArrows[arrowPosition]
+		local bgPosX = x
+		local bgPosY = y
 		setTextAlignment(RenderText.ALIGN_LEFT)
 		setTextBold(true)
-		local v60_ = utf8ToUpper(text)
-		local v61_ = v57_.textSize
-		local v62_ = getTextWidth(v61_, v60_) + 2 * v57_.textOffsetX
-		local v63_ = v57_.bgLeft.height
-		local v64_ = nil
-		local v65_ = nil
-		local v66_ = g_hudAnchorLeft
-		local v67_ = g_hudAnchorRight
-		local v68_
+		text = utf8ToUpper(text)
+		local textSize = self.textSize
+		local textWidth = getTextWidth(textSize, text)
+		local bgWidth = textWidth + 2 * self.textOffsetX
+		local bgHeight = self.bgLeft.height
+		local arrowX = nil
+		local arrowY = nil
+		local minX = g_hudAnchorLeft
+		local maxX = g_hudAnchorRight
 		if arrowPosition == IntroductionHelpHUDUtil.ARROW_POSITION_TOP then
-			local v69_ = x - v58_.width * 0.5
-			local v70_ = v67_ - v58_.width
-			v64_ = math.clamp(v69_, v66_, v70_)
-			y = y - v58_.height
-			local v71_ = x - v62_ * 0.5
-			local v72_ = v67_ - v62_
-			x = math.clamp(v71_, v66_, v72_)
-			v68_ = y - v63_
+			arrowX = math.clamp(x - arrow.width * 0.5, minX, maxX - arrow.width)
+			arrowY = y - arrow.height
+			bgPosX = math.clamp(x - bgWidth * 0.5, minX, maxX - bgWidth)
+			bgPosY = arrowY - bgHeight
 		elseif arrowPosition == IntroductionHelpHUDUtil.ARROW_POSITION_BOTTOM then
-			local v73_ = x - v58_.width * 0.5
-			local v74_ = v67_ - v58_.width
-			v64_ = math.clamp(v73_, v66_, v74_)
-			local v75_ = x - v62_ * 0.5
-			local v76_ = v67_ - v62_
-			x = math.clamp(v75_, v66_, v76_)
-			v68_ = y + v58_.height
+			arrowX = math.clamp(x - arrow.width * 0.5, minX, maxX - arrow.width)
+			arrowY = y
+			bgPosX = math.clamp(x - bgWidth * 0.5, minX, maxX - bgWidth)
+			bgPosY = arrowY + arrow.height
 		elseif arrowPosition == IntroductionHelpHUDUtil.ARROW_POSITION_LEFT then
-			local v77_ = v67_ - v62_ - v58_.width
-			v64_ = math.clamp(x, v66_, v77_)
-			local v78_ = y - v58_.height * 0.5
-			x = v64_ + v58_.width - g_pixelSizeX
-			v68_ = y - v63_ * 0.5
-			y = v78_
+			arrowX = math.clamp(x, minX, maxX - bgWidth - arrow.width)
+			arrowY = y - arrow.height * 0.5
+			bgPosX = arrowX + arrow.width - g_pixelSizeX
+			bgPosY = y - bgHeight * 0.5
 		elseif arrowPosition == IntroductionHelpHUDUtil.ARROW_POSITION_RIGHT then
-			local v79_ = v66_ + v62_
-			local v80_ = v67_ - v58_.width
-			v64_ = math.clamp(x, v79_, v80_)
-			local v81_ = y - v58_.height * 0.5
-			x = v64_ - v62_ + g_pixelSizeX
-			v68_ = y - v63_ * 0.5
-			y = v81_
-		else
-			v68_ = y
-			y = v65_
+			arrowX = math.clamp(x, minX + bgWidth, maxX - arrow.width)
+			arrowY = y - arrow.height * 0.5
+			bgPosX = arrowX - bgWidth + g_pixelSizeX
+			bgPosY = y - bgHeight * 0.5
 		end
-		v57_.bgLeft:setPosition(x, v68_)
-		v57_.bgLeft:render()
-		v57_.bgScale:setDimension(v62_ - v57_.bgLeft.width - v57_.bgRight.width, nil)
-		v57_.bgScale:setPosition(v57_.bgLeft.x + v57_.bgLeft.width, v57_.bgLeft.y)
-		v57_.bgScale:render()
-		v57_.bgRight:setPosition(v57_.bgScale.x + v57_.bgScale.width, v57_.bgScale.y)
-		v57_.bgRight:render()
-		v58_:setPosition(v64_, y)
-		v58_:render()
-		local v82_ = v57_.smallArrowsOffset[arrowPosition]
-		v59_:setPosition(v64_ + v82_[1], y + v82_[2])
-		v59_:render()
+		self.bgLeft:setPosition(bgPosX, bgPosY)
+		self.bgLeft:render()
+		self.bgScale:setDimension(bgWidth - self.bgLeft.width - self.bgRight.width, nil)
+		self.bgScale:setPosition(self.bgLeft.x + self.bgLeft.width, self.bgLeft.y)
+		self.bgScale:render()
+		self.bgRight:setPosition(self.bgScale.x + self.bgScale.width, self.bgScale.y)
+		self.bgRight:render()
+		arrow:setPosition(arrowX, arrowY)
+		arrow:render()
+		local offset = self.smallArrowsOffset[arrowPosition]
+		smallArrow:setPosition(arrowX + offset[1], arrowY + offset[2])
+		smallArrow:render()
 		setTextColor(1, 1, 1, 1)
-		renderText(v57_.bgLeft.x + v57_.textOffsetX, v57_.bgScale.y + v57_.textOffsetY, v61_, v60_)
+		renderText(self.bgLeft.x + self.textOffsetX, self.bgScale.y + self.textOffsetY, textSize, text)
 		setTextColor(1, 1, 1, 1)
 		setTextBold(false)
 	end
 end
-
--- Local values: self, posX, posY, messageTextPaddingX, messageTextPaddingY, glyphWidth, glyphOffsetX, maxTextWidth, textSize, height, _, width, boxPosX, boxPosY, boxWidth, boxHeight, color
 function IntroductionHelpHUDUtil.drawMessage(text, glyphElement)
-	if not g_gui:getIsGuiVisible() then
-		local v85_ = IntroductionHelpHUDUtil
-		local v86_ = 0.5
-		local v87_ = v85_.messageTextPaddingX
-		local v88_ = v85_.messageTextPaddingY
-		local v89_ = v85_.glyphOffsetX
-		local v90_ = glyphElement == nil and 0 or glyphElement:getWidth()
-		local v91_ = v85_.messageBoxMaxWidth - 2 * v87_ - v90_
-		local v92_ = v85_.messageTextSize
+	if g_gui:getIsGuiVisible() then
+		return
+	else
+		local self = IntroductionHelpHUDUtil
+		local posX = 0.5
+		local posY = 0.9
+		local messageTextPaddingX = self.messageTextPaddingX
+		local messageTextPaddingY = self.messageTextPaddingY
+		local glyphWidth = 0
+		local glyphOffsetX = self.glyphOffsetX
+		if glyphElement ~= nil then
+			glyphWidth = glyphElement:getWidth()
+		end
+		local maxTextWidth = self.messageBoxMaxWidth - 2 * messageTextPaddingX - glyphWidth
+		local textSize = self.messageTextSize
 		setTextAlignment(RenderText.ALIGN_CENTER)
 		setTextVerticalAlignment(RenderText.VERTICAL_ALIGN_MIDDLE)
 		setTextColor(1, 1, 1, 1)
 		setTextBold(false)
-		setTextWrapWidth(v91_)
-		local v93_, _ = getTextHeight(v92_, text)
-		local v94_ = getTextWidth(v92_, text)
-		local v95_ = 0.5 - v87_ - v94_ * 0.5 - v90_ * 0.5 - v89_ * 0.5
-		local v96_ = 0.9 - v88_ - v93_ * 0.5
-		local v97_ = v94_ + 2 * v87_ + v90_ + v89_
-		local v98_ = v93_ + 2 * v88_
-		local v99_ = HUD.COLOR.BACKGROUND_DARK
-		drawFilledRectRound(v95_, v96_, v97_, v98_, 0.5, v99_[1], v99_[2], v99_[3], v99_[4])
-		renderText(0.5 - v90_ * 0.5, 0.9 + v85_.messageTextOffsetY, v92_, text)
+		setTextWrapWidth(maxTextWidth)
+		local height, _ = getTextHeight(textSize, text)
+		local width = getTextWidth(textSize, text)
+		local boxPosX = 0.5 - messageTextPaddingX - width * 0.5 - glyphWidth * 0.5 - glyphOffsetX * 0.5
+		local boxPosY = 0.9 - messageTextPaddingY - height * 0.5
+		local boxWidth = width + 2 * messageTextPaddingX + glyphWidth + glyphOffsetX
+		local boxHeight = height + 2 * messageTextPaddingY
+		local color = HUD.COLOR.BACKGROUND_DARK
+		drawFilledRectRound(boxPosX, boxPosY, boxWidth, boxHeight, 0.5, color[1], color[2], color[3], color[4])
+		renderText(0.5 - glyphWidth * 0.5, posY + self.messageTextOffsetY, textSize, text)
 		setTextAlignment(RenderText.ALIGN_LEFT)
 		setTextVerticalAlignment(RenderText.VERTICAL_ALIGN_BASELINE)
 		setTextWrapWidth(0)
 		if glyphElement ~= nil then
-			glyphElement:setPosition(v86_ + v94_ * 0.5 - v90_ * 0.5 + v89_, v96_ + (v98_ - glyphElement:getHeight()) * 0.5)
+			glyphElement:setPosition(posX + width * 0.5 - glyphWidth * 0.5 + glyphOffsetX, boxPosY + (boxHeight - glyphElement:getHeight()) * 0.5)
 			glyphElement:draw()
 		end
 	end
 end
-
--- Local values: self, skipText, posX, posY, messageTextPaddingX, messageTextPaddingY, messageBoxMaxWidth, messageTextSize, glyphElement, glyphWidth, glyphOffsetX, inputMode, textHeight, skipTextWidth, skipTextHeight, _, boxWidth, boxHeight, textWidth, boxPosX, boxPosY, color, textPosX, textPosY, skipPosX, skipPosY
 function IntroductionHelpHUDUtil.drawSkipMessage(text)
-	if not g_gui:getIsGuiVisible() then
-		local v101_ = IntroductionHelpHUDUtil
-		local v102_ = v101_.continueText
-		local v103_ = v101_.messageTextPaddingX
-		local v104_ = v101_.messageTextPaddingY
-		local v105_ = v101_.messageBoxMaxWidth - 2 * v103_
-		local v106_ = v101_.messageTextSize
-		local v107_ = 0
-		local v108_ = v101_.glyphOffsetX
-		local v109_
-		if g_inputBinding:getLastInputMode() == GS_INPUT_HELP_MODE_GAMEPAD then
-			v102_ = v101_.continueTextGamepad
-			v109_ = v101_.glyphElement
-		else
-			v109_ = nil
+	if g_gui:getIsGuiVisible() then
+		return
+	else
+		local self = IntroductionHelpHUDUtil
+		local skipText = self.continueText
+		local posX = 0.5
+		local posY = 0.55
+		local messageTextPaddingX = self.messageTextPaddingX
+		local messageTextPaddingY = self.messageTextPaddingY
+		local messageBoxMaxWidth = self.messageBoxMaxWidth - 2 * messageTextPaddingX
+		local messageTextSize = self.messageTextSize
+		local glyphElement = nil
+		local glyphWidth = 0
+		local glyphOffsetX = self.glyphOffsetX
+		local inputMode = g_inputBinding:getLastInputMode()
+		if inputMode == GS_INPUT_HELP_MODE_GAMEPAD then
+			skipText = self.continueTextGamepad
+			glyphElement = self.glyphElement
 		end
 		setTextAlignment(RenderText.ALIGN_CENTER)
 		setTextVerticalAlignment(RenderText.VERTICAL_ALIGN_MIDDLE)
 		setTextColor(1, 1, 1, 1)
 		setTextBold(true)
-		setTextWrapWidth(v105_)
-		local v110_ = 0
-		local v111_ = getTextWidth(v106_, v102_)
-		local v112_, _ = getTextHeight(v106_, v102_)
-		local v113_
-		if v109_ == nil then
-			v113_ = v111_
-		else
-			v107_ = v109_:getWidth()
-			v113_ = v111_ + v107_ + v108_
+		setTextWrapWidth(messageBoxMaxWidth)
+		local textHeight = 0
+		local skipTextWidth = getTextWidth(messageTextSize, skipText)
+		local skipTextHeight, _ = getTextHeight(messageTextSize, skipText)
+		local boxWidth = skipTextWidth
+		local boxHeight = skipTextHeight
+		if glyphElement ~= nil then
+			glyphWidth = glyphElement:getWidth()
+			boxWidth = boxWidth + glyphWidth + glyphOffsetX
 		end
-		local v114_
-		if text == nil then
-			v114_ = v112_
-		else
-			local v115_ = getTextWidth(v106_, text)
-			local v116_
-			v110_, v116_ = getTextHeight(v106_, text)
-			v113_ = math.max(v113_, v115_)
-			v114_ = v112_ + v110_ + v101_.messageTextToTextOffsetY
-		end
-		local v117_ = v113_ + 2 * v103_
-		local v118_ = v114_ + 2 * v104_
-		local v119_ = 0.5 - v117_ * 0.5
-		local v120_ = 0.55 - v118_ * 0.5
-		local v121_ = HUD.COLOR.BACKGROUND_DARK
-		drawFilledRectRound(v119_, v120_, v117_, v118_, 0.5, v121_[1], v121_[2], v121_[3], v121_[4])
 		if text ~= nil then
-			local v122_ = v120_ + v118_ - v104_ - v110_ * 0.5
-			renderText(0.5, v122_, v106_, text)
+			local textWidth = getTextWidth(messageTextSize, text)
+			textHeight, _ = getTextHeight(messageTextSize, text)
+			boxWidth = math.max(boxWidth, textWidth)
+			boxHeight = boxHeight + textHeight + self.messageTextToTextOffsetY
+		end
+		boxWidth = boxWidth + 2 * messageTextPaddingX
+		boxHeight = boxHeight + 2 * messageTextPaddingY
+		local boxPosX = 0.5 - boxWidth * 0.5
+		local boxPosY = 0.55 - boxHeight * 0.5
+		local color = HUD.COLOR.BACKGROUND_DARK
+		drawFilledRectRound(boxPosX, boxPosY, boxWidth, boxHeight, 0.5, color[1], color[2], color[3], color[4])
+		if text ~= nil then
+			local textPosY = boxPosY + boxHeight - messageTextPaddingY - textHeight * 0.5
+			renderText(0.5, textPosY, messageTextSize, text)
 		end
 		setTextBold(false)
-		local v123_ = 0.5 - v107_ * 0.5
-		local v124_ = v120_ + v104_ + v112_ * 0.5 + v101_.messageTextOffsetY
-		renderText(v123_, v124_, v106_, v102_)
+		local skipPosX = 0.5 - glyphWidth * 0.5
+		local skipPosY = boxPosY + messageTextPaddingY + skipTextHeight * 0.5 + self.messageTextOffsetY
+		renderText(skipPosX, skipPosY, messageTextSize, skipText)
 		setTextAlignment(RenderText.ALIGN_LEFT)
 		setTextVerticalAlignment(RenderText.VERTICAL_ALIGN_BASELINE)
 		setTextWrapWidth(0)
-		if v109_ ~= nil then
-			v109_:setPosition(v123_ + v111_ * 0.5, v120_ + (v118_ - v109_:getHeight()) * 0.5)
-			v109_:draw()
+		if glyphElement ~= nil then
+			glyphElement:setPosition(skipPosX + skipTextWidth * 0.5, boxPosY + (boxHeight - glyphElement:getHeight()) * 0.5)
+			glyphElement:draw()
 		end
 	end
 end
-if v1_ then
+if wasActive then
 	IntroductionHelpHUDUtil.init()
-	IntroductionHelpHUDUtil.setScale(v2_)
+	IntroductionHelpHUDUtil.setScale(oldUIScale)
 	log("Reloaded IntroductionHelpHUDUtil")
 end

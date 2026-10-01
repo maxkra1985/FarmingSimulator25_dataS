@@ -1,50 +1,38 @@
--- Local values: Lighting_mt
 Lighting = {}
 local Lighting_mt = Class(Lighting)
-
--- Upvalues: Lighting_mt
--- Local values: self
 function Lighting.new(customMt)
-	-- upvalues: (copy) Lighting_mt
-	local v3_ = customMt or Lighting_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.updateInterval = 10000
-	v4_.lastUpdateDayTime = 0
-	v4_.lastDaylightFactor = 1
-	v4_.cloudEnvMapIndex1 = 1
-	v4_.cloudEnvMapIndex2 = 1
-	v4_.cloudEnvMapBlendAlpha = 0
-	v4_.dayTime = 0
-	v4_.sunHeightAngle = 0
-	v4_.sunColor = nil
-	v4_.snowHeight = 0
-	v4_.snowHeightThreshold = 0.06
-	v4_.dayStart = 6.55
-	v4_.dayEnd = 18.1
-	v4_.nightEnd = 5
-	v4_.nightStart = 19.81
-	v4_.currentVisualSeason = Season.SPRING
-	v4_.alpha = 1
-	v4_.lastSunRotation = 0
-	v4_.currentSunRotation = 0
-	v4_.targetSunRotation = 0
-	v4_.sunUpdateDuration = 4000
-	v4_.updateSunThreshold = 0.03490658503988659
-	v4_.isInitialSunUpdate = true
-	v4_.lastSunUpdateRotation = 0
-	return v4_
+	local self = setmetatable({}, customMt or Lighting_mt)
+	self.updateInterval = 10000
+	self.lastUpdateDayTime = 0
+	self.lastDaylightFactor = 1
+	self.cloudEnvMapIndex1 = 1
+	self.cloudEnvMapIndex2 = 1
+	self.cloudEnvMapBlendAlpha = 0
+	self.dayTime = 0
+	self.sunHeightAngle = 0
+	self.sunColor = nil
+	self.snowHeight = 0
+	self.snowHeightThreshold = 0.06
+	self.dayStart = 6.55
+	self.dayEnd = 18.1
+	self.nightEnd = 5
+	self.nightStart = 19.81
+	self.currentVisualSeason = Season.SPRING
+	self.alpha = 1
+	self.lastSunRotation = 0
+	self.currentSunRotation = 0
+	self.targetSunRotation = 0
+	self.sunUpdateDuration = 4000
+	self.updateSunThreshold = 0.03490658503988659
+	self.isInitialSunUpdate = true
+	self.lastSunUpdateRotation = 0
+	return self
 end
-
 function Lighting:delete() end
-
--- Local values: cloudShadowsTransmittanceBoostData, _, timeProbeKey, timeHours, envMapFile
 function Lighting:load(xmlFile, baseKey, baseDirectory)
-	local v9_ = xmlFile:getFloat(baseKey .. ".sunRotation#heightAngleLimitRotation", 60)
-	self.heightAngleLimitRotation = math.rad(v9_)
-	local v10_ = xmlFile:getFloat(baseKey .. ".sunRotation#heightAngleLimitRotationStart", 56)
-	self.heightAngleLimitRotationStart = math.rad(v10_)
-	local v11_ = xmlFile:getFloat(baseKey .. ".sunRotation#heightAngleLimitRotationEnd", 80)
-	self.heightAngleLimitRotationEnd = math.rad(v11_)
+	self.heightAngleLimitRotation = math.rad(xmlFile:getFloat(baseKey .. ".sunRotation#heightAngleLimitRotation", 60))
+	self.heightAngleLimitRotationStart = math.rad(xmlFile:getFloat(baseKey .. ".sunRotation#heightAngleLimitRotationStart", 56))
+	self.heightAngleLimitRotationEnd = math.rad(xmlFile:getFloat(baseKey .. ".sunRotation#heightAngleLimitRotationEnd", 80))
 	self.sunRotationCurveData = self:loadCurveDataFromXML(xmlFile, baseKey .. ".sunRotation", true)
 	self.moonBrightnessScaleCurveData = self:loadCurveDataFromXML(xmlFile, baseKey .. ".moonBrightnessScale")
 	self.moonSizeScaleCurveData = self:loadCurveDataFromXML(xmlFile, baseKey .. ".moonSizeScale")
@@ -57,9 +45,9 @@ function Lighting:load(xmlFile, baseKey, baseDirectory)
 	self.primaryDynamicLightingScaleCurveData = self:loadCurveDataFromXML(xmlFile, baseKey .. ".primaryDynamicLightingScale")
 	self.lightScatteringRotationCurveData = self:loadCurveDataFromXML(xmlFile, baseKey .. ".lightScatteringRotation", true)
 	self.autoExposureCurveData = self:loadCurveDataFromXML(xmlFile, baseKey .. ".autoExposure")
-	local v12_ = self:loadCurveDataFromXML(xmlFile, baseKey .. ".cloudShadowsTransmittanceBoost")
-	if #v12_ > 0 then
-		self.cloudShadowsTransmittanceBoostData = v12_
+	local cloudShadowsTransmittanceBoostData = self:loadCurveDataFromXML(xmlFile, baseKey .. ".cloudShadowsTransmittanceBoost")
+	if 0 < #cloudShadowsTransmittanceBoostData then
+		self.cloudShadowsTransmittanceBoostData = cloudShadowsTransmittanceBoostData
 	end
 	if Platform.usesFixedExposure then
 		self.fixedExposureCurveData = self:loadCurveDataFromXML(xmlFile, baseKey .. ".fixedExposure")
@@ -73,12 +61,12 @@ function Lighting:load(xmlFile, baseKey, baseDirectory)
 	self.toneMappingCurveBlackClip = xmlFile:getFloat(baseKey .. ".toneMapping#blackClip") or 0
 	self.toneMappingCurveWhiteClip = xmlFile:getFloat(baseKey .. ".toneMapping#whiteClip") or 0.04
 	self.envMapTimes = {}
-	for _, v13_ in xmlFile:iterator(baseKey .. ".envMap.timeProbe") do
-		local v14_ = xmlFile:getFloat(v13_ .. "#timeHours")
-		if v14_ ~= nil then
-			local v15_ = self.envMapTimes
-			table.insert(v15_, v14_)
+	for _, timeProbeKey in xmlFile:iterator(baseKey .. ".envMap.timeProbe") do
+		local timeHours = xmlFile:getFloat(timeProbeKey .. "#timeHours")
+		if timeHours == nil then
+			continue
 		end
+		table.insert(self.envMapTimes, timeHours)
 	end
 	table.sort(self.envMapTimes)
 	self.defaultEnvMap = Utils.getFilename("$shared/default_env.png", baseDirectory)
@@ -88,27 +76,20 @@ function Lighting:load(xmlFile, baseKey, baseDirectory)
 		if not string.endsWith(self.envMapBasePath, "/") then
 			self.envMapBasePath = self.envMapBasePath .. "/"
 		end
-		if #self.envMapTimes > 0 then
-			local v16_ = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[1], 1) .. ".png"
-			if not textureFileExists(v16_) then
-				Logging.xmlError(xmlFile, "EnvMap \'%s\' does not exist!", v16_)
+		if 0 < #self.envMapTimes then
+			local envMapFile = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[1], 1) .. ".png"
+			if not textureFileExists(envMapFile) then
+				Logging.xmlError(xmlFile, "EnvMap '%s' does not exist!", envMapFile)
 				self.envMapBasePath = nil
 			end
 		end
 	end
 	self.envMapRenderingMode = false
-	self.albedoGroundColors = {
-		[Season.SPRING] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.spring#value", { 0, 0, 0 }, 3),
-		[Season.SUMMER] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.summer#value", { 0, 0, 0 }, 3),
-		[Season.AUTUMN] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.autumn#value", { 0, 0, 0 }, 3),
-		[Season.WINTER] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.winter#value", { 0, 0, 0 }, 3),
-		["snow"] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.snow#value", { 0, 0, 0 }, 3)
-	}
+	self.albedoGroundColors = { [Season.SPRING] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.spring#value", { 0, 0, 0 }, 3), [Season.SUMMER] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.summer#value", { 0, 0, 0 }, 3), [Season.AUTUMN] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.autumn#value", { 0, 0, 0 }, 3), [Season.WINTER] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.winter#value", { 0, 0, 0 }, 3), ["snow"] = xmlFile:getVector(baseKey .. ".envAlbedoGroundColors.snow#value", { 0, 0, 0 }, 3) }
 	self.lastUpdateDayTime = 0
 	self.lastDaylightFactor = 1
 	return true
 end
-
 function Lighting:apply()
 	setBloomMagnitude(self.bloomMagnitude)
 	setBloomMaskThreshold(self.bloomThreshold)
@@ -118,300 +99,270 @@ function Lighting:apply()
 	setToneMappingCurveBlackClip(self.toneMappingCurveBlackClip)
 	setToneMappingCurveWhiteClip(self.toneMappingCurveWhiteClip)
 end
-
--- Local values: data, _, timeKey, time, values, j, value, number
 function Lighting:loadCurveDataFromXML(xmlFile, baseKey, convertRadians)
-	local v21_ = {}
-	for _, v22_ in xmlFile:iterator(baseKey .. ".key") do
-		local v23_ = xmlFile:getFloat(v22_ .. "#time")
-		local v24_ = string.split(xmlFile:getString(v22_ .. "#value"), " ")
-		for v25_, v26_ in ipairs(v24_) do
-			local v27_ = tonumber(v26_)
+	local data = {}
+	for _, timeKey in xmlFile:iterator(baseKey .. ".key") do
+		local time = xmlFile:getFloat(timeKey .. "#time")
+		local values = string.split(xmlFile:getString(timeKey .. "#value"), " ")
+		for j, value in ipairs(values) do
+			local number = tonumber(value)
 			if convertRadians then
-				v27_ = math.rad(v27_)
+				number = math.rad(number)
 			end
-			v24_[v25_] = v27_
+			values[j] = number
 		end
-		table.insert(v21_, { v23_, v24_ })
+		table.insert(data, { time, values })
 	end
-	return v21_
+	return data
 end
-
--- Local values: data, _, timeKey, timeHours, filename
 function Lighting:loadFileCurveDataFromXML(xmlFile, baseKey, baseDirectory)
-	local v31_ = {}
-	for _, v32_ in xmlFile:iterator(baseKey .. ".key") do
-		local v33_ = { xmlFile:getFloat(v32_ .. "#timeHours"), (Utils.getFilename(xmlFile:getString(v32_ .. "#filename"), baseDirectory)) }
-		table.insert(v31_, v33_)
+	local data = {}
+	for _, timeKey in xmlFile:iterator(baseKey .. ".key") do
+		local timeHours = xmlFile:getFloat(timeKey .. "#timeHours")
+		local filename = Utils.getFilename(xmlFile:getString(timeKey .. "#filename"), baseDirectory)
+		table.insert(data, { timeHours, filename })
 	end
-	return v31_
+	return data
 end
-
 function Lighting:reset()
 	resetAutoExposure()
 end
-
 function Lighting:setCloudEnvMapInfo(cloudEnvMapIndex1, cloudEnvMapIndex2, alpha)
 	self.cloudEnvMapIndex1 = cloudEnvMapIndex1
 	self.cloudEnvMapIndex2 = cloudEnvMapIndex2
 	self.cloudEnvMapBlendAlpha = alpha
 end
-
--- Local values: sunRotation, dx, dy, dz, limitAlpha, scale
 function Lighting:update(dt, force)
 	if self.alpha ~= 1 then
-		local v40_ = self.alpha + dt / self.sunUpdateDuration
-		self.alpha = math.min(v40_, 1)
+		self.alpha = math.min(self.alpha + dt / self.sunUpdateDuration, 1)
 		self.currentSunRotation = MathUtil.lerp(self.lastSunRotation, self.targetSunRotation, self.alpha)
 		self.isSunDirty = true
 	end
 	if self.isSunDirty then
-		local v41_ = self.currentSunRotation
-		local v42_, v43_, v44_ = mathEulerRotateVector(self.sunHeightAngle, 0, v41_, 0, 0, 1)
-		if v43_ < self.sunHeightLimitStart then
-			if v43_ <= self.sunHeightLimitEnd then
-				v43_ = self.sunHeightLimit
+		local sunRotation = self.currentSunRotation
+		local dx, dy, dz = mathEulerRotateVector(self.sunHeightAngle, 0, sunRotation, 0, 0, 1)
+		if dy < self.sunHeightLimitStart then
+			if dy <= self.sunHeightLimitEnd then
+				dy = self.sunHeightLimit
 			else
-				local v45_ = (v43_ - self.sunHeightLimitEnd) / (self.sunHeightLimitStart - self.sunHeightLimitEnd)
-				v43_ = self.sunHeightLimit + v45_ * (self.sunHeightLimitStart - self.sunHeightLimit)
+				local limitAlpha = (dy - self.sunHeightLimitEnd) / (self.sunHeightLimitStart - self.sunHeightLimitEnd)
+				dy = self.sunHeightLimit + limitAlpha * (self.sunHeightLimitStart - self.sunHeightLimit)
 			end
-			local v46_ = (1 - v43_ * v43_) / (v42_ * v42_ + v44_ * v44_)
-			local v47_ = math.sqrt(v46_)
-			v42_ = v42_ * v47_
-			v44_ = v44_ * v47_
+			local scale = math.sqrt((1 - dy * dy) / (dx * dx + dz * dz))
+			dx = dx * scale
+			dz = dz * scale
 		end
-		setDirection(self.sunLightId, v42_, v43_, v44_, 0, 1, 0)
+		setDirection(self.sunLightId, dx, dy, dz, 0, 1, 0)
 		self.isSunDirty = false
 	end
 end
-
--- Local values: dayMinutes, gradingFile1, gradingFile2, gradingAlpha, dayHours
 function Lighting:setDayTime(dayTime, force)
-	if not force then
-		local v51_ = dayTime - self.lastUpdateDayTime
-		if math.abs(v51_) <= self.updateInterval then
-			::l3::
-			return
+	if force or self.updateInterval < math.abs(dayTime - self.lastUpdateDayTime) then
+		local dayMinutes = dayTime / 60000
+		self:updateSunLocation(dayTime, dayMinutes)
+		self:updateEnvMap(self:getHardcodedFromTime(dayMinutes / 60) * 60, force)
+		self:updateEnvAlbedo()
+		self:updateAtmosphere(dayMinutes)
+		local gradingFile1, gradingFile2, gradingAlpha = self.colorGradingFileCurve:get(dayMinutes)
+		setColorGradingSettings(gradingFile1, gradingFile2, gradingAlpha)
+		self:updateExposureSettings()
+		local dayHours = dayMinutes / 60
+		if self.dayStart < dayHours then
+			if dayHours < self.dayEnd then
+				self.lastDaylightFactor = 1
+			elseif self.dayEnd <= dayHours then
+				if dayHours < self.nightStart then
+					self.lastDaylightFactor = 1 - (dayHours - self.dayEnd) / (self.nightStart - self.dayEnd)
+				elseif self.nightStart <= dayHours or dayHours < self.nightEnd then
+					self.lastDaylightFactor = 0
+				else
+					if self.nightEnd <= dayHours then
+						if dayHours < self.dayStart then
+							self.lastDaylightFactor = (dayHours - self.nightEnd) / (self.dayStart - self.nightEnd)
+						else
+							self.lastDaylightFactor = 0
+						end
+					end
+				end
+			end
 		end
+		self.lastUpdateDayTime = dayTime
 	end
-	local v52_ = dayTime / 60000
-	self:updateSunLocation(dayTime, v52_)
-	self:updateEnvMap(self:getHardcodedFromTime(v52_ / 60) * 60, force)
-	self:updateEnvAlbedo()
-	self:updateAtmosphere(v52_)
-	local v53_, v54_, v55_ = self.colorGradingFileCurve:get(v52_)
-	setColorGradingSettings(v53_, v54_, v55_)
-	self:updateExposureSettings()
-	local v56_ = v52_ / 60
-	if self.dayStart < v56_ and v56_ < self.dayEnd then
-		self.lastDaylightFactor = 1
-	elseif self.dayEnd <= v56_ and v56_ < self.nightStart then
-		self.lastDaylightFactor = 1 - (v56_ - self.dayEnd) / (self.nightStart - self.dayEnd)
-	elseif self.nightStart <= v56_ or v56_ < self.nightEnd then
-		self.lastDaylightFactor = 0
-	elseif self.nightEnd <= v56_ and v56_ < self.dayStart then
-		self.lastDaylightFactor = (v56_ - self.nightEnd) / (self.dayStart - self.nightEnd)
-	else
-		self.lastDaylightFactor = 0
-	end
-	self.lastUpdateDayTime = dayTime
-	goto l3
 end
-
--- Local values: _
 function Lighting:updateSunHeight()
-	local _, v58_, _ = mathEulerRotateVector(self.sunHeightAngle, 0, self.heightAngleLimitRotation, 0, 0, 1)
-	self.sunHeightLimit = v58_
-	local _, v59_, _ = mathEulerRotateVector(self.sunHeightAngle, 0, self.heightAngleLimitRotationStart, 0, 0, 1)
-	self.sunHeightLimitStart = v59_
-	local _, v60_, _ = mathEulerRotateVector(self.sunHeightAngle, 0, self.heightAngleLimitRotationEnd, 0, 0, 1)
-	self.sunHeightLimitEnd = v60_
+	local _ = nil
+	_, self.sunHeightLimit, _ = mathEulerRotateVector(self.sunHeightAngle, 0, self.heightAngleLimitRotation, 0, 0, 1)
+	_, self.sunHeightLimitStart, _ = mathEulerRotateVector(self.sunHeightAngle, 0, self.heightAngleLimitRotationStart, 0, 0, 1)
+	_, self.sunHeightLimitEnd, _ = mathEulerRotateVector(self.sunHeightAngle, 0, self.heightAngleLimitRotationEnd, 0, 0, 1)
 end
-
 function Lighting:setSunHeightAngle(sunHeightAngle)
 	self.sunHeightAngle = sunHeightAngle
 end
-
--- Local values: sunRotation, rotationDelta, x, y, _, fruitType
 function Lighting:updateSunLocation(dayTime, dayMinutes)
-	local v65_ = self.sunRotCurve:get(dayMinutes)
-	local v66_ = v65_ - self.lastSunUpdateRotation
-	if math.abs(v66_) > self.updateSunThreshold then
+	local sunRotation = self.sunRotCurve:get(dayMinutes)
+	local rotationDelta = math.abs(sunRotation - self.lastSunUpdateRotation)
+	if self.updateSunThreshold < rotationDelta then
 		self.lastSunRotation = self.currentSunRotation
-		self.targetSunRotation = v65_
-		self.lastSunUpdateRotation = v65_
+		self.targetSunRotation = sunRotation
+		self.lastSunUpdateRotation = sunRotation
 		self.alpha = 0
 		self.isSunDirty = true
 		if self.isInitialSunUpdate then
 			self.isInitialSunUpdate = false
-			self.currentSunRotation = v65_
+			self.currentSunRotation = sunRotation
 			self.alpha = 1
 		end
 	end
-	local v67_ = 0
-	local v68_
+	local x = 0
+	local y = nil
 	if dayMinutes < 360 then
-		v68_ = 4.713 + 1.571 * (dayMinutes / 360)
+		y = 4.713 + 1.571 * (dayMinutes / 360)
 	elseif dayMinutes < 1080 then
-		v68_ = 3.142 + 3.142 * (1 - (dayMinutes - 360) / 720)
+		y = 3.142 + 3.142 * (1 - (dayMinutes - 360) / 720)
 	else
-		v68_ = 3.142 + 1.571 * ((dayMinutes - 1080) / 360)
+		y = 3.142 + 1.571 * ((dayMinutes - 1080) / 360)
 	end
 	if dayMinutes < 480 then
-		v67_ = v67_ + 1.571 * (1 - dayMinutes / 480)
-	elseif dayMinutes > 960 then
-		v67_ = v67_ + 1.571 * ((dayMinutes - 960) / 480)
+		x = x + 1.571 * (1 - dayMinutes / 480)
+	elseif 960 < dayMinutes then
+		x = x + 1.571 * ((dayMinutes - 960) / 480)
 	end
 	if g_fruitTypeManager ~= nil then
-		for _, v69_ in ipairs(g_fruitTypeManager:getFruitTypes()) do
-			if v69_.alignsToSun and v69_.terrainDataPlaneId ~= nil then
-				setFoliageShaderParameter(v69_.terrainDataPlaneId, "plantRotate", v67_, v68_, 0, 0)
+		for _, fruitType in ipairs(g_fruitTypeManager:getFruitTypes()) do
+			if fruitType.alignsToSun then
+				if fruitType.terrainDataPlaneId == nil then
+					continue
+				end
+				setFoliageShaderParameter(fruitType.terrainDataPlaneId, "plantRotate", x, y, 0, 0)
 			end
 		end
 	end
 end
-
--- Local values: envMapTime0Cloud0, envMapTime0Cloud1, envMapTime1Cloud0, envMapTime1Cloud1, blendTime, blendCloud, dayHours, timeSecondIndex, i, time, timeFirstIndex, startTime, endTime, cloudFirstIndex, cloudSecondIndex, blendWeight0, blendWeight1, blendWeight2, blendWeight3
 function Lighting:updateEnvMap(dayMinutes, force)
 	if self.envMapBasePath == nil or #self.envMapTimes == 0 then
 		setEnvMap(self.defaultEnvMap, self.defaultEnvMap, self.defaultEnvMap, self.defaultEnvMap, 1, 0, 0, 0, force, true)
 		return
 	end
-	local v73_ = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[1], 1) .. ".png"
-	local v74_, v75_, v76_, v77_, v78_
-	if #self.envMapTimes > 1 then
-		local v79_ = dayMinutes / 60
-		local v80_ = 1
-		for v81_, v82_ in ipairs(self.envMapTimes) do
-			if v79_ < v82_ then
-				v80_ = v81_
+	local envMapTime0Cloud0 = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[1], 1) .. ".png"
+	local envMapTime0Cloud1 = envMapTime0Cloud0
+	local envMapTime1Cloud0 = envMapTime0Cloud0
+	local envMapTime1Cloud1 = envMapTime0Cloud0
+	local blendTime = 0
+	local blendCloud = 0
+	if 1 < #self.envMapTimes then
+		local dayHours = dayMinutes / 60
+		local timeSecondIndex = 1
+		for i, time in ipairs(self.envMapTimes) do
+			if dayHours < time then
+				timeSecondIndex = i
 				break
 			end
 		end
-		local v83_ = v80_ - 1
-		local v84_ = v83_ <= 0 and #self.envMapTimes or v83_
-		local v85_ = self.envMapTimes[v84_]
-		local v86_ = self.envMapTimes[v80_]
-		v74_ = MathUtil.timeLerp(v85_, v86_, v79_)
-		local v87_ = self.cloudEnvMapIndex1
-		local v88_ = self.cloudEnvMapIndex2
-		v75_ = self.cloudEnvMapBlendAlpha
-		v73_ = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[v84_], v87_) .. ".png"
-		v76_ = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[v84_], v88_) .. ".png"
-		v77_ = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[v80_], v87_) .. ".png"
-		v78_ = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[v80_], v88_) .. ".png"
-	else
-		v78_ = v73_
-		v77_ = v78_
-		v76_ = v77_
-		local v89_ = v78_
-		v78_ = v76_
-		v89_ = v77_
-		v77_ = v78_
-		v89_ = v76_
-		v74_ = 0
-		v75_ = 0
+		local timeFirstIndex = timeSecondIndex - 1
+		if timeFirstIndex <= 0 then
+			timeFirstIndex = #self.envMapTimes
+		end
+		local startTime = self.envMapTimes[timeFirstIndex]
+		local endTime = self.envMapTimes[timeSecondIndex]
+		blendTime = MathUtil.timeLerp(startTime, endTime, dayHours)
+		local cloudFirstIndex = self.cloudEnvMapIndex1
+		local cloudSecondIndex = self.cloudEnvMapIndex2
+		blendCloud = self.cloudEnvMapBlendAlpha
+		envMapTime0Cloud0 = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[timeFirstIndex], cloudFirstIndex) .. ".png"
+		envMapTime0Cloud1 = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[timeFirstIndex], cloudSecondIndex) .. ".png"
+		envMapTime1Cloud0 = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[timeSecondIndex], cloudFirstIndex) .. ".png"
+		envMapTime1Cloud1 = self.envMapBasePath .. Lighting.getEnvMapBaseFilename(self.envMapTimes[timeSecondIndex], cloudSecondIndex) .. ".png"
 	end
-	local v90_ = (1 - v74_) * (1 - v75_)
-	local v91_ = (1 - v74_) * v75_
-	local v92_ = v74_ * (1 - v75_)
-	local v93_ = v74_ * v75_
+	local blendWeight0 = (1 - blendTime) * (1 - blendCloud)
+	local blendWeight1 = (1 - blendTime) * blendCloud
+	local blendWeight2 = blendTime * (1 - blendCloud)
+	local blendWeight3 = blendTime * blendCloud
 	if self.envMapRenderingMode then
-		setEnvMap(v73_, v76_, v77_, v78_, 0, 0, 0, 0, true, false)
+		setEnvMap(envMapTime0Cloud0, envMapTime0Cloud1, envMapTime1Cloud0, envMapTime1Cloud1, 0, 0, 0, 0, true, false)
 	else
-		setEnvMap(v73_, v76_, v77_, v78_, v90_, v91_, v92_, v93_, force or false, false)
+		setEnvMap(envMapTime0Cloud0, envMapTime0Cloud1, envMapTime1Cloud0, envMapTime1Cloud1, blendWeight0, blendWeight1, blendWeight2, blendWeight3, force or false, false)
 	end
 end
-
 function Lighting:setSnowHeight(snowHeight)
 	self.snowHeight = snowHeight
 end
-
 function Lighting:setSnowHeightThreshold(threshold)
 	self.snowHeightThreshold = threshold
 end
-
 function Lighting:setVisualSeason(season)
 	self.currentVisualSeason = season
 end
-
--- Local values: r, g, b, r, g, b
 function Lighting:updateEnvAlbedo()
-	if self.snowHeight >= self.snowHeightThreshold then
-		local v101_ = self.albedoGroundColors.snow
-		local v102_, v103_, v104_ = unpack(v101_)
-		setEnvAlbedoGroundColor(v102_, v103_, v104_)
+	if self.snowHeightThreshold <= self.snowHeight then
+		local r, g, b = unpack(self.albedoGroundColors.snow)
+		setEnvAlbedoGroundColor(r, g, b)
 	else
-		local v105_ = self.albedoGroundColors[self.currentVisualSeason]
-		local v106_, v107_, v108_ = unpack(v105_)
-		setEnvAlbedoGroundColor(v106_, v107_, v108_)
+		local r, g, b = unpack(self.albedoGroundColors[self.currentVisualSeason])
+		setEnvAlbedoGroundColor(r, g, b)
 	end
 end
-
--- Local values: primaryScatteringRotation, secondaryScatteringRotation, pLscX, pLscY, pLscZ, sLscX, sLscY, sLscZ, sdr, sdg, sdb, asymmetryFactor, sunSizeScale, moonSizeScale, sunIsPrimary, moonBrightnessScale, sunBrightnessScale, cloudShadowsTransmittanceBoost, dr, dg, db, dynamicLightingScale
 function Lighting:updateAtmosphere(dayMinutes)
-	local v111_, v112_ = self.lightScatteringRotCurve:get(dayMinutes)
-	local v113_, v114_, v115_ = mathEulerRotateVector(self.sunHeightAngle, 0, v111_, 0, 0, 1)
-	setLightScatteringDirection(self.sunLightId, v113_, v114_, v115_)
-	local v116_, v117_, v118_ = mathEulerRotateVector(self.sunHeightAngle, 0, v112_, 0, 0, 1)
-	local v119_, v120_, v121_ = self.secondaryExtraterrestrialColor:get(dayMinutes)
-	setAtmosphereSecondaryLightSource(v116_, v117_, v118_, v119_, v120_, v121_)
-	local v122_ = self.asymmetryFactorCurve:get(dayMinutes)
-	setAtmosphereCornetteShankAsymmetryFactor(v122_)
-	local v123_ = self.sunSizeScaleCurve:get(dayMinutes)
-	setSunSizeScale(v123_)
-	local v124_ = self.moonSizeScaleCurve:get(dayMinutes)
-	setMoonSizeScale(v124_)
-	local v125_ = self.sunIsPrimaryCurve:get(dayMinutes) > 0.5
-	setSunIsPrimary(v125_)
-	local v126_ = self.moonBrightnessScaleCurve:get(dayMinutes)
-	local v127_ = self.sunBrightnessScaleCurve:get(dayMinutes)
+	local primaryScatteringRotation, secondaryScatteringRotation = self.lightScatteringRotCurve:get(dayMinutes)
+	local pLscX, pLscY, pLscZ = mathEulerRotateVector(self.sunHeightAngle, 0, primaryScatteringRotation, 0, 0, 1)
+	setLightScatteringDirection(self.sunLightId, pLscX, pLscY, pLscZ)
+	local sLscX, sLscY, sLscZ = mathEulerRotateVector(self.sunHeightAngle, 0, secondaryScatteringRotation, 0, 0, 1)
+	local sdr, sdg, sdb = self.secondaryExtraterrestrialColor:get(dayMinutes)
+	setAtmosphereSecondaryLightSource(sLscX, sLscY, sLscZ, sdr, sdg, sdb)
+	local asymmetryFactor = self.asymmetryFactorCurve:get(dayMinutes)
+	setAtmosphereCornetteShankAsymmetryFactor(asymmetryFactor)
+	local sunSizeScale = self.sunSizeScaleCurve:get(dayMinutes)
+	setSunSizeScale(sunSizeScale)
+	local moonSizeScale = self.moonSizeScaleCurve:get(dayMinutes)
+	setMoonSizeScale(moonSizeScale)
+	local sunIsPrimary = 0.5 < self.sunIsPrimaryCurve:get(dayMinutes)
+	setSunIsPrimary(sunIsPrimary)
+	local moonBrightnessScale = self.moonBrightnessScaleCurve:get(dayMinutes)
+	local sunBrightnessScale = self.sunBrightnessScaleCurve:get(dayMinutes)
 	if self.envMapRenderingMode then
-		if v125_ then
-			v127_ = v127_ * 0.001
+		if sunIsPrimary then
+			sunBrightnessScale = sunBrightnessScale * 0.001
 		else
-			local _ = v126_ * 0.001
+			moonBrightnessScale = moonBrightnessScale * 0.001
 		end
 	end
-	setSunBrightnessScale(v127_)
+	setSunBrightnessScale(sunBrightnessScale)
 	if self.cloudShadowsTransmittanceCurve ~= nil then
-		local v128_ = self.cloudShadowsTransmittanceCurve:get(dayMinutes)
-		setCloudShadowsTransmittanceBoost(v128_)
+		local cloudShadowsTransmittanceBoost = self.cloudShadowsTransmittanceCurve:get(dayMinutes)
+		setCloudShadowsTransmittanceBoost(cloudShadowsTransmittanceBoost)
 	end
-	local v129_, v130_, v131_ = self.primaryExtraterrestrialColor:get(dayMinutes)
-	local v132_ = self.primaryDynamicLightingScale:get(dayMinutes)
-	setLightColor(self.sunLightId, v129_ * v132_, v130_ * v132_, v131_ * v132_)
-	setLightScatteringColor(self.sunLightId, v129_, v130_, v131_)
+	local dr, dg, db = self.primaryExtraterrestrialColor:get(dayMinutes)
+	local dynamicLightingScale = self.primaryDynamicLightingScale:get(dayMinutes)
+	setLightColor(self.sunLightId, dr * dynamicLightingScale, dg * dynamicLightingScale, db * dynamicLightingScale)
+	setLightScatteringColor(self.sunLightId, dr, dg, db)
 end
-
--- Local values: dayMinutes, minExposure, maxExposure, keyValue, _
 function Lighting:updateExposureSettings()
-	local v134_ = self.dayTime / 60000
-	local v135_, v136_, v137_
+	local dayMinutes = self.dayTime / 60000
+	local minExposure = nil
+	local maxExposure = nil
+	local keyValue = nil
 	if Platform.usesFixedExposure then
 		if self.fixedKeyValue == nil or self.fixedMinExposure == nil then
-			v135_ = self.fixedExposureCurve:get(v134_)
-			v136_ = v135_
-			v137_ = 0.18
+			minExposure = self.fixedExposureCurve:get(dayMinutes)
+			maxExposure = minExposure
+			keyValue = 0.18
 		else
-			v137_ = self.fixedKeyValue
-			v135_ = self.fixedMinExposure
-			v136_ = self.fixedMaxExposure
+			keyValue = self.fixedKeyValue
+			minExposure = self.fixedMinExposure
+			maxExposure = self.fixedMaxExposure
 		end
 	elseif self.fixedKeyValue == nil then
-		v137_, v135_, v136_ = self.autoExposureCurve:get(v134_)
+		keyValue, minExposure, maxExposure = self.autoExposureCurve:get(dayMinutes)
 	elseif self.fixedMinExposure == nil then
-		local v138_
-		v138_, v135_, v136_ = self.autoExposureCurve:get(v134_)
-		v137_ = self.fixedKeyValue
+		local _ = nil
+		_, minExposure, maxExposure = self.autoExposureCurve:get(dayMinutes)
+		keyValue = self.fixedKeyValue
 	else
-		v137_ = self.fixedKeyValue
-		v135_ = self.fixedMinExposure
-		v136_ = self.fixedMaxExposure
+		keyValue = self.fixedKeyValue
+		minExposure = self.fixedMinExposure
+		maxExposure = self.fixedMaxExposure
 	end
-	setExposureRange(v137_, v135_, v136_)
+	setExposureRange(keyValue, minExposure, maxExposure)
 end
-
 function Lighting:updateCurves()
 	self.lightScatteringRotCurve = self:createCurve(linearInterpolator2, self.lightScatteringRotationCurveData)
 	self.asymmetryFactorCurve = self:createCurve(linearInterpolator1, self.asymmetryFactorCurveData)
@@ -434,84 +385,70 @@ function Lighting:updateCurves()
 	self:updateSunHeight()
 	self.sunRotCurve = self:createCurve(linearInterpolator1, self.sunRotationCurveData)
 end
-
--- Local values: curve, i, values
 function Lighting:createCurve(interpolator, data)
-	local v143_ = AnimCurve.new(interpolator)
+	local curve = AnimCurve.new(interpolator)
 	if data == nil then
 		printCallstack()
 	end
-	for v144_ = 1, #data do
-		local v145_ = data[v144_]
-		local v146_ = {
-			["time"] = self:getTimeFromHardcoded(v145_[1]) * 60
-		}
-		local v147_ = v145_[2]
-		__set_list(v146_, 1, {unpack(v147_)})
-		v143_:addKeyframe(v146_)
+	for i = 1, #data do
+		local values = data[i]
+		curve:addKeyframe({ unpack(values[2]), ["time"] = self:getTimeFromHardcoded(values[1]) * 60 })
 	end
-	return v143_
+	return curve
 end
-
--- Local values: dayStart, dayEnd, nightStart, nightEnd, alpha, alpha, alpha, alpha, alpha
 function Lighting:getTimeFromHardcoded(hardcoded)
-	local v150_ = self.dayStart
-	local v151_ = self.dayEnd
-	local v152_ = self.nightStart
-	local v153_ = self.nightEnd
+	local dayStart = self.dayStart
+	local dayEnd = self.dayEnd
+	local nightStart = self.nightStart
+	local nightEnd = self.nightEnd
 	if hardcoded < 6 then
-		return v153_ * (hardcoded / 6)
-	end
-	if hardcoded >= 6 and hardcoded < 7 then
-		local v154_ = hardcoded - 6
-		return (v150_ - v153_) * v154_ + v153_
-	end
-	if hardcoded >= 7 and hardcoded < 19 then
-		local v155_ = (hardcoded - 7) / 12
-		return (v151_ - v150_) * v155_ + v150_
-	end
-	if hardcoded >= 19 and hardcoded < 20 then
-		local v156_ = hardcoded - 19
-		return (v152_ - v151_) * v156_ + v151_
-	end
-	if hardcoded < 20 or hardcoded > 24 then
+		local alpha = hardcoded / 6
+		return nightEnd * alpha
+	elseif 6 <= hardcoded and hardcoded < 7 then
+		local alpha = hardcoded - 6
+		return (dayStart - nightEnd) * alpha + nightEnd
+	elseif 7 <= hardcoded and hardcoded < 19 then
+		local alpha = (hardcoded - 7) / 12
+		return (dayEnd - dayStart) * alpha + dayStart
+	elseif 19 <= hardcoded and hardcoded < 20 then
+		local alpha = hardcoded - 19
+		return (nightStart - dayEnd) * alpha + dayEnd
+	elseif 20 <= hardcoded and hardcoded <= 24 then
+		local alpha = (hardcoded - 20) / 4
+		return (24 - nightStart) * alpha + nightStart
+	else
 		return 0
 	end
-	local v157_ = (hardcoded - 20) / 4
-	return (24 - v152_) * v157_ + v152_
 end
-
--- Local values: dayStart, dayEnd, nightStart, nightEnd, alpha, alpha, alpha, alpha, alpha
 function Lighting:getHardcodedFromTime(time)
-	local v160_ = self.dayStart
-	local v161_ = self.dayEnd
-	local v162_ = self.nightStart
-	local v163_ = self.nightEnd
-	if time < v163_ then
-		return 6 * (time / v163_)
-	elseif v163_ <= time and time < v160_ then
-		return 1 * ((time - v163_) / (v160_ - v163_)) + 6
-	elseif v160_ <= time and time < v161_ then
-		return 12 * ((time - v160_) / (v161_ - v160_)) + 7
-	elseif v161_ <= time and time < v162_ then
-		return 1 * ((time - v161_) / (v162_ - v161_)) + 19
+	local dayStart = self.dayStart
+	local dayEnd = self.dayEnd
+	local nightStart = self.nightStart
+	local nightEnd = self.nightEnd
+	if time < nightEnd then
+		local alpha = time / nightEnd
+		return 6 * alpha
+	elseif nightEnd <= time and time < dayStart then
+		local alpha = (time - nightEnd) / (dayStart - nightEnd)
+		return 1 * alpha + 6
+	elseif dayStart <= time and time < dayEnd then
+		local alpha = (time - dayStart) / (dayEnd - dayStart)
+		return 12 * alpha + 7
+	elseif dayEnd <= time and time < nightStart then
+		local alpha = (time - dayEnd) / (nightStart - dayEnd)
+		return 1 * alpha + 19
 	else
-		return 4 * ((time - v162_) / (24 - v162_)) + 20
+		local alpha = (time - nightStart) / (24 - nightStart)
+		return 4 * alpha + 20
 	end
 end
-
--- Local values: curve, _, data
 function Lighting:getColorGradingFileCurve()
-	local v165_ = AnimCurve.new(Lighting.fileInterpolator)
-	for _, v166_ in ipairs(self.colorGradingData) do
-		v165_:addKeyframe({
-			["time"] = self:getTimeFromHardcoded(v166_[1]) * 60,
-			["file"] = v166_[2]
-		})
+	local curve = AnimCurve.new(Lighting.fileInterpolator)
+	for _, data in ipairs(self.colorGradingData) do
+		curve:addKeyframe({ time = self:getTimeFromHardcoded(data[1]) * 60, file = data[2] })
 	end
-	return v165_
+	return curve
 end
-
 function Lighting:setDaylightTimes(dayStart, dayEnd, nightEnd, nightStart)
 	if self.dayStart ~= dayStart and (self.dayEnd ~= dayEnd and (self.nightEnd ~= nightEnd and self.nightStart ~= nightStart)) then
 		self.dayStart = dayStart
@@ -521,7 +458,6 @@ function Lighting:setDaylightTimes(dayStart, dayEnd, nightEnd, nightStart)
 		self:updateCurves()
 	end
 end
-
 function Lighting:setFixedExposureSettings(keyValue, minExposure, maxExposure)
 	if maxExposure == nil then
 		maxExposure = minExposure
@@ -530,21 +466,15 @@ function Lighting:setFixedExposureSettings(keyValue, minExposure, maxExposure)
 	self.fixedMinExposure = minExposure
 	self.fixedMaxExposure = maxExposure
 end
-
 function Lighting:getDaylightFactor()
 	return self.lastDaylightFactor
 end
-
--- Local values: hours, minutesPerc, minutes, seconds
 function Lighting.getEnvMapBaseFilename(dayTimeHours, cloudSetup)
-	local v179_, v180_ = math.modf(dayTimeHours)
-	local v181_ = v180_ * 60
-	local v182_, v183_ = math.modf(v181_)
-	local v184_ = v183_ * 60
-	local v185_ = math.floor(v184_)
-	return string.format("%d_%d_%d_C%d", v179_, v182_, v185_, cloudSetup)
+	local hours, minutesPerc = math.modf(dayTimeHours)
+	local minutes, seconds = math.modf(minutesPerc * 60)
+	seconds = math.floor(seconds * 60)
+	return string.format("%d_%d_%d_C%d", hours, minutes, seconds, cloudSetup)
 end
-
 function Lighting.fileInterpolator(first, second, alpha)
 	return first.file, second.file, alpha
 end

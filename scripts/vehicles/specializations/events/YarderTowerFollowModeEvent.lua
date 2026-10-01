@@ -1,31 +1,25 @@
--- Local values: YarderTowerFollowModeEvent_mt
 YarderTowerFollowModeEvent = {}
 local YarderTowerFollowModeEvent_mt = Class(YarderTowerFollowModeEvent, Event)
 InitStaticEventClass(YarderTowerFollowModeEvent, "YarderTowerFollowModeEvent")
 function YarderTowerFollowModeEvent.emptyNew()
-	-- upvalues: (copy) YarderTowerFollowModeEvent_mt
-	return Event.new(YarderTowerFollowModeEvent_mt)
+	local self = Event.new(YarderTowerFollowModeEvent_mt)
+	return self
 end
-
--- Local values: self
 function YarderTowerFollowModeEvent.new(object, state)
-	local v4_ = YarderTowerFollowModeEvent.emptyNew()
-	v4_.object = object
-	v4_.state = state
-	return v4_
+	local self = YarderTowerFollowModeEvent.emptyNew()
+	self.object = object
+	self.state = state
+	return self
 end
-
 function YarderTowerFollowModeEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.state = streamReadUIntN(streamId, 2)
 	self:run(connection)
 end
-
 function YarderTowerFollowModeEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	streamWriteUIntN(streamId, self.state, 2)
 end
-
 function YarderTowerFollowModeEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -34,7 +28,6 @@ function YarderTowerFollowModeEvent:run(connection)
 		self.object:setYarderCarriageFollowMode(self.state, connection, true)
 	end
 end
-
 function YarderTowerFollowModeEvent.sendEvent(vehicle, state, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

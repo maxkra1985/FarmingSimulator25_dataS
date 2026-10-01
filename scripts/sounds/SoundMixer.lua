@@ -1,198 +1,173 @@
--- Local values: SoundMixer_mt
 SoundMixer = {}
 local SoundMixer_mt = Class(SoundMixer)
-
--- Upvalues: SoundMixer_mt
--- Local values: self, _, groupIndex
 function SoundMixer.new(customMt)
-	-- upvalues: (copy) SoundMixer_mt
-	local v3_ = customMt or SoundMixer_mt
-	local v4_ = setmetatable({}, v3_)
-	g_messageCenter:subscribe(MessageType.GAME_STATE_CHANGED, v4_.onGameStateChanged, v4_)
-	v4_.masterVolume = 1
-	v4_.gameStates = {}
-	v4_.volumes = {}
-	v4_.volumeFactors = {}
-	v4_.volumeChangedListeners = {}
-	for _, v5_ in pairs(AudioGroup.groups) do
-		v4_.volumeFactors[v5_] = 1
-		v4_.volumeChangedListeners[v5_] = {}
+	local self = setmetatable({}, customMt or SoundMixer_mt)
+	g_messageCenter:subscribe(MessageType.GAME_STATE_CHANGED, self.onGameStateChanged, self)
+	self.masterVolume = 1
+	self.gameStates = {}
+	self.volumes = {}
+	self.volumeFactors = {}
+	self.volumeChangedListeners = {}
+	for _, groupIndex in pairs(AudioGroup.groups) do
+		self.volumeFactors[groupIndex] = 1
+		self.volumeChangedListeners[groupIndex] = {}
 	end
-	addConsoleCommand("gsSoundMixerDebug", "Toggle sound mixer debug mode", "consoleCommandToggleDebug", v4_)
-	return v4_
+	addConsoleCommand("gsSoundMixerDebug", "Toggle sound mixer debug mode", "consoleCommandToggleDebug", self)
+	return self
 end
-
--- Local values: _, groupIndex, xmlFile, i, gameStateKey, gameStateName, gameStateIndex, gameState, j, audioGroupKey, name, volume, fadeInDuration, fadeOutDuration, audioGroupIndex, currentGameState, gameStateAudioGroups, _, groupIndex, data, volume
 function SoundMixer:loadFromXML(xmlFilepath)
-	for _, v8_ in pairs(AudioGroup.groups) do
-		self.volumeFactors[v8_] = self.volumeFactors[v8_] or 1
-		self.volumeChangedListeners[v8_] = self.volumeChangedListeners[v8_] or {}
+	for _, groupIndex in pairs(AudioGroup.groups) do
+		self.volumeFactors[groupIndex] = self.volumeFactors[groupIndex] or 1
+		self.volumeChangedListeners[groupIndex] = self.volumeChangedListeners[groupIndex] or {}
 	end
-	local v9_ = loadXMLFile("soundMixerXML", xmlFilepath)
-	if v9_ ~= nil and v9_ ~= 0 then
-		local v10_ = 0
+	local xmlFile = loadXMLFile("soundMixerXML", xmlFilepath)
+	if xmlFile ~= nil and xmlFile ~= 0 then
+		local i = 0
 		while true do
-			local v11_ = string.format("soundMixer.gameState(%d)", v10_)
-			if not hasXMLProperty(v9_, v11_) then
+			local gameStateKey = string.format("soundMixer.gameState(%d)", i)
+			if not hasXMLProperty(xmlFile, gameStateKey) then
 				break
 			end
-			local v12_ = getXMLString(v9_, v11_ .. "#name")
-			local v13_ = g_gameStateManager:getGameStateIndexByName(v12_)
-			if v13_ == nil then
-				Logging.xmlWarning(v9_, "Game-State \'%s\' is not defined for state \'%s\'!", v12_, v11_)
-			else
-				local v14_ = 0
-				local v15_ = {}
+			local gameStateName = getXMLString(xmlFile, gameStateKey .. "#name")
+			local gameStateIndex = g_gameStateManager:getGameStateIndexByName(gameStateName)
+			if gameStateIndex ~= nil then
+				local gameState = {}
+				local j = 0
 				while true do
-					local v16_ = string.format("%s.audioGroup(%d)", v11_, v14_)
-					if not hasXMLProperty(v9_, v16_) then
+					local audioGroupKey = string.format("%s.audioGroup(%d)", gameStateKey, j)
+					if not hasXMLProperty(xmlFile, audioGroupKey) then
 						break
 					end
-					local v17_ = getXMLString(v9_, v16_ .. "#name")
-					local v18_ = getXMLFloat(v9_, v16_ .. "#volume") or 1
-					local v19_ = (getXMLFloat(v9_, v16_ .. "#fadeOutDuration") or 0.5) * 1000
-					local v20_ = (getXMLFloat(v9_, v16_ .. "#fadeOutDuration") or 0.5) * 1000
-					local v21_ = AudioGroup.getAudioGroupIndexByName(v17_)
-					if v21_ == nil then
-						Logging.xmlWarning(v9_, "Audio-Group \'%s\' in game state \'%s\' (%s) is not defined!", v17_, v12_, v11_)
+					local name = getXMLString(xmlFile, audioGroupKey .. "#name")
+					local volume = getXMLFloat(xmlFile, audioGroupKey .. "#volume") or 1
+					local fadeInDuration = (getXMLFloat(xmlFile, audioGroupKey .. "#fadeOutDuration") or 0.5) * 1000
+					local fadeOutDuration = (getXMLFloat(xmlFile, audioGroupKey .. "#fadeOutDuration") or 0.5) * 1000
+					local audioGroupIndex = AudioGroup.getAudioGroupIndexByName(name)
+					if audioGroupIndex ~= nil then
+						gameState[audioGroupIndex] = { volume = volume, fadeInDuration = fadeInDuration, fadeOutDuration = fadeOutDuration }
 					else
-						v15_[v21_] = {
-							["volume"] = v18_,
-							["fadeInDuration"] = v19_,
-							["fadeOutDuration"] = v20_
-						}
+						Logging.xmlWarning(xmlFile, "Audio-Group '%s' in game state '%s' (%s) is not defined!", name, gameStateName, gameStateKey)
 					end
-					v14_ = v14_ + 1
+					j = j + 1
 				end
-				self.gameStates[v13_] = v15_
+				self.gameStates[gameStateIndex] = gameState
+			else
+				Logging.xmlWarning(xmlFile, "Game-State '%s' is not defined for state '%s'!", gameStateName, gameStateKey)
 			end
-			v10_ = v10_ + 1
+			i = i + 1
 		end
-		delete(v9_)
+		delete(xmlFile)
 	end
-	local v22_ = g_gameStateManager:getGameState()
-	local v23_ = self.gameStates[v22_] or self.gameStates[GameState.LOADING]
-	for _, v24_ in ipairs(AudioGroup.groups) do
-		if v23_ then
-			local _ = v23_[v24_]
-		end
-		self.volumes[v24_] = 0
-		setAudioGroupVolume(v24_, 0)
+	local currentGameState = g_gameStateManager:getGameState()
+	local gameStateAudioGroups = self.gameStates[currentGameState] or self.gameStates[GameState.LOADING]
+	for _, groupIndex in ipairs(AudioGroup.groups) do
+		local data = gameStateAudioGroups and gameStateAudioGroups[groupIndex]
+		local volume = 0
+		self.volumes[groupIndex] = volume
+		setAudioGroupVolume(groupIndex, 0)
 	end
 end
-
 function SoundMixer:delete()
 	g_messageCenter:unsubscribeAll(self)
 	removeConsoleCommand("gsSoundMixerDebug")
 end
-
--- Local values: gameStateIndex, gameState, isDone, audioGroupIndex, data, currentVolume, target, dir, func, fadeDuration, changePerFrame, _, listener
 function SoundMixer:update(dt)
 	if self.isDirty then
-		local v28_ = g_gameStateManager:getGameState()
-		local v29_ = self.gameStates[v28_]
-		if v29_ ~= nil then
-			local v30_ = true
-			for v31_, v32_ in pairs(v29_) do
-				local v33_ = self.volumes[v31_]
-				local v34_ = v32_.volume * self.volumeFactors[v31_]
-				if v33_ ~= v34_ then
-					v30_ = false
-					local v35_ = math.min
-					local v36_ = v32_.fadeInDuration
-					local v37_
-					if v34_ < v33_ then
-						v35_ = math.max
-						v36_ = v32_.fadeOutDuration
-						v37_ = -1
-					else
-						v37_ = 1
-					end
-					local v38_ = v35_(v33_ + v37_ * (v36_ <= 0 and 1 or dt / v36_), v34_)
-					setAudioGroupVolume(v31_, v38_)
-					self.volumes[v31_] = v38_
-					for _, v39_ in ipairs(self.volumeChangedListeners[v31_]) do
-						v39_.func(v39_.target, v31_, v38_)
-					end
+		local gameStateIndex = g_gameStateManager:getGameState()
+		local gameState = self.gameStates[gameStateIndex]
+		if gameState ~= nil then
+			local isDone = true
+			for audioGroupIndex, data in pairs(gameState) do
+				local currentVolume = self.volumes[audioGroupIndex]
+				local target = data.volume * self.volumeFactors[audioGroupIndex]
+				if currentVolume == target then
+					continue
+				end
+				isDone = false
+				local dir = 1
+				local func = math.min
+				local fadeDuration = data.fadeInDuration
+				if target < currentVolume then
+					dir = -1
+					func = math.max
+					fadeDuration = data.fadeOutDuration
+				end
+				local changePerFrame = 1
+				if 0 < fadeDuration then
+					changePerFrame = dt / fadeDuration
+				end
+				currentVolume = func(currentVolume + dir * changePerFrame, target)
+				setAudioGroupVolume(audioGroupIndex, currentVolume)
+				self.volumes[audioGroupIndex] = currentVolume
+				for _, listener in ipairs(self.volumeChangedListeners[audioGroupIndex]) do
+					listener.func(listener.target, audioGroupIndex, currentVolume)
 				end
 			end
-			if v30_ then
+			if isDone then
 				self.isDirty = false
 			end
 		end
 	end
 end
-
 function SoundMixer:immediateUpdate()
 	self:update(99999)
 end
-
--- Local values: gameStateIndex, gameStateName, stateName, stateValue, lineIndex, gameState, audioGroupIndex, audioGroupData, currentVolume, targetVolume
 function SoundMixer:drawDebug()
-	local v42_ = g_gameStateManager:getGameState()
-	local v43_ = "None"
-	for v44_, v45_ in pairs(GameState) do
-		if v45_ == v42_ then
-			v43_ = v44_
+	local gameStateIndex = g_gameStateManager:getGameState()
+	local gameStateName = "None"
+	for stateName, stateValue in pairs(GameState) do
+		if stateValue == gameStateIndex then
+			gameStateName = stateName
 			break
 		end
 	end
-	renderText(0.8, 0.7, 0.015, string.format("current GameState: %s (%d)", v43_, v42_ or -1))
-	local v46_ = 1
+	renderText(0.8, 0.7, 0.015, string.format("current GameState: %s (%d)", gameStateName, gameStateIndex or -1))
+	local lineIndex = 1
 	setTextAlignment(RenderText.ALIGN_RIGHT)
-	renderText(0.83, 0.7 - v46_ * 0.015, 0.015, "AudioGroup")
+	renderText(0.83, 0.7 - lineIndex * 0.015, 0.015, "AudioGroup")
 	setTextAlignment(RenderText.ALIGN_LEFT)
-	renderText(0.85, 0.7 - v46_ * 0.015, 0.015, "curVol")
-	renderText(0.9, 0.7 - v46_ * 0.015, 0.015, "targetVol")
-	renderText(0.95, 0.7 - v46_ * 0.015, 0.015, "volFactor")
-	local v47_ = v46_ + 1
-	local v48_ = self.gameStates[v42_]
-	for v49_, v50_ in pairs(v48_) do
-		local v51_ = self.volumes[v49_]
-		local v52_ = v50_.volume * self.volumeFactors[v49_]
+	renderText(0.85, 0.7 - lineIndex * 0.015, 0.015, "curVol")
+	renderText(0.9, 0.7 - lineIndex * 0.015, 0.015, "targetVol")
+	renderText(0.95, 0.7 - lineIndex * 0.015, 0.015, "volFactor")
+	lineIndex = lineIndex + 1
+	local gameState = self.gameStates[gameStateIndex]
+	for audioGroupIndex, audioGroupData in pairs(gameState) do
+		local currentVolume = self.volumes[audioGroupIndex]
+		local targetVolume = audioGroupData.volume * self.volumeFactors[audioGroupIndex]
 		setTextAlignment(RenderText.ALIGN_RIGHT)
-		renderText(0.83, 0.7 - v47_ * 0.015, 0.015, string.format("%s (%d)", AudioGroup.getAudioGroupNameByIndex(v49_), v49_))
+		renderText(0.83, 0.7 - lineIndex * 0.015, 0.015, string.format("%s (%d)", AudioGroup.getAudioGroupNameByIndex(audioGroupIndex), audioGroupIndex))
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		renderText(0.85, 0.7 - v47_ * 0.015, 0.015, string.format("%.2f", v51_))
-		renderText(0.9, 0.7 - v47_ * 0.015, 0.015, string.format("%.2f", v52_))
-		renderText(0.95, 0.7 - v47_ * 0.015, 0.015, string.format("%.2f", self.volumeFactors[v49_]))
-		v47_ = v47_ + 1
+		renderText(0.85, 0.7 - lineIndex * 0.015, 0.015, string.format("%.2f", currentVolume))
+		renderText(0.9, 0.7 - lineIndex * 0.015, 0.015, string.format("%.2f", targetVolume))
+		renderText(0.95, 0.7 - lineIndex * 0.015, 0.015, string.format("%.2f", self.volumeFactors[audioGroupIndex]))
+		lineIndex = lineIndex + 1
 	end
 end
-
 function SoundMixer:setAudioGroupVolumeFactor(audioGroupIndex, factor)
 	if audioGroupIndex ~= nil and self.volumeFactors[audioGroupIndex] ~= nil then
 		self.volumeFactors[audioGroupIndex] = factor
 		self.isDirty = true
 	end
 end
-
 function SoundMixer:getAudioGroupVolume(audioGroupIndex)
 	return self.volumes[audioGroupIndex]
 end
-
 function SoundMixer:setMasterVolume(masterVolume)
 	self.masterVolume = masterVolume
 	setMasterVolume(masterVolume)
 end
-
--- Local values: gameState
 function SoundMixer:onGameStateChanged(gameStateId, oldGameState)
-	if self.gameStates[gameStateId] ~= nil then
+	local gameState = self.gameStates[gameStateId]
+	if gameState ~= nil then
 		self.isDirty = true
 	end
 end
-
 function SoundMixer:addVolumeChangedListener(audioGroupIndex, func, target)
 	if self.volumeChangedListeners[audioGroupIndex] == nil then
 		self.volumeChangedListeners[audioGroupIndex] = {}
 	end
-	table.addElement(self.volumeChangedListeners[audioGroupIndex], {
-		["func"] = func,
-		["target"] = target
-	})
+	table.addElement(self.volumeChangedListeners[audioGroupIndex], { func = func, target = target })
 end
-
 function SoundMixer:consoleCommandToggleDebug()
 	self.debugEnabled = not self.debugEnabled
 	if g_debugManager ~= nil then

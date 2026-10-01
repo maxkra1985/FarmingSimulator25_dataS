@@ -1,4 +1,3 @@
--- Local values: Connection_mt
 Connection = {}
 source("dataS/scripts/network/DisconnectReason.lua")
 local Connection_mt = Class(Connection)
@@ -19,105 +18,91 @@ Connection.SEND_INFO_CREATE = 1
 Connection.SEND_INFO_SYNC = 2
 Connection.SEND_INFO_UPDATE = 3
 Connection.SEND_INFO_REMOVE = 4
-
--- Upvalues: Connection_mt
--- Local values: self
 function Connection.new(id, isServer, reverseConnection)
-	-- upvalues: (copy) Connection_mt
-	local v5_ = Connection_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.streamId = id
-	v6_.isServer = isServer
-	v6_.isConnected = true
-	v6_.isReadyForObjects = false
-	v6_.isReadyForEvents = false
-	v6_.objectsInfo = {}
-	v6_.pendingDeleteObjects = {}
-	v6_.pendingDeleteObjectPacketIds = {}
-	v6_.compressionRatio = 1
-	v6_.sendStatsTime = 0
-	v6_.lastSeqSent = 0
-	v6_.lastSeqReceived = 0
-	v6_.highestAckedSeq = 0
-	v6_.ackMask = 0
-	v6_.hasPacketsToAck = false
-	v6_.ackPingPacketSent = false
-	if v6_.streamId == NetworkNode.LOCAL_STREAM_ID then
-		v6_:setIsReadyForObjects(true)
-		v6_:setIsReadyForEvents(true)
+	local self = setmetatable({}, Connection_mt)
+	self.streamId = id
+	self.isServer = isServer
+	self.isConnected = true
+	self.isReadyForObjects = false
+	self.isReadyForEvents = false
+	self.objectsInfo = {}
+	self.pendingDeleteObjects = {}
+	self.pendingDeleteObjectPacketIds = {}
+	self.compressionRatio = 1
+	self.sendStatsTime = 0
+	self.lastSeqSent = 0
+	self.lastSeqReceived = 0
+	self.highestAckedSeq = 0
+	self.ackMask = 0
+	self.hasPacketsToAck = false
+	self.ackPingPacketSent = false
+	if self.streamId == NetworkNode.LOCAL_STREAM_ID then
+		self:setIsReadyForObjects(true)
+		self:setIsReadyForEvents(true)
 		if reverseConnection ~= nil then
-			v6_.localConnection = reverseConnection
-			return v6_
+			self.localConnection = reverseConnection
+			return self
 		end
-		v6_.localConnection = Connection.new(id, not isServer, v6_)
-		v6_.localConnection:setIsReadyForObjects(true)
-		v6_.localConnection:setIsReadyForEvents(true)
+		self.localConnection = Connection.new(id, not isServer, self)
+		self.localConnection:setIsReadyForObjects(true)
+		self.localConnection:setIsReadyForEvents(true)
 	end
-	return v6_
+	return self
 end
-
 function Connection:setIsReadyForObjects(isReadyForObjects)
 	self.isReadyForObjects = isReadyForObjects
 end
-
 function Connection:setIsReadyForEvents(isReadyForEvents)
 	self.isReadyForEvents = isReadyForEvents
 end
-
--- Local values: sendSize, sendSizeCompressed, compressionRatio
 function Connection:updateSendStats(tickSum)
 	self.sendStatsTime = self.sendStatsTime + tickSum
-	if self.sendStatsTime > 100 then
+	if 100 < self.sendStatsTime then
 		self.sendStatsTime = 0
-		local v13_, v14_ = netGetAndResetConnectionSendStats(self.streamId)
-		local v15_
-		if v14_ > 0 then
-			local v16_ = v13_ / v14_
-			v15_ = math.clamp(v16_, 1, 5)
-		else
-			v15_ = 1
+		local sendSize, sendSizeCompressed = netGetAndResetConnectionSendStats(self.streamId)
+		local compressionRatio = 1
+		if 0 < sendSizeCompressed then
+			compressionRatio = math.clamp(sendSize / sendSizeCompressed, 1, 5)
 		end
-		self.compressionRatio = 0.8 * self.compressionRatio + 0.2 * v15_
+		self.compressionRatio = 0.8 * self.compressionRatio + 0.2 * compressionRatio
 	end
 end
-
--- Local values: networkChannel, startOffset, endOffset, dataSent
 function Connection:sendEvent(event, deleteEvent, force)
-	if self.isConnected then
+	if not self.isConnected then
+		return
+	else
 		if self.streamId == NetworkNode.LOCAL_STREAM_ID then
 			event:run(self.localConnection)
 		elseif self.isReadyForEvents or force then
 			if event.eventId == nil then
 				printError("Error: Invalid event id for " .. (ClassUtil.getClassNameByObject(event) or "<unable to retrieve class>"))
 			else
-				local v21_ = event.networkChannel
-				if g_server ~= nil and v21_ == NetworkNode.CHANNEL_MAIN then
+				local networkChannel = event.networkChannel
+				if g_server ~= nil and networkChannel == NetworkNode.CHANNEL_MAIN then
 					g_server:setCurrentReliableWriteStreamConnection(self)
 				end
 				streamWriteUIntN(self.streamId, MessageIds.EVENT, MessageIds.SEND_NUM_BITS)
 				streamWriteUIntN(self.streamId, event.eventId, EventIds.SEND_NUM_BITS)
 				streamWriteBool(self.streamId, g_networkDebug)
-				local v22_
+				local startOffset = nil
 				if g_networkDebug then
-					v22_ = streamGetWriteOffset(self.streamId)
+					startOffset = streamGetWriteOffset(self.streamId)
 					streamWriteInt32(self.streamId, 0)
-				else
-					v22_ = nil
 				end
 				event:writeStream(self.streamId, self)
 				if g_networkDebug then
-					local v23_ = streamGetWriteOffset(self.streamId)
-					streamSetWriteOffset(self.streamId, v22_)
-					streamWriteInt32(self.streamId, v23_ - (v22_ + 32))
-					streamSetWriteOffset(self.streamId, v23_)
+					local endOffset = streamGetWriteOffset(self.streamId)
+					streamSetWriteOffset(self.streamId, startOffset)
+					streamWriteInt32(self.streamId, endOffset - (startOffset + 32))
+					streamSetWriteOffset(self.streamId, endOffset)
 				end
-				local v24_ = streamGetWriteOffset(self.streamId)
-				netSendStream(self.streamId, "high", "reliable_ordered", v21_, true)
-				if g_server == nil then
-					g_client:addPacketSize(self, NetworkNode.PACKET_EVENT, v24_ / 8)
-				else
+				local dataSent = streamGetWriteOffset(self.streamId)
+				netSendStream(self.streamId, "high", "reliable_ordered", networkChannel, true)
+				if g_server ~= nil then
 					g_server:setCurrentReliableWriteStreamConnection(nil)
-					g_server:addPacketSize(self, NetworkNode.PACKET_EVENT, v24_ / 8)
+					g_server:addPacketSize(self, NetworkNode.PACKET_EVENT, dataSent / 8)
+				else
+					g_client:addPacketSize(self, NetworkNode.PACKET_EVENT, dataSent / 8)
 				end
 			end
 		end
@@ -126,37 +111,46 @@ function Connection:sendEvent(event, deleteEvent, force)
 		end
 	end
 end
-
--- Local values: objectInfo, isInQueueState
 function Connection:queueSendEvent(event, force, ghostObject)
-	if self.isConnected then
+	if not self.isConnected then
+		return
+	else
 		if self.isReadyForEvents or force then
-			local v29_ = self.objectsInfo[ghostObject.id]
-			if v29_ ~= nil and (v29_.sync == Connection.SYNC_CREATING or (v29_.sync == Connection.SYNC_CREATING_DELAYED or (v29_.sync == Connection.SYNC_LOADED or v29_.sync == Connection.SYNC_SYNCING)) or v29_.sync == Connection.SYNC_MANUALLY_REGISTERED) then
-				event.queueCount = event.queueCount + 1
-				if v29_.eventQueue == nil then
-					v29_.eventQueue = {}
+			local objectInfo = self.objectsInfo[ghostObject.id]
+			if objectInfo ~= nil then
+				local isInQueueState = true
+				if objectInfo.sync ~= Connection.SYNC_CREATING then
+					isInQueueState = true
+					if objectInfo.sync ~= Connection.SYNC_CREATING_DELAYED then
+						isInQueueState = true
+						if objectInfo.sync ~= Connection.SYNC_LOADED then
+							isInQueueState = true
+							if objectInfo.sync ~= Connection.SYNC_SYNCING then
+								isInQueueState = objectInfo.sync == Connection.SYNC_MANUALLY_REGISTERED
+							end
+						end
+					end
 				end
-				local v30_ = v29_.eventQueue
-				table.insert(v30_, event)
-				return
+				if isInQueueState then
+					event.queueCount = event.queueCount + 1
+					if objectInfo.eventQueue == nil then
+						objectInfo.eventQueue = {}
+					end
+					table.insert(objectInfo.eventQueue, event)
+				end
 			end
 		end
 	end
 end
-
 function Connection:getIsClient()
 	return not self.isServer
 end
-
 function Connection:getIsServer()
 	return self.isServer
 end
-
 function Connection:getIsLocal()
 	return self.streamId == NetworkNode.LOCAL_STREAM_ID
 end
-
 function Connection:writeUpdateAck(streamId)
 	self.lastSeqSent = self.lastSeqSent + 1
 	streamWriteUInt8(streamId, self.lastSeqSent % 256)
@@ -164,190 +158,168 @@ function Connection:writeUpdateAck(streamId)
 	streamWriteUInt32(streamId, self.ackMask)
 	self.hasPacketsToAck = false
 end
-
--- Local values: seq, highestAck, ackMask, i, isTransmitted
 function Connection:readUpdateAck(streamId)
-	local v38_ = streamReadUInt8(streamId)
-	local v39_ = streamReadUInt8(streamId)
-	local v40_ = streamReadUInt32(streamId)
-	local v41_ = self.lastSeqReceived
-	local v42_ = v38_ + bit32.band(v41_, 4294967040)
-	if v42_ < self.lastSeqReceived then
-		v42_ = v42_ + 256
+	local seq = streamReadUInt8(streamId)
+	local highestAck = streamReadUInt8(streamId)
+	local ackMask = streamReadUInt32(streamId)
+	seq = seq + bit32.band(self.lastSeqReceived, 4294967040)
+	if seq < self.lastSeqReceived then
+		seq = seq + 256
 	end
-	if self.lastSeqReceived + 31 < v42_ then
+	if self.lastSeqReceived + 31 < seq then
 		return false
 	end
-	local v43_ = self.highestAckedSeq
-	local v44_ = v39_ + bit32.band(v43_, 4294967040)
-	if v44_ < self.highestAckedSeq then
-		v44_ = v44_ + 256
+	highestAck = highestAck + bit32.band(self.highestAckedSeq, 4294967040)
+	if highestAck < self.highestAckedSeq then
+		highestAck = highestAck + 256
 	end
-	if self.lastSeqSent < v44_ then
+	if self.lastSeqSent < highestAck then
 		return false
-	end
-	local v45_ = self.ackMask
-	local v46_ = v42_ - self.lastSeqReceived
-	self.ackMask = bit32.lshift(v45_, v46_)
-	self.ackMask = self.ackMask + 1
-	self.hasPacketsToAck = true
-	for v47_ = self.highestAckedSeq + 1, v44_ do
-		local v48_ = v44_ - v47_
-		local v49_ = bit32.lshift(1, v48_)
-		if bit32.band(v40_, v49_) ~= 0 then
-			self:onPacketSent(v47_)
-		else
-			self:onPacketLost(v47_)
-		end
-	end
-	self.highestAckedSeq = v44_
-	self.lastSeqReceived = v42_
-	return true
-end
-
-function Connection:getIsWindowFull()
-	return self.lastSeqSent - self.highestAckedSeq >= 29
-end
-
--- Local values: objectInfo
-function Connection:getObjectSyncState(objectId)
-	local v53_ = self.objectsInfo[objectId]
-	if v53_ == nil then
-		return nil
 	else
-		return v53_.sync
+		self.ackMask = bit32.lshift(self.ackMask, seq - self.lastSeqReceived)
+		self.ackMask = self.ackMask + 1
+		self.hasPacketsToAck = true
+		for i = self.highestAckedSeq + 1, highestAck do
+			local isTransmitted = bit32.band(ackMask, bit32.lshift(1, highestAck - i)) ~= 0
+			if isTransmitted then
+				self:onPacketSent(i)
+			else
+				self:onPacketLost(i)
+			end
+		end
+		self.highestAckedSeq = highestAck
+		self.lastSeqReceived = seq
+		return true
 	end
 end
-
--- Local values: objectId, objectInfo, historyEntry, k, _, objectId, packetId
+function Connection:getIsWindowFull()
+	return 29 <= self.lastSeqSent - self.highestAckedSeq
+end
+function Connection:getObjectSyncState(objectId)
+	local objectInfo = self.objectsInfo[objectId]
+	if objectInfo ~= nil then
+		return objectInfo.sync
+	else
+		return nil
+	end
+end
 function Connection:onPacketSent(i)
-	for v56_, v57_ in pairs(self.objectsInfo) do
-		local v58_ = v57_.history[i]
-		if v58_ ~= nil then
-			if g_networkDebug then
-				for v59_, _ in pairs(v57_.history) do
-					local v60_ = i <= v59_
-					assert(v60_)
-				end
+	for objectId, objectInfo in pairs(self.objectsInfo) do
+		local historyEntry = objectInfo.history[i]
+		if historyEntry == nil then
+			continue
+		end
+		if g_networkDebug then
+			for k, _ in pairs(objectInfo.history) do
+				assert(i <= k)
 			end
-			v57_.history[i] = nil
-			if v58_.sync == Connection.SYNC_HIST_CREATE then
-				if v57_.sync == Connection.SYNC_CREATING then
-					v57_.sync = Connection.SYNC_CREATED
-					self:sendObjectEventQueue(v57_)
-				end
-			elseif v58_.sync == Connection.SYNC_HIST_SYNC then
-				if v57_.sync == Connection.SYNC_SYNCING then
-					v57_.sync = Connection.SYNC_CREATED
-					self:sendObjectEventQueue(v57_)
-				end
-			elseif v58_.sync == Connection.SYNC_HIST_REMOVE and v57_.sync == Connection.SYNC_REMOVING then
-				self.objectsInfo[v56_] = nil
+		end
+		objectInfo.history[i] = nil
+		if historyEntry.sync == Connection.SYNC_HIST_CREATE then
+			if objectInfo.sync == Connection.SYNC_CREATING then
+				objectInfo.sync = Connection.SYNC_CREATED
+				self:sendObjectEventQueue(objectInfo)
+			end
+		elseif historyEntry.sync == Connection.SYNC_HIST_SYNC then
+			if objectInfo.sync == Connection.SYNC_SYNCING then
+				objectInfo.sync = Connection.SYNC_CREATED
+				self:sendObjectEventQueue(objectInfo)
+			end
+		elseif historyEntry.sync == Connection.SYNC_HIST_REMOVE then
+			if objectInfo.sync == Connection.SYNC_REMOVING then
+				self.objectsInfo[objectId] = nil
 			end
 		end
 	end
-	for v61_, v62_ in pairs(self.pendingDeleteObjectPacketIds) do
-		if v62_ == i then
-			self.pendingDeleteObjectPacketIds[v61_] = nil
+	for objectId, packetId in pairs(self.pendingDeleteObjectPacketIds) do
+		if packetId == i then
+			self.pendingDeleteObjectPacketIds[objectId] = nil
 		end
 	end
 	g_currentMission:onConnectionPacketSent(self, i)
 end
-
--- Local values: objectId, objectInfo, historyEntry, k, _, laterUpdatedMask, _, h, notLaterUpdatedMask, objectId, packetId
 function Connection:onPacketLost(i)
-	for v65_, v66_ in pairs(self.objectsInfo) do
-		local v67_ = v66_.history[i]
-		if v67_ ~= nil then
-			if g_networkDebug then
-				for v68_, _ in pairs(v66_.history) do
-					local v69_ = i <= v68_
-					assert(v69_)
-				end
-			end
-			v66_.history[i] = nil
-			if v67_.sync == Connection.SYNC_HIST_CREATE then
-				if v66_.sync == Connection.SYNC_CREATING or v66_.sync == Connection.SYNC_CREATING_DELAYED then
-					if v66_.manuallyReplicated then
-						v66_.sync = Connection.SYNC_MANUALLY_REGISTERED
-					else
-						self.objectsInfo[v65_] = nil
-					end
-				end
-			elseif v67_.sync == Connection.SYNC_HIST_SYNC then
-				if v66_.sync == Connection.SYNC_SYNCING then
-					v66_.sync = Connection.SYNC_LOADED
-				end
-			elseif v67_.sync == Connection.SYNC_HIST_REMOVE then
-				if v66_.sync == Connection.SYNC_REMOVING then
-					v66_.sync = Connection.SYNC_CREATED
-				end
-			else
-				local v70_ = 0
-				for _, v71_ in pairs(v66_.history) do
-					local v72_ = v71_.mask
-					v70_ = bit32.bor(v70_, v72_)
-				end
-				local v73_ = v67_.mask
-				local v74_ = bit32.bnot(v70_)
-				local v75_ = bit32.band(v73_, v74_)
-				if v75_ ~= 0 then
-					local v76_ = v66_.dirtyMask
-					v66_.dirtyMask = bit32.bor(v76_, v75_)
-				end
+	for objectId, objectInfo in pairs(self.objectsInfo) do
+		local historyEntry = objectInfo.history[i]
+		if historyEntry == nil then
+			continue
+		end
+		if g_networkDebug then
+			for k, _ in pairs(objectInfo.history) do
+				assert(i <= k)
 			end
 		end
+		objectInfo.history[i] = nil
+		if historyEntry.sync == Connection.SYNC_HIST_CREATE then
+			if objectInfo.sync == Connection.SYNC_CREATING or objectInfo.sync == Connection.SYNC_CREATING_DELAYED then
+				if objectInfo.manuallyReplicated then
+					objectInfo.sync = Connection.SYNC_MANUALLY_REGISTERED
+				else
+					self.objectsInfo[objectId] = nil
+				end
+			end
+		elseif historyEntry.sync == Connection.SYNC_HIST_SYNC then
+			if objectInfo.sync == Connection.SYNC_SYNCING then
+				objectInfo.sync = Connection.SYNC_LOADED
+			end
+		elseif historyEntry.sync == Connection.SYNC_HIST_REMOVE then
+			if objectInfo.sync == Connection.SYNC_REMOVING then
+				objectInfo.sync = Connection.SYNC_CREATED
+			end
+		else
+			local laterUpdatedMask = 0
+			for _, h in pairs(objectInfo.history) do
+				laterUpdatedMask = bit32.bor(laterUpdatedMask, h.mask)
+			end
+			local notLaterUpdatedMask = bit32.band(historyEntry.mask, bit32.bnot(laterUpdatedMask))
+			if notLaterUpdatedMask == 0 then
+				continue
+			end
+			objectInfo.dirtyMask = bit32.bor(objectInfo.dirtyMask, notLaterUpdatedMask)
+		end
 	end
-	for v77_, v78_ in pairs(self.pendingDeleteObjectPacketIds) do
-		if v78_ == i then
-			self.pendingDeleteObjectPacketIds[v77_] = nil
-			self.pendingDeleteObjects[v77_] = v77_
+	for objectId, packetId in pairs(self.pendingDeleteObjectPacketIds) do
+		if packetId == i then
+			self.pendingDeleteObjectPacketIds[objectId] = nil
+			self.pendingDeleteObjects[objectId] = objectId
 		end
 	end
 	g_currentMission:onConnectionPacketLost(self, i)
 end
-
--- Local values: _, event
 function Connection:sendObjectEventQueue(objectInfo)
 	if objectInfo.eventQueue ~= nil then
-		for _, v81_ in ipairs(objectInfo.eventQueue) do
-			self:sendEvent(v81_, false, true)
-			v81_.queueCount = v81_.queueCount - 1
-			if v81_.queueCount == 0 then
-				v81_:delete()
+		for _, event in ipairs(objectInfo.eventQueue) do
+			self:sendEvent(event, false, true)
+			event.queueCount = event.queueCount - 1
+			if event.queueCount == 0 then
+				event:delete()
 			end
 		end
 		objectInfo.eventQueue = nil
 	end
 end
-
--- Local values: _, event
 function Connection:dropObjectEventQueue(objectInfo)
 	if objectInfo.eventQueue ~= nil then
-		for _, v83_ in ipairs(objectInfo.eventQueue) do
-			v83_.queueCount = v83_.queueCount - 1
-			if v83_.queueCount == 0 then
-				v83_:delete()
+		for _, event in ipairs(objectInfo.eventQueue) do
+			event.queueCount = event.queueCount - 1
+			if event.queueCount == 0 then
+				event:delete()
 			end
 		end
 		objectInfo.eventQueue = nil
 	end
 end
-
--- Local values: objectInfo
 function Connection:notifyObjectDeleted(objectId, alreadySent)
-	local v87_ = not self.isServer
-	assert(v87_)
-	local v88_ = self.objectsInfo[objectId]
-	if v88_ ~= nil then
-		self:dropObjectEventQueue(v88_)
+	assert(not self.isServer)
+	local objectInfo = self.objectsInfo[objectId]
+	if objectInfo ~= nil then
+		self:dropObjectEventQueue(objectInfo)
 		self.objectsInfo[objectId] = nil
 	end
 	if not alreadySent and (self.streamId ~= NetworkNode.LOCAL_STREAM_ID and self.pendingDeleteObjectPacketIds[objectId] == nil) then
 		self.pendingDeleteObjects[objectId] = objectId
 	end
 end
-
 function Connection:getLatency()
 	return 20
 end

@@ -1,21 +1,18 @@
--- Local values: BaseMissionReadyEvent_mt
 BaseMissionReadyEvent = {}
 local BaseMissionReadyEvent_mt = Class(BaseMissionReadyEvent, Event)
 InitStaticEventClass(BaseMissionReadyEvent, "BaseMissionReadyEvent")
 function BaseMissionReadyEvent.emptyNew()
-	-- upvalues: (copy) BaseMissionReadyEvent_mt
-	return Event.new(BaseMissionReadyEvent_mt)
+	local self = Event.new(BaseMissionReadyEvent_mt)
+	return self
 end
 function BaseMissionReadyEvent.new()
-	return BaseMissionReadyEvent.emptyNew()
+	local self = BaseMissionReadyEvent.emptyNew()
+	return self
 end
-
 function BaseMissionReadyEvent:readStream(streamId, connection)
 	self:run(connection)
 end
-
 function BaseMissionReadyEvent:writeStream(streamId, connection) end
-
 function BaseMissionReadyEvent:run(connection)
 	if connection:getIsServer() then
 		g_currentMission:onFinishedReceivingDynamicData(connection)

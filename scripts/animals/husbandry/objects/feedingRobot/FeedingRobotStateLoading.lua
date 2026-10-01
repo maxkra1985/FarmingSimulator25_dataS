@@ -1,24 +1,17 @@
--- Local values: FeedingRobotStateLoading_mt
 FeedingRobotStateLoading = {}
 local FeedingRobotStateLoading_mt = Class(FeedingRobotStateLoading, FeedingRobotState)
-
--- Upvalues: FeedingRobotStateLoading_mt
--- Local values: self
 function FeedingRobotStateLoading.new(feedingRobot, customMt)
-	-- upvalues: (copy) FeedingRobotStateLoading_mt
-	local v4_ = FeedingRobotState.new(feedingRobot, customMt or FeedingRobotStateLoading_mt)
-	v4_.feedingRobot = feedingRobot
-	return v4_
+	local self = FeedingRobotState.new(feedingRobot, customMt or FeedingRobotStateLoading_mt)
+	self.feedingRobot = feedingRobot
+	return self
 end
-
 function FeedingRobotStateLoading:isDone()
-	if self.feedingRobot.isLoadingFinished then
-		return FeedingRobotStateLoading:superClass().isDone(self)
-	else
+	if not self.feedingRobot.isLoadingFinished then
 		return false
+	else
+		return FeedingRobotStateLoading:superClass().isDone(self)
 	end
 end
-
 function FeedingRobotStateLoading:raiseActive()
 	return false
 end

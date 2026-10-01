@@ -1,107 +1,102 @@
--- Local values: AmbientSoundSystem_mt
 AmbientSoundSystem = {}
 local AmbientSoundSystem_mt = Class(AmbientSoundSystem)
 g_xmlManager:addCreateSchemaFunction(function()
 	AmbientSoundSystem.xmlSchema = XMLSchema.new("ambientSounds")
 end)
 g_xmlManager:addInitSchemaFunction(function()
-	local v2_ = AmbientSoundSystem.xmlSchema
-	v2_:register(XMLValueType.STRING, "sound.ambient.comment(?)#v", "Comment used for managing xml file")
-	v2_:register(XMLValueType.STRING, "sound.ambient.sample(?)#filename", "Sample filename")
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?)#probability", "Sample probability", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?)#positionTag", "Tag to attach the sound to a specific 3d position", "")
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?)#radius", "Outer radius for the 3d positioned sound", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?)#innerRadius", "Inner radius for the 3d positioned sound", 0)
-	v2_:register(XMLValueType.STRING, "sound.ambient.sample(?).settings#audioGroup", "The audio group the sound will be assigned to", "ENVIRONMENT")
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#fadeInTime", "The fade in time in seconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#fadeOutTime", "The fade out time in seconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#minVolume", "The minVolume if the player is outdoor", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#maxVolume", "The maxVolume if the player is outdoor", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#indoorVolume", "The volume if the player is indoor or in a vehicle", 0.8)
-	v2_:register(XMLValueType.INT, "sound.ambient.sample(?).settings#minLoops", "The minimum number of loops played once a sound is triggered (0 means it will play one loop)", 1)
-	v2_:register(XMLValueType.INT, "sound.ambient.sample(?).settings#maxLoops", "The maximum number of loops played once a sound is triggered", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#minRetriggerDelaySeconds", "The minimum number of seconds until sound can be retriggred", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#maxRetriggerDelaySeconds", "The maximum number of seconds until the sound has to be retriggered", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#minPitch", "The min pitch", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#maxPitch", "The max pitch", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#minDelay", "The min delay in milliseconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#maxDelay", "The max delay in milliseconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#minLength", "The min length time in milliseconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).settings#maxLength", "The max length time in milliseconds", 0)
-	v2_:register(XMLValueType.INT, "sound.ambient.sample(?).settings#minTimeOfDay", "The min time of the day in minutes (Range: 0-1440)", 0)
-	v2_:register(XMLValueType.INT, "sound.ambient.sample(?).settings#maxTimeOfDay", "The max time of the day in minutes (Range: 0-1440)", 1440)
-	v2_:register(XMLValueType.INT, "sound.ambient.sample(?).settings#minDayOfYear", "The min day of the year (Range: 0-365)", 0)
-	v2_:register(XMLValueType.INT, "sound.ambient.sample(?).settings#maxDayOfYear", "The max day of the year (Range: 0-365)", 365)
-	v2_:register(XMLValueType.STRING, "sound.ambient.sample(?).variation(?)#filename", "Sample filename")
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#probability", "Sample probability", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#fadeInTime", "The fade in time in seconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#fadeOutTime", "The fade out time in seconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#minVolume", "The minVolume if the player is outdoor", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#maxVolume", "The maxVolume if the player is outdoor", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#indoorVolume", "The volume if the player is indoor or in a vehicle", 0.8)
-	v2_:register(XMLValueType.INT, "sound.ambient.sample(?).variation(?)#minLoops", "The minimum number of loops played once a sound is triggered (0 means it will play one loop)", 1)
-	v2_:register(XMLValueType.INT, "sound.ambient.sample(?).variation(?)#maxLoops", "The maximum number of loops played once a sound is triggered", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#minPitch", "The min pitch", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#maxPitch", "The max pitch", 1)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#minDelay", "The min delay in milliseconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#maxDelay", "The max delay in milliseconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#minLength", "The min length time in milliseconds", 0)
-	v2_:register(XMLValueType.FLOAT, "sound.ambient.sample(?).variation(?)#maxLength", "The max length time in milliseconds", 0)
-	v2_:register(XMLValueType.STRING, "sound.ambient3d#filename", "3d Ambient sound file")
-	v2_:register(XMLValueType.INT, "sound.surface.material(?)#materialId", "Material id")
-	v2_:register(XMLValueType.STRING, "sound.surface.material(?)#name", "Material name")
-	v2_:register(XMLValueType.STRING, "sound.surface.material(?)#type", "Sample type")
-	v2_:register(XMLValueType.INT, "sound.surface.material(?)#loopCount", "Sample loop count")
-	v2_:register(XMLValueType.STRING, "sound.surface.material(?)#template", "Sample template")
-	v2_:registerAutoCompletionDataSource("sound.surface.material(?)#template", "$data/sounds/soundTemplates.xml", "soundTemplates.template#name")
-	SoundManager.registerSampleXMLPaths(v2_, "sound.cutting", "sample(?)")
-	v2_:register(XMLValueType.STRING, "sound.cutting.sample(?)#name", "Cutting sample name")
+	local schema = AmbientSoundSystem.xmlSchema
+	schema:register(XMLValueType.STRING, "sound.ambient.comment(?)#v", "Comment used for managing xml file")
+	local basePath = "sound.ambient.sample(?)"
+	schema:register(XMLValueType.STRING, "sound.ambient.sample(?)" .. "#filename", "Sample filename")
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. "#probability", "Sample probability", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. "#positionTag", "Tag to attach the sound to a specific 3d position", "")
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. "#radius", "Outer radius for the 3d positioned sound", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. "#innerRadius", "Inner radius for the 3d positioned sound", 0)
+	schema:register(XMLValueType.STRING, "sound.ambient.sample(?)" .. ".settings#audioGroup", "The audio group the sound will be assigned to", "ENVIRONMENT")
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#fadeInTime", "The fade in time in seconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#fadeOutTime", "The fade out time in seconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#minVolume", "The minVolume if the player is outdoor", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#maxVolume", "The maxVolume if the player is outdoor", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#indoorVolume", "The volume if the player is indoor or in a vehicle", 0.8)
+	schema:register(XMLValueType.INT, "sound.ambient.sample(?)" .. ".settings#minLoops", "The minimum number of loops played once a sound is triggered (0 means it will play one loop)", 1)
+	schema:register(XMLValueType.INT, "sound.ambient.sample(?)" .. ".settings#maxLoops", "The maximum number of loops played once a sound is triggered", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#minRetriggerDelaySeconds", "The minimum number of seconds until sound can be retriggred", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#maxRetriggerDelaySeconds", "The maximum number of seconds until the sound has to be retriggered", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#minPitch", "The min pitch", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#maxPitch", "The max pitch", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#minDelay", "The min delay in milliseconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#maxDelay", "The max delay in milliseconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#minLength", "The min length time in milliseconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".settings#maxLength", "The max length time in milliseconds", 0)
+	schema:register(XMLValueType.INT, "sound.ambient.sample(?)" .. ".settings#minTimeOfDay", "The min time of the day in minutes (Range: 0-1440)", 0)
+	schema:register(XMLValueType.INT, "sound.ambient.sample(?)" .. ".settings#maxTimeOfDay", "The max time of the day in minutes (Range: 0-1440)", 1440)
+	schema:register(XMLValueType.INT, "sound.ambient.sample(?)" .. ".settings#minDayOfYear", "The min day of the year (Range: 0-365)", 0)
+	schema:register(XMLValueType.INT, "sound.ambient.sample(?)" .. ".settings#maxDayOfYear", "The max day of the year (Range: 0-365)", 365)
+	schema:register(XMLValueType.STRING, "sound.ambient.sample(?)" .. ".variation(?)#filename", "Sample filename")
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#probability", "Sample probability", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#fadeInTime", "The fade in time in seconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#fadeOutTime", "The fade out time in seconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#minVolume", "The minVolume if the player is outdoor", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#maxVolume", "The maxVolume if the player is outdoor", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#indoorVolume", "The volume if the player is indoor or in a vehicle", 0.8)
+	schema:register(XMLValueType.INT, "sound.ambient.sample(?)" .. ".variation(?)#minLoops", "The minimum number of loops played once a sound is triggered (0 means it will play one loop)", 1)
+	schema:register(XMLValueType.INT, "sound.ambient.sample(?)" .. ".variation(?)#maxLoops", "The maximum number of loops played once a sound is triggered", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#minPitch", "The min pitch", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#maxPitch", "The max pitch", 1)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#minDelay", "The min delay in milliseconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#maxDelay", "The max delay in milliseconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#minLength", "The min length time in milliseconds", 0)
+	schema:register(XMLValueType.FLOAT, "sound.ambient.sample(?)" .. ".variation(?)#maxLength", "The max length time in milliseconds", 0)
+	schema:register(XMLValueType.STRING, "sound.ambient3d#filename", "3d Ambient sound file")
+	local surfacePath = "sound.surface.material(?)"
+	schema:register(XMLValueType.INT, "sound.surface.material(?)" .. "#materialId", "Material id")
+	schema:register(XMLValueType.STRING, "sound.surface.material(?)" .. "#name", "Material name")
+	schema:register(XMLValueType.STRING, "sound.surface.material(?)" .. "#type", "Sample type")
+	schema:register(XMLValueType.INT, "sound.surface.material(?)" .. "#loopCount", "Sample loop count")
+	schema:register(XMLValueType.STRING, "sound.surface.material(?)" .. "#template", "Sample template")
+	schema:registerAutoCompletionDataSource("sound.surface.material(?)" .. "#template", "$data/sounds/soundTemplates.xml", "soundTemplates.template#name")
+	SoundManager.registerSampleXMLPaths(schema, "sound.cutting", "sample(?)")
+	schema:register(XMLValueType.STRING, "sound.cutting.sample(?)#name", "Cutting sample name")
 end)
-
--- Upvalues: AmbientSoundSystem_mt
--- Local values: self
 function AmbientSoundSystem.new(soundPlayer, customMt)
-	-- upvalues: (copy) AmbientSoundSystem_mt
-	local v5_ = customMt or AmbientSoundSystem_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.soundPlayerId = nil
+	local self = setmetatable({}, customMt or AmbientSoundSystem_mt)
+	self.soundPlayerId = nil
 	if soundPlayer ~= nil then
-		v6_.soundPlayerId = soundPlayer.soundPlayerId
+		self.soundPlayerId = soundPlayer.soundPlayerId
 	end
-	v6_.samples = {}
-	v6_.isDebugViewActive = false
-	v6_.movingSounds = {}
-	v6_.isDeleted = false
-	v6_.conditionFlags = ConditionFlags.new()
-	v6_.conditionFlags:registerModifier("inForest", nil)
-	v6_.conditionFlags:registerModifier("nearWater", nil)
-	v6_.conditionFlags:registerModifier("nearWall", nil)
-	v6_.conditionFlags:registerModifier("underRoof", nil)
-	v6_.conditionFlags:registerModifier("areaOpenField", nil)
-	v6_.conditionFlags:registerModifier("areaCity", nil)
-	v6_.conditionFlags:registerModifier("areaVillage", nil)
-	v6_.conditionFlags:registerModifier("areaHarbor", nil)
-	v6_.conditionFlags:registerModifier("areaIndustrial", nil)
-	v6_.conditionFlags:registerModifier("areaOpenWater", nil)
-	v6_.conditionFlags:registerModifier("spring", nil)
-	v6_.conditionFlags:registerModifier("summer", nil)
-	v6_.conditionFlags:registerModifier("autumn", nil)
-	v6_.conditionFlags:registerModifier("winter", nil)
-	v6_.conditionFlags:registerModifier("sun", nil)
-	v6_.conditionFlags:registerModifier("cloudy", nil)
-	v6_.conditionFlags:registerModifier("rain", nil)
-	v6_.conditionFlags:registerModifier("snow", nil)
-	v6_.conditionFlags:registerModifier("hail", nil)
-	v6_.conditionFlags:registerModifier("inVehicle", nil)
-	v6_.conditionFlags:registerModifier("outVehicle", nil)
-	v6_.conditionFlags:registerModifier("isIndoor", nil)
-	v6_.conditionFlags:registerModifier("windSpeedLow", nil)
-	v6_.conditionFlags:registerModifier("windSpeedMedium", nil)
-	v6_.conditionFlags:registerModifier("windSpeedHigh", nil)
-	v6_.conditionFlags:registerXMLPaths(AmbientSoundSystem.xmlSchema, "sound.ambient.sample(?)")
-	return v6_
+	self.samples = {}
+	self.isDebugViewActive = false
+	self.movingSounds = {}
+	self.isDeleted = false
+	self.conditionFlags = ConditionFlags.new()
+	self.conditionFlags:registerModifier("inForest", nil)
+	self.conditionFlags:registerModifier("nearWater", nil)
+	self.conditionFlags:registerModifier("nearWall", nil)
+	self.conditionFlags:registerModifier("underRoof", nil)
+	self.conditionFlags:registerModifier("areaOpenField", nil)
+	self.conditionFlags:registerModifier("areaCity", nil)
+	self.conditionFlags:registerModifier("areaVillage", nil)
+	self.conditionFlags:registerModifier("areaHarbor", nil)
+	self.conditionFlags:registerModifier("areaIndustrial", nil)
+	self.conditionFlags:registerModifier("areaOpenWater", nil)
+	self.conditionFlags:registerModifier("spring", nil)
+	self.conditionFlags:registerModifier("summer", nil)
+	self.conditionFlags:registerModifier("autumn", nil)
+	self.conditionFlags:registerModifier("winter", nil)
+	self.conditionFlags:registerModifier("sun", nil)
+	self.conditionFlags:registerModifier("cloudy", nil)
+	self.conditionFlags:registerModifier("rain", nil)
+	self.conditionFlags:registerModifier("snow", nil)
+	self.conditionFlags:registerModifier("hail", nil)
+	self.conditionFlags:registerModifier("inVehicle", nil)
+	self.conditionFlags:registerModifier("outVehicle", nil)
+	self.conditionFlags:registerModifier("isIndoor", nil)
+	self.conditionFlags:registerModifier("windSpeedLow", nil)
+	self.conditionFlags:registerModifier("windSpeedMedium", nil)
+	self.conditionFlags:registerModifier("windSpeedHigh", nil)
+	self.conditionFlags:registerXMLPaths(AmbientSoundSystem.xmlSchema, "sound.ambient.sample(?)")
+	return self
 end
-
 function AmbientSoundSystem:delete()
 	if self.loadRequestId ~= nil then
 		g_i3DManager:cancelStreamI3DFile(self.loadRequestId)
@@ -113,126 +108,112 @@ function AmbientSoundSystem:delete()
 	removeConsoleCommand("gsAmbientSoundSystemToggleDebugView")
 	removeConsoleCommand("gsAmbientSoundSystemReload")
 end
-
--- Local values: xmlFilename
 function AmbientSoundSystem:loadMapData(mapXmlFile, missionInfo, baseDirectory)
 	if self.soundPlayerId == nil then
 		return false
 	end
-	local v11_ = Utils.getFilename(getXMLString(mapXmlFile, "map.sounds#filename"), baseDirectory)
-	if v11_ == nil then
+	local xmlFilename = Utils.getFilename(getXMLString(mapXmlFile, "map.sounds#filename"), baseDirectory)
+	if xmlFilename == nil then
 		return false
-	end
-	if not fileExists(v11_) then
-		Logging.warning("AmbientSoundSystem could not load configuration xml file \'%s\'!", v11_)
+	elseif not fileExists(xmlFilename) then
+		Logging.warning("AmbientSoundSystem could not load configuration xml file '%s'!", xmlFilename)
 		return false
+	else
+		self.baseDirectory = baseDirectory
+		self.xmlFilename = xmlFilename
+		addConsoleCommand("gsAmbientSoundSystemToggleDebugView", "Toggles the ambient sound system debug view", "consoleCommandToggleDebugView", self)
+		addConsoleCommand("gsAmbientSoundSystemReload", "Reloads the ambient sound system", "consoleCommandReload", self)
+		return self:loadFromConfigFile()
 	end
-	self.baseDirectory = baseDirectory
-	self.xmlFilename = v11_
-	addConsoleCommand("gsAmbientSoundSystemToggleDebugView", "Toggles the ambient sound system debug view", "consoleCommandToggleDebugView", self)
-	addConsoleCommand("gsAmbientSoundSystemReload", "Reloads the ambient sound system", "consoleCommandReload", self)
-	return self:loadFromConfigFile()
 end
-
--- Local values: xmlFile, _, sampleKey, filename, probability, positionTag, radius, innerRadius, audioGroup, fadeInTime, fadeOutTime, minVolume, maxVolume, indoorVolumeFactor, minLoops, maxLoops, minRetriggerDelay, maxRetriggerDelay, minPitch, maxPitch, minDelay, maxDelay, minLength, maxLength, minTimeOfDay, maxTimeOfDay, minDayOfYear, maxDayOfYear, audioGroupId, requiredFlags, preventFlags, sampleId, variationId, _, variationKey, varFilename, varProbability, varFadeInTime, varFadeOutTime, varMinVolume, varMaxVolume, varIndoorVolumeFactor, varMinLoops, varMaxLoops, varMinPitch, varMaxPitch, varMinDelay, varMaxDelay, varMinLength, varMaxLength, filename, sound3DFilename
 function AmbientSoundSystem:loadFromConfigFile()
 	self.isDeleted = false
-	local v13_ = XMLFile.load("Ambient Sounds", self.xmlFilename, AmbientSoundSystem.xmlSchema)
-	if v13_ == nil then
-		Logging.xmlWarning(v13_, "AmbientSoundSystem could not load configuration xml file!")
+	local xmlFile = XMLFile.load("Ambient Sounds", self.xmlFilename, AmbientSoundSystem.xmlSchema)
+	if xmlFile == nil then
+		Logging.xmlWarning(xmlFile, "AmbientSoundSystem could not load configuration xml file!")
 		return false
-	end
-	for _, v14_ in v13_:iterator("sound.ambient.sample") do
-		local v15_ = v13_:getValue(v14_ .. "#filename")
-		local v16_ = v13_:getValue(v14_ .. "#probability", 1)
-		local v17_ = v13_:getValue(v14_ .. "#positionTag", "")
-		local v18_ = v13_:getValue(v14_ .. "#radius", 0)
-		local v19_ = v13_:getValue(v14_ .. "#innerRadius", 0)
-		local v20_ = v13_:getValue(v14_ .. ".settings#audioGroup", "ENVIRONMENT")
-		local v21_ = v13_:getValue(v14_ .. ".settings#fadeInTime", 0)
-		local v22_ = v13_:getValue(v14_ .. ".settings#fadeOutTime", 0)
-		local v23_ = v13_:getValue(v14_ .. ".settings#minVolume", 1)
-		local v24_ = v13_:getValue(v14_ .. ".settings#maxVolume", 1)
-		local v25_ = v13_:getValue(v14_ .. ".settings#indoorVolume", 0.8)
-		local v26_ = v13_:getValue(v14_ .. ".settings#minLoops", 1)
-		local v27_ = v13_:getValue(v14_ .. ".settings#maxLoops", 1)
-		local v28_ = v13_:getValue(v14_ .. ".settings#minRetriggerDelaySeconds", 0)
-		local v29_ = v13_:getValue(v14_ .. ".settings#maxRetriggerDelaySeconds", 0)
-		local v30_ = v13_:getValue(v14_ .. ".settings#minPitch", 1)
-		local v31_ = v13_:getValue(v14_ .. ".settings#maxPitch", 1)
-		local v32_ = v13_:getValue(v14_ .. ".settings#minDelay", 0)
-		local v33_ = v13_:getValue(v14_ .. ".settings#maxDelay", 0)
-		local v34_ = v13_:getValue(v14_ .. ".settings#minLength", 0)
-		local v35_ = v13_:getValue(v14_ .. ".settings#maxLength", 0)
-		local v36_ = v13_:getValue(v14_ .. ".settings#minTimeOfDay", 0)
-		local v37_ = v13_:getValue(v14_ .. ".settings#maxTimeOfDay", 1440)
-		local v38_ = v13_:getValue(v14_ .. ".settings#minDayOfYear", 0)
-		local v39_ = v13_:getValue(v14_ .. ".settings#maxDayOfYear", 365)
-		local v40_ = AudioGroup.getAudioGroupIndexByName(v20_)
-		if v40_ == nil then
-			v40_ = AudioGroup.ENVIRONMENT
+	else
+		for _, sampleKey in xmlFile:iterator("sound.ambient.sample") do
+			local filename = xmlFile:getValue(sampleKey .. "#filename")
+			local probability = xmlFile:getValue(sampleKey .. "#probability", 1)
+			local positionTag = xmlFile:getValue(sampleKey .. "#positionTag", "")
+			local radius = xmlFile:getValue(sampleKey .. "#radius", 0)
+			local innerRadius = xmlFile:getValue(sampleKey .. "#innerRadius", 0)
+			local audioGroup = xmlFile:getValue(sampleKey .. ".settings#audioGroup", "ENVIRONMENT")
+			local fadeInTime = xmlFile:getValue(sampleKey .. ".settings#fadeInTime", 0)
+			local fadeOutTime = xmlFile:getValue(sampleKey .. ".settings#fadeOutTime", 0)
+			local minVolume = xmlFile:getValue(sampleKey .. ".settings#minVolume", 1)
+			local maxVolume = xmlFile:getValue(sampleKey .. ".settings#maxVolume", 1)
+			local indoorVolumeFactor = xmlFile:getValue(sampleKey .. ".settings#indoorVolume", 0.8)
+			local minLoops = xmlFile:getValue(sampleKey .. ".settings#minLoops", 1)
+			local maxLoops = xmlFile:getValue(sampleKey .. ".settings#maxLoops", 1)
+			local minRetriggerDelay = xmlFile:getValue(sampleKey .. ".settings#minRetriggerDelaySeconds", 0)
+			local maxRetriggerDelay = xmlFile:getValue(sampleKey .. ".settings#maxRetriggerDelaySeconds", 0)
+			local minPitch = xmlFile:getValue(sampleKey .. ".settings#minPitch", 1)
+			local maxPitch = xmlFile:getValue(sampleKey .. ".settings#maxPitch", 1)
+			local minDelay = xmlFile:getValue(sampleKey .. ".settings#minDelay", 0)
+			local maxDelay = xmlFile:getValue(sampleKey .. ".settings#maxDelay", 0)
+			local minLength = xmlFile:getValue(sampleKey .. ".settings#minLength", 0)
+			local maxLength = xmlFile:getValue(sampleKey .. ".settings#maxLength", 0)
+			local minTimeOfDay = xmlFile:getValue(sampleKey .. ".settings#minTimeOfDay", 0)
+			local maxTimeOfDay = xmlFile:getValue(sampleKey .. ".settings#maxTimeOfDay", 1440)
+			local minDayOfYear = xmlFile:getValue(sampleKey .. ".settings#minDayOfYear", 0)
+			local maxDayOfYear = xmlFile:getValue(sampleKey .. ".settings#maxDayOfYear", 365)
+			local audioGroupId = AudioGroup.getAudioGroupIndexByName(audioGroup)
+			if audioGroupId == nil then
+				audioGroupId = AudioGroup.ENVIRONMENT
+			end
+			filename = Utils.getFilename(filename, self.baseDirectory)
+			local requiredFlags, preventFlags = self.conditionFlags:loadFlagsFromXMLFile(xmlFile, sampleKey)
+			local sampleId = ambientSoundsAddSample(self.soundPlayerId, audioGroupId, minRetriggerDelay, maxRetriggerDelay, requiredFlags, preventFlags, minTimeOfDay, maxTimeOfDay, minDayOfYear, maxDayOfYear, positionTag or "", radius or 0, innerRadius or 0)
+			local variationId = ambientSoundsAddSampleVariation(self.soundPlayerId, sampleId, filename, probability)
+			ambientSoundsSampleSetIndoorVolumeFactor(self.soundPlayerId, sampleId, variationId, indoorVolumeFactor)
+			ambientSoundsSampleSetFadeInOutTime(self.soundPlayerId, sampleId, variationId, fadeInTime, fadeOutTime)
+			ambientSoundsSampleSetMinMaxVolume(self.soundPlayerId, sampleId, variationId, minVolume, maxVolume)
+			ambientSoundsSampleSetMinMaxLoops(self.soundPlayerId, sampleId, variationId, minLoops, maxLoops)
+			ambientSoundsSampleSetMinMaxPitch(self.soundPlayerId, sampleId, variationId, minPitch, maxPitch)
+			ambientSoundsSampleSetMinMaxDelay(self.soundPlayerId, sampleId, variationId, minDelay, maxDelay)
+			ambientSoundsSampleSetMinMaxLength(self.soundPlayerId, sampleId, variationId, minLength, maxLength)
+			for _, variationKey in xmlFile:iterator(sampleKey .. ".variation") do
+				local varFilename = xmlFile:getValue(variationKey .. "#filename")
+				local varProbability = xmlFile:getValue(variationKey .. "#probability", 1)
+				local varFadeInTime = xmlFile:getValue(variationKey .. "#fadeInTime", fadeInTime)
+				local varFadeOutTime = xmlFile:getValue(variationKey .. "#fadeOutTime", fadeOutTime)
+				local varMinVolume = xmlFile:getValue(variationKey .. "#minVolume", minVolume)
+				local varMaxVolume = xmlFile:getValue(variationKey .. "#maxVolume", maxVolume)
+				local varIndoorVolumeFactor = xmlFile:getValue(variationKey .. "#indoorVolume", indoorVolumeFactor)
+				local varMinLoops = xmlFile:getValue(variationKey .. "#minLoops", minLoops)
+				local varMaxLoops = xmlFile:getValue(variationKey .. "#maxLoops", maxLoops)
+				local varMinPitch = xmlFile:getValue(variationKey .. "#minPitch", minPitch)
+				local varMaxPitch = xmlFile:getValue(variationKey .. "#maxPitch", maxPitch)
+				local varMinDelay = xmlFile:getValue(variationKey .. "#minDelay", minDelay)
+				local varMaxDelay = xmlFile:getValue(variationKey .. "#maxDelay", maxDelay)
+				local varMinLength = xmlFile:getValue(variationKey .. "#minLength", minLength)
+				local varMaxLength = xmlFile:getValue(variationKey .. "#maxLength", maxLength)
+				varFilename = Utils.getFilename(varFilename, self.baseDirectory)
+				variationId = ambientSoundsAddSampleVariation(self.soundPlayerId, sampleId, varFilename, varProbability)
+				ambientSoundsSampleSetIndoorVolumeFactor(self.soundPlayerId, sampleId, variationId, varIndoorVolumeFactor)
+				ambientSoundsSampleSetFadeInOutTime(self.soundPlayerId, sampleId, variationId, varFadeInTime, varFadeOutTime)
+				ambientSoundsSampleSetMinMaxVolume(self.soundPlayerId, sampleId, variationId, varMinVolume, varMaxVolume)
+				ambientSoundsSampleSetMinMaxLoops(self.soundPlayerId, sampleId, variationId, varMinLoops, varMaxLoops)
+				ambientSoundsSampleSetMinMaxPitch(self.soundPlayerId, sampleId, variationId, varMinPitch, varMaxPitch)
+				ambientSoundsSampleSetMinMaxDelay(self.soundPlayerId, sampleId, variationId, varMinDelay, varMaxDelay)
+				ambientSoundsSampleSetMinMaxLength(self.soundPlayerId, sampleId, variationId, varMinLength, varMaxLength)
+			end
+			table.insert(self.samples, { filename = filename, audioGroupId = audioGroupId, requiredFlags = requiredFlags, preventFlags = preventFlags, minTimeOfDay = minTimeOfDay, maxTimeOfDay = maxTimeOfDay, minDayOfYear = minDayOfYear, maxDayOfYear = maxDayOfYear })
 		end
-		local v41_ = Utils.getFilename(v15_, self.baseDirectory)
-		local v42_, v43_ = self.conditionFlags:loadFlagsFromXMLFile(v13_, v14_)
-		local v44_ = ambientSoundsAddSample(self.soundPlayerId, v40_, v28_, v29_, v42_, v43_, v36_, v37_, v38_, v39_, v17_ or "", v18_ or 0, v19_ or 0)
-		local v45_ = ambientSoundsAddSampleVariation(self.soundPlayerId, v44_, v41_, v16_)
-		ambientSoundsSampleSetIndoorVolumeFactor(self.soundPlayerId, v44_, v45_, v25_)
-		ambientSoundsSampleSetFadeInOutTime(self.soundPlayerId, v44_, v45_, v21_, v22_)
-		ambientSoundsSampleSetMinMaxVolume(self.soundPlayerId, v44_, v45_, v23_, v24_)
-		ambientSoundsSampleSetMinMaxLoops(self.soundPlayerId, v44_, v45_, v26_, v27_)
-		ambientSoundsSampleSetMinMaxPitch(self.soundPlayerId, v44_, v45_, v30_, v31_)
-		ambientSoundsSampleSetMinMaxDelay(self.soundPlayerId, v44_, v45_, v32_, v33_)
-		ambientSoundsSampleSetMinMaxLength(self.soundPlayerId, v44_, v45_, v34_, v35_)
-		for _, v46_ in v13_:iterator(v14_ .. ".variation") do
-			local v47_ = v13_:getValue(v46_ .. "#filename")
-			local v48_ = v13_:getValue(v46_ .. "#probability", 1)
-			local v49_ = v13_:getValue(v46_ .. "#fadeInTime", v21_)
-			local v50_ = v13_:getValue(v46_ .. "#fadeOutTime", v22_)
-			local v51_ = v13_:getValue(v46_ .. "#minVolume", v23_)
-			local v52_ = v13_:getValue(v46_ .. "#maxVolume", v24_)
-			local v53_ = v13_:getValue(v46_ .. "#indoorVolume", v25_)
-			local v54_ = v13_:getValue(v46_ .. "#minLoops", v26_)
-			local v55_ = v13_:getValue(v46_ .. "#maxLoops", v27_)
-			local v56_ = v13_:getValue(v46_ .. "#minPitch", v30_)
-			local v57_ = v13_:getValue(v46_ .. "#maxPitch", v31_)
-			local v58_ = v13_:getValue(v46_ .. "#minDelay", v32_)
-			local v59_ = v13_:getValue(v46_ .. "#maxDelay", v33_)
-			local v60_ = v13_:getValue(v46_ .. "#minLength", v34_)
-			local v61_ = v13_:getValue(v46_ .. "#maxLength", v35_)
-			local v62_ = Utils.getFilename(v47_, self.baseDirectory)
-			local v63_ = ambientSoundsAddSampleVariation(self.soundPlayerId, v44_, v62_, v48_)
-			ambientSoundsSampleSetIndoorVolumeFactor(self.soundPlayerId, v44_, v63_, v53_)
-			ambientSoundsSampleSetFadeInOutTime(self.soundPlayerId, v44_, v63_, v49_, v50_)
-			ambientSoundsSampleSetMinMaxVolume(self.soundPlayerId, v44_, v63_, v51_, v52_)
-			ambientSoundsSampleSetMinMaxLoops(self.soundPlayerId, v44_, v63_, v54_, v55_)
-			ambientSoundsSampleSetMinMaxPitch(self.soundPlayerId, v44_, v63_, v56_, v57_)
-			ambientSoundsSampleSetMinMaxDelay(self.soundPlayerId, v44_, v63_, v58_, v59_)
-			ambientSoundsSampleSetMinMaxLength(self.soundPlayerId, v44_, v63_, v60_, v61_)
+		local filename = xmlFile:getValue("sound.ambient3d#filename")
+		if filename ~= nil then
+			local sound3DFilename = Utils.getFilename(filename, self.baseDirectory)
+			self.loadRequestId = g_i3DManager:loadI3DFileAsync(sound3DFilename, true, false, AmbientSoundSystem.sound3DFileLoaded, self, nil)
 		end
-		local v64_ = self.samples
-		table.insert(v64_, {
-			["filename"] = v41_,
-			["audioGroupId"] = v40_,
-			["requiredFlags"] = v42_,
-			["preventFlags"] = v43_,
-			["minTimeOfDay"] = v36_,
-			["maxTimeOfDay"] = v37_,
-			["minDayOfYear"] = v38_,
-			["maxDayOfYear"] = v39_
-		})
+		xmlFile:delete()
+		g_messageCenter:subscribe(MessageType.WEATHER_CHANGED, self.onWeatherChanged, self)
+		g_messageCenter:subscribe(MessageType.OWN_PLAYER_ENTERED, self.onPlayerEntered, self)
+		g_messageCenter:subscribe(MessageType.OWN_PLAYER_LEFT, self.onPlayerLeft, self)
+		return true
 	end
-	local v65_ = v13_:getValue("sound.ambient3d#filename")
-	if v65_ ~= nil then
-		local v66_ = Utils.getFilename(v65_, self.baseDirectory)
-		self.loadRequestId = g_i3DManager:loadI3DFileAsync(v66_, true, false, AmbientSoundSystem.sound3DFileLoaded, self, nil)
-	end
-	v13_:delete()
-	g_messageCenter:subscribe(MessageType.WEATHER_CHANGED, self.onWeatherChanged, self)
-	g_messageCenter:subscribe(MessageType.OWN_PLAYER_ENTERED, self.onPlayerEntered, self)
-	g_messageCenter:subscribe(MessageType.OWN_PLAYER_LEFT, self.onPlayerLeft, self)
-	return true
 end
-
 function AmbientSoundSystem:sound3DFileLoaded(i3dNode, failedReason, args)
 	if i3dNode ~= nil and i3dNode ~= 0 then
 		if self.isDeleted or self.sound3DRootNode ~= nil then
@@ -244,92 +225,77 @@ function AmbientSoundSystem:sound3DFileLoaded(i3dNode, failedReason, args)
 	end
 	self.loadRequestId = nil
 end
-
--- Local values: numChildren, spline, transformNode, splineLength, eps, modifiers, modifiersNode, i, modifierNode, startNode, endNode, sx, sy, sz, _, _, _, startTime, ex, ey, ez, _, _, _, endTime, rangeScale, fadeDistance, fadeDistanceTime, startTimeFadeEnd, endTimeFadeStart, sounds, i, soundNode, x, y, z, innerRange, outerRange, movingSoundEntry
 function AmbientSoundSystem:addMovingSound(node)
-	local v71_ = getNumOfChildren(node)
-	if v71_ < 2 or v71_ > 3 then
-		Logging.devWarning("AmbientSoundSystem:addMovingSound(): Invalid number of children given for node \'%s\'", getName(node))
+	local numChildren = getNumOfChildren(node)
+	if numChildren < 2 or 3 < numChildren then
+		Logging.devWarning("AmbientSoundSystem:addMovingSound(): Invalid number of children given for node '%s'", getName(node))
+		return
+	end
+	local spline = getChildAt(node, 0)
+	local transformNode = getChildAt(node, 1)
+	if not getHasClassId(getGeometry(spline), ClassIds.SPLINE) then
+		Logging.error("AmbientsoundSystem:addMovingSound(): First child '%s' of given node '%s' is not a spline!", getName(spline), getName(node))
+		return
 	else
-		local v72_ = getChildAt(node, 0)
-		local v73_ = getChildAt(node, 1)
-		if getHasClassId(getGeometry(v72_), ClassIds.SPLINE) then
-			setVisibility(v72_, false)
-			local v74_ = getSplineLength(v72_)
-			local v75_ = 0.01 / v74_
-			local v76_ = {}
-			if v71_ == 3 then
-				local v77_ = getChildAt(node, 2)
-				for v78_ = 0, getNumOfChildren(v77_) - 1 do
-					local v79_ = getChildAt(v77_, v78_)
-					local v80_ = getChildAt(v79_, 0)
-					local v81_ = getChildAt(v79_, 1)
-					local v82_, v83_, v84_ = getWorldTranslation(v80_)
-					local _, _, _, v85_ = getClosestSplinePosition(v72_, v82_, v83_, v84_, v75_)
-					local v86_, v87_, v88_ = getWorldTranslation(v81_)
-					local _, _, _, v89_ = getClosestSplinePosition(v72_, v86_, v87_, v88_, v75_)
-					if v89_ >= v85_ then
-						local v90_ = v85_
-						v85_ = v89_
-						v89_ = v90_
-					end
-					local v91_ = getUserAttribute
-					local v92_ = tonumber(v91_(v79_, "rangeScale"))
-					local v93_ = getUserAttribute
-					local v94_ = tonumber(v93_(v79_, "fadeDistance"))
-					local v95_ = v94_ / v74_
-					local v96_ = {
-						["startTime"] = v89_,
-						["startTimeFadeEnd"] = v89_ + v95_,
-						["endTime"] = v85_,
-						["endTimeFadeStart"] = v85_ - v95_,
-						["rangeScale"] = v92_,
-						["fadeDistance"] = v94_
-					}
-					table.insert(v76_, v96_)
+		setVisibility(spline, false)
+		local splineLength = getSplineLength(spline)
+		local eps = 0.01 / splineLength
+		local modifiers = {}
+		if numChildren == 3 then
+			local modifiersNode = getChildAt(node, 2)
+			for i = 0, getNumOfChildren(modifiersNode) - 1 do
+				local modifierNode = getChildAt(modifiersNode, i)
+				local startNode = getChildAt(modifierNode, 0)
+				local endNode = getChildAt(modifierNode, 1)
+				local sx, sy, sz = getWorldTranslation(startNode)
+				local _, _, _, startTime = getClosestSplinePosition(spline, sx, sy, sz, eps)
+				local ex, ey, ez = getWorldTranslation(endNode)
+				local _, _, _, endTime = getClosestSplinePosition(spline, ex, ey, ez, eps)
+				if endTime < startTime then
+					endTime = startTime
+					startTime = endTime
+					ex = sx
+					ey = sy
+					ez = sz
+					sx = ex
+					sy = ey
+					sz = ez
 				end
+				local rangeScale = tonumber(getUserAttribute(modifierNode, "rangeScale"))
+				local fadeDistance = tonumber(getUserAttribute(modifierNode, "fadeDistance"))
+				local fadeDistanceTime = fadeDistance / splineLength
+				local startTimeFadeEnd = startTime + fadeDistanceTime
+				local endTimeFadeStart = endTime - fadeDistanceTime
+				table.insert(modifiers, { startTime = startTime, startTimeFadeEnd = startTimeFadeEnd, endTime = endTime, endTimeFadeStart = endTimeFadeStart, rangeScale = rangeScale, fadeDistance = fadeDistance })
 			end
-			table.sort(v76_, function(p97_, p98_)
-				return p97_.startTime < p98_.startTime
-			end)
-			local v99_ = {}
-			for v100_ = 0, getNumOfChildren(v73_) - 1 do
-				local v101_ = getChildAt(v73_, v100_)
-				if getHasClassId(v101_, ClassIds.AUDIO_SOURCE) then
-					local v102_, v103_, v104_ = getTranslation(v101_)
-					if v102_ == 0 and (v103_ == 0 and v104_ == 0) then
-						local v105_ = {
-							["node"] = v101_,
-							["innerRange"] = getAudioSourceInnerRange(v101_),
-							["outerRange"] = getAudioSourceRange(v101_)
-						}
-						table.insert(v99_, v105_)
-					else
-						Logging.warning("AmbientsoundSystem:addMovingSound(): Child \'%s\' of transform \'%s\' is offset (translation not 0 0 0)", getName(v101_), I3DUtil.getNodePath(v73_))
-					end
-				else
-					Logging.warning("AmbientsoundSystem:addMovingSound(): Child \'%s\' of transform \'%s\' is not an audio source", getName(v101_), I3DUtil.getNodePath(v73_))
-				end
-			end
-			local v106_ = {
-				["spline"] = v72_,
-				["node"] = v73_,
-				["eps"] = v75_,
-				["sounds"] = v99_,
-				["modifiers"] = v76_
-			}
-			local v107_ = self.movingSounds
-			table.insert(v107_, v106_)
-			return v106_
 		end
-		Logging.error("AmbientsoundSystem:addMovingSound(): First child \'%s\' of given node \'%s\' is not a spline!", getName(v72_), getName(node))
+		table.sort(modifiers, function(a, b)
+			return a.startTime < b.startTime
+		end)
+		local sounds = {}
+		for i = 0, getNumOfChildren(transformNode) - 1 do
+			local soundNode = getChildAt(transformNode, i)
+			if not getHasClassId(soundNode, ClassIds.AUDIO_SOURCE) then
+				Logging.warning("AmbientsoundSystem:addMovingSound(): Child '%s' of transform '%s' is not an audio source", getName(soundNode), I3DUtil.getNodePath(transformNode))
+			else
+				local x, y, z = getTranslation(soundNode)
+				if x ~= 0 or y ~= 0 or z ~= 0 then
+					Logging.warning("AmbientsoundSystem:addMovingSound(): Child '%s' of transform '%s' is offset (translation not 0 0 0)", getName(soundNode), I3DUtil.getNodePath(transformNode))
+				else
+					local innerRange = getAudioSourceInnerRange(soundNode)
+					local outerRange = getAudioSourceRange(soundNode)
+					table.insert(sounds, { node = soundNode, innerRange = innerRange, outerRange = outerRange })
+				end
+			end
+		end
+		local movingSoundEntry = { spline = spline, node = transformNode, eps = eps, sounds = sounds, modifiers = modifiers }
+		table.insert(self.movingSounds, movingSoundEntry)
+		return movingSoundEntry
 	end
 end
-
 function AmbientSoundSystem:removeMovingSound(movingSoundEntry)
 	return table.removeElement(self.movingSounds, movingSoundEntry)
 end
-
 function AmbientSoundSystem:unloadAmbientSounds()
 	if self.soundPlayerId ~= nil then
 		ambientSoundsRemoveAllSamples(self.soundPlayerId)
@@ -342,147 +308,128 @@ function AmbientSoundSystem:unloadAmbientSounds()
 	self.movingSounds = {}
 	self.isDeleted = true
 end
-
--- Local values: environment, minuteOfDay, dayOfYear, mask, x, y, z, _, movingSound, sx, sy, sz, t, rangeScale, _, modifier, alpha, _, sound, _, modifier, debugX, debugY, debugZ
 function AmbientSoundSystem:update(dt)
 	if self.soundPlayerId ~= nil then
-		local v113_ = g_currentMission.environment
-		if v113_ ~= nil then
-			local v114_ = v113_:getMinuteOfDay()
-			local v115_ = v113_:getDayOfYear()
-			local v116_ = math.clamp(v115_, 0, 365)
-			ambientSoundsSetTimeAndDay(self.soundPlayerId, v114_, v116_)
+		local environment = g_currentMission.environment
+		if environment ~= nil then
+			local minuteOfDay = environment:getMinuteOfDay()
+			local dayOfYear = math.clamp(environment:getDayOfYear(), 0, 365)
+			ambientSoundsSetTimeAndDay(self.soundPlayerId, minuteOfDay, dayOfYear)
 			self:updateMask()
-			local v117_ = self.conditionFlags:getMask()
-			ambientSoundsUpdate(self.soundPlayerId, dt, v117_)
+			local mask = self.conditionFlags:getMask()
+			ambientSoundsUpdate(self.soundPlayerId, dt, mask)
 		end
 	end
-	local v118_, v119_, v120_ = getWorldTranslation(g_cameraManager:getActiveCamera())
-	for _, v121_ in ipairs(self.movingSounds) do
-		local v122_, v123_, v124_, v125_ = getClosestSplinePosition(v121_.spline, v118_, v119_, v120_, v121_.eps)
-		setWorldTranslation(v121_.node, v122_, v123_, v124_)
-		local v126_ = 1
-		for _, v127_ in ipairs(v121_.modifiers) do
-			if v127_.startTime <= v125_ and v125_ <= v127_.endTime then
-				local v128_ = v125_ > v127_.startTimeFadeEnd and 1 or 1 - (v127_.startTimeFadeEnd - v125_) / (v127_.startTimeFadeEnd - v127_.startTime)
-				if v127_.endTimeFadeStart < v125_ then
-					v128_ = (v127_.endTime - v125_) / (v127_.endTime - v127_.endTimeFadeStart)
+	local x, y, z = getWorldTranslation(g_cameraManager:getActiveCamera())
+	for _, movingSound in ipairs(self.movingSounds) do
+		local sx, sy, sz, t = getClosestSplinePosition(movingSound.spline, x, y, z, movingSound.eps)
+		setWorldTranslation(movingSound.node, sx, sy, sz)
+		local rangeScale = 1
+		for _, modifier in ipairs(movingSound.modifiers) do
+			if modifier.startTime <= t and t <= modifier.endTime then
+				local alpha = 1
+				if t <= modifier.startTimeFadeEnd then
+					alpha = 1 - (modifier.startTimeFadeEnd - t) / (modifier.startTimeFadeEnd - modifier.startTime)
 				end
-				v126_ = MathUtil.lerp(1, v127_.rangeScale, v128_)
-				break
+				if modifier.endTimeFadeStart < t then
+					alpha = (modifier.endTime - t) / (modifier.endTime - modifier.endTimeFadeStart)
+					rangeScale = MathUtil.lerp(1, modifier.rangeScale, alpha)
+					break
+				else
+					break
+				end
 			end
 		end
-		if v121_.lastScale ~= v126_ then
-			for _, v129_ in ipairs(v121_.sounds) do
-				setAudioSourceInnerRange(v129_.node, v129_.innerRange * v126_)
-				setAudioSourceRange(v129_.node, v129_.outerRange * v126_)
+		if movingSound.lastScale ~= rangeScale then
+			for _, sound in ipairs(movingSound.sounds) do
+				setAudioSourceInnerRange(sound.node, sound.innerRange * rangeScale)
+				setAudioSourceRange(sound.node, sound.outerRange * rangeScale)
 			end
-			v121_.lastScale = v126_
+			movingSound.lastScale = rangeScale
 		end
 		if self.isDebugViewActive then
-			DebugPoint.renderAtPosition(v122_, v123_, v124_, nil, false, string.format("%s (RangeScale=%.3f)", getName(v121_.node), v126_))
-			for _, v130_ in ipairs(v121_.modifiers) do
-				local v131_, v132_, v133_ = getSplinePosition(v121_.spline, v130_.startTime)
-				DebugFlag.renderAtPosition(v131_, v132_, v133_, 1, 0, DebugUtil.tableToColor(v130_), "startTime")
-				local v134_, v135_, v136_ = getSplinePosition(v121_.spline, v130_.startTimeFadeEnd)
-				DebugFlag.renderAtPosition(v134_, v135_, v136_, 1, 0, DebugUtil.tableToColor(v130_), "startTimeFadeEnd")
-				local v137_, v138_, v139_ = getSplinePosition(v121_.spline, v130_.endTime)
-				DebugFlag.renderAtPosition(v137_, v138_, v139_, 1, 0, DebugUtil.tableToColor(v130_), "endTime")
-				local v140_, v141_, v142_ = getSplinePosition(v121_.spline, v130_.endTimeFadeStart)
-				DebugFlag.renderAtPosition(v140_, v141_, v142_, 1, 0, DebugUtil.tableToColor(v130_), "endTimeFadeStart")
+			DebugPoint.renderAtPosition(sx, sy, sz, nil, false, string.format("%s (RangeScale=%.3f)", getName(movingSound.node), rangeScale))
+			for _, modifier in ipairs(movingSound.modifiers) do
+				local debugX = nil
+				local debugY = nil
+				local debugZ = nil
+				debugX, debugY, debugZ = getSplinePosition(movingSound.spline, modifier.startTime)
+				DebugFlag.renderAtPosition(debugX, debugY, debugZ, 1, 0, DebugUtil.tableToColor(modifier), "startTime")
+				debugX, debugY, debugZ = getSplinePosition(movingSound.spline, modifier.startTimeFadeEnd)
+				DebugFlag.renderAtPosition(debugX, debugY, debugZ, 1, 0, DebugUtil.tableToColor(modifier), "startTimeFadeEnd")
+				debugX, debugY, debugZ = getSplinePosition(movingSound.spline, modifier.endTime)
+				DebugFlag.renderAtPosition(debugX, debugY, debugZ, 1, 0, DebugUtil.tableToColor(modifier), "endTime")
+				debugX, debugY, debugZ = getSplinePosition(movingSound.spline, modifier.endTimeFadeStart)
+				DebugFlag.renderAtPosition(debugX, debugY, debugZ, 1, 0, DebugUtil.tableToColor(modifier), "endTimeFadeStart")
 			end
 		end
 	end
 end
-
--- Local values: conditionFlags, mission, weights, isOpenField, isInForest, environment, weather, isRaining, isSnowing, isHailing, _, _, windVelocity, season
 function AmbientSoundSystem:updateMask()
-	local v144_ = self.conditionFlags
-	local v145_ = g_currentMission
-	local v146_ = v145_.environmentAreaSystem:getAreaWeights()
-	local v147_ = v146_.areaTypeWeights[AreaType.OPEN_FIELD] > 0.5
-	local v148_
-	if v147_ then
-		v148_ = v146_.isInForestWeight > 0.5
-	else
-		v148_ = v147_
+	local conditionFlags = self.conditionFlags
+	local mission = g_currentMission
+	local weights = mission.environmentAreaSystem:getAreaWeights()
+	local isOpenField = 0.5 < weights.areaTypeWeights[AreaType.OPEN_FIELD]
+	local isInForest = isOpenField and 0.5 < weights.isInForestWeight
+	if isInForest then
+		isOpenField = false
 	end
-	if v148_ then
-		v147_ = false
-	end
-	v144_:setModifierValue("inForest", v148_)
-	v144_:setModifierValue("nearWater", v146_.isNearWaterWeight > 0.5)
-	v144_:setModifierValue("nearWall", v146_.isNearWallWeight > 0.5)
-	v144_:setModifierValue("underRoof", v146_.isUnderRoofWeight > 0.5)
-	v144_:setModifierValue("areaOpenField", v147_)
-	v144_:setModifierValue("areaCity", v146_.areaTypeWeights[AreaType.CITY] > 0.5)
-	v144_:setModifierValue("areaVillage", v146_.areaTypeWeights[AreaType.VILLAGE] > 0.5)
-	v144_:setModifierValue("areaHarbor", v146_.areaTypeWeights[AreaType.HARBOR] > 0.5)
-	v144_:setModifierValue("areaIndustrial", v146_.areaTypeWeights[AreaType.INDUSTRIAL] > 0.5)
-	v144_:setModifierValue("areaOpenWater", v146_.areaTypeWeights[AreaType.OPEN_WATER] > 0.5)
-	local v149_ = v145_.environment
-	local v150_ = v149_.weather
-	local v151_ = v150_:getRainFallScale() > 0
-	local v152_ = v150_:getSnowFallScale() > 0
-	local v153_ = v150_:getIsHailing()
-	v144_:setModifierValue("rain", v151_)
-	v144_:setModifierValue("snow", v152_)
-	v144_:setModifierValue("hail", v153_)
-	local _, _, v154_ = v150_.windUpdater:getCurrentValues()
-	v144_:setModifierValue("windSpeedLow", v154_ < 6)
-	local v155_ = "windSpeedMedium"
-	local v156_
-	if v154_ >= 6 then
-		v156_ = v154_ < 20
-	else
-		v156_ = false
-	end
-	v144_:setModifierValue(v155_, v156_)
-	v144_:setModifierValue("windSpeedHigh", v154_ >= 20)
-	local v157_ = SeasonPeriod.getSeason(v149_.currentVisualPeriod)
-	v144_:setModifierValue("spring", v157_ == Season.SPRING)
-	v144_:setModifierValue("summer", v157_ == Season.SUMMER)
-	v144_:setModifierValue("autumn", v157_ == Season.AUTUMN)
-	v144_:setModifierValue("winter", v157_ == Season.WINTER)
+	conditionFlags:setModifierValue("inForest", isInForest)
+	conditionFlags:setModifierValue("nearWater", 0.5 < weights.isNearWaterWeight)
+	conditionFlags:setModifierValue("nearWall", 0.5 < weights.isNearWallWeight)
+	conditionFlags:setModifierValue("underRoof", 0.5 < weights.isUnderRoofWeight)
+	conditionFlags:setModifierValue("areaOpenField", isOpenField)
+	conditionFlags:setModifierValue("areaCity", 0.5 < weights.areaTypeWeights[AreaType.CITY])
+	conditionFlags:setModifierValue("areaVillage", 0.5 < weights.areaTypeWeights[AreaType.VILLAGE])
+	conditionFlags:setModifierValue("areaHarbor", 0.5 < weights.areaTypeWeights[AreaType.HARBOR])
+	conditionFlags:setModifierValue("areaIndustrial", 0.5 < weights.areaTypeWeights[AreaType.INDUSTRIAL])
+	conditionFlags:setModifierValue("areaOpenWater", 0.5 < weights.areaTypeWeights[AreaType.OPEN_WATER])
+	local environment = mission.environment
+	local weather = environment.weather
+	local isRaining = 0 < weather:getRainFallScale()
+	local isSnowing = 0 < weather:getSnowFallScale()
+	local isHailing = weather:getIsHailing()
+	conditionFlags:setModifierValue("rain", isRaining)
+	conditionFlags:setModifierValue("snow", isSnowing)
+	conditionFlags:setModifierValue("hail", isHailing)
+	local _, _, windVelocity = weather.windUpdater:getCurrentValues()
+	conditionFlags:setModifierValue("windSpeedLow", windVelocity < 6)
+	conditionFlags:setModifierValue("windSpeedMedium", 6 <= windVelocity and windVelocity < 20)
+	conditionFlags:setModifierValue("windSpeedHigh", false)
+	local season = SeasonPeriod.getSeason(environment.currentVisualPeriod)
+	conditionFlags:setModifierValue("spring", season == Season.SPRING)
+	conditionFlags:setModifierValue("summer", season == Season.SUMMER)
+	conditionFlags:setModifierValue("autumn", season == Season.AUTUMN)
+	conditionFlags:setModifierValue("winter", season == Season.WINTER)
 end
-
 function AmbientSoundSystem:setIsEnabled(isEnabled)
 	if self.soundPlayerId ~= nil then
 		ambientSoundsSetEnabled(self.soundPlayerId, isEnabled)
 	end
 end
-
--- Local values: conditionFlags
 function AmbientSoundSystem:setIsIndoor(isIndoor)
-	self.conditionFlags:setModifierValue("isIndoor", isIndoor)
+	local conditionFlags = self.conditionFlags
+	conditionFlags:setModifierValue("isIndoor", isIndoor)
 	if self.soundPlayerId ~= nil then
 		ambientSoundsSetIsIndoor(self.soundPlayerId, isIndoor)
 	end
 end
-
--- Local values: typeIndex, conditionFlags
 function AmbientSoundSystem:onWeatherChanged(weatherObject)
-	local v164_ = weatherObject.weatherType
-	local v165_ = self.conditionFlags
-	v165_:setModifierValue("sun", v164_ == WeatherType.SUN)
-	v165_:setModifierValue("cloudy", v164_ == WeatherType.CLOUDY)
+	local typeIndex = weatherObject.weatherType
+	local conditionFlags = self.conditionFlags
+	conditionFlags:setModifierValue("sun", typeIndex == WeatherType.SUN)
+	conditionFlags:setModifierValue("cloudy", typeIndex == WeatherType.CLOUDY)
 end
-
--- Local values: conditionFlags
 function AmbientSoundSystem:onPlayerEntered()
-	local v167_ = self.conditionFlags
-	v167_:setModifierValue("outVehicle", true)
-	v167_:setModifierValue("inVehicle", false)
+	local conditionFlags = self.conditionFlags
+	conditionFlags:setModifierValue("outVehicle", true)
+	conditionFlags:setModifierValue("inVehicle", false)
 end
-
--- Local values: conditionFlags
 function AmbientSoundSystem:onPlayerLeft()
-	local v169_ = self.conditionFlags
-	v169_:setModifierValue("outVehicle", false)
-	v169_:setModifierValue("inVehicle", true)
+	local conditionFlags = self.conditionFlags
+	conditionFlags:setModifierValue("outVehicle", false)
+	conditionFlags:setModifierValue("inVehicle", true)
 end
-
--- Local values: posY, textSize, textOffset, _, sample, match
 function AmbientSoundSystem:draw()
 	if self.isDebugViewActive then
 		setTextAlignment(RenderText.ALIGN_LEFT)
@@ -493,75 +440,68 @@ function AmbientSoundSystem:draw()
 		renderText(0.7, 0.72, getCorrectTextSize(0.014), "Modifiers:")
 		setTextBold(false)
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		local v171_ = getCorrectTextSize(0.012)
-		local v172_ = getCorrectTextSize(0.001)
-		local v173_ = 0.7
-		for _, v174_ in ipairs(self.samples) do
-			if self:isSamplePossible(v174_) then
-				renderText(0.1, v173_, v171_, AudioGroup.getAudioGroupNameByIndex(v174_.audioGroupId))
-				renderText(0.2, v173_, v171_, v174_.filename)
-				v173_ = v173_ - v171_ - v172_
+		local posY = 0.7
+		local textSize = getCorrectTextSize(0.012)
+		local textOffset = getCorrectTextSize(0.001)
+		for _, sample in ipairs(self.samples) do
+			local match = self:isSamplePossible(sample)
+			if match then
+				renderText(0.1, posY, textSize, AudioGroup.getAudioGroupNameByIndex(sample.audioGroupId))
+				renderText(0.2, posY, textSize, sample.filename)
+				posY = posY - textSize - textOffset
 			end
 		end
-		local v175_ = self.conditionFlags:drawDebug(0.7, 0.72) - v171_ - v172_
+		posY = self.conditionFlags:drawDebug(0.7, 0.72)
+		posY = posY - textSize - textOffset
 		setTextAlignment(RenderText.ALIGN_RIGHT)
-		renderText(0.7, v175_, v171_, "time of day: ")
+		renderText(0.7, posY, textSize, "time of day: ")
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		local v176_ = renderText
-		local v177_ = g_currentMission.environment
-		v176_(0.7, v175_, v171_, (tostring(v177_:getMinuteOfDay())))
-		local v178_ = v175_ - v171_ - v172_
+		renderText(0.7, posY, textSize, tostring(g_currentMission.environment:getMinuteOfDay()))
+		posY = posY - textSize - textOffset
 		setTextAlignment(RenderText.ALIGN_RIGHT)
-		renderText(0.7, v178_, v171_, "day of year: ")
+		renderText(0.7, posY, textSize, "day of year: ")
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		local v179_ = renderText
-		local v180_ = g_currentMission.environment
-		v179_(0.7, v178_, v171_, (tostring(v180_:getDayOfYear())))
+		renderText(0.7, posY, textSize, tostring(g_currentMission.environment:getDayOfYear()))
 	end
 end
-
 function AmbientSoundSystem:consoleCommandReload()
 	self:unloadAmbientSounds()
 	self:loadFromConfigFile()
 end
-
--- Local values: mission, _, movingSound
 function AmbientSoundSystem:consoleCommandToggleDebugView()
 	self.isDebugViewActive = not self.isDebugViewActive
-	local v183_ = g_currentMission
+	local mission = g_currentMission
 	if self.isDebugViewActive then
-		v183_:addDrawable(self)
+		mission:addDrawable(self)
 	else
-		v183_:removeDrawable(self)
+		mission:removeDrawable(self)
 	end
-	for _, v184_ in ipairs(self.movingSounds) do
-		setVisibility(v184_.spline, self.isDebugViewActive)
+	for _, movingSound in ipairs(self.movingSounds) do
+		setVisibility(movingSound.spline, self.isDebugViewActive)
 	end
 end
-
--- Local values: mask, match, environment, minuteOfDay, minTimeOfDay, maxTimeOfDay, dayOfYear, minDayOfYear, maxDayOfYear
 function AmbientSoundSystem:isSamplePossible(sample)
-	local v187_ = self.conditionFlags:getMask()
-	local v188_ = sample.preventFlags
-	local v189_
-	if bit32.band(v187_, v188_) == 0 then
-		local v190_ = sample.requiredFlags
-		v189_ = bit32.band(v187_, v190_) == sample.requiredFlags
+	local mask = self.conditionFlags:getMask()
+	local match = false
+	if bit32.band(mask, sample.preventFlags) == 0 then
+		match = bit32.band(mask, sample.requiredFlags) == sample.requiredFlags
+	end
+	if not match then
+		return false
+	end
+	local environment = g_currentMission.environment
+	local minuteOfDay = environment:getMinuteOfDay()
+	local minTimeOfDay = sample.minTimeOfDay
+	local maxTimeOfDay = sample.maxTimeOfDay
+	if MathUtil.getIsOutOfBounds(minuteOfDay, minTimeOfDay, maxTimeOfDay) then
+		return false
+	end
+	local dayOfYear = environment:getDayOfYear()
+	local minDayOfYear = sample.minDayOfYear
+	local maxDayOfYear = sample.maxDayOfYear
+	if MathUtil.getIsOutOfBounds(dayOfYear, minDayOfYear, maxDayOfYear) then
+		return false
 	else
-		v189_ = false
+		return true
 	end
-	if not v189_ then
-		return false
-	end
-	local v191_ = g_currentMission.environment
-	local v192_ = v191_:getMinuteOfDay()
-	local v193_ = sample.minTimeOfDay
-	local v194_ = sample.maxTimeOfDay
-	if MathUtil.getIsOutOfBounds(v192_, v193_, v194_) then
-		return false
-	end
-	local v195_ = v191_:getDayOfYear()
-	local v196_ = sample.minDayOfYear
-	local v197_ = sample.maxDayOfYear
-	return not MathUtil.getIsOutOfBounds(v195_, v196_, v197_)
 end

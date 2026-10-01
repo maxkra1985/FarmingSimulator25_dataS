@@ -1,17 +1,10 @@
--- Local values: FarmlandStatisticCounter_mt
 FarmlandStatisticCounter = {}
 local FarmlandStatisticCounter_mt = Class(FarmlandStatisticCounter)
-
--- Upvalues: FarmlandStatisticCounter_mt
--- Local values: self
 function FarmlandStatisticCounter.new(customMt)
-	-- upvalues: (copy) FarmlandStatisticCounter_mt
-	local v3_ = customMt or FarmlandStatisticCounter_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_:reset()
-	return v4_
+	local self = setmetatable({}, customMt or FarmlandStatisticCounter_mt)
+	self:reset()
+	return self
 end
-
 function FarmlandStatisticCounter:loadFromItemsXML(xmlFile, key)
 	self.numSoilSamples = xmlFile:getInt(key .. "#numSoilSamples", self.numSoilSamples)
 	self.soilSampleCosts = xmlFile:getFloat(key .. "#soilSampleCosts", self.soilSampleCosts)
@@ -38,7 +31,6 @@ function FarmlandStatisticCounter:loadFromItemsXML(xmlFile, key)
 	self.helperCosts = xmlFile:getFloat(key .. "#helperCosts", self.helperCosts)
 	self.subsidies = xmlFile:getFloat(key .. "#subsidies", self.subsidies)
 end
-
 function FarmlandStatisticCounter:saveToXMLFile(xmlFile, key, usedModNames)
 	xmlFile:setInt(key .. "#numSoilSamples", self.numSoilSamples)
 	xmlFile:setFloat(key .. "#soilSampleCosts", self.soilSampleCosts)
@@ -65,7 +57,6 @@ function FarmlandStatisticCounter:saveToXMLFile(xmlFile, key, usedModNames)
 	xmlFile:setFloat(key .. "#helperCosts", self.helperCosts)
 	xmlFile:setFloat(key .. "#subsidies", self.subsidies)
 end
-
 function FarmlandStatisticCounter:reset()
 	self.numSoilSamples = 0
 	self.soilSampleCosts = 0
@@ -92,7 +83,6 @@ function FarmlandStatisticCounter:reset()
 	self.helperCosts = 0
 	self.subsidies = 0
 end
-
 function FarmlandStatisticCounter:onReadStream(streamId, connection)
 	self.numSoilSamples = streamReadUIntN(streamId, 16)
 	self.soilSampleCosts = streamReadFloat32(streamId)
@@ -119,7 +109,6 @@ function FarmlandStatisticCounter:onReadStream(streamId, connection)
 	self.helperCosts = streamReadFloat32(streamId)
 	self.subsidies = streamReadFloat32(streamId)
 end
-
 function FarmlandStatisticCounter:onWriteStream(streamId, connection)
 	streamWriteUIntN(streamId, self.numSoilSamples, 16)
 	streamWriteFloat32(streamId, self.soilSampleCosts)

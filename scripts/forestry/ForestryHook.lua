@@ -1,40 +1,31 @@
--- Local values: ForestryHook_mt
 ForestryHook = {}
 local ForestryHook_mt = Class(ForestryHook)
-
--- Upvalues: ForestryHook_mt
--- Local values: self
 function ForestryHook.new(vehicle, linkNode, customMt)
-	-- upvalues: (copy) ForestryHook_mt
-	local v5_ = customMt or ForestryHook_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.vehicle = vehicle
-	v6_.linkNode = linkNode
-	v6_.x = 0
-	v6_.y = 0
-	v6_.z = 0
-	v6_.rx = 0
-	v6_.ry = 0
-	v6_.rz = 0
-	v6_.visibility = true
-	v6_.targetNode = nil
-	v6_.validTarget = false
-	v6_.tx = 0
-	v6_.ty = 0
-	v6_.tz = 0
-	v6_.subTargetNodes = {}
-	v6_.rotationNodes = {}
-	return v6_
+	local self = setmetatable({}, customMt or ForestryHook_mt)
+	self.vehicle = vehicle
+	self.linkNode = linkNode
+	self.x = 0
+	self.y = 0
+	self.z = 0
+	self.rx = 0
+	self.ry = 0
+	self.rz = 0
+	self.visibility = true
+	self.targetNode = nil
+	self.validTarget = false
+	self.tx = 0
+	self.ty = 0
+	self.tz = 0
+	self.subTargetNodes = {}
+	self.rotationNodes = {}
+	return self
 end
-
 function ForestryHook.registerXMLPaths(schema, baseKey)
 	schema:register(XMLValueType.STRING, baseKey .. "#filename", "Path to hook xml file", "$data/shared/forestry/treeHook01.xml")
 end
-
 function ForestryHook:isValid()
 	return self.i3dFilename ~= nil
 end
-
 function ForestryHook:loadFromXML(xmlFile, key, baseDirectory)
 	self.xmlFilename = xmlFile:getValue(key .. "#filename", "$data/shared/forestry/treeHook01.xml")
 	if self.xmlFilename ~= nil then
@@ -53,43 +44,33 @@ function ForestryHook:loadFromXML(xmlFile, key, baseDirectory)
 		end
 	end
 end
-
--- Local values: _, targetKey, node
 function ForestryHook:loadFromConfigXML(xmlFile)
-	xmlFile:iterate("forestryHook.rotationNode", function(_, p16_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v17_ = {
-			["node"] = XMLValueType.getXMLNode(xmlFile.handle, p16_ .. "#node", nil, self.hookId, nil)
-		}
-		if v17_.node ~= nil then
-			v17_.alignYRot = xmlFile:getBool(p16_ .. "#alignYRot", false)
-			v17_.alignXRot = xmlFile:getBool(p16_ .. "#alignXRot", false)
-			local v18_ = xmlFile:getFloat(p16_ .. "#minYRot", -180)
-			v17_.minYRot = math.rad(v18_)
-			local v19_ = xmlFile:getFloat(p16_ .. "#maxYRot", 180)
-			v17_.maxYRot = math.rad(v19_)
-			local v20_ = xmlFile:getFloat(p16_ .. "#minXRot", -180)
-			v17_.minXRot = math.rad(v20_)
-			local v21_ = xmlFile:getFloat(p16_ .. "#maxXRot", 180)
-			v17_.maxXRot = math.rad(v21_)
-			v17_.alignToTarget = xmlFile:getBool(p16_ .. "#alignToTarget", true)
-			v17_.targetIndices = xmlFile:getVector(p16_ .. "#targetIndices", nil)
-			v17_.referenceFrame = createTransformGroup("hookNodeReferenceFrame")
-			link(getParent(v17_.node), v17_.referenceFrame)
-			setTranslation(v17_.referenceFrame, getTranslation(v17_.node))
-			setRotation(v17_.referenceFrame, getRotation(v17_.node))
-			local v22_ = self.rotationNodes
-			table.insert(v22_, v17_)
+	xmlFile:iterate("forestryHook.rotationNode", function(index, key)
+		local rotationNode = {}
+		rotationNode.node = XMLValueType.getXMLNode(xmlFile.handle, key .. "#node", nil, self.hookId, nil)
+		if rotationNode.node ~= nil then
+			rotationNode.alignYRot = xmlFile:getBool(key .. "#alignYRot", false)
+			rotationNode.alignXRot = xmlFile:getBool(key .. "#alignXRot", false)
+			rotationNode.minYRot = math.rad(xmlFile:getFloat(key .. "#minYRot", -180))
+			rotationNode.maxYRot = math.rad(xmlFile:getFloat(key .. "#maxYRot", 180))
+			rotationNode.minXRot = math.rad(xmlFile:getFloat(key .. "#minXRot", -180))
+			rotationNode.maxXRot = math.rad(xmlFile:getFloat(key .. "#maxXRot", 180))
+			rotationNode.alignToTarget = xmlFile:getBool(key .. "#alignToTarget", true)
+			rotationNode.targetIndices = xmlFile:getVector(key .. "#targetIndices", nil)
+			rotationNode.referenceFrame = createTransformGroup("hookNodeReferenceFrame")
+			link(getParent(rotationNode.node), rotationNode.referenceFrame)
+			setTranslation(rotationNode.referenceFrame, getTranslation(rotationNode.node))
+			setRotation(rotationNode.referenceFrame, getRotation(rotationNode.node))
+			table.insert(self.rotationNodes, rotationNode)
 		end
 	end)
 	self.ropeTargets = {}
-	for _, v23_ in xmlFile:iterator("forestryHook.ropeTarget") do
-		local v24_ = XMLValueType.getXMLNode(xmlFile.handle, v23_ .. "#node", nil, self.hookId, nil)
-		if v24_ ~= nil and self.ropeTarget == nil then
-			self.ropeTarget = v24_
+	for _, targetKey in xmlFile:iterator("forestryHook.ropeTarget") do
+		local node = XMLValueType.getXMLNode(xmlFile.handle, targetKey .. "#node", nil, self.hookId, nil)
+		if node ~= nil and self.ropeTarget == nil then
+			self.ropeTarget = node
 		end
-		local v25_ = self.ropeTargets
-		table.insert(v25_, v24_)
+		table.insert(self.ropeTargets, node)
 	end
 	self.treeBelt = {}
 	self.treeBelt.offset = xmlFile:getFloat("forestryHook.treeBelt#offset", 0.01)
@@ -104,36 +85,32 @@ function ForestryHook:loadFromConfigXML(xmlFile)
 	self.treeBelt.dynamicBeltSpacing.minSpacing = xmlFile:getFloat("forestryHook.treeBelt.dynamicBeltSpacing#minSpacing", 0.01)
 	self.treeBelt.dynamicBeltSpacing.maxSpacing = xmlFile:getFloat("forestryHook.treeBelt.dynamicBeltSpacing#maxSpacing", 0.1)
 	self.treeBelt.dynamicBeltSpacing.adjustmentNodes = {}
-	xmlFile:iterate("forestryHook.treeBelt.dynamicBeltSpacing.adjustmentNode", function(_, p26_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v27_ = {
-			["node"] = XMLValueType.getXMLNode(xmlFile.handle, p26_ .. "#node", nil, self.hookId, nil)
-		}
-		if v27_.node ~= nil then
-			v27_.minRot = XMLValueType.getXMLVector3Angle(xmlFile.handle, p26_ .. "#minRot", nil, true)
-			v27_.maxRot = XMLValueType.getXMLVector3Angle(xmlFile.handle, p26_ .. "#maxRot", nil, true)
-			v27_.minTrans = XMLValueType.getXMLVector3(xmlFile.handle, p26_ .. "#minTrans", nil, true)
-			v27_.maxTrans = XMLValueType.getXMLVector3(xmlFile.handle, p26_ .. "#maxTrans", nil, true)
-			local v28_ = self.treeBelt.dynamicBeltSpacing.adjustmentNodes
-			table.insert(v28_, v27_)
+	xmlFile:iterate("forestryHook.treeBelt.dynamicBeltSpacing.adjustmentNode", function(index, key)
+		local nodeData = {}
+		nodeData.node = XMLValueType.getXMLNode(xmlFile.handle, key .. "#node", nil, self.hookId, nil)
+		if nodeData.node ~= nil then
+			nodeData.minRot = XMLValueType.getXMLVector3Angle(xmlFile.handle, key .. "#minRot", nil, true)
+			nodeData.maxRot = XMLValueType.getXMLVector3Angle(xmlFile.handle, key .. "#maxRot", nil, true)
+			nodeData.minTrans = XMLValueType.getXMLVector3(xmlFile.handle, key .. "#minTrans", nil, true)
+			nodeData.maxTrans = XMLValueType.getXMLVector3(xmlFile.handle, key .. "#maxTrans", nil, true)
+			table.insert(self.treeBelt.dynamicBeltSpacing.adjustmentNodes, nodeData)
 		end
 	end)
 end
-
--- Local values: hookClone, i3dNode, sharedLoadRequestId, failedReason
 function ForestryHook:clone()
-	local v30_ = ForestryHook.new(self.vehicle, self.linkNode)
-	v30_.xmlFilename = self.xmlFilename
-	v30_.i3dFilename = self.i3dFilename
-	if v30_.i3dFilename ~= nil then
-		v30_.hookXMLFile = XMLFile.load("hookXMLFile", v30_.xmlFilename)
-		local v31_, v32_, v33_ = g_i3DManager:loadSharedI3DFile(v30_.i3dFilename, false, false)
-		v30_.sharedLoadRequestId = v32_
-		v30_:onI3DLoaded(v31_, v33_)
-		return v30_
+	local hookClone = ForestryHook.new(self.vehicle, self.linkNode)
+	hookClone.xmlFilename = self.xmlFilename
+	hookClone.i3dFilename = self.i3dFilename
+	if hookClone.i3dFilename ~= nil then
+		hookClone.hookXMLFile = XMLFile.load("hookXMLFile", hookClone.xmlFilename)
+		local i3dNode, sharedLoadRequestId, failedReason = g_i3DManager:loadSharedI3DFile(hookClone.i3dFilename, false, false)
+		hookClone.sharedLoadRequestId = sharedLoadRequestId
+		hookClone:onI3DLoaded(i3dNode, failedReason)
+		return hookClone
+	else
+		return
 	end
 end
-
 function ForestryHook:delete()
 	g_currentMission:removeUpdateable(self)
 	if self.hookId ~= nil then
@@ -152,101 +129,88 @@ function ForestryHook:delete()
 		self.splitShapeId = nil
 	end
 end
-
--- Local values: j, rotationNode, tx, ty, tz, numTargets, _, targetIndex, subTargetNode, sx, sy, sz, x, _, z, angle, rx, _, _, _, y, z, angle, _, ry, _, x, y, z
 function ForestryHook:update(dt)
 	if self.targetNode ~= nil and entityExists(self.targetNode) then
-		local v36_, v37_, v38_ = getWorldTranslation(self.targetNode)
-		self.tx = v36_
-		self.ty = v37_
-		self.tz = v38_
+		self.tx, self.ty, self.tz = getWorldTranslation(self.targetNode)
 	end
 	if entityExists(self.hookId) then
 		if self.validTarget then
-			for v39_ = 1, #self.rotationNodes do
-				local v40_ = self.rotationNodes[v39_]
-				local v41_, v42_, v43_
-				if v40_.targetIndices == nil then
-					v41_ = nil
-					v42_ = nil
-					v43_ = nil
-				else
-					v41_ = 0
-					v42_ = 0
-					v43_ = 0
-					local v44_ = 0
-					for _, v45_ in ipairs(v40_.targetIndices) do
-						local v46_ = self.subTargetNodes[v45_]
-						if v46_ ~= nil and entityExists(v46_) then
-							local v47_, v48_, v49_ = getWorldTranslation(v46_)
-							v41_ = v41_ + v47_
-							v42_ = v42_ + v48_
-							v43_ = v43_ + v49_
-							v44_ = v44_ + 1
+			for j = 1, #self.rotationNodes do
+				local rotationNode = self.rotationNodes[j]
+				local tx = nil
+				local ty = nil
+				local tz = nil
+				if rotationNode.targetIndices ~= nil then
+					tx = 0
+					ty = 0
+					tz = 0
+					local numTargets = 0
+					for _, targetIndex in ipairs(rotationNode.targetIndices) do
+						local subTargetNode = self.subTargetNodes[targetIndex]
+						if subTargetNode == nil then
+							continue
+						end
+						if entityExists(subTargetNode) then
+							local sx, sy, sz = getWorldTranslation(subTargetNode)
+							tx = tx + sx
+							ty = ty + sy
+							tz = tz + sz
+							numTargets = numTargets + 1
 						end
 					end
-					if v44_ > 0 then
-						v41_ = v41_ / v44_
-						v42_ = v42_ / v44_
-						v43_ = v43_ / v44_
+					if 0 < numTargets then
+						tx = tx / numTargets
+						ty = ty / numTargets
+						tz = tz / numTargets
 					end
 				end
-				if v41_ == nil then
-					v41_ = self.tx
-					v42_ = self.ty
-					v43_ = self.tz
+				if tx == nil then
+					tx = self.tx
+					ty = self.ty
+					tz = self.tz
 				end
-				if v40_.alignYRot then
-					local v50_, _, v51_ = worldToLocal(v40_.referenceFrame, v41_, v42_, v43_)
-					local v52_, v53_ = MathUtil.vector2Normalize(v50_, v51_)
-					local v54_ = math.atan2(v52_, v53_)
-					local v55_ = v40_.minYRot
-					local v56_ = v40_.maxYRot
-					local v57_ = math.clamp(v54_, v55_, v56_)
-					local v58_, _, _ = getRotation(v40_.node)
-					setRotation(v40_.node, v58_, v57_, 0)
+				if rotationNode.alignYRot then
+					local x, _, z = worldToLocal(rotationNode.referenceFrame, tx, ty, tz)
+					x, z = MathUtil.vector2Normalize(x, z)
+					local angle = math.clamp(math.atan2(x, z), rotationNode.minYRot, rotationNode.maxYRot)
+					local rx, _, _ = getRotation(rotationNode.node)
+					setRotation(rotationNode.node, rx, angle, 0)
 				end
-				if v40_.alignXRot then
-					local _, v59_, v60_ = worldToLocal(v40_.referenceFrame, v41_, v42_, v43_)
-					local v61_, v62_ = MathUtil.vector2Normalize(v59_, v60_)
-					local v63_ = -math.atan2(v61_, v62_)
-					local v64_ = v40_.minXRot
-					local v65_ = v40_.maxXRot
-					local v66_ = math.clamp(v63_, v64_, v65_)
-					local _, v67_, _ = getRotation(v40_.node)
-					setRotation(v40_.node, v66_, v67_, 0)
+				if rotationNode.alignXRot then
+					local _, y, z = worldToLocal(rotationNode.referenceFrame, tx, ty, tz)
+					y, z = MathUtil.vector2Normalize(y, z)
+					local angle = math.clamp(-math.atan2(y, z), rotationNode.minXRot, rotationNode.maxXRot)
+					local _, ry, _ = getRotation(rotationNode.node)
+					setRotation(rotationNode.node, angle, ry, 0)
 				end
-				if not v40_.alignYRot and (not v40_.alignXRot and v40_.alignToTarget) then
-					local v68_, v69_, v70_ = worldToLocal(v40_.referenceFrame, v41_, v42_, v43_)
-					local v71_, v72_, v73_ = MathUtil.vector3Normalize(v68_, v69_, v70_)
-					setDirection(v40_.node, v71_, v72_, v73_, 0, 1, 0)
+				if rotationNode.alignYRot or rotationNode.alignXRot then
+					continue
+				end
+				if rotationNode.alignToTarget then
+					local x, y, z = worldToLocal(rotationNode.referenceFrame, tx, ty, tz)
+					x, y, z = MathUtil.vector3Normalize(x, y, z)
+					setDirection(rotationNode.node, x, y, z, 0, 1, 0)
 				end
 			end
-			return
 		end
 	else
 		g_currentMission:removeUpdateable(self)
 	end
 end
-
 function ForestryHook:setTargetNode(nodeId, isActiveDirty)
 	self.targetNode = nodeId
 	self.validTarget = nodeId ~= nil
 	if self.validTarget then
-		local v77_, v78_, v79_ = getWorldTranslation(self.targetNode)
-		self.tx = v77_
-		self.ty = v78_
-		self.tz = v79_
+		self.tx, self.ty, self.tz = getWorldTranslation(self.targetNode)
 		self:update(9999)
 	end
 	if isActiveDirty and self.validTarget then
 		g_currentMission:removeUpdateable(self)
 		g_currentMission:addUpdateable(self)
-	else
-		g_currentMission:removeUpdateable(self)
+		return
 	end
+	g_currentMission:removeUpdateable(self)
 end
-
 function ForestryHook:setTargetPosition(x, y, z)
 	self.tx = x
 	self.ty = y
@@ -254,32 +218,22 @@ function ForestryHook:setTargetPosition(x, y, z)
 	self.validTarget = true
 	self:update(9999)
 end
-
 function ForestryHook:setSubTargetNode(nodeId, index)
 	self.subTargetNodes[index] = nodeId
 end
-
--- Local values: i, _
 function ForestryHook:resetSubTargetNodes()
-	for v88_, _ in pairs(self.subTargetNodes) do
-		self.subTargetNodes[v88_] = nil
+	for i, _ in pairs(self.subTargetNodes) do
+		self.subTargetNodes[i] = nil
 	end
 end
-
 function ForestryHook:link(node, x, y, z, rx, ry, rz)
 	self.linkNode = node
-	local v97_ = x or self.x
-	local v98_ = y or self.y
-	local v99_ = z or self.z
-	self.x = v97_
-	self.y = v98_
-	self.z = v99_
-	local v100_ = rx or self.rx
-	local v101_ = ry or self.ry
-	local v102_ = rz or self.rz
-	self.rx = v100_
-	self.ry = v101_
-	self.rz = v102_
+	self.x = x or self.x
+	self.y = y or self.y
+	self.z = z or self.z
+	self.rx = rx or self.rx
+	self.ry = ry or self.ry
+	self.rz = rz or self.rz
 	if self.hookId ~= nil then
 		link(self.linkNode, self.hookId)
 		setVisibility(self.hookId, self.visibility)
@@ -287,16 +241,9 @@ function ForestryHook:link(node, x, y, z, rx, ry, rz)
 		setRotation(self.hookId, self.rx, self.ry, self.rz)
 	end
 end
-
 function ForestryHook:setPositionAndDirection(x, y, z, dx, dz)
-	local v109_, v110_, v111_ = worldToLocal(self.linkNode, x, y, z)
-	self.x = v109_
-	self.y = v110_
-	self.z = v111_
-	local v112_, v113_, v114_ = worldRotationToLocal(self.linkNode, 0, MathUtil.getYRotationFromDirection(dx, dz), 0)
-	self.rx = v112_
-	self.ry = v113_
-	self.rz = v114_
+	self.x, self.y, self.z = worldToLocal(self.linkNode, x, y, z)
+	self.rx, self.ry, self.rz = worldRotationToLocal(self.linkNode, 0, MathUtil.getYRotationFromDirection(dx, dz), 0)
 	if self.hookId ~= nil then
 		link(self.linkNode, self.hookId)
 		setVisibility(self.hookId, self.visibility)
@@ -304,95 +251,84 @@ function ForestryHook:setPositionAndDirection(x, y, z, dx, dz)
 		setRotation(self.hookId, self.rx, self.ry, self.rz)
 	end
 end
-
--- Local values: alpha, spacing
 function ForestryHook:getBeltSpacing(radius)
-	if not self.treeBelt.dynamicBeltSpacing.isActive then
+	if self.treeBelt.dynamicBeltSpacing.isActive then
+		local alpha = MathUtil.inverseLerp(self.treeBelt.dynamicBeltSpacing.minRadius, self.treeBelt.dynamicBeltSpacing.maxRadius, radius)
+		local spacing = MathUtil.lerp(self.treeBelt.dynamicBeltSpacing.minSpacing, self.treeBelt.dynamicBeltSpacing.maxSpacing, alpha)
+		return spacing
+	else
 		return self.treeBelt.spacing
 	end
-	local v117_ = MathUtil.inverseLerp(self.treeBelt.dynamicBeltSpacing.minRadius, self.treeBelt.dynamicBeltSpacing.maxRadius, radius)
-	return MathUtil.lerp(self.treeBelt.dynamicBeltSpacing.minSpacing, self.treeBelt.dynamicBeltSpacing.maxSpacing, v117_)
 end
-
--- Local values: alpha, i, nodeData, rx, ry, rz, x, y, z
 function ForestryHook:updateDynamicSpacingNodes(radius)
 	if self.treeBelt.dynamicBeltSpacing.isActive then
-		local v120_ = MathUtil.inverseLerp(self.treeBelt.dynamicBeltSpacing.minRadius, self.treeBelt.dynamicBeltSpacing.maxRadius, radius)
-		for v121_ = 1, #self.treeBelt.dynamicBeltSpacing.adjustmentNodes do
-			local v122_ = self.treeBelt.dynamicBeltSpacing.adjustmentNodes[v121_]
-			if v122_.minRot ~= nil and v122_.maxRot ~= nil then
-				local v123_, v124_, v125_ = MathUtil.vector3ArrayLerp(v122_.minRot, v122_.maxRot, v120_)
-				setRotation(v122_.node, v123_, v124_, v125_)
+		local alpha = MathUtil.inverseLerp(self.treeBelt.dynamicBeltSpacing.minRadius, self.treeBelt.dynamicBeltSpacing.maxRadius, radius)
+		for i = 1, #self.treeBelt.dynamicBeltSpacing.adjustmentNodes do
+			local nodeData = self.treeBelt.dynamicBeltSpacing.adjustmentNodes[i]
+			if nodeData.minRot ~= nil and nodeData.maxRot ~= nil then
+				local rx, ry, rz = MathUtil.vector3ArrayLerp(nodeData.minRot, nodeData.maxRot, alpha)
+				setRotation(nodeData.node, rx, ry, rz)
 			end
-			if v122_.minTrans ~= nil and v122_.maxTrans ~= nil then
-				local v126_, v127_, v128_ = MathUtil.vector3ArrayLerp(v122_.minTrans, v122_.maxTrans, v120_)
-				setTranslation(v122_.node, v126_, v127_, v128_)
+			if nodeData.minTrans == nil or nodeData.maxTrans == nil then
+				continue
 			end
+			local x, y, z = MathUtil.vector3ArrayLerp(nodeData.minTrans, nodeData.maxTrans, alpha)
+			setTranslation(nodeData.node, x, y, z)
 		end
 	end
 	return self.treeBelt.spacing
 end
-
--- Local values: cx, cy, cz, upX, upY, upZ, radius, dx, dy, dz, beltShape, wtx, wty, wtz, wrx, wry, wrz
 function ForestryHook:mountToTree(splitShapeId, x, y, z, maxRadius, tx, ty, tz)
-	local v137_, v138_, v139_, v140_, v141_, v142_, v143_ = SplitShapeUtil.getTreeOffsetPosition(splitShapeId, x, y, z, 4)
-	if v137_ == nil then
+	local cx, cy, cz, upX, upY, upZ, radius = SplitShapeUtil.getTreeOffsetPosition(splitShapeId, x, y, z, 4)
+	if cx == nil then
 		return nil
+	else
+		tx = tx or x
+		ty = ty or y
+		tz = tz or z
+		if getRigidBodyType(splitShapeId) == RigidBodyType.STATIC then
+			local dx, dy, dz = MathUtil.vector3Normalize(tx - cx, ty - cy, tz - cz)
+			tx = cx + dx * radius
+			ty = cy + dy * radius
+			tz = cz + dz * radius
+			ty = math.clamp(ty, cy - self.treeBelt.maxDeltaY, cy + self.treeBelt.maxDeltaY)
+			radius = radius + math.abs(cy - ty)
+			setShaderParameterRecursive(splitShapeId, "windSnowLeafScale", 0, nil, nil, nil, false)
+		end
+		local beltShape = SplitShapeUtil.createTreeBelt(self.treeBelt.beltData, splitShapeId, cx, cy, cz, tx, ty, tz, upX, upY, upZ, radius + self.treeBelt.offset, false, self:getBeltSpacing(radius))
+		local wtx, wty, wtz = getWorldTranslation(beltShape)
+		local wrx, wry, wrz = getWorldRotation(beltShape)
+		link(splitShapeId, beltShape)
+		setWorldTranslation(beltShape, wtx, wty, wtz)
+		setWorldRotation(beltShape, wrx, wry, wrz)
+		self:link(beltShape, 0, 0, 0, 0, 0, 0)
+		self:updateDynamicSpacingNodes(radius)
+		if self.beltShape ~= nil then
+			delete(self.beltShape)
+		end
+		self.splitShapeId = splitShapeId
+		self.beltShape = beltShape
+		return cx, cy, cz
 	end
-	local v144_ = tx or x
-	local v145_ = ty or y
-	local v146_ = tz or z
-	if getRigidBodyType(splitShapeId) == RigidBodyType.STATIC then
-		local v147_, v148_, v149_ = MathUtil.vector3Normalize(v144_ - v137_, v145_ - v138_, v146_ - v139_)
-		v144_ = v137_ + v147_ * v143_
-		local v150_ = v138_ + v148_ * v143_
-		v146_ = v139_ + v149_ * v143_
-		local v151_ = v138_ - self.treeBelt.maxDeltaY
-		local v152_ = v138_ + self.treeBelt.maxDeltaY
-		v145_ = math.clamp(v150_, v151_, v152_)
-		local v153_ = v138_ - v145_
-		v143_ = v143_ + math.abs(v153_)
-		setShaderParameterRecursive(splitShapeId, "windSnowLeafScale", 0, nil, nil, nil, false)
-	end
-	local v154_ = SplitShapeUtil.createTreeBelt(self.treeBelt.beltData, splitShapeId, v137_, v138_, v139_, v144_, v145_, v146_, v140_, v141_, v142_, v143_ + self.treeBelt.offset, false, self:getBeltSpacing(v143_))
-	local v155_, v156_, v157_ = getWorldTranslation(v154_)
-	local v158_, v159_, v160_ = getWorldRotation(v154_)
-	link(splitShapeId, v154_)
-	setWorldTranslation(v154_, v155_, v156_, v157_)
-	setWorldRotation(v154_, v158_, v159_, v160_)
-	self:link(v154_, 0, 0, 0, 0, 0, 0)
-	self:updateDynamicSpacingNodes(v143_)
-	if self.beltShape ~= nil then
-		delete(self.beltShape)
-	end
-	self.splitShapeId = splitShapeId
-	self.beltShape = v154_
-	return v137_, v138_, v139_
 end
-
 function ForestryHook:setVisibility(visibility)
 	self.visibility = visibility
 	if self.hookId ~= nil then
 		setVisibility(self.hookId, self.visibility)
 	end
 end
-
 function ForestryHook:getRopeTargetPosition()
-	if self.ropeTarget == nil or not entityExists(self.ropeTarget) then
-		return 0, 0, 0
-	else
+	if self.ropeTarget ~= nil and entityExists(self.ropeTarget) then
 		return getWorldTranslation(self.ropeTarget)
 	end
+	return 0, 0, 0
 end
-
 function ForestryHook:getRopeTarget()
-	return self.ropeTarget or (self.hookId or self.linkNode)
+	return self.ropeTarget or self.hookId or self.linkNode
 end
-
 function ForestryHook:getRopeTargets()
 	return self.ropeTargets
 end
-
 function ForestryHook:onI3DLoaded(i3dNode, failedReason)
 	if i3dNode ~= 0 then
 		self.hookId = getChildAt(i3dNode, 0)

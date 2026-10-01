@@ -1,14 +1,9 @@
--- Local values: AIMessageErrorOutOfMoney_mt
 AIMessageErrorOutOfMoney = {}
 local AIMessageErrorOutOfMoney_mt = Class(AIMessageErrorOutOfMoney, AIMessage)
-
--- Upvalues: AIMessageErrorOutOfMoney_mt
--- Local values: self
 function AIMessageErrorOutOfMoney.new(customMt)
-	-- upvalues: (copy) AIMessageErrorOutOfMoney_mt
-	return AIMessage.new(customMt or AIMessageErrorOutOfMoney_mt)
+	local self = AIMessage.new(customMt or AIMessageErrorOutOfMoney_mt)
+	return self
 end
-
 function AIMessageErrorOutOfMoney:getI18NText()
 	return g_i18n:getText("ai_messageErrorOutOfMoney")
 end

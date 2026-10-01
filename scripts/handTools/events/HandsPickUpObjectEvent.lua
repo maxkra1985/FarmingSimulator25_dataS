@@ -1,75 +1,65 @@
--- Local values: HandsPickUpObjectEvent_mt
 HandsPickUpObjectEvent = {}
 local HandsPickUpObjectEvent_mt = Class(HandsPickUpObjectEvent, Event)
 InitStaticEventClass(HandsPickUpObjectEvent, "HandsPickUpObjectEvent")
 function HandsPickUpObjectEvent.emptyNew()
-	-- upvalues: (copy) HandsPickUpObjectEvent_mt
-	return Event.new(HandsPickUpObjectEvent_mt)
+	local self = Event.new(HandsPickUpObjectEvent_mt)
+	return self
 end
-
--- Local values: self
 function HandsPickUpObjectEvent.new(hands, target)
-	local v4_ = HandsPickUpObjectEvent.emptyNew()
-	v4_.hands = hands
-	v4_.target = target
-	return v4_
+	local self = HandsPickUpObjectEvent.emptyNew()
+	self.hands = hands
+	self.target = target
+	return self
 end
-
--- Local values: isSplitShape, nodeObject
 function HandsPickUpObjectEvent:readStream(streamId, connection)
 	self.hands = NetworkUtil.readNodeObject(streamId)
 	self.target = {}
 	self.target.distance = NetworkUtil.readCompressedRange(streamId, 0, HandToolHands.PICKUP_DISTANCE, 10)
-	if streamReadBool(streamId) then
+	local isSplitShape = streamReadBool(streamId)
+	if isSplitShape then
 		self.target.node = readSplitShapeIdFromStream(streamId)
 		if self.target.node == 0 then
 			Logging.error("Picked up split shape is not synced!")
 			self.target.node = nil
 		end
 	else
-		local v8_ = NetworkUtil.readNodeObject(streamId)
-		if v8_ == nil then
-			Logging.error("Could not find picked up node object!")
+		local nodeObject = NetworkUtil.readNodeObject(streamId)
+		if nodeObject ~= nil then
+			self.target.node = nodeObject.rootNode or nodeObject.nodeId
 		else
-			self.target.node = v8_.rootNode or v8_.nodeId
+			Logging.error("Could not find picked up node object!")
 		end
 	end
 	self:run(connection)
 end
-
--- Local values: isSplitShape, nodeObject
 function HandsPickUpObjectEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.hands)
 	NetworkUtil.writeCompressedRange(streamId, self.target.distance, 0, HandToolHands.PICKUP_DISTANCE, 10)
-	local v11_
-	if self.target.node == nil or self.target.node == 0 then
-		v11_ = false
-	else
-		v11_ = getHasClassId(self.target.node, ClassIds.MESH_SPLIT_SHAPE)
+	local isSplitShape = false
+	if self.target.node ~= nil then
+		isSplitShape = false
+		if self.target.node ~= 0 then
+			isSplitShape = getHasClassId(self.target.node, ClassIds.MESH_SPLIT_SHAPE)
+		end
 	end
-	streamWriteBool(streamId, v11_)
-	local v12_ = g_currentMission:getNodeObject(self.target.node)
-	if v11_ then
+	streamWriteBool(streamId, isSplitShape)
+	local nodeObject = g_currentMission:getNodeObject(self.target.node)
+	if isSplitShape then
 		writeSplitShapeIdToStream(streamId, self.target.node)
-		return
-	elseif v12_ == nil then
-		local v13_ = Logging.error
-		local v14_ = self.target.node
-		v13_("Invalid picked up object! Is not a split shape or object! id: %s", (tostring(v14_)))
+	elseif nodeObject ~= nil then
+		NetworkUtil.writeNodeObject(streamId, nodeObject)
 	else
-		NetworkUtil.writeNodeObject(streamId, v12_)
+		Logging.error("Invalid picked up object! Is not a split shape or object! id: %s", tostring(self.target.node))
 	end
 end
-
 function HandsPickUpObjectEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.hands)
 	end
-	if self.hands ~= nil and (self.hands:getIsSynchronized() and not (self.hands:pickUpTarget(self.target, true) or connection:getIsServer())) then
+	if self.hands ~= nil and (self.hands:getIsSynchronized() and (not self.hands:pickUpTarget(self.target, true) and not connection:getIsServer())) then
 		connection:sendEvent(HandsPickUpFailedEvent.new(self.hands))
 	end
 end
-
 function HandsPickUpObjectEvent.sendEvent(hands, target, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

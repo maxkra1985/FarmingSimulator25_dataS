@@ -1,37 +1,28 @@
--- Local values: PlayerSetFarmAnswerEvent_mt
 PlayerSetFarmAnswerEvent = {}
 local PlayerSetFarmAnswerEvent_mt = Class(PlayerSetFarmAnswerEvent, Event)
 InitStaticEventClass(PlayerSetFarmAnswerEvent, "PlayerSetFarmAnswerEvent")
-PlayerSetFarmAnswerEvent.STATE = {
-	["OK"] = 1,
-	["PASSWORD_REQUIRED"] = 2
-}
+PlayerSetFarmAnswerEvent.STATE = { OK = 1, PASSWORD_REQUIRED = 2 }
 PlayerSetFarmAnswerEvent.SEND_NUM_BITS = 2
 function PlayerSetFarmAnswerEvent.emptyNew()
-	-- upvalues: (copy) PlayerSetFarmAnswerEvent_mt
-	return Event.new(PlayerSetFarmAnswerEvent_mt)
+	local self = Event.new(PlayerSetFarmAnswerEvent_mt)
+	return self
 end
-
--- Local values: self
 function PlayerSetFarmAnswerEvent.new(answerState, farmId, password)
-	local v5_ = PlayerSetFarmAnswerEvent.emptyNew()
-	v5_.answerState = answerState
-	v5_.farmId = farmId
-	v5_.password = password
-	return v5_
+	local self = PlayerSetFarmAnswerEvent.emptyNew()
+	self.answerState = answerState
+	self.farmId = farmId
+	self.password = password
+	return self
 end
-
--- Local values: passwordCorrect, passwordSet
 function PlayerSetFarmAnswerEvent:writeStream(streamId, connection)
 	streamWriteUIntN(streamId, self.answerState, PlayerSetFarmAnswerEvent.SEND_NUM_BITS)
 	streamWriteUIntN(streamId, self.farmId, FarmManager.FARM_ID_SEND_NUM_BITS)
-	local v8_ = self.answerState == PlayerSetFarmAnswerEvent.STATE.OK
-	local v9_ = self.password ~= nil
-	if streamWriteBool(streamId, v8_ and v9_) then
+	local passwordCorrect = self.answerState == PlayerSetFarmAnswerEvent.STATE.OK
+	local passwordSet = self.password ~= nil
+	if streamWriteBool(streamId, passwordCorrect and passwordSet) then
 		streamWriteString(streamId, self.password)
 	end
 end
-
 function PlayerSetFarmAnswerEvent:readStream(streamId, connection)
 	self.answerState = streamReadUIntN(streamId, PlayerSetFarmAnswerEvent.SEND_NUM_BITS)
 	self.farmId = streamReadUIntN(streamId, FarmManager.FARM_ID_SEND_NUM_BITS)
@@ -40,16 +31,14 @@ function PlayerSetFarmAnswerEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function PlayerSetFarmAnswerEvent:run(connection)
-	if connection:getIsServer() then
-		if self.answerState == PlayerSetFarmAnswerEvent.STATE.OK then
-			g_messageCenter:publish(PlayerSetFarmAnswerEvent, self.answerState, self.farmId, self.password)
-		elseif self.answerState == PlayerSetFarmAnswerEvent.STATE.PASSWORD_REQUIRED then
+	if not connection:getIsServer() then
+		Logging.devWarning("PlayerSetFarmAnswerEvent is a server to client only event")
+	elseif self.answerState == PlayerSetFarmAnswerEvent.STATE.OK then
+		g_messageCenter:publish(PlayerSetFarmAnswerEvent, self.answerState, self.farmId, self.password)
+	else
+		if self.answerState == PlayerSetFarmAnswerEvent.STATE.PASSWORD_REQUIRED then
 			g_messageCenter:publish(PlayerSetFarmAnswerEvent, self.answerState, self.farmId)
 		end
-	else
-		Logging.devWarning("PlayerSetFarmAnswerEvent is a server to client only event")
-		return
 	end
 end

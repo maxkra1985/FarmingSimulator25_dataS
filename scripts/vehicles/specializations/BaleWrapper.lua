@@ -19,58 +19,46 @@ BaleWrapper.CHANGE_WRAPPER_START_DROP_BALE = 5
 BaleWrapper.CHANGE_WRAPPER_BALE_DROPPED = 6
 BaleWrapper.CHANGE_WRAPPER_PLATFORM_RESET = 7
 BaleWrapper.CHANGE_BUTTON_EMPTY = 8
-BaleWrapper.ANIMATION_NAMES = {
-	"moveToWrapper",
-	"wrapBale",
-	"dropFromWrapper",
-	"resetAfterDrop",
-	"resetWrapping"
-}
+BaleWrapper.ANIMATION_NAMES = { "moveToWrapper", "wrapBale", "dropFromWrapper", "resetAfterDrop", "resetWrapping" }
 BaleWrapper.DROP_COLLISION_MASK = CollisionFlag.VEHICLE + CollisionFlag.DYNAMIC_OBJECT + CollisionFlag.PLAYER
 BaleWrapper.BLOCK_COLLISION_MASK = CollisionFlag.VEHICLE + CollisionFlag.DYNAMIC_OBJECT + CollisionFlag.PLAYER
-
 function BaleWrapper.prerequisitesPresent(specializations)
-	local v2_ = SpecializationUtil.hasSpecialization(AnimatedVehicle, specializations)
-	if v2_ then
-		v2_ = SpecializationUtil.hasSpecialization(Consumable, specializations)
-	end
-	return v2_
+	return SpecializationUtil.hasSpecialization(AnimatedVehicle, specializations) and SpecializationUtil.hasSpecialization(Consumable, specializations)
 end
 function BaleWrapper.initSpecialization()
 	g_vehicleConfigurationManager:addConfigurationType("wrappingColor", g_i18n:getText("configuration_wrappingColor"), nil, VehicleConfigurationItemColor)
 	g_vehicleConfigurationManager:addConfigurationType("wrappingAnimation", g_i18n:getText("configuration_wrappingAnimation"), "baleWrapper", VehicleConfigurationItem)
 	g_storeManager:addSpecType("baleWrapperBaleSizeRound", "shopListAttributeIconBaleWrapperBaleSizeRound", BaleWrapper.loadSpecValueBaleSizeRound, BaleWrapper.getSpecValueBaleSizeRound, StoreSpecies.VEHICLE)
 	g_storeManager:addSpecType("baleWrapperBaleSizeSquare", "shopListAttributeIconBaleWrapperBaleSizeSquare", BaleWrapper.loadSpecValueBaleSizeSquare, BaleWrapper.getSpecValueBaleSizeSquare, StoreSpecies.VEHICLE)
-	local v3_ = Vehicle.xmlSchema
-	v3_:setXMLSpecializationType("BaleWrapper")
-	v3_:register(XMLValueType.FLOAT, "vehicle.baleWrapper#foldMinLimit", "Fold min limit (Allow grabbing if folding is between these values)", 0)
-	v3_:register(XMLValueType.FLOAT, "vehicle.baleWrapper#foldMaxLimit", "Fold max limit (Allow grabbing if folding is between these values)", 1)
-	v3_:register(XMLValueType.NODE_INDEX, "vehicle.baleWrapper.grabber#node", "Grabber node")
-	v3_:register(XMLValueType.NODE_INDEX, "vehicle.baleWrapper.grabber#triggerNode", "Grabber trigger node")
-	v3_:register(XMLValueType.FLOAT, "vehicle.baleWrapper.grabber#nearestDistance", "Distance to bale to grab it", 3)
-	v3_:register(XMLValueType.BOOL, "vehicle.baleWrapper.automaticDrop#enabled", "Automatic drop", "true on mobile")
-	v3_:register(XMLValueType.BOOL, "vehicle.baleWrapper.automaticDrop#toggleable", "Automatic bale drop can be toggled", "false on mobile")
-	v3_:register(XMLValueType.L10N_STRING, "vehicle.baleWrapper.automaticDrop#textPos", "Positive toggle automatic drop text", "action_toggleAutomaticBaleDropPos")
-	v3_:register(XMLValueType.L10N_STRING, "vehicle.baleWrapper.automaticDrop#textNeg", "Negative toggle automatic drop text", "action_toggleAutomaticBaleDropNeg")
-	BaleWrapper.registerWrapperXMLPaths(v3_, "vehicle.baleWrapper.roundBaleWrapper")
-	BaleWrapper.registerWrapperXMLPaths(v3_, "vehicle.baleWrapper.squareBaleWrapper")
-	for v4_ = 1, #BaleWrapper.ANIMATION_NAMES do
-		BaleWrapper.registerWrapperAnimationXMLPaths(v3_, "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?).roundBaleWrapper", BaleWrapper.ANIMATION_NAMES[v4_])
-		BaleWrapper.registerWrapperAnimationXMLPaths(v3_, "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?).roundBaleWrapper.baleTypes.baleType(?)", BaleWrapper.ANIMATION_NAMES[v4_])
-		BaleWrapper.registerWrapperAnimationXMLPaths(v3_, "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?).squareBaleWrapper", BaleWrapper.ANIMATION_NAMES[v4_])
-		BaleWrapper.registerWrapperAnimationXMLPaths(v3_, "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?).squareBaleWrapper.baleTypes.baleType(?)", BaleWrapper.ANIMATION_NAMES[v4_])
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("BaleWrapper")
+	schema:register(XMLValueType.FLOAT, "vehicle.baleWrapper#foldMinLimit", "Fold min limit (Allow grabbing if folding is between these values)", 0)
+	schema:register(XMLValueType.FLOAT, "vehicle.baleWrapper#foldMaxLimit", "Fold max limit (Allow grabbing if folding is between these values)", 1)
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.baleWrapper.grabber#node", "Grabber node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.baleWrapper.grabber#triggerNode", "Grabber trigger node")
+	schema:register(XMLValueType.FLOAT, "vehicle.baleWrapper.grabber#nearestDistance", "Distance to bale to grab it", 3)
+	schema:register(XMLValueType.BOOL, "vehicle.baleWrapper.automaticDrop#enabled", "Automatic drop", "true on mobile")
+	schema:register(XMLValueType.BOOL, "vehicle.baleWrapper.automaticDrop#toggleable", "Automatic bale drop can be toggled", "false on mobile")
+	schema:register(XMLValueType.L10N_STRING, "vehicle.baleWrapper.automaticDrop#textPos", "Positive toggle automatic drop text", "action_toggleAutomaticBaleDropPos")
+	schema:register(XMLValueType.L10N_STRING, "vehicle.baleWrapper.automaticDrop#textNeg", "Negative toggle automatic drop text", "action_toggleAutomaticBaleDropNeg")
+	BaleWrapper.registerWrapperXMLPaths(schema, "vehicle.baleWrapper.roundBaleWrapper")
+	BaleWrapper.registerWrapperXMLPaths(schema, "vehicle.baleWrapper.squareBaleWrapper")
+	local configKey = "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?)"
+	for i = 1, #BaleWrapper.ANIMATION_NAMES do
+		BaleWrapper.registerWrapperAnimationXMLPaths(schema, "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?)" .. ".roundBaleWrapper", BaleWrapper.ANIMATION_NAMES[i])
+		BaleWrapper.registerWrapperAnimationXMLPaths(schema, "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?)" .. ".roundBaleWrapper.baleTypes.baleType(?)", BaleWrapper.ANIMATION_NAMES[i])
+		BaleWrapper.registerWrapperAnimationXMLPaths(schema, "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?)" .. ".squareBaleWrapper", BaleWrapper.ANIMATION_NAMES[i])
+		BaleWrapper.registerWrapperAnimationXMLPaths(schema, "vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(?)" .. ".squareBaleWrapper.baleTypes.baleType(?)", BaleWrapper.ANIMATION_NAMES[i])
 	end
-	v3_:setXMLSpecializationType()
-	local v5_ = Vehicle.xmlSchemaSavegame
-	v5_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).baleWrapper#wrapperTime", "Bale wrapping time", 0)
-	Bale.registerSavegameXMLPaths(v5_, "vehicles.vehicle(?).baleWrapper.bale")
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).baleWrapper#wrapperTime", "Bale wrapping time", 0)
+	Bale.registerSavegameXMLPaths(schemaSavegame, "vehicles.vehicle(?).baleWrapper.bale")
 end
-
--- Local values: i
 function BaleWrapper.registerWrapperXMLPaths(schema, basePath)
-	for v8_ = 1, #BaleWrapper.ANIMATION_NAMES do
-		BaleWrapper.registerWrapperAnimationXMLPaths(schema, basePath, BaleWrapper.ANIMATION_NAMES[v8_])
-		BaleWrapper.registerWrapperAnimationXMLPaths(schema, basePath .. ".baleTypes.baleType(?)", BaleWrapper.ANIMATION_NAMES[v8_])
+	for i = 1, #BaleWrapper.ANIMATION_NAMES do
+		BaleWrapper.registerWrapperAnimationXMLPaths(schema, basePath, BaleWrapper.ANIMATION_NAMES[i])
+		BaleWrapper.registerWrapperAnimationXMLPaths(schema, basePath .. ".baleTypes.baleType(?)", BaleWrapper.ANIMATION_NAMES[i])
 	end
 	schema:register(XMLValueType.STRING, basePath .. ".baleTypes.baleType(?)#fillType", "Fill type name")
 	schema:register(XMLValueType.FLOAT, basePath .. ".baleTypes.baleType(?)#diameter", "Bale diameter", 0)
@@ -126,7 +114,7 @@ function BaleWrapper.registerWrapperXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".dropArea#width", "Width of area", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. ".dropArea#height", "Height of area", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. ".dropArea#length", "Length of area", 1)
-	schema:register(XMLValueType.NODE_INDEX, basePath .. ".blockWrapArea#node", "Node in the center of the block area (if defined this area will be checked if it\'s clear to start the wrapping process)")
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".blockWrapArea#node", "Node in the center of the block area (if defined this area will be checked if it's clear to start the wrapping process)")
 	schema:register(XMLValueType.FLOAT, basePath .. ".blockWrapArea#width", "Width of area", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. ".blockWrapArea#height", "Height of area", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. ".blockWrapArea#length", "Length of area", 1)
@@ -134,21 +122,19 @@ function BaleWrapper.registerWrapperXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".wrappingCollisions.collision(?)#node", "Collision node")
 	schema:register(XMLValueType.INT, basePath .. ".wrappingCollisions.collision(?)#activeCollisionMask", "Collision mask active")
 	schema:register(XMLValueType.INT, basePath .. ".wrappingCollisions.collision(?)#inActiveCollisionMask", "Collision mask in active")
-	schema:register(XMLValueType.L10N_STRING, basePath .. "#unloadBaleText", "Unload bale text", "\'action_unloadRoundBale\' for round bales and \'action_unloadSquareBale\' for square bales")
+	schema:register(XMLValueType.L10N_STRING, basePath .. "#unloadBaleText", "Unload bale text", "'action_unloadRoundBale' for round bales and 'action_unloadSquareBale' for square bales")
 	schema:register(XMLValueType.BOOL, basePath .. "#skipUnsupportedBales", "Skip unsupported bales (pick them up and drop them instantly)")
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".sounds", "wrap(?)")
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".sounds", "start(?)")
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".sounds", "stop(?)")
 	schema:register(XMLValueType.FLOAT, basePath .. ".sounds#wrappingEndTime", "Wrapping time to play end wrapping sound", 1)
 end
-
 function BaleWrapper.registerWrapperAnimationXMLPaths(schema, basePath, name)
 	schema:register(XMLValueType.STRING, basePath .. ".animations." .. name .. "#animName", "Animation name", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. ".animations." .. name .. "#animSpeed", "Animation speed", 1)
 	schema:register(XMLValueType.BOOL, basePath .. ".animations." .. name .. "#reverseAfterMove", "Reverse animation after playing", true)
 	schema:register(XMLValueType.BOOL, basePath .. ".animations." .. name .. "#resetOnStart", "Reset animation on start", false)
 end
-
 function BaleWrapper.registerWrapperFoilAnimationXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".wrappingFoilAnimation#referenceNode", "Time reference node")
 	schema:register(XMLValueType.INT, basePath .. ".wrappingFoilAnimation#referenceAxis", "Rotation axis")
@@ -157,7 +143,6 @@ function BaleWrapper.registerWrapperFoilAnimationXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".wrappingFoilAnimation#clipNode", "Node which has clip assigned")
 	schema:register(XMLValueType.STRING, basePath .. ".wrappingFoilAnimation#clipName", "Name of the clip to control")
 end
-
 function BaleWrapper.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "loadWrapperFromXML", BaleWrapper.loadWrapperFromXML)
 	SpecializationUtil.registerFunction(vehicleType, "loadWrapperAnimationsFromXML", BaleWrapper.loadWrapperAnimationsFromXML)
@@ -184,7 +169,6 @@ function BaleWrapper.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "setBaleWrapperAutomaticDrop", BaleWrapper.setBaleWrapperAutomaticDrop)
 	SpecializationUtil.registerFunction(vehicleType, "setBaleWrapperDropAnimation", BaleWrapper.setBaleWrapperDropAnimation)
 end
-
 function BaleWrapper.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getIsFoldAllowed", BaleWrapper.getIsFoldAllowed)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getCanBeSelected", BaleWrapper.getCanBeSelected)
@@ -195,7 +179,6 @@ function BaleWrapper.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "addToPhysics", BaleWrapper.addToPhysics)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "removeFromPhysics", BaleWrapper.removeFromPhysics)
 end
-
 function BaleWrapper.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", BaleWrapper)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", BaleWrapper)
@@ -212,10 +195,8 @@ function BaleWrapper.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onFoldStateChanged", BaleWrapper)
 	SpecializationUtil.registerEventListener(vehicleType, "onConsumableVariationChanged", BaleWrapper)
 end
-
--- Local values: spec, baseKey
 function BaleWrapper:onLoad(savegame)
-	local v18_ = self.spec_baleWrapper
+	local spec = self.spec_baleWrapper
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.wrapper", "vehicle.baleWrapper")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baleGrabber", "vehicle.baleWrapper.grabber")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baleWrapper.grabber#index", "vehicle.baleWrapper.grabber#node")
@@ -224,382 +205,307 @@ function BaleWrapper:onLoad(savegame)
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baleWrapper.roundBaleWrapper#wrapperIndex", "vehicle.baleWrapper.roundBaleWrapper#wrapperNode")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baleWrapper.squareBaleWrapper#baleIndex", "vehicle.baleWrapper.squareBaleWrapper#baleNode")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.baleWrapper.squareBaleWrapper#wrapperIndex", "vehicle.baleWrapper.squareBaleWrapper#wrapperNode")
-	v18_.roundBaleWrapper = {}
-	self:loadWrapperFromXML(v18_.roundBaleWrapper, self.xmlFile, "vehicle.baleWrapper", "roundBaleWrapper")
-	v18_.squareBaleWrapper = {}
-	self:loadWrapperFromXML(v18_.squareBaleWrapper, self.xmlFile, "vehicle.baleWrapper", "squareBaleWrapper")
-	v18_.currentWrapper = {}
-	v18_.currentWrapperFoldMinLimit = self.xmlFile:getValue("vehicle.baleWrapper#foldMinLimit", 0)
-	v18_.currentWrapperFoldMaxLimit = self.xmlFile:getValue("vehicle.baleWrapper#foldMaxLimit", 1)
-	v18_.currentWrapper = v18_.roundBaleWrapper
+	local baseKey = "vehicle.baleWrapper"
+	spec.roundBaleWrapper = {}
+	self:loadWrapperFromXML(spec.roundBaleWrapper, self.xmlFile, "vehicle.baleWrapper", "roundBaleWrapper")
+	spec.squareBaleWrapper = {}
+	self:loadWrapperFromXML(spec.squareBaleWrapper, self.xmlFile, "vehicle.baleWrapper", "squareBaleWrapper")
+	spec.currentWrapper = {}
+	spec.currentWrapperFoldMinLimit = self.xmlFile:getValue("vehicle.baleWrapper" .. "#foldMinLimit", 0)
+	spec.currentWrapperFoldMaxLimit = self.xmlFile:getValue("vehicle.baleWrapper" .. "#foldMaxLimit", 1)
+	spec.currentWrapper = spec.roundBaleWrapper
 	self:updateWrapNodes(false, true, 0)
-	v18_.currentWrapper = v18_.squareBaleWrapper
+	spec.currentWrapper = spec.squareBaleWrapper
 	self:updateWrapNodes(false, true, 0)
-	v18_.currentBaleTypeIndex = 1
-	if v18_.roundBaleWrapper.baleNode == nil then
-		if v18_.squareBaleWrapper.baleNode ~= nil then
-			self:setBaleWrapperType(false, 1)
-		end
-	else
+	spec.currentBaleTypeIndex = 1
+	if spec.roundBaleWrapper.baleNode ~= nil then
 		self:setBaleWrapperType(true, 1)
+	elseif spec.squareBaleWrapper.baleNode ~= nil then
+		self:setBaleWrapperType(false, 1)
 	end
-	v18_.baleGrabber = {}
-	v18_.baleGrabber.grabNode = self.xmlFile:getValue("vehicle.baleWrapper.grabber#node", nil, self.components, self.i3dMappings)
-	v18_.baleGrabber.triggerNode = self.xmlFile:getValue("vehicle.baleWrapper.grabber#triggerNode", nil, self.components, self.i3dMappings)
-	if v18_.baleGrabber.triggerNode == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing bale grab trigger node \'%s\'. This is required for all bale wrappers.", "vehicle.baleWrapper.grabber#triggerNode")
+	spec.baleGrabber = {}
+	spec.baleGrabber.grabNode = self.xmlFile:getValue("vehicle.baleWrapper" .. ".grabber#node", nil, self.components, self.i3dMappings)
+	spec.baleGrabber.triggerNode = self.xmlFile:getValue("vehicle.baleWrapper" .. ".grabber#triggerNode", nil, self.components, self.i3dMappings)
+	if spec.baleGrabber.triggerNode == nil then
+		Logging.xmlWarning(self.xmlFile, "Missing bale grab trigger node '%s'. This is required for all bale wrappers.", "vehicle.baleWrapper" .. ".grabber#triggerNode")
 	else
-		addTrigger(v18_.baleGrabber.triggerNode, "baleGrabberTriggerCallback", self)
+		addTrigger(spec.baleGrabber.triggerNode, "baleGrabberTriggerCallback", self)
 	end
-	v18_.baleGrabber.nearestDistance = self.xmlFile:getValue("vehicle.baleWrapper.grabber#nearestDistance", 3)
-	v18_.baleGrabber.balesInTrigger = {}
-	v18_.baleToLoad = nil
-	v18_.baleToMount = nil
-	v18_.baleWrapperState = BaleWrapper.STATE_NONE
-	v18_.grabberIsMoving = false
-	v18_.hasBaleWrapper = true
-	v18_.wrapColor = { 1, 1, 1 }
-	v18_.showInvalidBaleWarning = false
-	v18_.baleDropBlockedWarning = nil
-	v18_.dropAnimationIndex = 1
-	v18_.foundDropOverlappingObject = false
-	v18_.foundDropOverlappingObjectTime = -math.huge
-	v18_.foundBlockOverlappingObject = false
-	v18_.automaticDrop = self.xmlFile:getValue("vehicle.baleWrapper.automaticDrop#enabled", Platform.gameplay.automaticBaleDrop)
-	v18_.toggleableAutomaticDrop = self.xmlFile:getValue("vehicle.baleWrapper.automaticDrop#toggleable", not Platform.gameplay.automaticBaleDrop)
-	v18_.toggleAutomaticDropTextPos = self.xmlFile:getValue("vehicle.baleWrapper.automaticDrop#textPos", "action_toggleAutomaticBaleDropPos", self.customEnvironment)
-	v18_.toggleAutomaticDropTextNeg = self.xmlFile:getValue("vehicle.baleWrapper.automaticDrop#textNeg", "action_toggleAutomaticBaleDropNeg", self.customEnvironment)
-	v18_.texts = {}
-	v18_.texts.warningFoldingWrapping = g_i18n:getText("warning_foldingNotWhileWrapping")
-	v18_.texts.warningBaleNotSupported = g_i18n:getText("warning_baleNotSupported")
-	v18_.texts.warningDropAreaBlocked = g_i18n:getText("warning_baleWrapperDropAreaBlocked")
+	spec.baleGrabber.nearestDistance = self.xmlFile:getValue("vehicle.baleWrapper" .. ".grabber#nearestDistance", 3)
+	spec.baleGrabber.balesInTrigger = {}
+	spec.baleToLoad = nil
+	spec.baleToMount = nil
+	spec.baleWrapperState = BaleWrapper.STATE_NONE
+	spec.grabberIsMoving = false
+	spec.hasBaleWrapper = true
+	spec.wrapColor = { 1, 1, 1 }
+	spec.showInvalidBaleWarning = false
+	spec.baleDropBlockedWarning = nil
+	spec.dropAnimationIndex = 1
+	spec.foundDropOverlappingObject = false
+	spec.foundDropOverlappingObjectTime = -math.huge
+	spec.foundBlockOverlappingObject = false
+	spec.automaticDrop = self.xmlFile:getValue("vehicle.baleWrapper.automaticDrop#enabled", Platform.gameplay.automaticBaleDrop)
+	spec.toggleableAutomaticDrop = self.xmlFile:getValue("vehicle.baleWrapper.automaticDrop#toggleable", not Platform.gameplay.automaticBaleDrop)
+	spec.toggleAutomaticDropTextPos = self.xmlFile:getValue("vehicle.baleWrapper.automaticDrop#textPos", "action_toggleAutomaticBaleDropPos", self.customEnvironment)
+	spec.toggleAutomaticDropTextNeg = self.xmlFile:getValue("vehicle.baleWrapper.automaticDrop#textNeg", "action_toggleAutomaticBaleDropNeg", self.customEnvironment)
+	spec.texts = {}
+	spec.texts.warningFoldingWrapping = g_i18n:getText("warning_foldingNotWhileWrapping")
+	spec.texts.warningBaleNotSupported = g_i18n:getText("warning_baleNotSupported")
+	spec.texts.warningDropAreaBlocked = g_i18n:getText("warning_baleWrapperDropAreaBlocked")
 end
-
--- Local values: spec, filename, baleToLoad
 function BaleWrapper:onPostLoad(savegame)
-	local v21_ = self.spec_baleWrapper
+	local spec = self.spec_baleWrapper
 	if savegame ~= nil and not savegame.resetVehicles then
-		local v22_ = savegame.xmlFile:getValue(savegame.key .. ".baleWrapper.bale#filename")
-		if v22_ ~= nil then
-			local v23_ = {
-				["filename"] = NetworkUtil.convertFromNetworkFilename(v22_),
-				["wrapperTime"] = savegame.xmlFile:getValue(savegame.key .. ".baleWrapper#wrapperTime", 0),
-				["translation"] = { 0, 0, 0 },
-				["rotation"] = { 0, 0, 0 },
-				["attributes"] = {}
-			}
-			Bale.loadBaleAttributesFromXMLFile(v23_.attributes, savegame.xmlFile, savegame.key .. ".baleWrapper.bale", savegame.resetVehicles)
-			v21_.baleToLoad = v23_
+		local filename = savegame.xmlFile:getValue(savegame.key .. ".baleWrapper.bale#filename")
+		if filename ~= nil then
+			local baleToLoad = {}
+			baleToLoad.filename = NetworkUtil.convertFromNetworkFilename(filename)
+			baleToLoad.wrapperTime = savegame.xmlFile:getValue(savegame.key .. ".baleWrapper#wrapperTime", 0)
+			baleToLoad.translation = { 0, 0, 0 }
+			baleToLoad.rotation = { 0, 0, 0 }
+			baleToLoad.attributes = {}
+			Bale.loadBaleAttributesFromXMLFile(baleToLoad.attributes, savegame.xmlFile, savegame.key .. ".baleWrapper.bale", savegame.resetVehicles)
+			spec.baleToLoad = baleToLoad
 		end
 	end
 end
-
--- Local values: spec, isRoundBaleWrapper, wrappingAnimationConfig, configKey, defaultText
 function BaleWrapper:loadWrapperFromXML(wrapper, xmlFile, baseKey, wrapperName)
-	local v_u_29_ = self.spec_baleWrapper
-	local v_u_30_ = wrapper == v_u_29_.roundBaleWrapper
-	local v31_ = Utils.getNoNil(self.configurations.wrappingAnimation, 1)
-	local v_u_32_ = string.format("vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(%d)", v31_ - 1)
-	self:loadWrapperAnimationsFromXML(wrapper, xmlFile, baseKey, v_u_32_, "." .. wrapperName .. ".animations")
+	local spec = self.spec_baleWrapper
+	local isRoundBaleWrapper = wrapper == spec.roundBaleWrapper
+	local wrappingAnimationConfig = Utils.getNoNil(self.configurations.wrappingAnimation, 1)
+	local configKey = string.format("vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(%d)", wrappingAnimationConfig - 1)
+	self:loadWrapperAnimationsFromXML(wrapper, xmlFile, baseKey, configKey, "." .. wrapperName .. ".animations")
 	wrapper.defaultAnimations = wrapper.animations
-	local v33_ = baseKey .. "." .. wrapperName
-	wrapper.baleNode = xmlFile:getValue(v33_ .. "#baleNode", nil, self.components, self.i3dMappings)
-	wrapper.wrapperNode = xmlFile:getValue(v33_ .. "#wrapperNode", nil, self.components, self.i3dMappings)
-	wrapper.wrapperRotAxis = xmlFile:getValue(v33_ .. "#wrapperRotAxis", 2)
-	wrapper.animTime = xmlFile:getValue(v33_ .. "#wrappingTime", 5) * 1000
+	baseKey = baseKey .. "." .. wrapperName
+	wrapper.baleNode = xmlFile:getValue(baseKey .. "#baleNode", nil, self.components, self.i3dMappings)
+	wrapper.wrapperNode = xmlFile:getValue(baseKey .. "#wrapperNode", nil, self.components, self.i3dMappings)
+	wrapper.wrapperRotAxis = xmlFile:getValue(baseKey .. "#wrapperRotAxis", 2)
+	wrapper.animTime = xmlFile:getValue(baseKey .. "#wrappingTime", 5) * 1000
 	wrapper.currentTime = 0
 	wrapper.currentBale = nil
 	wrapper.allowedBaleTypes = {}
-	xmlFile:iterate(v33_ .. ".baleTypes.baleType", function(p34_, p35_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) v_u_32_, (copy) wrapperName, (copy) wrapper, (copy) v_u_29_, (copy) v_u_30_
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#fillType")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#wrapperBaleFilename")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#minBaleDiameter", p35_ .. "#diameter")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#maxBaleDiameter", p35_ .. "#diameter")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#minBaleWidth", p35_ .. "#width")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#maxBaleWidth", p35_ .. "#width")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#minBaleHeight", p35_ .. "#height")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#maxBaleHeight", p35_ .. "#height")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#minBaleLength", p35_ .. "#length")
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p35_ .. "#maxBaleLength", p35_ .. "#length")
-		local v36_ = {
-			["diameter"] = MathUtil.round(xmlFile:getValue(p35_ .. "#diameter", 0), 2),
-			["width"] = MathUtil.round(xmlFile:getValue(p35_ .. "#width", 0), 2),
-			["height"] = MathUtil.round(xmlFile:getValue(p35_ .. "#height", 0), 2),
-			["length"] = MathUtil.round(xmlFile:getValue(p35_ .. "#length", 0), 2),
-			["wrapDiffuse"] = xmlFile:getValue(p35_ .. ".textures#diffuse")
-		}
-		if v36_.wrapDiffuse ~= nil then
-			v36_.wrapDiffuse = Utils.getFilename(v36_.wrapDiffuse, self.baseDirectory)
-			if v36_.wrapDiffuse ~= nil and not textureFileExists(v36_.wrapDiffuse) then
-				Logging.xmlWarning(self.xmlFile, "Bale wrap diffuse map \'%s\' does not exist.", v36_.wrapDiffuse)
-				v36_.wrapDiffuse = nil
+	xmlFile:iterate(baseKey .. ".baleTypes.baleType", function(index, key)
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#fillType")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#wrapperBaleFilename")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#minBaleDiameter", key .. "#diameter")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#maxBaleDiameter", key .. "#diameter")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#minBaleWidth", key .. "#width")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#maxBaleWidth", key .. "#width")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#minBaleHeight", key .. "#height")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#maxBaleHeight", key .. "#height")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#minBaleLength", key .. "#length")
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#maxBaleLength", key .. "#length")
+		local baleType = {}
+		baleType.diameter = MathUtil.round(xmlFile:getValue(key .. "#diameter", 0), 2)
+		baleType.width = MathUtil.round(xmlFile:getValue(key .. "#width", 0), 2)
+		baleType.height = MathUtil.round(xmlFile:getValue(key .. "#height", 0), 2)
+		baleType.length = MathUtil.round(xmlFile:getValue(key .. "#length", 0), 2)
+		baleType.wrapDiffuse = xmlFile:getValue(key .. ".textures#diffuse")
+		if baleType.wrapDiffuse ~= nil then
+			baleType.wrapDiffuse = Utils.getFilename(baleType.wrapDiffuse, self.baseDirectory)
+			if baleType.wrapDiffuse ~= nil and not textureFileExists(baleType.wrapDiffuse) then
+				Logging.xmlWarning(self.xmlFile, "Bale wrap diffuse map '%s' does not exist.", baleType.wrapDiffuse)
+				baleType.wrapDiffuse = nil
 			end
 		end
-		v36_.wrapNormal = xmlFile:getValue(p35_ .. ".textures#normal")
-		if v36_.wrapNormal ~= nil then
-			v36_.wrapNormal = Utils.getFilename(v36_.wrapNormal, self.baseDirectory)
-			if v36_.wrapNormal ~= nil and not textureFileExists(v36_.wrapNormal) then
-				Logging.xmlWarning(self.xmlFile, "Bale wrap normal map \'%s\' does not exist.", v36_.wrapNormal)
-				v36_.wrapNormal = nil
+		baleType.wrapNormal = xmlFile:getValue(key .. ".textures#normal")
+		if baleType.wrapNormal ~= nil then
+			baleType.wrapNormal = Utils.getFilename(baleType.wrapNormal, self.baseDirectory)
+			if baleType.wrapNormal ~= nil and not textureFileExists(baleType.wrapNormal) then
+				Logging.xmlWarning(self.xmlFile, "Bale wrap normal map '%s' does not exist.", baleType.wrapNormal)
+				baleType.wrapNormal = nil
 			end
 		end
-		self:loadWrapperAnimationsFromXML(v36_, xmlFile, p35_, string.format("%s.%s.baleTypes.baleType(%d)", v_u_32_, wrapperName, p34_ - 1), ".animations", wrapper.animations)
-		self:loadWrapperFoilAnimationFromXML(v36_, xmlFile, p35_)
-		v36_.changeObjects = {}
-		ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, p35_, v36_.changeObjects, self.components, self)
-		v36_.skipWrapping = xmlFile:getValue(p35_ .. "#skipWrapping", false)
-		v36_.forceWhileFolding = xmlFile:getValue(p35_ .. "#forceWhileFolding", false)
-		if v36_.forceWhileFolding then
-			v_u_29_.foldedBaleType = {
-				["isRoundBaleWrapper"] = v_u_30_,
-				["baleTypeIndex"] = p34_
-			}
+		self:loadWrapperAnimationsFromXML(baleType, xmlFile, key, string.format("%s.%s.baleTypes.baleType(%d)", configKey, wrapperName, index - 1), ".animations", wrapper.animations)
+		self:loadWrapperFoilAnimationFromXML(baleType, xmlFile, key)
+		baleType.changeObjects = {}
+		ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, key, baleType.changeObjects, self.components, self)
+		baleType.skipWrapping = xmlFile:getValue(key .. "#skipWrapping", false)
+		baleType.forceWhileFolding = xmlFile:getValue(key .. "#forceWhileFolding", false)
+		if baleType.forceWhileFolding then
+			spec.foldedBaleType = { baleTypeIndex = index, isRoundBaleWrapper = isRoundBaleWrapper }
 		end
-		v36_.wrapUsage = xmlFile:getValue(p35_ .. "#wrapUsage", 0.1) / wrapper.animTime
-		self:loadWrapperStateCurveFromXML(v36_, xmlFile, p35_)
-		v36_.dropAnimations = {}
-		for _, v37_ in self.xmlFile:iterator(p35_ .. ".dropAnimations.dropAnimation") do
-			local v38_ = {
-				["name"] = xmlFile:getValue(v37_ .. "#name"),
-				["animSpeed"] = xmlFile:getValue(v37_ .. "#animSpeed", 1),
-				["text"] = xmlFile:getValue(v37_ .. "#text", nil, self.customEnvironment, false),
-				["inputAction"] = xmlFile:getValue(v37_ .. "#inputAction")
-			}
-			if v38_.inputAction ~= nil then
-				v38_.inputAction = InputAction[v38_.inputAction]
+		baleType.wrapUsage = xmlFile:getValue(key .. "#wrapUsage", 0.1) / wrapper.animTime
+		self:loadWrapperStateCurveFromXML(baleType, xmlFile, key)
+		baleType.dropAnimations = {}
+		for _, dropAnimationKey in self.xmlFile:iterator(key .. ".dropAnimations.dropAnimation") do
+			local dropAnimation = {}
+			dropAnimation.name = xmlFile:getValue(dropAnimationKey .. "#name")
+			dropAnimation.animSpeed = xmlFile:getValue(dropAnimationKey .. "#animSpeed", 1)
+			dropAnimation.text = xmlFile:getValue(dropAnimationKey .. "#text", nil, self.customEnvironment, false)
+			dropAnimation.inputAction = xmlFile:getValue(dropAnimationKey .. "#inputAction")
+			if dropAnimation.inputAction ~= nil then
+				dropAnimation.inputAction = InputAction[dropAnimation.inputAction]
 			end
-			v38_.liftOnDrop = xmlFile:getValue(v37_ .. "#liftOnDrop", false)
-			local v39_ = v36_.dropAnimations
-			table.insert(v39_, v38_)
+			dropAnimation.liftOnDrop = xmlFile:getValue(dropAnimationKey .. "#liftOnDrop", false)
+			table.insert(baleType.dropAnimations, dropAnimation)
 		end
-		local v40_ = wrapper.allowedBaleTypes
-		table.insert(v40_, v36_)
+		table.insert(wrapper.allowedBaleTypes, baleType)
 	end)
-	self:loadWrapperAnimCurveFromXML(wrapper, xmlFile, v33_)
-	self:loadWrapperAnimNodesFromXML(wrapper, xmlFile, v33_)
-	self:loadWrapperWrapNodesFromXML(wrapper, xmlFile, v33_)
-	self:loadWrapperStateCurveFromXML(wrapper, xmlFile, v33_)
-	self:loadWrapperAnimationNodesFromXML(wrapper, xmlFile, v33_, wrapper.animTime)
-	self:loadWrapperFoilAnimationFromXML(wrapper, xmlFile, v33_, true)
+	self:loadWrapperAnimCurveFromXML(wrapper, xmlFile, baseKey)
+	self:loadWrapperAnimNodesFromXML(wrapper, xmlFile, baseKey)
+	self:loadWrapperWrapNodesFromXML(wrapper, xmlFile, baseKey)
+	self:loadWrapperStateCurveFromXML(wrapper, xmlFile, baseKey)
+	self:loadWrapperAnimationNodesFromXML(wrapper, xmlFile, baseKey, wrapper.animTime)
+	self:loadWrapperFoilAnimationFromXML(wrapper, xmlFile, baseKey, true)
 	wrapper.wrappingFoilAnimationDefault = wrapper.wrappingFoilAnimation
 	wrapper.dropArea = {}
-	wrapper.dropArea.node = self.xmlFile:getValue(v33_ .. ".dropArea#node", nil, self.components, self.i3dMappings)
-	wrapper.dropArea.width = self.xmlFile:getValue(v33_ .. ".dropArea#width", 1)
-	wrapper.dropArea.height = self.xmlFile:getValue(v33_ .. ".dropArea#height", 1)
-	wrapper.dropArea.length = self.xmlFile:getValue(v33_ .. ".dropArea#length", 1)
+	wrapper.dropArea.node = self.xmlFile:getValue(baseKey .. ".dropArea#node", nil, self.components, self.i3dMappings)
+	wrapper.dropArea.width = self.xmlFile:getValue(baseKey .. ".dropArea#width", 1)
+	wrapper.dropArea.height = self.xmlFile:getValue(baseKey .. ".dropArea#height", 1)
+	wrapper.dropArea.length = self.xmlFile:getValue(baseKey .. ".dropArea#length", 1)
 	wrapper.blockWrapArea = {}
-	wrapper.blockWrapArea.node = self.xmlFile:getValue(v33_ .. ".blockWrapArea#node", nil, self.components, self.i3dMappings)
-	wrapper.blockWrapArea.width = self.xmlFile:getValue(v33_ .. ".blockWrapArea#width", 1)
-	wrapper.blockWrapArea.height = self.xmlFile:getValue(v33_ .. ".blockWrapArea#height", 1)
-	wrapper.blockWrapArea.length = self.xmlFile:getValue(v33_ .. ".blockWrapArea#length", 1)
-	wrapper.unloadBaleText = xmlFile:getValue(v33_ .. "#unloadBaleText", v_u_30_ and "action_unloadRoundBale" or "action_unloadSquareBale", self.customEnvironment)
-	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, v33_ .. "#skipWrappingFillTypes", v33_ .. "#skipUnsupportedBales")
-	wrapper.skipUnsupportedBales = self.xmlFile:getValue(v33_ .. "#skipUnsupportedBales", false)
+	wrapper.blockWrapArea.node = self.xmlFile:getValue(baseKey .. ".blockWrapArea#node", nil, self.components, self.i3dMappings)
+	wrapper.blockWrapArea.width = self.xmlFile:getValue(baseKey .. ".blockWrapArea#width", 1)
+	wrapper.blockWrapArea.height = self.xmlFile:getValue(baseKey .. ".blockWrapArea#height", 1)
+	wrapper.blockWrapArea.length = self.xmlFile:getValue(baseKey .. ".blockWrapArea#length", 1)
+	local defaultText = isRoundBaleWrapper and "action_unloadRoundBale" or "action_unloadSquareBale"
+	wrapper.unloadBaleText = xmlFile:getValue(baseKey .. "#unloadBaleText", defaultText, self.customEnvironment)
+	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, baseKey .. "#skipWrappingFillTypes", baseKey .. "#skipUnsupportedBales")
+	wrapper.skipUnsupportedBales = self.xmlFile:getValue(baseKey .. "#skipUnsupportedBales", false)
 	if self.isClient then
 		wrapper.samples = {}
-		wrapper.samples.wrap = g_soundManager:loadSamplesFromXML(self.xmlFile, v33_ .. ".sounds", "wrap", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		wrapper.samples.start = g_soundManager:loadSamplesFromXML(self.xmlFile, v33_ .. ".sounds", "start", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		wrapper.samples.stop = g_soundManager:loadSamplesFromXML(self.xmlFile, v33_ .. ".sounds", "stop", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		wrapper.wrappingSoundEndTime = xmlFile:getValue(v33_ .. ".sounds#wrappingEndTime", 1)
+		wrapper.samples.wrap = g_soundManager:loadSamplesFromXML(self.xmlFile, baseKey .. ".sounds", "wrap", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		wrapper.samples.start = g_soundManager:loadSamplesFromXML(self.xmlFile, baseKey .. ".sounds", "start", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		wrapper.samples.stop = g_soundManager:loadSamplesFromXML(self.xmlFile, baseKey .. ".sounds", "stop", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		wrapper.wrappingSoundEndTime = xmlFile:getValue(baseKey .. ".sounds#wrappingEndTime", 1)
 	end
 end
-
--- Local values: i, animType, key, configTypeKey, anim
 function BaleWrapper:loadWrapperAnimationsFromXML(target, xmlFile, baseKey, configKey, animationsKey, parentAnimations)
 	target.animations = {}
 	if parentAnimations ~= nil then
-		local v48_ = target.animations
-		setmetatable(v48_, {
-			["__index"] = parentAnimations
-		})
+		setmetatable(target.animations, { __index = parentAnimations })
 	end
-	for v49_ = 1, #BaleWrapper.ANIMATION_NAMES do
-		local v50_ = BaleWrapper.ANIMATION_NAMES[v49_]
-		local v51_ = baseKey .. animationsKey .. "." .. v50_
-		local v52_ = configKey .. animationsKey .. "." .. v50_
-		if not xmlFile:hasProperty(v52_) then
-			v52_ = v51_
+	for i = 1, #BaleWrapper.ANIMATION_NAMES do
+		local animType = BaleWrapper.ANIMATION_NAMES[i]
+		local key = baseKey .. animationsKey .. "." .. animType
+		local configTypeKey = configKey .. animationsKey .. "." .. animType
+		if xmlFile:hasProperty(configTypeKey) then
+			key = configTypeKey
 		end
-		local v53_ = {
-			["animName"] = xmlFile:getValue(v52_ .. "#animName"),
-			["animSpeed"] = xmlFile:getValue(v52_ .. "#animSpeed", 1),
-			["reverseAfterMove"] = xmlFile:getValue(v52_ .. "#reverseAfterMove", true)
-		}
-		if xmlFile:getValue(v52_ .. "#resetOnStart", false) then
-			self:playAnimation(v53_.animName, -1, 0.1, true)
-			AnimatedVehicle.updateAnimationByName(self, v53_.animName, 9999999, true)
+		local anim = {}
+		anim.animName = xmlFile:getValue(key .. "#animName")
+		anim.animSpeed = xmlFile:getValue(key .. "#animSpeed", 1)
+		anim.reverseAfterMove = xmlFile:getValue(key .. "#reverseAfterMove", true)
+		if xmlFile:getValue(key .. "#resetOnStart", false) then
+			self:playAnimation(anim.animName, -1, 0.1, true)
+			AnimatedVehicle.updateAnimationByName(self, anim.animName, 9999999, true)
 		end
-		if parentAnimations == nil or v53_.animName ~= nil then
-			target.animations[v50_] = v53_
+		if parentAnimations == nil or anim.animName ~= nil then
+			target.animations[animType] = anim
 		end
 	end
 end
-
 function BaleWrapper:loadWrapperAnimCurveFromXML(target, xmlFile, baseKey)
 	target.animCurve = AnimCurve.new(linearInterpolatorN)
-	xmlFile:iterate(baseKey .. "wrapperAnimation.key", function(_, p57_)
-		-- upvalues: (copy) xmlFile, (copy) target
-		local v58_ = xmlFile:getValue(p57_ .. "#time")
-		local v59_, v60_, v61_ = xmlFile:getValue(p57_ .. "#baleRot")
-		if v59_ == nil or (v60_ == nil or v61_ == nil) then
+	xmlFile:iterate(baseKey .. "wrapperAnimation.key", function(index, key)
+		local t = xmlFile:getValue(key .. "#time")
+		local baleX, baleY, baleZ = xmlFile:getValue(key .. "#baleRot")
+		if baleX == nil or baleY == nil or baleZ == nil then
 			return false
 		end
-		local v62_, v63_, v64_ = xmlFile:getValue(p57_ .. "#wrapperRot", "0 0 0")
-		target.animCurve:addKeyframe({
-			v59_,
-			v60_,
-			v61_,
-			v62_,
-			v63_,
-			v64_,
-			["time"] = v58_
-		})
+		local wrapperX, wrapperY, wrapperZ = xmlFile:getValue(key .. "#wrapperRot", "0 0 0")
+		target.animCurve:addKeyframe({ baleX, baleY, baleZ, wrapperX, wrapperY, wrapperZ, ["time"] = t })
 	end)
 end
-
 function BaleWrapper:loadWrapperAnimNodesFromXML(target, xmlFile, baseKey)
 	target.wrapAnimNodes = {}
-	xmlFile:iterate(baseKey .. ".wrapAnimNodes.wrapAnimNode", function(_, p69_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) target
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p69_ .. "#index", p69_ .. "#node")
-		local v_u_70_ = {
-			["nodeId"] = xmlFile:getValue(p69_ .. "#node", nil, self.components, self.i3dMappings)
-		}
-		if v_u_70_.nodeId ~= nil then
-			v_u_70_.useWrapperRot = false
-			v_u_70_.animCurve = AnimCurve.new(linearInterpolatorN)
-			local v_u_71_ = 0
-			xmlFile:iterate(p69_ .. ".key", function(_, p72_)
-				-- upvalues: (ref) xmlFile, (copy) v_u_70_, (ref) v_u_71_
-				local v73_ = xmlFile:getValue(p72_ .. "#wrapperRot")
-				local v74_ = xmlFile:getValue(p72_ .. "#wrapperTime")
-				if v73_ == nil and v74_ == nil then
+	xmlFile:iterate(baseKey .. ".wrapAnimNodes.wrapAnimNode", function(index, key)
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#index", key .. "#node")
+		local wrapAnimNode = {}
+		wrapAnimNode.nodeId = xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
+		if wrapAnimNode.nodeId ~= nil then
+			wrapAnimNode.useWrapperRot = false
+			wrapAnimNode.animCurve = AnimCurve.new(linearInterpolatorN)
+			local numKeyframes = 0
+			xmlFile:iterate(key .. ".key", function(_, nodeKey)
+				local wrapperRot = xmlFile:getValue(nodeKey .. "#wrapperRot")
+				local wrapperTime = xmlFile:getValue(nodeKey .. "#wrapperTime")
+				if wrapperRot == nil and wrapperTime == nil then
 					return false
 				end
-				v_u_70_.useWrapperRot = v73_ ~= nil
-				local v75_, v76_, v77_ = xmlFile:getValue(p72_ .. "#trans", "0 0 0")
-				local v78_, v79_, v80_ = xmlFile:getValue(p72_ .. "#rot", "0 0 0")
-				local v81_, v82_, v83_ = xmlFile:getValue(p72_ .. "#scale", "1 1 1")
-				if v73_ == nil then
-					v_u_70_.animCurve:addKeyframe({
-						v75_,
-						v76_,
-						v77_,
-						v78_,
-						v79_,
-						v80_,
-						v81_,
-						v82_,
-						v83_,
-						["time"] = v74_
-					})
+				wrapAnimNode.useWrapperRot = wrapperRot ~= nil
+				local x, y, z = xmlFile:getValue(nodeKey .. "#trans", "0 0 0")
+				local rx, ry, rz = xmlFile:getValue(nodeKey .. "#rot", "0 0 0")
+				local sx, sy, sz = xmlFile:getValue(nodeKey .. "#scale", "1 1 1")
+				if wrapperRot ~= nil then
+					wrapAnimNode.animCurve:addKeyframe({ x, y, z, rx, ry, rz, sx, sy, sz, ["time"] = math.rad(wrapperRot) })
 				else
-					v_u_70_.animCurve:addKeyframe({
-						v75_,
-						v76_,
-						v77_,
-						v78_,
-						v79_,
-						v80_,
-						v81_,
-						v82_,
-						v83_,
-						["time"] = math.rad(v73_)
-					})
+					wrapAnimNode.animCurve:addKeyframe({ x, y, z, rx, ry, rz, sx, sy, sz, ["time"] = wrapperTime })
 				end
-				v_u_71_ = v_u_71_ + 1
+				numKeyframes = numKeyframes + 1
 			end)
-			if v_u_71_ > 0 then
-				v_u_70_.repeatWrapperRot = xmlFile:getValue(p69_ .. "#repeatWrapperRot", false)
-				v_u_70_.normalizeRotationOnBaleDrop = xmlFile:getValue(p69_ .. "#normalizeRotationOnBaleDrop", 0)
-				local v84_ = target.wrapAnimNodes
-				table.insert(v84_, v_u_70_)
+			if 0 < numKeyframes then
+				wrapAnimNode.repeatWrapperRot = xmlFile:getValue(key .. "#repeatWrapperRot", false)
+				wrapAnimNode.normalizeRotationOnBaleDrop = xmlFile:getValue(key .. "#normalizeRotationOnBaleDrop", 0)
+				table.insert(target.wrapAnimNodes, wrapAnimNode)
 			end
 		end
 	end)
 end
-
 function BaleWrapper:loadWrapperWrapNodesFromXML(target, xmlFile, baseKey)
 	target.wrapNodes = {}
-	xmlFile:iterate(baseKey .. ".wrapNodes.wrapNode", function(_, p89_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) target
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p89_ .. "#index", p89_ .. "#node")
-		local v90_ = {
-			["nodeId"] = xmlFile:getValue(p89_ .. "#node", nil, self.components, self.i3dMappings),
-			["wrapVisibility"] = xmlFile:getValue(p89_ .. "#wrapVisibility", false),
-			["emptyVisibility"] = xmlFile:getValue(p89_ .. "#emptyVisibility", false)
-		}
-		if v90_.nodeId ~= nil and (v90_.wrapVisibility or v90_.emptyVisibility) then
-			v90_.maxWrapperRot = xmlFile:getValue(p89_ .. "#maxWrapperRot", math.huge)
-			local v91_ = target.wrapNodes
-			table.insert(v91_, v90_)
+	xmlFile:iterate(baseKey .. ".wrapNodes.wrapNode", function(index, key)
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, key .. "#index", key .. "#node")
+		local wrapNode = {}
+		wrapNode.nodeId = xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
+		wrapNode.wrapVisibility = xmlFile:getValue(key .. "#wrapVisibility", false)
+		wrapNode.emptyVisibility = xmlFile:getValue(key .. "#emptyVisibility", false)
+		if wrapNode.nodeId ~= nil and (wrapNode.wrapVisibility or wrapNode.emptyVisibility) then
+			wrapNode.maxWrapperRot = xmlFile:getValue(key .. "#maxWrapperRot", math.huge)
+			table.insert(target.wrapNodes, wrapNode)
 		end
 	end)
 end
-
 function BaleWrapper:loadWrapperStateCurveFromXML(target, xmlFile, baseKey)
 	target.wrappingStateCurve = AnimCurve.new(linearInterpolator1)
-	xmlFile:iterate(baseKey .. ".wrappingState.key", function(_, p95_)
-		-- upvalues: (copy) xmlFile, (copy) target
-		local v96_ = xmlFile:getValue(p95_ .. "#time")
-		local v97_ = {
-			xmlFile:getValue(p95_ .. "#wrappingState"),
-			["time"] = v96_
-		}
-		target.wrappingStateCurve:addKeyframe(v97_)
+	xmlFile:iterate(baseKey .. ".wrappingState.key", function(index, key)
+		local t = xmlFile:getValue(key .. "#time")
+		local wrappingState = xmlFile:getValue(key .. "#wrappingState")
+		target.wrappingStateCurve:addKeyframe({ wrappingState, ["time"] = t })
 	end)
 	if #target.wrappingStateCurve.keyframes == 0 then
 		target.wrappingStateCurve = nil
 	end
 end
-
--- Local values: maxTime, j, wrappingAnimationNode, x, y, z
 function BaleWrapper:loadWrapperAnimationNodesFromXML(target, xmlFile, baseKey, animTime)
-	local v_u_103_ = xmlFile:getValue(baseKey .. ".wrappingAnimationNodes#maxTime", animTime / 1000)
+	local maxTime = xmlFile:getValue(baseKey .. ".wrappingAnimationNodes#maxTime", animTime / 1000)
 	target.wrappingAnimationNodes = {}
 	target.wrappingAnimationNodes.nodes = {}
 	target.wrappingAnimationNodes.nodeToRootNode = {}
-	xmlFile:iterate(baseKey .. ".wrappingAnimationNodes.key", function(_, p104_)
-		-- upvalues: (copy) xmlFile, (copy) self, (copy) v_u_103_, (copy) target
-		local v105_ = xmlFile:getValue(p104_ .. "#time")
-		local v106_ = xmlFile:getValue(p104_ .. "#node", nil, self.components, self.i3dMappings)
-		local v107_ = xmlFile:getValue(p104_ .. "#rootNode", nil, self.components, self.i3dMappings)
-		local v108_ = xmlFile:getValue(p104_ .. "#linkNode", nil, self.components, self.i3dMappings)
-		if v105_ ~= nil and v106_ ~= nil then
-			local v109_ = {
-				["time"] = v105_ / v_u_103_,
-				["nodeId"] = v106_,
-				["linkNode"] = v108_,
-				["parent"] = getParent(v106_),
-				["translation"] = xmlFile:getValue(p104_ .. "#translation", nil, true)
-			}
-			if v109_.translation == nil then
-				Logging.xmlWarning(xmlFile, "Missing values for \'%s\'", p104_ .. "#translation")
+	xmlFile:iterate(baseKey .. ".wrappingAnimationNodes.key", function(index, wrappingAnimationNodeKey)
+		local time = xmlFile:getValue(wrappingAnimationNodeKey .. "#time")
+		local nodeId = xmlFile:getValue(wrappingAnimationNodeKey .. "#node", nil, self.components, self.i3dMappings)
+		local rootNode = xmlFile:getValue(wrappingAnimationNodeKey .. "#rootNode", nil, self.components, self.i3dMappings)
+		local linkNode = xmlFile:getValue(wrappingAnimationNodeKey .. "#linkNode", nil, self.components, self.i3dMappings)
+		if time ~= nil and nodeId ~= nil then
+			local entry = {}
+			entry.time = time / maxTime
+			entry.nodeId = nodeId
+			entry.linkNode = linkNode
+			entry.parent = getParent(nodeId)
+			entry.translation = xmlFile:getValue(wrappingAnimationNodeKey .. "#translation", nil, true)
+			if entry.translation == nil then
+				Logging.xmlWarning(xmlFile, "Missing values for '%s'", wrappingAnimationNodeKey .. "#translation")
 				return
 			end
-			if v107_ ~= nil then
-				target.wrappingAnimationNodes.nodeToRootNode[v106_] = v107_
+			if rootNode ~= nil then
+				target.wrappingAnimationNodes.nodeToRootNode[nodeId] = rootNode
 			end
-			local v110_ = target.wrappingAnimationNodes.nodes
-			table.insert(v110_, v109_)
+			table.insert(target.wrappingAnimationNodes.nodes, entry)
 		end
 	end)
-	for v111_ = 1, #target.wrappingAnimationNodes.nodes do
-		local v112_ = target.wrappingAnimationNodes.nodes[v111_]
-		if v112_.time == 0 then
-			local v113_ = setTranslation
-			local v114_ = v112_.nodeId
-			local v115_ = v112_.translation
-			v113_(v114_, unpack(v115_))
-			if v112_.linkNode ~= nil then
-				local v116_ = localToWorld
-				local v117_ = v112_.parent
-				local v118_ = v112_.translation
-				local v119_, v120_, v121_ = v116_(v117_, unpack(v118_))
-				link(v112_.linkNode, v112_.nodeId)
-				setWorldTranslation(v112_.nodeId, v119_, v120_, v121_)
+	for j = 1, #target.wrappingAnimationNodes.nodes do
+		local wrappingAnimationNode = target.wrappingAnimationNodes.nodes[j]
+		if wrappingAnimationNode.time == 0 then
+			setTranslation(wrappingAnimationNode.nodeId, unpack(wrappingAnimationNode.translation))
+			if wrappingAnimationNode.linkNode == nil then
+				continue
 			end
+			local x, y, z = localToWorld(wrappingAnimationNode.parent, unpack(wrappingAnimationNode.translation))
+			link(wrappingAnimationNode.linkNode, wrappingAnimationNode.nodeId)
+			setWorldTranslation(wrappingAnimationNode.nodeId, x, y, z)
 		end
 	end
 	target.wrappingAnimationNodes.referenceNode = xmlFile:getValue(baseKey .. ".wrappingAnimationNodes#referenceNode", nil, self.components, self.i3dMappings)
@@ -612,1264 +518,1144 @@ function BaleWrapper:loadWrapperAnimationNodesFromXML(target, xmlFile, baseKey, 
 	target.wrappingAnimationNodes.lastTime = -1
 	target.wrappingAnimationNodes.currentIndex = 0
 end
-
--- Local values: wrappingFoilAnimation
 function BaleWrapper:loadWrapperFoilAnimationFromXML(target, xmlFile, baseKey, isDefault)
-	local v127_ = {
-		["referenceNode"] = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#referenceNode", nil, self.components, self.i3dMappings)
-	}
-	if v127_.referenceNode ~= nil then
-		v127_.referenceAxis = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#referenceAxis", 2)
-		v127_.referenceMinRot = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#minRot", 0)
-		v127_.referenceMaxRot = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#maxRot", 0)
-		v127_.referenceNodeRotation = { 0, 0, 0 }
-		v127_.clipNode = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#clipNode", nil, self.components, self.i3dMappings)
-		if v127_.clipNode ~= nil then
-			v127_.animationClip = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#clipName")
-			if v127_.animationClip == nil then
-				Logging.xmlWarning(self.xmlFile, "Missing clipName for foil animation \'%s\'", baseKey .. ".wrappingFoilAnimation")
-				return
-			else
-				v127_.animationCharSet = getAnimCharacterSet(v127_.clipNode)
-				if v127_.animationCharSet == 0 then
-					Logging.xmlWarning(self.xmlFile, "Unable to find animation clip \'%s\' on node \'%s\' in \'%s\'", v127_.animationClip, getName(v127_.clipNode), baseKey .. ".wrappingFoilAnimation")
-					return
-				else
-					v127_.animationClipIndex = getAnimClipIndex(v127_.animationCharSet, v127_.animationClip)
-					if v127_.animationClipIndex >= 0 then
-						v127_.animationClipDuration = getAnimClipDuration(v127_.animationCharSet, v127_.animationClipIndex)
+	local wrappingFoilAnimation = {}
+	wrappingFoilAnimation.referenceNode = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#referenceNode", nil, self.components, self.i3dMappings)
+	if wrappingFoilAnimation.referenceNode ~= nil then
+		wrappingFoilAnimation.referenceAxis = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#referenceAxis", 2)
+		wrappingFoilAnimation.referenceMinRot = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#minRot", 0)
+		wrappingFoilAnimation.referenceMaxRot = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#maxRot", 0)
+		wrappingFoilAnimation.referenceNodeRotation = { 0, 0, 0 }
+		wrappingFoilAnimation.clipNode = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#clipNode", nil, self.components, self.i3dMappings)
+		if wrappingFoilAnimation.clipNode ~= nil then
+			wrappingFoilAnimation.animationClip = xmlFile:getValue(baseKey .. ".wrappingFoilAnimation#clipName")
+			if wrappingFoilAnimation.animationClip ~= nil then
+				wrappingFoilAnimation.animationCharSet = getAnimCharacterSet(wrappingFoilAnimation.clipNode)
+				if wrappingFoilAnimation.animationCharSet ~= 0 then
+					wrappingFoilAnimation.animationClipIndex = getAnimClipIndex(wrappingFoilAnimation.animationCharSet, wrappingFoilAnimation.animationClip)
+					if 0 <= wrappingFoilAnimation.animationClipIndex then
+						wrappingFoilAnimation.animationClipDuration = getAnimClipDuration(wrappingFoilAnimation.animationCharSet, wrappingFoilAnimation.animationClipIndex)
 						if isDefault then
-							clearAnimTrackClip(v127_.animationCharSet, 0)
-							assignAnimTrackClip(v127_.animationCharSet, 0, v127_.animationClipIndex)
-							enableAnimTrack(v127_.animationCharSet, 0)
-							setAnimTrackTime(v127_.animationCharSet, 0, 0, true)
-							disableAnimTrack(v127_.animationCharSet, 0)
+							clearAnimTrackClip(wrappingFoilAnimation.animationCharSet, 0)
+							assignAnimTrackClip(wrappingFoilAnimation.animationCharSet, 0, wrappingFoilAnimation.animationClipIndex)
+							enableAnimTrack(wrappingFoilAnimation.animationCharSet, 0)
+							setAnimTrackTime(wrappingFoilAnimation.animationCharSet, 0, 0, true)
+							disableAnimTrack(wrappingFoilAnimation.animationCharSet, 0)
 						end
-						v127_.lastTime = 0
-						target.wrappingFoilAnimation = v127_
+						wrappingFoilAnimation.lastTime = 0
+						target.wrappingFoilAnimation = wrappingFoilAnimation
+						return
 					else
-						Logging.xmlWarning(self.xmlFile, "Unable to find animation clip \'%s\' on node \'%s\' in \'%s\'", v127_.animationClip, getName(v127_.clipNode), baseKey .. ".wrappingFoilAnimation")
+						Logging.xmlWarning(self.xmlFile, "Unable to find animation clip '%s' on node '%s' in '%s'", wrappingFoilAnimation.animationClip, getName(wrappingFoilAnimation.clipNode), baseKey .. ".wrappingFoilAnimation")
+						return
 					end
 				end
+				Logging.xmlWarning(self.xmlFile, "Unable to find animation clip '%s' on node '%s' in '%s'", wrappingFoilAnimation.animationClip, getName(wrappingFoilAnimation.clipNode), baseKey .. ".wrappingFoilAnimation")
+				return
+			else
+				Logging.xmlWarning(self.xmlFile, "Missing clipName for foil animation '%s'", baseKey .. ".wrappingFoilAnimation")
+				return
 			end
 		end
-		Logging.xmlWarning(self.xmlFile, "Missing clipNode for foil animation \'%s\'", baseKey .. ".wrappingFoilAnimation")
+		Logging.xmlWarning(self.xmlFile, "Missing clipNode for foil animation '%s'", baseKey .. ".wrappingFoilAnimation")
 	end
 end
-
--- Local values: spec, v, baleObject, x, y, z, rx, ry, rz, wrapperState, wrapAnimation, wrappingTime
 function BaleWrapper:onLoadFinished(savegame)
-	local v129_ = self.spec_baleWrapper
-	if v129_.baleToLoad ~= nil then
-		local v130_ = v129_.baleToLoad
-		v129_.baleToLoad = nil
-		local v131_ = Bale.new(self.isServer, self.isClient)
-		local v132_ = v130_.translation
-		local v133_, v134_, v135_ = unpack(v132_)
-		local v136_ = v130_.rotation
-		local v137_, v138_, v139_ = unpack(v136_)
-		if v131_:loadFromConfigXML(v130_.filename, v133_, v134_, v135_, v137_, v138_, v139_, v130_.attributes.uniqueId) then
-			v131_:applyBaleAttributes(v130_.attributes)
-			v131_:register()
-			if v131_.nodeId ~= nil and v131_.nodeId ~= 0 then
-				self:doStateChange(BaleWrapper.CHANGE_GRAB_BALE, NetworkUtil.getObjectId(v131_))
+	local spec = self.spec_baleWrapper
+	if spec.baleToLoad ~= nil then
+		local v = spec.baleToLoad
+		spec.baleToLoad = nil
+		local baleObject = Bale.new(self.isServer, self.isClient)
+		local x, y, z = unpack(v.translation)
+		local rx, ry, rz = unpack(v.rotation)
+		if baleObject:loadFromConfigXML(v.filename, x, y, z, rx, ry, rz, v.attributes.uniqueId) then
+			baleObject:applyBaleAttributes(v.attributes)
+			baleObject:register()
+			if baleObject.nodeId ~= nil and baleObject.nodeId ~= 0 then
+				self:doStateChange(BaleWrapper.CHANGE_GRAB_BALE, NetworkUtil.getObjectId(baleObject))
 				self:doStateChange(BaleWrapper.CHANGE_DROP_BALE_AT_GRABBER)
 				self:doStateChange(BaleWrapper.CHANGE_WRAPPING_START)
-				v129_.currentWrapper.currentTime = v130_.wrapperTime
-				local v140_ = v130_.wrapperTime / v129_.currentWrapper.animTime
-				v131_:setWrappingState((math.min(v140_, 1)))
-				local v141_ = v129_.currentWrapper.animations.wrapBale
-				local v142_ = v129_.currentWrapper.currentTime / v129_.currentWrapper.animTime
-				self:updateWrappingState(v142_)
+				spec.currentWrapper.currentTime = v.wrapperTime
+				local wrapperState = math.min(v.wrapperTime / spec.currentWrapper.animTime, 1)
+				baleObject:setWrappingState(wrapperState)
+				local wrapAnimation = spec.currentWrapper.animations.wrapBale
+				local wrappingTime = spec.currentWrapper.currentTime / spec.currentWrapper.animTime
+				self:updateWrappingState(wrappingTime)
 				AnimatedVehicle.updateAnimations(self, 99999999, true)
-				if v142_ < 1 then
-					self:setAnimationTime(v141_.animName, v142_, true)
-					self:playAnimation(v141_.animName, v141_.animSpeed, v142_, true)
+				if wrappingTime < 1 then
+					self:setAnimationTime(wrapAnimation.animName, wrappingTime, true)
+					self:playAnimation(wrapAnimation.animName, wrapAnimation.animSpeed, wrappingTime, true)
 					return
 				end
 				self:doStateChange(BaleWrapper.CHANGE_WRAPPING_BALE_FINSIHED)
-				self:setAnimationTime(v141_.animName, v142_, true)
-				v129_.setWrappingStateFinished = false
+				self:setAnimationTime(wrapAnimation.animName, wrappingTime, true)
+				spec.setWrappingStateFinished = false
 			end
 		end
 	end
 end
-
--- Local values: spec, baleId, bale
 function BaleWrapper:onDelete()
-	local v144_ = self.spec_baleWrapper
-	local v145_
-	if v144_.currentWrapper == nil or v144_.currentWrapper.currentBale == nil then
-		v145_ = nil
-	else
-		v145_ = v144_.currentWrapper.currentBale
+	local spec = self.spec_baleWrapper
+	local baleId = nil
+	if spec.currentWrapper ~= nil and spec.currentWrapper.currentBale ~= nil then
+		baleId = spec.currentWrapper.currentBale
 	end
-	if v144_.baleGrabber ~= nil and v144_.baleGrabber.currentBale ~= nil then
-		v145_ = v144_.baleGrabber.currentBale
+	if spec.baleGrabber ~= nil and spec.baleGrabber.currentBale ~= nil then
+		baleId = spec.baleGrabber.currentBale
 	end
-	if v145_ ~= nil then
-		local v146_ = NetworkUtil.getObject(v145_)
-		if v146_ ~= nil then
+	if baleId ~= nil then
+		local bale = NetworkUtil.getObject(baleId)
+		if bale ~= nil then
 			if self.isServer then
 				if self.isReconfigurating == nil or not self.isReconfigurating then
-					v146_:unmountKinematic()
-					v146_:setNeedsSaving(true)
-					v146_:setCanBeSold(true)
+					bale:unmountKinematic()
+					bale:setNeedsSaving(true)
+					bale:setCanBeSold(true)
 				else
-					v146_:delete()
+					bale:delete()
 				end
 			else
-				v146_:unmountKinematic()
-				v146_:setNeedsSaving(true)
-				v146_:setCanBeSold(true)
+				bale:unmountKinematic()
+				bale:setNeedsSaving(true)
+				bale:setCanBeSold(true)
 			end
 		end
 	end
-	if v144_.baleGrabber ~= nil and v144_.baleGrabber.triggerNode ~= nil then
-		removeTrigger(v144_.baleGrabber.triggerNode)
+	if spec.baleGrabber ~= nil and spec.baleGrabber.triggerNode ~= nil then
+		removeTrigger(spec.baleGrabber.triggerNode)
 	end
-	if v144_.roundBaleWrapper ~= nil then
-		g_soundManager:deleteSamples(v144_.roundBaleWrapper.samples.wrap)
-		g_soundManager:deleteSamples(v144_.roundBaleWrapper.samples.start)
-		g_soundManager:deleteSamples(v144_.roundBaleWrapper.samples.stop)
+	if spec.roundBaleWrapper ~= nil then
+		g_soundManager:deleteSamples(spec.roundBaleWrapper.samples.wrap)
+		g_soundManager:deleteSamples(spec.roundBaleWrapper.samples.start)
+		g_soundManager:deleteSamples(spec.roundBaleWrapper.samples.stop)
 	end
-	if v144_.squareBaleWrapper ~= nil then
-		g_soundManager:deleteSamples(v144_.squareBaleWrapper.samples.wrap)
-		g_soundManager:deleteSamples(v144_.squareBaleWrapper.samples.start)
-		g_soundManager:deleteSamples(v144_.squareBaleWrapper.samples.stop)
+	if spec.squareBaleWrapper ~= nil then
+		g_soundManager:deleteSamples(spec.squareBaleWrapper.samples.wrap)
+		g_soundManager:deleteSamples(spec.squareBaleWrapper.samples.start)
+		g_soundManager:deleteSamples(spec.squareBaleWrapper.samples.stop)
 	end
 end
-
--- Local values: spec, baleServerId, bale
 function BaleWrapper:saveToXMLFile(xmlFile, key, usedModNames)
-	local v150_ = self.spec_baleWrapper
-	local v151_ = v150_.baleGrabber.currentBale
-	if v151_ == nil then
-		v151_ = v150_.currentWrapper.currentBale
+	local spec = self.spec_baleWrapper
+	local baleServerId = spec.baleGrabber.currentBale
+	if baleServerId == nil then
+		baleServerId = spec.currentWrapper.currentBale
 	end
-	xmlFile:setValue(key .. "#wrapperTime", v150_.currentWrapper.currentTime)
-	if v151_ ~= nil then
-		local v152_ = NetworkUtil.getObject(v151_)
-		if v152_ ~= nil then
-			v152_:saveToXMLFile(xmlFile, key .. ".bale")
+	xmlFile:setValue(key .. "#wrapperTime", spec.currentWrapper.currentTime)
+	if baleServerId ~= nil then
+		local bale = NetworkUtil.getObject(baleServerId)
+		if bale ~= nil then
+			bale:saveToXMLFile(xmlFile, key .. ".bale")
 		end
 	end
 end
-
--- Local values: spec, isRoundBaleWrapper, baleTypeIndex, wrapperState, baleServerId, wrapperTime, wrapAnimation, wrappingTime, wrapAnimation
 function BaleWrapper:onReadStream(streamId, connection)
 	if connection:getIsServer() then
-		local v156_ = self.spec_baleWrapper
-		self:setBaleWrapperType(streamReadBool(streamId), (streamReadUIntN(streamId, 8)))
-		local v157_ = streamReadUIntN(streamId, BaleWrapper.STATE_NUM_BITS)
-		if BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER <= v157_ then
-			local v158_
-			if v157_ == BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM then
-				v158_ = nil
-			else
-				v158_ = NetworkUtil.readNodeObjectId(streamId)
+		local spec = self.spec_baleWrapper
+		local isRoundBaleWrapper = streamReadBool(streamId)
+		local baleTypeIndex = streamReadUIntN(streamId, 8)
+		self:setBaleWrapperType(isRoundBaleWrapper, baleTypeIndex)
+		local wrapperState = streamReadUIntN(streamId, BaleWrapper.STATE_NUM_BITS)
+		if BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER <= wrapperState then
+			local baleServerId = nil
+			if wrapperState ~= BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM then
+				baleServerId = NetworkUtil.readNodeObjectId(streamId)
 			end
-			if v157_ == BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER then
-				self:doStateChange(BaleWrapper.CHANGE_GRAB_BALE, v158_)
+			if wrapperState == BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER then
+				self:doStateChange(BaleWrapper.CHANGE_GRAB_BALE, baleServerId)
 				AnimatedVehicle.updateAnimations(self, 99999999, true)
 				return
 			end
-			if v157_ == BaleWrapper.STATE_MOVING_GRABBER_TO_WORK then
-				self.baleGrabber.currentBale = v158_
+			if wrapperState == BaleWrapper.STATE_MOVING_GRABBER_TO_WORK then
+				self.baleGrabber.currentBale = baleServerId
 				self:doStateChange(BaleWrapper.CHANGE_DROP_BALE_AT_GRABBER)
 				AnimatedVehicle.updateAnimations(self, 99999999, true)
 				return
 			end
-			if v157_ == BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM then
-				v156_.baleWrapperState = BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM
-			else
-				self:doStateChange(BaleWrapper.CHANGE_GRAB_BALE, v158_)
+			if wrapperState ~= BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM then
+				self:doStateChange(BaleWrapper.CHANGE_GRAB_BALE, baleServerId)
 				AnimatedVehicle.updateAnimations(self, 99999999, true)
-				v156_.currentWrapper.currentBale = v158_
+				spec.currentWrapper.currentBale = baleServerId
 				self:doStateChange(BaleWrapper.CHANGE_DROP_BALE_AT_GRABBER)
 				AnimatedVehicle.updateAnimations(self, 99999999, true)
 				self:updateWrapNodes(true, false, 0)
-				if v157_ == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE then
+				if wrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE then
 					self:doStateChange(BaleWrapper.CHANGE_WRAPPING_START)
-					local v159_ = streamReadFloat32(streamId)
-					v156_.currentWrapper.currentTime = v159_
-					local v160_ = v156_.currentWrapper.animations.wrapBale
-					local v161_ = v156_.currentWrapper.currentTime / v156_.currentWrapper.animTime
-					self:setAnimationStopTime(v160_.animName, v161_)
-					AnimatedVehicle.updateAnimationByName(self, v160_.animName, 9999999, true)
-					self:updateWrappingState(v161_, true)
-					if v161_ < 1 then
-						self:playAnimation(v160_.animName, v160_.animSpeed, self:getAnimationTime(v160_.animName), true, false)
-						return
+					local wrapperTime = streamReadFloat32(streamId)
+					spec.currentWrapper.currentTime = wrapperTime
+					local wrapAnimation = spec.currentWrapper.animations.wrapBale
+					local wrappingTime = spec.currentWrapper.currentTime / spec.currentWrapper.animTime
+					self:setAnimationStopTime(wrapAnimation.animName, wrappingTime)
+					AnimatedVehicle.updateAnimationByName(self, wrapAnimation.animName, 9999999, true)
+					self:updateWrappingState(wrappingTime, true)
+					if wrappingTime < 1 then
+						self:playAnimation(wrapAnimation.animName, wrapAnimation.animSpeed, self:getAnimationTime(wrapAnimation.animName), true, false)
 					end
 				else
-					local v162_ = v156_.currentWrapper.animations.wrapBale
-					if v162_.animName ~= nil then
-						self:playAnimation(v162_.animName, v162_.animSpeed, nil, true)
-						AnimatedVehicle.updateAnimationByName(self, v162_.animName, 9999999, true)
+					local wrapAnimation = spec.currentWrapper.animations.wrapBale
+					if wrapAnimation.animName ~= nil then
+						self:playAnimation(wrapAnimation.animName, wrapAnimation.animSpeed, nil, true)
+						AnimatedVehicle.updateAnimationByName(self, wrapAnimation.animName, 9999999, true)
 					end
-					v156_.currentWrapper.currentTime = v156_.currentWrapper.animTime
+					spec.currentWrapper.currentTime = spec.currentWrapper.animTime
 					self:updateWrappingState(1, true)
 					self:doStateChange(BaleWrapper.CHANGE_WRAPPING_BALE_FINSIHED)
 					AnimatedVehicle.updateAnimations(self, 99999999, true)
-					if BaleWrapper.STATE_WRAPPER_DROPPING_BALE <= v157_ then
+					if BaleWrapper.STATE_WRAPPER_DROPPING_BALE <= wrapperState then
 						self:doStateChange(BaleWrapper.CHANGE_WRAPPER_START_DROP_BALE)
 						AnimatedVehicle.updateAnimations(self, 99999999, true)
-						return
 					end
 				end
+			else
+				spec.baleWrapperState = BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM
 			end
 		end
 	end
 end
-
--- Local values: spec, wrapperState
 function BaleWrapper:onWriteStream(streamId, connection)
 	if not connection:getIsServer() then
-		local v166_ = self.spec_baleWrapper
-		streamWriteBool(streamId, v166_.currentWrapper == v166_.roundBaleWrapper)
-		streamWriteUIntN(streamId, v166_.currentBaleTypeIndex, 8)
-		local v167_ = v166_.baleWrapperState
-		streamWriteUIntN(streamId, v167_, BaleWrapper.STATE_NUM_BITS)
-		if BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER <= v167_ and v167_ ~= BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM then
-			if v167_ == BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER then
-				NetworkUtil.writeNodeObjectId(streamId, v166_.baleGrabber.currentBale)
+		local spec = self.spec_baleWrapper
+		streamWriteBool(streamId, spec.currentWrapper == spec.roundBaleWrapper)
+		streamWriteUIntN(streamId, spec.currentBaleTypeIndex, 8)
+		local wrapperState = spec.baleWrapperState
+		streamWriteUIntN(streamId, wrapperState, BaleWrapper.STATE_NUM_BITS)
+		if BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER <= wrapperState and wrapperState ~= BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM then
+			if wrapperState == BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER then
+				NetworkUtil.writeNodeObjectId(streamId, spec.baleGrabber.currentBale)
 			else
-				NetworkUtil.writeNodeObjectId(streamId, v166_.currentWrapper.currentBale)
+				NetworkUtil.writeNodeObjectId(streamId, spec.currentWrapper.currentBale)
 			end
 		end
-		if v167_ == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE then
-			streamWriteFloat32(streamId, v166_.currentWrapper.currentTime)
+		if wrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE then
+			streamWriteFloat32(streamId, spec.currentWrapper.currentTime)
 		end
 	end
 end
-
--- Local values: spec, bale, x, y, z, rx, ry, rz, wrapper, baleType, wrappingTime
 function BaleWrapper:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v170_ = self.spec_baleWrapper
-	if v170_.baleToMount ~= nil then
-		local v171_ = NetworkUtil.getObject(v170_.baleToMount.serverId)
-		if v171_ ~= nil then
-			local v172_ = v170_.baleToMount.trans
-			local v173_, v174_, v175_ = unpack(v172_)
-			local v176_ = v170_.baleToMount.rot
-			local v177_, v178_, v179_ = unpack(v176_)
-			v171_:mountKinematic(self, v170_.baleToMount.linkNode, v173_, v174_, v175_, v177_, v178_, v179_)
-			v171_:setCanBeSold(false)
-			v171_:setNeedsSaving(false)
-			v170_.baleToMount = nil
-			if v170_.baleWrapperState == BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER then
-				self:playMoveToWrapper(v171_)
+	local spec = self.spec_baleWrapper
+	if spec.baleToMount ~= nil then
+		local bale = NetworkUtil.getObject(spec.baleToMount.serverId)
+		if bale ~= nil then
+			local x, y, z = unpack(spec.baleToMount.trans)
+			local rx, ry, rz = unpack(spec.baleToMount.rot)
+			bale:mountKinematic(self, spec.baleToMount.linkNode, x, y, z, rx, ry, rz)
+			bale:setCanBeSold(false)
+			bale:setNeedsSaving(false)
+			spec.baleToMount = nil
+			if spec.baleWrapperState == BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER then
+				self:playMoveToWrapper(bale)
 			end
 		end
 	end
-	if v170_.baleWrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE then
-		local v180_ = v170_.currentWrapper
-		local v181_ = v180_.allowedBaleTypes[v170_.currentBaleTypeIndex]
-		self:updateConsumable(BaleWrapper.CONSUMABLE_TYPE_NAME, -v181_.wrapUsage * dt, true)
-		local v182_ = v180_.currentTime + dt
-		local v183_ = v170_.currentWrapper.animTime
-		v180_.currentTime = math.min(v182_, v183_)
-		local v184_ = v180_.currentTime / v180_.animTime
-		self:updateWrappingState(v184_)
+	if spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE then
+		local wrapper = spec.currentWrapper
+		local baleType = wrapper.allowedBaleTypes[spec.currentBaleTypeIndex]
+		self:updateConsumable(BaleWrapper.CONSUMABLE_TYPE_NAME, -baleType.wrapUsage * dt, true)
+		wrapper.currentTime = math.min(wrapper.currentTime + dt, spec.currentWrapper.animTime)
+		local wrappingTime = wrapper.currentTime / wrapper.animTime
+		self:updateWrappingState(wrappingTime)
 		self:raiseActive()
 		if self.isClient then
-			if v180_.wrappingSoundEndTime <= v184_ then
-				if g_soundManager:getIsSamplePlaying(v180_.samples.wrap[1]) then
-					g_soundManager:stopSamples(v180_.samples.wrap)
-					g_soundManager:playSamples(v180_.samples.stop)
-					return
+			if wrapper.wrappingSoundEndTime <= wrappingTime then
+				if g_soundManager:getIsSamplePlaying(wrapper.samples.wrap[1]) then
+					g_soundManager:stopSamples(wrapper.samples.wrap)
+					g_soundManager:playSamples(wrapper.samples.stop)
 				end
-			elseif not g_soundManager:getIsSamplePlaying(v180_.samples.wrap[1]) then
-				g_soundManager:playSamples(v180_.samples.wrap)
+			elseif not g_soundManager:getIsSamplePlaying(wrapper.samples.wrap[1]) then
+				g_soundManager:playSamples(wrapper.samples.wrap)
 			end
 		end
 	end
 end
-
--- Local values: spec, nearestBaleWrappable, nearestBale, nearestBaleTypeIndex, bale, isPowered, _, dropIsAllowed, warning
 function BaleWrapper:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v186_ = self.spec_baleWrapper
-	v186_.showInvalidBaleWarning = false
-	v186_.baleDropBlockedWarning = nil
-	if self:allowsGrabbingBale() and (v186_.baleGrabber.grabNode ~= nil and v186_.baleGrabber.currentBale == nil) then
-		local v187_, v188_, v189_ = BaleWrapper.getBaleInRange(self, v186_.baleGrabber.grabNode, v186_.baleGrabber.nearestDistance)
-		if v188_ then
-			if v187_ == nil and not (v188_.isRoundbale and v186_.roundBaleWrapper.skipUnsupportedBales) and not v186_.squareBaleWrapper.skipUnsupportedBales then
-				if self.isClient and (v188_ and v186_.lastDroppedBaleId ~= NetworkUtil.getObjectId(v188_)) then
-					v186_.showInvalidBaleWarning = true
+	local spec = self.spec_baleWrapper
+	spec.showInvalidBaleWarning = false
+	spec.baleDropBlockedWarning = nil
+	if self:allowsGrabbingBale() and (spec.baleGrabber.grabNode ~= nil and spec.baleGrabber.currentBale == nil) then
+		local nearestBaleWrappable, nearestBale, nearestBaleTypeIndex = BaleWrapper.getBaleInRange(self, spec.baleGrabber.grabNode, spec.baleGrabber.nearestDistance)
+		if nearestBale then
+			if nearestBaleWrappable ~= nil or nearestBale.isRoundbale and spec.roundBaleWrapper.skipUnsupportedBales or spec.squareBaleWrapper.skipUnsupportedBales then
+				if self.isServer then
+					self:pickupWrapperBale(nearestBaleWrappable or nearestBale, nearestBaleTypeIndex)
 				end
-			elseif self.isServer then
-				self:pickupWrapperBale(v187_ or v188_, v189_)
+			else
+				if self.isClient and (nearestBale and spec.lastDroppedBaleId ~= NetworkUtil.getObjectId(nearestBale)) then
+					spec.showInvalidBaleWarning = true
+				end
 			end
 		end
 	end
-	if self.isServer and v186_.baleWrapperState ~= BaleWrapper.STATE_NONE then
-		if v186_.baleWrapperState == BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER then
-			if not self:getIsAnimationPlaying(v186_.currentWrapper.animations.moveToWrapper.animName) then
+	if self.isServer and spec.baleWrapperState ~= BaleWrapper.STATE_NONE then
+		if spec.baleWrapperState == BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER then
+			if not self:getIsAnimationPlaying(spec.currentWrapper.animations.moveToWrapper.animName) then
 				g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_DROP_BALE_AT_GRABBER), true, nil, self)
 			end
-		elseif v186_.baleWrapperState == BaleWrapper.STATE_MOVING_GRABBER_TO_WORK then
-			if not self:getIsAnimationPlaying(v186_.currentWrapper.animations.moveToWrapper.animName) then
-				local v190_ = NetworkUtil.getObject(v186_.currentWrapper.currentBale)
-				if v190_ == nil or v190_.supportsWrapping then
-					if self:getIsBaleWrappingAllowed() then
+		elseif spec.baleWrapperState == BaleWrapper.STATE_MOVING_GRABBER_TO_WORK then
+			if not self:getIsAnimationPlaying(spec.currentWrapper.animations.moveToWrapper.animName) then
+				local bale = NetworkUtil.getObject(spec.currentWrapper.currentBale)
+				if bale ~= nil then
+					if not bale.supportsWrapping then
+						g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPER_START_DROP_BALE), true, nil, self)
+					elseif self:getIsBaleWrappingAllowed() then
 						g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPING_START), true, nil, self)
 					end
-				else
-					g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPER_START_DROP_BALE), true, nil, self)
 				end
 			end
-		elseif v186_.baleWrapperState == BaleWrapper.STATE_WRAPPER_DROPPING_BALE then
-			if not self:getIsAnimationPlaying(v186_.currentWrapper.animations.dropFromWrapper.animName) then
+		elseif spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_DROPPING_BALE then
+			if not self:getIsAnimationPlaying(spec.currentWrapper.animations.dropFromWrapper.animName) then
 				g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPER_BALE_DROPPED), true, nil, self)
 			end
-		elseif v186_.baleWrapperState == BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM and not self:getIsAnimationPlaying(v186_.currentWrapper.animations.resetAfterDrop.animName) then
-			g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPER_PLATFORM_RESET), true, nil, self)
+		elseif spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM then
+			if not self:getIsAnimationPlaying(spec.currentWrapper.animations.resetAfterDrop.animName) then
+				g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPER_PLATFORM_RESET), true, nil, self)
+			end
 		end
 	end
-	if v186_.automaticDrop or self:getIsAIActive() then
-		local v191_, _ = self:getIsPowered()
-		if v191_ and v186_.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED then
-			local v192_, v193_ = self:getIsBaleDropAllowed()
-			if v192_ then
+	if spec.automaticDrop or self:getIsAIActive() then
+		local isPowered, _ = self:getIsPowered()
+		if isPowered and spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED then
+			local dropIsAllowed, warning = self:getIsBaleDropAllowed()
+			if dropIsAllowed then
 				if self.isServer then
 					self:doStateChange(BaleWrapper.CHANGE_BUTTON_EMPTY)
 				end
-			elseif v193_ ~= nil then
-				v186_.baleDropBlockedWarning = v193_
+			elseif warning ~= nil then
+				spec.baleDropBlockedWarning = warning
 			end
 		end
 	end
 	BaleWrapper.updateActionEvents(self)
-	if v186_.setWrappingStateFinished then
+	if spec.setWrappingStateFinished then
 		g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPING_BALE_FINSIHED), true, nil, self)
-		v186_.setWrappingStateFinished = false
+		spec.setWrappingStateFinished = false
 	end
 end
-
--- Local values: spec
 function BaleWrapper:onDraw(isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	if self.isClient then
-		local v195_ = self.spec_baleWrapper
-		if v195_.showInvalidBaleWarning then
-			g_currentMission:showBlinkingWarning(v195_.texts.warningBaleNotSupported, 500)
+		local spec = self.spec_baleWrapper
+		if spec.showInvalidBaleWarning then
+			g_currentMission:showBlinkingWarning(spec.texts.warningBaleNotSupported, 500)
 			return
 		end
-		if v195_.baleDropBlockedWarning ~= nil then
-			g_currentMission:showBlinkingWarning(v195_.baleDropBlockedWarning, 500)
+		if spec.baleDropBlockedWarning ~= nil then
+			g_currentMission:showBlinkingWarning(spec.baleDropBlockedWarning, 500)
 		end
 	end
 end
-
--- Local values: object, spec
 function BaleWrapper:baleGrabberTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay, otherShapeId)
 	if otherId ~= 0 and getRigidBodyType(otherId) == RigidBodyType.DYNAMIC then
-		local v200_ = g_currentMission:getNodeObject(otherId)
-		if v200_ ~= nil and v200_:isa(Bale) then
-			local v201_ = self.spec_baleWrapper
+		local object = g_currentMission:getNodeObject(otherId)
+		if object ~= nil and object:isa(Bale) then
+			local spec = self.spec_baleWrapper
 			if onEnter then
-				v201_.baleGrabber.balesInTrigger[v200_] = Utils.getNoNil(v201_.baleGrabber.balesInTrigger[v200_], 0) + 1
+				spec.baleGrabber.balesInTrigger[object] = Utils.getNoNil(spec.baleGrabber.balesInTrigger[object], 0) + 1
 				return
 			end
-			if onLeave and v201_.baleGrabber.balesInTrigger[v200_] ~= nil then
-				local v202_ = v201_.baleGrabber.balesInTrigger
-				local v203_ = v201_.baleGrabber.balesInTrigger[v200_] - 1
-				v202_[v200_] = math.max(0, v203_)
-				if v201_.baleGrabber.balesInTrigger[v200_] == 0 then
-					v201_.baleGrabber.balesInTrigger[v200_] = nil
+			if onLeave and spec.baleGrabber.balesInTrigger[object] ~= nil then
+				spec.baleGrabber.balesInTrigger[object] = math.max(0, spec.baleGrabber.balesInTrigger[object] - 1)
+				if spec.baleGrabber.balesInTrigger[object] == 0 then
+					spec.baleGrabber.balesInTrigger[object] = nil
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, specFoldable
 function BaleWrapper:allowsGrabbingBale()
-	local v205_ = self.spec_baleWrapper
-	local v206_ = self.spec_foldable
-	if v206_ == nil or (v206_.foldAnimTime == nil or v206_.foldAnimTime <= v205_.currentWrapperFoldMaxLimit and v206_.foldAnimTime >= v205_.currentWrapperFoldMinLimit) then
-		if v205_.baleToLoad == nil then
-			return v205_.baleWrapperState == BaleWrapper.STATE_NONE
-		else
-			return false
-		end
-	else
+	local spec = self.spec_baleWrapper
+	local specFoldable = self.spec_foldable
+	if specFoldable ~= nil and (specFoldable.foldAnimTime ~= nil and (spec.currentWrapperFoldMaxLimit < specFoldable.foldAnimTime or specFoldable.foldAnimTime < spec.currentWrapperFoldMinLimit)) then
 		return false
 	end
+	if spec.baleToLoad ~= nil then
+		return false
+	else
+		return spec.baleWrapperState == BaleWrapper.STATE_NONE
+	end
 end
-
--- Local values: spec, _, wrapNode, doShow, wrapperRotRepeat, _, wrapAnimNode, x, y, z, rx, ry, rz, sx, sy, sz, rot, _, wrapAnimNode, rot, i
 function BaleWrapper:updateWrapNodes(isWrapping, isEmpty, t, wrapperRot)
-	local v212_ = self.spec_baleWrapper
-	local v213_ = wrapperRot == nil and 0 or wrapperRot
-	for _, v214_ in pairs(v212_.currentWrapper.wrapNodes) do
-		local v215_ = v214_.maxWrapperRot == nil and true or v213_ < v214_.maxWrapperRot
-		local v216_ = setVisibility
-		local v217_ = v214_.nodeId
-		local v218_ = not v215_ or isWrapping and v214_.wrapVisibility
-		if not v218_ then
-			if isEmpty then
-				v218_ = v214_.emptyVisibility
-			else
-				v218_ = isEmpty
-			end
-		end
-		v216_(v217_, v218_)
+	local spec = self.spec_baleWrapper
+	if wrapperRot == nil then
+		wrapperRot = 0
+	end
+	for _, wrapNode in pairs(spec.currentWrapper.wrapNodes) do
+		local doShow = wrapNode.maxWrapperRot == nil or wrapperRot < wrapNode.maxWrapperRot
+		setVisibility(wrapNode.nodeId, doShow)
 	end
 	if isWrapping then
-		local v219_ = math.sign(v213_) * (v213_ % 3.141592653589793)
-		if v219_ < 0 then
-			v219_ = v219_ + 3.141592653589793
+		local wrapperRotRepeat = math.sign(wrapperRot) * (wrapperRot % 3.141592653589793)
+		if wrapperRotRepeat < 0 then
+			wrapperRotRepeat = wrapperRotRepeat + 3.141592653589793
 		end
-		for _, v220_ in pairs(v212_.currentWrapper.wrapAnimNodes) do
-			local v221_, v222_, v223_, v224_, v225_, v226_, v227_, v228_, v229_
-			if v220_.useWrapperRot then
-				local v230_
-				if v220_.repeatWrapperRot then
-					v230_ = v219_
-				else
-					v230_ = v213_
+		for _, wrapAnimNode in pairs(spec.currentWrapper.wrapAnimNodes) do
+			local x = nil
+			local y = nil
+			local z = nil
+			local rx = nil
+			local ry = nil
+			local rz = nil
+			local sx = nil
+			local sy = nil
+			local sz = nil
+			if wrapAnimNode.useWrapperRot then
+				local rot = wrapperRot
+				if wrapAnimNode.repeatWrapperRot then
+					rot = wrapperRotRepeat
 				end
-				v221_, v222_, v223_, v224_, v225_, v226_, v227_, v228_, v229_ = v220_.animCurve:get(v230_)
+				x, y, z, rx, ry, rz, sx, sy, sz = wrapAnimNode.animCurve:get(rot)
 			else
-				v221_, v222_, v223_, v224_, v225_, v226_, v227_, v228_, v229_ = v220_.animCurve:get(t)
+				x, y, z, rx, ry, rz, sx, sy, sz = wrapAnimNode.animCurve:get(t)
 			end
-			if v221_ ~= nil then
-				setTranslation(v220_.nodeId, v221_, v222_, v223_)
-				setRotation(v220_.nodeId, v224_, v225_, v226_)
-				setScale(v220_.nodeId, v227_, v228_, v229_)
+			if x == nil then
+				continue
 			end
+			setTranslation(wrapAnimNode.nodeId, x, y, z)
+			setRotation(wrapAnimNode.nodeId, rx, ry, rz)
+			setScale(wrapAnimNode.nodeId, sx, sy, sz)
 		end
-	elseif not isEmpty then
-		for _, v231_ in pairs(v212_.currentWrapper.wrapAnimNodes) do
-			if v231_.normalizeRotationOnBaleDrop ~= 0 then
-				local v232_ = { getRotation(v231_.nodeId) }
-				for v233_ = 1, 3 do
-					local v234_ = v231_.normalizeRotationOnBaleDrop
-					local v235_ = v232_[v233_]
-					v232_[v233_] = v234_ * math.sign(v235_) * (v232_[v233_] % 6.283185307179586)
+	else
+		if not isEmpty then
+			for _, wrapAnimNode in pairs(spec.currentWrapper.wrapAnimNodes) do
+				if wrapAnimNode.normalizeRotationOnBaleDrop == 0 then
+					continue
 				end
-				setRotation(v231_.nodeId, v232_[1], v232_[2], v232_[3])
+				local rot = { getRotation(wrapAnimNode.nodeId) }
+				for i = 1, 3 do
+					rot[i] = wrapAnimNode.normalizeRotationOnBaleDrop * math.sign(rot[i]) * (rot[i] % 6.283185307179586)
+				end
+				setRotation(wrapAnimNode.nodeId, rot[1], rot[2], rot[3])
 			end
 		end
 	end
 end
-
--- Local values: spec, wrapper, foilTime, wrappingFoilAnimation, rotation, oldClipIndex, nodesTime, rotation, nodes, i, wrappingAnimationNode, x, y, z, animationNode, rootNode, rx, ry, rz, wrappingState, wrapperRot, baleX, baleY, baleZ, wrapX, wrapY, wrapZ, bale, baleType, wrappingStateCurve
 function BaleWrapper:updateWrappingState(wrappingTime, noEventSend)
-	local v239_ = self.spec_baleWrapper
-	local v240_ = v239_.currentWrapper
-	local v241_
-	if v240_.wrappingFoilAnimation == nil then
-		v241_ = 0
-	else
-		local v242_ = v240_.wrappingFoilAnimation
-		local v243_ = v242_.referenceNodeRotation
-		local v244_ = v242_.referenceNodeRotation
-		local v245_ = v242_.referenceNodeRotation
-		local v246_, v247_, v248_ = getRotation(v242_.referenceNode)
-		v243_[1] = v246_
-		v244_[2] = v247_
-		v245_[3] = v248_
-		v241_ = (v242_.referenceNodeRotation[v242_.referenceAxis] - v242_.referenceMinRot) / (v242_.referenceMaxRot - v242_.referenceMinRot)
-		if v241_ > 0 and (v241_ < 1 and v241_ ~= v242_.lastTime) then
-			if getAnimTrackAssignedClip(v242_.animationCharSet, 0) ~= v242_.animationClipIndex then
-				clearAnimTrackClip(v242_.animationCharSet, 0)
-				assignAnimTrackClip(v242_.animationCharSet, 0, v242_.animationClipIndex)
+	local spec = self.spec_baleWrapper
+	local wrapper = spec.currentWrapper
+	local foilTime = 0
+	if wrapper.wrappingFoilAnimation ~= nil then
+		local wrappingFoilAnimation = wrapper.wrappingFoilAnimation
+		wrappingFoilAnimation.referenceNodeRotation[1], wrappingFoilAnimation.referenceNodeRotation[2], wrappingFoilAnimation.referenceNodeRotation[3] = getRotation(wrappingFoilAnimation.referenceNode)
+		local rotation = wrappingFoilAnimation.referenceNodeRotation[wrappingFoilAnimation.referenceAxis]
+		foilTime = (rotation - wrappingFoilAnimation.referenceMinRot) / (wrappingFoilAnimation.referenceMaxRot - wrappingFoilAnimation.referenceMinRot)
+		if 0 < foilTime and (foilTime < 1 and foilTime ~= wrappingFoilAnimation.lastTime) then
+			local oldClipIndex = getAnimTrackAssignedClip(wrappingFoilAnimation.animationCharSet, 0)
+			if oldClipIndex ~= wrappingFoilAnimation.animationClipIndex then
+				clearAnimTrackClip(wrappingFoilAnimation.animationCharSet, 0)
+				assignAnimTrackClip(wrappingFoilAnimation.animationCharSet, 0, wrappingFoilAnimation.animationClipIndex)
 			end
-			enableAnimTrack(v242_.animationCharSet, 0)
-			setAnimTrackTime(v242_.animationCharSet, 0, v241_ * v242_.animationClipDuration, true)
-			disableAnimTrack(v242_.animationCharSet, 0)
-			v242_.lastTime = v241_
+			enableAnimTrack(wrappingFoilAnimation.animationCharSet, 0)
+			setAnimTrackTime(wrappingFoilAnimation.animationCharSet, 0, foilTime * wrappingFoilAnimation.animationClipDuration, true)
+			disableAnimTrack(wrappingFoilAnimation.animationCharSet, 0)
+			wrappingFoilAnimation.lastTime = foilTime
 		end
 	end
-	local v249_
-	if v240_.wrappingAnimationNodes.referenceNode == nil then
-		v249_ = 0
-	else
-		local v250_ = v240_.wrappingAnimationNodes.referenceNodeRotation
-		local v251_ = v240_.wrappingAnimationNodes.referenceNodeRotation
-		local v252_ = v240_.wrappingAnimationNodes.referenceNodeRotation
-		local v253_, v254_, v255_ = getRotation(v240_.wrappingAnimationNodes.referenceNode)
-		v250_[1] = v253_
-		v251_[2] = v254_
-		v252_[3] = v255_
-		local v256_ = (v240_.wrappingAnimationNodes.referenceNodeRotation[v240_.wrappingAnimationNodes.referenceAxis] - v240_.wrappingAnimationNodes.referenceMinRot) / (v240_.wrappingAnimationNodes.referenceMaxRot - v240_.wrappingAnimationNodes.referenceMinRot)
-		local v257_ = math.clamp(v256_, 0, 1)
-		v249_ = MathUtil.round(v257_, 5)
+	local nodesTime = 0
+	if wrapper.wrappingAnimationNodes.referenceNode ~= nil then
+		wrapper.wrappingAnimationNodes.referenceNodeRotation[1], wrapper.wrappingAnimationNodes.referenceNodeRotation[2], wrapper.wrappingAnimationNodes.referenceNodeRotation[3] = getRotation(wrapper.wrappingAnimationNodes.referenceNode)
+		local rotation = wrapper.wrappingAnimationNodes.referenceNodeRotation[wrapper.wrappingAnimationNodes.referenceAxis]
+		nodesTime = math.clamp((rotation - wrapper.wrappingAnimationNodes.referenceMinRot) / (wrapper.wrappingAnimationNodes.referenceMaxRot - wrapper.wrappingAnimationNodes.referenceMinRot), 0, 1)
+		nodesTime = MathUtil.round(nodesTime, 5)
 	end
-	if v240_.wrappingAnimationNodes.lastTime < v249_ then
-		local v258_ = v240_.wrappingAnimationNodes.nodes
-		for v259_ = v240_.wrappingAnimationNodes.currentIndex + 1, #v258_ do
-			local v260_ = v258_[v259_]
-			if v260_.time > v249_ then
-				break
-			end
-			if v260_.linkNode == nil then
-				if getParent(v260_.nodeId) ~= v260_.parent then
-					link(v260_.parent, v260_.nodeId)
-				end
-				local v261_ = setTranslation
-				local v262_ = v260_.nodeId
-				local v263_ = v260_.translation
-				v261_(v262_, unpack(v263_))
-			else
-				local v264_ = localToWorld
-				local v265_ = v260_.parent
-				local v266_ = v260_.translation
-				local v267_, v268_, v269_ = v264_(v265_, unpack(v266_))
-				if getParent(v260_.nodeId) ~= v260_.linkNode then
-					link(v260_.linkNode, v260_.nodeId)
-				end
-				setWorldTranslation(v260_.nodeId, v267_, v268_, v269_)
-			end
-			v240_.wrappingAnimationNodes.currentIndex = v259_
-		end
-	elseif v249_ < v240_.wrappingAnimationNodes.lastTime then
-		v240_.wrappingAnimationNodes.currentIndex = 0
-	end
-	v240_.wrappingAnimationNodes.lastTime = v249_
-	for v270_, v271_ in pairs(v240_.wrappingAnimationNodes.nodeToRootNode) do
-		local v272_, v273_, v274_ = localRotationToLocal(v271_, getParent(v270_), 0, 0, 0)
-		setRotation(v270_, v272_, v273_, v274_)
-	end
-	local v275_ = math.min(wrappingTime, 1)
-	local v276_ = 0
-	if v240_.animCurve ~= nil then
-		local v277_, v278_, v279_, v280_, v281_, v282_ = v240_.animCurve:get(wrappingTime)
-		if v277_ == nil then
-			if v240_.animations.wrapBale.animName ~= nil then
-				wrappingTime = self:getAnimationTime(v240_.animations.wrapBale.animName)
-			end
-		else
-			setRotation(v240_.baleNode, v277_ % 6.283185307179586, v278_ % 6.283185307179586, v279_ % 6.283185307179586)
-			setRotation(v240_.wrapperNode, v280_ % 6.283185307179586, v281_ % 6.283185307179586, v282_ % 6.283185307179586)
-			v276_ = v[3 + v240_.wrapperRotAxis]
-		end
-		if v240_.wrappingAnimationNodes.referenceNode == nil then
-			v249_ = v275_
-		end
-		if v240_.wrappingFoilAnimation == nil then
-			v241_ = v249_
-		end
-		if v240_.currentBale ~= nil then
-			local v283_ = NetworkUtil.getObject(v240_.currentBale)
-			if v283_ ~= nil then
-				local v284_ = v239_.currentWrapper.allowedBaleTypes[v239_.currentBaleTypeIndex]
-				if v283_:getSupportsWrapping() and (not v284_.skipWrapping and v283_.wrappingState < 1) then
-					local v285_ = v284_.wrappingStateCurve or v240_.wrappingStateCurve
-					if v285_ ~= nil then
-						v241_ = v285_:get(v241_)
+	if wrapper.wrappingAnimationNodes.lastTime < nodesTime then
+		local nodes = wrapper.wrappingAnimationNodes.nodes
+		for i = wrapper.wrappingAnimationNodes.currentIndex + 1, #nodes do
+			local wrappingAnimationNode = nodes[i]
+			if wrappingAnimationNode.time <= nodesTime then
+				if wrappingAnimationNode.linkNode ~= nil then
+					local x, y, z = localToWorld(wrappingAnimationNode.parent, unpack(wrappingAnimationNode.translation))
+					if getParent(wrappingAnimationNode.nodeId) ~= wrappingAnimationNode.linkNode then
+						link(wrappingAnimationNode.linkNode, wrappingAnimationNode.nodeId)
 					end
-					v283_:setWrappingState(v241_, true)
-					if v283_.setColor ~= nil then
-						v283_:setColor(v239_.wrapColor[1], v239_.wrapColor[2], v239_.wrapColor[3])
+					setWorldTranslation(wrappingAnimationNode.nodeId, x, y, z)
+				else
+					if getParent(wrappingAnimationNode.nodeId) ~= wrappingAnimationNode.parent then
+						link(wrappingAnimationNode.parent, wrappingAnimationNode.nodeId)
+					end
+					setTranslation(wrappingAnimationNode.nodeId, unpack(wrappingAnimationNode.translation))
+				end
+				wrapper.wrappingAnimationNodes.currentIndex = i
+			end
+		end
+	elseif nodesTime < wrapper.wrappingAnimationNodes.lastTime then
+		wrapper.wrappingAnimationNodes.currentIndex = 0
+	end
+	wrapper.wrappingAnimationNodes.lastTime = nodesTime
+	for animationNode, rootNode in pairs(wrapper.wrappingAnimationNodes.nodeToRootNode) do
+		local rx, ry, rz = localRotationToLocal(rootNode, getParent(animationNode), 0, 0, 0)
+		setRotation(animationNode, rx, ry, rz)
+	end
+	local wrappingState = math.min(wrappingTime, 1)
+	local wrapperRot = 0
+	if wrapper.animCurve ~= nil then
+		local baleX, baleY, baleZ, wrapX, wrapY, wrapZ = wrapper.animCurve:get(wrappingTime)
+		if baleX ~= nil then
+			setRotation(wrapper.baleNode, baleX % 6.283185307179586, baleY % 6.283185307179586, baleZ % 6.283185307179586)
+			setRotation(wrapper.wrapperNode, wrapX % 6.283185307179586, wrapY % 6.283185307179586, wrapZ % 6.283185307179586)
+			wrapperRot = v[3 + wrapper.wrapperRotAxis]
+		elseif wrapper.animations.wrapBale.animName ~= nil then
+			wrappingTime = self:getAnimationTime(wrapper.animations.wrapBale.animName)
+		end
+		if wrapper.wrappingAnimationNodes.referenceNode ~= nil then
+			wrappingState = nodesTime
+		end
+		if wrapper.wrappingFoilAnimation ~= nil then
+			wrappingState = foilTime
+		end
+		if wrapper.currentBale ~= nil then
+			local bale = NetworkUtil.getObject(wrapper.currentBale)
+			if bale ~= nil then
+				local baleType = spec.currentWrapper.allowedBaleTypes[spec.currentBaleTypeIndex]
+				if bale:getSupportsWrapping() and (not baleType.skipWrapping and bale.wrappingState < 1) then
+					local wrappingStateCurve = baleType.wrappingStateCurve or wrapper.wrappingStateCurve
+					if wrappingStateCurve ~= nil then
+						wrappingState = wrappingStateCurve:get(wrappingState)
+					end
+					bale:setWrappingState(wrappingState, true)
+					if bale.setColor ~= nil then
+						bale:setColor(spec.wrapColor[1], spec.wrapColor[2], spec.wrapColor[3])
 					end
 				end
 			end
 		end
 	end
-	self:updateWrapNodes(wrappingTime > 0, false, wrappingTime, v276_)
-	if wrappingTime > 0.99999 and (self.isServer and (v239_.baleWrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE and not noEventSend)) then
+	self:updateWrapNodes(0 < wrappingTime, false, wrappingTime, wrapperRot)
+	if 0.99999 < wrappingTime and (self.isServer and (spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE and not noEventSend)) then
 		g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPING_BALE_FINSIHED), true, nil, self)
 	end
 end
-
--- Local values: spec, baleTypeIndex
 function BaleWrapper:playMoveToWrapper(bale)
-	local v288_ = self.spec_baleWrapper
-	local v289_ = self:getMatchingBaleTypeIndex(bale.isRoundbale and v288_.roundBaleWrapper.allowedBaleTypes or v288_.squareBaleWrapper.allowedBaleTypes, bale)
-	self:setBaleWrapperType(bale.isRoundbale, v289_)
-	if v288_.currentWrapper.animations.moveToWrapper.animName ~= nil then
-		self:playAnimation(v288_.currentWrapper.animations.moveToWrapper.animName, v288_.currentWrapper.animations.moveToWrapper.animSpeed, nil, true)
+	local spec = self.spec_baleWrapper
+	local baleTypeIndex = self:getMatchingBaleTypeIndex(bale.isRoundbale and spec.roundBaleWrapper.allowedBaleTypes or spec.squareBaleWrapper.allowedBaleTypes, bale)
+	self:setBaleWrapperType(bale.isRoundbale, baleTypeIndex)
+	if spec.currentWrapper.animations.moveToWrapper.animName ~= nil then
+		self:playAnimation(spec.currentWrapper.animations.moveToWrapper.animName, spec.currentWrapper.animations.moveToWrapper.animSpeed, nil, true)
 	end
 end
-
--- Local values: spec, baleType, wrappingFoilAnimation
 function BaleWrapper:setBaleWrapperType(isRoundBaleWrapper, baleTypeIndex)
-	local v293_ = self.spec_baleWrapper
-	v293_.currentWrapper = isRoundBaleWrapper and v293_.roundBaleWrapper or v293_.squareBaleWrapper
-	v293_.currentBaleTypeIndex = baleTypeIndex
-	local v294_ = v293_.currentWrapper.allowedBaleTypes[baleTypeIndex]
-	if v294_ ~= nil then
-		v293_.currentWrapper.animations = v294_.animations
-		v293_.currentWrapper.wrappingFoilAnimation = v294_.wrappingFoilAnimation or v293_.currentWrapper.wrappingFoilAnimationDefault
-		ObjectChangeUtil.setObjectChanges(v294_.changeObjects, true, self, self.setMovingToolDirty)
-		if v293_.currentWrapper.wrappingFoilAnimation ~= nil then
-			local v295_ = v293_.currentWrapper.wrappingFoilAnimation
-			clearAnimTrackClip(v295_.animationCharSet, 0)
-			assignAnimTrackClip(v295_.animationCharSet, 0, v295_.animationClipIndex)
-			enableAnimTrack(v295_.animationCharSet, 0)
-			setAnimTrackTime(v295_.animationCharSet, 0, 0, true)
-			disableAnimTrack(v295_.animationCharSet, 0)
+	local spec = self.spec_baleWrapper
+	spec.currentWrapper = isRoundBaleWrapper and spec.roundBaleWrapper or spec.squareBaleWrapper
+	spec.currentBaleTypeIndex = baleTypeIndex
+	local baleType = spec.currentWrapper.allowedBaleTypes[baleTypeIndex]
+	if baleType ~= nil then
+		spec.currentWrapper.animations = baleType.animations
+		spec.currentWrapper.wrappingFoilAnimation = baleType.wrappingFoilAnimation or spec.currentWrapper.wrappingFoilAnimationDefault
+		ObjectChangeUtil.setObjectChanges(baleType.changeObjects, true, self, self.setMovingToolDirty)
+		if spec.currentWrapper.wrappingFoilAnimation ~= nil then
+			local wrappingFoilAnimation = spec.currentWrapper.wrappingFoilAnimation
+			clearAnimTrackClip(wrappingFoilAnimation.animationCharSet, 0)
+			assignAnimTrackClip(wrappingFoilAnimation.animationCharSet, 0, wrappingFoilAnimation.animationClipIndex)
+			enableAnimTrack(wrappingFoilAnimation.animationCharSet, 0)
+			setAnimTrackTime(wrappingFoilAnimation.animationCharSet, 0, 0, true)
+			disableAnimTrack(wrappingFoilAnimation.animationCharSet, 0)
 		end
 	end
 	self:requestActionEventUpdate()
 end
-
--- Local values: i, baleType
 function BaleWrapper:getMatchingBaleTypeIndex(baleTypes, bale)
-	for v298_, v299_ in ipairs(baleTypes) do
-		if bale:getBaleMatchesSize(v299_.diameter, v299_.width, v299_.height, v299_.length) then
-			return v298_
+	for i, baleType in ipairs(baleTypes) do
+		if bale:getBaleMatchesSize(baleType.diameter, baleType.width, baleType.height, baleType.length) then
+			return i
 		end
 	end
 	return 1
 end
-
--- Local values: spec, baleType, skipWrapping, bale, bale, x, y, z, attachNode, bale, baleType, skippedWrapping, bale, animation, baleType, dropAnimation, attacherVehicle, bale, baleType, total, _, dropAnimationName
 function BaleWrapper:doStateChange(id, nearestBaleServerId)
-	local v303_ = self.spec_baleWrapper
-	if id == BaleWrapper.CHANGE_WRAPPING_START or v303_.baleWrapperState ~= BaleWrapper.STATE_WRAPPER_FINSIHED and id == BaleWrapper.CHANGE_WRAPPER_START_DROP_BALE then
-		local v304_ = v303_.currentWrapper.allowedBaleTypes[v303_.currentBaleTypeIndex].skipWrapping
-		local v305_ = NetworkUtil.getObject(v303_.currentWrapper.currentBale)
-		if v305_ == nil or v305_:getSupportsWrapping() and v305_.wrappingState ~= 1 then
-			if v305_ == nil then
-				Logging.devInfo("BaleWrapper:doStateChange (state: %d) - Bale not synced yet objectId %d", id, v303_.currentWrapper.currentBale)
+	local spec = self.spec_baleWrapper
+	if id == BaleWrapper.CHANGE_WRAPPING_START or spec.baleWrapperState ~= BaleWrapper.STATE_WRAPPER_FINSIHED and id == BaleWrapper.CHANGE_WRAPPER_START_DROP_BALE then
+		local baleType = spec.currentWrapper.allowedBaleTypes[spec.currentBaleTypeIndex]
+		local skipWrapping = baleType.skipWrapping
+		local bale = NetworkUtil.getObject(spec.currentWrapper.currentBale)
+		if bale ~= nil then
+			if not bale:getSupportsWrapping() or bale.wrappingState == 1 then
+				skipWrapping = true
+			else
+				if bale == nil then
+					Logging.devInfo("BaleWrapper:doStateChange (state: %d) - Bale not synced yet objectId %d", id, spec.currentWrapper.currentBale)
+				end
 			end
-		else
-			v304_ = true
 		end
-		if v304_ then
+		if skipWrapping then
 			if self.isServer then
-				v303_.setWrappingStateFinished = true
+				spec.setWrappingStateFinished = true
 			end
 			return
 		end
 	end
 	if id == BaleWrapper.CHANGE_GRAB_BALE then
-		local v306_ = NetworkUtil.getObject(nearestBaleServerId)
-		v303_.baleGrabber.currentBale = nearestBaleServerId
-		if v306_ == nil then
-			v303_.baleToMount = {
-				["serverId"] = nearestBaleServerId,
-				["linkNode"] = v303_.baleGrabber.grabNode,
-				["trans"] = { 0, 0, 0 },
-				["rot"] = { 0, 0, 0 }
-			}
+		local bale = NetworkUtil.getObject(nearestBaleServerId)
+		spec.baleGrabber.currentBale = nearestBaleServerId
+		if bale ~= nil then
+			local x, y, z = localToLocal(bale.nodeId, getParent(spec.baleGrabber.grabNode), 0, 0, 0)
+			setTranslation(spec.baleGrabber.grabNode, x, y, z)
+			bale:mountKinematic(self, spec.baleGrabber.grabNode, 0, 0, 0, 0, 0, 0)
+			bale:setCanBeSold(false)
+			bale:setNeedsSaving(false)
+			spec.baleToMount = nil
+			self:playMoveToWrapper(bale)
 		else
-			local v307_, v308_, v309_ = localToLocal(v306_.nodeId, getParent(v303_.baleGrabber.grabNode), 0, 0, 0)
-			setTranslation(v303_.baleGrabber.grabNode, v307_, v308_, v309_)
-			v306_:mountKinematic(self, v303_.baleGrabber.grabNode, 0, 0, 0, 0, 0, 0)
-			v306_:setCanBeSold(false)
-			v306_:setNeedsSaving(false)
-			v303_.baleToMount = nil
-			self:playMoveToWrapper(v306_)
+			spec.baleToMount = { serverId = nearestBaleServerId, linkNode = spec.baleGrabber.grabNode, trans = { 0, 0, 0 }, rot = { 0, 0, 0 } }
 		end
-		v303_.baleWrapperState = BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER
+		spec.baleWrapperState = BaleWrapper.STATE_MOVING_BALE_TO_WRAPPER
 	elseif id == BaleWrapper.CHANGE_DROP_BALE_AT_GRABBER then
-		local v310_ = v303_.currentWrapper.baleNode
-		local v311_ = NetworkUtil.getObject(v303_.baleGrabber.currentBale)
-		if v311_ == nil then
-			v303_.baleToMount = {
-				["serverId"] = v303_.baleGrabber.currentBale,
-				["linkNode"] = v310_,
-				["trans"] = { 0, 0, 0 },
-				["rot"] = { 0, 0, 0 }
-			}
+		local attachNode = spec.currentWrapper.baleNode
+		local bale = NetworkUtil.getObject(spec.baleGrabber.currentBale)
+		if bale ~= nil then
+			bale:mountKinematic(self, attachNode, 0, 0, 0, 0, 0, 0)
+			bale:setCanBeSold(false)
+			bale:setNeedsSaving(false)
+			spec.baleToMount = nil
 		else
-			v311_:mountKinematic(self, v310_, 0, 0, 0, 0, 0, 0)
-			v311_:setCanBeSold(false)
-			v311_:setNeedsSaving(false)
-			v303_.baleToMount = nil
+			spec.baleToMount = { linkNode = attachNode, serverId = spec.baleGrabber.currentBale, trans = { 0, 0, 0 }, rot = { 0, 0, 0 } }
 		end
 		self:updateWrapNodes(true, false, 0)
-		v303_.currentWrapper.currentBale = v303_.baleGrabber.currentBale
-		v303_.baleGrabber.currentBale = nil
-		if v303_.currentWrapper.animations.moveToWrapper.animName ~= nil and v303_.currentWrapper.animations.moveToWrapper.reverseAfterMove then
-			self:playAnimation(v303_.currentWrapper.animations.moveToWrapper.animName, -v303_.currentWrapper.animations.moveToWrapper.animSpeed, nil, true)
+		spec.currentWrapper.currentBale = spec.baleGrabber.currentBale
+		spec.baleGrabber.currentBale = nil
+		if spec.currentWrapper.animations.moveToWrapper.animName ~= nil and spec.currentWrapper.animations.moveToWrapper.reverseAfterMove then
+			self:playAnimation(spec.currentWrapper.animations.moveToWrapper.animName, -spec.currentWrapper.animations.moveToWrapper.animSpeed, nil, true)
 		end
-		v303_.baleWrapperState = BaleWrapper.STATE_MOVING_GRABBER_TO_WORK
+		spec.baleWrapperState = BaleWrapper.STATE_MOVING_GRABBER_TO_WORK
 	elseif id == BaleWrapper.CHANGE_WRAPPING_START then
-		v303_.baleWrapperState = BaleWrapper.STATE_WRAPPER_WRAPPING_BALE
+		spec.baleWrapperState = BaleWrapper.STATE_WRAPPER_WRAPPING_BALE
 		if self.isClient then
-			g_soundManager:playSamples(v303_.currentWrapper.samples.start)
-			g_soundManager:playSamples(v303_.currentWrapper.samples.wrap, 0, v303_.currentWrapper.samples.start[1])
+			g_soundManager:playSamples(spec.currentWrapper.samples.start)
+			g_soundManager:playSamples(spec.currentWrapper.samples.wrap, 0, spec.currentWrapper.samples.start[1])
 		end
-		if v303_.currentWrapper.animations.wrapBale.animName ~= nil then
-			self:playAnimation(v303_.currentWrapper.animations.wrapBale.animName, v303_.currentWrapper.animations.wrapBale.animSpeed, nil, true)
+		if spec.currentWrapper.animations.wrapBale.animName ~= nil then
+			self:playAnimation(spec.currentWrapper.animations.wrapBale.animName, spec.currentWrapper.animations.wrapBale.animSpeed, nil, true)
 		end
 	elseif id == BaleWrapper.CHANGE_WRAPPING_BALE_FINSIHED then
 		if self.isClient then
-			g_soundManager:stopSamples(v303_.currentWrapper.samples.wrap)
-			g_soundManager:stopSamples(v303_.currentWrapper.samples.stop)
-			if v303_.currentWrapper.wrappingSoundEndTime == 1 then
-				g_soundManager:playSamples(v303_.currentWrapper.samples.stop)
+			g_soundManager:stopSamples(spec.currentWrapper.samples.wrap)
+			g_soundManager:stopSamples(spec.currentWrapper.samples.stop)
+			if spec.currentWrapper.wrappingSoundEndTime == 1 then
+				g_soundManager:playSamples(spec.currentWrapper.samples.stop)
 			end
-			g_soundManager:stopSamples(v303_.currentWrapper.samples.start)
+			g_soundManager:stopSamples(spec.currentWrapper.samples.start)
 		end
 		self:updateWrappingState(1, true)
-		v303_.baleWrapperState = BaleWrapper.STATE_WRAPPER_FINSIHED
-		local v312_ = v303_.currentWrapper.allowedBaleTypes[v303_.currentBaleTypeIndex].skipWrapping
-		local v313_ = NetworkUtil.getObject(v303_.currentWrapper.currentBale)
-		local v314_ = v313_ ~= nil and (not v313_:getSupportsWrapping() or v313_.wrappingState == 1) and true or v312_
-		if v314_ then
+		spec.baleWrapperState = BaleWrapper.STATE_WRAPPER_FINSIHED
+		local baleType = spec.currentWrapper.allowedBaleTypes[spec.currentBaleTypeIndex]
+		local skippedWrapping = baleType.skipWrapping
+		local bale = NetworkUtil.getObject(spec.currentWrapper.currentBale)
+		if bale ~= nil and (not bale:getSupportsWrapping() or bale.wrappingState == 1) then
+			skippedWrapping = true
+		end
+		if skippedWrapping then
 			self:updateWrappingState(0, true)
 		end
-		if not v314_ then
-			local v315_ = v303_.currentWrapper.animations.resetWrapping
-			if v315_.animName ~= nil then
-				self:playAnimation(v315_.animName, v315_.animSpeed, nil, true)
+		if not skippedWrapping then
+			local animation = spec.currentWrapper.animations.resetWrapping
+			if animation.animName ~= nil then
+				self:playAnimation(animation.animName, animation.animSpeed, nil, true)
 			end
 		end
 		self:updateConsumable(BaleWrapper.CONSUMABLE_TYPE_NAME, 0)
 	elseif id == BaleWrapper.CHANGE_WRAPPER_START_DROP_BALE then
 		self:updateWrapNodes(false, false, 0)
-		local v316_ = v303_.currentWrapper.allowedBaleTypes[v303_.currentBaleTypeIndex].dropAnimations[v303_.dropAnimationIndex]
-		if v316_ ~= nil then
-			v303_.currentWrapper.animations.dropFromWrapper.animName = v316_.name
-			v303_.currentWrapper.animations.dropFromWrapper.animSpeed = v316_.animSpeed
-			if self.isServer and (v316_.liftOnDrop and self:getIsLowered()) then
-				local v317_ = self:getAttacherVehicle()
-				if v317_ ~= nil then
-					v317_:handleLowerImplementEvent(self)
+		local baleType = spec.currentWrapper.allowedBaleTypes[spec.currentBaleTypeIndex]
+		local dropAnimation = baleType.dropAnimations[spec.dropAnimationIndex]
+		if dropAnimation ~= nil then
+			spec.currentWrapper.animations.dropFromWrapper.animName = dropAnimation.name
+			spec.currentWrapper.animations.dropFromWrapper.animSpeed = dropAnimation.animSpeed
+			if self.isServer and (dropAnimation.liftOnDrop and self:getIsLowered()) then
+				local attacherVehicle = self:getAttacherVehicle()
+				if attacherVehicle ~= nil then
+					attacherVehicle:handleLowerImplementEvent(self)
 				end
 			end
 		end
-		if v303_.currentWrapper.animations.dropFromWrapper.animName ~= nil then
-			self:playAnimation(v303_.currentWrapper.animations.dropFromWrapper.animName, v303_.currentWrapper.animations.dropFromWrapper.animSpeed, nil, true)
+		if spec.currentWrapper.animations.dropFromWrapper.animName ~= nil then
+			self:playAnimation(spec.currentWrapper.animations.dropFromWrapper.animName, spec.currentWrapper.animations.dropFromWrapper.animSpeed, nil, true)
 		end
-		v303_.dropAnimationIndex = 1
-		v303_.baleWrapperState = BaleWrapper.STATE_WRAPPER_DROPPING_BALE
+		spec.dropAnimationIndex = 1
+		spec.baleWrapperState = BaleWrapper.STATE_WRAPPER_DROPPING_BALE
 	elseif id == BaleWrapper.CHANGE_WRAPPER_BALE_DROPPED then
-		local v318_ = NetworkUtil.getObject(v303_.currentWrapper.currentBale)
-		if v318_ ~= nil then
-			v318_:unmountKinematic()
-			v318_:setNeedsSaving(true)
-			v318_:setCanBeSold(true)
-			local v319_ = v303_.currentWrapper.allowedBaleTypes[v303_.currentBaleTypeIndex]
-			if v318_:getSupportsWrapping() and not v319_.skipWrapping then
-				local v320_, _ = g_farmManager:updateFarmStats(self:getOwnerFarmId(), "wrappedBales", 1)
-				if v320_ ~= nil then
-					g_achievementManager:tryUnlock("WrappedBales", v320_)
+		local bale = NetworkUtil.getObject(spec.currentWrapper.currentBale)
+		if bale ~= nil then
+			bale:unmountKinematic()
+			bale:setNeedsSaving(true)
+			bale:setCanBeSold(true)
+			local baleType = spec.currentWrapper.allowedBaleTypes[spec.currentBaleTypeIndex]
+			if bale:getSupportsWrapping() and not baleType.skipWrapping then
+				local total, _ = g_farmManager:updateFarmStats(self:getOwnerFarmId(), "wrappedBales", 1)
+				if total ~= nil then
+					g_achievementManager:tryUnlock("WrappedBales", total)
 				end
-				if v318_.wrappingState < 1 then
-					v318_:setWrappingState(1)
+				if bale.wrappingState < 1 then
+					bale:setWrappingState(1)
 				end
 			end
 		end
-		v303_.lastDroppedBaleId = NetworkUtil.getObjectId(v318_)
-		v303_.currentWrapper.currentBale = nil
-		v303_.currentWrapper.currentTime = 0
-		if v303_.currentWrapper.animations.resetAfterDrop.animName ~= nil then
-			local v321_ = v303_.currentWrapper.animations.dropFromWrapper.animName
-			if self:getIsAnimationPlaying(v321_) then
-				self:stopAnimation(v321_, true)
-				self:setAnimationTime(v321_, 1, true, false)
+		spec.lastDroppedBaleId = NetworkUtil.getObjectId(bale)
+		spec.currentWrapper.currentBale = nil
+		spec.currentWrapper.currentTime = 0
+		if spec.currentWrapper.animations.resetAfterDrop.animName ~= nil then
+			local dropAnimationName = spec.currentWrapper.animations.dropFromWrapper.animName
+			if self:getIsAnimationPlaying(dropAnimationName) then
+				self:stopAnimation(dropAnimationName, true)
+				self:setAnimationTime(dropAnimationName, 1, true, false)
 			end
-			self:playAnimation(v303_.currentWrapper.animations.resetAfterDrop.animName, v303_.currentWrapper.animations.resetAfterDrop.animSpeed, nil, true)
+			self:playAnimation(spec.currentWrapper.animations.resetAfterDrop.animName, spec.currentWrapper.animations.resetAfterDrop.animSpeed, nil, true)
 		end
-		self:setBaleWrapperType(v303_.currentWrapper == v303_.roundBaleWrapper, v303_.currentBaleTypeIndex)
-		v303_.baleWrapperState = BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM
+		self:setBaleWrapperType(spec.currentWrapper == spec.roundBaleWrapper, spec.currentBaleTypeIndex)
+		spec.baleWrapperState = BaleWrapper.STATE_WRAPPER_RESETTING_PLATFORM
 	elseif id == BaleWrapper.CHANGE_WRAPPER_PLATFORM_RESET then
 		self:updateWrappingState(0)
 		self:updateWrapNodes(false, true, 0)
-		v303_.baleWrapperState = BaleWrapper.STATE_NONE
+		spec.baleWrapperState = BaleWrapper.STATE_NONE
 	elseif id == BaleWrapper.CHANGE_BUTTON_EMPTY then
-		local v322_ = self.isServer
-		assert(v322_)
-		if v303_.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED then
+		assert(self.isServer)
+		if spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED then
 			g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_WRAPPER_START_DROP_BALE), true, nil, self)
 		end
 	end
 	BaleWrapper.updateActionEvents(self)
 end
-
--- Local values: spec, sizeMatch, baleTypes, i, baleType
 function BaleWrapper:getIsBaleWrappable(bale)
-	local v325_ = self.spec_baleWrapper
-	local v326_ = false
-	local v327_ = bale.isRoundbale and v325_.roundBaleWrapper.allowedBaleTypes or v325_.squareBaleWrapper.allowedBaleTypes
-	if v327_ ~= nil then
-		for v328_, v329_ in ipairs(v327_) do
-			if bale:getBaleMatchesSize(v329_.diameter, v329_.width, v329_.height, v329_.length) then
-				v326_ = true
-				if not v329_.skipWrapping and (bale:getSupportsWrapping() and bale.wrappingState < 1) then
-					return true, v326_, v328_
+	local spec = self.spec_baleWrapper
+	local sizeMatch = false
+	local baleTypes = bale.isRoundbale and spec.roundBaleWrapper.allowedBaleTypes or spec.squareBaleWrapper.allowedBaleTypes
+	if baleTypes ~= nil then
+		for i, baleType in ipairs(baleTypes) do
+			if bale:getBaleMatchesSize(baleType.diameter, baleType.width, baleType.height, baleType.length) then
+				sizeMatch = true
+				if baleType.skipWrapping then
+					continue
+				end
+				if bale:getSupportsWrapping() and bale.wrappingState < 1 then
+					return true, sizeMatch, i
 				end
 			end
 		end
 	end
-	return false, v326_
+	return false, sizeMatch
 end
-
--- Local values: spec, currentWrapper, x, y, z, rx, ry, rz, ex, ey, ez
 function BaleWrapper:getIsBaleDropAllowed()
-	local v331_ = self.spec_baleWrapper
-	local v332_ = v331_.currentWrapper
-	if v332_.dropArea.node ~= nil then
-		local v333_, v334_, v335_ = getWorldTranslation(v332_.dropArea.node)
-		local v336_, v337_, v338_ = getWorldRotation(v332_.dropArea.node)
-		local v339_ = v332_.dropArea.width * 0.5
-		local v340_ = v332_.dropArea.height * 0.5
-		local v341_ = v332_.dropArea.length * 0.5
-		v331_.foundDropOverlappingObject = false
-		overlapBox(v333_, v334_, v335_, v336_, v337_, v338_, v339_, v340_, v341_, "onBaleWrapperDropOverlapCallback", self, BaleWrapper.DROP_COLLISION_MASK, true, true, false, true)
-		if v331_.foundDropOverlappingObject then
-			return false, v331_.texts.warningDropAreaBlocked
+	local spec = self.spec_baleWrapper
+	local currentWrapper = spec.currentWrapper
+	if currentWrapper.dropArea.node ~= nil then
+		local x, y, z = getWorldTranslation(currentWrapper.dropArea.node)
+		local rx, ry, rz = getWorldRotation(currentWrapper.dropArea.node)
+		local ex = currentWrapper.dropArea.width * 0.5
+		local ey = currentWrapper.dropArea.height * 0.5
+		local ez = currentWrapper.dropArea.length * 0.5
+		spec.foundDropOverlappingObject = false
+		overlapBox(x, y, z, rx, ry, rz, ex, ey, ez, "onBaleWrapperDropOverlapCallback", self, BaleWrapper.DROP_COLLISION_MASK, true, true, false, true)
+		if spec.foundDropOverlappingObject then
+			return false, spec.texts.warningDropAreaBlocked
 		end
 	end
 	return true, nil
 end
-
--- Local values: object, spec, currentWrapper
 function BaleWrapper:onBaleWrapperDropOverlapCallback(nodeId)
-	local v344_ = g_currentMission:getNodeObject(nodeId)
-	if v344_ ~= nil and v344_ ~= self then
-		local v345_ = self.spec_baleWrapper
-		local v346_ = v345_.currentWrapper
-		if v346_.currentBale ~= nil and v344_ == NetworkUtil.getObject(v346_.currentBale) then
+	local object = g_currentMission:getNodeObject(nodeId)
+	if object ~= nil and object ~= self then
+		local spec = self.spec_baleWrapper
+		local currentWrapper = spec.currentWrapper
+		if currentWrapper.currentBale ~= nil and object == NetworkUtil.getObject(currentWrapper.currentBale) then
 			return
 		end
-		v345_.foundDropOverlappingObject = true
-		v345_.foundDropOverlappingObjectTime = g_time
+		spec.foundDropOverlappingObject = true
+		spec.foundDropOverlappingObjectTime = g_time
 	end
 end
-
--- Local values: spec, currentWrapper, x, y, z, rx, ry, rz, ex, ey, ez
 function BaleWrapper:getIsBaleWrappingAllowed()
-	local v348_ = self.spec_baleWrapper
-	local v349_ = v348_.currentWrapper
-	if v349_.blockWrapArea.node ~= nil then
-		local v350_, v351_, v352_ = getWorldTranslation(v349_.blockWrapArea.node)
-		local v353_, v354_, v355_ = getWorldRotation(v349_.blockWrapArea.node)
-		local v356_ = v349_.blockWrapArea.width * 0.5
-		local v357_ = v349_.blockWrapArea.height * 0.5
-		local v358_ = v349_.blockWrapArea.length * 0.5
-		v348_.foundBlockOverlappingObject = false
-		overlapBox(v350_, v351_, v352_, v353_, v354_, v355_, v356_, v357_, v358_, "onBaleWrapperBlockOverlapCallback", self, BaleWrapper.BLOCK_COLLISION_MASK, true, true, false, true)
-		if v348_.foundBlockOverlappingObject then
+	local spec = self.spec_baleWrapper
+	local currentWrapper = spec.currentWrapper
+	if currentWrapper.blockWrapArea.node ~= nil then
+		local x, y, z = getWorldTranslation(currentWrapper.blockWrapArea.node)
+		local rx, ry, rz = getWorldRotation(currentWrapper.blockWrapArea.node)
+		local ex = currentWrapper.blockWrapArea.width * 0.5
+		local ey = currentWrapper.blockWrapArea.height * 0.5
+		local ez = currentWrapper.blockWrapArea.length * 0.5
+		spec.foundBlockOverlappingObject = false
+		overlapBox(x, y, z, rx, ry, rz, ex, ey, ez, "onBaleWrapperBlockOverlapCallback", self, BaleWrapper.BLOCK_COLLISION_MASK, true, true, false, true)
+		if spec.foundBlockOverlappingObject then
 			return false
 		end
 	end
 	return self:getConsumableIsAvailable(BaleWrapper.CONSUMABLE_TYPE_NAME)
 end
-
--- Local values: object, spec, currentWrapper
 function BaleWrapper:onBaleWrapperBlockOverlapCallback(nodeId)
-	local v361_ = g_currentMission:getNodeObject(nodeId)
-	if v361_ ~= nil and v361_ ~= self then
-		local v362_ = self.spec_baleWrapper
-		local v363_ = v362_.currentWrapper
-		if v363_.currentBale ~= nil and v361_ == NetworkUtil.getObject(v363_.currentBale) then
+	local object = g_currentMission:getNodeObject(nodeId)
+	if object ~= nil and object ~= self then
+		local spec = self.spec_baleWrapper
+		local currentWrapper = spec.currentWrapper
+		if currentWrapper.currentBale ~= nil and object == NetworkUtil.getObject(currentWrapper.currentBale) then
 			return
 		end
-		v362_.foundBlockOverlappingObject = true
+		spec.foundBlockOverlappingObject = true
 	end
 end
-
--- Local values: spec, baleTypes, baleType
 function BaleWrapper:pickupWrapperBale(bale, baleTypeIndex)
-	local v367_ = self.spec_baleWrapper
+	local spec = self.spec_baleWrapper
 	if bale:getSupportsWrapping() then
-		local v368_ = bale.isRoundbale and v367_.roundBaleWrapper.allowedBaleTypes or v367_.squareBaleWrapper.allowedBaleTypes
-		if v368_ ~= nil and baleTypeIndex ~= nil then
-			local v369_ = v368_[baleTypeIndex]
-			if v369_ ~= nil and (not v369_.skipWrapping and (bale.wrappingState < 1 and (v369_.wrapDiffuse ~= nil or v369_.wrapNormal ~= nil))) then
-				bale:setWrapTextures(v369_.wrapDiffuse, v369_.wrapNormal)
+		local baleTypes = bale.isRoundbale and spec.roundBaleWrapper.allowedBaleTypes or spec.squareBaleWrapper.allowedBaleTypes
+		if baleTypes ~= nil and baleTypeIndex ~= nil then
+			local baleType = baleTypes[baleTypeIndex]
+			if baleType ~= nil and (not baleType.skipWrapping and (bale.wrappingState < 1 and (baleType.wrapDiffuse ~= nil or baleType.wrapNormal ~= nil))) then
+				bale:setWrapTextures(baleType.wrapDiffuse, baleType.wrapNormal)
 			end
 		end
 	end
-	v367_.baleGrabber.balesInTrigger[bale] = nil
+	spec.baleGrabber.balesInTrigger[bale] = nil
 	g_server:broadcastEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_GRAB_BALE, NetworkUtil.getObjectId(bale)), true, nil, self)
 end
-
--- Local values: nearestBale, nearestBaleWrappable, nearestBaleTypeIndex, nearestDistance, spec, bale, _, isWrappable, sizeMatches, baleTypeIndex
 function BaleWrapper:getBaleInRange(refNode, distance)
-	local v373_ = self.spec_baleWrapper
-	local v374_ = distance
-	local v375_ = nil
-	local v376_ = nil
-	local v377_ = nil
-	for v378_, _ in pairs(v373_.baleGrabber.balesInTrigger) do
-		if v378_.dynamicMountType == MountableObject.MOUNT_TYPE_NONE and (v378_.nodeId ~= 0 and calcDistanceFrom(refNode, v378_.nodeId) < distance) then
-			local v379_, v380_, v381_ = self:getIsBaleWrappable(v378_)
-			if v379_ and v380_ then
-				v377_ = v381_
-				v376_ = v378_
-				v375_ = v376_
-				distance = v374_
-				local v382_ = v376_
-				v376_ = v375_
-				v382_ = v375_
-				v375_ = v376_
-			else
-				v376_ = v378_
-				distance = v374_
+	local nearestBale = nil
+	local nearestBaleWrappable = nil
+	local nearestBaleTypeIndex = nil
+	local nearestDistance = distance
+	local spec = self.spec_baleWrapper
+	for bale, _ in pairs(spec.baleGrabber.balesInTrigger) do
+		if bale.dynamicMountType == MountableObject.MOUNT_TYPE_NONE then
+			if bale.nodeId == 0 then
+				continue
+			end
+			if calcDistanceFrom(refNode, bale.nodeId) < nearestDistance then
+				local isWrappable, sizeMatches, baleTypeIndex = self:getIsBaleWrappable(bale)
+				nearestBale = bale
+				nearestDistance = distance
+				if isWrappable and sizeMatches then
+					nearestBaleWrappable = bale
+					nearestBaleTypeIndex = baleTypeIndex
+				end
 			end
 		end
 	end
-	return v375_, v376_, v377_
+	return nearestBaleWrappable, nearestBale, nearestBaleTypeIndex
 end
-
--- Local values: spec
 function BaleWrapper:setBaleWrapperAutomaticDrop(state, noEventSend)
-	local v386_ = self.spec_baleWrapper
+	local spec = self.spec_baleWrapper
 	if state == nil then
-		state = not v386_.automaticDrop
+		state = not spec.automaticDrop
 	end
-	v386_.automaticDrop = state
+	spec.automaticDrop = state
 	self:requestActionEventUpdate()
 	BaleWrapperAutomaticDropEvent.sendEvent(self, state, noEventSend)
 end
-
--- Local values: spec
 function BaleWrapper:setBaleWrapperDropAnimation(dropAnimationIndex)
-	self.spec_baleWrapper.dropAnimationIndex = dropAnimationIndex
+	local spec = self.spec_baleWrapper
+	spec.dropAnimationIndex = dropAnimationIndex
 end
-
--- Local values: spec
 function BaleWrapper:getIsFoldAllowed(superFunc, direction, onAiTurnOn)
-	local v393_ = self.spec_baleWrapper
-	if v393_.baleWrapperState == BaleWrapper.STATE_NONE then
-		return superFunc(self, direction, onAiTurnOn)
+	local spec = self.spec_baleWrapper
+	if spec.baleWrapperState ~= BaleWrapper.STATE_NONE then
+		return false, spec.texts.warningFoldingWrapping
 	else
-		return false, v393_.texts.warningFoldingWrapping
+		return superFunc(self, direction, onAiTurnOn)
 	end
 end
-
 function BaleWrapper:getCanBeSelected(superFunc)
 	return true
 end
-
 function BaleWrapper:getShowConsumableEmptyWarning(superFunc, typeName)
-	if typeName ~= BaleWrapper.CONSUMABLE_TYPE_NAME then
+	if typeName == BaleWrapper.CONSUMABLE_TYPE_NAME then
+		if self.spec_baleWrapper.baleWrapperState ~= BaleWrapper.STATE_NONE then
+			superFunc(self, typeName)
+		end
+		return false
+	else
 		return superFunc(self, typeName)
 	end
-	local v397_
-	if self.spec_baleWrapper.baleWrapperState == BaleWrapper.STATE_NONE then
-		v397_ = false
-	else
-		v397_ = superFunc(self, typeName)
-	end
-	return v397_
 end
-
--- Local values: spec
 function BaleWrapper:getRequiresPower(superFunc)
-	return self.spec_baleWrapper.baleWrapperState ~= BaleWrapper.STATE_NONE and true or superFunc(self)
+	local spec = self.spec_baleWrapper
+	if spec.baleWrapperState ~= BaleWrapper.STATE_NONE then
+		return true
+	else
+		return superFunc(self)
+	end
 end
-
--- Local values: rpmFactor, spec
 function BaleWrapper:getStandaloneMotorTargetRpm(superFunc)
-	local v402_ = 0
-	local v403_ = self.spec_baleWrapper
-	if v403_.baleWrapperState ~= BaleWrapper.STATE_NONE then
-		v402_ = v403_.baleWrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE and 1 or (v403_.baleWrapperState ~= BaleWrapper.STATE_WRAPPER_FINSIHED and 0.5 or v402_)
+	local rpmFactor = 0
+	local spec = self.spec_baleWrapper
+	if spec.baleWrapperState ~= BaleWrapper.STATE_NONE then
+		if spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE then
+			rpmFactor = 1
+		elseif spec.baleWrapperState ~= BaleWrapper.STATE_WRAPPER_FINSIHED then
+			rpmFactor = 0.5
+		end
 	end
-	local v404_ = superFunc(self)
-	return math.max(v404_, v402_)
+	return math.max(superFunc(self), rpmFactor)
 end
-
--- Local values: loadFactorSum, numLoadFactors, loadFactor, spec
 function BaleWrapper:getStandaloneMotorLoad(superFunc)
-	local v407_, v408_ = superFunc(self)
-	local v409_ = 0
-	local v410_ = self.spec_baleWrapper
-	if v410_.baleWrapperState ~= BaleWrapper.STATE_NONE then
-		v409_ = v410_.baleWrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE and 1 or (v410_.baleWrapperState ~= BaleWrapper.STATE_WRAPPER_FINSIHED and 0.5 or v409_)
+	local loadFactorSum, numLoadFactors = superFunc(self)
+	local loadFactor = 0
+	local spec = self.spec_baleWrapper
+	if spec.baleWrapperState ~= BaleWrapper.STATE_NONE then
+		if spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_WRAPPING_BALE then
+			loadFactor = 1
+		elseif spec.baleWrapperState ~= BaleWrapper.STATE_WRAPPER_FINSIHED then
+			loadFactor = 0.5
+		end
 	end
-	return v407_ + v409_, v408_ + 1
+	loadFactorSum = loadFactorSum + loadFactor
+	numLoadFactors = numLoadFactors + 1
+	return loadFactorSum, numLoadFactors
 end
-
--- Local values: spec, object, currentWrapper, object
 function BaleWrapper:addToPhysics(superFunc)
 	if not superFunc(self) then
 		return false
-	end
-	local v413_ = self.spec_baleWrapper
-	local v414_ = NetworkUtil.getObject(v413_.baleGrabber.currentBale)
-	if v414_ ~= nil then
-		v414_:addToPhysics()
-		v414_:mountKinematic(self, v413_.baleGrabber.grabNode, 0, 0, 0, 0, 0, 0)
-	end
-	local v415_ = v413_.currentWrapper
-	if v415_.currentBale ~= nil then
-		local v416_ = NetworkUtil.getObject(v415_.currentBale)
-		if v416_ ~= nil then
-			v416_:addToPhysics()
-			v416_:mountKinematic(self, v413_.currentWrapper.baleNode, 0, 0, 0, 0, 0, 0)
+	else
+		local spec = self.spec_baleWrapper
+		local object = NetworkUtil.getObject(spec.baleGrabber.currentBale)
+		if object ~= nil then
+			object:addToPhysics()
+			object:mountKinematic(self, spec.baleGrabber.grabNode, 0, 0, 0, 0, 0, 0)
 		end
+		local currentWrapper = spec.currentWrapper
+		if currentWrapper.currentBale ~= nil then
+			local object = NetworkUtil.getObject(currentWrapper.currentBale)
+			if object ~= nil then
+				object:addToPhysics()
+				object:mountKinematic(self, spec.currentWrapper.baleNode, 0, 0, 0, 0, 0, 0)
+			end
+		end
+		return true
 	end
-	return true
 end
-
--- Local values: spec, currentWrapper, object
 function BaleWrapper:removeFromPhysics(superFunc)
 	if not superFunc(self) then
 		return false
-	end
-	local v419_ = self.spec_baleWrapper.currentWrapper
-	if v419_.currentBale ~= nil then
-		local v420_ = NetworkUtil.getObject(v419_.currentBale)
-		if v420_ ~= nil then
-			v420_:unmountKinematic()
-			v420_:removeFromPhysics()
+	else
+		local spec = self.spec_baleWrapper
+		local currentWrapper = spec.currentWrapper
+		if currentWrapper.currentBale ~= nil then
+			local object = NetworkUtil.getObject(currentWrapper.currentBale)
+			if object ~= nil then
+				object:unmountKinematic()
+				object:removeFromPhysics()
+			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: spec, _, actionEventId, baleType, i, dropAnimation, _, actionEventId, _, actionEventId
 function BaleWrapper:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v423_ = self.spec_baleWrapper
-		self:clearActionEventsTable(v423_.actionEvents)
+		local spec = self.spec_baleWrapper
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			if not v423_.automaticDrop then
-				local _, v424_ = self:addPoweredActionEvent(v423_.actionEvents, InputAction.IMPLEMENT_EXTRA3, self, BaleWrapper.actionEventEmpty, false, true, false, true, nil)
-				g_inputBinding:setActionEventText(v424_, v423_.currentWrapper.unloadBaleText)
-				g_inputBinding:setActionEventTextPriority(v424_, GS_PRIO_HIGH)
-				local v425_ = v423_.currentWrapper.allowedBaleTypes[v423_.currentBaleTypeIndex]
-				for v426_ = 1, #v425_.dropAnimations do
-					local v427_ = v425_.dropAnimations[v426_]
-					if v427_.inputAction ~= nil then
-						local _, v428_ = self:addPoweredActionEvent(v423_.actionEvents, v427_.inputAction, self, BaleWrapper.actionEventDrop, false, true, false, false, v426_)
-						g_inputBinding:setActionEventTextPriority(v428_, GS_PRIO_HIGH)
-						g_inputBinding:setActionEventText(v428_, v427_.text)
+			if not spec.automaticDrop then
+				local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.IMPLEMENT_EXTRA3, self, BaleWrapper.actionEventEmpty, false, true, false, true, nil)
+				g_inputBinding:setActionEventText(actionEventId, spec.currentWrapper.unloadBaleText)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
+				local baleType = spec.currentWrapper.allowedBaleTypes[spec.currentBaleTypeIndex]
+				for i = 1, #baleType.dropAnimations do
+					local dropAnimation = baleType.dropAnimations[i]
+					if dropAnimation.inputAction == nil then
+						continue
 					end
+					local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, dropAnimation.inputAction, self, BaleWrapper.actionEventDrop, false, true, false, false, i)
+					g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
+					g_inputBinding:setActionEventText(actionEventId, dropAnimation.text)
 				end
 			end
-			if v423_.toggleableAutomaticDrop then
-				local _, v429_ = self:addActionEvent(v423_.actionEvents, InputAction.IMPLEMENT_EXTRA4, self, BaleWrapper.actionEventToggleAutomaticDrop, false, true, false, true, nil)
-				g_inputBinding:setActionEventText(v429_, v423_.automaticDrop and v423_.toggleAutomaticDropTextNeg or v423_.toggleAutomaticDropTextPos)
-				g_inputBinding:setActionEventTextPriority(v429_, GS_PRIO_HIGH)
+			if spec.toggleableAutomaticDrop then
+				local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.IMPLEMENT_EXTRA4, self, BaleWrapper.actionEventToggleAutomaticDrop, false, true, false, true, nil)
+				g_inputBinding:setActionEventText(actionEventId, spec.automaticDrop and spec.toggleAutomaticDropTextNeg or spec.toggleAutomaticDropTextPos)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
 			end
 			BaleWrapper.updateActionEvents(self)
 		end
 	end
 end
-
--- Local values: spec
 function BaleWrapper:onRegisterExternalActionEvents(trigger, name, xmlFile, key)
-	local v433_ = self.spec_baleWrapper
+	local spec = self.spec_baleWrapper
 	if name == "baleWrapperDrop" then
 		self:registerExternalActionEvent(trigger, name, BaleWrapper.externalActionEventUnloadRegister, BaleWrapper.externalActionEventUnloadUpdate)
-	elseif name == "baleWrapperAutomaticDrop" then
-		if v433_.toggleableAutomaticDrop then
-			self:registerExternalActionEvent(trigger, name, BaleWrapper.externalActionEventAutomaticUnloadRegister, BaleWrapper.externalActionEventAutomaticUnloadUpdate)
-			return
+	else
+		if name == "baleWrapperAutomaticDrop" then
+			if spec.toggleableAutomaticDrop then
+				self:registerExternalActionEvent(trigger, name, BaleWrapper.externalActionEventAutomaticUnloadRegister, BaleWrapper.externalActionEventAutomaticUnloadUpdate)
+			end
+		elseif name == "baleWrapperWarnings" then
+			self:registerExternalActionEvent(trigger, name, BaleWrapper.externalActionEventWarningsRegister, BaleWrapper.externalActionEventWarningsUpdate)
 		end
-	elseif name == "baleWrapperWarnings" then
-		self:registerExternalActionEvent(trigger, name, BaleWrapper.externalActionEventWarningsRegister, BaleWrapper.externalActionEventWarningsUpdate)
 	end
 end
-
--- Local values: spec
 function BaleWrapper:onDeactivate()
-	local v435_ = self.spec_baleWrapper
-	v435_.showInvalidBaleWarning = false
+	local spec = self.spec_baleWrapper
+	spec.showInvalidBaleWarning = false
 	if self.isClient then
-		g_soundManager:stopSamples(v435_.currentWrapper.samples.wrap)
-		g_soundManager:stopSamples(v435_.currentWrapper.samples.start)
-		g_soundManager:stopSamples(v435_.currentWrapper.samples.stop)
+		g_soundManager:stopSamples(spec.currentWrapper.samples.wrap)
+		g_soundManager:stopSamples(spec.currentWrapper.samples.start)
+		g_soundManager:stopSamples(spec.currentWrapper.samples.stop)
 	end
 end
-
--- Local values: spec
 function BaleWrapper:onFoldStateChanged(direction, moveToMiddle)
-	local v438_ = self.spec_baleWrapper
-	if v438_.foldedBaleType ~= nil and self.spec_foldable.turnOnFoldDirection ~= direction then
-		self:setBaleWrapperType(v438_.foldedBaleType.isRoundBaleWrapper, v438_.foldedBaleType.baleTypeIndex)
+	local spec = self.spec_baleWrapper
+	if spec.foldedBaleType ~= nil and self.spec_foldable.turnOnFoldDirection ~= direction then
+		self:setBaleWrapperType(spec.foldedBaleType.isRoundBaleWrapper, spec.foldedBaleType.baleTypeIndex)
 	end
 end
-
--- Local values: spec
 function BaleWrapper:onConsumableVariationChanged(variationIndex, metaData)
 	if metaData.color ~= nil then
-		local v441_ = self.spec_baleWrapper
-		v441_.wrapColor[1] = metaData.color[1]
-		v441_.wrapColor[2] = metaData.color[2]
-		v441_.wrapColor[3] = metaData.color[3]
+		local spec = self.spec_baleWrapper
+		spec.wrapColor[1] = metaData.color[1]
+		spec.wrapColor[2] = metaData.color[2]
+		spec.wrapColor[3] = metaData.color[3]
 	end
 end
-
--- Local values: spec, dropIsAllowed, warning
 function BaleWrapper:actionEventEmpty(actionName, inputValue, callbackState, isAnalog)
-	if self.spec_baleWrapper.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED then
-		local v443_, v444_ = self:getIsBaleDropAllowed()
-		if v443_ then
+	local spec = self.spec_baleWrapper
+	if spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED then
+		local dropIsAllowed, warning = self:getIsBaleDropAllowed()
+		if dropIsAllowed then
 			g_client:getServerConnection():sendEvent(BaleWrapperStateEvent.new(self, BaleWrapper.CHANGE_BUTTON_EMPTY))
 			return
 		end
-		if v444_ ~= nil then
-			g_currentMission:showBlinkingWarning(v444_, 2000)
+		if warning ~= nil then
+			g_currentMission:showBlinkingWarning(warning, 2000)
 		end
 	end
 end
-
 function BaleWrapper:actionEventToggleAutomaticDrop(actionName, inputValue, callbackState, isAnalog)
 	self:setBaleWrapperAutomaticDrop()
 end
-
--- Local values: spec
 function BaleWrapper:actionEventDrop(actionName, inputValue, callbackState, isAnalog)
-	if self.spec_baleWrapper.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED then
+	local spec = self.spec_baleWrapper
+	if spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED then
 		g_client:getServerConnection():sendEvent(BaleWrapperDropEvent.new(self, callbackState))
 	end
 end
-
--- Local values: spec, actionEvent, baleType, i, dropAnimation
 function BaleWrapper:updateActionEvents()
-	local v449_ = self.spec_baleWrapper
-	local v450_ = v449_.actionEvents[InputAction.IMPLEMENT_EXTRA3]
-	if v450_ ~= nil then
-		g_inputBinding:setActionEventActive(v450_.actionEventId, v449_.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED)
-		g_inputBinding:setActionEventText(v450_.actionEventId, v449_.currentWrapper.unloadBaleText)
+	local spec = self.spec_baleWrapper
+	local actionEvent = spec.actionEvents[InputAction.IMPLEMENT_EXTRA3]
+	if actionEvent ~= nil then
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED)
+		g_inputBinding:setActionEventText(actionEvent.actionEventId, spec.currentWrapper.unloadBaleText)
 	end
-	if v449_.toggleableAutomaticDrop then
-		local v451_ = v449_.actionEvents[InputAction.IMPLEMENT_EXTRA4]
-		if v451_ ~= nil then
-			g_inputBinding:setActionEventText(v451_.actionEventId, v449_.automaticDrop and v449_.toggleAutomaticDropTextNeg or v449_.toggleAutomaticDropTextPos)
+	if spec.toggleableAutomaticDrop then
+		actionEvent = spec.actionEvents[InputAction.IMPLEMENT_EXTRA4]
+		if actionEvent ~= nil then
+			g_inputBinding:setActionEventText(actionEvent.actionEventId, spec.automaticDrop and spec.toggleAutomaticDropTextNeg or spec.toggleAutomaticDropTextPos)
 		end
 	end
-	local v452_ = v449_.currentWrapper.allowedBaleTypes[v449_.currentBaleTypeIndex]
-	for v453_ = 1, #v452_.dropAnimations do
-		local v454_ = v452_.dropAnimations[v453_]
-		if v454_.inputAction ~= nil then
-			local v455_ = v449_.actionEvents[v454_.inputAction]
-			if v455_ ~= nil then
-				g_inputBinding:setActionEventActive(v455_.actionEventId, v449_.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED)
-			end
+	local baleType = spec.currentWrapper.allowedBaleTypes[spec.currentBaleTypeIndex]
+	for i = 1, #baleType.dropAnimations do
+		local dropAnimation = baleType.dropAnimations[i]
+		if dropAnimation.inputAction == nil then
+			continue
 		end
+		actionEvent = spec.actionEvents[dropAnimation.inputAction]
+		if actionEvent == nil then
+			continue
+		end
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED)
 	end
 end
-
--- Local values: spec, actionEvent, _
 function BaleWrapper.externalActionEventUnloadRegister(data, vehicle)
-	local v_u_458_ = vehicle.spec_baleWrapper
-	local _, v463_ = g_inputBinding:registerActionEvent(InputAction.IMPLEMENT_EXTRA3, data, function(_, p459_, p460_, p461_, p462_)
-		-- upvalues: (copy) v_u_458_, (copy) vehicle
-		if not v_u_458_.automaticDrop then
-			BaleWrapper.actionEventEmpty(vehicle, p459_, p460_, p461_, p462_)
+	local spec = vehicle.spec_baleWrapper
+	local actionEvent = function(_, actionName, inputValue, callbackState, isAnalog)
+		if not spec.automaticDrop then
+			BaleWrapper.actionEventEmpty(vehicle, actionName, inputValue, callbackState, isAnalog)
 		end
-	end, false, true, false, true)
-	data.actionEventId = v463_
+	end
+	local _ = nil
+	_, data.actionEventId = g_inputBinding:registerActionEvent(InputAction.IMPLEMENT_EXTRA3, data, actionEvent, false, true, false, true)
 	g_inputBinding:setActionEventTextPriority(data.actionEventId, GS_PRIO_HIGH)
-	g_inputBinding:setActionEventText(data.actionEventId, v_u_458_.currentWrapper.unloadBaleText)
+	g_inputBinding:setActionEventText(data.actionEventId, spec.currentWrapper.unloadBaleText)
 end
-
--- Local values: spec
 function BaleWrapper.externalActionEventUnloadUpdate(data, vehicle)
-	local v466_ = vehicle.spec_baleWrapper
-	g_inputBinding:setActionEventActive(data.actionEventId, v466_.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED)
+	local spec = vehicle.spec_baleWrapper
+	g_inputBinding:setActionEventActive(data.actionEventId, spec.baleWrapperState == BaleWrapper.STATE_WRAPPER_FINSIHED)
 end
-
--- Local values: actionEvent, _
 function BaleWrapper.externalActionEventAutomaticUnloadRegister(data, vehicle)
-	local _, v473_ = g_inputBinding:registerActionEvent(InputAction.IMPLEMENT_EXTRA4, data, function(_, p469_, p470_, p471_, p472_)
-		-- upvalues: (copy) vehicle
-		BaleWrapper.actionEventToggleAutomaticDrop(vehicle, p469_, p470_, p471_, p472_)
-	end, false, true, false, true)
-	data.actionEventId = v473_
+	local actionEvent = function(_, actionName, inputValue, callbackState, isAnalog)
+		BaleWrapper.actionEventToggleAutomaticDrop(vehicle, actionName, inputValue, callbackState, isAnalog)
+	end
+	local _ = nil
+	_, data.actionEventId = g_inputBinding:registerActionEvent(InputAction.IMPLEMENT_EXTRA4, data, actionEvent, false, true, false, true)
 	g_inputBinding:setActionEventTextPriority(data.actionEventId, GS_PRIO_HIGH)
 end
-
--- Local values: spec
 function BaleWrapper.externalActionEventAutomaticUnloadUpdate(data, vehicle)
-	local v476_ = vehicle.spec_baleWrapper
-	g_inputBinding:setActionEventText(data.actionEventId, v476_.automaticDrop and v476_.toggleAutomaticDropTextNeg or v476_.toggleAutomaticDropTextPos)
+	local spec = vehicle.spec_baleWrapper
+	g_inputBinding:setActionEventText(data.actionEventId, spec.automaticDrop and spec.toggleAutomaticDropTextNeg or spec.toggleAutomaticDropTextPos)
 end
-
 function BaleWrapper.externalActionEventWarningsRegister(data, vehicle) end
-
--- Local values: spec
 function BaleWrapper.externalActionEventWarningsUpdate(data, vehicle)
-	local v478_ = vehicle.spec_baleWrapper
-	if v478_.automaticDrop then
-		if g_time - v478_.foundDropOverlappingObjectTime < 500 then
-			g_currentMission:showBlinkingWarning(v478_.texts.warningDropAreaBlocked, 500)
-			return
+	local spec = vehicle.spec_baleWrapper
+	if spec.automaticDrop then
+		if g_time - spec.foundDropOverlappingObjectTime < 500 then
+			g_currentMission:showBlinkingWarning(spec.texts.warningDropAreaBlocked, 500)
 		end
-	elseif v478_.showInvalidBaleWarning then
-		g_currentMission:showBlinkingWarning(v478_.texts.warningBaleNotSupported, 500)
+	elseif spec.showInvalidBaleWarning then
+		g_currentMission:showBlinkingWarning(spec.texts.warningBaleNotSupported, 500)
 	end
 end
-
--- Local values: rootName, wrapperName, baleSizeAttributes
 function BaleWrapper.loadSpecValueBaleSize(xmlFile, customEnvironment, baseDir, roundBaleWrapper)
-	local v_u_481_ = {
-		["minDiameter"] = math.huge,
-		["maxDiameter"] = -math.huge,
-		["minLength"] = math.huge,
-		["maxLength"] = -math.huge
-	}
-	xmlFile:iterate(xmlFile:getRootName() .. ".baleWrapper." .. (roundBaleWrapper and "roundBaleWrapper" or "squareBaleWrapper") .. ".baleTypes.baleType", function(_, p482_)
-		-- upvalues: (copy) xmlFile, (copy) v_u_481_
-		if not xmlFile:getValue(p482_ .. "#skipWrapping", false) then
-			local v483_ = MathUtil.round(xmlFile:getValue(p482_ .. "#diameter", 0), 2)
-			local v484_ = v_u_481_
-			local v485_ = v_u_481_.minDiameter
-			v484_.minDiameter = math.min(v485_, v483_)
-			local v486_ = v_u_481_
-			local v487_ = v_u_481_.maxDiameter
-			v486_.maxDiameter = math.max(v487_, v483_)
-			local v488_ = MathUtil.round(xmlFile:getValue(p482_ .. "#length", 0), 2)
-			local v489_ = v_u_481_
-			local v490_ = v_u_481_.minLength
-			v489_.minLength = math.min(v490_, v488_)
-			local v491_ = v_u_481_
-			local v492_ = v_u_481_.maxLength
-			v491_.maxLength = math.max(v492_, v488_)
+	local rootName = xmlFile:getRootName()
+	local wrapperName = roundBaleWrapper and "roundBaleWrapper" or "squareBaleWrapper"
+	local baleSizeAttributes = {}
+	baleSizeAttributes.minDiameter = math.huge
+	baleSizeAttributes.maxDiameter = -math.huge
+	baleSizeAttributes.minLength = math.huge
+	baleSizeAttributes.maxLength = -math.huge
+	xmlFile:iterate(rootName .. ".baleWrapper." .. wrapperName .. ".baleTypes.baleType", function(_, key)
+		if not xmlFile:getValue(key .. "#skipWrapping", false) then
+			local diameter = MathUtil.round(xmlFile:getValue(key .. "#diameter", 0), 2)
+			baleSizeAttributes.minDiameter = math.min(baleSizeAttributes.minDiameter, diameter)
+			baleSizeAttributes.maxDiameter = math.max(baleSizeAttributes.maxDiameter, diameter)
+			local length = MathUtil.round(xmlFile:getValue(key .. "#length", 0), 2)
+			baleSizeAttributes.minLength = math.min(baleSizeAttributes.minLength, length)
+			baleSizeAttributes.maxLength = math.max(baleSizeAttributes.maxLength, length)
 		end
 	end)
-	if v_u_481_.minDiameter == math.huge and v_u_481_.minLength == math.huge then
-		return nil
-	else
-		return v_u_481_
+	if baleSizeAttributes.minDiameter ~= math.huge or baleSizeAttributes.minLength ~= math.huge then
+		return baleSizeAttributes
 	end
+	return nil
 end
-
--- Local values: baleSizeAttributes, minValue, maxValue, unit, size
 function BaleWrapper.getSpecValueBaleSize(storeItem, realItem, configurations, saleItem, returnValues, returnRange, roundBaleWrapper)
-	local v497_ = roundBaleWrapper and storeItem.specs.baleWrapperBaleSizeRound or storeItem.specs.baleWrapperBaleSizeSquare
-	if v497_ == nil then
+	local baleSizeAttributes = roundBaleWrapper and storeItem.specs.baleWrapperBaleSizeRound or storeItem.specs.baleWrapperBaleSizeSquare
+	if baleSizeAttributes ~= nil then
+		local minValue = roundBaleWrapper and baleSizeAttributes.minDiameter or baleSizeAttributes.minLength
+		if roundBaleWrapper then
+			local maxValue = baleSizeAttributes.maxDiameter or baleSizeAttributes.maxLength
+		end
+		if returnValues == nil or not returnValues then
+			local unit = g_i18n:getText("unit_cmShort")
+			local size = nil
+			if maxValue ~= minValue then
+				size = string.format("%d%s-%d%s", minValue * 100, unit, maxValue * 100, unit)
+				return size
+			else
+				size = string.format("%d%s", minValue * 100, unit)
+				return size
+			end
+		end
+		if returnRange == true and maxValue ~= minValue then
+			return minValue * 100, maxValue * 100, g_i18n:getText("unit_cmShort")
+		end
+		return minValue * 100, g_i18n:getText("unit_cmShort")
+	else
 		if returnValues and returnRange then
 			return 0, 0, ""
-		elseif returnValues then
+		end
+		if returnValues then
 			return 0, ""
 		else
 			return ""
 		end
-	else
-		local v498_ = roundBaleWrapper and v497_.minDiameter or v497_.minLength
-		local v499_ = roundBaleWrapper and v497_.maxDiameter or v497_.maxLength
-		if returnValues == nil or not returnValues then
-			local v500_ = g_i18n:getText("unit_cmShort")
-			if v499_ == v498_ then
-				return string.format("%d%s", v498_ * 100, v500_)
-			else
-				return string.format("%d%s-%d%s", v498_ * 100, v500_, v499_ * 100, v500_)
-			end
-		elseif returnRange == true and v499_ ~= v498_ then
-			return v498_ * 100, v499_ * 100, g_i18n:getText("unit_cmShort")
-		else
-			return v498_ * 100, g_i18n:getText("unit_cmShort")
-		end
 	end
 end
-
 function BaleWrapper.loadSpecValueBaleSizeRound(xmlFile, customEnvironment, baseDir)
 	return BaleWrapper.loadSpecValueBaleSize(xmlFile, customEnvironment, baseDir, true)
 end
-
 function BaleWrapper.loadSpecValueBaleSizeSquare(xmlFile, customEnvironment, baseDir)
 	return BaleWrapper.loadSpecValueBaleSize(xmlFile, customEnvironment, baseDir, false)
 end
-
 function BaleWrapper.getSpecValueBaleSizeRound(storeItem, realItem, configurations, saleItem, returnValues, returnRange)
-	if storeItem.specs.baleWrapperBaleSizeRound == nil then
-		return nil
-	else
+	if storeItem.specs.baleWrapperBaleSizeRound ~= nil then
 		return BaleWrapper.getSpecValueBaleSize(storeItem, realItem, configurations, saleItem, returnValues, returnRange, true)
+	else
+		return nil
 	end
 end
-
 function BaleWrapper.getSpecValueBaleSizeSquare(storeItem, realItem, configurations, saleItem, returnValues, returnRange)
-	if storeItem.specs.baleWrapperBaleSizeSquare == nil then
-		return nil
-	else
+	if storeItem.specs.baleWrapperBaleSizeSquare ~= nil then
 		return BaleWrapper.getSpecValueBaleSize(storeItem, realItem, configurations, saleItem, returnValues, returnRange, false)
+	else
+		return nil
 	end
 end

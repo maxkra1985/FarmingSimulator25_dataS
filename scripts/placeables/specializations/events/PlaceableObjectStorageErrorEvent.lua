@@ -1,4 +1,3 @@
--- Local values: PlaceableObjectStorageErrorEvent_mt
 PlaceableObjectStorageErrorEvent = {}
 PlaceableObjectStorageErrorEvent.SEND_NUM_BITS = 3
 PlaceableObjectStorageErrorEvent.ERROR_NOT_ENOUGH_SPACE = 0
@@ -11,35 +10,29 @@ PlaceableObjectStorageErrorEvent.SHOW_WARNING_DISTANCE = 75
 local PlaceableObjectStorageErrorEvent_mt = Class(PlaceableObjectStorageErrorEvent, Event)
 InitStaticEventClass(PlaceableObjectStorageErrorEvent, "PlaceableObjectStorageErrorEvent")
 function PlaceableObjectStorageErrorEvent.emptyNew()
-	-- upvalues: (copy) PlaceableObjectStorageErrorEvent_mt
 	return Event.new(PlaceableObjectStorageErrorEvent_mt)
 end
-
--- Local values: self
 function PlaceableObjectStorageErrorEvent.new(placeable, errorId)
-	local v4_ = PlaceableObjectStorageErrorEvent.emptyNew()
-	v4_.placeable = placeable
-	v4_.errorId = errorId
-	return v4_
+	local self = PlaceableObjectStorageErrorEvent.emptyNew()
+	self.placeable = placeable
+	self.errorId = errorId
+	return self
 end
-
 function PlaceableObjectStorageErrorEvent:readStream(streamId, connection)
 	self.placeable = NetworkUtil.readNodeObject(streamId)
 	self.errorId = streamReadUIntN(streamId, PlaceableObjectStorageErrorEvent.SEND_NUM_BITS)
 	self:run(connection)
 end
-
 function PlaceableObjectStorageErrorEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.placeable)
 	streamWriteUIntN(streamId, self.errorId, PlaceableObjectStorageErrorEvent.SEND_NUM_BITS)
 end
-
--- Local values: x1, _, z1, x2, _, z2, distance
 function PlaceableObjectStorageErrorEvent:run(connection)
 	if self.placeable ~= nil and (self.placeable:getIsSynchronized() and g_currentMission:getFarmId() == self.placeable:getOwnerFarmId()) then
-		local v11_, _, v12_ = g_currentMission:getClientPosition()
-		local v13_, _, v14_ = getWorldTranslation(self.placeable.rootNode)
-		if MathUtil.vector2Length(v11_ - v13_, v12_ - v14_) < PlaceableObjectStorageErrorEvent.SHOW_WARNING_DISTANCE then
+		local x1, _, z1 = g_currentMission:getClientPosition()
+		local x2, _, z2 = getWorldTranslation(self.placeable.rootNode)
+		local distance = MathUtil.vector2Length(x1 - x2, z1 - z2)
+		if distance < PlaceableObjectStorageErrorEvent.SHOW_WARNING_DISTANCE then
 			if self.errorId == PlaceableObjectStorageErrorEvent.ERROR_NOT_ENOUGH_SPACE then
 				g_currentMission:showBlinkingWarning(g_i18n:getText("warning_objectStorageNotEnoughSpace"), 2500)
 				return

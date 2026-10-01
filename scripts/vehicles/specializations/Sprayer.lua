@@ -1,88 +1,65 @@
 source("dataS/scripts/vehicles/specializations/events/SprayerDoubledAmountEvent.lua")
 Sprayer = {}
 Sprayer.SPRAY_TYPE_XML_KEY = "vehicle.sprayer.sprayTypes.sprayType(?)"
-Sprayer.AI_REQUIRED_GROUND_TYPES = {
-	FieldGroundType.STUBBLE_TILLAGE,
-	FieldGroundType.CULTIVATED,
-	FieldGroundType.SEEDBED,
-	FieldGroundType.PLOWED,
-	FieldGroundType.ROLLED_SEEDBED,
-	FieldGroundType.RIDGE,
-	FieldGroundType.SOWN,
-	FieldGroundType.DIRECT_SOWN,
-	FieldGroundType.PLANTED,
-	FieldGroundType.RIDGE_SOWN,
-	FieldGroundType.ROLLER_LINES,
-	FieldGroundType.HARVEST_READY,
-	FieldGroundType.HARVEST_READY_OTHER,
-	FieldGroundType.GRASS,
-	FieldGroundType.GRASS_CUT
-}
+Sprayer.AI_REQUIRED_GROUND_TYPES = { FieldGroundType.STUBBLE_TILLAGE, FieldGroundType.CULTIVATED, FieldGroundType.SEEDBED, FieldGroundType.PLOWED, FieldGroundType.ROLLED_SEEDBED, FieldGroundType.RIDGE, FieldGroundType.SOWN, FieldGroundType.DIRECT_SOWN, FieldGroundType.PLANTED, FieldGroundType.RIDGE_SOWN, FieldGroundType.ROLLER_LINES, FieldGroundType.HARVEST_READY, FieldGroundType.HARVEST_READY_OTHER, FieldGroundType.GRASS, FieldGroundType.GRASS_CUT }
 Sprayer.CLIENT_DM_UPDATE_RADIUS = 50
 function Sprayer.initSpecialization()
 	g_workAreaTypeManager:addWorkAreaType("sprayer", false, true, true)
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("Sprayer")
-	v1_:register(XMLValueType.BOOL, "vehicle.sprayer#allowsSpraying", "Allows spraying", true)
-	v1_:register(XMLValueType.BOOL, "vehicle.sprayer#activateTankOnLowering", "Activate tank on lowering", false)
-	v1_:register(XMLValueType.BOOL, "vehicle.sprayer#activateOnLowering", "Activate on lowering", false)
-	v1_:register(XMLValueType.FLOAT, "vehicle.sprayer.usageScales#scale", "Usage scale", 1)
-	v1_:register(XMLValueType.FLOAT, "vehicle.sprayer.usageScales#workingWidth", "Working width", 12)
-	v1_:register(XMLValueType.INT, "vehicle.sprayer.usageScales#workAreaIndex", "Work area that is used for working width reference instead of #workingWidth")
-	v1_:register(XMLValueType.STRING, "vehicle.sprayer.usageScales.sprayUsageScale(?)#fillType", "Fill type name")
-	v1_:register(XMLValueType.FLOAT, "vehicle.sprayer.usageScales.sprayUsageScale(?)#scale", "Scale")
-	v1_:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. "#fillUnitIndex", "Fill unit index")
-	v1_:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. "#unloadInfoIndex", "Unload info index")
-	v1_:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. "#fillVolumeIndex", "Fill volume index")
-	v1_:register(XMLValueType.BOOL, Sprayer.SPRAY_TYPE_XML_KEY .. "#supportsVariableWorkWidth", "Spray type support variable work width", true)
-	SoundManager.registerSampleXMLPaths(v1_, Sprayer.SPRAY_TYPE_XML_KEY .. ".sounds", "work(?)")
-	SoundManager.registerSampleXMLPaths(v1_, Sprayer.SPRAY_TYPE_XML_KEY .. ".sounds", "spray(?)")
-	AnimationManager.registerAnimationNodesXMLPaths(v1_, Sprayer.SPRAY_TYPE_XML_KEY .. ".animationNodes")
-	EffectManager.registerEffectXMLPaths(v1_, Sprayer.SPRAY_TYPE_XML_KEY .. ".effects")
-	v1_:register(XMLValueType.STRING, Sprayer.SPRAY_TYPE_XML_KEY .. ".turnedAnimation#name", "Turned animation name")
-	v1_:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. ".turnedAnimation#turnOnSpeedScale", "Speed Scale while turned on", 1)
-	v1_:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. ".turnedAnimation#turnOffSpeedScale", "Speed Scale while turned off", "Inversed #turnOnSpeedScale")
-	v1_:register(XMLValueType.BOOL, Sprayer.SPRAY_TYPE_XML_KEY .. ".turnedAnimation#externalFill", "Animation is played while sprayer is externally filled", true)
-	AIImplement.registerAIImplementBaseXMLPaths(v1_, Sprayer.SPRAY_TYPE_XML_KEY .. ".ai")
-	v1_:register(XMLValueType.STRING, Sprayer.SPRAY_TYPE_XML_KEY .. "#fillTypes", "Fill types")
-	v1_:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. ".usageScales#workingWidth", "Work width", 12)
-	v1_:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. ".usageScales#workAreaIndex", "Work area that is used for working width reference instead of #workingWidth")
-	ObjectChangeUtil.registerObjectChangeXMLPaths(v1_, Sprayer.SPRAY_TYPE_XML_KEY)
-	EffectManager.registerEffectXMLPaths(v1_, "vehicle.sprayer.effects")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.sprayer.sounds", "work(?)")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.sprayer.sounds", "spray(?)")
-	AnimationManager.registerAnimationNodesXMLPaths(v1_, "vehicle.sprayer.animationNodes")
-	v1_:register(XMLValueType.STRING, "vehicle.sprayer.animation#name", "Spray animation name")
-	v1_:register(XMLValueType.INT, "vehicle.sprayer#fillUnitIndex", "Fill unit index", 1)
-	v1_:register(XMLValueType.INT, "vehicle.sprayer#unloadInfoIndex", "Unload info index", 1)
-	v1_:register(XMLValueType.INT, "vehicle.sprayer#fillVolumeIndex", "Fill volume index")
-	v1_:register(XMLValueType.VECTOR_3, "vehicle.sprayer#fillVolumeDischargeScrollSpeed", "Fill volume discharge scroll speed", "0 0 0")
-	v1_:register(XMLValueType.FLOAT, "vehicle.sprayer.doubledAmount#decreasedSpeed", "Speed while doubled amount is sprayed", "automatically calculated")
-	v1_:register(XMLValueType.FLOAT, "vehicle.sprayer.doubledAmount#decreaseFactor", "Decrease factor that is applied on speedLimit while doubled amount is sprayed", 0.5)
-	v1_:register(XMLValueType.STRING, "vehicle.sprayer.doubledAmount#toggleButton", "Name of input action to toggle doubled amount", "IMPLEMENT_EXTRA4")
-	v1_:register(XMLValueType.L10N_STRING, "vehicle.sprayer.doubledAmount#deactivateText", "Deactivated text", "action_deactivateDoubledSprayAmount")
-	v1_:register(XMLValueType.L10N_STRING, "vehicle.sprayer.doubledAmount#activateText", "Activate text", "action_activateDoubledSprayAmount")
-	v1_:register(XMLValueType.STRING, "vehicle.sprayer.turnedAnimation#name", "Turned animation name")
-	v1_:register(XMLValueType.FLOAT, "vehicle.sprayer.turnedAnimation#turnOnSpeedScale", "Speed Scale while turned on", 1)
-	v1_:register(XMLValueType.FLOAT, "vehicle.sprayer.turnedAnimation#turnOffSpeedScale", "Speed Scale while turned off", "Inversed #turnOnSpeedScale")
-	v1_:register(XMLValueType.BOOL, "vehicle.sprayer.turnedAnimation#externalFill", "Animation is played while sprayer is externally filled", true)
-	v1_:register(XMLValueType.INT, WorkArea.WORK_AREA_XML_KEY .. "#sprayType", "Spray type index")
-	v1_:register(XMLValueType.INT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#sprayType", "Spray type index")
-	v1_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Sprayer")
+	schema:register(XMLValueType.BOOL, "vehicle.sprayer#allowsSpraying", "Allows spraying", true)
+	schema:register(XMLValueType.BOOL, "vehicle.sprayer#activateTankOnLowering", "Activate tank on lowering", false)
+	schema:register(XMLValueType.BOOL, "vehicle.sprayer#activateOnLowering", "Activate on lowering", false)
+	schema:register(XMLValueType.FLOAT, "vehicle.sprayer.usageScales#scale", "Usage scale", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.sprayer.usageScales#workingWidth", "Working width", 12)
+	schema:register(XMLValueType.INT, "vehicle.sprayer.usageScales#workAreaIndex", "Work area that is used for working width reference instead of #workingWidth")
+	schema:register(XMLValueType.STRING, "vehicle.sprayer.usageScales.sprayUsageScale(?)#fillType", "Fill type name")
+	schema:register(XMLValueType.FLOAT, "vehicle.sprayer.usageScales.sprayUsageScale(?)#scale", "Scale")
+	schema:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. "#fillUnitIndex", "Fill unit index")
+	schema:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. "#unloadInfoIndex", "Unload info index")
+	schema:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. "#fillVolumeIndex", "Fill volume index")
+	schema:register(XMLValueType.BOOL, Sprayer.SPRAY_TYPE_XML_KEY .. "#supportsVariableWorkWidth", "Spray type support variable work width", true)
+	SoundManager.registerSampleXMLPaths(schema, Sprayer.SPRAY_TYPE_XML_KEY .. ".sounds", "work(?)")
+	SoundManager.registerSampleXMLPaths(schema, Sprayer.SPRAY_TYPE_XML_KEY .. ".sounds", "spray(?)")
+	AnimationManager.registerAnimationNodesXMLPaths(schema, Sprayer.SPRAY_TYPE_XML_KEY .. ".animationNodes")
+	EffectManager.registerEffectXMLPaths(schema, Sprayer.SPRAY_TYPE_XML_KEY .. ".effects")
+	schema:register(XMLValueType.STRING, Sprayer.SPRAY_TYPE_XML_KEY .. ".turnedAnimation#name", "Turned animation name")
+	schema:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. ".turnedAnimation#turnOnSpeedScale", "Speed Scale while turned on", 1)
+	schema:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. ".turnedAnimation#turnOffSpeedScale", "Speed Scale while turned off", "Inversed #turnOnSpeedScale")
+	schema:register(XMLValueType.BOOL, Sprayer.SPRAY_TYPE_XML_KEY .. ".turnedAnimation#externalFill", "Animation is played while sprayer is externally filled", true)
+	AIImplement.registerAIImplementBaseXMLPaths(schema, Sprayer.SPRAY_TYPE_XML_KEY .. ".ai")
+	schema:register(XMLValueType.STRING, Sprayer.SPRAY_TYPE_XML_KEY .. "#fillTypes", "Fill types")
+	schema:register(XMLValueType.FLOAT, Sprayer.SPRAY_TYPE_XML_KEY .. ".usageScales#workingWidth", "Work width", 12)
+	schema:register(XMLValueType.INT, Sprayer.SPRAY_TYPE_XML_KEY .. ".usageScales#workAreaIndex", "Work area that is used for working width reference instead of #workingWidth")
+	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, Sprayer.SPRAY_TYPE_XML_KEY)
+	EffectManager.registerEffectXMLPaths(schema, "vehicle.sprayer.effects")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.sprayer.sounds", "work(?)")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.sprayer.sounds", "spray(?)")
+	AnimationManager.registerAnimationNodesXMLPaths(schema, "vehicle.sprayer.animationNodes")
+	schema:register(XMLValueType.STRING, "vehicle.sprayer.animation#name", "Spray animation name")
+	schema:register(XMLValueType.INT, "vehicle.sprayer#fillUnitIndex", "Fill unit index", 1)
+	schema:register(XMLValueType.INT, "vehicle.sprayer#unloadInfoIndex", "Unload info index", 1)
+	schema:register(XMLValueType.INT, "vehicle.sprayer#fillVolumeIndex", "Fill volume index")
+	schema:register(XMLValueType.VECTOR_3, "vehicle.sprayer#fillVolumeDischargeScrollSpeed", "Fill volume discharge scroll speed", "0 0 0")
+	schema:register(XMLValueType.FLOAT, "vehicle.sprayer.doubledAmount#decreasedSpeed", "Speed while doubled amount is sprayed", "automatically calculated")
+	schema:register(XMLValueType.FLOAT, "vehicle.sprayer.doubledAmount#decreaseFactor", "Decrease factor that is applied on speedLimit while doubled amount is sprayed", 0.5)
+	schema:register(XMLValueType.STRING, "vehicle.sprayer.doubledAmount#toggleButton", "Name of input action to toggle doubled amount", "IMPLEMENT_EXTRA4")
+	schema:register(XMLValueType.L10N_STRING, "vehicle.sprayer.doubledAmount#deactivateText", "Deactivated text", "action_deactivateDoubledSprayAmount")
+	schema:register(XMLValueType.L10N_STRING, "vehicle.sprayer.doubledAmount#activateText", "Activate text", "action_activateDoubledSprayAmount")
+	schema:register(XMLValueType.STRING, "vehicle.sprayer.turnedAnimation#name", "Turned animation name")
+	schema:register(XMLValueType.FLOAT, "vehicle.sprayer.turnedAnimation#turnOnSpeedScale", "Speed Scale while turned on", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.sprayer.turnedAnimation#turnOffSpeedScale", "Speed Scale while turned off", "Inversed #turnOnSpeedScale")
+	schema:register(XMLValueType.BOOL, "vehicle.sprayer.turnedAnimation#externalFill", "Animation is played while sprayer is externally filled", true)
+	schema:register(XMLValueType.INT, WorkArea.WORK_AREA_XML_KEY .. "#sprayType", "Spray type index")
+	schema:register(XMLValueType.INT, WorkArea.WORK_AREA_XML_CONFIG_KEY .. "#sprayType", "Spray type index")
+	schema:setXMLSpecializationType()
 end
-
 function Sprayer.prerequisitesPresent(specializations)
-	local v3_ = SpecializationUtil.hasSpecialization(FillUnit, specializations) and SpecializationUtil.hasSpecialization(WorkArea, specializations)
-	if v3_ then
-		v3_ = SpecializationUtil.hasSpecialization(TurnOnVehicle, specializations)
-	end
-	return v3_
+	return SpecializationUtil.hasSpecialization(FillUnit, specializations) and SpecializationUtil.hasSpecialization(WorkArea, specializations) and SpecializationUtil.hasSpecialization(TurnOnVehicle, specializations)
 end
-
 function Sprayer.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onSprayTypeChange")
 end
-
 function Sprayer.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "processSprayerArea", Sprayer.processSprayerArea)
 	SpecializationUtil.registerFunction(vehicleType, "getIsSprayerExternallyFilled", Sprayer.getIsSprayerExternallyFilled)
@@ -99,7 +76,6 @@ function Sprayer.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "setSprayerDoubledAmountActive", Sprayer.setSprayerDoubledAmountActive)
 	SpecializationUtil.registerFunction(vehicleType, "getSprayerDoubledAmountActive", Sprayer.getSprayerDoubledAmountActive)
 end
-
 function Sprayer.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getDrawFirstFillText", Sprayer.getDrawFirstFillText)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getAreControlledActionsAllowed", Sprayer.getAreControlledActionsAllowed)
@@ -117,7 +93,6 @@ function Sprayer.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getVariableWorkWidthUsage", Sprayer.getVariableWorkWidthUsage)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getAIImplementUseVineSegment", Sprayer.getAIImplementUseVineSegment)
 end
-
 function Sprayer.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Sprayer)
 	SpecializationUtil.registerEventListener(vehicleType, "onDelete", Sprayer)
@@ -135,478 +110,456 @@ function Sprayer.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onAIImplementEnd", Sprayer)
 	SpecializationUtil.registerEventListener(vehicleType, "onVariableWorkWidthSectionChanged", Sprayer)
 end
-
--- Local values: spec, i, key, fillTypeStr, scale, fillTypeIndex, key, sprayType, decreasedSpeedLimit, decreaseFactor, toggleButtonStr, fillUnitIndex
 function Sprayer:onLoad(savegame)
-	local v9_ = self.spec_sprayer
-	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.sprayParticles.emitterShape", "vehicle.sprayer.effects.effectNode#effectClass=\'ParticleEffect\'")
+	local spec = self.spec_sprayer
+	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.sprayParticles.emitterShape", "vehicle.sprayer.effects.effectNode#effectClass='ParticleEffect'")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.sprayer#needsTankActivation")
-	v9_.allowsSpraying = self.xmlFile:getValue("vehicle.sprayer#allowsSpraying", true)
-	v9_.activateTankOnLowering = self.xmlFile:getValue("vehicle.sprayer#activateTankOnLowering", false)
-	v9_.activateOnLowering = self.xmlFile:getValue("vehicle.sprayer#activateOnLowering", false)
-	v9_.usageScale = {}
-	v9_.usageScale.default = self.xmlFile:getValue("vehicle.sprayer.usageScales#scale", 1)
-	v9_.usageScale.workingWidth = self.xmlFile:getValue("vehicle.sprayer.usageScales#workingWidth", 12)
-	v9_.usageScale.workAreaIndex = self.xmlFile:getValue("vehicle.sprayer.usageScales#workAreaIndex")
-	v9_.usageScale.fillTypeScales = {}
-	local v10_ = 0
+	spec.allowsSpraying = self.xmlFile:getValue("vehicle.sprayer#allowsSpraying", true)
+	spec.activateTankOnLowering = self.xmlFile:getValue("vehicle.sprayer#activateTankOnLowering", false)
+	spec.activateOnLowering = self.xmlFile:getValue("vehicle.sprayer#activateOnLowering", false)
+	spec.usageScale = {}
+	spec.usageScale.default = self.xmlFile:getValue("vehicle.sprayer.usageScales#scale", 1)
+	spec.usageScale.workingWidth = self.xmlFile:getValue("vehicle.sprayer.usageScales#workingWidth", 12)
+	spec.usageScale.workAreaIndex = self.xmlFile:getValue("vehicle.sprayer.usageScales#workAreaIndex")
+	spec.usageScale.fillTypeScales = {}
+	local i = 0
 	while true do
-		local v11_ = string.format("vehicle.sprayer.usageScales.sprayUsageScale(%d)", v10_)
-		if not self.xmlFile:hasProperty(v11_) then
+		local key = string.format("vehicle.sprayer.usageScales.sprayUsageScale(%d)", i)
+		if not self.xmlFile:hasProperty(key) then
 			break
 		end
-		local v12_ = self.xmlFile:getValue(v11_ .. "#fillType")
-		local v13_ = self.xmlFile:getValue(v11_ .. "#scale")
-		if v12_ ~= nil and v13_ ~= nil then
-			local v14_ = g_fillTypeManager:getFillTypeIndexByName(v12_)
-			if v14_ == nil then
-				printWarning("Warning: Invalid spray usage scale fill type \'" .. v12_ .. "\' in \'" .. self.configFileName .. "\'")
+		local fillTypeStr = self.xmlFile:getValue(key .. "#fillType")
+		local scale = self.xmlFile:getValue(key .. "#scale")
+		if fillTypeStr ~= nil and scale ~= nil then
+			local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(fillTypeStr)
+			if fillTypeIndex ~= nil then
+				spec.usageScale.fillTypeScales[fillTypeIndex] = scale
 			else
-				v9_.usageScale.fillTypeScales[v14_] = v13_
+				printWarning("Warning: Invalid spray usage scale fill type '" .. fillTypeStr .. "' in '" .. self.configFileName .. "'")
 			end
 		end
-		v10_ = v10_ + 1
+		i = i + 1
 	end
-	v9_.sprayTypes = {}
-	local v15_ = 0
+	spec.sprayTypes = {}
+	i = 0
 	while true do
-		local v16_ = string.format("vehicle.sprayer.sprayTypes.sprayType(%d)", v15_)
-		if not self.xmlFile:hasProperty(v16_) then
+		local key = string.format("vehicle.sprayer.sprayTypes.sprayType(%d)", i)
+		if not self.xmlFile:hasProperty(key) then
 			break
 		end
-		local v17_ = {}
-		if self:loadSprayTypeFromXML(self.xmlFile, v16_, v17_) then
-			local v18_ = v9_.sprayTypes
-			table.insert(v18_, v17_)
-			v17_.index = #v9_.sprayTypes
+		local sprayType = {}
+		if self:loadSprayTypeFromXML(self.xmlFile, key, sprayType) then
+			table.insert(spec.sprayTypes, sprayType)
+			sprayType.index = #spec.sprayTypes
 		end
-		v15_ = v15_ + 1
+		i = i + 1
 	end
-	v9_.lastActiveSprayType = nil
+	spec.lastActiveSprayType = nil
 	if self.isClient then
-		v9_.effects = g_effectManager:loadEffect(self.xmlFile, "vehicle.sprayer.effects", self.components, self, self.i3dMappings)
-		v9_.animationName = self.xmlFile:getValue("vehicle.sprayer.animation#name", "")
-		v9_.samples = {}
-		v9_.samples.work = g_soundManager:loadSamplesFromXML(self.xmlFile, "vehicle.sprayer.sounds", "work", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v9_.samples.spray = g_soundManager:loadSamplesFromXML(self.xmlFile, "vehicle.sprayer.sounds", "spray", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v9_.sampleFillEnabled = false
-		v9_.sampleFillStopTime = -1
-		v9_.lastFillLevel = -1
-		v9_.animationNodes = g_animationManager:loadAnimations(self.xmlFile, "vehicle.sprayer.animationNodes", self.components, self, self.i3dMappings)
+		spec.effects = g_effectManager:loadEffect(self.xmlFile, "vehicle.sprayer.effects", self.components, self, self.i3dMappings)
+		spec.animationName = self.xmlFile:getValue("vehicle.sprayer.animation#name", "")
+		spec.samples = {}
+		spec.samples.work = g_soundManager:loadSamplesFromXML(self.xmlFile, "vehicle.sprayer.sounds", "work", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.spray = g_soundManager:loadSamplesFromXML(self.xmlFile, "vehicle.sprayer.sounds", "spray", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.sampleFillEnabled = false
+		spec.sampleFillStopTime = -1
+		spec.lastFillLevel = -1
+		spec.animationNodes = g_animationManager:loadAnimations(self.xmlFile, "vehicle.sprayer.animationNodes", self.components, self, self.i3dMappings)
 	end
 	if self.addAIGroundTypeRequirements ~= nil then
 		self:addAIGroundTypeRequirements(Sprayer.AI_REQUIRED_GROUND_TYPES)
 	end
-	v9_.supportedSprayTypes = {}
-	v9_.fillUnitIndex = self.xmlFile:getValue("vehicle.sprayer#fillUnitIndex", 1)
-	v9_.unloadInfoIndex = self.xmlFile:getValue("vehicle.sprayer#unloadInfoIndex", 1)
-	v9_.fillVolumeIndex = self.xmlFile:getValue("vehicle.sprayer#fillVolumeIndex")
-	v9_.dischargeUVScrollSpeed = self.xmlFile:getValue("vehicle.sprayer#fillVolumeDischargeScrollSpeed", "0 0 0", true)
-	if self:getFillUnitByIndex(v9_.fillUnitIndex) == nil then
-		Logging.xmlError(self.xmlFile, "FillUnit \'%d\' not defined!", v9_.fillUnitIndex)
+	spec.supportedSprayTypes = {}
+	spec.fillUnitIndex = self.xmlFile:getValue("vehicle.sprayer#fillUnitIndex", 1)
+	spec.unloadInfoIndex = self.xmlFile:getValue("vehicle.sprayer#unloadInfoIndex", 1)
+	spec.fillVolumeIndex = self.xmlFile:getValue("vehicle.sprayer#fillVolumeIndex")
+	spec.dischargeUVScrollSpeed = self.xmlFile:getValue("vehicle.sprayer#fillVolumeDischargeScrollSpeed", "0 0 0", true)
+	if self:getFillUnitByIndex(spec.fillUnitIndex) == nil then
+		Logging.xmlError(self.xmlFile, "FillUnit '%d' not defined!", spec.fillUnitIndex)
 		self:setLoadingState(VehicleLoadingState.ERROR)
 	else
-		local v19_ = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#decreasedSpeed")
-		if v19_ == nil then
-			local v20_ = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#decreaseFactor", 0.5)
-			v19_ = self:getSpeedLimit() * v20_
+		local decreasedSpeedLimit = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#decreasedSpeed")
+		if decreasedSpeedLimit == nil then
+			local decreaseFactor = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#decreaseFactor", 0.5)
+			decreasedSpeedLimit = self:getSpeedLimit() * decreaseFactor
 		end
-		v9_.doubledAmountSpeed = v19_
-		v9_.doubledAmountIsActive = false
-		local v21_ = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#toggleButton")
-		if v21_ ~= nil then
-			v9_.toggleDoubledAmountInputBinding = InputAction[v21_]
+		spec.doubledAmountSpeed = decreasedSpeedLimit
+		spec.doubledAmountIsActive = false
+		local toggleButtonStr = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#toggleButton")
+		if toggleButtonStr ~= nil then
+			spec.toggleDoubledAmountInputBinding = InputAction[toggleButtonStr]
 		end
-		v9_.toggleDoubledAmountInputBinding = v9_.toggleDoubledAmountInputBinding or InputAction.DOUBLED_SPRAY_AMOUNT
-		v9_.doubledAmountDeactivateText = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#deactivateText", "action_deactivateDoubledSprayAmount", self.customEnvironment)
-		v9_.doubledAmountActivateText = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#activateText", "action_activateDoubledSprayAmount", self.customEnvironment)
-		v9_.turnedAnimation = self.xmlFile:getValue("vehicle.sprayer.turnedAnimation#name", "")
-		v9_.turnedAnimationTurnOnSpeedScale = self.xmlFile:getValue("vehicle.sprayer.turnedAnimation#turnOnSpeedScale", 1)
-		v9_.turnedAnimationTurnOffSpeedScale = self.xmlFile:getValue("vehicle.sprayer.turnedAnimation#turnOffSpeedScale", -v9_.turnedAnimationTurnOnSpeedScale)
-		v9_.turnedAnimationExternalFill = self.xmlFile:getValue("vehicle.sprayer.turnedAnimation#externalFill", true)
-		v9_.needsToBeFilledToTurnOn = true
-		v9_.useSpeedLimit = true
-		v9_.isWorking = false
-		v9_.lastEffectsState = false
-		local v22_ = self:getSprayerFillUnitIndex()
-		v9_.isSlurryTanker = self:getFillUnitAllowsFillType(v22_, FillType.LIQUIDMANURE) or self:getFillUnitAllowsFillType(v22_, FillType.DIGESTATE)
-		v9_.isManureSpreader = self:getFillUnitAllowsFillType(v22_, FillType.MANURE)
-		local v23_ = not v9_.isSlurryTanker
-		if v23_ then
-			v23_ = not v9_.isManureSpreader
-		end
-		v9_.isFertilizerSprayer = v23_
-		v9_.hasWorkAreas = self:getWorkAreaByIndex(1) ~= nil
-		v9_.workAreaParameters = {}
-		v9_.workAreaParameters.sprayVehicle = nil
-		v9_.workAreaParameters.sprayVehicleFillUnitIndex = nil
-		v9_.workAreaParameters.lastChangedArea = 0
-		v9_.workAreaParameters.lastTotalArea = 0
-		v9_.workAreaParameters.lastIsExternallyFilled = false
-		v9_.workAreaParameters.lastSprayTime = -math.huge
-		v9_.workAreaParameters.usage = 0
-		v9_.workAreaParameters.usagePerMin = 0
-		if not v9_.hasWorkAreas then
+		spec.toggleDoubledAmountInputBinding = spec.toggleDoubledAmountInputBinding or InputAction.DOUBLED_SPRAY_AMOUNT
+		spec.doubledAmountDeactivateText = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#deactivateText", "action_deactivateDoubledSprayAmount", self.customEnvironment)
+		spec.doubledAmountActivateText = self.xmlFile:getValue("vehicle.sprayer.doubledAmount#activateText", "action_activateDoubledSprayAmount", self.customEnvironment)
+		spec.turnedAnimation = self.xmlFile:getValue("vehicle.sprayer.turnedAnimation#name", "")
+		spec.turnedAnimationTurnOnSpeedScale = self.xmlFile:getValue("vehicle.sprayer.turnedAnimation#turnOnSpeedScale", 1)
+		spec.turnedAnimationTurnOffSpeedScale = self.xmlFile:getValue("vehicle.sprayer.turnedAnimation#turnOffSpeedScale", -spec.turnedAnimationTurnOnSpeedScale)
+		spec.turnedAnimationExternalFill = self.xmlFile:getValue("vehicle.sprayer.turnedAnimation#externalFill", true)
+		spec.needsToBeFilledToTurnOn = true
+		spec.useSpeedLimit = true
+		spec.isWorking = false
+		spec.lastEffectsState = false
+		local fillUnitIndex = self:getSprayerFillUnitIndex()
+		spec.isSlurryTanker = self:getFillUnitAllowsFillType(fillUnitIndex, FillType.LIQUIDMANURE) or self:getFillUnitAllowsFillType(fillUnitIndex, FillType.DIGESTATE)
+		spec.isManureSpreader = self:getFillUnitAllowsFillType(fillUnitIndex, FillType.MANURE)
+		spec.isFertilizerSprayer = not spec.isSlurryTanker and not spec.isManureSpreader
+		spec.hasWorkAreas = self:getWorkAreaByIndex(1) ~= nil
+		spec.workAreaParameters = {}
+		spec.workAreaParameters.sprayVehicle = nil
+		spec.workAreaParameters.sprayVehicleFillUnitIndex = nil
+		spec.workAreaParameters.lastChangedArea = 0
+		spec.workAreaParameters.lastTotalArea = 0
+		spec.workAreaParameters.lastIsExternallyFilled = false
+		spec.workAreaParameters.lastSprayTime = -math.huge
+		spec.workAreaParameters.usage = 0
+		spec.workAreaParameters.usagePerMin = 0
+		if not spec.hasWorkAreas then
 			SpecializationUtil.removeEventListener(self, "onRegisterActionEvents", Sprayer)
 		end
 	end
 end
-
--- Local values: spec, _, sprayType
 function Sprayer:onDelete()
-	local v25_ = self.spec_sprayer
-	g_effectManager:deleteEffects(v25_.effects)
-	g_animationManager:deleteAnimations(v25_.animationNodes)
-	if v25_.samples ~= nil then
-		g_soundManager:deleteSamples(v25_.samples.work)
-		g_soundManager:deleteSamples(v25_.samples.spray)
+	local spec = self.spec_sprayer
+	g_effectManager:deleteEffects(spec.effects)
+	g_animationManager:deleteAnimations(spec.animationNodes)
+	if spec.samples ~= nil then
+		g_soundManager:deleteSamples(spec.samples.work)
+		g_soundManager:deleteSamples(spec.samples.spray)
 	end
-	if v25_.sprayTypes ~= nil then
-		for _, v26_ in ipairs(v25_.sprayTypes) do
-			g_effectManager:deleteEffects(v26_.effects)
-			g_animationManager:deleteAnimations(v26_.animationNodes)
-			if v26_.samples ~= nil then
-				g_soundManager:deleteSamples(v26_.samples.work)
-				g_soundManager:deleteSamples(v26_.samples.spray)
+	if spec.sprayTypes ~= nil then
+		for _, sprayType in ipairs(spec.sprayTypes) do
+			g_effectManager:deleteEffects(sprayType.effects)
+			g_animationManager:deleteAnimations(sprayType.animationNodes)
+			if sprayType.samples == nil then
+				continue
 			end
+			g_soundManager:deleteSamples(sprayType.samples.work)
+			g_soundManager:deleteSamples(sprayType.samples.spray)
 		end
 	end
 end
-
--- Local values: activeSprayType, spec, _, sprayType, spec, actionEvent, text, _, isAllowed, spec
 function Sprayer:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v28_ = self:getActiveSprayType()
-	if v28_ ~= nil then
-		local v29_ = self.spec_sprayer
-		if v28_ ~= v29_.lastActiveSprayType then
-			for _, v30_ in ipairs(v29_.sprayTypes) do
-				if v30_ == v29_.lastActiveSprayType then
-					g_effectManager:stopEffects(v30_.effects)
-					g_animationManager:stopAnimations(v30_.animationNodes)
+	local activeSprayType = self:getActiveSprayType()
+	if activeSprayType ~= nil then
+		local spec = self.spec_sprayer
+		if activeSprayType ~= spec.lastActiveSprayType then
+			for _, sprayType in ipairs(spec.sprayTypes) do
+				if sprayType == spec.lastActiveSprayType then
+					g_effectManager:stopEffects(sprayType.effects)
+					g_animationManager:stopAnimations(sprayType.animationNodes)
 				end
 			end
-			SpecializationUtil.raiseEvent(self, "onSprayTypeChange", v28_)
-			v29_.lastActiveSprayType = v28_
+			SpecializationUtil.raiseEvent(self, "onSprayTypeChange", activeSprayType)
+			spec.lastActiveSprayType = activeSprayType
 			self:updateSprayerEffects(true)
 		end
 	end
 	if self.isClient then
-		local v31_ = self.spec_sprayer
-		local v32_ = v31_.actionEvents[v31_.toggleDoubledAmountInputBinding]
-		if v32_ ~= nil then
-			local v33_
-			if v31_.doubledAmountIsActive then
-				v33_ = v31_.doubledAmountDeactivateText
-			else
-				v33_ = v31_.doubledAmountActivateText
-			end
-			g_inputBinding:setActionEventText(v32_.actionEventId, v33_)
-			local _, v34_ = self:getSprayerDoubledAmountActive(v31_.workAreaParameters.sprayType)
-			g_inputBinding:setActionEventActive(v32_.actionEventId, v34_)
+		local spec = self.spec_sprayer
+		local actionEvent = spec.actionEvents[spec.toggleDoubledAmountInputBinding]
+		if actionEvent ~= nil then
+			local text = nil
+			text = spec.doubledAmountIsActive and spec.doubledAmountDeactivateText or spec.doubledAmountActivateText
+			g_inputBinding:setActionEventText(actionEvent.actionEventId, text)
+			local _, isAllowed = self:getSprayerDoubledAmountActive(spec.workAreaParameters.sprayType)
+			g_inputBinding:setActionEventActive(actionEvent.actionEventId, isAllowed)
 		end
 	end
 	if self.isServer then
-		local v35_ = self.spec_sprayer
-		if v35_.pendingActivationAfterLowering and self:getCanBeTurnedOn() then
+		local spec = self.spec_sprayer
+		if spec.pendingActivationAfterLowering and self:getCanBeTurnedOn() then
 			self:setIsTurnedOn(true)
-			v35_.pendingActivationAfterLowering = false
+			spec.pendingActivationAfterLowering = false
 		end
 	end
 end
-
--- Local values: spec, _, actionEventId
 function Sprayer:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v38_ = self.spec_sprayer
-		self:clearActionEventsTable(v38_.actionEvents)
+		local spec = self.spec_sprayer
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			local _, v39_ = self:addActionEvent(v38_.actionEvents, v38_.toggleDoubledAmountInputBinding, self, Sprayer.actionEventDoubledAmount, false, true, false, true, nil)
-			g_inputBinding:setActionEventTextPriority(v39_, GS_PRIO_HIGH)
+			local _, actionEventId = self:addActionEvent(spec.actionEvents, spec.toggleDoubledAmountInputBinding, self, Sprayer.actionEventDoubledAmount, false, true, false, true, nil)
+			g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
 		end
 	end
 end
-
 function Sprayer:actionEventDoubledAmount(actionName, inputValue, callbackState, isAnalog)
 	self:setSprayerDoubledAmountActive(not self.spec_sprayer.doubledAmountIsActive)
 end
-
--- Local values: spec, rootVehicle, sx, _, sz, wx, _, wz, hx, _, hz, sprayAmount, changedArea, totalArea
 function Sprayer:processSprayerArea(workArea, dt)
-	local v43_ = self.spec_sprayer
-	if self:getIsAIActive() and (self.isServer and (v43_.workAreaParameters.sprayFillType == nil or v43_.workAreaParameters.sprayFillType == FillType.UNKNOWN)) then
-		self.rootVehicle:stopCurrentAIJob(AIMessageErrorOutOfFill.new())
+	local spec = self.spec_sprayer
+	if self:getIsAIActive() and (self.isServer and (spec.workAreaParameters.sprayFillType == nil or spec.workAreaParameters.sprayFillType == FillType.UNKNOWN)) then
+		local rootVehicle = self.rootVehicle
+		rootVehicle:stopCurrentAIJob(AIMessageErrorOutOfFill.new())
 		return 0, 0
 	end
-	if v43_.workAreaParameters.sprayFillLevel <= 0 then
+	if spec.workAreaParameters.sprayFillLevel <= 0 then
 		return 0, 0
+	else
+		local sx, _, sz = getWorldTranslation(workArea.start)
+		local wx, _, wz = getWorldTranslation(workArea.width)
+		local hx, _, hz = getWorldTranslation(workArea.height)
+		if not self.isServer and Sprayer.CLIENT_DM_UPDATE_RADIUS < self.currentUpdateDistance then
+			return 0, 0
+		end
+		local sprayAmount = self:getSprayerDoubledAmountActive(spec.workAreaParameters.sprayType) and 2 or 1
+		local changedArea, totalArea = FSDensityMapUtil.updateSprayArea(sx, sz, wx, wz, hx, hz, spec.workAreaParameters.sprayType, sprayAmount)
+		spec.workAreaParameters.isActive = true
+		spec.workAreaParameters.lastChangedArea = spec.workAreaParameters.lastChangedArea + changedArea
+		spec.workAreaParameters.lastStatsArea = spec.workAreaParameters.lastStatsArea + changedArea
+		spec.workAreaParameters.lastTotalArea = spec.workAreaParameters.lastTotalArea + totalArea
+		spec.workAreaParameters.lastSprayTime = g_time
+		if 1 < self:getLastSpeed() then
+			spec.isWorking = true
+		end
+		return changedArea, totalArea
 	end
-	local v44_, _, v45_ = getWorldTranslation(workArea.start)
-	local v46_, _, v47_ = getWorldTranslation(workArea.width)
-	local v48_, _, v49_ = getWorldTranslation(workArea.height)
-	if not self.isServer and self.currentUpdateDistance > Sprayer.CLIENT_DM_UPDATE_RADIUS then
-		return 0, 0
-	end
-	local v50_ = self:getSprayerDoubledAmountActive(v43_.workAreaParameters.sprayType) and 2 or 1
-	local v51_, v52_ = FSDensityMapUtil.updateSprayArea(v44_, v45_, v46_, v47_, v48_, v49_, v43_.workAreaParameters.sprayType, v50_)
-	v43_.workAreaParameters.isActive = true
-	v43_.workAreaParameters.lastChangedArea = v43_.workAreaParameters.lastChangedArea + v51_
-	v43_.workAreaParameters.lastStatsArea = v43_.workAreaParameters.lastStatsArea + v51_
-	v43_.workAreaParameters.lastTotalArea = v43_.workAreaParameters.lastTotalArea + v52_
-	v43_.workAreaParameters.lastSprayTime = g_time
-	if self:getLastSpeed() > 1 then
-		v43_.isWorking = true
-	end
-	return v51_, v52_
 end
-
--- Local values: sprayCapacity, spec, hasSource, _, supportedSprayType, spec
 function Sprayer:getIsSprayerExternallyFilled()
-	if not self:getIsAIActive() then
-		return false
-	end
-	if self:getFillUnitCapacity(self:getSprayerFillUnitIndex()) == 0 then
-		local v54_ = self.spec_sprayer
-		local v55_ = false
-		for _, v56_ in ipairs(v54_.supportedSprayTypes) do
-			if #v54_.fillTypeSources[v56_] > 0 then
-				v55_ = true
-				break
+	if self:getIsAIActive() then
+		local sprayCapacity = self:getFillUnitCapacity(self:getSprayerFillUnitIndex())
+		if sprayCapacity == 0 then
+			local spec = self.spec_sprayer
+			local hasSource = false
+			for _, supportedSprayType in ipairs(spec.supportedSprayTypes) do
+				if 0 < #spec.fillTypeSources[supportedSprayType] then
+					hasSource = true
+					break
+				end
+			end
+			if not hasSource then
+				return false
 			end
 		end
-		if not v55_ then
+		local _v5 = self.rootVehicle
+		if _v5.getIsFieldWorkActive == nil or not self.rootVehicle:getIsFieldWorkActive() then
 			return false
 		end
-	end
-	if self.rootVehicle.getIsFieldWorkActive == nil or not self.rootVehicle:getIsFieldWorkActive() then
+		local spec = self.spec_sprayer
+		return _v5
+	else
 		return false
 	end
-	local v57_ = self.spec_sprayer
-	local v58_ = ((not v57_.isSlurryTanker or g_currentMission.missionInfo.helperSlurrySource <= 1) and true or false) and (((not v57_.isManureSpreader or g_currentMission.missionInfo.helperManureSource <= 1) and true or false) and v57_.isFertilizerSprayer)
-	if v58_ then
-		v58_ = g_currentMission.missionInfo.helperBuyFertilizer
-	end
-	return v58_
 end
-
--- Local values: found, isUnknownFillType, fillUnitIndex, allowLiquidManure, allowDigestate, allowManure, allowLiquidFertilizer, allowFertilizer, allowHerbicide, allowsLiquidManureDigistate, usage, farmId, statsFarmId, price, loadingStation, remainingDelta, price, loadingStation, remainingDelta, price
 function Sprayer:getExternalFill(fillType, dt)
-	local v62_ = false
-	local v63_ = fillType == FillType.UNKNOWN
-	local v64_ = self:getSprayerFillUnitIndex()
-	local v65_ = self:getFillUnitAllowsFillType(v64_, FillType.LIQUIDMANURE)
-	local v66_ = self:getFillUnitAllowsFillType(v64_, FillType.DIGESTATE)
-	local v67_ = self:getFillUnitAllowsFillType(v64_, FillType.MANURE)
-	local v68_ = self:getFillUnitAllowsFillType(v64_, FillType.LIQUIDFERTILIZER)
-	local v69_ = self:getFillUnitAllowsFillType(v64_, FillType.FERTILIZER)
-	local v70_ = self:getFillUnitAllowsFillType(v64_, FillType.HERBICIDE)
-	local v71_ = 0
-	local v72_ = self:getActiveFarm()
-	local v73_ = self:getLastTouchedFarmlandFarmId()
-	if fillType == FillType.LIQUIDMANURE or (fillType == FillType.DIGESTATE or v63_ and (v65_ or v66_)) then
+	local found = false
+	local isUnknownFillType = fillType == FillType.UNKNOWN
+	local fillUnitIndex = self:getSprayerFillUnitIndex()
+	local allowLiquidManure = self:getFillUnitAllowsFillType(fillUnitIndex, FillType.LIQUIDMANURE)
+	local allowDigestate = self:getFillUnitAllowsFillType(fillUnitIndex, FillType.DIGESTATE)
+	local allowManure = self:getFillUnitAllowsFillType(fillUnitIndex, FillType.MANURE)
+	local allowLiquidFertilizer = self:getFillUnitAllowsFillType(fillUnitIndex, FillType.LIQUIDFERTILIZER)
+	local allowFertilizer = self:getFillUnitAllowsFillType(fillUnitIndex, FillType.FERTILIZER)
+	local allowHerbicide = self:getFillUnitAllowsFillType(fillUnitIndex, FillType.HERBICIDE)
+	local allowsLiquidManureDigistate = allowLiquidManure or allowDigestate
+	local usage = 0
+	local farmId = self:getActiveFarm()
+	local statsFarmId = self:getLastTouchedFarmlandFarmId()
+	if fillType == FillType.LIQUIDMANURE or fillType == FillType.DIGESTATE or isUnknownFillType and allowsLiquidManureDigistate then
 		if g_currentMission.missionInfo.helperSlurrySource == 2 then
-			v62_ = true
-			if g_currentMission.economyManager:getCostPerLiter(FillType.LIQUIDMANURE, false) then
-				fillType = FillType.LIQUIDMANURE
-			else
-				fillType = FillType.DIGESTATE
-			end
-			v71_ = self:getSprayerUsage(fillType, dt)
+			found = true
+			fillType = g_currentMission.economyManager:getCostPerLiter(FillType.LIQUIDMANURE, false) and FillType.LIQUIDMANURE or FillType.DIGESTATE
+			usage = self:getSprayerUsage(fillType, dt)
 			if self.isServer then
-				local v74_ = v71_ * g_currentMission.economyManager:getCostPerLiter(fillType, false) * 1.5
-				g_farmManager:updateFarmStats(v73_, "expenses", v74_)
-				g_currentMission:addMoney(-v74_, v72_, MoneyType.PURCHASE_FERTILIZER)
+				local price = usage * g_currentMission.economyManager:getCostPerLiter(fillType, false) * 1.5
+				g_farmManager:updateFarmStats(statsFarmId, "expenses", price)
+				g_currentMission:addMoney(-price, farmId, MoneyType.PURCHASE_FERTILIZER)
 			end
-		elseif g_currentMission.missionInfo.helperSlurrySource > 2 then
-			local v75_ = g_currentMission.liquidManureLoadingStations[g_currentMission.missionInfo.helperSlurrySource - 2]
-			if self.isServer and v75_ ~= nil then
-				v71_ = self:getSprayerUsage(FillType.LIQUIDMANURE, dt)
-				if v71_ - v75_:removeFillLevel(FillType.LIQUIDMANURE, v71_, v72_ or self:getOwnerFarmId()) > 1e-6 then
+		elseif 2 < g_currentMission.missionInfo.helperSlurrySource then
+			local loadingStation = g_currentMission.liquidManureLoadingStations[g_currentMission.missionInfo.helperSlurrySource - 2]
+			if self.isServer and loadingStation ~= nil then
+				usage = self:getSprayerUsage(FillType.LIQUIDMANURE, dt)
+				local remainingDelta = loadingStation:removeFillLevel(FillType.LIQUIDMANURE, usage, farmId or self:getOwnerFarmId())
+				if 0.000001 < usage - remainingDelta then
+					found = true
 					fillType = FillType.LIQUIDMANURE
-					v62_ = true
-				elseif v71_ - v75_:removeFillLevel(FillType.DIGESTATE, v71_, v72_ or self:getOwnerFarmId()) > 1e-6 then
-					fillType = FillType.DIGESTATE
-					v62_ = true
+				else
+					remainingDelta = loadingStation:removeFillLevel(FillType.DIGESTATE, usage, farmId or self:getOwnerFarmId())
+					if 0.000001 < usage - remainingDelta then
+						found = true
+						fillType = FillType.DIGESTATE
+					end
 				end
 			end
 		end
-	elseif fillType == FillType.MANURE or fillType == FillType.UNKNOWN and v67_ then
-		if g_currentMission.missionInfo.helperManureSource == 2 then
-			v62_ = true
-			fillType = FillType.MANURE
-			v71_ = self:getSprayerUsage(fillType, dt)
-			if self.isServer then
-				local v76_ = v71_ * g_currentMission.economyManager:getCostPerLiter(fillType, false) * 1.5
-				g_farmManager:updateFarmStats(v73_, "expenses", v76_)
-				g_currentMission:addMoney(-v76_, v72_, MoneyType.PURCHASE_FERTILIZER)
-			end
-		elseif g_currentMission.missionInfo.helperManureSource > 2 then
-			local v77_ = g_currentMission.manureLoadingStations[g_currentMission.missionInfo.helperManureSource - 2]
-			if self.isServer and v77_ ~= nil then
-				v71_ = self:getSprayerUsage(FillType.MANURE, dt)
-				if v71_ - v77_:removeFillLevel(FillType.MANURE, v71_, v72_ or self:getOwnerFarmId()) > 1e-6 then
-					fillType = FillType.MANURE
-					v62_ = true
+	else
+		if fillType == FillType.MANURE or fillType == FillType.UNKNOWN and allowManure then
+			if g_currentMission.missionInfo.helperManureSource == 2 then
+				found = true
+				fillType = FillType.MANURE
+				usage = self:getSprayerUsage(fillType, dt)
+				if self.isServer then
+					local price = usage * g_currentMission.economyManager:getCostPerLiter(fillType, false) * 1.5
+					g_farmManager:updateFarmStats(statsFarmId, "expenses", price)
+					g_currentMission:addMoney(-price, farmId, MoneyType.PURCHASE_FERTILIZER)
+				end
+			elseif 2 < g_currentMission.missionInfo.helperManureSource then
+				local loadingStation = g_currentMission.manureLoadingStations[g_currentMission.missionInfo.helperManureSource - 2]
+				if self.isServer and loadingStation ~= nil then
+					usage = self:getSprayerUsage(FillType.MANURE, dt)
+					local remainingDelta = loadingStation:removeFillLevel(FillType.MANURE, usage, farmId or self:getOwnerFarmId())
+					if 0.000001 < usage - remainingDelta then
+						found = true
+						fillType = FillType.MANURE
+					end
 				end
 			end
-		end
-	elseif (fillType == FillType.FERTILIZER or (fillType == FillType.LIQUIDFERTILIZER or (fillType == FillType.HERBICIDE or (fillType == FillType.LIME or fillType == FillType.UNKNOWN and (v68_ or (v69_ or v70_)))))) and g_currentMission.missionInfo.helperBuyFertilizer then
-		v62_ = true
-		if fillType == FillType.UNKNOWN then
-			if v68_ then
-				fillType = FillType.LIQUIDFERTILIZER
-			elseif v69_ then
-				fillType = FillType.FERTILIZER
-			elseif v70_ then
-				fillType = FillType.HERBICIDE
+		else
+			if fillType ~= FillType.FERTILIZER and (fillType ~= FillType.LIQUIDFERTILIZER and (fillType ~= FillType.HERBICIDE and (fillType ~= FillType.LIME and (fillType == FillType.UNKNOWN and (not allowLiquidFertilizer and (not allowFertilizer and (allowHerbicide and g_currentMission.missionInfo.helperBuyFertilizer))))))) then
+				found = true
+				if fillType == FillType.UNKNOWN then
+					if allowLiquidFertilizer then
+						fillType = FillType.LIQUIDFERTILIZER
+					elseif allowFertilizer then
+						fillType = FillType.FERTILIZER
+					elseif allowHerbicide then
+						fillType = FillType.HERBICIDE
+					end
+				end
+				usage = self:getSprayerUsage(fillType, dt)
+				if self.isServer then
+					local price = usage * g_currentMission.economyManager:getCostPerLiter(fillType, false) * 1.5
+					g_farmManager:updateFarmStats(statsFarmId, "expenses", price)
+					g_currentMission:addMoney(-price, farmId, MoneyType.PURCHASE_FERTILIZER)
+				end
 			end
-		end
-		v71_ = self:getSprayerUsage(fillType, dt)
-		if self.isServer then
-			local v78_ = v71_ * g_currentMission.economyManager:getCostPerLiter(fillType, false) * 1.5
-			g_farmManager:updateFarmStats(v73_, "expenses", v78_)
-			g_currentMission:addMoney(-v78_, v72_, MoneyType.PURCHASE_FERTILIZER)
 		end
 	end
-	if v62_ then
-		return fillType, v71_
+	if found then
+		return fillType, usage
 	else
 		return FillType.UNKNOWN, 0
 	end
 end
-
 function Sprayer:getAreEffectsVisible()
-	return self.spec_sprayer.workAreaParameters.lastSprayTime + 100 > g_time
+	return g_time < self.spec_sprayer.workAreaParameters.lastSprayTime + 100
 end
-
--- Local values: spec, effectsState, fillUnitIndex, fillType, sprayType, _, sprayType
 function Sprayer:updateSprayerEffects(force)
-	local v82_ = self.spec_sprayer
-	local v83_ = self:getAreEffectsVisible()
-	if v83_ ~= v82_.lastEffectsState or force then
-		if v83_ then
-			local v84_ = self:getSprayerFillUnitIndex()
-			local v85_ = self:getFillUnitLastValidFillType(v84_)
-			if v85_ == FillType.UNKNOWN then
-				v85_ = self:getFillUnitFirstSupportedFillType(v84_)
+	local spec = self.spec_sprayer
+	local effectsState = self:getAreEffectsVisible()
+	if effectsState ~= spec.lastEffectsState or force then
+		if effectsState then
+			local fillUnitIndex = self:getSprayerFillUnitIndex()
+			local fillType = self:getFillUnitLastValidFillType(fillUnitIndex)
+			if fillType == FillType.UNKNOWN then
+				fillType = self:getFillUnitFirstSupportedFillType(fillUnitIndex)
 			end
-			g_effectManager:setEffectTypeInfo(v82_.effects, v85_)
-			g_effectManager:startEffects(v82_.effects)
-			g_soundManager:playSamples(v82_.samples.spray)
-			local v86_ = self:getActiveSprayType()
-			if v86_ ~= nil then
-				g_effectManager:setEffectTypeInfo(v86_.effects, v85_)
-				g_effectManager:startEffects(v86_.effects)
-				g_animationManager:startAnimations(v86_.animationNodes)
-				g_soundManager:playSamples(v86_.samples.spray)
+			g_effectManager:setEffectTypeInfo(spec.effects, fillType)
+			g_effectManager:startEffects(spec.effects)
+			g_soundManager:playSamples(spec.samples.spray)
+			local sprayType = self:getActiveSprayType()
+			if sprayType ~= nil then
+				g_effectManager:setEffectTypeInfo(sprayType.effects, fillType)
+				g_effectManager:startEffects(sprayType.effects)
+				g_animationManager:startAnimations(sprayType.animationNodes)
+				g_soundManager:playSamples(sprayType.samples.spray)
 			end
-			g_animationManager:startAnimations(v82_.animationNodes)
+			g_animationManager:startAnimations(spec.animationNodes)
 		else
-			g_effectManager:stopEffects(v82_.effects)
-			g_animationManager:stopAnimations(v82_.animationNodes)
-			g_soundManager:stopSamples(v82_.samples.spray)
-			for _, v87_ in ipairs(v82_.sprayTypes) do
-				g_effectManager:stopEffects(v87_.effects)
-				g_animationManager:stopAnimations(v87_.animationNodes)
-				g_soundManager:stopSamples(v87_.samples.spray)
+			g_effectManager:stopEffects(spec.effects)
+			g_animationManager:stopAnimations(spec.animationNodes)
+			g_soundManager:stopSamples(spec.samples.spray)
+			for _, sprayType in ipairs(spec.sprayTypes) do
+				g_effectManager:stopEffects(sprayType.effects)
+				g_animationManager:stopAnimations(sprayType.animationNodes)
+				g_soundManager:stopSamples(sprayType.samples.spray)
 			end
 		end
-		v82_.lastEffectsState = v83_
+		spec.lastEffectsState = effectsState
 	end
 end
-
--- Local values: spec, scale, litersPerSecond, sprayType, usageScale, activeSprayType, workWidth
 function Sprayer:getSprayerUsage(fillType, dt)
 	if fillType == FillType.UNKNOWN then
 		return 0
-	end
-	local v91_ = self.spec_sprayer
-	local v92_ = Utils.getNoNil(v91_.usageScale.fillTypeScales[fillType], v91_.usageScale.default)
-	local v93_ = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
-	local v94_ = v93_ == nil and 1 or v93_.litersPerSecond
-	local v95_ = v91_.usageScale
-	local v96_ = self:getActiveSprayType()
-	if v96_ ~= nil then
-		v95_ = v96_.usageScale
-	end
-	local v97_
-	if v95_.workAreaIndex == nil then
-		v97_ = v95_.workingWidth
 	else
-		v97_ = self:getWorkAreaWidth(v95_.workAreaIndex)
+		local spec = self.spec_sprayer
+		local scale = Utils.getNoNil(spec.usageScale.fillTypeScales[fillType], spec.usageScale.default)
+		local litersPerSecond = 1
+		local sprayType = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
+		if sprayType ~= nil then
+			litersPerSecond = sprayType.litersPerSecond
+		end
+		local usageScale = spec.usageScale
+		local activeSprayType = self:getActiveSprayType()
+		if activeSprayType ~= nil then
+			usageScale = activeSprayType.usageScale
+		end
+		local workWidth = nil
+		if usageScale.workAreaIndex ~= nil then
+			workWidth = self:getWorkAreaWidth(usageScale.workAreaIndex)
+		else
+			workWidth = usageScale.workingWidth
+		end
+		return scale * litersPerSecond * self.speedLimit * workWidth * dt * 0.001
 	end
-	return v92_ * v94_ * self.speedLimit * v97_ * dt * 0.001
 end
-
 function Sprayer:getUseSprayerAIRequirements()
 	return true
 end
-
--- Local values: sprayTypeDesc, weedSystem, weedMapId, weedFirstChannel, weedNumChannels, replacementData, startState, lastState, sourceState, targetState, mission, sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels, sprayLevelMapId, sprayLevelFirstChannel, sprayLevelNumChannels, sprayLevelMaxValue, mission, sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels, _, fruitType
 function Sprayer:setSprayerAITerrainDetailProhibitedRange(fillType)
 	if self:getUseSprayerAIRequirements() and self.addAITerrainDetailProhibitedRange ~= nil then
 		self:clearAITerrainDetailRequiredRange()
 		self:clearAITerrainDetailProhibitedRange()
 		self:clearAIFruitRequirements()
 		self:clearAIFruitProhibitions()
-		local v100_ = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
-		if v100_ ~= nil then
-			if v100_.isHerbicide then
-				local v101_ = g_currentMission.weedSystem
-				if v101_ ~= nil then
-					local v102_, v103_, v104_ = v101_:getDensityMapData()
-					local v105_ = v101_:getHerbicideReplacements()
-					if v105_.weed ~= nil then
-						local v106_ = -1
-						local v107_ = -1
-						for v108_, _ in pairs(v105_.weed.replacements) do
-							if v106_ == -1 then
-								v106_ = v108_
-							elseif v108_ ~= v107_ + 1 then
-								self:addAIFruitRequirement(nil, v106_, v107_, v102_, v103_, v104_)
-								v106_ = v108_
+		local sprayTypeDesc = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
+		if sprayTypeDesc ~= nil then
+			if sprayTypeDesc.isHerbicide then
+				local weedSystem = g_currentMission.weedSystem
+				if weedSystem ~= nil then
+					local weedMapId, weedFirstChannel, weedNumChannels = weedSystem:getDensityMapData()
+					local replacementData = weedSystem:getHerbicideReplacements()
+					if replacementData.weed ~= nil then
+						local startState = -1
+						local lastState = -1
+						for sourceState, targetState in pairs(replacementData.weed.replacements) do
+							if startState == -1 then
+								startState = sourceState
+							elseif sourceState ~= lastState + 1 then
+								self:addAIFruitRequirement(nil, startState, lastState, weedMapId, weedFirstChannel, weedNumChannels)
+								startState = sourceState
 							end
-							v107_ = v108_
+							lastState = sourceState
 						end
-						if v106_ ~= -1 then
-							self:addAIFruitRequirement(nil, v106_, v107_, v102_, v103_, v104_)
+						if startState ~= -1 then
+							self:addAIFruitRequirement(nil, startState, lastState, weedMapId, weedFirstChannel, weedNumChannels)
 						end
 					end
 				end
-			elseif v100_.isFertilizer then
+			elseif sprayTypeDesc.isFertilizer then
 				self:addAIGroundTypeRequirements(Sprayer.AI_REQUIRED_GROUND_TYPES)
-				local v109_ = g_currentMission
-				local v110_, v111_, v112_ = v109_.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_TYPE)
-				local v113_, v114_, v115_ = v109_.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_LEVEL)
-				local v116_ = v109_.fieldGroundSystem:getMaxValue(FieldDensityMap.SPRAY_LEVEL)
-				self:addAIFruitProhibitions(0, v100_.sprayGroundType, v100_.sprayGroundType, v110_, v111_, v112_)
-				self:addAIFruitProhibitions(0, v116_, v116_, v113_, v114_, v115_)
-			elseif v100_.isLime then
+				local mission = g_currentMission
+				local sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels = mission.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_TYPE)
+				local sprayLevelMapId, sprayLevelFirstChannel, sprayLevelNumChannels = mission.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_LEVEL)
+				local sprayLevelMaxValue = mission.fieldGroundSystem:getMaxValue(FieldDensityMap.SPRAY_LEVEL)
+				self:addAIFruitProhibitions(0, sprayTypeDesc.sprayGroundType, sprayTypeDesc.sprayGroundType, sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels)
+				self:addAIFruitProhibitions(0, sprayLevelMaxValue, sprayLevelMaxValue, sprayLevelMapId, sprayLevelFirstChannel, sprayLevelNumChannels)
+			elseif sprayTypeDesc.isLime then
 				self:addAIGroundTypeRequirements(Sprayer.AI_REQUIRED_GROUND_TYPES)
-				local v117_, v118_, v119_ = g_currentMission.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_TYPE)
-				self:addAIFruitProhibitions(0, v100_.sprayGroundType, v100_.sprayGroundType, v117_, v118_, v119_)
+				local mission = g_currentMission
+				local sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels = mission.fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_TYPE)
+				self:addAIFruitProhibitions(0, sprayTypeDesc.sprayGroundType, sprayTypeDesc.sprayGroundType, sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels)
 			end
-			if v100_.isHerbicide or (v100_.isFertilizer or v100_.isLime) then
-				for _, v120_ in pairs(g_fruitTypeManager:getFruitTypes()) do
-					if v120_.terrainDataPlaneId ~= nil and (string.lower(v120_.name) ~= "grass" and (v120_.minHarvestingGrowthState ~= nil and v120_.maxHarvestingGrowthState ~= nil)) then
-						self:addAIFruitProhibitions(v120_.index, v120_.minHarvestingGrowthState, v120_.maxHarvestingGrowthState)
+			if sprayTypeDesc.isHerbicide or sprayTypeDesc.isFertilizer or sprayTypeDesc.isLime then
+				for _, fruitType in pairs(g_fruitTypeManager:getFruitTypes()) do
+					if fruitType.terrainDataPlaneId == nil or string.lower(fruitType.name) == "grass" or fruitType.minHarvestingGrowthState == nil or fruitType.maxHarvestingGrowthState == nil then
+						continue
 					end
+					self:addAIFruitProhibitions(fruitType.index, fruitType.minHarvestingGrowthState, fruitType.maxHarvestingGrowthState)
 				end
 			end
 		end
 	end
 end
-
--- Local values: sprayType
 function Sprayer:getSprayerFillUnitIndex()
-	local v122_ = self:getActiveSprayType()
-	if v122_ == nil then
-		return self.spec_sprayer.fillUnitIndex
+	local sprayType = self:getActiveSprayType()
+	if sprayType ~= nil then
+		return sprayType.fillUnitIndex
 	else
-		return v122_.fillUnitIndex
+		return self.spec_sprayer.fillUnitIndex
 	end
 end
-
--- Local values: fillTypesStr
 function Sprayer:loadSprayTypeFromXML(xmlFile, key, sprayType)
 	sprayType.fillUnitIndex = xmlFile:getValue(key .. "#fillUnitIndex", 1)
 	sprayType.unloadInfoIndex = xmlFile:getValue(key .. "#unloadInfoIndex", 1)
@@ -622,14 +575,13 @@ function Sprayer:loadSprayTypeFromXML(xmlFile, key, sprayType)
 	sprayType.turnedAnimationTurnOffSpeedScale = xmlFile:getValue(key .. ".turnedAnimation#turnOffSpeedScale", -sprayType.turnedAnimationTurnOnSpeedScale)
 	sprayType.turnedAnimationExternalFill = xmlFile:getValue(key .. ".turnedAnimation#externalFill", true)
 	if self.loadAIImplementBaseSetupFromXML ~= nil then
-		self:loadAIImplementBaseSetupFromXML(xmlFile, key .. ".ai", function(self)
-			-- upvalues: (copy) self, (copy) sprayType
+		self:loadAIImplementBaseSetupFromXML(xmlFile, key .. ".ai", function(_)
 			return self:getIsSprayTypeActive(sprayType)
 		end)
 	end
-	local v127_ = xmlFile:getValue(key .. "#fillTypes")
-	if v127_ ~= nil then
-		sprayType.fillTypes = v127_:split(" ")
+	local fillTypesStr = xmlFile:getValue(key .. "#fillTypes")
+	if fillTypesStr ~= nil then
+		sprayType.fillTypes = fillTypesStr:split(" ")
 	end
 	sprayType.objectChanges = {}
 	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, key, sprayType.objectChanges, self.components, self)
@@ -644,502 +596,458 @@ function Sprayer:loadSprayTypeFromXML(xmlFile, key, sprayType)
 	end
 	return true
 end
-
--- Local values: spec, _, sprayType
 function Sprayer:getActiveSprayType()
-	local v129_ = self.spec_sprayer
-	for _, v130_ in ipairs(v129_.sprayTypes) do
-		if self:getIsSprayTypeActive(v130_) then
-			return v130_
+	local spec = self.spec_sprayer
+	for _, sprayType in ipairs(spec.sprayTypes) do
+		if self:getIsSprayTypeActive(sprayType) then
+			return sprayType
 		end
 	end
 	return nil
 end
-
--- Local values: retValue, currentFillType, _, fillType
 function Sprayer:getIsSprayTypeActive(sprayType)
 	if sprayType.fillTypes ~= nil then
-		local v133_ = self:getFillUnitFillType(sprayType.fillUnitIndex or self.spec_sprayer.fillUnitIndex)
-		local v134_ = false
-		for _, v135_ in ipairs(sprayType.fillTypes) do
-			if v133_ == g_fillTypeManager:getFillTypeIndexByName(v135_) then
-				v134_ = true
+		local retValue = false
+		local currentFillType = self:getFillUnitFillType(sprayType.fillUnitIndex or self.spec_sprayer.fillUnitIndex)
+		for _, fillType in ipairs(sprayType.fillTypes) do
+			if currentFillType == g_fillTypeManager:getFillTypeIndexByName(fillType) then
+				retValue = true
 			end
 		end
-		if not v134_ then
+		if not retValue then
 			return false
 		end
 	end
 	return true
 end
-
--- Local values: spec
 function Sprayer:setSprayerDoubledAmountActive(isActive, noEventSend)
-	local v139_ = self.spec_sprayer
-	if isActive ~= v139_.doubledAmountIsActive then
-		v139_.doubledAmountIsActive = isActive
+	local spec = self.spec_sprayer
+	if isActive ~= spec.doubledAmountIsActive then
+		spec.doubledAmountIsActive = isActive
 		SprayerDoubledAmountEvent.sendEvent(self, isActive, noEventSend)
 	end
 end
-
--- Local values: spec, desc
 function Sprayer:getSprayerDoubledAmountActive(sprayTypeIndex)
-	local v142_ = self.spec_sprayer
-	if not v142_.isFertilizerSprayer then
+	local spec = self.spec_sprayer
+	if not spec.isFertilizerSprayer then
 		if sprayTypeIndex == nil then
-			return v142_.doubledAmountIsActive, true
+			return spec.doubledAmountIsActive, true
 		end
-		local v143_ = g_sprayTypeManager:getSprayTypeByIndex(sprayTypeIndex)
-		if v143_ == nil then
-			return v142_.doubledAmountIsActive, true
-		end
-		if v143_.isFertilizer then
-			return v142_.doubledAmountIsActive, true
+		local desc = g_sprayTypeManager:getSprayTypeByIndex(sprayTypeIndex)
+		if desc ~= nil then
+			if desc.isFertilizer then
+				return spec.doubledAmountIsActive, true
+			end
+		else
+			return spec.doubledAmountIsActive, true
 		end
 	end
 	return false, false
 end
-
--- Local values: spec, fillUnitIndex
 function Sprayer:getDrawFirstFillText(superFunc)
-	if self.isClient and (self.spec_sprayer.needsToBeFilledToTurnOn and (self:getIsActiveForInput() and (self:getIsSelected() and not self.isAlwaysTurnedOn))) then
-		local v146_ = self:getSprayerFillUnitIndex()
-		if not self:getCanBeTurnedOn() and (self:getFillUnitFillLevel(v146_) <= 0 and self:getFillUnitCapacity(v146_) > 0) then
-			return true
+	if self.isClient then
+		local spec = self.spec_sprayer
+		if spec.needsToBeFilledToTurnOn and (self:getIsActiveForInput() and (self:getIsSelected() and not self.isAlwaysTurnedOn)) then
+			local fillUnitIndex = self:getSprayerFillUnitIndex()
+			if not self:getCanBeTurnedOn() and (self:getFillUnitFillLevel(fillUnitIndex) <= 0 and 0 < self:getFillUnitCapacity(fillUnitIndex)) then
+				return true
+			end
 		end
 	end
 	return superFunc(self)
 end
-
--- Local values: spec
 function Sprayer:getAreControlledActionsAllowed(superFunc)
-	local v149_ = self.spec_sprayer
-	if v149_.needsToBeFilledToTurnOn and (self:getFillUnitFillLevel(v149_.fillUnitIndex) <= 0 and self:getFillUnitCapacity(v149_.fillUnitIndex) ~= 0) then
+	local spec = self.spec_sprayer
+	if spec.needsToBeFilledToTurnOn and (self:getFillUnitFillLevel(spec.fillUnitIndex) <= 0 and self:getFillUnitCapacity(spec.fillUnitIndex) ~= 0) then
 		return false, g_i18n:getText("info_firstFillTheTool")
-	else
-		return superFunc(self)
 	end
+	return superFunc(self)
 end
-
--- Local values: spec
 function Sprayer:getCanToggleTurnedOn(superFunc)
-	if self.isClient and (self.spec_sprayer.needsToBeFilledToTurnOn and (not self:getCanBeTurnedOn() and self:getFillUnitCapacity(self:getSprayerFillUnitIndex()) <= 0)) then
-		return false
-	else
-		return superFunc(self)
-	end
-end
-
--- Local values: spec, sprayVehicle, _, supportedSprayType, _, src, vehicle
-function Sprayer:getCanBeTurnedOn(superFunc)
-	local v154_ = self.spec_sprayer
-	if not v154_.allowsSpraying then
-		return false
-	end
-	if self:getFillUnitFillLevel(self:getSprayerFillUnitIndex()) <= 0 and (v154_.needsToBeFilledToTurnOn and not self:getIsAIActive()) then
-		local v155_ = nil
-		for _, v156_ in ipairs(v154_.supportedSprayTypes) do
-			for _, v157_ in ipairs(v154_.fillTypeSources[v156_]) do
-				local v158_ = v157_.vehicle
-				if v158_:getFillUnitFillType(v157_.fillUnitIndex) == v156_ and v158_:getFillUnitFillLevel(v157_.fillUnitIndex) > 0 then
-					v155_ = v158_
-					break
-				end
-			end
-		end
-		if v155_ == nil then
+	if self.isClient then
+		local spec = self.spec_sprayer
+		if spec.needsToBeFilledToTurnOn and (not self:getCanBeTurnedOn() and self:getFillUnitCapacity(self:getSprayerFillUnitIndex()) <= 0) then
 			return false
 		end
 	end
 	return superFunc(self)
 end
-
--- Local values: retValue
+function Sprayer:getCanBeTurnedOn(superFunc)
+	local spec = self.spec_sprayer
+	if not spec.allowsSpraying then
+		return false
+	else
+		if self:getFillUnitFillLevel(self:getSprayerFillUnitIndex()) <= 0 and (spec.needsToBeFilledToTurnOn and not self:getIsAIActive()) then
+			local sprayVehicle = nil
+			for _, supportedSprayType in ipairs(spec.supportedSprayTypes) do
+				for _, src in ipairs(spec.fillTypeSources[supportedSprayType]) do
+					local vehicle = src.vehicle
+					if vehicle:getFillUnitFillType(src.fillUnitIndex) == supportedSprayType and 0 < vehicle:getFillUnitFillLevel(src.fillUnitIndex) then
+						sprayVehicle = vehicle
+						break
+					end
+				end
+			end
+			if sprayVehicle == nil then
+				return false
+			end
+		end
+		return superFunc(self)
+	end
+end
 function Sprayer:loadWorkAreaFromXML(superFunc, workArea, xmlFile, key)
-	local v164_ = superFunc(self, workArea, xmlFile, key)
+	local retValue = superFunc(self, workArea, xmlFile, key)
 	if workArea.type == WorkAreaType.DEFAULT then
 		workArea.type = WorkAreaType.SPRAYER
 	end
 	workArea.sprayType = xmlFile:getValue(key .. "#sprayType")
-	return v164_
+	return retValue
 end
-
--- Local values: sprayType
 function Sprayer:getIsWorkAreaActive(superFunc, workArea)
 	if workArea.sprayType ~= nil then
-		local v168_ = self:getActiveSprayType()
-		if v168_ ~= nil and v168_.index ~= workArea.sprayType then
+		local sprayType = self:getActiveSprayType()
+		if sprayType ~= nil and sprayType.index ~= workArea.sprayType then
 			return false
 		end
 	end
 	return superFunc(self, workArea)
 end
-
 function Sprayer:doCheckSpeedLimit(superFunc)
-	local v171_ = not superFunc(self) and self:getIsTurnedOn()
-	if v171_ then
-		v171_ = self.spec_sprayer.useSpeedLimit
+	local _v5 = superFunc(self)
+	if not _v5 then
+		self:getIsTurnedOn()
 	end
-	return v171_
+	return _v5
 end
-
--- Local values: spec, sprayType
 function Sprayer:getRawSpeedLimit(superFunc)
-	local v174_ = self.spec_sprayer
-	local v175_
-	if v174_.workAreaParameters == nil then
-		v175_ = nil
-	else
-		v175_ = v174_.workAreaParameters.sprayType
+	local spec = self.spec_sprayer
+	local sprayType = nil
+	if spec.workAreaParameters ~= nil then
+		sprayType = spec.workAreaParameters.sprayType
 	end
-	if self:getSprayerDoubledAmountActive(v175_) and self:getIsTurnedOn() then
-		return v174_.doubledAmountSpeed
-	else
-		return superFunc(self)
+	if self:getSprayerDoubledAmountActive(sprayType) and self:getIsTurnedOn() then
+		return spec.doubledAmountSpeed
 	end
+	return superFunc(self)
 end
-
--- Local values: spec, sprayerFillVolumeIndex, sprayType
 function Sprayer:getFillVolumeUVScrollSpeed(superFunc, fillVolumeIndex)
-	local v179_ = self.spec_sprayer
-	local v180_ = v179_.fillVolumeIndex
-	local v181_ = self:getActiveSprayType()
-	if v181_ ~= nil then
-		v180_ = v181_.fillVolumeIndex or v180_
+	local spec = self.spec_sprayer
+	local sprayerFillVolumeIndex = spec.fillVolumeIndex
+	local sprayType = self:getActiveSprayType()
+	if sprayType ~= nil then
+		sprayerFillVolumeIndex = sprayType.fillVolumeIndex or sprayerFillVolumeIndex
 	end
-	if fillVolumeIndex == v180_ and (self:getIsTurnedOn() and not self:getIsSprayerExternallyFilled()) then
-		return v179_.dischargeUVScrollSpeed[1], v179_.dischargeUVScrollSpeed[2], v179_.dischargeUVScrollSpeed[3]
-	else
-		return superFunc(self, fillVolumeIndex)
+	if fillVolumeIndex == sprayerFillVolumeIndex and (self:getIsTurnedOn() and not self:getIsSprayerExternallyFilled()) then
+		return spec.dischargeUVScrollSpeed[1], spec.dischargeUVScrollSpeed[2], spec.dischargeUVScrollSpeed[3]
 	end
+	return superFunc(self, fillVolumeIndex)
 end
-
 function Sprayer:getAIRequiresTurnOffOnHeadland(superFunc)
 	return true
 end
-
--- Local values: spec
 function Sprayer:getDirtMultiplier(superFunc)
-	if self.spec_sprayer.isWorking then
+	local spec = self.spec_sprayer
+	if spec.isWorking then
 		return superFunc(self) + self:getWorkDirtMultiplier() * self:getLastSpeed() / self.speedLimit
 	else
 		return superFunc(self)
 	end
 end
-
--- Local values: spec
 function Sprayer:getWearMultiplier(superFunc)
-	if self.spec_sprayer.isWorking then
+	local spec = self.spec_sprayer
+	if spec.isWorking then
 		return superFunc(self) + self:getWorkWearMultiplier() * self:getLastSpeed() / self.speedLimit
 	else
 		return superFunc(self)
 	end
 end
-
--- Local values: spec, i, effect, i, sprayType, j, effect
 function Sprayer:getEffectByNode(superFunc, node)
-	local v189_ = self.spec_sprayer
-	for v190_ = 1, #v189_.effects do
-		local v191_ = v189_.effects[v190_]
-		if node == v191_.node then
-			return v191_
+	local spec = self.spec_sprayer
+	for i = 1, #spec.effects do
+		local effect = spec.effects[i]
+		if node == effect.node then
+			return effect
 		end
 	end
-	for v192_ = 1, #v189_.sprayTypes do
-		local v193_ = v189_.sprayTypes[v192_]
-		for v194_ = 1, #v193_.effects do
-			local v195_ = v193_.effects[v194_]
-			if node == v195_.node then
-				return v195_
+	for i = 1, #spec.sprayTypes do
+		local sprayType = spec.sprayTypes[i]
+		for j = 1, #sprayType.effects do
+			local effect = sprayType.effects[j]
+			if node == effect.node then
+				return effect
 			end
 		end
 	end
 	return superFunc(self, node)
 end
-
--- Local values: usage
 function Sprayer:getVariableWorkWidthUsage(superFunc)
-	local v198_ = superFunc(self)
-	if v198_ == nil then
-		return not self:getIsTurnedOn() and 0 or self.spec_sprayer.workAreaParameters.usagePerMin
-	else
-		return v198_
+	local usage = superFunc(self)
+	if usage == nil then
+		if self:getIsTurnedOn() then
+			return self.spec_sprayer.workAreaParameters.usagePerMin
+		else
+			return 0
+		end
 	end
+	return usage
 end
-
--- Local values: startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, area, areaTotal
 function Sprayer:getAIImplementUseVineSegment(superFunc, placeable, segment, segmentSide)
-	local v203_, v204_, v205_, v206_, v207_, v208_ = placeable:getSegmentSideArea(segment, segmentSide)
-	local v209_, v210_ = AIVehicleUtil.getAIAreaOfVehicle(self, v203_, v204_, v205_, v206_, v207_, v208_)
-	if v210_ > 0 then
-		return v209_ / v210_ > 0.1
+	local startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ = placeable:getSegmentSideArea(segment, segmentSide)
+	local area, areaTotal = AIVehicleUtil.getAIAreaOfVehicle(self, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+	if 0 < areaTotal then
+		return 0.1 < area / areaTotal
 	else
 		return false
 	end
 end
-
--- Local values: spec, sprayType
 function Sprayer:onTurnedOn()
-	local v212_ = self.spec_sprayer
+	local spec = self.spec_sprayer
 	if self.isClient then
 		self:updateSprayerEffects()
-		if v212_.animationName ~= "" and self.playAnimation ~= nil then
-			self:playAnimation(v212_.animationName, 1, self:getAnimationTime(v212_.animationName), true)
+		if spec.animationName ~= "" and self.playAnimation ~= nil then
+			self:playAnimation(spec.animationName, 1, self:getAnimationTime(spec.animationName), true)
 		end
-		g_soundManager:playSamples(v212_.samples.work)
-		local v213_ = self:getActiveSprayType()
-		if v213_ ~= nil then
-			g_soundManager:playSamples(v213_.samples.work)
-			if v213_.turnedAnimationExternalFill or not self:getIsSprayerExternallyFilled() then
-				self:playAnimation(v213_.turnedAnimation, v213_.turnedAnimationTurnOnSpeedScale, self:getAnimationTime(v213_.turnedAnimation), true)
+		g_soundManager:playSamples(spec.samples.work)
+		local sprayType = self:getActiveSprayType()
+		if sprayType ~= nil then
+			g_soundManager:playSamples(sprayType.samples.work)
+			if sprayType.turnedAnimationExternalFill or not self:getIsSprayerExternallyFilled() then
+				self:playAnimation(sprayType.turnedAnimation, sprayType.turnedAnimationTurnOnSpeedScale, self:getAnimationTime(sprayType.turnedAnimation), true)
 			end
 		end
-		if v212_.turnedAnimationExternalFill or not self:getIsSprayerExternallyFilled() then
-			self:playAnimation(v212_.turnedAnimation, v212_.turnedAnimationTurnOnSpeedScale, self:getAnimationTime(v212_.turnedAnimation), true)
+		if spec.turnedAnimationExternalFill or not self:getIsSprayerExternallyFilled() then
+			self:playAnimation(spec.turnedAnimation, spec.turnedAnimationTurnOnSpeedScale, self:getAnimationTime(spec.turnedAnimation), true)
 		end
 	end
 end
-
--- Local values: spec, _, sprayType
 function Sprayer:onTurnedOff()
-	local v215_ = self.spec_sprayer
+	local spec = self.spec_sprayer
 	if self.isClient then
 		self:updateSprayerEffects()
-		if v215_.animationName ~= "" and self.stopAnimation ~= nil then
-			self:stopAnimation(v215_.animationName, true)
+		if spec.animationName ~= "" and self.stopAnimation ~= nil then
+			self:stopAnimation(spec.animationName, true)
 		end
-		g_soundManager:stopSamples(v215_.samples.work)
-		for _, v216_ in ipairs(v215_.sprayTypes) do
-			g_soundManager:stopSamples(v216_.samples.work)
-			self:playAnimation(v216_.turnedAnimation, v216_.turnedAnimationTurnOffSpeedScale, self:getAnimationTime(v216_.turnedAnimation), true)
+		g_soundManager:stopSamples(spec.samples.work)
+		for _, sprayType in ipairs(spec.sprayTypes) do
+			g_soundManager:stopSamples(sprayType.samples.work)
+			self:playAnimation(sprayType.turnedAnimation, sprayType.turnedAnimationTurnOffSpeedScale, self:getAnimationTime(sprayType.turnedAnimation), true)
 		end
-		self:playAnimation(v215_.turnedAnimation, v215_.turnedAnimationTurnOffSpeedScale, self:getAnimationTime(v215_.turnedAnimation), true)
+		self:playAnimation(spec.turnedAnimation, spec.turnedAnimationTurnOffSpeedScale, self:getAnimationTime(spec.turnedAnimation), true)
 	end
 end
-
 function Sprayer:onPreDetach(attacherVehicle, jointDescIndex)
 	if attacherVehicle.setIsTurnedOn ~= nil and attacherVehicle:getIsTurnedOn() then
 		attacherVehicle:setIsTurnedOn(false)
 	end
 end
-
--- Local values: spec, fillUnitIndex, sprayVehicle, sprayVehicleFillUnitIndex, fillType, usage, sprayFillLevel, _, supportedSprayType, _, src, vehicle, vehicleFillType, vehicleFillLevel, isExternallyFilled, externalFillType, externalUsage, sprayType
 function Sprayer:onStartWorkAreaProcessing(dt)
-	local v220_ = self.spec_sprayer
-	local v221_ = self:getSprayerFillUnitIndex()
-	local v222_ = nil
-	local v223_ = nil
-	local v224_ = self:getFillUnitFillType(v221_)
-	local v225_ = self:getSprayerUsage(v224_, dt)
-	local v226_ = self:getFillUnitFillLevel(v221_)
-	if v226_ > 0 then
-		v222_ = self
-		v223_ = v221_
+	local spec = self.spec_sprayer
+	local fillUnitIndex = self:getSprayerFillUnitIndex()
+	local sprayVehicle = nil
+	local sprayVehicleFillUnitIndex = nil
+	local fillType = self:getFillUnitFillType(fillUnitIndex)
+	local usage = self:getSprayerUsage(fillType, dt)
+	local sprayFillLevel = self:getFillUnitFillLevel(fillUnitIndex)
+	if 0 < sprayFillLevel then
+		sprayVehicle = self
+		sprayVehicleFillUnitIndex = fillUnitIndex
 	else
-		for _, v227_ in ipairs(v220_.supportedSprayTypes) do
-			for _, v228_ in ipairs(v220_.fillTypeSources[v227_]) do
-				local v229_ = v228_.vehicle
-				if v229_:getIsFillUnitActive(v228_.fillUnitIndex) then
-					local v230_ = v229_:getFillUnitFillType(v228_.fillUnitIndex)
-					local v231_ = v229_:getFillUnitFillLevel(v228_.fillUnitIndex)
-					if v231_ > 0 and v230_ == v227_ then
-						v223_ = v228_.fillUnitIndex
-						v224_ = v229_:getFillUnitFillType(v223_)
-						v225_ = self:getSprayerUsage(v224_, dt)
-						v222_ = v229_
-						v226_ = v231_
+		for _, supportedSprayType in ipairs(spec.supportedSprayTypes) do
+			for _, src in ipairs(spec.fillTypeSources[supportedSprayType]) do
+				local vehicle = src.vehicle
+				if vehicle:getIsFillUnitActive(src.fillUnitIndex) then
+					local vehicleFillType = vehicle:getFillUnitFillType(src.fillUnitIndex)
+					local vehicleFillLevel = vehicle:getFillUnitFillLevel(src.fillUnitIndex)
+					if 0 < vehicleFillLevel and vehicleFillType == supportedSprayType then
+						sprayVehicle = vehicle
+						sprayVehicleFillUnitIndex = src.fillUnitIndex
+						fillType = sprayVehicle:getFillUnitFillType(sprayVehicleFillUnitIndex)
+						usage = self:getSprayerUsage(fillType, dt)
+						sprayFillLevel = vehicleFillLevel
 						break
 					end
-				elseif self:getIsAIActive() and (v229_.setIsTurnedOn ~= nil and not v229_:getIsTurnedOn()) then
-					v229_:setIsTurnedOn(true)
+				elseif self:getIsAIActive() then
+					if vehicle.setIsTurnedOn == nil or vehicle:getIsTurnedOn() then
+						continue
+					end
+					vehicle:setIsTurnedOn(true)
 				end
 			end
 		end
 	end
-	local v232_ = self:getIsSprayerExternallyFilled()
-	local v233_, v234_
-	if v232_ and self:getIsTurnedOn() then
-		v233_, v234_ = self:getExternalFill(v224_, dt)
-		if v233_ == FillType.UNKNOWN then
-			v234_ = v226_
-			v233_ = v224_
-		else
-			v225_ = v234_
-			v223_ = nil
-			v222_ = nil
+	local isExternallyFilled = self:getIsSprayerExternallyFilled()
+	if isExternallyFilled and self:getIsTurnedOn() then
+		local externalFillType, externalUsage = self:getExternalFill(fillType, dt)
+		if externalFillType ~= FillType.UNKNOWN then
+			fillType = externalFillType
+			usage = externalUsage
+			sprayFillLevel = externalUsage
+			sprayVehicle = nil
+			sprayVehicleFillUnitIndex = nil
 		end
-	else
-		v234_ = v226_
-		v233_ = v224_
 	end
-	if v232_ ~= v220_.workAreaParameters.lastIsExternallyFilled then
-		local v235_ = self:getActiveSprayType()
-		if v235_ ~= nil then
-			if v232_ then
-				if not v235_.turnedAnimationExternalFill and self:getIsAnimationPlaying(v235_.turnedAnimation) then
-					self:stopAnimation(v235_.turnedAnimation)
+	if isExternallyFilled ~= spec.workAreaParameters.lastIsExternallyFilled then
+		local sprayType = self:getActiveSprayType()
+		if sprayType ~= nil then
+			if isExternallyFilled then
+				if not sprayType.turnedAnimationExternalFill and self:getIsAnimationPlaying(sprayType.turnedAnimation) then
+					self:stopAnimation(sprayType.turnedAnimation)
 				end
-			elseif not self:getIsAnimationPlaying(v235_.turnedAnimation) then
-				self:playAnimation(v235_.turnedAnimation, v235_.turnedAnimationTurnOnSpeedScale, self:getAnimationTime(v235_.turnedAnimation), true)
+			elseif not self:getIsAnimationPlaying(sprayType.turnedAnimation) then
+				self:playAnimation(sprayType.turnedAnimation, sprayType.turnedAnimationTurnOnSpeedScale, self:getAnimationTime(sprayType.turnedAnimation), true)
 			end
 		end
-		if v232_ then
-			if not v220_.turnedAnimationExternalFill and self:getIsAnimationPlaying(v220_.turnedAnimation) then
-				self:stopAnimation(v220_.turnedAnimation)
+		if isExternallyFilled then
+			if not spec.turnedAnimationExternalFill and self:getIsAnimationPlaying(spec.turnedAnimation) then
+				self:stopAnimation(spec.turnedAnimation)
 			end
-		elseif not self:getIsAnimationPlaying(v220_.turnedAnimation) then
-			self:playAnimation(v220_.turnedAnimation, v220_.turnedAnimationTurnOnSpeedScale, self:getAnimationTime(v220_.turnedAnimation), true)
+		elseif not self:getIsAnimationPlaying(spec.turnedAnimation) then
+			self:playAnimation(spec.turnedAnimation, spec.turnedAnimationTurnOnSpeedScale, self:getAnimationTime(spec.turnedAnimation), true)
 		end
-		v220_.workAreaParameters.lastIsExternallyFilled = v232_
+		spec.workAreaParameters.lastIsExternallyFilled = isExternallyFilled
 	end
-	if self.isServer and (v233_ ~= FillType.UNKNOWN and v233_ ~= v220_.workAreaParameters.sprayFillType) then
-		self:setSprayerAITerrainDetailProhibitedRange(v233_)
+	if self.isServer and (fillType ~= FillType.UNKNOWN and fillType ~= spec.workAreaParameters.sprayFillType) then
+		self:setSprayerAITerrainDetailProhibitedRange(fillType)
 	end
-	v220_.workAreaParameters.sprayType = g_sprayTypeManager:getSprayTypeIndexByFillTypeIndex(v233_)
-	v220_.workAreaParameters.sprayFillType = v233_
-	v220_.workAreaParameters.sprayFillLevel = v234_
-	v220_.workAreaParameters.usage = v225_
-	v220_.workAreaParameters.usagePerMin = v225_ / dt * 1000 * 60
-	v220_.workAreaParameters.sprayVehicle = v222_
-	v220_.workAreaParameters.sprayVehicleFillUnitIndex = v223_
-	v220_.workAreaParameters.lastChangedArea = 0
-	v220_.workAreaParameters.lastTotalArea = 0
-	v220_.workAreaParameters.lastStatsArea = 0
-	v220_.workAreaParameters.isActive = false
-	v220_.isWorking = false
+	spec.workAreaParameters.sprayType = g_sprayTypeManager:getSprayTypeIndexByFillTypeIndex(fillType)
+	spec.workAreaParameters.sprayFillType = fillType
+	spec.workAreaParameters.sprayFillLevel = sprayFillLevel
+	spec.workAreaParameters.usage = usage
+	spec.workAreaParameters.usagePerMin = usage / dt * 1000 * 60
+	spec.workAreaParameters.sprayVehicle = sprayVehicle
+	spec.workAreaParameters.sprayVehicleFillUnitIndex = sprayVehicleFillUnitIndex
+	spec.workAreaParameters.lastChangedArea = 0
+	spec.workAreaParameters.lastTotalArea = 0
+	spec.workAreaParameters.lastStatsArea = 0
+	spec.workAreaParameters.isActive = false
+	spec.isWorking = false
 end
-
--- Local values: spec, sprayVehicle, usage, sprayVehicleFillUnitIndex, sprayFillType, unloadInfoIndex, sprayType, unloadInfo, ha, farmId
 function Sprayer:onEndWorkAreaProcessing(dt, hasProcessed)
-	local v238_ = self.spec_sprayer
-	if self.isServer and v238_.workAreaParameters.isActive then
-		local v239_ = v238_.workAreaParameters.sprayVehicle
-		local v240_ = v238_.workAreaParameters.usage
-		if v239_ ~= nil then
-			local v241_ = v238_.workAreaParameters.sprayVehicleFillUnitIndex
-			local v242_ = v238_.workAreaParameters.sprayFillType
-			local v243_ = v238_.unloadInfoIndex
-			local v244_ = self:getActiveSprayType()
-			if v244_ ~= nil then
-				v243_ = v244_.unloadInfoIndex
+	local spec = self.spec_sprayer
+	if self.isServer and spec.workAreaParameters.isActive then
+		local sprayVehicle = spec.workAreaParameters.sprayVehicle
+		local usage = spec.workAreaParameters.usage
+		if sprayVehicle ~= nil then
+			local sprayVehicleFillUnitIndex = spec.workAreaParameters.sprayVehicleFillUnitIndex
+			local sprayFillType = spec.workAreaParameters.sprayFillType
+			local unloadInfoIndex = spec.unloadInfoIndex
+			local sprayType = self:getActiveSprayType()
+			if sprayType ~= nil then
+				unloadInfoIndex = sprayType.unloadInfoIndex
 			end
-			local v245_ = self:getFillVolumeUnloadInfo(v243_)
-			v239_:addFillUnitFillLevel(self:getOwnerFarmId(), v241_, -v240_, v242_, ToolType.UNDEFINED, v245_)
+			local unloadInfo = self:getFillVolumeUnloadInfo(unloadInfoIndex)
+			sprayVehicle:addFillUnitFillLevel(self:getOwnerFarmId(), sprayVehicleFillUnitIndex, -usage, sprayFillType, ToolType.UNDEFINED, unloadInfo)
 		end
-		local v246_ = MathUtil.areaToHa(v238_.workAreaParameters.lastStatsArea, g_currentMission:getFruitPixelsToSqm())
-		local v247_ = self:getLastTouchedFarmlandFarmId()
-		g_farmManager:updateFarmStats(v247_, "sprayedHectares", v246_)
-		g_farmManager:updateFarmStats(v247_, "sprayedTime", dt / 60000)
-		g_farmManager:updateFarmStats(v247_, "sprayUsage", v240_)
-		self:updateLastWorkedArea(v238_.workAreaParameters.lastStatsArea)
+		local ha = MathUtil.areaToHa(spec.workAreaParameters.lastStatsArea, g_currentMission:getFruitPixelsToSqm())
+		local farmId = self:getLastTouchedFarmlandFarmId()
+		g_farmManager:updateFarmStats(farmId, "sprayedHectares", ha)
+		g_farmManager:updateFarmStats(farmId, "sprayedTime", dt / 60000)
+		g_farmManager:updateFarmStats(farmId, "sprayUsage", usage)
+		self:updateLastWorkedArea(spec.workAreaParameters.lastStatsArea)
 	end
 	self:updateSprayerEffects()
 end
-
--- Local values: spec, supportedFillTypes, fillType, supported, root
 function Sprayer:onStateChange(state, data)
-	if state == VehicleStateChange.ATTACH or (state == VehicleStateChange.DETACH or state == VehicleStateChange.FILLTYPE_CHANGE) then
-		local v250_ = self.spec_sprayer
-		v250_.fillTypeSources = {}
-		local v251_ = self:getFillUnitSupportedFillTypes(self:getSprayerFillUnitIndex())
-		v250_.supportedSprayTypes = {}
-		if v251_ ~= nil then
-			for v252_, v253_ in pairs(v251_) do
-				if v253_ then
-					v250_.fillTypeSources[v252_] = {}
-					local v254_ = v250_.supportedSprayTypes
-					table.insert(v254_, v252_)
+	if state == VehicleStateChange.ATTACH or state == VehicleStateChange.DETACH or state == VehicleStateChange.FILLTYPE_CHANGE then
+		local spec = self.spec_sprayer
+		spec.fillTypeSources = {}
+		local supportedFillTypes = self:getFillUnitSupportedFillTypes(self:getSprayerFillUnitIndex())
+		spec.supportedSprayTypes = {}
+		if supportedFillTypes ~= nil then
+			for fillType, supported in pairs(supportedFillTypes) do
+				if supported then
+					spec.fillTypeSources[fillType] = {}
+					table.insert(spec.supportedSprayTypes, fillType)
 				end
 			end
 		end
-		local v255_ = self.rootVehicle
-		FillUnit.addFillTypeSources(v250_.fillTypeSources, v255_, self, v250_.supportedSprayTypes)
+		local root = self.rootVehicle
+		FillUnit.addFillTypeSources(spec.fillTypeSources, root, self, spec.supportedSprayTypes)
 	end
 end
-
--- Local values: spec, _, supportedSprayType, _, src, vehicle, fillLevel
 function Sprayer:onSetLowered(isLowered)
-	local v258_ = self.spec_sprayer
+	local spec = self.spec_sprayer
 	if self.isServer then
-		if v258_.activateOnLowering then
+		if spec.activateOnLowering then
 			if self:getCanBeTurnedOn() then
 				self:setIsTurnedOn(isLowered)
 			else
-				v258_.pendingActivationAfterLowering = true
+				spec.pendingActivationAfterLowering = true
 			end
 		end
 		if not isLowered then
-			v258_.pendingActivationAfterLowering = false
+			spec.pendingActivationAfterLowering = false
 		end
 	end
-	if v258_.activateTankOnLowering then
-		for _, v259_ in ipairs(v258_.supportedSprayTypes) do
-			for _, v260_ in ipairs(v258_.fillTypeSources[v259_]) do
-				local v261_ = v260_.vehicle
-				local v262_ = v261_:getFillUnitFillLevel(v260_.fillUnitIndex)
-				if v261_.getIsTurnedOn ~= nil then
-					if isLowered then
-						if v262_ > 0 and v261_:getCanBeTurnedOn() then
-							v261_:setIsTurnedOn(true, true)
-						end
-					else
-						v261_:setIsTurnedOn(false, true)
+	if spec.activateTankOnLowering then
+		for _, supportedSprayType in ipairs(spec.supportedSprayTypes) do
+			for _, src in ipairs(spec.fillTypeSources[supportedSprayType]) do
+				local vehicle = src.vehicle
+				local fillLevel = vehicle:getFillUnitFillLevel(src.fillUnitIndex)
+				if vehicle.getIsTurnedOn == nil then
+					continue
+				end
+				if isLowered then
+					if 0 < fillLevel and vehicle:getCanBeTurnedOn() then
+						vehicle:setIsTurnedOn(true, true)
 					end
+				else
+					vehicle:setIsTurnedOn(false, true)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, fillLevel, hasValidSource, _, src, vehicle, vehicleFillType, vehicleFillLevel
 function Sprayer:onFillUnitFillLevelChanged(fillUnitIndex, fillLevelDelta, fillType, toolType, fillPositionData, appliedDelta)
-	local v266_ = self.spec_sprayer
-	if fillUnitIndex == v266_.fillUnitIndex and (self:getFillUnitFillLevel(fillUnitIndex) == 0 and (self:getIsTurnedOn() and not self:getIsAIActive())) then
-		local v267_ = false
-		if v266_.fillTypeSources[fillType] ~= nil then
-			for _, v268_ in ipairs(v266_.fillTypeSources[fillType]) do
-				local v269_ = v268_.vehicle
-				if v269_:getIsFillUnitActive(v268_.fillUnitIndex) then
-					local v270_ = v269_:getFillUnitFillType(v268_.fillUnitIndex)
-					if v269_:getFillUnitFillLevel(v268_.fillUnitIndex) > 0 and v270_ == fillType then
-						v267_ = true
+	local spec = self.spec_sprayer
+	if fillUnitIndex == spec.fillUnitIndex then
+		local fillLevel = self:getFillUnitFillLevel(fillUnitIndex)
+		if fillLevel == 0 and (self:getIsTurnedOn() and not self:getIsAIActive()) then
+			local hasValidSource = false
+			if spec.fillTypeSources[fillType] ~= nil then
+				for _, src in ipairs(spec.fillTypeSources[fillType]) do
+					local vehicle = src.vehicle
+					if vehicle:getIsFillUnitActive(src.fillUnitIndex) then
+						local vehicleFillType = vehicle:getFillUnitFillType(src.fillUnitIndex)
+						local vehicleFillLevel = vehicle:getFillUnitFillLevel(src.fillUnitIndex)
+						if 0 < vehicleFillLevel and vehicleFillType == fillType then
+							hasValidSource = true
+						end
 					end
 				end
 			end
-		end
-		if not v267_ then
-			self:setIsTurnedOn(false)
-			if Platform.gameplay.automaticVehicleControl then
-				self.rootVehicle:playControlledActions()
+			if not hasValidSource then
+				self:setIsTurnedOn(false)
+				if Platform.gameplay.automaticVehicleControl then
+					self.rootVehicle:playControlledActions()
+				end
 			end
 		end
 	end
 end
-
--- Local values: spec, _, sprayType
 function Sprayer:onSprayTypeChange(activeSprayType)
-	local v273_ = self.spec_sprayer
-	for _, v274_ in ipairs(v273_.sprayTypes) do
-		ObjectChangeUtil.setObjectChanges(v274_.objectChanges, v274_ == activeSprayType, self, self.setMovingToolDirty)
+	local spec = self.spec_sprayer
+	for _, sprayType in ipairs(spec.sprayTypes) do
+		ObjectChangeUtil.setObjectChanges(sprayType.objectChanges, sprayType == activeSprayType, self, self.setMovingToolDirty)
 	end
 	if self.setVariableWorkWidthActive ~= nil then
-		self:setVariableWorkWidthActive(activeSprayType == nil and true or activeSprayType.supportsVariableWorkWidth)
+		self:setVariableWorkWidthActive(true)
 	end
 end
-
--- Local values: spec, _, supportedSprayType, _, src, vehicle
 function Sprayer:onAIImplementEnd()
-	local v276_ = self.spec_sprayer
-	for _, v277_ in ipairs(v276_.supportedSprayTypes) do
-		for _, v278_ in ipairs(v276_.fillTypeSources[v277_]) do
-			local v279_ = v278_.vehicle
-			if v279_.getIsTurnedOn ~= nil and v279_:getIsTurnedOn() then
-				v279_:setIsTurnedOn(false, true)
+	local spec = self.spec_sprayer
+	for _, supportedSprayType in ipairs(spec.supportedSprayTypes) do
+		for _, src in ipairs(spec.fillTypeSources[supportedSprayType]) do
+			local vehicle = src.vehicle
+			if vehicle.getIsTurnedOn == nil then
+				continue
+			end
+			if vehicle:getIsTurnedOn() then
+				vehicle:setIsTurnedOn(false, true)
 			end
 		end
 	end
 end
-
 function Sprayer:onVariableWorkWidthSectionChanged()
 	self:updateSprayerEffects(true)
 end

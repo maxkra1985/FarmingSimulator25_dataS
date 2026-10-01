@@ -3,15 +3,12 @@ PlaceableFence.EPSILON = 0.00001
 source("dataS/scripts/placeables/specializations/events/PlaceableFenceAddGateEvent.lua")
 source("dataS/scripts/placeables/specializations/events/PlaceableFenceAddSegmentEvent.lua")
 source("dataS/scripts/placeables/specializations/events/PlaceableFenceRemoveSegmentEvent.lua")
-
-function PlaceableFence.prerequisitesPresent(self)
+function PlaceableFence.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableFence.registerEvents(placeableType)
 	SpecializationUtil.registerEvent(placeableType, "onCreateSegmentPanel")
 end
-
 function PlaceableFence.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "addSegment", PlaceableFence.addSegment)
 	SpecializationUtil.registerFunction(placeableType, "addSegmentShapesToUpdate", PlaceableFence.addSegmentShapesToUpdate)
@@ -57,7 +54,6 @@ function PlaceableFence.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "registerTerrainHeightChangeCallbacks", PlaceableFence.registerTerrainHeightChangeCallbacks)
 	SpecializationUtil.registerFunction(placeableType, "onTerrainDeformationSyncerUpdate", PlaceableFence.onTerrainDeformationSyncerUpdate)
 end
-
 function PlaceableFence.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "collectPickObjects", PlaceableFence.collectPickObjects)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getDestructionMethod", PlaceableFence.getDestructionMethod)
@@ -65,7 +61,6 @@ function PlaceableFence.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "previewNodeDestructionNodes", PlaceableFence.previewNodeDestructionNodes)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "setOwnerFarmId", PlaceableFence.setOwnerFarmId)
 end
-
 function PlaceableFence.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableFence)
 	SpecializationUtil.registerEventListener(placeableType, "onDelete", PlaceableFence)
@@ -73,7 +68,6 @@ function PlaceableFence.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onWriteStream", PlaceableFence)
 	SpecializationUtil.registerEventListener(placeableType, "onUpdate", PlaceableFence)
 end
-
 function PlaceableFence.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Fence")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".fence.poles#node", "Group of pole variants")
@@ -102,7 +96,6 @@ function PlaceableFence.registerXMLPaths(schema, basePath)
 	AnimatedObjectBuilder.registerXMLPaths(schema, basePath .. ".fence.gate(?)")
 	schema:setXMLSpecializationType()
 end
-
 function PlaceableFence.registerSavegameXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Fence")
 	schema:register(XMLValueType.VECTOR_2, basePath .. ".segments.segment(?)#start", "Segment start position")
@@ -113,441 +106,372 @@ function PlaceableFence.registerSavegameXMLPaths(schema, basePath)
 	AnimatedObject.registerSavegameXMLPaths(schema, basePath .. ".segments.segment(?).animatedObject")
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec, xmlFile, polesNode, i, panelsNode, i
 function PlaceableFence:onLoad(savegame)
-	local v_u_10_ = self.spec_fence
-	local v_u_11_ = self.xmlFile
-	v_u_10_.pickObjects = {}
-	v_u_10_.segments = {}
-	v_u_10_.segmentsToUpdate = {}
-	v_u_10_.animatedObjects = {}
-	v_u_10_.previewSegment = nil
-	v_u_10_.panelLength = v_u_11_:getValue("placeable.fence.panels#length")
-	v_u_10_.panelLengthFixed = v_u_11_:getValue("placeable.fence.panels#fixedLength")
-	v_u_10_.maxVerticalAngle = v_u_11_:getValue("placeable.fence#maxVerticalAngle", 35)
-	v_u_10_.maxVerticalGateAngle = v_u_11_:getValue("placeable.fence#maxVerticalGateAngle", 5)
-	v_u_10_.hasInvisiblePoles = v_u_11_:getValue("placeable.fence#hasInvisiblePoles", false)
-	v_u_10_.supportsParallelSnapping = v_u_11_:getValue("placeable.fence#supportsParallelSnapping", false)
-	v_u_10_.boundingCheckWidth = v_u_11_:getValue("placeable.fence#boundingCheckWidth", 0.25)
-	v_u_10_.snapDistance = v_u_11_:getValue("placeable.fence#snapDistance", nil)
-	v_u_10_.snapAngle = v_u_11_:getValue("placeable.fence#snapAngle", nil)
-	v_u_10_.snapCheckDistance = v_u_11_:getValue("placeable.fence#snapCheckDistance", 0.25)
-	v_u_10_.allowExtendingOnly = v_u_11_:getValue("placeable.fence#extendingOnly", false)
-	v_u_10_.maxCornerAngle = v_u_11_:getValue("placeable.fence#maxCornerAngle", 180)
-	v_u_10_.poles = {}
-	local v12_ = v_u_11_:getValue("placeable.fence.poles#node", nil, self.components, self.i3dMappings)
-	if v12_ ~= nil then
-		for v13_ = 1, getNumOfChildren(v12_) do
-			v_u_10_.poles[v13_] = getChildAt(v12_, v13_ - 1)
+	local spec = self.spec_fence
+	local xmlFile = self.xmlFile
+	spec.pickObjects = {}
+	spec.segments = {}
+	spec.segmentsToUpdate = {}
+	spec.animatedObjects = {}
+	spec.previewSegment = nil
+	spec.panelLength = xmlFile:getValue("placeable.fence.panels#length")
+	spec.panelLengthFixed = xmlFile:getValue("placeable.fence.panels#fixedLength")
+	spec.maxVerticalAngle = xmlFile:getValue("placeable.fence#maxVerticalAngle", 35)
+	spec.maxVerticalGateAngle = xmlFile:getValue("placeable.fence#maxVerticalGateAngle", 5)
+	spec.hasInvisiblePoles = xmlFile:getValue("placeable.fence#hasInvisiblePoles", false)
+	spec.supportsParallelSnapping = xmlFile:getValue("placeable.fence#supportsParallelSnapping", false)
+	spec.boundingCheckWidth = xmlFile:getValue("placeable.fence#boundingCheckWidth", 0.25)
+	spec.snapDistance = xmlFile:getValue("placeable.fence#snapDistance", nil)
+	spec.snapAngle = xmlFile:getValue("placeable.fence#snapAngle", nil)
+	spec.snapCheckDistance = xmlFile:getValue("placeable.fence#snapCheckDistance", 0.25)
+	spec.allowExtendingOnly = xmlFile:getValue("placeable.fence#extendingOnly", false)
+	spec.maxCornerAngle = xmlFile:getValue("placeable.fence#maxCornerAngle", 180)
+	spec.poles = {}
+	local polesNode = xmlFile:getValue("placeable.fence.poles#node", nil, self.components, self.i3dMappings)
+	if polesNode ~= nil then
+		for i = 1, getNumOfChildren(polesNode) do
+			spec.poles[i] = getChildAt(polesNode, i - 1)
 		end
 	end
-	v_u_10_.panels = {}
-	local v14_ = v_u_11_:getValue("placeable.fence.panels#node", nil, self.components, self.i3dMappings)
-	if v14_ ~= nil then
-		for v15_ = 1, getNumOfChildren(v14_) do
-			v_u_10_.panels[v15_] = getChildAt(v14_, v15_ - 1)
+	spec.panels = {}
+	local panelsNode = xmlFile:getValue("placeable.fence.panels#node", nil, self.components, self.i3dMappings)
+	if panelsNode ~= nil then
+		for i = 1, getNumOfChildren(panelsNode) do
+			spec.panels[i] = getChildAt(panelsNode, i - 1)
 		end
 	end
-	v_u_10_.gates = {}
-	v_u_11_:iterate("placeable.fence.gate", function(_, p16_)
-		-- upvalues: (copy) v_u_11_, (copy) self, (copy) v_u_10_
-		local v17_ = v_u_11_:getValue(p16_ .. "#node", nil, self.components, self.i3dMappings)
-		if v17_ == nil then
-			Logging.xmlWarning(v_u_11_, "Gate node does not exist at %s", p16_)
-		else
-			local v_u_18_ = {}
-			v_u_11_:iterate(p16_ .. ".door", function(_, p19_)
-				-- upvalues: (ref) v_u_11_, (copy) v_u_18_
-				local v20_ = v_u_11_:getValue(p19_ .. "#node")
-				if v20_ == nil then
-					Logging.xmlWarning(v_u_11_, "Door node does not exist at %s", p19_)
+	spec.gates = {}
+	xmlFile:iterate("placeable.fence.gate", function(_, key)
+		local node = xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
+		if node ~= nil then
+			local doors = {}
+			xmlFile:iterate(key .. ".door", function(_, doorKey)
+				local doorNode = xmlFile:getValue(doorKey .. "#node")
+				if doorNode ~= nil then
+					table.insert(doors, { node = doorNode, rotation = xmlFile:getValue(doorKey .. "#openRotation", nil, true), translation = xmlFile:getValue(doorKey .. "#openTranslation", nil, true) })
 				else
-					local v21_ = v_u_18_
-					local v22_ = {
-						["node"] = v20_,
-						["rotation"] = v_u_11_:getValue(p19_ .. "#openRotation", nil, true),
-						["translation"] = v_u_11_:getValue(p19_ .. "#openTranslation", nil, true)
-					}
-					table.insert(v21_, v22_)
+					Logging.xmlWarning(xmlFile, "Door node does not exist at %s", doorKey)
 				end
 			end)
-			local v23_ = v_u_10_.gates
-			local v24_ = {
-				["node"] = v17_,
-				["length"] = v_u_11_:getValue(p16_ .. "#length", 1),
-				["triggerNode"] = v_u_11_:getValue(p16_ .. "#triggerNode"),
-				["openText"] = v_u_11_:getValue(p16_ .. "#openText", "action_openGate"),
-				["closeText"] = v_u_11_:getValue(p16_ .. "#closeText", "action_closeGate"),
-				["animationDuration"] = v_u_11_:getValue(p16_ .. "#openDuration", 3),
-				["doors"] = v_u_18_
-			}
-			table.insert(v23_, v24_)
+			table.insert(spec.gates, { node = node, doors = doors, length = xmlFile:getValue(key .. "#length", 1), triggerNode = xmlFile:getValue(key .. "#triggerNode"), openText = xmlFile:getValue(key .. "#openText", "action_openGate"), closeText = xmlFile:getValue(key .. "#closeText", "action_closeGate"), animationDuration = xmlFile:getValue(key .. "#openDuration", 3) })
+		else
+			Logging.xmlWarning(xmlFile, "Gate node does not exist at %s", key)
 		end
 	end)
 end
-
--- Local values: spec, _, segment, terrainDeformationSyncer, cellId, cellX, cellZ, _, animatedObject
 function PlaceableFence:onDelete()
-	local v26_ = self.spec_fence
-	if v26_.segments ~= nil then
-		for _, v27_ in pairs(v26_.segments) do
-			if v27_.pendingUpdateTimer ~= nil then
-				v27_.pendingUpdateTimer:delete()
-				v27_.pendingUpdateTimer = nil
+	local spec = self.spec_fence
+	if spec.segments ~= nil then
+		for _, segment in pairs(spec.segments) do
+			if segment.pendingUpdateTimer == nil then
+				continue
 			end
+			segment.pendingUpdateTimer:delete()
+			segment.pendingUpdateTimer = nil
 		end
 	end
 	if self.cellIdToSegments ~= nil then
-		local v28_ = g_currentMission.terrainDeformationSyncer
-		if v28_ ~= nil then
-			for v29_ in pairs(self.cellIdToSegments) do
-				local v30_, v31_ = v28_:getCellIndicesById(v29_)
-				v28_:removeCellUpdateListener(self, v30_, v31_)
+		local terrainDeformationSyncer = g_currentMission.terrainDeformationSyncer
+		if terrainDeformationSyncer ~= nil then
+			for cellId in pairs(self.cellIdToSegments) do
+				local cellX, cellZ = terrainDeformationSyncer:getCellIndicesById(cellId)
+				terrainDeformationSyncer:removeCellUpdateListener(self, cellX, cellZ)
 			end
 		end
 		self.cellIdToSegments = nil
 	end
-	if v26_.animatedObjects ~= nil then
-		for _, v32_ in ipairs(v26_.animatedObjects) do
-			v32_:delete()
+	if spec.animatedObjects ~= nil then
+		for _, animatedObject in ipairs(spec.animatedObjects) do
+			animatedObject:delete()
 		end
 	end
 end
-
--- Local values: spec, numSegments, i, segment, i, segment, animatedObject, animatedObjectId
 function PlaceableFence:onReadStream(streamId, connection)
-	local v36_ = self.spec_fence
-	local v37_ = streamReadInt32(streamId)
-	for _ = 1, v37_ do
-		local v38_ = {
-			["x1"] = streamReadFloat32(streamId),
-			["z1"] = streamReadFloat32(streamId),
-			["x2"] = streamReadFloat32(streamId),
-			["z2"] = streamReadFloat32(streamId),
-			["gateIndex"] = streamReadUInt8(streamId)
-		}
-		if v38_.gateIndex == 0 then
-			v38_.gateIndex = nil
+	local spec = self.spec_fence
+	local numSegments = streamReadInt32(streamId)
+	for i = 1, numSegments do
+		local segment = {}
+		segment.x1 = streamReadFloat32(streamId)
+		segment.z1 = streamReadFloat32(streamId)
+		segment.x2 = streamReadFloat32(streamId)
+		segment.z2 = streamReadFloat32(streamId)
+		segment.gateIndex = streamReadUInt8(streamId)
+		if segment.gateIndex == 0 then
+			segment.gateIndex = nil
 		end
-		v38_.renderFirst = streamReadBool(streamId)
-		v38_.renderLast = streamReadBool(streamId)
-		v38_.poles = {}
-		local v39_ = v36_.segments
-		table.insert(v39_, v38_)
+		segment.renderFirst = streamReadBool(streamId)
+		segment.renderLast = streamReadBool(streamId)
+		segment.poles = {}
+		table.insert(spec.segments, segment)
 	end
-	for v40_ = 1, v37_ do
-		local v41_ = v36_.segments[v40_]
-		self:generateSegmentPoles(v41_, true)
-		if v41_.gateIndex ~= nil and v41_.animatedObject ~= nil then
-			local v42_ = v41_.animatedObject
-			local v43_ = NetworkUtil.readNodeObjectId(streamId)
-			v42_:readStream(streamId, connection)
-			g_client:finishRegisterObject(v42_, v43_)
+	for i = 1, numSegments do
+		local segment = spec.segments[i]
+		self:generateSegmentPoles(segment, true)
+		if segment.gateIndex ~= nil and segment.animatedObject ~= nil then
+			local animatedObject = segment.animatedObject
+			local animatedObjectId = NetworkUtil.readNodeObjectId(streamId)
+			animatedObject:readStream(streamId, connection)
+			g_client:finishRegisterObject(animatedObject, animatedObjectId)
 		end
-		self:registerTerrainHeightChangeCallbacks(v41_)
+		self:registerTerrainHeightChangeCallbacks(segment)
 	end
 end
-
--- Local values: spec, numSegments, i, segment, i, segment, animatedObject
 function PlaceableFence:onWriteStream(streamId, connection)
-	local v47_ = self.spec_fence
-	local v48_ = #v47_.segments
-	streamWriteInt32(streamId, v48_)
-	for v49_ = 1, v48_ do
-		local v50_ = v47_.segments[v49_]
-		streamWriteFloat32(streamId, v50_.x1)
-		streamWriteFloat32(streamId, v50_.z1)
-		streamWriteFloat32(streamId, v50_.x2)
-		streamWriteFloat32(streamId, v50_.z2)
-		streamWriteUInt8(streamId, v50_.gateIndex or 0)
-		streamWriteBool(streamId, v50_.renderFirst)
-		streamWriteBool(streamId, v50_.renderLast)
+	local spec = self.spec_fence
+	local numSegments = #spec.segments
+	streamWriteInt32(streamId, numSegments)
+	for i = 1, numSegments do
+		local segment = spec.segments[i]
+		streamWriteFloat32(streamId, segment.x1)
+		streamWriteFloat32(streamId, segment.z1)
+		streamWriteFloat32(streamId, segment.x2)
+		streamWriteFloat32(streamId, segment.z2)
+		streamWriteUInt8(streamId, segment.gateIndex or 0)
+		streamWriteBool(streamId, segment.renderFirst)
+		streamWriteBool(streamId, segment.renderLast)
 	end
-	for v51_ = 1, v48_ do
-		local v52_ = v47_.segments[v51_]
-		if v52_.gateIndex ~= nil and v52_.animatedObject ~= nil then
-			local v53_ = v52_.animatedObject
-			NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v53_))
-			v53_:writeStream(streamId, connection)
-			g_server:registerObjectInStream(connection, v53_)
+	for i = 1, numSegments do
+		local segment = spec.segments[i]
+		if segment.gateIndex == nil or segment.animatedObject == nil then
+			continue
 		end
+		local animatedObject = segment.animatedObject
+		NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(animatedObject))
+		animatedObject:writeStream(streamId, connection)
+		g_server:registerObjectInStream(connection, animatedObject)
 	end
 end
-
 function PlaceableFence:onUpdate(dt)
 	self:updateSegmentUpdateQueue()
 end
-
--- Local values: spec, _, animatedObject
 function PlaceableFence:setOwnerFarmId(superFunc, ownerFarmId, noEventSend)
-	local v59_ = self.spec_fence
+	local spec = self.spec_fence
 	superFunc(self, ownerFarmId, noEventSend)
-	if v59_.animatedObjects ~= nil then
-		for _, v60_ in ipairs(v59_.animatedObjects) do
-			v60_:setOwnerFarmId(ownerFarmId, true)
+	if spec.animatedObjects ~= nil then
+		for _, animatedObject in ipairs(spec.animatedObjects) do
+			animatedObject:setOwnerFarmId(ownerFarmId, true)
 		end
 	end
 end
-
--- Local values: spec, i, segment
 function PlaceableFence:loadFromXMLFile(xmlFile, key)
-	local v_u_64_ = self.spec_fence
-	xmlFile:iterate(key .. ".segments.segment", function(_, p65_)
-		-- upvalues: (copy) xmlFile, (copy) v_u_64_
-		local v66_, v67_ = xmlFile:getValue(p65_ .. "#start")
-		local v68_, v69_ = xmlFile:getValue(p65_ .. "#end")
-		if v66_ == nil or (v67_ == nil or (v68_ == nil or v69_ == nil)) then
-			Logging.xmlError(xmlFile, "Invalid segment position for \'%s\'. Ignoring segment!", p65_)
-		else
-			local v70_ = {
-				["x1"] = v66_,
-				["z1"] = v67_,
-				["x2"] = v68_,
-				["z2"] = v69_,
-				["renderFirst"] = xmlFile:getValue(p65_ .. "#first", true),
-				["renderLast"] = xmlFile:getValue(p65_ .. "#last", true),
-				["gateIndex"] = xmlFile:getValue(p65_ .. "#gateIndex"),
-				["poles"] = {},
-				["segmentKey"] = p65_
-			}
-			local v71_ = v_u_64_.segments
-			table.insert(v71_, v70_)
+	local spec = self.spec_fence
+	xmlFile:iterate(key .. ".segments.segment", function(index, segmentKey)
+		local x1, z1 = xmlFile:getValue(segmentKey .. "#start")
+		local x2, z2 = xmlFile:getValue(segmentKey .. "#end")
+		if x1 ~= nil and (z1 ~= nil and (x2 ~= nil and z2 ~= nil)) then
+			local segment = { x1 = x1, z1 = z1, x2 = x2, z2 = z2, segmentKey = segmentKey }
+			segment.renderFirst = xmlFile:getValue(segmentKey .. "#first", true)
+			segment.renderLast = xmlFile:getValue(segmentKey .. "#last", true)
+			segment.gateIndex = xmlFile:getValue(segmentKey .. "#gateIndex")
+			segment.poles = {}
+			table.insert(spec.segments, segment)
+			return
 		end
+		Logging.xmlError(xmlFile, "Invalid segment position for '%s'. Ignoring segment!", segmentKey)
 	end)
-	for v72_ = 1, #v_u_64_.segments do
-		local v73_ = v_u_64_.segments[v72_]
-		self:generateSegmentPoles(v73_, true)
-		if v73_.gateIndex ~= nil and v73_.animatedObject ~= nil then
-			v73_.animatedObject:loadFromXMLFile(xmlFile, v73_.segmentKey .. ".animatedObject")
+	for i = 1, #spec.segments do
+		local segment = spec.segments[i]
+		self:generateSegmentPoles(segment, true)
+		if segment.gateIndex ~= nil and segment.animatedObject ~= nil then
+			segment.animatedObject:loadFromXMLFile(xmlFile, segment.segmentKey .. ".animatedObject")
 		end
-		v73_.segmentKey = nil
+		segment.segmentKey = nil
 	end
 end
-
--- Local values: spec
 function PlaceableFence:saveToXMLFile(xmlFile, key, usedModNames)
-	local v78_ = self.spec_fence
-	xmlFile:setTable(key .. ".segments.segment", v78_.segments, function(p79_, p80_, _)
-		-- upvalues: (copy) xmlFile, (copy) usedModNames
-		xmlFile:setValue(p79_ .. "#start", p80_.x1, p80_.z1)
-		xmlFile:setValue(p79_ .. "#end", p80_.x2, p80_.z2)
-		if p80_.gateIndex ~= nil then
-			xmlFile:setValue(p79_ .. "#gateIndex", p80_.gateIndex)
-			if p80_.animatedObject ~= nil then
-				p80_.animatedObject:saveToXMLFile(xmlFile, p79_ .. ".animatedObject", usedModNames)
+	local spec = self.spec_fence
+	xmlFile:setTable(key .. ".segments.segment", spec.segments, function(path, segment, _)
+		xmlFile:setValue(path .. "#start", segment.x1, segment.z1)
+		xmlFile:setValue(path .. "#end", segment.x2, segment.z2)
+		if segment.gateIndex ~= nil then
+			xmlFile:setValue(path .. "#gateIndex", segment.gateIndex)
+			if segment.animatedObject ~= nil then
+				segment.animatedObject:saveToXMLFile(xmlFile, path .. ".animatedObject", usedModNames)
 			end
 		end
-		if not p80_.renderFirst then
-			xmlFile:setValue(p79_ .. "#first", false)
+		if not segment.renderFirst then
+			xmlFile:setValue(path .. "#first", false)
 		end
-		if not p80_.renderLast then
-			xmlFile:setValue(p79_ .. "#last", false)
+		if not segment.renderLast then
+			xmlFile:setValue(path .. "#last", false)
 		end
 	end)
 end
-
--- Local values: startPosX, startPosZ, dirX, dirZ, length, terrainDeformationSyncer, offset, stepSize, x, z, cellX, cellZ, cellId
 function PlaceableFence:registerTerrainHeightChangeCallbacks(segment)
 	if self.isServer or not g_currentMission.missionDynamicInfo.isMultiplayer then
 		return
 	end
-	local v83_ = segment.x1
-	local v84_ = segment.z1
-	local v85_ = segment.x2 - v83_
-	local v86_ = segment.z2 - v84_
-	local v87_ = MathUtil.vector2Length(v85_, v86_)
-	local v88_, v89_ = MathUtil.vector2Normalize(v85_, v86_)
-	local v90_ = g_currentMission.terrainDeformationSyncer
-	local v91_ = 0
+	local startPosX = segment.x1
+	local startPosZ = segment.z1
+	local dirX = segment.x2 - startPosX
+	local dirZ = segment.z2 - startPosZ
+	local length = MathUtil.vector2Length(dirX, dirZ)
+	dirX, dirZ = MathUtil.vector2Normalize(dirX, dirZ)
+	local terrainDeformationSyncer = g_currentMission.terrainDeformationSyncer
+	local offset = 0
+	local stepSize = 0.5
 	while true do
-		local v92_, v93_ = v90_:getCellIndicesAtWorldPosition(v83_ + v88_ * v91_, v84_ + v89_ * v91_)
-		if v92_ ~= nil then
-			local v94_ = v90_:getCellId(v92_, v93_)
-			if self.cellIdToSegments == nil then
-				self.cellIdToSegments = {}
-			end
-			if self.cellIdToSegments[v94_] == nil then
-				self.cellIdToSegments[v94_] = {}
-				v90_:addCellUpdateListener(self, v92_, v93_)
-			end
-			self.cellIdToSegments[v94_][segment] = true
+		local x = startPosX + dirX * offset
+		local z = startPosZ + dirZ * offset
+		local cellX, cellZ = terrainDeformationSyncer:getCellIndicesAtWorldPosition(x, z)
+		if cellX == nil then
+			break
 		end
-		if v87_ <= v91_ then
-			return
+		local cellId = terrainDeformationSyncer:getCellId(cellX, cellZ)
+		if self.cellIdToSegments == nil then
+			self.cellIdToSegments = {}
 		end
-		local v95_ = v91_ + 0.5
-		v91_ = math.min(v95_, v87_)
+		if self.cellIdToSegments[cellId] == nil then
+			self.cellIdToSegments[cellId] = {}
+			terrainDeformationSyncer:addCellUpdateListener(self, cellX, cellZ)
+			self.cellIdToSegments[cellId][segment] = true
+			break
+		else
+			break
+		end
+	end
+	while not (length <= offset) do
+		offset = math.min(offset + 0.5, length)
 	end
 end
-
--- Local values: segments, segment, _
 function PlaceableFence:onTerrainDeformationSyncerUpdate(cellX, cellZ, cellId)
 	if self.cellIdToSegments == nil then
 		return
+	end
+	local segments = self.cellIdToSegments[cellId]
+	if segments == nil then
+		return
 	else
-		local v98_ = self.cellIdToSegments[cellId]
-		if v98_ ~= nil then
-			for v_u_99_, _ in pairs(v98_) do
-				if v_u_99_.pendingUpdateTimer == nil then
-					v_u_99_.pendingUpdateTimer = Timer.new(5000)
-					v_u_99_.pendingUpdateTimer:setFinishCallback(function()
-						-- upvalues: (copy) self, (copy) v_u_99_
-						self:addSegmentShapesToUpdate(v_u_99_)
-						v_u_99_.pendingUpdateTimer = nil
-					end)
-					v_u_99_.pendingUpdateTimer:start()
-				end
+		for segment, _ in pairs(segments) do
+			if segment.pendingUpdateTimer == nil then
+				segment.pendingUpdateTimer = Timer.new(5000)
+				segment.pendingUpdateTimer:setFinishCallback(function()
+					self:addSegmentShapesToUpdate(segment)
+					segment.pendingUpdateTimer = nil
+				end)
+				segment.pendingUpdateTimer:start()
 			end
 		end
 	end
 end
-
--- Local values: spec, pole_x, pole_y, pole_z
 function PlaceableFence:getPoleNear(x, y, z, maxDistance)
-	local v105_ = self.spec_fence
-	v105_.getPoleNearResult = nil
-	v105_.getPoleNearResultSegment = nil
-	v105_.getPoleNearResultDistance = math.huge
-	v105_.getPoleNearResultPosition = { x, y, z }
+	local spec = self.spec_fence
+	spec.getPoleNearResult = nil
+	spec.getPoleNearResultSegment = nil
+	spec.getPoleNearResultDistance = math.huge
+	spec.getPoleNearResultPosition = { x, y, z }
 	overlapSphere(x, y, z, maxDistance, "getPoleNearOverlapCallback", self, CollisionFlag.STATIC_OBJECT, false, false, true, true)
-	if v105_.getPoleNearResult == nil then
+	if spec.getPoleNearResult ~= nil then
+		local pole_x, pole_y, pole_z = getWorldTranslation(spec.getPoleNearResult)
+		return pole_x, pole_y, pole_z, spec.getPoleNearResult, spec.getPoleNearResultSegment
+	else
 		return nil
 	end
-	local v106_, v107_, v108_ = getWorldTranslation(v105_.getPoleNearResult)
-	return v106_, v107_, v108_, v105_.getPoleNearResult, v105_.getPoleNearResultSegment
 end
-
--- Local values: sGroup, spec, x, y, z, distance, _, segment
 function PlaceableFence:getPoleNearOverlapCallback(hitObjectId)
-	if hitObjectId ~= 0 and hitObjectId ~= g_terrainNode then
-		local v111_ = getParent(getParent(hitObjectId))
-		local v112_ = self.spec_fence
-		local v113_, v114_, v115_ = getWorldTranslation(hitObjectId)
-		local v116_ = MathUtil.vector3Length(v113_ - v112_.getPoleNearResultPosition[1], v114_ - v112_.getPoleNearResultPosition[2], v115_ - v112_.getPoleNearResultPosition[3])
-		if v116_ < v112_.getPoleNearResultDistance then
-			for _, v117_ in ipairs(v112_.segments) do
-				if v117_.group == v111_ and getNumOfChildren(hitObjectId) < 3 then
-					v112_.getPoleNearResult = hitObjectId
-					v112_.getPoleNearResultSegment = v117_
-					v112_.getPoleNearResultDistance = v116_
-				end
+	if hitObjectId == 0 or hitObjectId == g_terrainNode then
+		return
+	end
+	local sGroup = getParent(getParent(hitObjectId))
+	local spec = self.spec_fence
+	local x, y, z = getWorldTranslation(hitObjectId)
+	local distance = MathUtil.vector3Length(x - spec.getPoleNearResultPosition[1], y - spec.getPoleNearResultPosition[2], z - spec.getPoleNearResultPosition[3])
+	if distance < spec.getPoleNearResultDistance then
+		for _, segment in ipairs(spec.segments) do
+			if segment.group == sGroup and getNumOfChildren(hitObjectId) < 3 then
+				spec.getPoleNearResult = hitObjectId
+				spec.getPoleNearResultSegment = segment
+				spec.getPoleNearResultDistance = distance
 			end
 		end
-		return true
 	end
+	return true
 end
-
--- Local values: spec, collision, item, parent, parent2, i, segment, x, y, z, x, y, z
 function PlaceableFence:getPolePosition(node, allowPanel)
-	local v121_ = self.spec_fence
-	local v122_ = getParent(node)
-	local v123_ = getParent(v122_)
-	local v124_
-	if allowPanel and v123_ ~= getRootNode() then
-		v124_ = getParent(v123_)
-	else
-		v124_ = nil
+	local spec = self.spec_fence
+	local item = getParent(node)
+	local parent = getParent(item)
+	local parent2 = nil
+	if allowPanel and parent ~= getRootNode() then
+		parent2 = getParent(parent)
 	end
-	for v125_ = 1, #v121_.segments do
-		local v126_ = v121_.segments[v125_]
-		if v123_ == v126_.group then
-			local v127_, v128_, v129_ = getWorldTranslation(v122_)
-			return v127_, v128_, v129_, v126_
+	for i = 1, #spec.segments do
+		local segment = spec.segments[i]
+		if parent == segment.group then
+			local x, y, z = getWorldTranslation(item)
+			return x, y, z, segment
 		end
-		if v124_ == v126_.group then
-			local v130_, v131_, v132_ = getWorldTranslation(v123_)
-			return v130_, v131_, v132_, v126_
+		if parent2 == segment.group then
+			local x, y, z = getWorldTranslation(parent)
+			return x, y, z, segment
 		end
 	end
 	return nil
 end
-
--- Local values: spec, pole
 function PlaceableFence:getPoleShapeForPreview()
-	local v134_ = self.spec_fence
-	if v134_.hasInvisiblePoles then
+	local spec = self.spec_fence
+	if spec.hasInvisiblePoles then
 		return nil
-	elseif #v134_.poles > 0 then
-		if getNumOfChildren(v134_.poles[1]) == 0 then
-			return nil
-		else
-			local v135_ = clone(v134_.poles[1], false, false, false)
-			if v135_ == 0 then
+	else
+		if 0 < #spec.poles then
+			if getNumOfChildren(spec.poles[1]) == 0 then
+				return nil
+			end
+			local pole = clone(spec.poles[1], false, false, false)
+			if pole == 0 then
 				return nil
 			else
-				return v135_
+				return pole
 			end
 		end
-	else
 		return nil
 	end
 end
-
--- Local values: spec, segment, maxAngle, minY, maxY, i, x1, z1, x2, z2, horizontalDifference, y1, y2, heightDifference, angle
 function PlaceableFence:getMaxVerticalAngleAndYForPreview()
-	local v137_ = self.spec_fence.previewSegment
-	local v138_ = 1000
-	local v139_ = -1000
-	local v140_ = 0
-	for v141_ = 1, #v137_.poles - 2, 2 do
-		local v142_ = v137_.poles[v141_]
-		local v143_ = v137_.poles[v141_ + 1]
-		local v144_ = v137_.poles[v141_ + 2]
-		local v145_ = v137_.poles[v141_ + 3]
-		local v146_ = MathUtil.getPointPointDistance(v142_, v143_, v144_, v145_)
-		local v147_ = getTerrainHeightAtWorldPos(g_terrainNode, v142_, 0, v143_)
-		local v148_ = getTerrainHeightAtWorldPos(g_terrainNode, v144_, 0, v145_)
-		local v149_ = v147_ - v148_
-		local v150_ = math.abs(v149_)
-		v138_ = math.min(v138_, v147_, v148_)
-		v139_ = math.max(v139_, v147_, v148_)
-		if v146_ > 0 then
-			local v151_ = v150_ / v146_
-			local v152_ = math.atan(v151_)
-			if v140_ < v152_ then
-				v140_ = v152_
+	local spec = self.spec_fence
+	local segment = spec.previewSegment
+	local maxAngle = 0
+	local minY = 1000
+	local maxY = -1000
+	for i = 1, #segment.poles - 2, 2 do
+		local x1 = segment.poles[i]
+		local z1 = segment.poles[i + 1]
+		local x2 = segment.poles[i + 2]
+		local z2 = segment.poles[i + 3]
+		local horizontalDifference = MathUtil.getPointPointDistance(x1, z1, x2, z2)
+		local y1 = getTerrainHeightAtWorldPos(g_terrainNode, x1, 0, z1)
+		local y2 = getTerrainHeightAtWorldPos(g_terrainNode, x2, 0, z2)
+		local heightDifference = math.abs(y1 - y2)
+		minY = math.min(minY, y1, y2)
+		maxY = math.max(maxY, y1, y2)
+		if 0 < horizontalDifference then
+			local angle = math.atan(heightDifference / horizontalDifference)
+			if maxAngle < angle then
+				maxAngle = angle
 			end
 		end
 	end
-	return v140_, v138_, v139_
+	return maxAngle, minY, maxY
 end
-
 function PlaceableFence:getSegmentLength(segment)
 	return MathUtil.getPointPointDistance(segment.x1, segment.z1, segment.x2, segment.z2)
 end
-
 function PlaceableFence:getPanelLength()
 	return self.spec_fence.panelLength
 end
-
 function PlaceableFence:getIsPanelLengthFixed()
 	return self.spec_fence.panelLengthFixed
 end
-
 function PlaceableFence:createSegment(x1, z1, x2, z2, renderFirst, gateIndex)
-	return {
-		["x1"] = x1,
-		["z1"] = z1,
-		["x2"] = x2,
-		["z2"] = z2,
-		["renderFirst"] = renderFirst,
-		["renderLast"] = true,
-		["gateIndex"] = gateIndex,
-		["poles"] = {}
-	}
+	return { x1 = x1, z1 = z1, x2 = x2, z2 = z2, renderFirst = renderFirst, renderLast = true, gateIndex = gateIndex, poles = {} }
 end
-
--- Local values: spec
 function PlaceableFence:addSegment(segment, sync)
-	local v165_ = self.spec_fence
-	v165_.segments[#v165_.segments + 1] = segment
+	local spec = self.spec_fence
+	spec.segments[#spec.segments + 1] = segment
 	self:generateSegmentPoles(segment, sync)
 end
-
--- Local values: spec, terrainDeformationSyncer, cellId, segments, cellX, cellZ
 function PlaceableFence:deleteSegment(segment)
-	local v168_ = self.spec_fence
+	local spec = self.spec_fence
 	if segment.animatedObject ~= nil then
 		segment.animatedObject:delete()
 		segment.animatedObject = nil
@@ -561,359 +485,344 @@ function PlaceableFence:deleteSegment(segment)
 		segment.pendingUpdateTimer = nil
 	end
 	if self.cellIdToSegments ~= nil then
-		local v169_ = g_currentMission.terrainDeformationSyncer
-		for v170_, v171_ in pairs(self.cellIdToSegments) do
-			v171_[segment] = nil
-			if next(v171_) == nil then
-				self.cellIdToSegments[v170_] = nil
-				local v172_, v173_ = v169_:getCellIndicesById(v170_)
-				v169_:removeCellUpdateListener(self, v172_, v173_)
+		local terrainDeformationSyncer = g_currentMission.terrainDeformationSyncer
+		for cellId, segments in pairs(self.cellIdToSegments) do
+			segments[segment] = nil
+			if next(segments) == nil then
+				self.cellIdToSegments[cellId] = nil
+				local cellX, cellZ = terrainDeformationSyncer:getCellIndicesById(cellId)
+				terrainDeformationSyncer:removeCellUpdateListener(self, cellX, cellZ)
 			end
 		end
 	end
-	table.removeElement(v168_.segments, segment)
+	table.removeElement(spec.segments, segment)
 	self:updateDirtyAreas(segment.x1, segment.z1, segment.x2, segment.z2)
 end
-
--- Local values: minX, maxX, minZ, maxZ
 function PlaceableFence:updateDirtyAreas(x1, z1, x2, z2)
-	local v178_ = math.min(x1, x2)
-	local v179_ = math.max(x1, x2)
-	local v180_ = math.min(z1, z2)
-	local v181_ = math.max(z1, z2)
-	g_densityMapHeightManager:setCollisionMapAreaDirty(v178_, v180_, v179_, v181_, true)
-	g_currentMission.aiSystem:setAreaDirty(v178_, v179_, v180_, v181_)
+	local minX = math.min(x1, x2)
+	local maxX = math.max(x1, x2)
+	local minZ = math.min(z1, z2)
+	local maxZ = math.max(z1, z2)
+	g_densityMapHeightManager:setCollisionMapAreaDirty(minX, minZ, maxX, maxZ, true)
+	g_currentMission.aiSystem:setAreaDirty(minX, maxX, minZ, maxZ)
 end
-
--- Local values: spec
 function PlaceableFence:setPreviewSegment(segment)
-	local v184_ = self.spec_fence
-	if v184_.previewSegment ~= nil and (v184_.previewSegment.group ~= nil and segment ~= v184_.previewSegment) then
-		delete(v184_.previewSegment.group)
-		v184_.previewSegment.group = nil
+	local spec = self.spec_fence
+	if spec.previewSegment ~= nil and (spec.previewSegment.group ~= nil and segment ~= spec.previewSegment) then
+		delete(spec.previewSegment.group)
+		spec.previewSegment.group = nil
 	end
-	v184_.previewSegment = segment
+	spec.previewSegment = segment
 	if segment ~= nil then
 		self:generateSegmentPoles(segment, false)
 	end
 end
-
--- Local values: spec
 function PlaceableFence:getPreviewSegment()
-	return self.spec_fence.previewSegment
+	local spec = self.spec_fence
+	return spec.previewSegment
 end
-
--- Local values: spec
 function PlaceableFence:getGate(index)
-	return self.spec_fence.gates[index]
+	local spec = self.spec_fence
+	return spec.gates[index]
 end
-
--- Local values: spec
 function PlaceableFence:getSegment(index)
-	return self.spec_fence.segments[index]
+	local spec = self.spec_fence
+	return spec.segments[index]
 end
-
--- Local values: spec
 function PlaceableFence:getNumSequments()
-	return #self.spec_fence.segments
+	local spec = self.spec_fence
+	return #spec.segments
 end
-
--- Local values: spec
 function PlaceableFence:getMaxVerticalAngle()
-	return self.spec_fence.maxVerticalAngle
+	local spec = self.spec_fence
+	return spec.maxVerticalAngle
 end
-
--- Local values: spec
 function PlaceableFence:getMaxVerticalGateAngle()
-	return self.spec_fence.maxVerticalGateAngle
+	local spec = self.spec_fence
+	return spec.maxVerticalGateAngle
 end
-
 function PlaceableFence:getBoundingCheckWidth()
 	return self.spec_fence.boundingCheckWidth
 end
-
 function PlaceableFence:getSnapDistance()
 	return self.spec_fence.snapDistance
 end
-
 function PlaceableFence:getSnapAngle()
 	return self.spec_fence.snapAngle
 end
-
 function PlaceableFence:getSnapCheckDistance()
 	return self.spec_fence.snapCheckDistance
 end
-
 function PlaceableFence:getAllowExtendingOnly()
 	return self.spec_fence.allowExtendingOnly
 end
-
 function PlaceableFence:getMaxCornerAngle()
 	return self.spec_fence.maxCornerAngle
 end
-
-function PlaceableFence.getHasParallelSnapping(self)
+function PlaceableFence:getHasParallelSnapping()
 	return false
 end
-
 function PlaceableFence:getSupportsParallelSnapping()
 	return self.spec_fence.supportsParallelSnapping
 end
-
--- Local values: spec, panel, _, segment, _, poleIndex, segmentIndex, i
 function PlaceableFence:deletePanel(node)
-	if node == nil or (node == 0 or getCollisionFilterMask(node) == 0) then
+	if node == nil or node == 0 or getCollisionFilterMask(node) == 0 then
 		return
 	end
-	local v202_ = self.spec_fence
-	local v203_, _, v204_, _, v205_ = self:findRaycastInfo(node)
-	if v203_ == nil then
+	local spec = self.spec_fence
+	local panel, _, segment, _, poleIndex = self:findRaycastInfo(node)
+	if panel == nil then
 		return nil
-	end
-	local v206_ = 1
-	for v207_ = 1, #v202_.segments do
-		if v202_.segments[v207_] == v204_ then
-			v206_ = v207_
-			break
-		end
-	end
-	if self.isServer then
-		self:doDeletePanel(v204_, v206_, v205_)
-		g_server:broadcastEvent(PlaceableFenceRemoveSegmentEvent.new(self, v206_, v205_), false)
 	else
-		setCollisionFilterMask(node, 0)
-		g_client:getServerConnection():sendEvent(PlaceableFenceRemoveSegmentEvent.new(self, v206_, v205_))
-	end
-	return true
-end
-
--- Local values: terrainDeformationSyncer, cellId, segments, cellX, cellZ, deletedPoles, x1OrigSeg, x2OrigSeg, z1OrigSeg, z2OrigSeg, segmentSizeChanged, newSegment, i, x, z, neighborSegment, isStart
-function PlaceableFence:doDeletePanel(segment, segmentIndex, poleIndex)
-	if segment ~= nil and #segment.poles >= poleIndex then
-		if segment.pendingUpdateTimer ~= nil then
-			segment.pendingUpdateTimer:delete()
-			segment.pendingUpdateTimer = nil
-		end
-		if self.cellIdToSegments ~= nil then
-			local v211_ = g_currentMission.terrainDeformationSyncer
-			for v212_, v213_ in pairs(self.cellIdToSegments) do
-				v213_[segment] = nil
-				if next(v213_) == nil then
-					self.cellIdToSegments[v212_] = nil
-					local v214_, v215_ = v211_:getCellIndicesById(v212_)
-					v211_:removeCellUpdateListener(self, v214_, v215_)
-				end
+		local segmentIndex = 1
+		for i = 1, #spec.segments do
+			if spec.segments[i] == segment then
+				segmentIndex = i
+				break
 			end
 		end
-		local v216_ = {}
-		local v217_ = segment.x1
-		local v218_ = segment.x2
-		local v219_ = segment.z1
-		local v220_ = segment.z2
-		local v221_ = false
-		if poleIndex == 1 then
-			if segment.renderFirst then
-				v216_[#v216_ + 1] = segment.poles[1]
-				v216_[#v216_ + 1] = segment.poles[2]
-			end
-			if poleIndex + 2 == #segment.poles - 1 then
-				if segment.renderLast then
-					v216_[#v216_ + 1] = segment.poles[3]
-					v216_[#v216_ + 1] = segment.poles[4]
-				end
-				self:removePickingNodesForSegment(segment)
-				self:deleteSegment(segment)
-			else
-				segment.x1 = segment.poles[3]
-				segment.z1 = segment.poles[4]
-				segment.renderFirst = true
-				v221_ = true
-			end
-		elseif poleIndex + 2 == #segment.poles - 1 then
-			if segment.renderLast then
-				v216_[#v216_ + 1] = segment.poles[#segment.poles - 1]
-				v216_[#v216_ + 1] = segment.poles[#segment.poles]
-			end
-			segment.x2 = segment.poles[#segment.poles - 3]
-			segment.z2 = segment.poles[#segment.poles - 2]
-			segment.renderLast = true
-			v221_ = true
+		if self.isServer then
+			self:doDeletePanel(segment, segmentIndex, poleIndex)
+			g_server:broadcastEvent(PlaceableFenceRemoveSegmentEvent.new(self, segmentIndex, poleIndex), false)
 		else
-			local v222_ = self:createSegment(segment.poles[poleIndex + 2], segment.poles[poleIndex + 3], segment.x2, segment.z2, true, nil)
-			v222_.renderLast = segment.renderLast
-			v222_.renderFirst = true
-			segment.x2 = segment.poles[poleIndex]
-			segment.z2 = segment.poles[poleIndex + 1]
-			segment.renderLast = true
-			self:addSegment(v222_)
-			self:registerTerrainHeightChangeCallbacks(v222_)
-			v221_ = true
+			setCollisionFilterMask(node, 0)
+			g_client:getServerConnection():sendEvent(PlaceableFenceRemoveSegmentEvent.new(self, segmentIndex, poleIndex))
 		end
-		if v221_ then
-			self:generateSegmentPoles(segment, true)
-			self:registerTerrainHeightChangeCallbacks(segment)
-		end
-		for v223_ = 1, #v216_, 2 do
-			local v224_, v225_ = self:isPoleInAnySegment(v216_[v223_], v216_[v223_ + 1], segment)
-			if v224_ ~= nil then
-				if v225_ then
-					v224_.renderFirst = true
-				else
-					v224_.renderLast = true
-				end
-				self:generateSegmentPoles(v224_, true)
-			end
-		end
-		self:updateDirtyAreas(v217_, v219_, v218_, v220_)
 		return true
 	end
 end
-
--- Local values: spec, collision, panel, panelVisuals, segment, pole, sGroup, si, seg, si, seg, poleIndex, poleIndex
+function PlaceableFence:doDeletePanel(segment, segmentIndex, poleIndex)
+	if segment == nil or #segment.poles < poleIndex then
+		return
+	end
+	if segment.pendingUpdateTimer ~= nil then
+		segment.pendingUpdateTimer:delete()
+		segment.pendingUpdateTimer = nil
+	end
+	if self.cellIdToSegments ~= nil then
+		local terrainDeformationSyncer = g_currentMission.terrainDeformationSyncer
+		for cellId, segments in pairs(self.cellIdToSegments) do
+			segments[segment] = nil
+			if next(segments) == nil then
+				self.cellIdToSegments[cellId] = nil
+				local cellX, cellZ = terrainDeformationSyncer:getCellIndicesById(cellId)
+				terrainDeformationSyncer:removeCellUpdateListener(self, cellX, cellZ)
+			end
+		end
+	end
+	local deletedPoles = {}
+	local x1OrigSeg = segment.x1
+	local x2OrigSeg = segment.x2
+	local z1OrigSeg = segment.z1
+	local z2OrigSeg = segment.z2
+	local segmentSizeChanged = false
+	if poleIndex == 1 then
+		if segment.renderFirst then
+			deletedPoles[#deletedPoles + 1] = segment.poles[1]
+			deletedPoles[#deletedPoles + 1] = segment.poles[2]
+		end
+		if poleIndex + 2 == #segment.poles - 1 then
+			if segment.renderLast then
+				deletedPoles[#deletedPoles + 1] = segment.poles[3]
+				deletedPoles[#deletedPoles + 1] = segment.poles[4]
+			end
+			self:removePickingNodesForSegment(segment)
+			self:deleteSegment(segment)
+		else
+			segment.x1 = segment.poles[3]
+			segment.z1 = segment.poles[4]
+			segmentSizeChanged = true
+			segment.renderFirst = true
+		end
+	elseif poleIndex + 2 == #segment.poles - 1 then
+		if segment.renderLast then
+			deletedPoles[#deletedPoles + 1] = segment.poles[#segment.poles - 1]
+			deletedPoles[#deletedPoles + 1] = segment.poles[#segment.poles]
+		end
+		segment.x2 = segment.poles[#segment.poles - 3]
+		segment.z2 = segment.poles[#segment.poles - 2]
+		segment.renderLast = true
+		segmentSizeChanged = true
+	else
+		local newSegment = self:createSegment(segment.poles[poleIndex + 2], segment.poles[poleIndex + 3], segment.x2, segment.z2, true, nil)
+		newSegment.renderLast = segment.renderLast
+		newSegment.renderFirst = true
+		segment.x2 = segment.poles[poleIndex]
+		segment.z2 = segment.poles[poleIndex + 1]
+		segment.renderLast = true
+		self:addSegment(newSegment)
+		self:registerTerrainHeightChangeCallbacks(newSegment)
+		segmentSizeChanged = true
+	end
+	if segmentSizeChanged then
+		self:generateSegmentPoles(segment, true)
+		self:registerTerrainHeightChangeCallbacks(segment)
+	end
+	for i = 1, #deletedPoles, 2 do
+		local x = deletedPoles[i]
+		local z = deletedPoles[i + 1]
+		local neighborSegment, isStart = self:isPoleInAnySegment(x, z, segment)
+		if neighborSegment == nil then
+			continue
+		end
+		if isStart then
+			neighborSegment.renderFirst = true
+		else
+			neighborSegment.renderLast = true
+		end
+		self:generateSegmentPoles(neighborSegment, true)
+	end
+	self:updateDirtyAreas(x1OrigSeg, z1OrigSeg, x2OrigSeg, z2OrigSeg)
+	return true
+end
 function PlaceableFence:findRaycastInfo(node)
-	local v228_ = self.spec_fence
-	local v229_ = getParent(node)
-	local v230_ = getChildAt(v229_, 1)
-	local v231_ = getParent(v229_)
-	local v232_ = getParent(v231_)
-	local v233_ = nil
-	for v234_ = 1, #v228_.segments do
-		local v235_ = v228_.segments[v234_]
-		if v235_.group == v232_ then
-			v233_ = v235_
+	local spec = self.spec_fence
+	local collision = node
+	local panel = getParent(collision)
+	local panelVisuals = getChildAt(panel, 1)
+	local segment = nil
+	local pole = getParent(panel)
+	local sGroup = getParent(pole)
+	for si = 1, #spec.segments do
+		local seg = spec.segments[si]
+		if seg.group == sGroup then
+			segment = seg
 			break
 		end
-		if v235_.group == v231_ and v235_.gateIndex ~= nil then
-			local v236_ = getChildAt(v231_, getNumOfChildren(v231_) - 1)
-			v230_ = getChildAt(v236_, 1)
-			v231_ = v229_
-			v229_ = v236_
-			v233_ = v235_
-			break
-		end
-	end
-	if v233_ ~= nil then
-		return v229_, v230_, v233_, v231_, v233_.gateIndex ~= nil and 1 or getChildIndex(v231_) * 2 + 1
-	end
-	local v237_ = getParent(node)
-	local v238_ = getParent(v237_)
-	for v239_ = 1, #v228_.segments do
-		local v240_ = v228_.segments[v239_]
-		if v240_.group == v238_ then
-			v233_ = v240_
+		if seg.group == pole and seg.gateIndex ~= nil then
+			segment = seg
+			sGroup = pole
+			pole = panel
+			panel = getChildAt(sGroup, getNumOfChildren(sGroup) - 1)
+			panelVisuals = getChildAt(panel, 1)
 			break
 		end
 	end
-	if v233_ == nil then
-		return nil
-	else
-		return nil, nil, v233_, v237_, getChildIndex(v237_) * 2 + 1
+	if segment == nil then
+		collision = node
+		pole = getParent(collision)
+		sGroup = getParent(pole)
+		for si = 1, #spec.segments do
+			local seg = spec.segments[si]
+			if seg.group == sGroup then
+				segment = seg
+				break
+			end
+		end
+		if segment == nil then
+			return nil
+		else
+			local poleIndex = getChildIndex(pole) * 2 + 1
+			return nil, nil, segment, pole, poleIndex
+		end
 	end
+	local poleIndex = nil
+	poleIndex = segment.gateIndex ~= nil and 1 or getChildIndex(pole) * 2 + 1
+	return panel, panelVisuals, segment, pole, poleIndex
 end
-
--- Local values: spec, panel, panelVisuals, segment, pole, poleIndex, nodes, gateInfo, _, door, doorNode, addPole, poleNode, x, z, visualPole, poleNode, x, z, visualPole
 function PlaceableFence:getNodesToDeleteForPanel(node)
-	local v243_ = self.spec_fence
-	local v244_, v245_, v246_, v247_, v248_ = self:findRaycastInfo(node)
-	if v244_ == nil or node == 0 then
+	local spec = self.spec_fence
+	local panel, panelVisuals, segment, pole, poleIndex = self:findRaycastInfo(node)
+	if panel == nil or node == 0 then
 		return nil
 	end
-	local v249_ = {}
-	if v246_.gateIndex == nil then
-		v249_[1] = v245_
+	local nodes = {}
+	if segment.gateIndex ~= nil then
+		local gateInfo = spec.gates[segment.gateIndex]
+		for _, door in ipairs(gateInfo.doors) do
+			local doorNode = getChildAt(panel, door.node)
+			nodes[#nodes + 1] = getChildAt(doorNode, 0)
+		end
 	else
-		local v250_ = v243_.gates[v246_.gateIndex]
-		for _, v251_ in ipairs(v250_.doors) do
-			local v252_ = getChildAt(v244_, v251_.node)
-			v249_[#v249_ + 1] = getChildAt(v252_, 0)
-		end
+		nodes[1] = panelVisuals
 	end
-	if v248_ == 1 and (v246_.renderFirst and self:isPoleInAnySegment(v246_.poles[1], v246_.poles[2], v246_) == nil) then
-		local v253_ = getChildAt(v247_, 1)
-		if v253_ ~= 0 then
-			table.insert(v249_, v253_)
-		end
-	end
-	if v248_ + 2 == #v246_.poles - 1 and v246_.renderLast then
-		local v254_ = getChildAt(v246_.group, #v246_.poles / 2 - 1)
-		if self:isPoleInAnySegment(v246_.poles[#v246_.poles - 1], v246_.poles[#v246_.poles], v246_) == nil then
-			local v255_ = getChildAt(v254_, 1)
-			if v255_ ~= 0 then
-				table.insert(v249_, v255_)
+	local addPole = function(poleNode, x, z)
+		if self:isPoleInAnySegment(x, z, segment) == nil then
+			local visualPole = getChildAt(poleNode, 1)
+			if visualPole ~= 0 then
+				table.insert(nodes, visualPole)
 			end
 		end
 	end
-	return v249_
+	if poleIndex == 1 and segment.renderFirst then
+		local x = segment.poles[1]
+		local z = segment.poles[2]
+		if self:isPoleInAnySegment(x, z, segment) == nil then
+			local visualPole = getChildAt(pole, 1)
+			if visualPole ~= 0 then
+				table.insert(nodes, visualPole)
+			end
+		end
+	end
+	if poleIndex + 2 == #segment.poles - 1 and segment.renderLast then
+		local poleNode = getChildAt(segment.group, #segment.poles / 2 - 1)
+		local x = segment.poles[#segment.poles - 1]
+		local z = segment.poles[#segment.poles]
+		if self:isPoleInAnySegment(x, z, segment) == nil then
+			local visualPole = getChildAt(poleNode, 1)
+			if visualPole ~= 0 then
+				table.insert(nodes, visualPole)
+			end
+		end
+	end
+	return nodes
 end
-
--- Local values: spec, i, segment
 function PlaceableFence:isPoleInAnySegment(x, z, ignoreSegment)
-	local v260_ = self.spec_fence
-	for v261_ = 1, #v260_.segments do
-		local v262_ = v260_.segments[v261_]
-		if v262_ ~= ignoreSegment then
-			local v263_ = v262_.x1 - x
-			if math.abs(v263_) < PlaceableFence.EPSILON then
-				local v264_ = v262_.z1 - z
-				if math.abs(v264_) < PlaceableFence.EPSILON then
-					return v262_, true, false
-				end
-			end
-			local v265_ = v262_.x2 - x
-			if math.abs(v265_) < PlaceableFence.EPSILON then
-				local v266_ = v262_.z2 - z
-				if math.abs(v266_) < PlaceableFence.EPSILON then
-					return v262_, false, true
-				end
-			end
+	local spec = self.spec_fence
+	for i = 1, #spec.segments do
+		local segment = spec.segments[i]
+		if segment == ignoreSegment then
+			continue
+		end
+		if math.abs(segment.x1 - x) < PlaceableFence.EPSILON and math.abs(segment.z1 - z) < PlaceableFence.EPSILON then
+			return segment, true, false
+		end
+		if math.abs(segment.x2 - x) < PlaceableFence.EPSILON and math.abs(segment.z2 - z) < PlaceableFence.EPSILON then
+			return segment, false, true
 		end
 	end
 	return nil
 end
-
--- Local values: alpha
 function PlaceableFence:fakeRandomValueForPosition(x, y, z, n)
-	local v270_ = (x * 0.13 + z * 0.23) % 1
+	local alpha = (x * 0.13 + z * 0.23) % 1
 	if n == nil then
-		return v270_
+		return alpha
+	else
+		return math.floor(alpha * (n - 1) + 0.5) + 1
 	end
-	local v271_ = v270_ * (n - 1) + 0.5
-	return math.floor(v271_) + 1
 end
-
--- Local values: spec, totalDistance, numWholeFences, i, nextPole, j, alpha, restDistance, numRestFences, restFenceSize, j, alpha
 function PlaceableFence:generateSegmentPoles(segment, sync)
-	local v275_ = self.spec_fence
-	local v276_ = MathUtil.getPointPointDistance(segment.x1, segment.z1, segment.x2, segment.z2)
-	local v277_ = v276_ / v275_.panelLength
-	local v278_ = math.floor(v277_) - 1
-	local v279_ = math.max(v278_, 0)
-	for v280_ = 1, #segment.poles do
-		segment.poles[v280_] = nil
+	local spec = self.spec_fence
+	local totalDistance = MathUtil.getPointPointDistance(segment.x1, segment.z1, segment.x2, segment.z2)
+	local numWholeFences = math.max(math.floor(totalDistance / spec.panelLength) - 1, 0)
+	for i = 1, #segment.poles do
+		segment.poles[i] = nil
 	end
-	if v276_ >= 0.01 then
-		if segment.gateIndex == nil then
-			local v281_ = 1
-			for v282_ = 0, v279_ do
-				local v283_ = v275_.panelLength * v282_ / v276_
-				segment.poles[v281_] = MathUtil.lerp(segment.x1, segment.x2, v283_)
-				segment.poles[v281_ + 1] = MathUtil.lerp(segment.z1, segment.z2, v283_)
-				v281_ = v281_ + 2
-			end
-			local v284_ = v276_ - v279_ * v275_.panelLength
-			local v285_ = v284_ <= v275_.panelLength * 1.2 and 1 or 2
-			local v286_ = v284_ / v285_
-			for v287_ = 0, v285_ - 1 do
-				local v288_ = (v279_ * v275_.panelLength + (v287_ + 1) * v286_) / v276_
-				segment.poles[v281_] = MathUtil.lerp(segment.x1, segment.x2, v288_)
-				segment.poles[v281_ + 1] = MathUtil.lerp(segment.z1, segment.z2, v288_)
-				v281_ = v281_ + 2
-			end
-		else
+	if totalDistance < 0.01 then
+		return
+	else
+		if segment.gateIndex ~= nil then
 			segment.poles[1] = segment.x1
 			segment.poles[2] = segment.z1
 			segment.poles[3] = segment.x2
 			segment.poles[4] = segment.z2
+		else
+			local nextPole = 1
+			for j = 0, numWholeFences do
+				local alpha = spec.panelLength * j / totalDistance
+				segment.poles[nextPole] = MathUtil.lerp(segment.x1, segment.x2, alpha)
+				segment.poles[nextPole + 1] = MathUtil.lerp(segment.z1, segment.z2, alpha)
+				nextPole = nextPole + 2
+			end
+			local restDistance = totalDistance - numWholeFences * spec.panelLength
+			local numRestFences = restDistance <= spec.panelLength * 1.2 and 1 or 2
+			local restFenceSize = restDistance / numRestFences
+			for j = 0, numRestFences - 1 do
+				local alpha = (numWholeFences * spec.panelLength + (j + 1) * restFenceSize) / totalDistance
+				segment.poles[nextPole] = MathUtil.lerp(segment.x1, segment.x2, alpha)
+				segment.poles[nextPole + 1] = MathUtil.lerp(segment.z1, segment.z2, alpha)
+				nextPole = nextPole + 2
+			end
 		end
 		if sync then
 			self:removePickingNodesForSegment(segment)
@@ -922,22 +831,18 @@ function PlaceableFence:generateSegmentPoles(segment, sync)
 		else
 			self:addSegmentShapesToUpdate(segment)
 		end
-		if v275_.previewSegment ~= segment then
+		if spec.previewSegment ~= segment then
 			self:updateDirtyAreas(segment.x1, segment.z1, segment.x2, segment.z2)
 		end
 	end
 end
-
--- Local values: spec, isPreviewSegment, enablePhysics, gateTime, i, x, z, y, pole, poleIsFake, poleIndex, prevX, prevZ, dx, dz, rotY, nextX, nextZ, nextY, dx, dy, dz, rotY, panelIndex, panel, fenceLength, col, xDir, yDir, zDir, length, offset, colX, colY, colZ, prevX, prevZ, dx, dz, rotY, gateInfo, gate, segmentTerrainY, dx, dz, rotY, animatedObject, saveId, builder, _, door, doorNode, triggerNode, i, _, door, doorNode, alpha, x1, y1, z1, x2, y2, z2, x1, y1, z1, x2, y2, z2
 function PlaceableFence:updateSegmentShapes(segment)
-	local v291_ = self.spec_fence
-	local v292_ = segment == v291_.previewSegment
-	local v293_ = not v292_
-	local v294_
-	if segment.animatedObject == nil then
-		v294_ = nil
-	else
-		v294_ = segment.animatedObject.animation.time
+	local spec = self.spec_fence
+	local isPreviewSegment = segment == spec.previewSegment
+	local enablePhysics = not isPreviewSegment
+	local gateTime = nil
+	if segment.animatedObject ~= nil then
+		gateTime = segment.animatedObject.animation.time
 		segment.animatedObject:delete()
 		segment.animatedObject = nil
 	end
@@ -946,223 +851,224 @@ function PlaceableFence:updateSegmentShapes(segment)
 	end
 	segment.group = createTransformGroup("fence_segment")
 	link(self.rootNode, segment.group)
-	for v295_ = 1, #segment.poles, 2 do
-		local v296_ = segment.poles[v295_]
-		local v297_ = segment.poles[v295_ + 1]
-		local v298_ = getTerrainHeightAtWorldPos(g_terrainNode, v296_, 0, v297_)
-		local v299_ = false
-		local v300_
-		if #v291_.poles > 0 and (v295_ > 1 or segment.renderFirst) and (v295_ < #segment.poles - 2 or segment.renderLast) then
-			local v301_ = self:fakeRandomValueForPosition(v296_, v298_, v297_, #v291_.poles)
-			v300_ = clone(v291_.poles[v301_], false, false, false)
-		else
-			v300_ = createTransformGroup("fence_firstPole")
-			v299_ = true
-		end
-		link(segment.group, v300_)
-		setWorldTranslation(v300_, v296_, v298_, v297_)
-		if segment.gateIndex == nil then
-			if v295_ < #segment.poles - 2 then
-				local v302_ = segment.poles[v295_ + 2]
-				local v303_ = segment.poles[v295_ + 3]
-				local v304_ = getTerrainHeightAtWorldPos(g_terrainNode, v302_, 0, v303_)
-				local v305_ = v296_ - v302_
-				local v306_ = v298_ - v304_
-				local v307_ = v297_ - v303_
-				local v308_ = math.atan2(v305_, v307_) + 3.141592653589793
-				setWorldRotation(v300_, 0, v308_, 0)
-				local v309_ = self:fakeRandomValueForPosition(v296_, v298_, v297_, #v291_.panels)
-				local v310_ = clone(v291_.panels[v309_], false, false, false)
-				link(v300_, v310_)
-				local v311_ = MathUtil.getPointPointDistance(v296_, v297_, v302_, v303_)
-				self:updatePanelVisuals(v310_, v306_, segment, v295_, v311_)
-				local v312_ = getChildAt(v310_, 0)
-				local v313_ = -v306_
-				local v314_, v315_, v316_ = MathUtil.vector3Normalize(0, v313_, v311_)
-				local v317_ = v305_ * v305_ + v306_ * v306_ + v307_ * v307_
-				local v318_ = (math.sqrt(v317_) - v311_) * 0.5
-				local v319_, v320_, v321_ = getTranslation(v312_)
-				local v322_ = v319_ + v314_ * v318_
-				local v323_ = v320_ + v315_ * v318_
-				local v324_ = v321_ + v316_ * v318_
-				setDirection(v312_, v314_, v315_, v316_, 0, 1, 0)
-				setTranslation(v312_, v322_, v323_, v324_)
-				if v293_ then
-					addToPhysics(v312_)
-				end
-				SpecializationUtil.raiseEvent(self, "onCreateSegmentPanel", v292_, segment, v310_, v295_, v306_)
-				if v293_ and not v299_ then
-					addToPhysics(getChildAt(v300_, 0))
-				end
-			elseif segment.renderLast and v295_ > 2 then
-				local v325_ = segment.poles[v295_ - 2]
-				local v326_ = segment.poles[v295_ - 1]
-				local v327_ = v296_ - v325_
-				local v328_ = v297_ - v326_
-				local v329_ = math.atan2(v327_, v328_) + 3.141592653589793
-				setWorldRotation(v300_, 0, v329_, 0)
-				if v293_ and not v299_ then
-					addToPhysics(getChildAt(v300_, 0))
-				end
+	for i = 1, #segment.poles, 2 do
+		local x = segment.poles[i]
+		local z = segment.poles[i + 1]
+		local y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+		local pole = nil
+		local poleIsFake = false
+		if 0 < #spec.poles and (not (1 < i) and segment.renderFirst) then
+			if i < #segment.poles - 2 or segment.renderLast then
+				local poleIndex = self:fakeRandomValueForPosition(x, y, z, #spec.poles)
+				pole = clone(spec.poles[poleIndex], false, false, false)
+			else
+				pole = createTransformGroup("fence_firstPole")
+				poleIsFake = true
 			end
-		else
-			local v330_ = segment.poles[(v295_ + 2) % 4]
-			local v331_ = segment.poles[(v295_ + 2) % 4 + 1]
-			local v332_ = v296_ - v330_
-			local v333_ = v297_ - v331_
-			local v334_ = math.atan2(v332_, v333_) + 3.141592653589793
-			setWorldRotation(v300_, 0, v334_, 0)
-			if v293_ and not v299_ then
-				addToPhysics(getChildAt(v300_, 0))
+		end
+		link(segment.group, pole)
+		setWorldTranslation(pole, x, y, z)
+		if segment.gateIndex ~= nil then
+			local prevX = segment.poles[(i + 2) % 4]
+			local prevZ = segment.poles[(i + 2) % 4 + 1]
+			local dx = x - prevX
+			local dz = z - prevZ
+			local rotY = math.atan2(dx, dz) + 3.141592653589793
+			setWorldRotation(pole, 0, rotY, 0)
+			if enablePhysics then
+				if poleIsFake then
+					continue
+				end
+				addToPhysics(getChildAt(pole, 0))
+			end
+		elseif i < #segment.poles - 2 then
+			local nextX = segment.poles[i + 2]
+			local nextZ = segment.poles[i + 3]
+			local nextY = getTerrainHeightAtWorldPos(g_terrainNode, nextX, 0, nextZ)
+			local dx = x - nextX
+			local dy = y - nextY
+			local dz = z - nextZ
+			local rotY = math.atan2(dx, dz) + 3.141592653589793
+			setWorldRotation(pole, 0, rotY, 0)
+			local panelIndex = self:fakeRandomValueForPosition(x, y, z, #spec.panels)
+			local panel = clone(spec.panels[panelIndex], false, false, false)
+			link(pole, panel)
+			local fenceLength = MathUtil.getPointPointDistance(x, z, nextX, nextZ)
+			self:updatePanelVisuals(panel, dy, segment, i, fenceLength)
+			local col = getChildAt(panel, 0)
+			local xDir = 0
+			local yDir = -dy
+			local zDir = fenceLength
+			xDir, yDir, zDir = MathUtil.vector3Normalize(xDir, yDir, zDir)
+			local length = math.sqrt(dx * dx + dy * dy + dz * dz)
+			local offset = (length - fenceLength) * 0.5
+			local colX, colY, colZ = getTranslation(col)
+			colX = colX + xDir * offset
+			colY = colY + yDir * offset
+			colZ = colZ + zDir * offset
+			setDirection(col, xDir, yDir, zDir, 0, 1, 0)
+			setTranslation(col, colX, colY, colZ)
+			if enablePhysics then
+				addToPhysics(col)
+			end
+			SpecializationUtil.raiseEvent(self, "onCreateSegmentPanel", isPreviewSegment, segment, panel, i, dy)
+			if enablePhysics then
+				if poleIsFake then
+					continue
+				end
+				addToPhysics(getChildAt(pole, 0))
+			end
+		elseif segment.renderLast then
+			if 2 < i then
+				local prevX = segment.poles[i - 2]
+				local prevZ = segment.poles[i - 1]
+				local dx = x - prevX
+				local dz = z - prevZ
+				local rotY = math.atan2(dx, dz) + 3.141592653589793
+				setWorldRotation(pole, 0, rotY, 0)
+				if enablePhysics then
+					if poleIsFake then
+						continue
+					end
+					addToPhysics(getChildAt(pole, 0))
+				end
 			end
 		end
 	end
 	if segment.gateIndex ~= nil then
-		local v335_ = v291_.gates[segment.gateIndex]
-		local v336_ = clone(v335_.node, false, false, false)
-		link(segment.group, v336_)
-		local v337_ = getTerrainHeightAtWorldPos(g_terrainNode, segment.x1, 0, segment.z1)
-		setWorldTranslation(v336_, segment.x1, v337_, segment.z1)
-		local v338_ = segment.x1 - segment.x2
-		local v339_ = segment.z1 - segment.z2
-		local v340_ = math.atan2(v338_, v339_) + 3.141592653589793
-		setWorldRotation(v336_, 0, v340_, 0)
-		if v292_ then
-			for _, v341_ in ipairs(v335_.doors) do
-				local v342_ = getChildAt(v336_, v341_.node)
-				if v341_.translation ~= nil then
-					local v343_, v344_, v345_ = getTranslation(v342_)
-					local v346_ = v341_.translation
-					local v347_, v348_, v349_ = unpack(v346_)
-					setTranslation(v342_, v343_ + (v347_ - v343_) * 0.3, v344_ + (v348_ - v344_) * 0.3, v345_ + (v349_ - v345_) * 0.3)
-				end
-				if v341_.rotation ~= nil then
-					local v350_, v351_, v352_ = getRotation(v342_)
-					local v353_ = v341_.rotation
-					local v354_, v355_, v356_ = unpack(v353_)
-					setRotation(v342_, v350_ + (v354_ - v350_) * 0.3, v351_ + (v355_ - v351_) * 0.3, v352_ + (v356_ - v352_) * 0.3)
-				end
+		local gateInfo = spec.gates[segment.gateIndex]
+		local gate = clone(gateInfo.node, false, false, false)
+		link(segment.group, gate)
+		local segmentTerrainY = getTerrainHeightAtWorldPos(g_terrainNode, segment.x1, 0, segment.z1)
+		setWorldTranslation(gate, segment.x1, segmentTerrainY, segment.z1)
+		local dx = segment.x1 - segment.x2
+		local dz = segment.z1 - segment.z2
+		local rotY = math.atan2(dx, dz) + 3.141592653589793
+		setWorldRotation(gate, 0, rotY, 0)
+		if not isPreviewSegment then
+			local animatedObject = AnimatedObject.new(self.isServer, self.isClient)
+			animatedObject:setOwnerFarmId(self:getOwnerFarmId(), false)
+			local saveId = string.format("AnimatedObject_%s_gate_%d_%d_%d_%d", self.configFileName, segment.x1, segment.z1, segment.x2, segment.x2)
+			local builder = animatedObject:builder(self.configFileName, saveId)
+			for _, door in ipairs(gateInfo.doors) do
+				local doorNode = getChildAt(gate, door.node)
+				builder:addSimplePart(doorNode, door.rotation, door.translation)
+				addToPhysics(doorNode)
 			end
-		else
-			local v357_ = AnimatedObject.new(self.isServer, self.isClient)
-			v357_:setOwnerFarmId(self:getOwnerFarmId(), false)
-			local v358_ = string.format("AnimatedObject_%s_gate_%d_%d_%d_%d", self.configFileName, segment.x1, segment.z1, segment.x2, segment.x2)
-			local v359_ = v357_:builder(self.configFileName, v358_)
-			for _, v360_ in ipairs(v335_.doors) do
-				local v361_ = getChildAt(v336_, v360_.node)
-				v359_:addSimplePart(v361_, v360_.rotation, v360_.translation)
-				addToPhysics(v361_)
-			end
-			local v362_ = getChildAt(v336_, v335_.triggerNode)
-			v359_:setTrigger(v362_)
-			addToPhysics(v362_)
-			v359_:setActions("ACTIVATE_HANDTOOL", v335_.openText, nil, v335_.closeText)
-			v359_:setDuration(v335_.animationDuration * 1000)
+			local triggerNode = getChildAt(gate, gateInfo.triggerNode)
+			builder:setTrigger(triggerNode)
+			addToPhysics(triggerNode)
+			builder:setActions("ACTIVATE_HANDTOOL", gateInfo.openText, nil, gateInfo.closeText)
+			builder:setDuration(gateInfo.animationDuration * 1000)
 			if self.xmlFile == nil then
 				self.xmlFile = XMLFile.load("placeableFence", self.configFileName)
 			end
-			v359_:setSounds(self.xmlFile.handle, string.format("placeable.fence.gate(%d).sounds", segment.gateIndex - 1), v336_)
-			if not v359_:build() then
-				v357_:delete()
+			builder:setSounds(self.xmlFile.handle, string.format("placeable.fence.gate(%d).sounds", segment.gateIndex - 1), gate)
+			if not builder:build() then
+				animatedObject:delete()
 				return
 			end
-			v357_:register(true)
-			local v363_ = v291_.animatedObjects
-			table.insert(v363_, v357_)
-			segment.animatedObject = v357_
-			if v294_ ~= nil then
-				v357_:setAnimTime(v294_, true)
+			animatedObject:register(true)
+			table.insert(spec.animatedObjects, animatedObject)
+			segment.animatedObject = animatedObject
+			if gateTime ~= nil then
+				animatedObject:setAnimTime(gateTime, true)
 			end
 			if self.isServer then
-				for v364_ = 1, #v291_.segments do
-					if v291_.segments[v364_] == segment then
-						g_server:broadcastEvent(PlaceableFenceAddGateEvent.new(self, v364_, v357_), false, nil, self)
+				for i = 1, #spec.segments do
+					if spec.segments[i] == segment then
+						g_server:broadcastEvent(PlaceableFenceAddGateEvent.new(self, i, animatedObject), false, nil, self)
 						return
 					end
 				end
-				return
+			end
+		else
+			for _, door in ipairs(gateInfo.doors) do
+				local doorNode = getChildAt(gate, door.node)
+				local alpha = 0.3
+				if door.translation ~= nil then
+					local x1, y1, z1 = getTranslation(doorNode)
+					local x2, y2, z2 = unpack(door.translation)
+					setTranslation(doorNode, x1 + (x2 - x1) * 0.3, y1 + (y2 - y1) * 0.3, z1 + (z2 - z1) * 0.3)
+				end
+				if door.rotation == nil then
+					continue
+				end
+				local x1, y1, z1 = getRotation(doorNode)
+				local x2, y2, z2 = unpack(door.rotation)
+				setRotation(doorNode, x1 + (x2 - x1) * 0.3, y1 + (y2 - y1) * 0.3, z1 + (z2 - z1) * 0.3)
 			end
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableFence:updatePanelVisuals(panelNode, dy, segment, polesIndex, length)
-	local v369_ = self.spec_fence
-	if length ~= v369_.panelLength then
-		setScale(panelNode, 1, 1, length / v369_.panelLength)
+	local spec = self.spec_fence
+	if length ~= spec.panelLength then
+		setScale(panelNode, 1, 1, length / spec.panelLength)
 	end
 	setShaderParameterRecursive(getChildAt(panelNode, 1), "yOffset", -dy, nil, nil, nil, false, nil)
 end
-
--- Local values: spec
 function PlaceableFence:addSegmentShapesToUpdate(segment)
-	local v372_ = self.spec_fence
-	v372_.segmentsToUpdate[#v372_.segmentsToUpdate + 1] = segment
+	local spec = self.spec_fence
+	spec.segmentsToUpdate[#spec.segmentsToUpdate + 1] = segment
 	self:raiseActive()
 end
-
--- Local values: spec, segment
 function PlaceableFence:updateSegmentUpdateQueue()
-	local v374_ = self.spec_fence
-	if #v374_.segmentsToUpdate > 0 then
-		local v375_ = v374_.segmentsToUpdate[1]
-		table.remove(v374_.segmentsToUpdate, 1)
-		self:removePickingNodesForSegment(v375_)
-		self:updateSegmentShapes(v375_)
-		self:addPickingNodesForSegment(v375_)
+	local spec = self.spec_fence
+	if 0 < #spec.segmentsToUpdate then
+		local segment = spec.segmentsToUpdate[1]
+		table.remove(spec.segmentsToUpdate, 1)
+		self:removePickingNodesForSegment(segment)
+		self:updateSegmentShapes(segment)
+		self:addPickingNodesForSegment(segment)
 		self:raiseActive()
 	end
 end
-
--- Local values: objects, i
 function PlaceableFence:addPickingNodesForSegment(segment)
-	if segment ~= self.spec_fence.previewSegment then
+	if segment == self.spec_fence.previewSegment then
+		return
+	else
 		if segment.group ~= nil then
-			local v378_ = {}
-			self:recursivelyAddPickingNodes(v378_, segment.group)
-			for v379_ = 1, #v378_ do
-				g_currentMission:addNodeObject(v378_[v379_], self)
+			local objects = {}
+			self:recursivelyAddPickingNodes(objects, segment.group)
+			for i = 1, #objects do
+				g_currentMission:addNodeObject(objects[i], self)
 			end
 		end
 		self.overlayColorNodes = nil
 	end
 end
-
--- Local values: objects, i
 function PlaceableFence:removePickingNodesForSegment(segment)
-	if segment ~= self.spec_fence.previewSegment then
+	if segment == self.spec_fence.previewSegment then
+		return
+	else
 		if segment.group ~= nil then
-			local v382_ = {}
-			self:recursivelyAddPickingNodes(v382_, segment.group)
-			for v383_ = 1, #v382_ do
-				g_currentMission:removeNodeObject(v382_[v383_])
+			local objects = {}
+			self:recursivelyAddPickingNodes(objects, segment.group)
+			for i = 1, #objects do
+				g_currentMission:removeNodeObject(objects[i])
 			end
 		end
 	end
 end
-
--- Local values: numChildren, i
 function PlaceableFence:recursivelyAddPickingNodes(objects, node)
 	if getRigidBodyType(node) ~= RigidBodyType.NONE then
 		table.insert(objects, node)
 	end
-	for v387_ = 1, getNumOfChildren(node) do
-		self:recursivelyAddPickingNodes(objects, getChildAt(node, v387_ - 1))
+	local numChildren = getNumOfChildren(node)
+	for i = 1, numChildren do
+		self:recursivelyAddPickingNodes(objects, getChildAt(node, i - 1))
 	end
 end
-
 function PlaceableFence:getDestructionMethod(superFunc)
 	return Placeable.DESTRUCTION.PER_NODE
 end
-
 function PlaceableFence:previewNodeDestructionNodes(superFunc, node)
 	return self:getNodesToDeleteForPanel(node)
 end
-
--- Local values: destroyedNode, destroyPlaceable
 function PlaceableFence:performNodeDestruction(superFunc, node)
-	return self:deletePanel(node), self:getNumSequments() == 0
+	local destroyedNode = self:deletePanel(node)
+	local destroyPlaceable = self:getNumSequments() == 0
+	return destroyedNode, destroyPlaceable
 end
-
 function PlaceableFence:collectPickObjects(superFunc, node) end

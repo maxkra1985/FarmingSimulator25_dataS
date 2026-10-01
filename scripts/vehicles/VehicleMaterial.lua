@@ -1,39 +1,30 @@
--- Local values: VehicleMaterial_mt
 VehicleMaterial = {}
 local VehicleMaterial_mt = Class(VehicleMaterial)
-
--- Upvalues: VehicleMaterial_mt
--- Local values: self
 function VehicleMaterial.new(baseDirectory, customMt)
-	-- upvalues: (copy) VehicleMaterial_mt
-	local v4_ = customMt or VehicleMaterial_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.baseDirectory = baseDirectory
-	v5_.colorOnly = false
-	return v5_
+	local self = setmetatable({}, customMt or VehicleMaterial_mt)
+	self.baseDirectory = baseDirectory
+	self.colorOnly = false
+	return self
 end
-
--- Local values: material
 function VehicleMaterial:clone()
-	local v7_ = VehicleMaterial.new(self.baseDirectory)
-	v7_.targetMaterialSlotName = self.targetMaterialSlotName
-	v7_.templateName = self.templateName
-	v7_.materialTemplate = self.materialTemplate
-	v7_.colorScale = self.colorScale
-	v7_.smoothnessScale = self.smoothnessScale
-	v7_.metalnessScale = self.metalnessScale
-	v7_.clearCoatSmoothness = self.clearCoatSmoothness
-	v7_.clearCoatIntensity = self.clearCoatIntensity
-	v7_.porosity = self.porosity
-	v7_.detailDiffuse = self.detailDiffuse
-	v7_.detailNormal = self.detailNormal
-	v7_.detailSpecular = self.detailSpecular
-	v7_.diffuseMap = self.diffuseMap
-	v7_.normalMap = self.normalMap
-	v7_.specularMap = self.specularMap
-	return v7_
+	local material = VehicleMaterial.new(self.baseDirectory)
+	material.targetMaterialSlotName = self.targetMaterialSlotName
+	material.templateName = self.templateName
+	material.materialTemplate = self.materialTemplate
+	material.colorScale = self.colorScale
+	material.smoothnessScale = self.smoothnessScale
+	material.metalnessScale = self.metalnessScale
+	material.clearCoatSmoothness = self.clearCoatSmoothness
+	material.clearCoatIntensity = self.clearCoatIntensity
+	material.porosity = self.porosity
+	material.detailDiffuse = self.detailDiffuse
+	material.detailNormal = self.detailNormal
+	material.detailSpecular = self.detailSpecular
+	material.diffuseMap = self.diffuseMap
+	material.normalMap = self.normalMap
+	material.specularMap = self.specularMap
+	return material
 end
-
 function VehicleMaterial:setColor(r, g, b)
 	if r == nil then
 		return
@@ -43,7 +34,6 @@ function VehicleMaterial:setColor(r, g, b)
 		self.colorScale = { r, g, b }
 	end
 end
-
 function VehicleMaterial:getBrightness()
 	if self.colorScale == nil then
 		return nil
@@ -51,115 +41,119 @@ function VehicleMaterial:getBrightness()
 		return MathUtil.getBrightnessFromColor(self.colorScale[1], self.colorScale[2], self.colorScale[3])
 	end
 end
-
 function VehicleMaterial:setTemplateName(templateName, colorOnly, customEnvironment)
 	self.templateName = templateName
 	self.materialTemplate = g_vehicleMaterialManager:getMaterialTemplateByName(templateName, customEnvironment)
-	if self.materialTemplate == nil then
-		return false
+	if self.materialTemplate ~= nil then
+		self.colorScale = self.materialTemplate.colorScale or self.materialTemplate.parentTemplate.colorScale
+		if self.colorScale == nil then
+			self.colorScale = { 1, 1, 1 }
+		end
+		if colorOnly then
+			return true
+		else
+			self.smoothnessScale = self.materialTemplate.smoothnessScale or self.materialTemplate.parentTemplate.smoothnessScale or 1
+			self.metalnessScale = self.materialTemplate.metalnessScale or self.materialTemplate.parentTemplate.metalnessScale or 1
+			self.clearCoatSmoothness = self.materialTemplate.clearCoatSmoothness or self.materialTemplate.parentTemplate.clearCoatSmoothness or 0
+			self.clearCoatIntensity = self.materialTemplate.clearCoatIntensity or self.materialTemplate.parentTemplate.clearCoatIntensity or 0
+			self.porosity = self.materialTemplate.porosity or self.materialTemplate.parentTemplate.porosity or 0
+			self.detailDiffuse = self.materialTemplate.detailDiffuse or self.materialTemplate.parentTemplate.detailDiffuse or "data/shared/detailLibrary/nonMetallic/default_diffuse.png"
+			self.detailNormal = self.materialTemplate.detailNormal or self.materialTemplate.parentTemplate.detailNormal or "data/shared/detailLibrary/nonMetallic/default_normal.png"
+			self.detailSpecular = self.materialTemplate.detailSpecular or self.materialTemplate.parentTemplate.detailSpecular or "data/shared/detailLibrary/nonMetallic/default_specular.png"
+			return true
+		end
 	end
-	self.colorScale = self.materialTemplate.colorScale or self.materialTemplate.parentTemplate.colorScale
-	if self.colorScale == nil then
-		self.colorScale = { 1, 1, 1 }
-	end
-	if colorOnly then
-		return true
-	end
-	self.smoothnessScale = self.materialTemplate.smoothnessScale or (self.materialTemplate.parentTemplate.smoothnessScale or 1)
-	self.metalnessScale = self.materialTemplate.metalnessScale or (self.materialTemplate.parentTemplate.metalnessScale or 1)
-	self.clearCoatSmoothness = self.materialTemplate.clearCoatSmoothness or (self.materialTemplate.parentTemplate.clearCoatSmoothness or 0)
-	self.clearCoatIntensity = self.materialTemplate.clearCoatIntensity or (self.materialTemplate.parentTemplate.clearCoatIntensity or 0)
-	self.porosity = self.materialTemplate.porosity or (self.materialTemplate.parentTemplate.porosity or 0)
-	self.detailDiffuse = self.materialTemplate.detailDiffuse or (self.materialTemplate.parentTemplate.detailDiffuse or "data/shared/detailLibrary/nonMetallic/default_diffuse.png")
-	self.detailNormal = self.materialTemplate.detailNormal or (self.materialTemplate.parentTemplate.detailNormal or "data/shared/detailLibrary/nonMetallic/default_normal.png")
-	self.detailSpecular = self.materialTemplate.detailSpecular or (self.materialTemplate.parentTemplate.detailSpecular or "data/shared/detailLibrary/nonMetallic/default_specular.png")
-	return true
+	return false
 end
-
--- Local values: templateName, materialTemplateUseColorOnly, colorStr, colorTemplate, detailDiffuse, detailNormal, detailSpecular, diffuseMap, normalMap, specularMap
 function VehicleMaterial:loadFromXML(xmlFile, key, customEnvironment)
 	self.targetMaterialSlotName = xmlFile:getValue(key .. "#materialSlotName")
-	local v21_ = self.templateName or xmlFile:getValue(key .. "#materialTemplateName")
-	if v21_ ~= nil and (v21_ ~= self.templateName and not self:setTemplateName(v21_, xmlFile:getValue(key .. "#materialTemplateUseColorOnly", false), customEnvironment)) then
-		Logging.xmlWarning(xmlFile.xmlFile or xmlFile, "Unable to find material template \'%s\' in \'%s\'", v21_, key)
-		return false
+	local templateName = self.templateName or xmlFile:getValue(key .. "#materialTemplateName")
+	if templateName ~= nil and templateName ~= self.templateName then
+		local materialTemplateUseColorOnly = xmlFile:getValue(key .. "#materialTemplateUseColorOnly", false)
+		if not self:setTemplateName(templateName, materialTemplateUseColorOnly, customEnvironment) then
+			Logging.xmlWarning(xmlFile.xmlFile or xmlFile, "Unable to find material template '%s' in '%s'", templateName, key)
+			return false
+		end
 	end
-	local v22_ = xmlFile:getValue(key .. ".colorScale#value")
-	if v22_ ~= nil then
-		local v23_ = g_vehicleMaterialManager:getMaterialTemplateByName(v22_, customEnvironment)
-		if v23_ == nil then
-			self.colorScale = string.getVector(v22_, 3) or self.colorScale
+	local colorStr = xmlFile:getValue(key .. ".colorScale#value")
+	if colorStr ~= nil then
+		local colorTemplate = g_vehicleMaterialManager:getMaterialTemplateByName(colorStr, customEnvironment)
+		if colorTemplate ~= nil then
+			self.colorScale = colorTemplate.colorScale or colorTemplate.parentTemplate.colorScale
 		else
-			self.colorScale = v23_.colorScale or v23_.parentTemplate.colorScale
+			self.colorScale = string.getVector(colorStr, 3) or self.colorScale
 		end
 	end
 	self.smoothnessScale = xmlFile:getValue(key .. ".smoothness#value", self.smoothnessScale)
 	self.metalnessScale = xmlFile:getValue(key .. ".metalness#value", self.metalnessScale)
 	self.clearCoatSmoothness = xmlFile:getValue(key .. ".clearCoat#smoothness", self.clearCoatSmoothness)
 	self.clearCoatIntensity = xmlFile:getValue(key .. ".clearCoat#intensity", self.clearCoatIntensity)
-	self.detailDiffuse = xmlFile:getValue(key .. ".detail#diffuse", nil, self.baseDirectory) or self.detailDiffuse
-	self.detailNormal = xmlFile:getValue(key .. ".detail#normal", nil, self.baseDirectory) or self.detailNormal
-	self.detailSpecular = xmlFile:getValue(key .. ".detail#specular", nil, self.baseDirectory) or self.detailSpecular
-	self.diffuseMap = xmlFile:getValue(key .. ".textures#diffuse", nil, self.baseDirectory) or self.diffuseMap
-	self.normalMap = xmlFile:getValue(key .. ".textures#normal", nil, self.baseDirectory) or self.normalMap
-	self.specularMap = xmlFile:getValue(key .. ".textures#specular", nil, self.baseDirectory) or self.specularMap
-	return (self.colorScale ~= nil or (self.smoothnessScale ~= nil or (self.metalnessScale ~= nil or (self.clearCoatSmoothness ~= nil or (self.clearCoatIntensity ~= nil or (self.porosity ~= nil or (self.detailDiffuse ~= nil or (self.detailNormal ~= nil or (self.detailSpecular ~= nil or (self.diffuseMap ~= nil or self.normalMap ~= nil)))))))))) and true or self.specularMap ~= nil
+	local detailDiffuse = xmlFile:getValue(key .. ".detail#diffuse", nil, self.baseDirectory)
+	self.detailDiffuse = detailDiffuse or self.detailDiffuse
+	local detailNormal = xmlFile:getValue(key .. ".detail#normal", nil, self.baseDirectory)
+	self.detailNormal = detailNormal or self.detailNormal
+	local detailSpecular = xmlFile:getValue(key .. ".detail#specular", nil, self.baseDirectory)
+	self.detailSpecular = detailSpecular or self.detailSpecular
+	local diffuseMap = xmlFile:getValue(key .. ".textures#diffuse", nil, self.baseDirectory)
+	self.diffuseMap = diffuseMap or self.diffuseMap
+	local normalMap = xmlFile:getValue(key .. ".textures#normal", nil, self.baseDirectory)
+	self.normalMap = normalMap or self.normalMap
+	local specularMap = xmlFile:getValue(key .. ".textures#specular", nil, self.baseDirectory)
+	self.specularMap = specularMap or self.specularMap
+	return self.colorScale ~= nil or self.smoothnessScale ~= nil or self.metalnessScale ~= nil or self.clearCoatSmoothness ~= nil or self.clearCoatIntensity ~= nil or self.porosity ~= nil or self.detailDiffuse ~= nil or self.detailNormal ~= nil or self.detailSpecular ~= nil or self.diffuseMap ~= nil or self.normalMap ~= nil or self.specularMap ~= nil
 end
-
--- Local values: templateName, materialTemplateUseColorOnly, templateNameColor, materialTemplate
 function VehicleMaterial:loadShortFromXML(xmlFile, key, customEnvironment)
 	self.targetMaterialSlotName = xmlFile:getValue(key .. "#materialSlotName")
-	local v28_ = self.templateName or xmlFile:getValue(key .. "#materialTemplateName")
-	if v28_ == nil then
-		return false
-	end
-	if not self:setTemplateName(v28_, xmlFile:getValue(key .. "#materialTemplateUseColorOnly", false), customEnvironment) then
-		Logging.xmlWarning(xmlFile.xmlFile or xmlFile, "Unable to find material template \'%s\' in \'%s\'", v28_, key)
-		return false
-	end
-	local v29_ = xmlFile:getValue(key .. "#materialTemplateNameColor")
-	if v29_ ~= nil then
-		local v30_ = g_vehicleMaterialManager:getMaterialTemplateByName(v29_, customEnvironment)
-		if v30_ ~= nil then
-			self.colorScale = v30_.colorScale or v30_.parentTemplate.colorScale
+	local templateName = self.templateName or xmlFile:getValue(key .. "#materialTemplateName")
+	if templateName ~= nil then
+		local materialTemplateUseColorOnly = xmlFile:getValue(key .. "#materialTemplateUseColorOnly", false)
+		if not self:setTemplateName(templateName, materialTemplateUseColorOnly, customEnvironment) then
+			Logging.xmlWarning(xmlFile.xmlFile or xmlFile, "Unable to find material template '%s' in '%s'", templateName, key)
+			return false
+		else
+			local templateNameColor = xmlFile:getValue(key .. "#materialTemplateNameColor")
+			if templateNameColor ~= nil then
+				local materialTemplate = g_vehicleMaterialManager:getMaterialTemplateByName(templateNameColor, customEnvironment)
+				if materialTemplate ~= nil then
+					self.colorScale = materialTemplate.colorScale or materialTemplate.parentTemplate.colorScale
+				end
+			end
+			return true
 		end
 	end
-	return true
+	return false
 end
-
--- Local values: success, i, component
 function VehicleMaterial:applyToVehicle(vehicle, targetMaterialSlotName)
-	local v34_ = false
-	for _, v35_ in ipairs(vehicle.components) do
-		v34_ = self:apply(v35_.node, targetMaterialSlotName) or v34_
+	local success = false
+	for i, component in ipairs(vehicle.components) do
+		success = self:apply(component.node, targetMaterialSlotName) or success
 	end
-	return v34_
+	return success
 end
-
--- Local values: success, i, materialSlotName, i
 function VehicleMaterial:apply(node, targetMaterialSlotName, colorOnly)
-	local v40_ = false
-	local v41_ = targetMaterialSlotName or self.targetMaterialSlotName
+	local success = false
+	targetMaterialSlotName = targetMaterialSlotName or self.targetMaterialSlotName
 	if getHasClassId(node, ClassIds.SHAPE) then
-		for v42_ = 1, getNumOfMaterials(node) do
-			if getMaterialSlotName(node, v42_ - 1) == v41_ or v41_ == nil then
-				self:applyToMaterial(node, v42_ - 1, colorOnly)
-				v40_ = true
+		for i = 1, getNumOfMaterials(node) do
+			local materialSlotName = getMaterialSlotName(node, i - 1)
+			if materialSlotName == targetMaterialSlotName or targetMaterialSlotName == nil then
+				self:applyToMaterial(node, i - 1, colorOnly)
+				success = true
 			end
 		end
 	end
-	for v43_ = 1, getNumOfChildren(node) do
-		v40_ = self:apply(getChildAt(node, v43_ - 1), v41_, colorOnly) or v40_
+	for i = 1, getNumOfChildren(node) do
+		success = self:apply(getChildAt(node, i - 1), targetMaterialSlotName, colorOnly) or success
 	end
-	return v40_
+	return success
 end
-
--- Local values: materialId, newMaterialId
 function VehicleMaterial:applyToMaterial(node, materialIndex, colorOnly)
 	if self.colorScale ~= nil then
 		setShaderParameter(node, "colorScale", self.colorScale[1], self.colorScale[2], self.colorScale[3], nil, false, materialIndex)
 	end
-	if not colorOnly then
+	if colorOnly then
+		return
+	else
 		if self.smoothnessScale ~= nil then
 			setShaderParameter(node, "smoothnessScale", self.smoothnessScale, nil, nil, nil, false, materialIndex)
 		end
@@ -175,110 +169,108 @@ function VehicleMaterial:applyToMaterial(node, materialIndex, colorOnly)
 		if self.porosity ~= nil then
 			setShaderParameter(node, "porosity", self.porosity, nil, nil, nil, false, materialIndex)
 		end
-		local v48_ = getMaterial(node, materialIndex)
-		local v49_
-		if self.detailDiffuse == nil then
-			v49_ = v48_
-		else
-			v49_ = setMaterialCustomMapFromFile(v48_, "detailDiffuse", self.detailDiffuse, false, true, false)
+		local materialId = getMaterial(node, materialIndex)
+		local newMaterialId = materialId
+		if self.detailDiffuse ~= nil then
+			newMaterialId = setMaterialCustomMapFromFile(newMaterialId, "detailDiffuse", self.detailDiffuse, false, true, false)
 		end
 		if self.detailNormal ~= nil then
-			v49_ = setMaterialCustomMapFromFile(v49_, "detailNormal", self.detailNormal, false, false, false)
+			newMaterialId = setMaterialCustomMapFromFile(newMaterialId, "detailNormal", self.detailNormal, false, false, false)
 		end
 		if self.detailSpecular ~= nil then
-			v49_ = setMaterialCustomMapFromFile(v49_, "detailSpecular", self.detailSpecular, false, false, false)
+			newMaterialId = setMaterialCustomMapFromFile(newMaterialId, "detailSpecular", self.detailSpecular, false, false, false)
 		end
 		if self.diffuseMap ~= nil then
-			v49_ = setMaterialDiffuseMapFromFile(v49_, self.diffuseMap, false, true, false)
+			newMaterialId = setMaterialDiffuseMapFromFile(newMaterialId, self.diffuseMap, false, true, false)
 		end
 		if self.normalMap ~= nil then
-			v49_ = setMaterialNormalMapFromFile(v49_, self.normalMap, false, false, false)
+			newMaterialId = setMaterialNormalMapFromFile(newMaterialId, self.normalMap, false, false, false)
 		end
 		if self.specularMap ~= nil then
-			v49_ = setMaterialGlossMapFromFile(v49_, self.specularMap, false, false, false)
+			newMaterialId = setMaterialGlossMapFromFile(newMaterialId, self.specularMap, false, false, false)
 		end
-		if v49_ ~= v48_ then
-			setMaterial(node, v49_, materialIndex)
+		if newMaterialId ~= materialId then
+			setMaterial(node, newMaterialId, materialIndex)
 		end
 	end
 end
-
--- Local values: r, g, b, _, smoothness, metalness, clearCoatSmoothness, clearCoatIntensity, porosity, detailDiffuse, detailNormal, detailSpecular, diffuseMap, normalMap, specularMap
 function VehicleMaterial:getIsApplied(node, materialId, checkColor)
 	if checkColor ~= false then
-		local v53_, v54_, v55_, _ = getMaterialCustomParameter(materialId, "colorScale")
-		if self.colorScale == nil then
-			if v53_ ~= 1 or (v54_ ~= 1 or v55_ ~= 1) then
+		local r, g, b, _ = getMaterialCustomParameter(materialId, "colorScale")
+		if self.colorScale ~= nil then
+			if r ~= self.colorScale[1] or g ~= self.colorScale[2] or b ~= self.colorScale[3] then
 				return false
 			end
-		elseif v53_ ~= self.colorScale[1] or (v54_ ~= self.colorScale[2] or v55_ ~= self.colorScale[3]) then
+		elseif r ~= 1 or g ~= 1 or b ~= 1 then
 			return false
 		end
 	end
-	local v56_ = getMaterialCustomParameter(materialId, "smoothnessScale")
-	if self.smoothnessScale ~= nil and v56_ ~= self.smoothnessScale then
+	local smoothness = getMaterialCustomParameter(materialId, "smoothnessScale")
+	if self.smoothnessScale ~= nil and smoothness ~= self.smoothnessScale then
 		return false
 	end
-	if self.smoothnessScale == nil and v56_ ~= 1 then
+	if self.smoothnessScale == nil and smoothness ~= 1 then
 		return false
 	end
-	local v57_ = getMaterialCustomParameter(materialId, "metalnessScale")
-	if self.metalnessScale ~= nil and v57_ ~= self.metalnessScale then
+	local metalness = getMaterialCustomParameter(materialId, "metalnessScale")
+	if self.metalnessScale ~= nil and metalness ~= self.metalnessScale then
 		return false
 	end
-	if self.metalnessScale == nil and v57_ ~= 1 then
+	if self.metalnessScale == nil and metalness ~= 1 then
 		return false
 	end
-	local v58_ = getMaterialCustomParameter(materialId, "clearCoatSmoothness")
-	if self.clearCoatSmoothness ~= nil and v58_ ~= self.clearCoatSmoothness then
+	local clearCoatSmoothness = getMaterialCustomParameter(materialId, "clearCoatSmoothness")
+	if self.clearCoatSmoothness ~= nil and clearCoatSmoothness ~= self.clearCoatSmoothness then
 		return false
 	end
-	if self.clearCoatSmoothness == nil and v58_ ~= 0 then
+	if self.clearCoatSmoothness == nil and clearCoatSmoothness ~= 0 then
 		return false
 	end
-	local v59_ = getMaterialCustomParameter(materialId, "clearCoatIntensity")
-	if self.clearCoatIntensity ~= nil and v59_ ~= self.clearCoatIntensity then
+	local clearCoatIntensity = getMaterialCustomParameter(materialId, "clearCoatIntensity")
+	if self.clearCoatIntensity ~= nil and clearCoatIntensity ~= self.clearCoatIntensity then
 		return false
 	end
-	if self.clearCoatIntensity == nil and v59_ ~= 0 then
+	if self.clearCoatIntensity == nil and clearCoatIntensity ~= 0 then
 		return false
 	end
-	local v60_ = getMaterialCustomParameter(materialId, "porosity")
-	if self.porosity ~= nil and v60_ ~= self.porosity then
+	local porosity = getMaterialCustomParameter(materialId, "porosity")
+	if self.porosity ~= nil and porosity ~= self.porosity then
 		return false
 	end
-	if self.porosity == nil and v60_ ~= 0 then
+	if self.porosity == nil and porosity ~= 0 then
 		return false
 	end
-	local v61_ = getMaterialCustomMapFilename(materialId, "detailDiffuse")
-	if self.detailDiffuse ~= nil and v61_ ~= self.detailDiffuse then
+	local detailDiffuse = getMaterialCustomMapFilename(materialId, "detailDiffuse")
+	if self.detailDiffuse ~= nil and detailDiffuse ~= self.detailDiffuse then
 		return false
 	end
-	local v62_ = getMaterialCustomMapFilename(materialId, "detailNormal")
-	if self.detailNormal ~= nil and v62_ ~= self.detailNormal then
+	local detailNormal = getMaterialCustomMapFilename(materialId, "detailNormal")
+	if self.detailNormal ~= nil and detailNormal ~= self.detailNormal then
 		return false
 	end
-	local v63_ = getMaterialCustomMapFilename(materialId, "detailSpecular")
-	if self.detailSpecular ~= nil and v63_ ~= self.detailSpecular then
+	local detailSpecular = getMaterialCustomMapFilename(materialId, "detailSpecular")
+	if self.detailSpecular ~= nil and detailSpecular ~= self.detailSpecular then
 		return false
 	end
-	local v64_ = getMaterialDiffuseMapFilename(materialId)
-	if self.diffuseMap ~= nil and v64_ ~= self.diffuseMap then
+	local diffuseMap = getMaterialDiffuseMapFilename(materialId)
+	if self.diffuseMap ~= nil and diffuseMap ~= self.diffuseMap then
 		return false
 	end
-	local v65_ = getMaterialNormalMapFilename(materialId)
-	if self.normalMap ~= nil and v65_ ~= self.normalMap then
+	local normalMap = getMaterialNormalMapFilename(materialId)
+	if self.normalMap ~= nil and normalMap ~= self.normalMap then
 		return false
 	end
-	local v66_ = getMaterialGlossMapFilename(materialId)
-	return self.specularMap == nil or v66_ == self.specularMap
+	local specularMap = getMaterialGlossMapFilename(materialId)
+	if self.specularMap ~= nil and specularMap ~= self.specularMap then
+		return false
+	end
+	return true
 end
-
 function VehicleMaterial.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#materialSlotName", "Material slot name in the i3d file")
 	schema:register(XMLValueType.STRING, basePath .. "#materialTemplateName", "Name of template to apply (all attributes will be used from template)")
 	schema:registerAutoCompletionDataSource(basePath .. "#materialTemplateName", "$data/shared/brandMaterialTemplates.xml", "templates.template#name")
-	schema:register(XMLValueType.BOOL, basePath .. "#materialTemplateUseColorOnly", "If \'true\', only the color is used from the material template. The rest from the i3d file.", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#materialTemplateUseColorOnly", "If 'true', only the color is used from the material template. The rest from the i3d file.", false)
 	schema:register(XMLValueType.STRING, basePath .. ".colorScale#value", "Material color if it should not be used from configuration (can also be a different material template, from which then ONLY the color is taken)")
 	schema:register(XMLValueType.FLOAT, basePath .. ".smoothness#value", "Smoothness value")
 	schema:register(XMLValueType.FLOAT, basePath .. ".metalness#value", "Metalness value")
@@ -291,12 +283,11 @@ function VehicleMaterial.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FILENAME, basePath .. ".textures#normal", "Path to normal texture")
 	schema:register(XMLValueType.FILENAME, basePath .. ".textures#specular", "Path to specular texture")
 end
-
 function VehicleMaterial.registerShortXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#materialSlotName", "Material slot name in the i3d file")
 	schema:register(XMLValueType.STRING, basePath .. "#materialTemplateName", "Name of template to apply (all attributes will be used from template)")
 	schema:registerAutoCompletionDataSource(basePath .. "#materialTemplateName", "$data/shared/brandMaterialTemplates.xml", "templates.template#name")
-	schema:register(XMLValueType.BOOL, basePath .. "#materialTemplateUseColorOnly", "If \'true\', only the color is used from the material template. The rest from the i3d file.", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#materialTemplateUseColorOnly", "If 'true', only the color is used from the material template. The rest from the i3d file.", false)
 	schema:register(XMLValueType.STRING, basePath .. "#materialTemplateNameColor", "Name of the material template that is used ONLY for the color")
 	schema:registerAutoCompletionDataSource(basePath .. "#materialTemplateNameColor", "$data/shared/brandMaterialTemplates.xml", "templates.template#name")
 end

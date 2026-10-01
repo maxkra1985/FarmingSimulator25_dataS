@@ -1,10 +1,8 @@
 PlaceableFactory = {}
 source("dataS/scripts/placeables/specializations/activatables/FactoryActivatable.lua")
-
 function PlaceableFactory.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(PlaceableSellingStation, specializations)
 end
-
 function PlaceableFactory.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "onMeshI3DFileLoaded", PlaceableFactory.onMeshI3DFileLoaded)
 	SpecializationUtil.registerFunction(placeableType, "updateRemainingAmount", PlaceableFactory.updateRemainingAmount)
@@ -18,12 +16,10 @@ function PlaceableFactory.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "buyRequest", PlaceableFactory.buyRequest)
 	SpecializationUtil.registerFunction(placeableType, "updateInfoData", PlaceableFactory.updateInfoData)
 end
-
 function PlaceableFactory.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "updateInfo", PlaceableFactory.updateInfo)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "setOwnerFarmId", PlaceableFactory.setOwnerFarmId)
 end
-
 function PlaceableFactory.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableFactory)
 	SpecializationUtil.registerEventListener(placeableType, "onDelete", PlaceableFactory)
@@ -36,7 +32,6 @@ function PlaceableFactory.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onInfoTriggerEnter", PlaceableFactory)
 	SpecializationUtil.registerEventListener(placeableType, "onInfoTriggerLeave", PlaceableFactory)
 end
-
 function PlaceableFactory.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("PlaceableFactory")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".factory#playerTrigger", "")
@@ -57,607 +52,482 @@ function PlaceableFactory.registerXMLPaths(schema, basePath)
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".factory.sounds", "active")
 	schema:setXMLSpecializationType()
 end
-
 function PlaceableFactory.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. ".input(?)#fillType", "")
 	schema:register(XMLValueType.FLOAT, basePath .. ".input(?)#remainingAmount", "")
 	Storage.registerSavegameXMLPaths(schema, basePath .. ".storage")
 end
-
--- Local values: spec, key, itemI3DFilename, arguments, sellingStation, outputTypeStr, outputType, production, _, inputKey, fillTypeStr, fillType, amount, usagePerHour, usagePerSecond
 function PlaceableFactory:onLoad(savegame)
-	local v10_ = self.spec_factory
-	v10_.itemLinkNode = self.xmlFile:getValue("placeable.factory.item#linkNode", nil, self.components, self.i3dMappings)
-	local v11_ = Utils.getFilename(self.xmlFile:getValue("placeable.factory.item#filename"), self.baseDirectory)
-	v10_.itemReward = self.xmlFile:getValue("placeable.factory.item#reward", 100000)
-	v10_.idToMesh = {}
-	v10_.meshes = {}
-	local v12_ = {
-		["loadingTask"] = self:createLoadingTask(v10_)
-	}
-	v10_.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(v11_, true, false, self.onMeshI3DFileLoaded, self, v12_)
-	local v13_ = self.spec_sellingStation.sellingStation
-	v13_.owningPlaceable = self
-	function v13_.getStoreGoods(_, _, _)
+	local spec = self.spec_factory
+	local key = "placeable.factory"
+	spec.itemLinkNode = self.xmlFile:getValue("placeable.factory" .. ".item#linkNode", nil, self.components, self.i3dMappings)
+	local itemI3DFilename = Utils.getFilename(self.xmlFile:getValue("placeable.factory" .. ".item#filename"), self.baseDirectory)
+	spec.itemReward = self.xmlFile:getValue("placeable.factory" .. ".item#reward", 100000)
+	spec.idToMesh = {}
+	spec.meshes = {}
+	local arguments = {}
+	arguments.loadingTask = self:createLoadingTask(spec)
+	spec.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(itemI3DFilename, true, false, self.onMeshI3DFileLoaded, self, arguments)
+	local sellingStation = self.spec_sellingStation.sellingStation
+	sellingStation.owningPlaceable = self
+	function sellingStation.getStoreGoods(_, farmId, fillTypeIndex)
 		return true
 	end
-	function v13_.getSkipSell(_, _, _)
-		-- upvalues: (copy) self
-		return self:getOwnerFarmId() ~= AccessHandler.EVERYONE
+	function sellingStation.getSkipSell(_, farmId, fillTypeIndex)
+		local ownerFarmId = self:getOwnerFarmId()
+		if ownerFarmId ~= AccessHandler.EVERYONE then
+			return true
+		else
+			return false
+		end
 	end
-	v10_.storage = Storage.new(self.isServer, self.isClient)
-	v10_.storage:load(self.components, self.xmlFile, "placeable.factory.storage", self.i3dMappings, self.baseDirectory)
-	v10_.storage:register(true)
-	v10_.storage:addFillLevelChangedListeners(function()
-		-- upvalues: (copy) self
+	spec.storage = Storage.new(self.isServer, self.isClient)
+	spec.storage:load(self.components, self.xmlFile, "placeable.factory" .. ".storage", self.i3dMappings, self.baseDirectory)
+	spec.storage:register(true)
+	spec.storage:addFillLevelChangedListeners(function()
 		self:raiseActive()
 	end)
-	function v10_.storageFillLevelChangedCallback()
-		-- upvalues: (copy) self
+	function spec.storageFillLevelChangedCallback()
 		self:updateInfoData()
 	end
-	v10_.fillTypesAndLevelsAuxiliary = {}
-	v10_.fillTypeToFillTypeStorageTable = {}
-	v10_.infoTriggerFillTypesAndLevels = {}
-	v10_.infoTableEntryStorage = {
-		["title"] = g_i18n:getText("statistic_storage"),
-		["accentuate"] = true
-	}
-	v13_:addTargetStorage(v10_.storage)
-	v10_.playerTrigger = self.xmlFile:getValue("placeable.factory#playerTrigger", nil, self.components, self.i3dMappings)
-	if v10_.playerTrigger ~= nil then
-		addTrigger(v10_.playerTrigger, "playerTriggerCallback", self)
-		setVisibility(v10_.playerTrigger, self:getOwnerFarmId() == AccessHandler.EVERYONE)
+	spec.fillTypesAndLevelsAuxiliary = {}
+	spec.fillTypeToFillTypeStorageTable = {}
+	spec.infoTriggerFillTypesAndLevels = {}
+	spec.infoTableEntryStorage = { title = g_i18n:getText("statistic_storage"), accentuate = true }
+	sellingStation:addTargetStorage(spec.storage)
+	spec.playerTrigger = self.xmlFile:getValue("placeable.factory" .. "#playerTrigger", nil, self.components, self.i3dMappings)
+	if spec.playerTrigger ~= nil then
+		addTrigger(spec.playerTrigger, "playerTriggerCallback", self)
+		setVisibility(spec.playerTrigger, self:getOwnerFarmId() == AccessHandler.EVERYONE)
 	end
-	v10_.activatable = FactoryActivatable.new(self)
-	v10_.totalAmount = 0
-	v10_.inputs = {}
-	v10_.hasInputMaterials = true
-	v10_.progress = 0
-	v10_.progressLastSynced = 0
-	v10_.progressNumBits = 7
-	v10_.progressDirtyFlag = self:getNextDirtyFlag()
+	spec.activatable = FactoryActivatable.new(self)
+	spec.totalAmount = 0
+	spec.inputs = {}
+	spec.hasInputMaterials = true
+	spec.progress = 0
+	spec.progressLastSynced = 0
+	spec.progressNumBits = 7
+	spec.progressDirtyFlag = self:getNextDirtyFlag()
 	self.inputFillTypeIdsArray = {}
 	self.outputFillTypeIdsArray = {}
-	local v14_ = self.xmlFile:getValue("placeable.factory.production.output#fillType")
-	local v15_ = g_fillTypeManager:getFillTypeByName(v14_)
+	local outputTypeStr = self.xmlFile:getValue("placeable.factory" .. ".production.output#fillType")
+	local outputType = g_fillTypeManager:getFillTypeByName(outputTypeStr)
 	self.productions = {}
-	local v16_ = {
-		["inputs"] = {},
-		["outputs"] = {},
-		["cyclesPerMonth"] = 1,
-		["costsPerActiveMonth"] = 0
-	}
-	if v15_ ~= nil then
-		v16_.primaryProductFillType = v15_.index
-		v16_.name = v15_.title
-		local v17_ = self.outputFillTypeIdsArray
-		local v18_ = v15_.index
-		table.insert(v17_, v18_)
-		local v19_ = v16_.outputs
-		local v20_ = {
-			["type"] = v15_.index,
-			["amount"] = 1,
-			["isFactory"] = true
-		}
-		table.insert(v19_, v20_)
+	local production = {}
+	production.inputs = {}
+	production.outputs = {}
+	production.cyclesPerMonth = 1
+	production.costsPerActiveMonth = 0
+	if outputType ~= nil then
+		production.primaryProductFillType = outputType.index
+		production.name = outputType.title
+		table.insert(self.outputFillTypeIdsArray, outputType.index)
+		table.insert(production.outputs, { type = outputType.index, amount = 1, isFactory = true })
 	end
-	for _, v21_ in self.xmlFile:iterator("placeable.factory.production.input") do
-		local v22_ = self.xmlFile:getValue(v21_ .. "#fillType")
-		local v23_ = g_fillTypeManager:getFillTypeByName(v22_)
-		if v23_ == nil then
-			Logging.xmlWarning(self.xmlFile, "Unknown fillType \'%s\' in \'%s\'", v22_, v21_)
+	for _, inputKey in self.xmlFile:iterator("placeable.factory" .. ".production.input") do
+		local fillTypeStr = self.xmlFile:getValue(inputKey .. "#fillType")
+		local fillType = g_fillTypeManager:getFillTypeByName(fillTypeStr)
+		if fillType == nil then
+			Logging.xmlWarning(self.xmlFile, "Unknown fillType '%s' in '%s'", fillTypeStr, inputKey)
 			break
 		end
-		if not v10_.storage:getIsFillTypeSupported(v23_.index) then
-			Logging.xmlWarning(self.xmlFile, "Filltype \'%s\' in \'%s\' not supported by storage", v23_.name, v21_)
+		if not spec.storage:getIsFillTypeSupported(fillType.index) then
+			Logging.xmlWarning(self.xmlFile, "Filltype '%s' in '%s' not supported by storage", fillType.name, inputKey)
 			break
 		end
-		local v24_ = self.xmlFile:getValue(v21_ .. "#amount")
-		local v25_ = self.xmlFile:getValue(v21_ .. "#usagePerHour")
-		local v26_ = v25_ / 60 / 60
-		v10_.totalAmount = v10_.totalAmount + v24_
-		local v27_ = v10_.inputs
-		local v28_ = {
-			["fillType"] = v23_,
-			["amount"] = v24_,
-			["remainingAmount"] = v24_,
-			["usagePerSecond"] = v26_,
-			["infoTableEntry"] = {
-				["title"] = v23_.title,
-				["text"] = g_i18n:formatVolume(v24_)
-			}
-		}
-		table.insert(v27_, v28_)
-		local v29_ = v16_.inputs
-		local v30_ = {
-			["type"] = v23_.index,
-			["amount"] = v24_
-		}
-		table.insert(v29_, v30_)
-		local v31_ = v16_.cyclesPerMonth
-		local v32_ = v24_ * g_currentMission.environment.timeAdjustment / (v25_ * 24)
-		v16_.cyclesPerMonth = math.max(v31_, v32_)
-		local v33_ = self.inputFillTypeIdsArray
-		local v34_ = v23_.index
-		table.insert(v33_, v34_)
+		local amount = self.xmlFile:getValue(inputKey .. "#amount")
+		local usagePerHour = self.xmlFile:getValue(inputKey .. "#usagePerHour")
+		local usagePerSecond = usagePerHour / 60 / 60
+		spec.totalAmount = spec.totalAmount + amount
+		table.insert(spec.inputs, { fillType = fillType, amount = amount, remainingAmount = amount, usagePerSecond = usagePerSecond, infoTableEntry = { title = fillType.title, text = g_i18n:formatVolume(amount) } })
+		table.insert(production.inputs, { amount = amount, type = fillType.index })
+		production.cyclesPerMonth = math.max(production.cyclesPerMonth, amount * g_currentMission.environment.timeAdjustment / (usagePerHour * 24))
+		table.insert(self.inputFillTypeIdsArray, fillType.index)
 	end
-	local v35_ = self.productions
-	table.insert(v35_, v16_)
-	v10_.samples = {}
-	v10_.samples.active = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.factory.sounds", "active", self.baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
-	v10_.isSoundPlaying = false
+	table.insert(self.productions, production)
+	spec.samples = {}
+	spec.samples.active = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.factory" .. ".sounds", "active", self.baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
+	spec.isSoundPlaying = false
 end
-
--- Local values: spec, components, boatKey, index, nodeKey, node, id, indexMin, indexMax, mesh, _, mesh
 function PlaceableFactory:onMeshI3DFileLoaded(i3dFileRoot, failedReason, args)
-	local v39_ = self.spec_factory
+	local spec = self.spec_factory
 	if i3dFileRoot ~= 0 then
-		v39_.itemRoot = i3dFileRoot
-		local v40_ = {}
-		I3DUtil.loadI3DComponents(i3dFileRoot, v40_)
-		for _, v41_ in self.xmlFile:iterator("placeable.factory.item.progressiveVisibilityMesh.mesh") do
-			local v42_ = self.xmlFile:getValue(v41_ .. "#node", nil, v40_)
-			if not getHasClassId(v42_, ClassIds.SHAPE) then
-				Logging.xmlError(self.xmlFile, "node \'%s\' at \'%s\' is not a shape", getName(v42_), v41_)
+		spec.itemRoot = i3dFileRoot
+		local components = {}
+		I3DUtil.loadI3DComponents(i3dFileRoot, components)
+		local boatKey = "placeable.factory.item"
+		for index, nodeKey in self.xmlFile:iterator("placeable.factory.item" .. ".progressiveVisibilityMesh.mesh") do
+			local node = self.xmlFile:getValue(nodeKey .. "#node", nil, components)
+			if not getHasClassId(node, ClassIds.SHAPE) then
+				Logging.xmlError(self.xmlFile, "node '%s' at '%s' is not a shape", getName(node), nodeKey)
 				break
 			end
-			if not getHasShaderParameter(v42_, "hideByIndex") then
-				Logging.xmlError(self.xmlFile, "mesh \'%s\' at \'%s\' does not have required shader parameter \'hideByIndex\'", getName(v42_), v41_)
+			if not getHasShaderParameter(node, "hideByIndex") then
+				Logging.xmlError(self.xmlFile, "mesh '%s' at '%s' does not have required shader parameter 'hideByIndex'", getName(node), nodeKey)
 				break
 			end
-			local v43_ = self.xmlFile:getValue(v41_ .. "#id")
-			local v44_ = self.xmlFile:getValue(v41_ .. "#indexMin", 0)
-			local v45_ = self.xmlFile:getValue(v41_ .. "#indexMax")
-			if v45_ == nil then
-				v45_ = getUserAttribute(v42_, "hideByIndexMaxIndex")
-				if v44_ == nil then
-					Logging.xmlError(self.xmlFile, "Cannot retrieve indexMax from shape material and value is also not set in xml at \'%s\'", getName(v42_), v41_)
+			local id = self.xmlFile:getValue(nodeKey .. "#id")
+			local indexMin = self.xmlFile:getValue(nodeKey .. "#indexMin", 0)
+			local indexMax = self.xmlFile:getValue(nodeKey .. "#indexMax")
+			if indexMax == nil then
+				indexMax = getUserAttribute(node, "hideByIndexMaxIndex")
+				if indexMin == nil then
+					Logging.xmlError(self.xmlFile, "Cannot retrieve indexMax from shape material and value is also not set in xml at '%s'", getName(node), nodeKey)
 					break
 				end
 			end
-			if v39_.idToMesh[v43_] ~= nil then
-				Logging.xmlError(self.xmlFile, "id \'%s\' at \'%s\' already in use", v43_, v41_)
+			if spec.idToMesh[id] ~= nil then
+				Logging.xmlError(self.xmlFile, "id '%s' at '%s' already in use", id, nodeKey)
 				break
 			end
-			local v46_ = {
-				["node"] = v42_,
-				["childIndex"] = getChildIndex(v42_),
-				["id"] = v43_,
-				["index"] = #v39_.meshes + 1,
-				["indexMin"] = v44_,
-				["indexMax"] = v45_,
-				["lastValue"] = -1,
-				["dirtyFlag"] = self:getNextDirtyFlag(),
-				["numBits"] = MathUtil.getNumRequiredBits(v45_)
-			}
-			v39_.idToMesh[v43_] = v46_
-			local v47_ = v39_.meshes
-			table.insert(v47_, v46_)
+			local mesh = { node = node, id = id, indexMin = indexMin, indexMax = indexMax }
+			mesh.childIndex = getChildIndex(node)
+			mesh.index = #spec.meshes + 1
+			mesh.lastValue = -1
+			mesh.dirtyFlag = self:getNextDirtyFlag()
+			mesh.numBits = MathUtil.getNumRequiredBits(indexMax)
+			spec.idToMesh[id] = mesh
+			table.insert(spec.meshes, mesh)
 		end
 	end
 	self:createFactoryItem()
-	for _, v48_ in ipairs(v39_.meshes) do
-		self:setMeshProgress(v48_.id, 1)
+	for _, mesh in ipairs(spec.meshes) do
+		self:setMeshProgress(mesh.id, 1)
 	end
 	self:finishLoadingTask(args.loadingTask)
 	self:raiseActive()
 end
-
--- Local values: spec
 function PlaceableFactory:onDelete()
-	local v50_ = self.spec_factory
+	local spec = self.spec_factory
 	g_currentMission.productionChainManager:removeFactory(self)
-	g_currentMission.activatableObjectsSystem:removeActivatable(v50_.activatable)
-	if v50_.samples ~= nil then
-		g_soundManager:deleteSamples(v50_.samples)
-		v50_.samples = nil
+	g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
+	if spec.samples ~= nil then
+		g_soundManager:deleteSamples(spec.samples)
+		spec.samples = nil
 	end
-	if v50_.playerTrigger ~= nil then
-		removeTrigger(v50_.playerTrigger)
-		v50_.playerTrigger = nil
+	if spec.playerTrigger ~= nil then
+		removeTrigger(spec.playerTrigger)
+		spec.playerTrigger = nil
 	end
-	if v50_.itemRoot ~= nil then
-		delete(v50_.itemRoot)
-		v50_.itemRoot = nil
+	if spec.itemRoot ~= nil then
+		delete(spec.itemRoot)
+		spec.itemRoot = nil
 	end
-	if v50_.storage ~= nil then
-		v50_.storage:delete()
-		v50_.storage = nil
+	if spec.storage ~= nil then
+		spec.storage:delete()
+		spec.storage = nil
 	end
-	if v50_.sharedLoadRequestId ~= nil then
-		g_i3DManager:releaseSharedI3DFile(v50_.sharedLoadRequestId)
-		v50_.sharedLoadRequestId = nil
+	if spec.sharedLoadRequestId ~= nil then
+		g_i3DManager:releaseSharedI3DFile(spec.sharedLoadRequestId)
+		spec.sharedLoadRequestId = nil
 	end
 end
-
--- Local values: spec
 function PlaceableFactory:saveToXMLFile(xmlFile, key, usedModNames)
-	local v54_ = self.spec_factory
-	xmlFile:setSortedTable(key .. ".input", v54_.inputs, function(p55_, p56_)
-		-- upvalues: (copy) xmlFile
-		xmlFile:setValue(p55_ .. "#fillType", p56_.fillType.name)
-		xmlFile:setValue(p55_ .. "#remainingAmount", p56_.remainingAmount)
+	local spec = self.spec_factory
+	xmlFile:setSortedTable(key .. ".input", spec.inputs, function(inputKey, input)
+		xmlFile:setValue(inputKey .. "#fillType", input.fillType.name)
+		xmlFile:setValue(inputKey .. "#remainingAmount", input.remainingAmount)
 	end)
-	v54_.storage:saveToXMLFile(xmlFile, key .. ".storage")
+	spec.storage:saveToXMLFile(xmlFile, key .. ".storage")
 end
-
--- Local values: spec, _, inputKey, fillType, remainingAmount, _, input
 function PlaceableFactory:loadFromXMLFile(xmlFile, key)
-	local v60_ = self.spec_factory
-	for _, v61_ in xmlFile:iterator(key .. ".input") do
-		local v62_ = g_fillTypeManager:getFillTypeByName(xmlFile:getValue(v61_ .. "#fillType"))
-		local v63_ = xmlFile:getValue(v61_ .. "#remainingAmount")
-		for _, v64_ in ipairs(v60_.inputs) do
-			if v64_.fillType == v62_ then
-				self:updateRemainingAmount(v64_, v63_)
+	local spec = self.spec_factory
+	for _, inputKey in xmlFile:iterator(key .. ".input") do
+		local fillType = g_fillTypeManager:getFillTypeByName(xmlFile:getValue(inputKey .. "#fillType"))
+		local remainingAmount = xmlFile:getValue(inputKey .. "#remainingAmount")
+		for _, input in ipairs(spec.inputs) do
+			if input.fillType == fillType then
+				self:updateRemainingAmount(input, remainingAmount)
 			end
 		end
 	end
-	v60_.storage:loadFromXMLFile(xmlFile, key .. ".storage")
+	spec.storage:loadFromXMLFile(xmlFile, key .. ".storage")
 end
-
--- Local values: spec, storageId, meshIndex, mesh, hideByIndexValue, progress
 function PlaceableFactory:onReadStream(streamId, connection)
-	local v68_ = self.spec_factory
-	local v69_ = NetworkUtil.readNodeObjectId(streamId)
-	v68_.storage:readStream(streamId, connection)
-	g_client:finishRegisterObject(v68_.storage, v69_)
-	v68_.hasInputMaterials = streamReadBool(streamId)
-	v68_.progress = NetworkUtil.readCompressedPercentages(streamId, v68_.progressNumBits)
-	for _, v70_ in ipairs(v68_.meshes) do
-		local v71_ = streamReadUIntN(streamId, v70_.numBits)
-		local v72_ = MathUtil.inverseLerp(v70_.indexMax, v70_.indexMin, v71_)
-		self:setMeshProgress(v70_.id, v72_)
+	local spec = self.spec_factory
+	local storageId = NetworkUtil.readNodeObjectId(streamId)
+	spec.storage:readStream(streamId, connection)
+	g_client:finishRegisterObject(spec.storage, storageId)
+	spec.hasInputMaterials = streamReadBool(streamId)
+	spec.progress = NetworkUtil.readCompressedPercentages(streamId, spec.progressNumBits)
+	for meshIndex, mesh in ipairs(spec.meshes) do
+		local hideByIndexValue = streamReadUIntN(streamId, mesh.numBits)
+		local progress = MathUtil.inverseLerp(mesh.indexMax, mesh.indexMin, hideByIndexValue)
+		self:setMeshProgress(mesh.id, progress)
 	end
 end
-
--- Local values: spec, meshIndex, mesh
 function PlaceableFactory:onWriteStream(streamId, connection)
-	local v76_ = self.spec_factory
-	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v76_.storage))
-	v76_.storage:writeStream(streamId, connection)
-	g_server:registerObjectInStream(connection, v76_.storage)
-	streamWriteBool(streamId, v76_.hasInputMaterials)
-	NetworkUtil.writeCompressedPercentages(streamId, v76_.progress, v76_.progressNumBits)
-	for _, v77_ in ipairs(v76_.meshes) do
-		streamWriteUIntN(streamId, v77_.lastValue, v77_.numBits)
+	local spec = self.spec_factory
+	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(spec.storage))
+	spec.storage:writeStream(streamId, connection)
+	g_server:registerObjectInStream(connection, spec.storage)
+	streamWriteBool(streamId, spec.hasInputMaterials)
+	NetworkUtil.writeCompressedPercentages(streamId, spec.progress, spec.progressNumBits)
+	for meshIndex, mesh in ipairs(spec.meshes) do
+		streamWriteUIntN(streamId, mesh.lastValue, mesh.numBits)
 	end
 end
-
--- Local values: spec, meshIndex, mesh, hideByIndexValue, progress
 function PlaceableFactory:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
-		local v81_ = self.spec_factory
-		v81_.hasInputMaterials = streamReadBool(streamId)
+		local spec = self.spec_factory
+		spec.hasInputMaterials = streamReadBool(streamId)
 		if streamReadBool(streamId) then
-			v81_.progress = NetworkUtil.readCompressedPercentages(streamId, v81_.progressNumBits)
+			spec.progress = NetworkUtil.readCompressedPercentages(streamId, spec.progressNumBits)
 		end
-		for _, v82_ in ipairs(v81_.meshes) do
+		for meshIndex, mesh in ipairs(spec.meshes) do
 			if streamReadBool(streamId) then
-				local v83_ = streamReadUIntN(streamId, v82_.numBits)
-				local v84_ = MathUtil.inverseLerp(v82_.indexMax, v82_.indexMin, v83_)
-				self:setMeshProgress(v82_.id, v84_)
+				local hideByIndexValue = streamReadUIntN(streamId, mesh.numBits)
+				local progress = MathUtil.inverseLerp(mesh.indexMax, mesh.indexMin, hideByIndexValue)
+				self:setMeshProgress(mesh.id, progress)
 			end
 		end
 	end
 end
-
--- Local values: spec, meshIndex, mesh
 function PlaceableFactory:onWriteUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
-		local v89_ = self.spec_factory
-		streamWriteBool(streamId, v89_.hasInputMaterials)
-		local v90_ = streamWriteBool
-		local v91_ = v89_.progressDirtyFlag
-		if v90_(streamId, bit32.band(dirtyMask, v91_) ~= 0) then
-			NetworkUtil.writeCompressedPercentages(streamId, v89_.progress, v89_.progressNumBits)
-			v89_.progressLastSynced = v89_.progress
+		local spec = self.spec_factory
+		streamWriteBool(streamId, spec.hasInputMaterials)
+		if streamWriteBool(streamId, bit32.band(dirtyMask, spec.progressDirtyFlag) ~= 0) then
+			NetworkUtil.writeCompressedPercentages(streamId, spec.progress, spec.progressNumBits)
+			spec.progressLastSynced = spec.progress
 		end
-		for _, v92_ in ipairs(v89_.meshes) do
-			local v93_ = streamWriteBool
-			local v94_ = v92_.dirtyFlag
-			if v93_(streamId, bit32.band(dirtyMask, v94_) ~= 0) then
-				streamWriteUIntN(streamId, v92_.lastValue, v92_.numBits)
+		for meshIndex, mesh in ipairs(spec.meshes) do
+			if streamWriteBool(streamId, bit32.band(dirtyMask, mesh.dirtyFlag) ~= 0) then
+				streamWriteUIntN(streamId, mesh.lastValue, mesh.numBits)
 			end
 		end
 	end
 end
-
--- Local values: spec, usedAmount, hasInputMaterials, i, input, amount, delta, progress, _, mesh, _, mesh, i, input
 function PlaceableFactory:onUpdate(dt)
-	local v97_ = self.spec_factory
-	if not self.isServer then
-		::l2::
-		if self.isClient and v97_.samples.active ~= nil then
-			if v97_.hasInputMaterials then
-				if not v97_.isSoundPlaying then
-					g_soundManager:playSample(v97_.samples.active)
-					v97_.isSoundPlaying = true
-					return
-				end
-			elseif v97_.isSoundPlaying then
-				g_soundManager:stopSample(v97_.samples.active)
-				v97_.isSoundPlaying = false
-			end
-		end
-		return
-	end
-	local v98_ = 0
-	local v99_ = false
-	for _, v100_ in ipairs(v97_.inputs) do
-		v98_ = v98_ + (v100_.amount - v100_.remainingAmount)
-		if v100_.remainingAmount > 0 then
-			local v101_ = v100_.usagePerSecond / 1000 * (dt * g_currentMission.missionInfo.timeScale)
-			local v102_ = self:removeFillLevel(v100_.fillType.index, v101_)
-			if v102_ > 0 then
-				self:updateRemainingAmount(v100_, v100_.remainingAmount - v102_)
-				v99_ = true
-			end
-		end
-	end
-	local v103_ = v98_ / v97_.totalAmount
-	if v103_ >= 0.001 then
-		local v104_ = v97_.progressLastSynced - v103_
-		if math.abs(v104_) < 0.01 then
-			::l10::
-			v97_.progress = v103_
-			for _, v105_ in ipairs(v97_.meshes) do
-				self:setMeshProgress(v105_.id, v97_.progress)
-			end
-			if v99_ or v99_ ~= v97_.hasInputMaterials then
-				self:raiseActive()
-			end
-			v97_.hasInputMaterials = v99_
-			if v97_.progress >= 1 then
-				self:sellFactoryItem()
-				for _, v106_ in ipairs(v97_.meshes) do
-					self:setMeshProgress(v106_.id, 0)
-				end
-				for _, v107_ in ipairs(v97_.inputs) do
-					self:updateRemainingAmount(v107_, v107_.amount)
+	local spec = self.spec_factory
+	if self.isServer then
+		local usedAmount = 0
+		local hasInputMaterials = false
+		for i, input in ipairs(spec.inputs) do
+			usedAmount = usedAmount + (input.amount - input.remainingAmount)
+			if 0 < input.remainingAmount then
+				local amount = input.usagePerSecond / 1000 * (dt * g_currentMission.missionInfo.timeScale)
+				local delta = self:removeFillLevel(input.fillType.index, amount)
+				if 0 < delta then
+					hasInputMaterials = true
+					self:updateRemainingAmount(input, input.remainingAmount - delta)
 				end
 			end
-			goto l2
+		end
+		local progress = usedAmount / spec.totalAmount
+		if progress < 0.001 or 0.01 <= math.abs(spec.progressLastSynced - progress) then
+			self:raiseDirtyFlags(spec.progressDirtyFlag)
+		end
+		spec.progress = progress
+		for _, mesh in ipairs(spec.meshes) do
+			self:setMeshProgress(mesh.id, spec.progress)
+		end
+		if hasInputMaterials or hasInputMaterials ~= spec.hasInputMaterials then
+			self:raiseActive()
+		end
+		spec.hasInputMaterials = hasInputMaterials
+		if 1 <= spec.progress then
+			self:sellFactoryItem()
+			for _, mesh in ipairs(spec.meshes) do
+				self:setMeshProgress(mesh.id, 0)
+			end
+			for i, input in ipairs(spec.inputs) do
+				self:updateRemainingAmount(input, input.amount)
+			end
 		end
 	end
-	self:raiseDirtyFlags(v97_.progressDirtyFlag)
-	goto l10
+	if self.isClient and spec.samples.active ~= nil then
+		if spec.hasInputMaterials then
+			if not spec.isSoundPlaying then
+				g_soundManager:playSample(spec.samples.active)
+				spec.isSoundPlaying = true
+			end
+		elseif spec.isSoundPlaying then
+			g_soundManager:stopSample(spec.samples.active)
+			spec.isSoundPlaying = false
+		end
+	end
 end
-
 function PlaceableFactory:updateRemainingAmount(input, amount)
 	input.remainingAmount = math.max(0, amount)
 	input.infoTableEntry.text = g_i18n:formatVolume(input.remainingAmount)
 end
-
--- Local values: oldFarmId, spec, sellingStation
 function PlaceableFactory:setOwnerFarmId(superFunc, farmId)
-	local v113_ = self:getOwnerFarmId()
+	local oldFarmId = self:getOwnerFarmId()
 	superFunc(self, farmId)
-	local v114_ = self.spec_factory
-	if v114_.playerTrigger ~= nil then
-		setVisibility(v114_.playerTrigger, farmId == AccessHandler.EVERYONE)
+	local spec = self.spec_factory
+	if spec.playerTrigger ~= nil then
+		setVisibility(spec.playerTrigger, farmId == AccessHandler.EVERYONE)
 	end
 	if self.propertyState ~= PlaceablePropertyState.CONSTRUCTION_PREVIEW then
-		g_currentMission.productionChainManager:removeFactory(self, v113_)
-		local v115_ = self.spec_sellingStation.sellingStation
-		if v115_ ~= nil then
+		g_currentMission.productionChainManager:removeFactory(self, oldFarmId)
+		local sellingStation = self.spec_sellingStation.sellingStation
+		if sellingStation ~= nil then
 			if farmId == AccessHandler.EVERYONE then
-				g_currentMission.storageSystem:addUnloadingStation(v115_, self)
-				g_currentMission.economyManager:addSellingStation(v115_)
+				g_currentMission.storageSystem:addUnloadingStation(sellingStation, self)
+				g_currentMission.economyManager:addSellingStation(sellingStation)
 			else
-				g_currentMission.economyManager:removeSellingStation(v115_)
-				g_currentMission.storageSystem:removeUnloadingStation(v115_, self)
+				g_currentMission.economyManager:removeSellingStation(sellingStation)
+				g_currentMission.storageSystem:removeUnloadingStation(sellingStation, self)
 			end
 		end
 		g_currentMission.productionChainManager:addFactory(self)
 	end
 end
-
--- Local values: spec, sellingStation
 function PlaceableFactory:onFinalizePlacement()
-	local v117_ = self.spec_factory
-	if v117_.item ~= nil then
-		addToPhysics(v117_.item)
+	local spec = self.spec_factory
+	if spec.item ~= nil then
+		addToPhysics(spec.item)
 	end
 	if self.ownerFarmId ~= AccessHandler.EVERYONE then
-		local v118_ = self.spec_sellingStation.sellingStation
-		g_currentMission.economyManager:removeSellingStation(v118_)
-		g_currentMission.storageSystem:removeUnloadingStation(v118_, self)
+		local sellingStation = self.spec_sellingStation.sellingStation
+		g_currentMission.economyManager:removeSellingStation(sellingStation)
+		g_currentMission.storageSystem:removeUnloadingStation(sellingStation, self)
 	end
 end
-
--- Local values: spec, mesh, hideByIndexValue, node
 function PlaceableFactory:setMeshProgress(meshId, percentage)
-	local v122_ = self.spec_factory
-	if v122_.item ~= nil then
-		local v123_ = v122_.idToMesh[meshId]
-		if v123_ ~= nil then
-			local v124_ = MathUtil.round(MathUtil.lerp(v123_.indexMax, v123_.indexMin, percentage))
-			if v124_ ~= v123_.lastValue then
-				local v125_ = getChildAt(v122_.item, v123_.childIndex)
-				setVisibility(v125_, percentage ~= 0)
-				v123_.lastValue = v124_
-				setShaderParameter(v125_, "hideByIndex", v124_, 0, 0, 0, false)
+	local spec = self.spec_factory
+	if spec.item ~= nil then
+		local mesh = spec.idToMesh[meshId]
+		if mesh ~= nil then
+			local hideByIndexValue = MathUtil.round(MathUtil.lerp(mesh.indexMax, mesh.indexMin, percentage))
+			if hideByIndexValue ~= mesh.lastValue then
+				local node = getChildAt(spec.item, mesh.childIndex)
+				setVisibility(node, percentage ~= 0)
+				mesh.lastValue = hideByIndexValue
+				setShaderParameter(node, "hideByIndex", hideByIndexValue, 0, 0, 0, false)
 				if self.isServer then
-					self:raiseDirtyFlags(v123_.dirtyFlag)
+					self:raiseDirtyFlags(mesh.dirtyFlag)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableFactory:createFactoryItem()
-	local v127_ = self.spec_factory
-	if v127_.itemLinkNode ~= nil and v127_.item == nil then
-		v127_.item = clone(v127_.itemRoot, false, false, false)
-		link(v127_.itemLinkNode, v127_.item)
+	local spec = self.spec_factory
+	if spec.itemLinkNode ~= nil and spec.item == nil then
+		spec.item = clone(spec.itemRoot, false, false, false)
+		link(spec.itemLinkNode, spec.item)
 	end
 end
-
--- Local values: spec
 function PlaceableFactory:sellFactoryItem()
-	local v129_ = self.spec_factory
-	if v129_.item ~= nil then
+	local spec = self.spec_factory
+	if spec.item == nil then
+		return
+	else
 		if self.isServer and self:getOwnerFarmId() ~= AccessHandler.EVERYONE then
-			g_currentMission:addMoney(v129_.itemReward * EconomyManager.getPriceMultiplier(), self:getOwnerFarmId(), MoneyType.SOLD_PRODUCTS, true, true)
+			g_currentMission:addMoney(spec.itemReward * EconomyManager.getPriceMultiplier(), self:getOwnerFarmId(), MoneyType.SOLD_PRODUCTS, true, true)
 		end
 		self:raiseActive()
 	end
 end
-
--- Local values: spec
 function PlaceableFactory:getCapacity(fillType)
-	return self.spec_factory.storage:getCapacity(fillType)
+	local spec = self.spec_factory
+	return spec.storage:getCapacity(fillType)
 end
-
--- Local values: spec
 function PlaceableFactory:getFillLevel(fillType)
-	return self.spec_factory.storage:getFillLevel(fillType)
+	local spec = self.spec_factory
+	return spec.storage:getFillLevel(fillType)
 end
-
--- Local values: spec, previousFillLevel
 function PlaceableFactory:removeFillLevel(fillType, amount)
-	local v137_ = self.spec_factory
-	local v138_ = v137_.storage:getFillLevel(fillType)
-	v137_.storage:setFillLevel(v138_ - amount, fillType)
-	return v138_ - v137_.storage:getFillLevel(fillType)
+	local spec = self.spec_factory
+	local previousFillLevel = spec.storage:getFillLevel(fillType)
+	spec.storage:setFillLevel(previousFillLevel - amount, fillType)
+	return previousFillLevel - spec.storage:getFillLevel(fillType)
 end
-
--- Local values: spec, fillType, fillLevel, fillType, fillLevel
 function PlaceableFactory:updateInfoData()
-	local v140_ = self.spec_factory
-	v140_.fillTypesAndLevelsAuxiliary = {}
-	for v141_, v142_ in pairs(v140_.storage:getFillLevels()) do
-		v140_.fillTypesAndLevelsAuxiliary[v141_] = (v140_.fillTypesAndLevelsAuxiliary[v141_] or 0) + v142_
+	local spec = self.spec_factory
+	spec.fillTypesAndLevelsAuxiliary = {}
+	for fillType, fillLevel in pairs(spec.storage:getFillLevels()) do
+		spec.fillTypesAndLevelsAuxiliary[fillType] = (spec.fillTypesAndLevelsAuxiliary[fillType] or 0) + fillLevel
 	end
-	table.clear(v140_.infoTriggerFillTypesAndLevels)
-	for v143_, v144_ in pairs(v140_.fillTypesAndLevelsAuxiliary) do
-		if v144_ > 0.1 then
-			local v145_ = v140_.fillTypeToFillTypeStorageTable
-			local v146_ = v140_.fillTypeToFillTypeStorageTable[v143_]
-			if not v146_ then
-				v146_ = {
-					["fillType"] = v143_,
-					["fillLevel"] = v144_
-				}
-			end
-			v145_[v143_] = v146_
-			v140_.fillTypeToFillTypeStorageTable[v143_].fillLevel = v144_
-			local v147_ = v140_.infoTriggerFillTypesAndLevels
-			local v148_ = v140_.fillTypeToFillTypeStorageTable[v143_]
-			table.insert(v147_, v148_)
+	table.clear(spec.infoTriggerFillTypesAndLevels)
+	for fillType, fillLevel in pairs(spec.fillTypesAndLevelsAuxiliary) do
+		if 0.1 < fillLevel then
+			spec.fillTypeToFillTypeStorageTable[fillType] = spec.fillTypeToFillTypeStorageTable[fillType] or { fillType = fillType, fillLevel = fillLevel }
+			spec.fillTypeToFillTypeStorageTable[fillType].fillLevel = fillLevel
+			table.insert(spec.infoTriggerFillTypesAndLevels, spec.fillTypeToFillTypeStorageTable[fillType])
 		end
 	end
-	table.clear(v140_.fillTypesAndLevelsAuxiliary)
-	table.sort(v140_.infoTriggerFillTypesAndLevels, function(p149_, p150_)
-		return p149_.fillLevel > p150_.fillLevel
+	table.clear(spec.fillTypesAndLevelsAuxiliary)
+	table.sort(spec.infoTriggerFillTypesAndLevels, function(a, b)
+		return b.fillLevel < a.fillLevel
 	end)
 end
-
--- Local values: spec, numEntries, i, fillTypeAndLevel, _, input
 function PlaceableFactory:updateInfo(superFunc, infoTable)
 	superFunc(self, infoTable)
-	local v154_ = self.spec_factory
-	if v154_.hasInputMaterials then
-		local v155_ = #v154_.infoTriggerFillTypesAndLevels
-		local v156_ = math.min(v155_, 7)
-		if v156_ > 0 then
-			local v157_ = v154_.infoTableEntryStorage
-			table.insert(infoTable, v157_)
-			for v158_ = 1, v156_ do
-				local v159_ = v154_.infoTriggerFillTypesAndLevels[v158_]
-				local v160_ = {
-					["title"] = g_fillTypeManager:getFillTypeTitleByIndex(v159_.fillType),
-					["text"] = g_i18n:formatVolume(v159_.fillLevel, 0)
-				}
-				table.insert(infoTable, v160_)
+	local spec = self.spec_factory
+	if spec.hasInputMaterials then
+		local numEntries = math.min(#spec.infoTriggerFillTypesAndLevels, 7)
+		if 0 < numEntries then
+			table.insert(infoTable, spec.infoTableEntryStorage)
+			for i = 1, numEntries do
+				local fillTypeAndLevel = spec.infoTriggerFillTypesAndLevels[i]
+				table.insert(infoTable, { title = g_fillTypeManager:getFillTypeTitleByIndex(fillTypeAndLevel.fillType), text = g_i18n:formatVolume(fillTypeAndLevel.fillLevel, 0) })
 			end
 		end
 	else
-		local v161_ = {
-			["title"] = g_i18n:getText("ui_production_status_materialsMissing"),
-			["accentuate"] = true
-		}
-		table.insert(infoTable, v161_)
-		for _, v162_ in ipairs(v154_.inputs) do
-			local v163_ = {
-				["title"] = "   " .. g_fillTypeManager:getFillTypeTitleByIndex(v162_.fillType.index)
-			}
-			table.insert(infoTable, v163_)
+		table.insert(infoTable, { title = g_i18n:getText("ui_production_status_materialsMissing"), accentuate = true })
+		for _, input in ipairs(spec.inputs) do
+			table.insert(infoTable, { title = "   " .. g_fillTypeManager:getFillTypeTitleByIndex(input.fillType.index) })
 		end
 	end
-	local v164_ = {
-		["title"] = g_i18n:getText("contract_progress"),
-		["text"] = string.format("%.1f%%", v154_.progress * 100),
-		["accentuate"] = true
-	}
-	table.insert(infoTable, v164_)
+	table.insert(infoTable, { title = g_i18n:getText("contract_progress"), text = string.format("%.1f%%", spec.progress * 100), accentuate = true })
 end
-
--- Local values: spec
 function PlaceableFactory:onInfoTriggerEnter(nodeId)
-	local v166_ = self.spec_factory
-	if not v166_.hasStorageListener then
+	local spec = self.spec_factory
+	if not spec.hasStorageListener then
 		self:updateInfoData()
-		v166_.storage:addFillLevelChangedListeners(v166_.storageFillLevelChangedCallback)
-		v166_.hasStorageListener = true
+		spec.storage:addFillLevelChangedListeners(spec.storageFillLevelChangedCallback)
+		spec.hasStorageListener = true
 	end
 end
-
--- Local values: spec
 function PlaceableFactory:onInfoTriggerLeave(nodeId)
-	local v168_ = self.spec_factory
-	if v168_.hasStorageListener then
-		v168_.storage:removeFillLevelChangedListeners(v168_.storageFillLevelChangedCallback)
-		v168_.hasStorageListener = false
+	local spec = self.spec_factory
+	if spec.hasStorageListener then
+		spec.storage:removeFillLevelChangedListeners(spec.storageFillLevelChangedCallback)
+		spec.hasStorageListener = false
 	end
 end
-
--- Local values: spec
 function PlaceableFactory:playerTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay, otherShapeId)
 	if (onEnter or onLeave) and (g_localPlayer ~= nil and g_localPlayer.rootNode == otherId) then
-		local v173_ = self.spec_factory
+		local spec = self.spec_factory
 		if onEnter then
-			if Platform.isMobile and v173_.activatable:getIsActivatable() then
-				v173_.activatable:run()
+			if Platform.isMobile and spec.activatable:getIsActivatable() then
+				spec.activatable:run()
 				return
 			end
-			g_currentMission.activatableObjectsSystem:addActivatable(v173_.activatable)
+			g_currentMission.activatableObjectsSystem:addActivatable(spec.activatable)
 		end
 		if onLeave then
-			g_currentMission.activatableObjectsSystem:removeActivatable(v173_.activatable)
+			g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
 		end
 	end
 end
-
--- Local values: price, buyingEventCallback, dialogCallback, callback, text
 function PlaceableFactory:buyRequest(requestCallback, target)
-	local v177_ = self:getPrice()
-	local function v_u_180_(p178_)
-		-- upvalues: (copy) self
-		if p178_ ~= nil then
-			local v179_ = BuyExistingPlaceableEvent.DIALOG_MESSAGES[p178_]
-			if v179_ ~= nil then
-				InfoDialog.show(g_i18n:getText(v179_.text), nil, nil, v179_.dialogType)
+	local price = self:getPrice()
+	local buyingEventCallback = function(statusCode)
+		if statusCode ~= nil then
+			local dialogArgs = BuyExistingPlaceableEvent.DIALOG_MESSAGES[statusCode]
+			if dialogArgs ~= nil then
+				InfoDialog.show(g_i18n:getText(dialogArgs.text), nil, nil, dialogArgs.dialogType)
 			end
 		end
 		g_messageCenter:unsubscribe(BuyExistingPlaceableEvent, self)
 	end
-	local v181_ = string.format(g_i18n:getText("dialog_buyBuildingFor"), self:getName(), g_i18n:formatMoney(v177_, 0, true))
-	YesNoDialog.show(function(p182_, _)
-		-- upvalues: (copy) v_u_180_, (copy) self, (copy) requestCallback, (copy) target
-		if p182_ then
-			g_messageCenter:subscribe(BuyExistingPlaceableEvent, v_u_180_)
+	local dialogCallback = function(yes, _)
+		if yes then
+			g_messageCenter:subscribe(BuyExistingPlaceableEvent, buyingEventCallback)
 			g_client:getServerConnection():sendEvent(BuyExistingPlaceableEvent.new(self, g_currentMission:getFarmId()))
 		end
 		if requestCallback ~= nil then
 			if target ~= nil then
-				requestCallback(target, p182_)
+				requestCallback(target, yes)
 				return
 			end
-			requestCallback(p182_)
+			requestCallback(yes)
 		end
-	end, nil, v181_)
+	end
+	local text = string.format(g_i18n:getText("dialog_buyBuildingFor"), self:getName(), g_i18n:formatMoney(price, 0, true))
+	YesNoDialog.show(dialogCallback, nil, text)
 end

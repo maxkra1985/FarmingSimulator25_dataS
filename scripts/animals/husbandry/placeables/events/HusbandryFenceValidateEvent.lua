@@ -1,35 +1,28 @@
--- Local values: HusbandryFenceValidateEvent_mt
 HusbandryFenceValidateEvent = {}
 local HusbandryFenceValidateEvent_mt = Class(HusbandryFenceValidateEvent, Event)
 InitStaticEventClass(HusbandryFenceValidateEvent, "HusbandryFenceValidateEvent")
 function HusbandryFenceValidateEvent.emptyNew()
-	-- upvalues: (copy) HusbandryFenceValidateEvent_mt
-	return Event.new(HusbandryFenceValidateEvent_mt)
+	local self = Event.new(HusbandryFenceValidateEvent_mt)
+	return self
 end
-
--- Local values: self
 function HusbandryFenceValidateEvent.new(placeable)
-	local v3_ = HusbandryFenceValidateEvent.emptyNew()
-	v3_.placeable = placeable
-	return v3_
+	local self = HusbandryFenceValidateEvent.emptyNew()
+	self.placeable = placeable
+	return self
 end
-
--- Local values: self
 function HusbandryFenceValidateEvent.newServerToClient(success)
-	local v5_ = HusbandryFenceValidateEvent.emptyNew()
-	v5_.success = success
-	return v5_
+	local self = HusbandryFenceValidateEvent.emptyNew()
+	self.success = success
+	return self
 end
-
 function HusbandryFenceValidateEvent:readStream(streamId, connection)
-	if connection:getIsServer() then
-		self.success = streamReadBool(streamId)
-	else
+	if not connection:getIsServer() then
 		self.placeable = NetworkUtil.readNodeObject(streamId)
+	else
+		self.success = streamReadBool(streamId)
 	end
 	self:run(connection)
 end
-
 function HusbandryFenceValidateEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
 		NetworkUtil.writeNodeObject(streamId, self.placeable)
@@ -37,13 +30,13 @@ function HusbandryFenceValidateEvent:writeStream(streamId, connection)
 		streamWriteBool(streamId, self.success)
 	end
 end
-
--- Local values: success
 function HusbandryFenceValidateEvent:run(connection)
 	if connection:getIsServer() then
 		g_messageCenter:publish(HusbandryFenceValidateEvent, self.success)
-	elseif self.placeable ~= nil then
-		local v14_ = self.placeable:tryFinalizeFence()
-		connection:sendEvent(HusbandryFenceValidateEvent.newServerToClient(v14_))
+	else
+		if self.placeable ~= nil then
+			local success = self.placeable:tryFinalizeFence()
+			connection:sendEvent(HusbandryFenceValidateEvent.newServerToClient(success))
+		end
 	end
 end

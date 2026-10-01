@@ -1,4 +1,3 @@
--- Local values: AbstractBaleObject, AbstractBaleObject_mt, recursiveCopyShaderParameter, AbstractPackedBaleObject, AbstractPackedBaleObject_mt, AbstractPalletObject, AbstractPalletObject_mt, PlaceableObjectStorageActivatable_mt, PlaceableObjectStorageManualStoreActivatable_mt
 PlaceableObjectStorage = {}
 source("dataS/scripts/placeables/specializations/events/PlaceableObjectStorageErrorEvent.lua")
 source("dataS/scripts/placeables/specializations/events/PlaceableObjectStorageStoreEvent.lua")
@@ -7,16 +6,13 @@ PlaceableObjectStorage.COLLISION_MASK = CollisionFlag.VEHICLE + CollisionFlag.DY
 PlaceableObjectStorage.NUM_BITS_OBJECT_INFO = 8
 PlaceableObjectStorage.NUM_BITS_AMOUNT = 16
 PlaceableObjectStorage.MAX_HUD_INFO_ENTRIES = 10
-
-function PlaceableObjectStorage.prerequisitesPresent(self)
+function PlaceableObjectStorage.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableObjectStorage.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "canBeSold", PlaceableObjectStorage.canBeSold)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "updateInfo", PlaceableObjectStorage.updateInfo)
 end
-
 function PlaceableObjectStorage.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "getObjectStorageSupportsFillType", PlaceableObjectStorage.getObjectStorageSupportsFillType)
 	SpecializationUtil.registerFunction(placeableType, "getObjectStorageSupportsObject", PlaceableObjectStorage.getObjectStorageSupportsObject)
@@ -39,7 +35,6 @@ function PlaceableObjectStorage.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "onObjectStorageObjectTriggerCallback", PlaceableObjectStorage.onObjectStorageObjectTriggerCallback)
 	SpecializationUtil.registerFunction(placeableType, "onObjectStorageSpawnOverlapCallback", PlaceableObjectStorage.onObjectStorageSpawnOverlapCallback)
 end
-
 function PlaceableObjectStorage.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableObjectStorage)
 	SpecializationUtil.registerEventListener(placeableType, "onDelete", PlaceableObjectStorage)
@@ -49,9 +44,6 @@ function PlaceableObjectStorage.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onWriteUpdateStream", PlaceableObjectStorage)
 	SpecializationUtil.registerEventListener(placeableType, "onUpdate", PlaceableObjectStorage)
 end
-
-
-
 function PlaceableObjectStorage.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("ObjectStorage")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".objectStorage.playerTrigger#node", "Player trigger node")
@@ -76,899 +68,763 @@ function PlaceableObjectStorage.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".objectStorage.storageAreas.storageArea(?)#maxHeight", "Max. stacked height of spawned objects in the area", 3)
 	schema:setXMLSpecializationType()
 end
-
--- Local values: _, abstractObject
 function PlaceableObjectStorage.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. ".object(?)#className", "Object class name")
-	for _, v8_ in pairs(PlaceableObjectStorage.ABSTRACT_OBJECTS) do
-		v8_.registerXMLPaths(schema, basePath .. ".object(?)")
+	for _, abstractObject in pairs(PlaceableObjectStorage.ABSTRACT_OBJECTS) do
+		abstractObject.registerXMLPaths(schema, basePath .. ".object(?)")
 	end
 end
 function PlaceableObjectStorage.initSpecialization()
 	g_storeManager:addSpecType("objectStorageCapacity", "shopListAttributeIconCapacity", PlaceableObjectStorage.loadSpecValueCapacity, PlaceableObjectStorage.getSpecValueCapacity, StoreSpecies.PLACEABLE)
 	g_storeManager:addSpecType("objectStorageFillTypes", "shopListAttributeIconFillTypes", PlaceableObjectStorage.loadSpecValueFillTypes, PlaceableObjectStorage.getSpecValueFillTypes, StoreSpecies.PLACEABLE)
 end
-
--- Local values: spec
 function PlaceableObjectStorage:onLoad(savegame)
-	local v_u_10_ = self.spec_objectStorage
-	v_u_10_.playerTriggerNode = self.xmlFile:getValue("placeable.objectStorage.playerTrigger#node", nil, self.components, self.i3dMappings)
-	if v_u_10_.playerTriggerNode == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing player trigger for object storage")
+	local spec = self.spec_objectStorage
+	spec.playerTriggerNode = self.xmlFile:getValue("placeable.objectStorage.playerTrigger#node", nil, self.components, self.i3dMappings)
+	if spec.playerTriggerNode ~= nil then
+		addTrigger(spec.playerTriggerNode, "onObjectStoragePlayerTriggerCallback", self)
 	else
-		addTrigger(v_u_10_.playerTriggerNode, "onObjectStoragePlayerTriggerCallback", self)
+		Logging.xmlWarning(self.xmlFile, "Missing player trigger for object storage")
 	end
 	if self.isServer then
-		v_u_10_.objectTriggerNode = self.xmlFile:getValue("placeable.objectStorage.objectTrigger#node", nil, self.components, self.i3dMappings)
-		if v_u_10_.objectTriggerNode == nil then
-			Logging.xmlWarning(self.xmlFile, "Missing object trigger for object storage")
+		spec.objectTriggerNode = self.xmlFile:getValue("placeable.objectStorage.objectTrigger#node", nil, self.components, self.i3dMappings)
+		if spec.objectTriggerNode ~= nil then
+			addTrigger(spec.objectTriggerNode, "onObjectStorageObjectTriggerCallback", self)
 		else
-			addTrigger(v_u_10_.objectTriggerNode, "onObjectStorageObjectTriggerCallback", self)
+			Logging.xmlWarning(self.xmlFile, "Missing object trigger for object storage")
 		end
 	end
-	v_u_10_.supportedFillTypes = g_fillTypeManager:getFillTypesFromXML(self.xmlFile, "placeable.objectStorage#fillTypeCategories", "placeable.objectStorage#fillTypes", false)
-	v_u_10_.supportsBales = self.xmlFile:getValue("placeable.objectStorage#supportsBales", true)
-	v_u_10_.supportsPallets = self.xmlFile:getValue("placeable.objectStorage#supportsPallets", true)
-	v_u_10_.supportedObjects = {}
-	self.xmlFile:iterate("placeable.objectStorage.supportedObject", function(_, p11_)
-		-- upvalues: (copy) self, (copy) v_u_10_
-		local v12_ = {
-			["filename"] = self.xmlFile:getValue(p11_ .. "#filename")
-		}
-		if v12_.filename ~= nil then
-			v12_.amount = self.xmlFile:getValue(p11_ .. "#amount", math.huge)
-			local v13_ = v_u_10_.supportedObjects
-			table.insert(v13_, v12_)
+	spec.supportedFillTypes = g_fillTypeManager:getFillTypesFromXML(self.xmlFile, "placeable.objectStorage#fillTypeCategories", "placeable.objectStorage#fillTypes", false)
+	spec.supportsBales = self.xmlFile:getValue("placeable.objectStorage#supportsBales", true)
+	spec.supportsPallets = self.xmlFile:getValue("placeable.objectStorage#supportsPallets", true)
+	spec.supportedObjects = {}
+	self.xmlFile:iterate("placeable.objectStorage.supportedObject", function(index, objectKey)
+		local entry = {}
+		entry.filename = self.xmlFile:getValue(objectKey .. "#filename")
+		if entry.filename ~= nil then
+			entry.amount = self.xmlFile:getValue(objectKey .. "#amount", math.huge)
+			table.insert(spec.supportedObjects, entry)
 		end
 	end)
-	v_u_10_.capacity = self.xmlFile:getValue("placeable.objectStorage#capacity", 250)
-	v_u_10_.maxLength = self.xmlFile:getValue("placeable.objectStorage#maxLength", math.huge)
-	v_u_10_.maxHeight = self.xmlFile:getValue("placeable.objectStorage#maxHeight", math.huge)
-	v_u_10_.maxWidth = self.xmlFile:getValue("placeable.objectStorage#maxWidth", math.huge)
-	v_u_10_.maxUnloadAmount = self.xmlFile:getValue("placeable.objectStorage#maxUnloadAmount", 25)
-	v_u_10_.objectSpawn = {}
-	v_u_10_.objectSpawn.isActive = false
-	v_u_10_.objectSpawn.connection = nil
-	v_u_10_.objectSpawn.objectInfoIndex = 1
-	v_u_10_.objectSpawn.numObjectsToSpawn = 0
-	v_u_10_.objectSpawn.overlapIsActive = false
-	v_u_10_.objectSpawn.overlapObjectCount = 0
-	v_u_10_.objectSpawn.nextSpawnPosition = { 0, 0, 0 }
-	v_u_10_.objectSpawn.spawnAreaIndex = 1
-	v_u_10_.objectSpawn.spawnAreaData = {
-		0,
-		0,
-		0,
-		0,
-		0,
-		1
-	}
-	v_u_10_.objectSpawn.spawnedObjects = {}
-	v_u_10_.objectSpawn.area = {}
-	self.xmlFile:iterate("placeable.objectStorage.spawnAreas.spawnArea", function(_, p14_)
-		-- upvalues: (copy) self, (copy) v_u_10_
-		local v15_ = {
-			["startNode"] = self.xmlFile:getValue(p14_ .. "#startNode", nil, self.components, self.i3dMappings),
-			["endNode"] = self.xmlFile:getValue(p14_ .. "#endNode", nil, self.components, self.i3dMappings)
-		}
-		if v15_.startNode == nil or v15_.endNode == nil then
-			Logging.xmlWarning(self.xmlFile, "Incomplete spawn area definition in \'%s\'", p14_)
-		else
-			local v16_, _, v17_ = localToLocal(v15_.endNode, v15_.startNode, 0, 0, 0)
-			v15_.sizeX = v16_
-			v15_.sizeZ = v17_
-			v15_.maxHeight = self.xmlFile:getValue(p14_ .. "#maxHeight", 3)
-			local v18_ = v_u_10_.objectSpawn.area
-			table.insert(v18_, v15_)
+	spec.capacity = self.xmlFile:getValue("placeable.objectStorage#capacity", 250)
+	spec.maxLength = self.xmlFile:getValue("placeable.objectStorage#maxLength", math.huge)
+	spec.maxHeight = self.xmlFile:getValue("placeable.objectStorage#maxHeight", math.huge)
+	spec.maxWidth = self.xmlFile:getValue("placeable.objectStorage#maxWidth", math.huge)
+	spec.maxUnloadAmount = self.xmlFile:getValue("placeable.objectStorage#maxUnloadAmount", 25)
+	spec.objectSpawn = {}
+	spec.objectSpawn.isActive = false
+	spec.objectSpawn.connection = nil
+	spec.objectSpawn.objectInfoIndex = 1
+	spec.objectSpawn.numObjectsToSpawn = 0
+	spec.objectSpawn.overlapIsActive = false
+	spec.objectSpawn.overlapObjectCount = 0
+	spec.objectSpawn.nextSpawnPosition = { 0, 0, 0 }
+	spec.objectSpawn.spawnAreaIndex = 1
+	spec.objectSpawn.spawnAreaData = { 0, 0, 0, 0, 0, 1 }
+	spec.objectSpawn.spawnedObjects = {}
+	spec.objectSpawn.area = {}
+	self.xmlFile:iterate("placeable.objectStorage.spawnAreas.spawnArea", function(index, areaKey)
+		local spawnArea = {}
+		spawnArea.startNode = self.xmlFile:getValue(areaKey .. "#startNode", nil, self.components, self.i3dMappings)
+		spawnArea.endNode = self.xmlFile:getValue(areaKey .. "#endNode", nil, self.components, self.i3dMappings)
+		if spawnArea.startNode ~= nil and spawnArea.endNode ~= nil then
+			local _ = nil
+			spawnArea.sizeX, _, spawnArea.sizeZ = localToLocal(spawnArea.endNode, spawnArea.startNode, 0, 0, 0)
+			spawnArea.maxHeight = self.xmlFile:getValue(areaKey .. "#maxHeight", 3)
+			table.insert(spec.objectSpawn.area, spawnArea)
+			return
 		end
+		Logging.xmlWarning(self.xmlFile, "Incomplete spawn area definition in '%s'", areaKey)
 	end)
-	v_u_10_.storageArea = {}
-	v_u_10_.storageArea.spawnNode = createTransformGroup("storageAreaSpawnNode")
-	link(self.rootNode, v_u_10_.storageArea.spawnNode)
-	v_u_10_.storageArea.spawnAreaIndex = 1
-	v_u_10_.storageArea.spawnAreaData = {
-		0,
-		0,
-		0,
-		0,
-		0,
-		1
-	}
-	v_u_10_.storageArea.area = {}
-	self.xmlFile:iterate("placeable.objectStorage.storageAreas.storageArea", function(_, p19_)
-		-- upvalues: (copy) self, (copy) v_u_10_
-		local v20_ = {
-			["startNode"] = self.xmlFile:getValue(p19_ .. "#startNode", nil, self.components, self.i3dMappings),
-			["endNode"] = self.xmlFile:getValue(p19_ .. "#endNode", nil, self.components, self.i3dMappings)
-		}
-		if v20_.startNode == nil or v20_.endNode == nil then
-			Logging.xmlWarning(self.xmlFile, "Incomplete spawn area definition in \'%s\'", p19_)
-		else
-			local v21_, _, v22_ = localToLocal(v20_.endNode, v20_.startNode, 0, 0, 0)
-			v20_.sizeX = v21_
-			v20_.sizeZ = v22_
-			v20_.maxHeight = self.xmlFile:getValue(p19_ .. "#maxHeight", 3)
-			local v23_ = v_u_10_.storageArea.area
-			table.insert(v23_, v20_)
+	spec.storageArea = {}
+	spec.storageArea.spawnNode = createTransformGroup("storageAreaSpawnNode")
+	link(self.rootNode, spec.storageArea.spawnNode)
+	spec.storageArea.spawnAreaIndex = 1
+	spec.storageArea.spawnAreaData = { 0, 0, 0, 0, 0, 1 }
+	spec.storageArea.area = {}
+	self.xmlFile:iterate("placeable.objectStorage.storageAreas.storageArea", function(index, areaKey)
+		local storageArea = {}
+		storageArea.startNode = self.xmlFile:getValue(areaKey .. "#startNode", nil, self.components, self.i3dMappings)
+		storageArea.endNode = self.xmlFile:getValue(areaKey .. "#endNode", nil, self.components, self.i3dMappings)
+		if storageArea.startNode ~= nil and storageArea.endNode ~= nil then
+			local _ = nil
+			storageArea.sizeX, _, storageArea.sizeZ = localToLocal(storageArea.endNode, storageArea.startNode, 0, 0, 0)
+			storageArea.maxHeight = self.xmlFile:getValue(areaKey .. "#maxHeight", 3)
+			table.insert(spec.storageArea.area, storageArea)
+			return
 		end
+		Logging.xmlWarning(self.xmlFile, "Incomplete spawn area definition in '%s'", areaKey)
 	end)
-	v_u_10_.storedObjects = {}
-	v_u_10_.objectInfos = {}
-	v_u_10_.pendingObjects = {}
-	v_u_10_.lastPendingManualObjectsState = false
-	v_u_10_.numStoredObjects = 0
-	v_u_10_.objectInfosUpdateTimer = 0
-	v_u_10_.pendingVisualAreaUpdates = {}
-	v_u_10_.texts = {}
-	v_u_10_.texts.warningNotEmpty = g_i18n:getText("info_objectStorageNotEmpty")
-	v_u_10_.texts.totalCapacity = g_i18n:getText("ui_silos_totalCapacity")
-	v_u_10_.texts.otherElements = g_i18n:getText("helpLine_IconOverview_Others")
-	v_u_10_.activatable = PlaceableObjectStorageActivatable.new(self)
-	v_u_10_.manualStoreActivatable = PlaceableObjectStorageManualStoreActivatable.new(self)
-	v_u_10_.dirtyFlag = self:getNextDirtyFlag()
+	spec.storedObjects = {}
+	spec.objectInfos = {}
+	spec.pendingObjects = {}
+	spec.lastPendingManualObjectsState = false
+	spec.numStoredObjects = 0
+	spec.objectInfosUpdateTimer = 0
+	spec.pendingVisualAreaUpdates = {}
+	spec.texts = {}
+	spec.texts.warningNotEmpty = g_i18n:getText("info_objectStorageNotEmpty")
+	spec.texts.totalCapacity = g_i18n:getText("ui_silos_totalCapacity")
+	spec.texts.otherElements = g_i18n:getText("helpLine_IconOverview_Others")
+	spec.activatable = PlaceableObjectStorageActivatable.new(self)
+	spec.manualStoreActivatable = PlaceableObjectStorageManualStoreActivatable.new(self)
+	spec.dirtyFlag = self:getNextDirtyFlag()
 end
-
 function PlaceableObjectStorage:loadFromXMLFile(xmlFile, key)
-	xmlFile:iterate(key .. ".object", function(_, p27_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v28_ = xmlFile:getValue(p27_ .. "#className")
-		if v28_ == nil then
-			Logging.xmlWarning(xmlFile, "Unable to find object class \'%s\' for stored object in \'%s\'", v28_, p27_)
-		else
-			local v29_ = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[v28_]
-			if v29_ ~= nil then
-				v29_.loadFromXMLFile(self, xmlFile, p27_)
-				return
+	xmlFile:iterate(key .. ".object", function(index, objectKey)
+		local className = xmlFile:getValue(objectKey .. "#className")
+		if className ~= nil then
+			local abstractObjectClass = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[className]
+			if abstractObjectClass ~= nil then
+				abstractObjectClass.loadFromXMLFile(self, xmlFile, objectKey)
 			end
+		else
+			Logging.xmlWarning(xmlFile, "Unable to find object class '%s' for stored object in '%s'", className, objectKey)
 		end
 	end)
 	self:setObjectStorageObjectInfosDirty()
 end
-
--- Local values: spec, i, object, objectKey
 function PlaceableObjectStorage:saveToXMLFile(xmlFile, key, usedModNames)
-	local v33_ = self.spec_objectStorage
-	for v34_ = 1, #v33_.storedObjects do
-		local v35_ = v33_.storedObjects[v34_]
-		local v36_ = string.format("%s.object(%d)", key, v34_ - 1)
-		xmlFile:setValue(v36_ .. "#className", v35_.REFERENCE_CLASS_NAME)
-		v35_:saveToXMLFile(self, xmlFile, v36_)
+	local spec = self.spec_objectStorage
+	for i = 1, #spec.storedObjects do
+		local object = spec.storedObjects[i]
+		local objectKey = string.format("%s.object(%d)", key, i - 1)
+		xmlFile:setValue(objectKey .. "#className", object.REFERENCE_CLASS_NAME)
+		object:saveToXMLFile(self, xmlFile, objectKey)
 	end
 end
-
--- Local values: spec, i, object, _
 function PlaceableObjectStorage:onDelete()
-	local v38_ = self.spec_objectStorage
-	if v38_.playerTriggerNode ~= nil then
-		removeTrigger(v38_.playerTriggerNode)
+	local spec = self.spec_objectStorage
+	if spec.playerTriggerNode ~= nil then
+		removeTrigger(spec.playerTriggerNode)
 	end
-	if v38_.objectTriggerNode ~= nil then
-		removeTrigger(v38_.objectTriggerNode)
+	if spec.objectTriggerNode ~= nil then
+		removeTrigger(spec.objectTriggerNode)
 	end
-	if v38_.storedObjects ~= nil then
-		for v39_ = #v38_.storedObjects, 1, -1 do
-			v38_.storedObjects[v39_]:delete()
-			v38_.storedObjects[v39_] = nil
+	if spec.storedObjects ~= nil then
+		for i = #spec.storedObjects, 1, -1 do
+			spec.storedObjects[i]:delete()
+			spec.storedObjects[i] = nil
 		end
 	end
-	v38_.numStoredObjects = 0
-	if v38_.pendingObjects ~= nil then
-		for v40_, _ in pairs(v38_.pendingObjects) do
-			v40_:removeDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
-			v38_.pendingObjects[v40_] = nil
+	spec.numStoredObjects = 0
+	if spec.pendingObjects ~= nil then
+		for object, _ in pairs(spec.pendingObjects) do
+			object:removeDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
+			spec.pendingObjects[object] = nil
 		end
 	end
-	g_currentMission.activatableObjectsSystem:removeActivatable(v38_.activatable)
-	g_currentMission.activatableObjectsSystem:removeActivatable(v38_.manualStoreActivatable)
+	g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
+	g_currentMission.activatableObjectsSystem:removeActivatable(spec.manualStoreActivatable)
 end
-
--- Local values: spec, numObjectInfos, i, objectInfo, abstractObjectId, abstractObjectClass, i
 function PlaceableObjectStorage:onReadStream(streamId, connection)
 	if connection:getIsServer() then
-		local v44_ = self.spec_objectStorage
-		v44_.objectInfos = {}
-		for _ = 1, streamReadUIntN(streamId, PlaceableObjectStorage.NUM_BITS_OBJECT_INFO) do
-			local v45_ = {
-				["numObjects"] = streamReadUIntN(streamId, PlaceableObjectStorage.NUM_BITS_AMOUNT)
-			}
-			local v46_ = streamReadUIntN(streamId, 2)
-			v45_.objects = { PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_ID[v46_].readStream(streamId, connection) }
-			local v47_ = v44_.objectInfos
-			table.insert(v47_, v45_)
+		local spec = self.spec_objectStorage
+		spec.objectInfos = {}
+		local numObjectInfos = streamReadUIntN(streamId, PlaceableObjectStorage.NUM_BITS_OBJECT_INFO)
+		for i = 1, numObjectInfos do
+			local objectInfo = {}
+			objectInfo.numObjects = streamReadUIntN(streamId, PlaceableObjectStorage.NUM_BITS_AMOUNT)
+			local abstractObjectId = streamReadUIntN(streamId, 2)
+			local abstractObjectClass = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_ID[abstractObjectId]
+			objectInfo.objects = { abstractObjectClass.readStream(streamId, connection) }
+			table.insert(spec.objectInfos, objectInfo)
 		end
-		v44_.numStoredObjects = 0
-		for v48_ = 1, #v44_.objectInfos do
-			v44_.numStoredObjects = v44_.numStoredObjects + v44_.objectInfos[v48_].numObjects
+		spec.numStoredObjects = 0
+		for i = 1, #spec.objectInfos do
+			spec.numStoredObjects = spec.numStoredObjects + spec.objectInfos[i].numObjects
 		end
 		self:updateObjectStorageVisualAreas()
 	end
 end
-
--- Local values: spec, objectInfos, i, objectInfo
 function PlaceableObjectStorage:onWriteStream(streamId, connection)
 	if not connection:getIsServer() then
-		local v52_ = self.spec_objectStorage.objectInfos
-		streamWriteUIntN(streamId, #v52_, PlaceableObjectStorage.NUM_BITS_OBJECT_INFO)
-		for v53_ = 1, #v52_ do
-			local v54_ = v52_[v53_]
-			streamWriteUIntN(streamId, v54_.numObjects, PlaceableObjectStorage.NUM_BITS_AMOUNT)
-			streamWriteUIntN(streamId, v54_.objects[1].ABSTRACT_OBJECT_ID, 2)
-			v54_.objects[1]:writeStream(streamId, connection)
+		local spec = self.spec_objectStorage
+		local objectInfos = spec.objectInfos
+		streamWriteUIntN(streamId, #objectInfos, PlaceableObjectStorage.NUM_BITS_OBJECT_INFO)
+		for i = 1, #objectInfos do
+			local objectInfo = objectInfos[i]
+			streamWriteUIntN(streamId, objectInfo.numObjects, PlaceableObjectStorage.NUM_BITS_AMOUNT)
+			streamWriteUIntN(streamId, objectInfo.objects[1].ABSTRACT_OBJECT_ID, 2)
+			objectInfo.objects[1]:writeStream(streamId, connection)
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableObjectStorage:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
 		if streamReadBool(streamId) then
 			PlaceableObjectStorage.onReadStream(self, streamId, connection)
 		end
-		local v58_ = self.spec_objectStorage
+		local spec = self.spec_objectStorage
 		if streamReadBool(streamId) then
-			g_currentMission.activatableObjectsSystem:addActivatable(v58_.manualStoreActivatable)
+			g_currentMission.activatableObjectsSystem:addActivatable(spec.manualStoreActivatable)
 			return
 		end
-		g_currentMission.activatableObjectsSystem:removeActivatable(v58_.manualStoreActivatable)
+		g_currentMission.activatableObjectsSystem:removeActivatable(spec.manualStoreActivatable)
 	end
 end
-
 function PlaceableObjectStorage:onWriteUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
-		local v63_ = streamWriteBool
-		local v64_ = self.spec_objectStorage.dirtyFlag
-		if v63_(streamId, bit32.band(dirtyMask, v64_) ~= 0) then
+		if streamWriteBool(streamId, bit32.band(dirtyMask, self.spec_objectStorage.dirtyFlag) ~= 0) then
 			PlaceableObjectStorage.onWriteStream(self, streamId, connection)
 		end
 		streamWriteBool(streamId, self:getHasPendingManualStoreObjects())
 	end
 end
-
--- Local values: spec, spawnArea, objectInfo, objectToSpawn, ox, oy, oz, _, _, _, _, cx, cy, cz, rx, ry, rz, object, _, canStoreObject, _, i, pendingVisualAreaUpdate
 function PlaceableObjectStorage:onUpdate(dt)
-	local v67_ = self.spec_objectStorage
+	local spec = self.spec_objectStorage
 	if self.isServer then
-		if v67_.objectSpawn.isActive then
-			if not v67_.objectSpawn.overlapIsActive then
-				if v67_.objectSpawn.overlapObjectCount == 0 then
-					local v68_ = v67_.objectSpawn.area[v67_.objectSpawn.spawnAreaIndex]
-					local v69_ = v67_.objectInfos[v67_.objectSpawn.objectInfoIndex]
-					local v70_ = v69_.objects[1]
-					local v71_, v72_, v73_, _, _, _, _ = v70_:getSpawnInfo()
-					local v74_, v75_, v76_ = localToWorld(v68_.startNode, v67_.objectSpawn.nextSpawnPosition[1] + v71_, v67_.objectSpawn.nextSpawnPosition[2] + v72_, v67_.objectSpawn.nextSpawnPosition[3] + v73_)
-					local v77_, v78_, v79_ = getWorldRotation(v68_.startNode)
-					if v70_ ~= nil then
-						self:removeAbstractObjectFromStorage(v70_, v74_, v75_, v76_, v77_, v78_, v79_)
-						table.remove(v69_.objects, 1)
+		if spec.objectSpawn.isActive then
+			if not spec.objectSpawn.overlapIsActive then
+				if spec.objectSpawn.overlapObjectCount == 0 then
+					local spawnArea = spec.objectSpawn.area[spec.objectSpawn.spawnAreaIndex]
+					local objectInfo = spec.objectInfos[spec.objectSpawn.objectInfoIndex]
+					local objectToSpawn = objectInfo.objects[1]
+					local ox, oy, oz, _, _, _, _ = objectToSpawn:getSpawnInfo()
+					local cx, cy, cz = localToWorld(spawnArea.startNode, spec.objectSpawn.nextSpawnPosition[1] + ox, spec.objectSpawn.nextSpawnPosition[2] + oy, spec.objectSpawn.nextSpawnPosition[3] + oz)
+					local rx, ry, rz = getWorldRotation(spawnArea.startNode)
+					if objectToSpawn ~= nil then
+						self:removeAbstractObjectFromStorage(objectToSpawn, cx, cy, cz, rx, ry, rz)
+						table.remove(objectInfo.objects, 1)
 					end
-					v67_.objectSpawn.numObjectsToSpawn = v67_.objectSpawn.numObjectsToSpawn - 1
+					spec.objectSpawn.numObjectsToSpawn = spec.objectSpawn.numObjectsToSpawn - 1
 				end
-				self:spawnNextObjectStorageObject(v67_.objectSpawn.overlapObjectCount == 0)
+				self:spawnNextObjectStorageObject(spec.objectSpawn.overlapObjectCount == 0)
 			end
 			self:raiseActive()
 		end
-		for v80_, _ in pairs(v67_.pendingObjects) do
-			local v81_, _ = self:getObjectStorageCanStoreObject(v80_, true)
-			if v81_ then
-				self:addObjectToObjectStorage(v80_)
+		for object, _ in pairs(spec.pendingObjects) do
+			local canStoreObject, _ = self:getObjectStorageCanStoreObject(object, true)
+			if canStoreObject then
+				self:addObjectToObjectStorage(object)
 				self:setObjectStorageObjectInfosDirty()
-				v67_.pendingObjects[v80_] = nil
-				v80_:removeDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
+				spec.pendingObjects[object] = nil
+				object:removeDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
 				self:updateManualStoreActivatable()
 			else
 				self:raiseActive()
 			end
 		end
 	end
-	if v67_.objectInfosUpdateTimer > 0 then
-		v67_.objectInfosUpdateTimer = v67_.objectInfosUpdateTimer - dt
-		if v67_.objectInfosUpdateTimer <= 0 then
+	if 0 < spec.objectInfosUpdateTimer then
+		spec.objectInfosUpdateTimer = spec.objectInfosUpdateTimer - dt
+		if spec.objectInfosUpdateTimer <= 0 then
 			self:updateObjectStorageObjectInfos()
 			self:updateObjectStorageVisualAreas()
-			self:raiseDirtyFlags(v67_.dirtyFlag)
-			v67_.objectInfosUpdateTimer = 0
+			self:raiseDirtyFlags(spec.dirtyFlag)
+			spec.objectInfosUpdateTimer = 0
 		end
 		self:raiseActive()
 	end
-	for v82_ = #v67_.pendingVisualAreaUpdates, 1, -1 do
-		if v67_.pendingVisualAreaUpdates[v82_].spawnNextObjectInfo() then
-			self:raiseActive()
+	for i = #spec.pendingVisualAreaUpdates, 1, -1 do
+		local pendingVisualAreaUpdate = spec.pendingVisualAreaUpdates[i]
+		if not pendingVisualAreaUpdate.spawnNextObjectInfo() then
+			table.remove(spec.pendingVisualAreaUpdates, i)
 		else
-			table.remove(v67_.pendingVisualAreaUpdates, v82_)
+			self:raiseActive()
 		end
 	end
 end
-
--- Local values: spec, found, i
 function PlaceableObjectStorage:getObjectStorageSupportsFillType(fillTypeIndex)
-	local v85_ = self.spec_objectStorage
+	local spec = self.spec_objectStorage
 	if fillTypeIndex == nil or fillTypeIndex == FillType.UNKNOWN then
-		return #v85_.supportedFillTypes == 0
+		return #spec.supportedFillTypes == 0
 	end
-	local v86_ = #v85_.supportedFillTypes == 0
-	for v87_ = 1, #v85_.supportedFillTypes do
-		if fillTypeIndex == v85_.supportedFillTypes[v87_] then
-			v86_ = true
+	local found = #spec.supportedFillTypes == 0
+	for i = 1, #spec.supportedFillTypes do
+		if fillTypeIndex == spec.supportedFillTypes[i] then
+			found = true
 		end
 	end
-	return v86_ and true or false
+	if not found then
+		return false
+	else
+		return true
+	end
 end
-
--- Local values: spec, abstractObjectClass, i
 function PlaceableObjectStorage:getObjectStorageSupportsObject(object)
-	local v90_ = self.spec_objectStorage
-	local v91_ = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[ClassUtil.getClassNameByObject(object)]
-	if v91_ ~= nil and not v91_.isObjectSupported(self, object) then
+	local spec = self.spec_objectStorage
+	local abstractObjectClass = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[ClassUtil.getClassNameByObject(object)]
+	if abstractObjectClass ~= nil and not abstractObjectClass.isObjectSupported(self, object) then
 		return false
 	end
-	for v92_ = 1, #v90_.storedObjects do
-		if object == v90_.storedObjects[v92_]:getRealObject() then
+	for i = 1, #spec.storedObjects do
+		if object == spec.storedObjects[i]:getRealObject() then
 			return false
 		end
 	end
 	return true
 end
-
--- Local values: spec, isSupported, filename, i, supportedObject, storedAmount, j, objectFilename, abstractObjectClass
 function PlaceableObjectStorage:getObjectStorageCanStoreObject(object, automatically)
-	local v96_ = self.spec_objectStorage
-	if v96_.objectSpawn.isActive then
+	local spec = self.spec_objectStorage
+	if spec.objectSpawn.isActive then
 		return false
-	end
-	if #v96_.storedObjects >= v96_.capacity then
+	elseif spec.capacity <= #spec.storedObjects then
 		return false, PlaceableObjectStorageErrorEvent.ERROR_STORAGE_IS_FULL
-	end
-	if #v96_.supportedObjects > 0 then
-		local v97_ = object.configFileName or object.xmlFilename
-		local v98_ = false
-		for v99_ = 1, #v96_.supportedObjects do
-			local v100_ = v96_.supportedObjects[v99_]
-			if v97_:endsWith(v100_.filename) then
-				local v101_ = 0
-				v98_ = true
-				for v102_ = 1, #v96_.storedObjects do
-					if v96_.storedObjects[v102_]:getXMLFilename() == v97_ then
-						v101_ = v101_ + 1
+	else
+		if 0 < #spec.supportedObjects then
+			local isSupported = false
+			local filename = object.configFileName or object.xmlFilename
+			for i = 1, #spec.supportedObjects do
+				local supportedObject = spec.supportedObjects[i]
+				if filename:endsWith(supportedObject.filename) then
+					isSupported = true
+					local storedAmount = 0
+					for j = 1, #spec.storedObjects do
+						local objectFilename = spec.storedObjects[j]:getXMLFilename()
+						if objectFilename == filename then
+							storedAmount = storedAmount + 1
+						end
+					end
+					if supportedObject.amount <= storedAmount then
+						return false, PlaceableObjectStorageErrorEvent.ERROR_MAX_AMOUNT_FOR_OBJECT_REACHED
 					end
 				end
-				if v100_.amount <= v101_ then
-					return false, PlaceableObjectStorageErrorEvent.ERROR_MAX_AMOUNT_FOR_OBJECT_REACHED
-				end
+			end
+			if not isSupported then
+				return false, PlaceableObjectStorageErrorEvent.ERROR_OBJECT_NOT_SUPPORTED
 			end
 		end
-		if not v98_ then
-			return false, PlaceableObjectStorageErrorEvent.ERROR_OBJECT_NOT_SUPPORTED
+		local abstractObjectClass = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[ClassUtil.getClassNameByObject(object)]
+		if abstractObjectClass ~= nil then
+			if not abstractObjectClass.canStoreObject(self, object) then
+				return false
+			end
+			if automatically and not abstractObjectClass.canStoreObjectAutomatically(self, object) then
+				return false
+			end
 		end
+		return true
 	end
-	local v103_ = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[ClassUtil.getClassNameByObject(object)]
-	if v103_ ~= nil then
-		if not v103_.canStoreObject(self, object) then
-			return false
-		end
-		if automatically and not v103_.canStoreObjectAutomatically(self, object) then
-			return false
-		end
-	end
-	return true
 end
-
 function PlaceableObjectStorage:getIsBaleSupportedByUnloadTrigger(bale)
 	return self:getObjectStorageSupportsObject(bale)
 end
-
--- Local values: abstractObjectClass, abstractObject
 function PlaceableObjectStorage:addObjectToObjectStorage(object, loadedFromSavegame)
-	local v109_ = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[ClassUtil.getClassNameByObject(object)]
-	if v109_ ~= nil then
-		local v110_ = v109_.new()
-		v110_:addToStorage(self, object, loadedFromSavegame)
-		self:addAbstactObjectToObjectStorage(v110_)
+	local abstractObjectClass = PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[ClassUtil.getClassNameByObject(object)]
+	if abstractObjectClass ~= nil then
+		local abstractObject = abstractObjectClass.new()
+		abstractObject:addToStorage(self, object, loadedFromSavegame)
+		self:addAbstactObjectToObjectStorage(abstractObject)
 	end
 end
-
--- Local values: spec
 function PlaceableObjectStorage:addAbstactObjectToObjectStorage(abstractObject)
-	local v113_ = self.spec_objectStorage
-	local v114_ = v113_.storedObjects
-	table.insert(v114_, abstractObject)
-	v113_.numStoredObjects = #v113_.storedObjects
+	local spec = self.spec_objectStorage
+	table.insert(spec.storedObjects, abstractObject)
+	spec.numStoredObjects = #spec.storedObjects
 end
-
--- Local values: spec, i
 function PlaceableObjectStorage:removeAbstractObjectsFromStorage(objectInfoIndex, amount, connection)
-	local v119_ = self.spec_objectStorage
-	if not v119_.objectSpawn.isActive then
-		if v119_.objectInfosUpdateTimer ~= 0 then
+	local spec = self.spec_objectStorage
+	if not spec.objectSpawn.isActive then
+		if spec.objectInfosUpdateTimer ~= 0 then
 			return
 		end
-		if v119_.objectInfos[objectInfoIndex] == nil or v119_.objectInfos[objectInfoIndex].numObjects < amount then
+		if spec.objectInfos[objectInfoIndex] == nil or spec.objectInfos[objectInfoIndex].numObjects < amount then
 			return
 		end
-		v119_.objectSpawn.isActive = true
-		v119_.objectSpawn.connection = connection
-		v119_.objectSpawn.objectInfoIndex = objectInfoIndex
-		v119_.objectSpawn.numObjectsToSpawn = amount
-		v119_.objectSpawn.overlapIsActive = false
-		v119_.objectSpawn.overlapObjectCount = 0
-		v119_.objectSpawn.spawnAreaIndex = 1
-		local v120_ = v119_.objectSpawn.spawnAreaData
-		local v121_ = v119_.objectSpawn.spawnAreaData
-		local v122_ = v119_.objectSpawn.spawnAreaData
-		local v123_ = v119_.objectSpawn.spawnAreaData
-		local v124_ = v119_.objectSpawn.spawnAreaData
-		local v125_ = v119_.objectSpawn.spawnAreaData
-		v120_[1] = 0
-		v121_[2] = 0
-		v122_[3] = 0
-		v123_[4] = 0
-		v124_[5] = 0
-		v125_[6] = math.huge
-		for v126_ = #v119_.objectSpawn.spawnedObjects, 1, -1 do
-			v119_.objectSpawn.spawnedObjects[v126_] = nil
+		spec.objectSpawn.isActive = true
+		spec.objectSpawn.connection = connection
+		spec.objectSpawn.objectInfoIndex = objectInfoIndex
+		spec.objectSpawn.numObjectsToSpawn = amount
+		spec.objectSpawn.overlapIsActive = false
+		spec.objectSpawn.overlapObjectCount = 0
+		spec.objectSpawn.spawnAreaIndex = 1
+		spec.objectSpawn.spawnAreaData[1] = 0
+		spec.objectSpawn.spawnAreaData[2] = 0
+		spec.objectSpawn.spawnAreaData[3] = 0
+		spec.objectSpawn.spawnAreaData[4] = 0
+		spec.objectSpawn.spawnAreaData[5] = 0
+		spec.objectSpawn.spawnAreaData[6] = math.huge
+		for i = #spec.objectSpawn.spawnedObjects, 1, -1 do
+			spec.objectSpawn.spawnedObjects[i] = nil
 		end
 		self:spawnNextObjectStorageObject()
 	end
 end
-function PlaceableObjectStorage.getNextSpawnAreaAndOffset(p127_, p128_, p129_, p130_, p131_, p132_, p133_, p134_, p135_, p136_, p137_, p138_, p139_)
-	local v140_ = p127_[p128_]
-	if v140_ == nil then
-		return nil
-	elseif v140_.sizeX <= p134_ then
-		return PlaceableObjectStorage.getNextSpawnAreaAndOffset(p127_, p128_ + 1, 0, 0, 0, 0, 0, p134_, p135_, p136_, p137_, math.huge, false)
-	elseif v140_.sizeZ <= p136_ then
-		return PlaceableObjectStorage.getNextSpawnAreaAndOffset(p127_, p128_ + 1, 0, 0, 0, 0, 0, p134_, p135_, p136_, p137_, math.huge, false)
-	else
-		local v141_ = p129_ + p134_ * 0.5
-		local v142_ = p131_ + p136_ * 0.5
-		local v143_ = math.max(p135_, 0.1)
-		local v144_ = v140_.maxHeight / v143_
-		local v145_ = math.floor(v144_)
-		local v146_
-		if p138_ < math.min(p137_, v145_) and p139_ ~= false then
-			v146_ = p138_ + 1
-			v142_ = v142_ - p136_
-			p130_ = (v146_ - 1) * v143_
-		else
-			v146_ = 1
+function PlaceableObjectStorage.getNextSpawnAreaAndOffset(areas, areaIndex, ox, oy, oz, nextX, nextZ, width, height, length, maxStackHeight, stackIndex, lastSuccess)
+	local spawnArea = areas[areaIndex]
+	if spawnArea ~= nil then
+		if spawnArea.sizeX <= width then
+			return PlaceableObjectStorage.getNextSpawnAreaAndOffset(areas, areaIndex + 1, 0, 0, 0, 0, 0, width, height, length, maxStackHeight, math.huge, false)
 		end
-		local v147_ = v142_ + p136_ * 0.5
-		local v148_ = math.max(p133_, v147_)
-		if v140_.sizeZ < v148_ then
-			return PlaceableObjectStorage.getNextSpawnAreaAndOffset(p127_, p128_, p132_, p130_, 0, p132_, 0, p134_, v143_, p136_, p137_, math.huge, p139_)
-		else
-			local v149_ = v141_ + p134_ * 0.5
-			local v150_ = math.max(p132_, v149_)
-			if v140_.sizeX < v141_ then
-				return PlaceableObjectStorage.getNextSpawnAreaAndOffset(p127_, p128_ + 1, 0, 0, 0, 0, 0, p134_, v143_, p136_, p137_, math.huge, false)
+		if spawnArea.sizeZ <= length then
+			return PlaceableObjectStorage.getNextSpawnAreaAndOffset(areas, areaIndex + 1, 0, 0, 0, 0, 0, width, height, length, maxStackHeight, math.huge, false)
+		end
+		ox = ox + width * 0.5
+		oz = oz + length * 0.5
+		height = math.max(height, 0.1)
+		local limitedStackHeight = math.min(maxStackHeight, math.floor(spawnArea.maxHeight / height))
+		if stackIndex < limitedStackHeight then
+			if lastSuccess ~= false then
+				stackIndex = stackIndex + 1
+				oz = oz - length
+				oy = (stackIndex - 1) * height
 			else
-				return p128_, v141_, p130_, v142_, v141_ - p134_ * 0.5, 0, v142_ + p136_ * 0.5, v150_, v148_, v146_
+				stackIndex = 1
 			end
 		end
+		nextZ = math.max(nextZ, oz + length * 0.5)
+		if spawnArea.sizeZ < nextZ then
+			oz = 0
+			ox = nextX
+			return PlaceableObjectStorage.getNextSpawnAreaAndOffset(areas, areaIndex, ox, oy, oz, nextX, 0, width, height, length, maxStackHeight, math.huge, lastSuccess)
+		end
+		nextX = math.max(nextX, ox + width * 0.5)
+		if spawnArea.sizeX < ox then
+			return PlaceableObjectStorage.getNextSpawnAreaAndOffset(areas, areaIndex + 1, 0, 0, 0, 0, 0, width, height, length, maxStackHeight, math.huge, false)
+		else
+			return areaIndex, ox, oy, oz, ox - width * 0.5, 0, oz + length * 0.5, nextX, nextZ, stackIndex
+		end
 	end
+	return nil
 end
-
--- Local values: spec, spawnErrorId, objectInfo, objectToSpawn, limitedObjectId, errorId, _, _, _, width, height, length, maxStackHeight, areaIndex, spawnX, spawnY, spawnZ, offsetX, offsetY, offsetZ, nextOffsetX, nextOffsetZ, stackIndex, spawnArea, cx, cy, cz, rx, ry, rz, i
 function PlaceableObjectStorage:spawnNextObjectStorageObject(lastSuccess)
-	local v153_ = self.spec_objectStorage
-	local v154_ = nil
-	if v153_.objectSpawn.numObjectsToSpawn > 0 then
-		local v155_ = v153_.objectInfos[v153_.objectSpawn.objectInfoIndex].objects[1]
-		local v156_, v157_ = v155_:getLimitedObjectId()
-		if v156_ == nil or g_currentMission.slotSystem:getCanAddLimitedObjects(v156_, 1) then
-			local _, _, _, v158_, v159_, v160_, v161_ = v155_:getSpawnInfo()
-			local v162_ = v161_ > 1.001 and math.huge or v161_
-			local v163_, v164_, v165_, v166_, v167_, v168_, v169_, v170_, v171_, v172_ = PlaceableObjectStorage.getNextSpawnAreaAndOffset(v153_.objectSpawn.area, v153_.objectSpawn.spawnAreaIndex, v153_.objectSpawn.spawnAreaData[1], v153_.objectSpawn.spawnAreaData[2], v153_.objectSpawn.spawnAreaData[3], v153_.objectSpawn.spawnAreaData[4], v153_.objectSpawn.spawnAreaData[5], v158_, v159_, v160_, v162_, v153_.objectSpawn.spawnAreaData[6], lastSuccess)
-			if v163_ ~= nil then
-				local v173_ = v153_.objectSpawn
-				local v174_ = v153_.objectSpawn.spawnAreaData
-				local v175_ = v153_.objectSpawn.spawnAreaData
-				local v176_ = v153_.objectSpawn.spawnAreaData
-				local v177_ = v153_.objectSpawn.spawnAreaData
-				local v178_ = v153_.objectSpawn.spawnAreaData
-				local v179_ = v153_.objectSpawn.spawnAreaData
-				v173_.spawnAreaIndex = v163_
-				v174_[1] = v167_
-				v175_[2] = v168_
-				v176_[3] = v169_
-				v177_[4] = v170_
-				v178_[5] = v171_
-				v179_[6] = v172_
-				local v180_ = v153_.objectSpawn.area[v153_.objectSpawn.spawnAreaIndex]
-				local v181_, v182_, v183_ = localToWorld(v180_.startNode, v164_, v165_ + v159_ * 0.5, v166_)
-				local v184_, v185_, v186_ = getWorldRotation(v180_.startNode)
-				local v187_ = v153_.objectSpawn.nextSpawnPosition
-				local v188_ = v153_.objectSpawn.nextSpawnPosition
-				local v189_ = v153_.objectSpawn.nextSpawnPosition
-				v187_[1] = v164_
-				v188_[2] = v165_
-				v189_[3] = v166_
-				v153_.objectSpawn.overlapIsActive = true
-				v153_.objectSpawn.overlapObjectCount = 0
-				overlapBoxAsync(v181_, v182_, v183_, v184_, v185_, v186_, v158_ * 0.5, v159_ * 0.5, v160_ * 0.5, "onObjectStorageSpawnOverlapCallback", self, PlaceableObjectStorage.COLLISION_MASK, true, true, false, true)
+	local spec = self.spec_objectStorage
+	local spawnErrorId = nil
+	if 0 < spec.objectSpawn.numObjectsToSpawn then
+		local objectInfo = spec.objectInfos[spec.objectSpawn.objectInfoIndex]
+		local objectToSpawn = objectInfo.objects[1]
+		local limitedObjectId, errorId = objectToSpawn:getLimitedObjectId()
+		if limitedObjectId == nil or g_currentMission.slotSystem:getCanAddLimitedObjects(limitedObjectId, 1) then
+			local _, _, _, width, height, length, maxStackHeight = objectToSpawn:getSpawnInfo()
+			if 1.001 < maxStackHeight then
+				maxStackHeight = math.huge
+			end
+			local areaIndex, spawnX, spawnY, spawnZ, offsetX, offsetY, offsetZ, nextOffsetX, nextOffsetZ, stackIndex = PlaceableObjectStorage.getNextSpawnAreaAndOffset(spec.objectSpawn.area, spec.objectSpawn.spawnAreaIndex, spec.objectSpawn.spawnAreaData[1], spec.objectSpawn.spawnAreaData[2], spec.objectSpawn.spawnAreaData[3], spec.objectSpawn.spawnAreaData[4], spec.objectSpawn.spawnAreaData[5], width, height, length, maxStackHeight, spec.objectSpawn.spawnAreaData[6], lastSuccess)
+			if areaIndex ~= nil then
+				spec.objectSpawn.spawnAreaIndex = areaIndex
+				spec.objectSpawn.spawnAreaData[1] = offsetX
+				spec.objectSpawn.spawnAreaData[2] = offsetY
+				spec.objectSpawn.spawnAreaData[3] = offsetZ
+				spec.objectSpawn.spawnAreaData[4] = nextOffsetX
+				spec.objectSpawn.spawnAreaData[5] = nextOffsetZ
+				spec.objectSpawn.spawnAreaData[6] = stackIndex
+				local spawnArea = spec.objectSpawn.area[spec.objectSpawn.spawnAreaIndex]
+				local cx, cy, cz = localToWorld(spawnArea.startNode, spawnX, spawnY + height * 0.5, spawnZ)
+				local rx, ry, rz = getWorldRotation(spawnArea.startNode)
+				spec.objectSpawn.nextSpawnPosition[1] = spawnX
+				spec.objectSpawn.nextSpawnPosition[2] = spawnY
+				spec.objectSpawn.nextSpawnPosition[3] = spawnZ
+				spec.objectSpawn.overlapIsActive = true
+				spec.objectSpawn.overlapObjectCount = 0
+				overlapBoxAsync(cx, cy, cz, rx, ry, rz, width * 0.5, height * 0.5, length * 0.5, "onObjectStorageSpawnOverlapCallback", self, PlaceableObjectStorage.COLLISION_MASK, true, true, false, true)
 				self:raiseActive()
 				return
+			else
+				if spec.objectSpawn.isActive then
+					if 0 < spec.objectSpawn.numObjectsToSpawn and (spec.objectSpawn.connection ~= nil and g_server ~= nil) then
+						spec.objectSpawn.connection:sendEvent(PlaceableObjectStorageErrorEvent.new(self, spawnErrorId or PlaceableObjectStorageErrorEvent.ERROR_NOT_ENOUGH_SPACE))
+					end
+					spec.objectSpawn.isActive = false
+					spec.objectSpawn.connection = nil
+					spec.objectSpawn.objectInfoIndex = 1
+					spec.objectSpawn.numObjectsToSpawn = 0
+					for i = #spec.objectSpawn.spawnedObjects, 1, -1 do
+						spec.objectSpawn.spawnedObjects[i] = nil
+					end
+					self:setObjectStorageObjectInfosDirty()
+				end
+				return
 			end
-		else
-			v154_ = v157_
 		end
-	end
-	if v153_.objectSpawn.isActive then
-		if v153_.objectSpawn.numObjectsToSpawn > 0 and (v153_.objectSpawn.connection ~= nil and g_server ~= nil) then
-			v153_.objectSpawn.connection:sendEvent(PlaceableObjectStorageErrorEvent.new(self, v154_ or PlaceableObjectStorageErrorEvent.ERROR_NOT_ENOUGH_SPACE))
-		end
-		v153_.objectSpawn.isActive = false
-		v153_.objectSpawn.connection = nil
-		v153_.objectSpawn.objectInfoIndex = 1
-		v153_.objectSpawn.numObjectsToSpawn = 0
-		for v190_ = #v153_.objectSpawn.spawnedObjects, 1, -1 do
-			v153_.objectSpawn.spawnedObjects[v190_] = nil
-		end
-		self:setObjectStorageObjectInfosDirty()
+		spawnErrorId = errorId
 	end
 end
-
--- Local values: spec, i
 function PlaceableObjectStorage:removeAbstractObjectFromStorage(abstractObject, x, y, z, rx, ry, rz)
-	local v199_ = self.spec_objectStorage
-	for v200_ = 1, #v199_.storedObjects do
-		if v199_.storedObjects[v200_] == abstractObject then
-			table.remove(v199_.storedObjects, v200_)
+	local spec = self.spec_objectStorage
+	for i = 1, #spec.storedObjects do
+		if spec.storedObjects[i] == abstractObject then
+			table.remove(spec.storedObjects, i)
 			abstractObject:removeFromStorage(self, x, y, z, rx, ry, rz, PlaceableObjectStorage.onObjectFromStorageSpawned)
 		end
 	end
-	v199_.numStoredObjects = #v199_.storedObjects
+	spec.numStoredObjects = #spec.storedObjects
 end
-
--- Local values: spec
 function PlaceableObjectStorage:onObjectFromStorageSpawned(spawnedObject)
-	local v203_ = self.spec_objectStorage
-	if v203_.objectSpawn.isActive then
-		local v204_ = v203_.objectSpawn.spawnedObjects
-		table.insert(v204_, spawnedObject)
+	local spec = self.spec_objectStorage
+	if spec.objectSpawn.isActive then
+		table.insert(spec.objectSpawn.spawnedObjects, spawnedObject)
 	end
 end
-
--- Local values: spec
 function PlaceableObjectStorage:setObjectStorageObjectInfosDirty()
-	self.spec_objectStorage.objectInfosUpdateTimer = 1000
+	local spec = self.spec_objectStorage
+	spec.objectInfosUpdateTimer = 1000
 	self:raiseActive()
 end
-
--- Local values: spec
 function PlaceableObjectStorage:updateDirtyObjectStorageObjectInfos()
-	if self.spec_objectStorage.objectInfosUpdateTimer > 0 then
+	local spec = self.spec_objectStorage
+	if 0 < spec.objectInfosUpdateTimer then
 		self:updateObjectStorageObjectInfos()
 	end
 end
-
--- Local values: spec, objectInfos, i, object, foundInfo, j, objectInfo, objectInfo
 function PlaceableObjectStorage:updateObjectStorageObjectInfos()
-	local v208_ = self.spec_objectStorage
-	local v209_ = {}
-	for v210_ = 1, #v208_.storedObjects do
-		local v211_ = v208_.storedObjects[v210_]
-		local v212_ = false
-		for v213_ = 1, #v209_ do
-			local v214_ = v209_[v213_]
-			if v211_:getIsIdentical(v214_.objects[1]) then
-				local v215_ = v214_.objects
-				table.insert(v215_, v211_)
-				v214_.numObjects = #v214_.objects
-				v212_ = true
+	local spec = self.spec_objectStorage
+	local objectInfos = {}
+	for i = 1, #spec.storedObjects do
+		local object = spec.storedObjects[i]
+		local foundInfo = false
+		for j = 1, #objectInfos do
+			local objectInfo = objectInfos[j]
+			if object:getIsIdentical(objectInfo.objects[1]) then
+				table.insert(objectInfo.objects, object)
+				objectInfo.numObjects = #objectInfo.objects
+				foundInfo = true
 			end
 		end
-		if not v212_ then
-			table.insert(v209_, {
-				["objects"] = { v211_ },
-				["numObjects"] = 1
-			})
+		if not foundInfo then
+			local objectInfo = {}
+			objectInfo.objects = { object }
+			objectInfo.numObjects = 1
+			table.insert(objectInfos, objectInfo)
 		end
 	end
-	table.sort(v209_, function(p216_, p217_)
-		local _, _, _, v218_, _, _, _ = p216_.objects[1]:getSpawnInfo()
-		local _, _, _, v219_, _, _, _ = p217_.objects[1]:getSpawnInfo()
-		return v218_ < v219_
+	table.sort(objectInfos, function(a, b)
+		local _, _, _, widthA, _, _, _ = a.objects[1]:getSpawnInfo()
+		local _, _, _, widthB, _, _, _ = b.objects[1]:getSpawnInfo()
+		return widthA < widthB
 	end)
-	v208_.objectInfos = v209_
+	spec.objectInfos = objectInfos
 end
-
 function PlaceableObjectStorage:getObjectStorageObjectInfos()
 	return self.spec_objectStorage.objectInfos
 end
-
--- Local values: spec, area, oldSpawnNode, pendingVisualAreaUpdate, i, objectInfo, objectToSpawn, ox, oy, oz, width, height, length, maxStackHeight, j, areaIndex, spawnX, spawnY, spawnZ, offsetX, offsetY, offsetZ, nextOffsetX, nextOffsetZ, stackIndex, spawnArea, cx, cy, cz, rx, ry, rz
 function PlaceableObjectStorage:updateObjectStorageVisualAreas()
-	local v222_ = self.spec_objectStorage
-	local v223_ = v222_.storageArea
-	local v224_ = v223_.spawnNode
-	v223_.spawnNode = createTransformGroup("storageAreaSpawnNode")
-	link(self.rootNode, v223_.spawnNode)
-	setVisibility(v223_.spawnNode, false)
-	local v_u_226_ = {
-		["oldSpawnNode"] = v224_,
-		["newSpawnNode"] = v223_.spawnNode,
-		["objectInfosToSpawn"] = {},
-		["spawnNextObjectInfo"] = function()
-			-- upvalues: (copy) v_u_226_
-			if #v_u_226_.objectInfosToSpawn <= 0 then
-				delete(v_u_226_.oldSpawnNode)
-				if entityExists(v_u_226_.newSpawnNode) then
-					setVisibility(v_u_226_.newSpawnNode, true)
-				end
-				return false
-			end
-			local v225_ = v_u_226_.objectInfosToSpawn[1]
-			v225_.objects[1]:spawnVisualObjects(v225_.visualSpawnInfos)
-			table.remove(v_u_226_.objectInfosToSpawn, 1)
+	local spec = self.spec_objectStorage
+	local area = spec.storageArea
+	local oldSpawnNode = area.spawnNode
+	area.spawnNode = createTransformGroup("storageAreaSpawnNode")
+	link(self.rootNode, area.spawnNode)
+	setVisibility(area.spawnNode, false)
+	local pendingVisualAreaUpdate = {}
+	pendingVisualAreaUpdate.oldSpawnNode = oldSpawnNode
+	pendingVisualAreaUpdate.newSpawnNode = area.spawnNode
+	pendingVisualAreaUpdate.objectInfosToSpawn = {}
+	function pendingVisualAreaUpdate.spawnNextObjectInfo()
+		if 0 < #pendingVisualAreaUpdate.objectInfosToSpawn then
+			local objectInfo = pendingVisualAreaUpdate.objectInfosToSpawn[1]
+			objectInfo.objects[1]:spawnVisualObjects(objectInfo.visualSpawnInfos)
+			table.remove(pendingVisualAreaUpdate.objectInfosToSpawn, 1)
 			return true
-		end
-	}
-	local v227_ = v223_.spawnAreaData
-	local v228_ = v223_.spawnAreaData
-	local v229_ = v223_.spawnAreaData
-	local v230_ = v223_.spawnAreaData
-	local v231_ = v223_.spawnAreaData
-	local v232_ = v223_.spawnAreaData
-	v223_.spawnAreaIndex = 1
-	v227_[1] = 0
-	v228_[2] = 0
-	v229_[3] = 0
-	v230_[4] = 0
-	v231_[5] = 0
-	v232_[6] = math.huge
-	for v233_ = 1, #v222_.objectInfos do
-		local v234_ = v222_.objectInfos[v233_]
-		v234_.visualSpawnInfos = {}
-		v223_.spawnAreaData[6] = math.huge
-		local v235_, v236_, v237_, v238_, v239_, v240_, v241_ = v234_.objects[1]:getSpawnInfo()
-		local v242_ = v241_ > 1.001 and math.huge or v241_
-		for _ = 1, v234_.numObjects do
-			local v243_, v244_, v245_, v246_, v247_, v248_, v249_, v250_, v251_, v252_ = PlaceableObjectStorage.getNextSpawnAreaAndOffset(v223_.area, v223_.spawnAreaIndex, v223_.spawnAreaData[1], v223_.spawnAreaData[2], v223_.spawnAreaData[3], v223_.spawnAreaData[4], v223_.spawnAreaData[5], v238_, v239_, v240_, v242_, v223_.spawnAreaData[6], true)
-			if v243_ ~= nil then
-				local v253_ = v223_.spawnAreaData
-				local v254_ = v223_.spawnAreaData
-				local v255_ = v223_.spawnAreaData
-				local v256_ = v223_.spawnAreaData
-				local v257_ = v223_.spawnAreaData
-				local v258_ = v223_.spawnAreaData
-				v223_.spawnAreaIndex = v243_
-				v253_[1] = v247_
-				v254_[2] = v248_
-				v255_[3] = v249_
-				v256_[4] = v250_
-				v257_[5] = v251_
-				v258_[6] = v252_
-				local v259_ = v223_.area[v223_.spawnAreaIndex]
-				local v260_, v261_, v262_ = localToLocal(v259_.startNode, v223_.spawnNode, v244_ + v235_, v245_ + v236_, v246_ + v237_)
-				local v263_, v264_, v265_ = localRotationToLocal(v259_.startNode, v223_.spawnNode, 0, 0, 0)
-				local v266_ = v234_.visualSpawnInfos
-				local v267_ = {
-					v223_.spawnNode,
-					v260_,
-					v261_,
-					v262_,
-					v263_,
-					v264_,
-					v265_
-				}
-				table.insert(v266_, v267_)
+		else
+			delete(pendingVisualAreaUpdate.oldSpawnNode)
+			if entityExists(pendingVisualAreaUpdate.newSpawnNode) then
+				setVisibility(pendingVisualAreaUpdate.newSpawnNode, true)
 			end
-		end
-		if #v234_.visualSpawnInfos > 0 then
-			local v268_ = v_u_226_.objectInfosToSpawn
-			table.insert(v268_, v234_)
+			return false
 		end
 	end
-	if v_u_226_.spawnNextObjectInfo() then
-		local v269_ = v222_.pendingVisualAreaUpdates
-		table.insert(v269_, v_u_226_)
+	area.spawnAreaIndex = 1
+	area.spawnAreaData[1] = 0
+	area.spawnAreaData[2] = 0
+	area.spawnAreaData[3] = 0
+	area.spawnAreaData[4] = 0
+	area.spawnAreaData[5] = 0
+	area.spawnAreaData[6] = math.huge
+	for i = 1, #spec.objectInfos do
+		local objectInfo = spec.objectInfos[i]
+		objectInfo.visualSpawnInfos = {}
+		area.spawnAreaData[6] = math.huge
+		local objectToSpawn = objectInfo.objects[1]
+		local ox, oy, oz, width, height, length, maxStackHeight = objectToSpawn:getSpawnInfo()
+		if 1.001 < maxStackHeight then
+			maxStackHeight = math.huge
+		end
+		for j = 1, objectInfo.numObjects do
+			local areaIndex, spawnX, spawnY, spawnZ, offsetX, offsetY, offsetZ, nextOffsetX, nextOffsetZ, stackIndex = PlaceableObjectStorage.getNextSpawnAreaAndOffset(area.area, area.spawnAreaIndex, area.spawnAreaData[1], area.spawnAreaData[2], area.spawnAreaData[3], area.spawnAreaData[4], area.spawnAreaData[5], width, height, length, maxStackHeight, area.spawnAreaData[6], true)
+			if areaIndex == nil then
+				continue
+			end
+			area.spawnAreaIndex = areaIndex
+			area.spawnAreaData[1] = offsetX
+			area.spawnAreaData[2] = offsetY
+			area.spawnAreaData[3] = offsetZ
+			area.spawnAreaData[4] = nextOffsetX
+			area.spawnAreaData[5] = nextOffsetZ
+			area.spawnAreaData[6] = stackIndex
+			local spawnArea = area.area[area.spawnAreaIndex]
+			local cx, cy, cz = localToLocal(spawnArea.startNode, area.spawnNode, spawnX + ox, spawnY + oy, spawnZ + oz)
+			local rx, ry, rz = localRotationToLocal(spawnArea.startNode, area.spawnNode, 0, 0, 0)
+			table.insert(objectInfo.visualSpawnInfos, { area.spawnNode, cx, cy, cz, rx, ry, rz })
+		end
+		if 0 < #objectInfo.visualSpawnInfos then
+			table.insert(pendingVisualAreaUpdate.objectInfosToSpawn, objectInfo)
+		end
+	end
+	if pendingVisualAreaUpdate.spawnNextObjectInfo() then
+		table.insert(spec.pendingVisualAreaUpdates, pendingVisualAreaUpdate)
 		self:raiseActive()
 	end
 end
-
--- Local values: spec, object, num, canStoreObject, _
 function PlaceableObjectStorage:getHasPendingManualStoreObjects()
-	local v271_ = self.spec_objectStorage
-	for v272_, v273_ in pairs(v271_.pendingObjects) do
-		if v273_ > 0 then
-			local v274_, _ = self:getObjectStorageCanStoreObject(v272_, true)
-			if not v274_ then
-				local v275_, _ = self:getObjectStorageCanStoreObject(v272_, false)
-				if v275_ then
-					return true
-				end
+	local spec = self.spec_objectStorage
+	for object, num in pairs(spec.pendingObjects) do
+		if 0 < num then
+			local canStoreObject, _ = self:getObjectStorageCanStoreObject(object, true)
+			if canStoreObject then
+				continue
+			end
+			canStoreObject, _ = self:getObjectStorageCanStoreObject(object, false)
+			if canStoreObject then
+				return true
 			end
 		end
 	end
 	return false
 end
-
--- Local values: spec, object, num, canStoreObject, _
 function PlaceableObjectStorage:storePendingManualObjects()
-	local v277_ = self.spec_objectStorage
-	for v278_, v279_ in pairs(v277_.pendingObjects) do
-		if v279_ > 0 then
-			local v280_, _ = self:getObjectStorageCanStoreObject(v278_, true)
-			if not v280_ then
-				local v281_, _ = self:getObjectStorageCanStoreObject(v278_, false)
-				if v281_ then
-					self:addObjectToObjectStorage(v278_, false)
-					self:setObjectStorageObjectInfosDirty()
-					v277_.pendingObjects[v278_] = nil
-					v278_:removeDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
-				end
+	local spec = self.spec_objectStorage
+	for object, num in pairs(spec.pendingObjects) do
+		if 0 < num then
+			local canStoreObject, _ = self:getObjectStorageCanStoreObject(object, true)
+			if canStoreObject then
+				continue
+			end
+			canStoreObject, _ = self:getObjectStorageCanStoreObject(object, false)
+			if canStoreObject then
+				self:addObjectToObjectStorage(object, false)
+				self:setObjectStorageObjectInfosDirty()
+				spec.pendingObjects[object] = nil
+				object:removeDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
 			end
 		end
 	end
 	self:updateManualStoreActivatable()
 end
-
--- Local values: spec, pendingManualObjectsState
 function PlaceableObjectStorage:updateManualStoreActivatable()
-	local v283_ = self.spec_objectStorage
-	local v284_ = self:getHasPendingManualStoreObjects()
-	if v284_ ~= v283_.lastPendingManualObjectsState then
-		v283_.lastPendingManualObjectsState = v284_
-		if v284_ then
-			g_currentMission.activatableObjectsSystem:addActivatable(v283_.manualStoreActivatable)
+	local spec = self.spec_objectStorage
+	local pendingManualObjectsState = self:getHasPendingManualStoreObjects()
+	if pendingManualObjectsState ~= spec.lastPendingManualObjectsState then
+		spec.lastPendingManualObjectsState = pendingManualObjectsState
+		if pendingManualObjectsState then
+			g_currentMission.activatableObjectsSystem:addActivatable(spec.manualStoreActivatable)
 		else
-			g_currentMission.activatableObjectsSystem:removeActivatable(v283_.manualStoreActivatable)
+			g_currentMission.activatableObjectsSystem:removeActivatable(spec.manualStoreActivatable)
 		end
-		self:raiseDirtyFlags(v283_.dirtyFlag)
+		self:raiseDirtyFlags(spec.dirtyFlag)
 	end
 end
-
--- Local values: spec
 function PlaceableObjectStorage:onObjectStoragePlayerTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay)
 	if g_localPlayer ~= nil and otherId == g_localPlayer.rootNode then
-		local v289_ = self.spec_objectStorage
+		local spec = self.spec_objectStorage
 		if onEnter then
-			g_currentMission.activatableObjectsSystem:addActivatable(v289_.activatable)
+			g_currentMission.activatableObjectsSystem:addActivatable(spec.activatable)
 			return
 		end
 		if onLeave then
-			g_currentMission.activatableObjectsSystem:removeActivatable(v289_.activatable)
+			g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableObjectStorage:onPendingObjectDelete(object)
-	local v292_ = self.spec_objectStorage
-	if v292_.pendingObjects[object] ~= nil then
-		v292_.pendingObjects[object] = nil
+	local spec = self.spec_objectStorage
+	if spec.pendingObjects[object] ~= nil then
+		spec.pendingObjects[object] = nil
 	end
 end
-
--- Local values: object, canStoreObject, errorId, spec, object, spec
 function PlaceableObjectStorage:onObjectStorageObjectTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay)
 	if onEnter then
-		local v297_ = g_currentMission:getNodeObject(otherId)
-		if v297_ ~= nil then
-			if self:getObjectStorageSupportsObject(v297_) then
-				local v298_, v299_ = self:getObjectStorageCanStoreObject(v297_, true)
-				if v298_ then
-					self:addObjectToObjectStorage(v297_, false)
+		local object = g_currentMission:getNodeObject(otherId)
+		if object ~= nil then
+			if self:getObjectStorageSupportsObject(object) then
+				local canStoreObject, errorId = self:getObjectStorageCanStoreObject(object, true)
+				if canStoreObject then
+					self:addObjectToObjectStorage(object, false)
 					self:setObjectStorageObjectInfosDirty()
 				else
-					if v299_ ~= nil and g_server ~= nil then
-						g_server:broadcastEvent(PlaceableObjectStorageErrorEvent.new(self, v299_), true, nil, self)
+					if errorId ~= nil and g_server ~= nil then
+						g_server:broadcastEvent(PlaceableObjectStorageErrorEvent.new(self, errorId), true, nil, self)
 					end
-					local v300_ = self.spec_objectStorage
-					v300_.pendingObjects[v297_] = (v300_.pendingObjects[v297_] or 0) + 1
-					v297_:addDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
+					local spec = self.spec_objectStorage
+					spec.pendingObjects[object] = (spec.pendingObjects[object] or 0) + 1
+					object:addDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
 					self:updateManualStoreActivatable()
 					self:raiseActive()
 				end
 			end
-			if v297_:isa(Vehicle) and SpecializationUtil.hasSpecialization(BaleLoader, v297_.specializations) then
-				v297_:addBaleUnloadTrigger(self)
-				return
+			if object:isa(Vehicle) and SpecializationUtil.hasSpecialization(BaleLoader, object.specializations) then
+				object:addBaleUnloadTrigger(self)
 			end
 		end
 	elseif onLeave then
-		local v301_ = g_currentMission:getNodeObject(otherId)
-		if v301_ ~= nil then
-			local v302_ = self.spec_objectStorage
-			v302_.pendingObjects[v301_] = (v302_.pendingObjects[v301_] or 0) - 1
-			if v302_.pendingObjects[v301_] <= 0 then
-				v302_.pendingObjects[v301_] = nil
-				v301_:removeDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
+		local object = g_currentMission:getNodeObject(otherId)
+		if object ~= nil then
+			local spec = self.spec_objectStorage
+			spec.pendingObjects[object] = (spec.pendingObjects[object] or 0) - 1
+			if spec.pendingObjects[object] <= 0 then
+				spec.pendingObjects[object] = nil
+				object:removeDeleteListener(self, PlaceableObjectStorage.onPendingObjectDelete)
 			end
 			self:updateManualStoreActivatable()
-			if v301_:isa(Vehicle) and SpecializationUtil.hasSpecialization(BaleLoader, v301_.specializations) then
-				v301_:removeBaleUnloadTrigger(self)
+			if object:isa(Vehicle) and SpecializationUtil.hasSpecialization(BaleLoader, object.specializations) then
+				object:removeBaleUnloadTrigger(self)
 			end
 		end
 	end
 end
-
--- Local values: spec, object, i
 function PlaceableObjectStorage:onObjectStorageSpawnOverlapCallback(objectId)
-	local v305_ = self.spec_objectStorage
-	v305_.objectSpawn.overlapIsActive = false
+	local spec = self.spec_objectStorage
+	spec.objectSpawn.overlapIsActive = false
 	if objectId ~= 0 and not getHasTrigger(objectId) then
-		local v306_ = g_currentMission:getNodeObject(objectId)
-		if v306_ ~= nil then
-			for v307_ = 1, #v305_.objectSpawn.spawnedObjects do
-				if v306_ == v305_.objectSpawn.spawnedObjects[v307_] then
+		local object = g_currentMission:getNodeObject(objectId)
+		if object ~= nil then
+			for i = 1, #spec.objectSpawn.spawnedObjects do
+				if object == spec.objectSpawn.spawnedObjects[i] then
 					return
 				end
 			end
 		end
-		v305_.objectSpawn.overlapObjectCount = v305_.objectSpawn.overlapObjectCount + 1
+		spec.objectSpawn.overlapObjectCount = spec.objectSpawn.overlapObjectCount + 1
 	end
 end
-
--- Local values: spec
 function PlaceableObjectStorage:canBeSold(superFunc)
-	local v310_ = self.spec_objectStorage
-	if #v310_.objectInfos > 0 then
-		return true, v310_.texts.warningNotEmpty
+	local spec = self.spec_objectStorage
+	if 0 < #spec.objectInfos then
+		return true, spec.texts.warningNotEmpty
 	else
 		return superFunc(self)
 	end
 end
-
--- Local values: spec, numObjectInfos, i, objectInfo, title, sumOthers, i
 function PlaceableObjectStorage:updateInfo(superFunc, infoTable)
 	superFunc(self, infoTable)
-	local v314_ = self.spec_objectStorage
-	local v315_ = {
-		["title"] = v314_.texts.totalCapacity,
-		["text"] = string.format("%d / %d", v314_.numStoredObjects, v314_.capacity)
-	}
-	table.insert(infoTable, v315_)
-	local v316_ = #v314_.objectInfos
-	local v317_ = PlaceableObjectStorage.MAX_HUD_INFO_ENTRIES
-	for v318_ = 1, math.min(v316_, v317_) do
-		local v319_ = v314_.objectInfos[v318_]
-		if v319_.objects[1] ~= nil then
-			local v320_ = v319_.objects[1]:getDialogText()
-			if utf8Strlen(v320_) > 32 then
-				v320_ = utf8Substr(v320_, 0, 32) .. "..."
-			end
-			local v321_ = {
-				["title"] = v320_
-			}
-			local v322_ = v319_.numObjects
-			v321_.text = tostring(v322_)
-			table.insert(infoTable, v321_)
+	local spec = self.spec_objectStorage
+	table.insert(infoTable, { title = spec.texts.totalCapacity, text = string.format("%d / %d", spec.numStoredObjects, spec.capacity) })
+	local numObjectInfos = #spec.objectInfos
+	for i = 1, math.min(numObjectInfos, PlaceableObjectStorage.MAX_HUD_INFO_ENTRIES) do
+		local objectInfo = spec.objectInfos[i]
+		if objectInfo.objects[1] == nil then
+			continue
 		end
+		local title = objectInfo.objects[1]:getDialogText()
+		if 32 < utf8Strlen(title) then
+			title = utf8Substr(title, 0, 32) .. "..."
+		end
+		table.insert(infoTable, { title = title, text = tostring(objectInfo.numObjects) })
 	end
-	if PlaceableObjectStorage.MAX_HUD_INFO_ENTRIES < v316_ then
-		local v323_ = 0
-		for v324_ = PlaceableObjectStorage.MAX_HUD_INFO_ENTRIES + 1, v316_ do
-			v323_ = v323_ + v314_.objectInfos[v324_].numObjects
+	if PlaceableObjectStorage.MAX_HUD_INFO_ENTRIES < numObjectInfos then
+		local sumOthers = 0
+		for i = PlaceableObjectStorage.MAX_HUD_INFO_ENTRIES + 1, numObjectInfos do
+			sumOthers = sumOthers + spec.objectInfos[i].numObjects
 		end
-		local v325_ = {
-			["title"] = v314_.texts.otherElements,
-			["text"] = tostring(v323_)
-		}
-		table.insert(infoTable, v325_)
+		table.insert(infoTable, { title = spec.texts.otherElements, text = tostring(sumOthers) })
 	end
 end
-
--- Local values: totalCapacity, limitedObjectAmount
 function PlaceableObjectStorage.loadSpecValueCapacity(xmlFile, customEnvironment, baseDir)
 	if not xmlFile:hasProperty("placeable.objectStorage") then
 		return nil
-	end
-	local v327_ = xmlFile:getValue("placeable.objectStorage#capacity", 250)
-	local v_u_328_ = 0
-	xmlFile:iterate("placeable.objectStorage.supportedObject", function(_, p329_)
-		-- upvalues: (copy) xmlFile, (ref) v_u_328_
-		if xmlFile:getValue(p329_ .. "#filename") ~= nil then
-			v_u_328_ = v_u_328_ + xmlFile:getValue(p329_ .. "#amount")
+	else
+		local totalCapacity = xmlFile:getValue("placeable.objectStorage#capacity", 250)
+		local limitedObjectAmount = 0
+		xmlFile:iterate("placeable.objectStorage.supportedObject", function(index, objectKey)
+			if xmlFile:getValue(objectKey .. "#filename") ~= nil then
+				limitedObjectAmount = limitedObjectAmount + xmlFile:getValue(objectKey .. "#amount")
+			end
+		end)
+		if 0 < limitedObjectAmount then
+			totalCapacity = math.min(totalCapacity, limitedObjectAmount)
 		end
-	end)
-	if v_u_328_ > 0 then
-		local v330_ = v_u_328_
-		v327_ = math.min(v327_, v330_)
+		return totalCapacity
 	end
-	return v327_
 end
-
 function PlaceableObjectStorage.getSpecValueCapacity(storeItem, realItem)
 	if storeItem.specs.objectStorageCapacity == nil then
 		return nil
@@ -976,112 +832,101 @@ function PlaceableObjectStorage.getSpecValueCapacity(storeItem, realItem)
 		return string.format("%d %s", storeItem.specs.objectStorageCapacity, g_i18n:getText("unit_pieces"))
 	end
 end
-
--- Local values: fillTypes
 function PlaceableObjectStorage.loadSpecValueFillTypes(xmlFile, customEnvironment, baseDir)
-	local v_u_333_ = {}
-	xmlFile:iterate("placeable.objectStorage.supportedObject", function(_, p334_)
-		-- upvalues: (copy) xmlFile, (copy) v_u_333_
-		local v335_ = xmlFile:getValue(p334_ .. "#fillType")
-		if v335_ ~= nil then
-			local v336_ = g_fillTypeManager:getFillTypeIndexByName(string.upper(v335_))
-			if v336_ ~= nil then
-				local v337_ = v_u_333_
-				table.insert(v337_, v336_)
+	local fillTypes = {}
+	xmlFile:iterate("placeable.objectStorage.supportedObject", function(index, objectKey)
+		local fillTypeName = xmlFile:getValue(objectKey .. "#fillType")
+		if fillTypeName ~= nil then
+			local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(string.upper(fillTypeName))
+			if fillTypeIndex ~= nil then
+				table.insert(fillTypes, fillTypeIndex)
 			end
 		end
 	end)
-	return v_u_333_
+	return fillTypes
 end
-
--- Local values: fillTypes
 function PlaceableObjectStorage.getSpecValueFillTypes(storeItem, realItem)
-	local v339_ = storeItem.specs.objectStorageFillTypes
-	if v339_ == nil or #v339_ == 0 then
+	local fillTypes = storeItem.specs.objectStorageFillTypes
+	if fillTypes == nil or #fillTypes == 0 then
 		return nil
-	else
-		return v339_
 	end
+	return fillTypes
 end
 PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME = {}
 PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_ID = {}
 PlaceableObjectStorage.ABSTRACT_OBJECTS = {}
-function PlaceableObjectStorage.addAbstractObjectClass(p340_)
-	PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[p340_.REFERENCE_CLASS_NAME] = p340_
-	local v341_ = PlaceableObjectStorage.ABSTRACT_OBJECTS
-	table.insert(v341_, p340_)
-	p340_.ABSTRACT_OBJECT_ID = #PlaceableObjectStorage.ABSTRACT_OBJECTS
-	PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_ID[p340_.ABSTRACT_OBJECT_ID] = p340_
+function PlaceableObjectStorage.addAbstractObjectClass(class)
+	PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_CLASS_NAME[class.REFERENCE_CLASS_NAME] = class
+	table.insert(PlaceableObjectStorage.ABSTRACT_OBJECTS, class)
+	class.ABSTRACT_OBJECT_ID = #PlaceableObjectStorage.ABSTRACT_OBJECTS
+	PlaceableObjectStorage.ABSTRACT_OBJECTS_BY_ID[class.ABSTRACT_OBJECT_ID] = class
 end
-local v_u_342_ = {}
-local v_u_343_ = Class(v_u_342_)
-v_u_342_.REFERENCE_CLASS_NAME = "Bale"
-function v_u_342_.registerXMLPaths(p344_, p345_)
-	Bale.registerSavegameXMLPaths(p344_, p345_)
+local AbstractBaleObject = {}
+local AbstractBaleObject_mt = Class(AbstractBaleObject)
+AbstractBaleObject.REFERENCE_CLASS_NAME = "Bale"
+function AbstractBaleObject.registerXMLPaths(schema, basePath)
+	Bale.registerSavegameXMLPaths(schema, basePath)
 end
-function v_u_342_.new()
-	-- upvalues: (copy) v_u_343_
-	local v346_ = v_u_343_
-	return setmetatable({}, v346_)
+function AbstractBaleObject.new()
+	local self = setmetatable({}, AbstractBaleObject_mt)
+	return self
 end
-
-function v_u_342_:delete()
+function AbstractBaleObject:delete()
 	if self.baleObject ~= nil then
 		self.baleObject:delete()
 	end
 end
-
-
-function v_u_342_.isObjectSupported(storage, object)
-	if storage.spec_objectStorage.supportsBales then
-		return storage:getObjectStorageSupportsFillType(object:getFillType()) and true or false
-	else
+function AbstractBaleObject.isObjectSupported(storage, object)
+	if not storage.spec_objectStorage.supportsBales then
 		return false
-	end
-end
-
--- Local values: _, bWidth, bHeight, bLength, bDiameter, _
-
--- Upvalues: AbstractPalletObject
--- Local values: size
-function v_u_342_.canStoreObject(storage, object)
-	local _, v352_, v353_, v354_, v355_, _ = g_baleManager:getBaleInfoByXMLFilename(object.xmlFilename)
-	if (v354_ or v355_) > storage.spec_objectStorage.maxLength or ((v353_ or v355_) > storage.spec_objectStorage.maxHeight or storage.spec_objectStorage.maxWidth < v352_) then
+	elseif not storage:getObjectStorageSupportsFillType(object:getFillType()) then
 		return false
 	else
-		return object.dynamicMountType == MountableObject.MOUNT_TYPE_NONE or (object.mountObject == nil or object.mountObject.spec_baleLoader == nil and object.mountObject.spec_baleWrapper == nil)
+		return true
 	end
 end
-
-
-function v_u_342_.canStoreObjectAutomatically(storage, object)
-	return object.dynamicMountType == MountableObject.MOUNT_TYPE_NONE
+function AbstractBaleObject.canStoreObject(storage, object)
+	local _, bWidth, bHeight, bLength, bDiameter, _ = g_baleManager:getBaleInfoByXMLFilename(object.xmlFilename)
+	bHeight = bHeight or bDiameter
+	bLength = bLength or bDiameter
+	if storage.spec_objectStorage.maxLength < bLength or storage.spec_objectStorage.maxHeight < bHeight or storage.spec_objectStorage.maxWidth < bWidth then
+		return false
+	end
+	if object.dynamicMountType ~= MountableObject.MOUNT_TYPE_NONE and (object.mountObject ~= nil and (object.mountObject.spec_baleLoader ~= nil or object.mountObject.spec_baleWrapper ~= nil)) then
+		return false
+	end
+	return true
 end
-
--- Local values: x, y, z, rx, ry, rz, baleAttributes, baleObject
-function v_u_342_:addToStorage(storage, object, loadedFromSavegame)
+function AbstractBaleObject.canStoreObjectAutomatically(storage, object)
+	if object.dynamicMountType ~= MountableObject.MOUNT_TYPE_NONE then
+		return false
+	else
+		return true
+	end
+end
+function AbstractBaleObject:addToStorage(storage, object, loadedFromSavegame)
 	if object.isFermenting then
-		local v361_, v362_, v363_ = getWorldTranslation(storage.rootNode)
-		local v364_, v365_, v366_ = getWorldRotation(storage.rootNode)
-		if loadedFromSavegame then
+		local x, y, z = getWorldTranslation(storage.rootNode)
+		local rx, ry, rz = getWorldRotation(storage.rootNode)
+		if not loadedFromSavegame then
+			local baleAttributes = object:getBaleAttributes()
+			object:delete()
+			local baleObject = Bale.new(storage.isServer, storage.isClient)
+			if baleObject:loadFromConfigXML(baleAttributes.xmlFilename, x, y, z, rx, ry, rz, baleAttributes.uniqueId) then
+				baleObject:applyBaleAttributes(baleAttributes)
+				baleObject:setNeedsSaving(false)
+				removeFromPhysics(baleObject.nodeId)
+				setVisibility(baleObject.nodeId, false)
+			end
+			self.baleObject = baleObject
+		else
 			removeFromPhysics(object.nodeId)
 			setVisibility(object.nodeId, false)
-			setWorldTranslation(object.nodeId, v361_, v362_, v363_)
-			setWorldRotation(object.nodeId, v364_, v365_, v366_)
+			setWorldTranslation(object.nodeId, x, y, z)
+			setWorldRotation(object.nodeId, rx, ry, rz)
 			object:unregister()
 			object:setNeedsSaving(false)
 			self.baleObject = object
-		else
-			local v367_ = object:getBaleAttributes()
-			object:delete()
-			local v368_ = Bale.new(storage.isServer, storage.isClient)
-			if v368_:loadFromConfigXML(v367_.xmlFilename, v361_, v362_, v363_, v364_, v365_, v366_, v367_.uniqueId) then
-				v368_:applyBaleAttributes(v367_)
-				v368_:setNeedsSaving(false)
-				removeFromPhysics(v368_.nodeId)
-				setVisibility(v368_.nodeId, false)
-			end
-			self.baleObject = v368_
 		end
 	else
 		self.baleAttributes = object:getBaleAttributes()
@@ -1089,374 +934,353 @@ function v_u_342_:addToStorage(storage, object, loadedFromSavegame)
 	end
 	g_farmManager:updateFarmStats(storage:getOwnerFarmId(), "storedBales", 1)
 end
-
--- Local values: baleObject, quatX, quatY, quatZ, quatW
-function v_u_342_:removeFromStorage(storage, x, y, z, rx, ry, rz, spawnedCallback)
-	local v378_
-	if self.baleObject == nil then
-		v378_ = Bale.new(storage.isServer, storage.isClient)
-		if v378_:loadFromConfigXML(self.baleAttributes.xmlFilename, x, y, z, rx, ry, rz, self.baleAttributes.uniqueId) then
-			v378_:applyBaleAttributes(self.baleAttributes)
-			v378_:register()
-		end
-	else
+function AbstractBaleObject:removeFromStorage(storage, x, y, z, rx, ry, rz, spawnedCallback)
+	local baleObject = nil
+	if self.baleObject ~= nil then
 		addToPhysics(self.baleObject.nodeId)
 		setVisibility(self.baleObject.nodeId, true)
-		local v379_, v380_, v381_, v382_ = mathEulerToQuaternion(rx, ry, rz)
-		self.baleObject:setLocalPositionQuaternion(x, y, z, v379_, v380_, v381_, v382_, true)
+		local quatX, quatY, quatZ, quatW = mathEulerToQuaternion(rx, ry, rz)
+		self.baleObject:setLocalPositionQuaternion(x, y, z, quatX, quatY, quatZ, quatW, true)
 		self.baleObject:register()
 		self.baleObject:setNeedsSaving(true)
-		v378_ = self.baleObject
+		baleObject = self.baleObject
+	else
+		baleObject = Bale.new(storage.isServer, storage.isClient)
+		if baleObject:loadFromConfigXML(self.baleAttributes.xmlFilename, x, y, z, rx, ry, rz, self.baleAttributes.uniqueId) then
+			baleObject:applyBaleAttributes(self.baleAttributes)
+			baleObject:register()
+		end
 	end
-	if v378_.isRoundbale then
-		removeFromPhysics(v378_.nodeId)
-		rotateAboutLocalAxis(v378_.nodeId, 1.5707963267948966, 1, 0, 0)
-		addToPhysics(v378_.nodeId)
+	if baleObject.isRoundbale then
+		removeFromPhysics(baleObject.nodeId)
+		rotateAboutLocalAxis(baleObject.nodeId, 1.5707963267948966, 1, 0, 0)
+		addToPhysics(baleObject.nodeId)
 	end
 	g_farmManager:updateFarmStats(storage:getOwnerFarmId(), "storedBales", -1)
-	spawnedCallback(storage, v378_)
+	spawnedCallback(storage, baleObject)
 end
-
--- Upvalues: AbstractBaleObject
--- Local values: self
-
--- Upvalues: AbstractPalletObject
--- Local values: self
-function v_u_342_.readStream(streamId, connection)
-	-- upvalues: (copy) v_u_342_
-	local v384_ = v_u_342_.new()
-	v384_.baleAttributes = {}
-	v384_.baleAttributes.xmlFilename = NetworkUtil.convertFromNetworkFilename(streamReadString(streamId))
-	v384_.baleAttributes.fillLevel = streamReadFloat32(streamId)
-	v384_.baleAttributes.fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
-	v384_.baleAttributes.wrappingState = streamReadBool(streamId) and 1 or 0
-	v384_.baleAttributes.variationIndex = streamReadUIntN(streamId, Bale.NUM_BITS_VARIATION) + 1
-	return v384_
+function AbstractBaleObject.readStream(streamId, connection)
+	local self = AbstractBaleObject.new()
+	self.baleAttributes = {}
+	self.baleAttributes.xmlFilename = NetworkUtil.convertFromNetworkFilename(streamReadString(streamId))
+	self.baleAttributes.fillLevel = streamReadFloat32(streamId)
+	self.baleAttributes.fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+	self.baleAttributes.wrappingState = streamReadBool(streamId) and 1 or 0
+	self.baleAttributes.variationIndex = streamReadUIntN(streamId, Bale.NUM_BITS_VARIATION) + 1
+	return self
 end
-
-function v_u_342_:writeStream(streamId, connection)
-	if self.baleObject == nil then
-		streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(self.baleAttributes.xmlFilename))
-		streamWriteFloat32(streamId, self.baleAttributes.fillLevel)
-		streamWriteUIntN(streamId, self.baleAttributes.fillType, FillTypeManager.SEND_NUM_BITS)
-		streamWriteBool(streamId, self.baleAttributes.wrappingState ~= 0)
-		streamWriteUIntN(streamId, self.baleAttributes.variationIndex - 1, Bale.NUM_BITS_VARIATION)
-	else
+function AbstractBaleObject:writeStream(streamId, connection)
+	if self.baleObject ~= nil then
 		streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(self.baleObject.xmlFilename))
 		streamWriteFloat32(streamId, self.baleObject:getFillLevel())
 		streamWriteUIntN(streamId, self.baleObject:getFillType(), FillTypeManager.SEND_NUM_BITS)
 		streamWriteBool(streamId, self.baleObject.wrappingState ~= 0)
 		streamWriteUIntN(streamId, self.baleObject.variationIndex - 1, Bale.NUM_BITS_VARIATION)
+	else
+		streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(self.baleAttributes.xmlFilename))
+		streamWriteFloat32(streamId, self.baleAttributes.fillLevel)
+		streamWriteUIntN(streamId, self.baleAttributes.fillType, FillTypeManager.SEND_NUM_BITS)
+		streamWriteBool(streamId, self.baleAttributes.wrappingState ~= 0)
+		streamWriteUIntN(streamId, self.baleAttributes.variationIndex - 1, Bale.NUM_BITS_VARIATION)
 	end
 end
-
-function v_u_342_:getRealObject()
+function AbstractBaleObject:getRealObject()
 	return self.baleObject
 end
-
-function v_u_342_:getXMLFilename()
-	if self.baleObject == nil then
-		if self.baleAttributes == nil then
-			return nil
-		else
-			return self.baleAttributes.xmlFilename
-		end
-	else
+function AbstractBaleObject:getXMLFilename()
+	if self.baleObject ~= nil then
 		return self.baleObject.xmlFilename
+	elseif self.baleAttributes ~= nil then
+		return self.baleAttributes.xmlFilename
+	else
+		return nil
 	end
 end
-
-function v_u_342_:getIsIdentical(otherAbstractObject)
+function AbstractBaleObject:getIsIdentical(otherAbstractObject)
 	if self.REFERENCE_CLASS_NAME ~= otherAbstractObject.REFERENCE_CLASS_NAME then
 		return false
-	end
-	if self.baleObject ~= nil and otherAbstractObject.baleObject ~= nil then
-		if self.baleObject:getFillType() ~= otherAbstractObject.baleObject:getFillType() then
-			return false
-		end
-		if self.baleObject:getFillLevel() ~= otherAbstractObject.baleObject:getFillLevel() then
-			return false
-		end
-		if self.baleObject.xmlFilename ~= otherAbstractObject.baleObject.xmlFilename then
-			return false
-		end
-		if self.baleObject.variationIndex ~= otherAbstractObject.baleObject.variationIndex then
-			return false
-		end
-		local v391_ = self.baleObject.wrappingState - otherAbstractObject.baleObject.wrappingState
-		return math.abs(v391_) <= 0.1
-	end
-	if self.baleAttributes == nil or otherAbstractObject.baleAttributes == nil then
-		return false
-	end
-	if self.baleAttributes.fillType ~= otherAbstractObject.baleAttributes.fillType then
-		return false
-	end
-	if self.baleAttributes.fillLevel ~= otherAbstractObject.baleAttributes.fillLevel then
-		return false
-	end
-	if self.baleAttributes.xmlFilename ~= otherAbstractObject.baleAttributes.xmlFilename then
-		return false
-	end
-	if self.baleAttributes.variationIndex ~= otherAbstractObject.baleAttributes.variationIndex then
-		return false
-	end
-	local v392_ = self.baleAttributes.wrappingState - otherAbstractObject.baleAttributes.wrappingState
-	return math.abs(v392_) <= 0.1
-end
-
--- Local values: xmlFilename, fillTypeTitle, fillLevel, baleTitle, isRoundbale, _, _, _, _, _
-function v_u_342_:getDialogText()
-	local v394_, v395_, v396_
-	if self.baleObject == nil then
-		v394_ = self.baleAttributes.xmlFilename
-		v395_ = g_fillTypeManager:getFillTypeTitleByIndex(self.baleAttributes.fillType)
-		v396_ = self.baleAttributes.fillLevel
 	else
-		v394_ = self.baleObject.xmlFilename
-		v395_ = g_fillTypeManager:getFillTypeTitleByIndex(self.baleObject:getFillType())
-		v396_ = self.baleObject:getFillLevel()
+		if self.baleObject ~= nil and otherAbstractObject.baleObject ~= nil then
+			if self.baleObject:getFillType() ~= otherAbstractObject.baleObject:getFillType() then
+				return false
+			elseif self.baleObject:getFillLevel() ~= otherAbstractObject.baleObject:getFillLevel() then
+				return false
+			elseif self.baleObject.xmlFilename ~= otherAbstractObject.baleObject.xmlFilename then
+				return false
+			elseif self.baleObject.variationIndex ~= otherAbstractObject.baleObject.variationIndex then
+				return false
+			elseif 0.1 < math.abs(self.baleObject.wrappingState - otherAbstractObject.baleObject.wrappingState) then
+				return false
+			else
+				return true
+			end
+		end
+		if self.baleAttributes ~= nil and otherAbstractObject.baleAttributes ~= nil then
+			if self.baleAttributes.fillType ~= otherAbstractObject.baleAttributes.fillType then
+				return false
+			elseif self.baleAttributes.fillLevel ~= otherAbstractObject.baleAttributes.fillLevel then
+				return false
+			elseif self.baleAttributes.xmlFilename ~= otherAbstractObject.baleAttributes.xmlFilename then
+				return false
+			elseif self.baleAttributes.variationIndex ~= otherAbstractObject.baleAttributes.variationIndex then
+				return false
+			elseif 0.1 < math.abs(self.baleAttributes.wrappingState - otherAbstractObject.baleAttributes.wrappingState) then
+				return false
+			else
+				return true
+			end
+		end
+		return false
 	end
-	local v397_, _, _, _, _, _ = g_baleManager:getBaleInfoByXMLFilename(v394_, true)
-	local v398_
-	if v397_ then
-		v398_ = g_i18n:getText("fillType_roundBale")
-	else
-		v398_ = g_i18n:getText("fillType_squareBale")
-	end
-	return string.format("%s (%s %s)", v398_, v395_, g_i18n:formatFluid(v396_))
 end
-
-
-function v_u_342_:getLimitedObjectId()
+function AbstractBaleObject:getDialogText()
+	local xmlFilename = nil
+	local fillTypeTitle = nil
+	local fillLevel = nil
+	if self.baleObject ~= nil then
+		xmlFilename = self.baleObject.xmlFilename
+		fillTypeTitle = g_fillTypeManager:getFillTypeTitleByIndex(self.baleObject:getFillType())
+		fillLevel = self.baleObject:getFillLevel()
+	else
+		xmlFilename = self.baleAttributes.xmlFilename
+		fillTypeTitle = g_fillTypeManager:getFillTypeTitleByIndex(self.baleAttributes.fillType)
+		fillLevel = self.baleAttributes.fillLevel
+	end
+	local baleTitle = nil
+	local isRoundbale, _, _, _, _, _ = g_baleManager:getBaleInfoByXMLFilename(xmlFilename, true)
+	if isRoundbale then
+		baleTitle = g_i18n:getText("fillType_roundBale")
+	else
+		baleTitle = g_i18n:getText("fillType_squareBale")
+	end
+	return string.format("%s (%s %s)", baleTitle, fillTypeTitle, g_i18n:formatFluid(fillLevel))
+end
+function AbstractBaleObject:getLimitedObjectId()
 	return SlotSystem.LIMITED_OBJECT_BALE, PlaceableObjectStorageErrorEvent.ERROR_SLOT_LIMIT_REACHED_BALES
 end
-
--- Local values: xmlFilename, isRoundbale, bWidth, bHeight, bLength, bDiameter, bMaxStackHeight, ox, oy, oz, width, height, length, maxStackHeight
-function v_u_342_:getSpawnInfo()
-	local v400_
-	if self.baleObject == nil then
-		v400_ = self.baleAttributes.xmlFilename
+function AbstractBaleObject:getSpawnInfo()
+	local xmlFilename = nil
+	if self.baleObject ~= nil then
+		xmlFilename = self.baleObject.xmlFilename
 	else
-		v400_ = self.baleObject.xmlFilename
+		xmlFilename = self.baleAttributes.xmlFilename
 	end
-	local v401_, v402_, v403_, v404_, v405_, v406_ = g_baleManager:getBaleInfoByXMLFilename(v400_, true)
-	local v407_ = v406_ or 1
-	if v401_ then
-		return 0, v402_ * 0.5, 0, v405_, v402_, v405_, v407_
+	local isRoundbale, bWidth, bHeight, bLength, bDiameter, bMaxStackHeight = g_baleManager:getBaleInfoByXMLFilename(xmlFilename, true)
+	local ox = nil
+	local oy = nil
+	local oz = nil
+	local width = nil
+	local height = nil
+	local length = nil
+	local maxStackHeight = bMaxStackHeight or 1
+	if isRoundbale then
+		ox = 0
+		oy = bWidth * 0.5
+		oz = 0
+		width = bDiameter
+		height = bWidth
+		length = bDiameter
+		return ox, oy, oz, width, height, length, maxStackHeight
 	else
-		return 0, v403_ * 0.5, 0, v402_, v403_, v404_, v407_
+		ox = 0
+		oy = bHeight * 0.5
+		oz = 0
+		width = bWidth
+		height = bHeight
+		length = bLength
+		return ox, oy, oz, width, height, length, maxStackHeight
 	end
 end
-local function v_u_418_(p408_, p409_, p410_)
-	-- upvalues: (ref) v_u_418_
-	if getHasClassId(p408_, ClassIds.SHAPE) and (getHasClassId(p409_, ClassIds.SHAPE) and (getHasShaderParameter(p408_, p410_) and getHasShaderParameter(p409_, p410_))) then
-		local v411_, v412_, v413_, v414_ = getShaderParameter(p409_, p410_)
-		setShaderParameter(p408_, p410_, v411_, v412_, v413_, v414_, false)
+local recursiveCopyShaderParameter = nil
+function recursiveCopyShaderParameter(target, source, shaderParameter)
+	if getHasClassId(target, ClassIds.SHAPE) and (getHasClassId(source, ClassIds.SHAPE) and (getHasShaderParameter(target, shaderParameter) and getHasShaderParameter(source, shaderParameter))) then
+		local x, y, z, w = getShaderParameter(source, shaderParameter)
+		setShaderParameter(target, shaderParameter, x, y, z, w, false)
 	end
-	local v415_ = getNumOfChildren(p408_)
-	local v416_ = getNumOfChildren
-	for v417_ = 1, math.min(v415_, v416_(p409_)) do
-		v_u_418_(getChildAt(p408_, v417_ - 1), getChildAt(p409_, v417_ - 1), p410_)
+	for i = 1, math.min(getNumOfChildren(target), getNumOfChildren(source)) do
+		local childTarget = getChildAt(target, i - 1)
+		local childSource = getChildAt(source, i - 1)
+		recursiveCopyShaderParameter(childTarget, childSource, shaderParameter)
 	end
 end
-
--- Upvalues: recursiveCopyShaderParameter
--- Local values: xmlFilename, fillType, wrappingState, wrappingColor, variationIndex, baleId, sharedLoadRequestId, i, visualSpawnInfo, clonedBale, isRoundbale, _, _, _, _, _
-function v_u_342_:spawnVisualObjects(visualSpawnInfos)
-	-- upvalues: (ref) v_u_418_
-	local v421_, v422_, v423_, v424_, v425_
-	if self.baleObject == nil then
-		v421_ = self.baleAttributes.xmlFilename
-		v422_ = self.baleAttributes.fillType
-		v423_ = self.baleAttributes.wrappingState
-		v424_ = self.baleAttributes.wrappingColor
-		v425_ = self.baleAttributes.variationIndex
+function AbstractBaleObject:spawnVisualObjects(visualSpawnInfos)
+	local xmlFilename = nil
+	local fillType = nil
+	local wrappingState = nil
+	local wrappingColor = nil
+	local variationIndex = nil
+	if self.baleObject ~= nil then
+		xmlFilename = self.baleObject.xmlFilename
+		fillType = self.baleObject:getFillType()
+		wrappingState = self.baleObject.wrappingState
+		wrappingColor = self.baleObject.wrappingColor
+		variationIndex = self.baleObject.variationIndex
 	else
-		v421_ = self.baleObject.xmlFilename
-		v422_ = self.baleObject:getFillType()
-		v423_ = self.baleObject.wrappingState
-		v424_ = self.baleObject.wrappingColor
-		v425_ = self.baleObject.variationIndex
+		xmlFilename = self.baleAttributes.xmlFilename
+		fillType = self.baleAttributes.fillType
+		wrappingState = self.baleAttributes.wrappingState
+		wrappingColor = self.baleAttributes.wrappingColor
+		variationIndex = self.baleAttributes.variationIndex
 	end
-	local v426_, v427_ = Bale.createDummyBale(v421_, v422_, v425_, v423_, v424_)
-	for v428_ = 1, #visualSpawnInfos do
-		local v429_ = visualSpawnInfos[v428_]
-		local v430_ = clone(v426_, false, false, false)
-		v_u_418_(v430_, v426_, "wrappingState")
-		v_u_418_(v430_, v426_, "colorScale")
-		link(v429_[1], v430_)
-		setTranslation(v430_, v429_[2], v429_[3], v429_[4])
-		setRotation(v430_, v429_[5], v429_[6], v429_[7])
-		local v431_, _, _, _, _, _ = g_baleManager:getBaleInfoByXMLFilename(v421_, true)
-		if v431_ then
-			rotateAboutLocalAxis(v430_, 1.5707963267948966, 1, 0, 0)
+	local baleId, sharedLoadRequestId = Bale.createDummyBale(xmlFilename, fillType, variationIndex, wrappingState, wrappingColor)
+	for i = 1, #visualSpawnInfos do
+		local visualSpawnInfo = visualSpawnInfos[i]
+		local clonedBale = clone(baleId, false, false, false)
+		recursiveCopyShaderParameter(clonedBale, baleId, "wrappingState")
+		recursiveCopyShaderParameter(clonedBale, baleId, "colorScale")
+		link(visualSpawnInfo[1], clonedBale)
+		setTranslation(clonedBale, visualSpawnInfo[2], visualSpawnInfo[3], visualSpawnInfo[4])
+		setRotation(clonedBale, visualSpawnInfo[5], visualSpawnInfo[6], visualSpawnInfo[7])
+		local isRoundbale, _, _, _, _, _ = g_baleManager:getBaleInfoByXMLFilename(xmlFilename, true)
+		if isRoundbale then
+			rotateAboutLocalAxis(clonedBale, 1.5707963267948966, 1, 0, 0)
 		end
 	end
-	delete(v426_)
-	g_i3DManager:releaseSharedI3DFile(v427_)
+	delete(baleId)
+	g_i3DManager:releaseSharedI3DFile(sharedLoadRequestId)
 end
-
--- Local values: attributes
-function v_u_342_:saveToXMLFile(storage, xmlFile, key)
-	if self.baleObject == nil then
+function AbstractBaleObject:saveToXMLFile(storage, xmlFile, key)
+	if self.baleObject ~= nil then
+		local attributes = self.baleObject:getBaleAttributes()
+		Bale.saveBaleAttributesToXMLFile(attributes, xmlFile, key)
+	else
 		Bale.saveBaleAttributesToXMLFile(self.baleAttributes, xmlFile, key)
-	else
-		local v435_ = self.baleObject:getBaleAttributes()
-		Bale.saveBaleAttributesToXMLFile(v435_, xmlFile, key)
 	end
 end
-
--- Upvalues: AbstractBaleObject
--- Local values: attributes, bale, self
-
--- Upvalues: AbstractPalletObject
--- Local values: attributes, storeItem, fillTypeName, self
-function v_u_342_.loadFromXMLFile(storage, xmlFile, key)
-	-- upvalues: (copy) v_u_342_
-	local v439_ = {}
-	Bale.loadBaleAttributesFromXMLFile(v439_, xmlFile, key, false)
-	if v439_.isFermenting then
-		local v440_ = Bale.new(storage.isServer, storage.isClient)
-		if v440_:loadFromConfigXML(v439_.xmlFilename, 0, 0, 0, 0, 0, 0, v439_.uniqueId) then
-			v440_:applyBaleAttributes(v439_)
-			storage:addObjectToObjectStorage(v440_, true)
-			return
+function AbstractBaleObject.loadFromXMLFile(storage, xmlFile, key)
+	local attributes = {}
+	Bale.loadBaleAttributesFromXMLFile(attributes, xmlFile, key, false)
+	if attributes.isFermenting then
+		local bale = Bale.new(storage.isServer, storage.isClient)
+		if bale:loadFromConfigXML(attributes.xmlFilename, 0, 0, 0, 0, 0, 0, attributes.uniqueId) then
+			bale:applyBaleAttributes(attributes)
+			storage:addObjectToObjectStorage(bale, true)
 		end
 	else
-		local v441_ = v_u_342_.new()
-		v441_.baleAttributes = v439_
-		storage:addAbstactObjectToObjectStorage(v441_)
+		local self = AbstractBaleObject.new()
+		self.baleAttributes = attributes
+		storage:addAbstactObjectToObjectStorage(self)
 		g_farmManager:updateFarmStats(storage:getOwnerFarmId(), "storedBales", 1)
 	end
 end
-PlaceableObjectStorage.addAbstractObjectClass(v_u_342_)
-local v442_ = {}
-local v_u_443_ = Class(v442_, v_u_342_)
-v442_.REFERENCE_CLASS_NAME = "PackedBale"
-function v442_.new()
-	-- upvalues: (copy) v_u_443_
-	local v444_ = v_u_443_
-	return setmetatable({}, v444_)
+PlaceableObjectStorage.addAbstractObjectClass(AbstractBaleObject)
+local AbstractPackedBaleObject = {}
+local AbstractPackedBaleObject_mt = Class(AbstractPackedBaleObject, AbstractBaleObject)
+AbstractPackedBaleObject.REFERENCE_CLASS_NAME = "PackedBale"
+function AbstractPackedBaleObject.new()
+	local self = setmetatable({}, AbstractPackedBaleObject_mt)
+	return self
 end
-PlaceableObjectStorage.addAbstractObjectClass(v442_)
-local v_u_445_ = {}
-local v_u_446_ = Class(v_u_445_)
-v_u_445_.REFERENCE_CLASS_NAME = "Vehicle"
-function v_u_445_.registerXMLPaths(p447_, p448_)
-	p447_:register(XMLValueType.INT, p448_ .. "#farmId", "Owner farm id")
-	p447_:register(XMLValueType.STRING, p448_ .. "#filename", "Path to pallet xml file")
-	p447_:register(XMLValueType.STRING, p448_ .. "#fillType", "Fill type")
-	p447_:register(XMLValueType.FLOAT, p448_ .. "#fillLevel", "Fill level")
-	p447_:register(XMLValueType.BOOL, p448_ .. "#isBigBag", "Is a big bag object")
-	p447_:register(XMLValueType.STRING, p448_ .. ".configuration(?)#name", "Configuration name")
-	p447_:register(XMLValueType.STRING, p448_ .. ".configuration(?)#id", "Configuration id")
+PlaceableObjectStorage.addAbstractObjectClass(AbstractPackedBaleObject)
+local AbstractPalletObject = {}
+local AbstractPalletObject_mt = Class(AbstractPalletObject)
+AbstractPalletObject.REFERENCE_CLASS_NAME = "Vehicle"
+function AbstractPalletObject.registerXMLPaths(schema, basePath)
+	schema:register(XMLValueType.INT, basePath .. "#farmId", "Owner farm id")
+	schema:register(XMLValueType.STRING, basePath .. "#filename", "Path to pallet xml file")
+	schema:register(XMLValueType.STRING, basePath .. "#fillType", "Fill type")
+	schema:register(XMLValueType.FLOAT, basePath .. "#fillLevel", "Fill level")
+	schema:register(XMLValueType.BOOL, basePath .. "#isBigBag", "Is a big bag object")
+	schema:register(XMLValueType.STRING, basePath .. ".configuration(?)#name", "Configuration name")
+	schema:register(XMLValueType.STRING, basePath .. ".configuration(?)#id", "Configuration id")
 end
-function v_u_445_.new()
-	-- upvalues: (copy) v_u_446_
-	local v449_ = v_u_446_
-	return setmetatable({}, v449_)
+function AbstractPalletObject.new()
+	local self = setmetatable({}, AbstractPalletObject_mt)
+	return self
 end
-
-function v_u_445_:delete() end
-function v_u_445_.isObjectSupported(p450_, p451_)
-	if p450_.spec_objectStorage.supportsPallets then
-		if p451_.isPallet then
-			if p451_.propertyState == VehiclePropertyState.OWNED then
-				if p451_.markedForDeletion or (p451_.isDeleted or p451_.isDeleting) then
-					return false
-				else
-					return p450_:getObjectStorageSupportsFillType(p451_:getFillUnitFillType(p451_.spec_pallet.fillUnitIndex)) and true or false
-				end
-			else
-				return false
-			end
-		else
-			return false
-		end
-	else
+function AbstractPalletObject:delete() end
+function AbstractPalletObject.isObjectSupported(storage, object)
+	if not storage.spec_objectStorage.supportsPallets then
 		return false
 	end
+	if not object.isPallet then
+		return false
+	end
+	if object.propertyState ~= VehiclePropertyState.OWNED then
+		return false
+	end
+	if object.markedForDeletion or object.isDeleted or object.isDeleting then
+		return false
+	end
+	if not storage:getObjectStorageSupportsFillType(object:getFillUnitFillType(object.spec_pallet.fillUnitIndex)) then
+		return false
+	else
+		return true
+	end
 end
-function v_u_445_.canStoreObject(p452_, p453_)
-	-- upvalues: (copy) v_u_445_
-	local v454_ = v_u_445_.getSize(p453_.configFileName)
-	return v454_.length <= p452_.spec_objectStorage.maxLength and (v454_.height <= p452_.spec_objectStorage.maxHeight and v454_.width <= p452_.spec_objectStorage.maxWidth)
+function AbstractPalletObject.canStoreObject(storage, object)
+	local size = AbstractPalletObject.getSize(object.configFileName)
+	if storage.spec_objectStorage.maxLength < size.length or storage.spec_objectStorage.maxHeight < size.height or storage.spec_objectStorage.maxWidth < size.width then
+		return false
+	end
+	return true
 end
-function v_u_445_.canStoreObjectAutomatically(_, p455_)
-	return p455_.dynamicMountType == MountableObject.MOUNT_TYPE_NONE
+function AbstractPalletObject.canStoreObjectAutomatically(storage, object)
+	if object.dynamicMountType ~= MountableObject.MOUNT_TYPE_NONE then
+		return false
+	else
+		return true
+	end
 end
-
--- Upvalues: AbstractPalletObject
--- Local values: k, v
-function v_u_445_:addToStorage(storage, object, loadedFromSavegame)
-	-- upvalues: (copy) v_u_445_
+function AbstractPalletObject:addToStorage(storage, object, loadedFromSavegame)
 	self.palletAttributes = {}
 	self.palletAttributes.ownerFarmId = object:getOwnerFarmId()
 	self.palletAttributes.configFileName = object.configFileName
-	self.palletAttributes.isBigBag = SpecializationUtil.hasSpecialization(BigBag, object.self)
+	self.palletAttributes.isBigBag = SpecializationUtil.hasSpecialization(BigBag, object.specializations)
 	if object.getFillUnitByIndex ~= nil and object.spec_pallet.fillUnitIndex ~= nil then
 		self.palletAttributes.fillType = object:getFillUnitFillType(object.spec_pallet.fillUnitIndex)
 		self.palletAttributes.fillLevel = object:getFillUnitFillLevel(object.spec_pallet.fillUnitIndex)
 	end
 	self.palletAttributes.configurations = {}
-	for v459_, v460_ in pairs(object.configurations) do
-		self.palletAttributes.configurations[v459_] = v460_
+	for k, v in pairs(object.configurations) do
+		self.palletAttributes.configurations[k] = v
 	end
 	object:delete()
-	v_u_445_.getSize(self.palletAttributes.configFileName)
+	AbstractPalletObject.getSize(self.palletAttributes.configFileName)
 	g_farmManager:updateFarmStats(storage:getOwnerFarmId(), "storedPallets", 1)
 end
-
--- Upvalues: AbstractPalletObject
--- Local values: data
-function v_u_445_:removeFromStorage(storage, x, y, z, rx, ry, rz, spawnedCallback)
-	-- upvalues: (copy) v_u_445_
-	local v467_ = VehicleLoadingData.new()
-	v467_:setFilename(self.palletAttributes.configFileName)
-	v467_:setPosition(x, nil, z)
-	v467_:setRotation(0, ry, 0)
-	v467_:setPropertyState(VehiclePropertyState.OWNED)
-	v467_:setOwnerFarmId(self.palletAttributes.ownerFarmId)
-	v467_:setConfigurations(self.palletAttributes.configurations)
-	v467_:load(v_u_445_.palletVehicleLoaded, self, { storage, spawnedCallback })
+function AbstractPalletObject:removeFromStorage(storage, x, y, z, rx, ry, rz, spawnedCallback)
+	local data = VehicleLoadingData.new()
+	data:setFilename(self.palletAttributes.configFileName)
+	data:setPosition(x, nil, z)
+	data:setRotation(0, ry, 0)
+	data:setPropertyState(VehiclePropertyState.OWNED)
+	data:setOwnerFarmId(self.palletAttributes.ownerFarmId)
+	data:setConfigurations(self.palletAttributes.configurations)
+	data:load(AbstractPalletObject.palletVehicleLoaded, self, { storage, spawnedCallback })
 	g_farmManager:updateFarmStats(storage:getOwnerFarmId(), "storedPallets", -1)
 end
-
--- Local values: vehicle, oldRemoveOnEmpty, ownerFarmId, fillUnitIndex
-function v_u_445_:palletVehicleLoaded(vehicles, vehicleLoadState, asyncCallbackArguments)
-	if vehicleLoadState == VehicleLoadingState.OK and #vehicles > 0 then
-		local v472_ = vehicles[1]
+function AbstractPalletObject:palletVehicleLoaded(vehicles, vehicleLoadState, asyncCallbackArguments)
+	if vehicleLoadState == VehicleLoadingState.OK and 0 < #vehicles then
+		local vehicle = vehicles[1]
 		if self.palletAttributes.fillType ~= nil then
-			local v473_ = v472_.spec_fillUnit.removeVehicleIfEmpty
-			v472_.spec_fillUnit.removeVehicleIfEmpty = false
-			local v474_ = v472_:getOwnerFarmId()
-			local v475_ = v472_.spec_pallet.fillUnitIndex
-			v472_:addFillUnitFillLevel(v474_, v475_, -math.huge, v472_:getFillUnitFillType(v472_.spec_pallet.fillUnitIndex), ToolType.UNDEFINED, nil)
-			v472_:addFillUnitFillLevel(v474_, v475_, self.palletAttributes.fillLevel, self.palletAttributes.fillType, ToolType.UNDEFINED, nil)
-			v472_.spec_fillUnit.removeVehicleIfEmpty = v473_
+			local oldRemoveOnEmpty = vehicle.spec_fillUnit.removeVehicleIfEmpty
+			vehicle.spec_fillUnit.removeVehicleIfEmpty = false
+			local ownerFarmId = vehicle:getOwnerFarmId()
+			local fillUnitIndex = vehicle.spec_pallet.fillUnitIndex
+			vehicle:addFillUnitFillLevel(ownerFarmId, fillUnitIndex, -math.huge, vehicle:getFillUnitFillType(vehicle.spec_pallet.fillUnitIndex), ToolType.UNDEFINED, nil)
+			vehicle:addFillUnitFillLevel(ownerFarmId, fillUnitIndex, self.palletAttributes.fillLevel, self.palletAttributes.fillType, ToolType.UNDEFINED, nil)
+			vehicle.spec_fillUnit.removeVehicleIfEmpty = oldRemoveOnEmpty
 		end
-		asyncCallbackArguments[2](asyncCallbackArguments[1], v472_)
+		asyncCallbackArguments[2](asyncCallbackArguments[1], vehicle)
 	end
 end
-function v_u_445_.readStream(p476_, _)
-	-- upvalues: (copy) v_u_445_
-	local v477_ = v_u_445_.new()
-	v477_.palletAttributes = {}
-	v477_.palletAttributes.configFileName = NetworkUtil.convertFromNetworkFilename(streamReadString(p476_))
-	v477_.palletAttributes.isBigBag = streamReadBool(p476_)
-	if streamReadBool(p476_) then
-		v477_.palletAttributes.fillLevel = streamReadFloat32(p476_)
-		v477_.palletAttributes.fillType = streamReadUIntN(p476_, FillTypeManager.SEND_NUM_BITS)
-		return v477_
+function AbstractPalletObject.readStream(streamId, connection)
+	local self = AbstractPalletObject.new()
+	self.palletAttributes = {}
+	self.palletAttributes.configFileName = NetworkUtil.convertFromNetworkFilename(streamReadString(streamId))
+	self.palletAttributes.isBigBag = streamReadBool(streamId)
+	if streamReadBool(streamId) then
+		self.palletAttributes.fillLevel = streamReadFloat32(streamId)
+		self.palletAttributes.fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+		return self
 	else
-		v477_.palletAttributes.fillLevel = 0
-		v477_.palletAttributes.fillType = nil
-		return v477_
+		self.palletAttributes.fillLevel = 0
+		self.palletAttributes.fillType = nil
+		return self
 	end
 end
-
-function v_u_445_:writeStream(streamId, connection)
+function AbstractPalletObject:writeStream(streamId, connection)
 	streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(self.palletAttributes.configFileName))
 	streamWriteBool(streamId, self.palletAttributes.isBigBag)
 	if streamWriteBool(streamId, self.palletAttributes.fillType ~= nil) then
@@ -1464,123 +1288,99 @@ function v_u_445_:writeStream(streamId, connection)
 		streamWriteUIntN(streamId, self.palletAttributes.fillType, FillTypeManager.SEND_NUM_BITS)
 	end
 end
-
-function v_u_445_:getRealObject()
+function AbstractPalletObject:getRealObject()
 	return nil
 end
-
-function v_u_445_:getXMLFilename()
-	if self.palletAttributes == nil then
-		return nil
-	else
+function AbstractPalletObject:getXMLFilename()
+	if self.palletAttributes ~= nil then
 		return self.palletAttributes.configFileName
+	else
+		return nil
 	end
 end
-
-function v_u_445_:getIsIdentical(otherAbstractObject)
-	if self.REFERENCE_CLASS_NAME == otherAbstractObject.REFERENCE_CLASS_NAME then
-		if self.palletAttributes.fillType == otherAbstractObject.palletAttributes.fillType then
-			if self.palletAttributes.fillLevel == otherAbstractObject.palletAttributes.fillLevel then
-				if self.palletAttributes.configFileName == otherAbstractObject.palletAttributes.configFileName then
-					return self.palletAttributes.isBigBag == otherAbstractObject.palletAttributes.isBigBag
-				else
-					return false
-				end
-			else
-				return false
-			end
-		else
-			return false
-		end
-	else
+function AbstractPalletObject:getIsIdentical(otherAbstractObject)
+	if self.REFERENCE_CLASS_NAME ~= otherAbstractObject.REFERENCE_CLASS_NAME then
 		return false
-	end
-end
-
--- Local values: text, fillTypeTitle, fillLevel, storeItem
-function v_u_445_:getDialogText()
-	local v484_ = self.palletAttributes.isBigBag and "shopItem_bigBag" or "infohud_pallet"
-	if self.palletAttributes.fillType == nil or self.palletAttributes.fillType == FillType.UNKNOWN then
-		local v485_ = g_storeManager:getItemByXMLFilename(self.palletAttributes.configFileName)
-		if v485_ == nil then
-			return nil
-		else
-			return string.format("%s (%s)", g_i18n:getText(v484_), v485_.name)
-		end
+	elseif self.palletAttributes.fillType ~= otherAbstractObject.palletAttributes.fillType then
+		return false
+	elseif self.palletAttributes.fillLevel ~= otherAbstractObject.palletAttributes.fillLevel then
+		return false
+	elseif self.palletAttributes.configFileName ~= otherAbstractObject.palletAttributes.configFileName then
+		return false
+	elseif self.palletAttributes.isBigBag ~= otherAbstractObject.palletAttributes.isBigBag then
+		return false
 	else
-		local v486_ = g_fillTypeManager:getFillTypeTitleByIndex(self.palletAttributes.fillType)
-		local v487_ = self.palletAttributes.fillLevel
-		return string.format("%s (%s %s)", g_i18n:getText(v484_), v486_, g_i18n:formatFluid(v487_))
+		return true
 	end
 end
-function v_u_445_.getLimitedObjectId(self)
+function AbstractPalletObject:getDialogText()
+	local text = self.palletAttributes.isBigBag and "shopItem_bigBag" or "infohud_pallet"
+	if self.palletAttributes.fillType ~= nil and self.palletAttributes.fillType ~= FillType.UNKNOWN then
+		local fillTypeTitle = g_fillTypeManager:getFillTypeTitleByIndex(self.palletAttributes.fillType)
+		local fillLevel = self.palletAttributes.fillLevel
+		return string.format("%s (%s %s)", g_i18n:getText(text), fillTypeTitle, g_i18n:formatFluid(fillLevel))
+	end
+	local storeItem = g_storeManager:getItemByXMLFilename(self.palletAttributes.configFileName)
+	if storeItem ~= nil then
+		return string.format("%s (%s)", g_i18n:getText(text), storeItem.name)
+	else
+		return nil
+	end
+end
+function AbstractPalletObject:getLimitedObjectId()
 	return SlotSystem.LIMITED_OBJECT_PALLET, PlaceableObjectStorageErrorEvent.ERROR_SLOT_LIMIT_REACHED_PALLETS
 end
-
--- Upvalues: AbstractPalletObject
--- Local values: size
-function v_u_445_:getSpawnInfo()
-	-- upvalues: (copy) v_u_445_
-	local v489_ = v_u_445_.getSize(self.palletAttributes.configFileName)
-	return v489_.widthOffset, v489_.heightOffset, v489_.lengthOffset, v489_.width, v489_.height, v489_.length, 1
+function AbstractPalletObject:getSpawnInfo()
+	local size = AbstractPalletObject.getSize(self.palletAttributes.configFileName)
+	return size.widthOffset, size.heightOffset, size.lengthOffset, size.width, size.height, size.length, 1
 end
-
--- Upvalues: AbstractPalletObject
--- Local values: data
-function v_u_445_:spawnVisualObjects(visualSpawnInfos)
-	-- upvalues: (copy) v_u_445_
-	local v492_ = VehicleLoadingData.new()
-	v492_:setFilename(self.palletAttributes.configFileName)
-	v492_:setPropertyState(VehiclePropertyState.OWNED)
-	v492_:setOwnerFarmId(self.palletAttributes.ownerFarmId)
-	v492_:setConfigurations(self.palletAttributes.configurations)
-	v492_:setRotation(0, 0, 0)
-	v492_:setIsRegistered(false)
-	v492_:setIsSaved(false)
-	v492_:load(v_u_445_.visualPalletVehicleLoaded, self, { visualSpawnInfos })
+function AbstractPalletObject:spawnVisualObjects(visualSpawnInfos)
+	local data = VehicleLoadingData.new()
+	data:setFilename(self.palletAttributes.configFileName)
+	data:setPropertyState(VehiclePropertyState.OWNED)
+	data:setOwnerFarmId(self.palletAttributes.ownerFarmId)
+	data:setConfigurations(self.palletAttributes.configurations)
+	data:setRotation(0, 0, 0)
+	data:setIsRegistered(false)
+	data:setIsSaved(false)
+	data:load(AbstractPalletObject.visualPalletVehicleLoaded, self, { visualSpawnInfos })
 end
-
--- Upvalues: recursiveCopyShaderParameter
--- Local values: vehicle, visualSpawnInfos, vehicleRootNode, i, component, i, visualSpawnInfo, clonedPallet
-function v_u_445_:visualPalletVehicleLoaded(vehicles, vehicleLoadState, asyncCallbackArguments)
-	-- upvalues: (ref) v_u_418_
-	if vehicleLoadState == VehicleLoadingState.OK and #vehicles > 0 then
-		local v497_ = vehicles[1]
-		local v498_ = asyncCallbackArguments[1]
+function AbstractPalletObject:visualPalletVehicleLoaded(vehicles, vehicleLoadState, asyncCallbackArguments)
+	if vehicleLoadState == VehicleLoadingState.OK and 0 < #vehicles then
+		local vehicle = vehicles[1]
+		local visualSpawnInfos = asyncCallbackArguments[1]
 		if self.palletAttributes.fillType ~= nil then
-			v497_.spec_fillUnit.removeVehicleIfEmpty = false
-			v497_:addFillUnitFillLevel(v497_:getOwnerFarmId(), v497_.spec_pallet.fillUnitIndex, -math.huge, v497_:getFillUnitFillType(v497_.spec_pallet.fillUnitIndex), ToolType.UNDEFINED, nil)
-			v497_:addFillUnitFillLevel(v497_:getOwnerFarmId(), v497_.spec_pallet.fillUnitIndex, self.palletAttributes.fillLevel, self.palletAttributes.fillType, ToolType.UNDEFINED, nil)
+			vehicle.spec_fillUnit.removeVehicleIfEmpty = false
+			vehicle:addFillUnitFillLevel(vehicle:getOwnerFarmId(), vehicle.spec_pallet.fillUnitIndex, -math.huge, vehicle:getFillUnitFillType(vehicle.spec_pallet.fillUnitIndex), ToolType.UNDEFINED, nil)
+			vehicle:addFillUnitFillLevel(vehicle:getOwnerFarmId(), vehicle.spec_pallet.fillUnitIndex, self.palletAttributes.fillLevel, self.palletAttributes.fillType, ToolType.UNDEFINED, nil)
 		end
-		if v497_.updatePalletStraps ~= nil then
-			v497_:updatePalletStraps()
+		if vehicle.updatePalletStraps ~= nil then
+			vehicle:updatePalletStraps()
 		end
-		if v497_.spec_animatedVehicle ~= nil then
-			AnimatedVehicle.updateAnimations(v497_, 99999, true)
+		if vehicle.spec_animatedVehicle ~= nil then
+			AnimatedVehicle.updateAnimations(vehicle, 99999, true)
 		end
-		v497_:setVisibility(true)
-		local v499_ = createTransformGroup("vehicleRootNode")
-		for v500_ = 1, #v497_.components do
-			local v501_ = v497_.components[v500_]
-			link(v499_, v501_.node)
+		vehicle:setVisibility(true)
+		local vehicleRootNode = createTransformGroup("vehicleRootNode")
+		for i = 1, #vehicle.components do
+			local component = vehicle.components[i]
+			link(vehicleRootNode, component.node)
 		end
-		for v502_ = 1, #v498_ do
-			local v503_ = v498_[v502_]
-			if entityExists(v503_[1]) then
-				local v504_ = clone(v499_, false, false, false)
-				link(v503_[1], v504_)
-				setTranslation(v504_, v503_[2], v503_[3], v503_[4])
-				setRotation(v504_, v503_[5], v503_[6], v503_[7])
-				v_u_418_(v504_, v499_, "hideByIndex")
+		for i = 1, #visualSpawnInfos do
+			local visualSpawnInfo = visualSpawnInfos[i]
+			if entityExists(visualSpawnInfo[1]) then
+				local clonedPallet = clone(vehicleRootNode, false, false, false)
+				link(visualSpawnInfo[1], clonedPallet)
+				setTranslation(clonedPallet, visualSpawnInfo[2], visualSpawnInfo[3], visualSpawnInfo[4])
+				setRotation(clonedPallet, visualSpawnInfo[5], visualSpawnInfo[6], visualSpawnInfo[7])
+				recursiveCopyShaderParameter(clonedPallet, vehicleRootNode, "hideByIndex")
 			end
 		end
-		v497_:delete(true)
-		delete(v499_)
+		vehicle:delete(true)
+		delete(vehicleRootNode)
 	end
 end
-
--- Local values: index, configName, configId, configKey, saveId
-function v_u_445_:saveToXMLFile(storage, xmlFile, key)
+function AbstractPalletObject:saveToXMLFile(storage, xmlFile, key)
 	xmlFile:setValue(key .. "#filename", HTMLUtil.encodeToHTML(NetworkUtil.convertToNetworkFilename(self.palletAttributes.configFileName)))
 	xmlFile:setValue(key .. "#farmId", self.palletAttributes.ownerFarmId)
 	xmlFile:setValue(key .. "#isBigBag", self.palletAttributes.isBigBag)
@@ -1588,130 +1388,120 @@ function v_u_445_:saveToXMLFile(storage, xmlFile, key)
 		xmlFile:setValue(key .. "#fillType", g_fillTypeManager:getFillTypeNameByIndex(self.palletAttributes.fillType))
 		xmlFile:setValue(key .. "#fillLevel", self.palletAttributes.fillLevel)
 	end
-	local v508_ = 0
-	for v509_, v510_ in pairs(self.palletAttributes.configurations) do
-		local v511_ = string.format("%s.configuration(%d)", key, v508_)
-		local v512_ = ConfigurationUtil.getSaveIdByConfigId(self.palletAttributes.configFileName, v509_, v510_)
-		if v512_ ~= nil then
-			xmlFile:setValue(v511_ .. "#name", v509_)
-			xmlFile:setValue(v511_ .. "#id", v512_)
+	local index = 0
+	for configName, configId in pairs(self.palletAttributes.configurations) do
+		local configKey = string.format("%s.configuration(%d)", key, index)
+		local saveId = ConfigurationUtil.getSaveIdByConfigId(self.palletAttributes.configFileName, configName, configId)
+		if saveId ~= nil then
+			xmlFile:setValue(configKey .. "#name", configName)
+			xmlFile:setValue(configKey .. "#id", saveId)
 		end
-		v508_ = v508_ + 1
+		index = index + 1
 	end
 end
-function v_u_445_.loadFromXMLFile(p513_, p_u_514_, p515_)
-	-- upvalues: (copy) v_u_445_
-	local v_u_516_ = {
-		["configFileName"] = NetworkUtil.convertFromNetworkFilename(p_u_514_:getValue(p515_ .. "#filename")),
-		["isBigBag"] = p_u_514_:getValue(p515_ .. "#isBigBag", false)
-	}
-	if g_storeManager:getItemByXMLFilename(v_u_516_.configFileName) == nil then
-		Logging.info("Pallet could not be loaded into the storage. Path does not exist anymore. (%s)", v_u_516_.configFileName)
-	else
-		v_u_516_.ownerFarmId = p_u_514_:getValue(p515_ .. "#farmId", AccessHandler.EVERYONE)
-		local v517_ = p_u_514_:getValue(p515_ .. "#fillType")
-		if v517_ ~= nil then
-			v_u_516_.fillType = g_fillTypeManager:getFillTypeIndexByName(v517_)
-			v_u_516_.fillLevel = p_u_514_:getValue(p515_ .. "#fillLevel", 0)
+function AbstractPalletObject.loadFromXMLFile(storage, xmlFile, key)
+	local attributes = {}
+	attributes.configFileName = NetworkUtil.convertFromNetworkFilename(xmlFile:getValue(key .. "#filename"))
+	attributes.isBigBag = xmlFile:getValue(key .. "#isBigBag", false)
+	local storeItem = g_storeManager:getItemByXMLFilename(attributes.configFileName)
+	if storeItem ~= nil then
+		attributes.ownerFarmId = xmlFile:getValue(key .. "#farmId", AccessHandler.EVERYONE)
+		local fillTypeName = xmlFile:getValue(key .. "#fillType")
+		if fillTypeName ~= nil then
+			attributes.fillType = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
+			attributes.fillLevel = xmlFile:getValue(key .. "#fillLevel", 0)
 		end
-		v_u_516_.configurations = {}
-		p_u_514_:iterate(p515_ .. ".configuration", function(_, p518_)
-			-- upvalues: (copy) p_u_514_, (copy) v_u_516_
-			local v519_ = p_u_514_:getValue(p518_ .. "#name")
-			local v520_ = p_u_514_:getValue(p518_ .. "#id")
-			local v521_ = ConfigurationUtil.getConfigIdBySaveId(v_u_516_.configFileName, v519_, v520_)
-			if v521_ ~= nil then
-				v_u_516_.configurations[v519_] = v521_
+		attributes.configurations = {}
+		xmlFile:iterate(key .. ".configuration", function(index, configKey)
+			local configName = xmlFile:getValue(configKey .. "#name")
+			local saveId = xmlFile:getValue(configKey .. "#id")
+			local configId = ConfigurationUtil.getConfigIdBySaveId(attributes.configFileName, configName, saveId)
+			if configId ~= nil then
+				attributes.configurations[configName] = configId
 			end
 		end)
-		local v522_ = v_u_445_.new()
-		v522_.palletAttributes = v_u_516_
-		p513_:addAbstactObjectToObjectStorage(v522_)
-		v_u_445_.getSize(v522_.palletAttributes.configFileName)
-		g_farmManager:updateFarmStats(p513_:getOwnerFarmId(), "storedPallets", 1)
-	end
-end
-v_u_445_.configFileNameToSize = {}
-
--- Upvalues: AbstractPalletObject
-function v_u_445_.getSize(configFileName)
-	-- upvalues: (copy) v_u_445_
-	if v_u_445_.configFileNameToSize[configFileName] ~= nil then
-		return v_u_445_.configFileNameToSize[configFileName]
-	end
-	v_u_445_.configFileNameToSize[configFileName] = StoreItemUtil.getSizeValues(configFileName, "vehicle", 0, {})
-	return v_u_445_.configFileNameToSize[configFileName]
-end
-PlaceableObjectStorage.addAbstractObjectClass(v_u_445_)
-PlaceableObjectStorageActivatable = {}
-local v_u_524_ = Class(PlaceableObjectStorageActivatable)
-function PlaceableObjectStorageActivatable.new(p525_)
-	-- upvalues: (copy) v_u_524_
-	local v526_ = v_u_524_
-	local v527_ = setmetatable({}, v526_)
-	v527_.objectStorage = p525_
-	v527_.activateText = g_i18n:getText("action_objectStorageMenu")
-	v527_.warningText = g_i18n:getText("warning_objectStorageIsEmpty")
-	return v527_
-end
-
-function PlaceableObjectStorageActivatable:getIsActivatable()
-	if g_currentMission.accessHandler:canPlayerAccess(self.objectStorage) then
-		return not self.objectStorage.spec_objectStorage.objectSpawn.isActive
+		local self = AbstractPalletObject.new()
+		self.palletAttributes = attributes
+		storage:addAbstactObjectToObjectStorage(self)
+		AbstractPalletObject.getSize(self.palletAttributes.configFileName)
+		g_farmManager:updateFarmStats(storage:getOwnerFarmId(), "storedPallets", 1)
 	else
-		return false
+		Logging.info("Pallet could not be loaded into the storage. Path does not exist anymore. (%s)", attributes.configFileName)
 	end
 end
-
--- Local values: objectInfos
+AbstractPalletObject.configFileNameToSize = {}
+function AbstractPalletObject.getSize(configFileName)
+	if AbstractPalletObject.configFileNameToSize[configFileName] ~= nil then
+		return AbstractPalletObject.configFileNameToSize[configFileName]
+	else
+		AbstractPalletObject.configFileNameToSize[configFileName] = StoreItemUtil.getSizeValues(configFileName, "vehicle", 0, {})
+		return AbstractPalletObject.configFileNameToSize[configFileName]
+	end
+end
+PlaceableObjectStorage.addAbstractObjectClass(AbstractPalletObject)
+PlaceableObjectStorageActivatable = {}
+local PlaceableObjectStorageActivatable_mt = Class(PlaceableObjectStorageActivatable)
+function PlaceableObjectStorageActivatable.new(objectStorage)
+	local self = setmetatable({}, PlaceableObjectStorageActivatable_mt)
+	self.objectStorage = objectStorage
+	self.activateText = g_i18n:getText("action_objectStorageMenu")
+	self.warningText = g_i18n:getText("warning_objectStorageIsEmpty")
+	return self
+end
+function PlaceableObjectStorageActivatable:getIsActivatable()
+	if not g_currentMission.accessHandler:canPlayerAccess(self.objectStorage) then
+		return false
+	elseif self.objectStorage.spec_objectStorage.objectSpawn.isActive then
+		return false
+	else
+		return true
+	end
+end
 function PlaceableObjectStorageActivatable:run()
 	self.objectStorage:updateDirtyObjectStorageObjectInfos()
-	local v530_ = self.objectStorage:getObjectStorageObjectInfos()
-	if v530_ == nil or #v530_ <= 0 then
-		g_currentMission:showBlinkingWarning(string.format(self.warningText, self.objectStorage:getName()), 2000)
-	else
-		ObjectStorageDialog.show(self.onObjectInfoSelected, self, self.objectStorage:getName(), v530_, self.objectStorage.spec_objectStorage.maxUnloadAmount)
+	local objectInfos = self.objectStorage:getObjectStorageObjectInfos()
+	if objectInfos ~= nil and 0 < #objectInfos then
+		ObjectStorageDialog.show(self.onObjectInfoSelected, self, self.objectStorage:getName(), objectInfos, self.objectStorage.spec_objectStorage.maxUnloadAmount)
+		return
 	end
+	g_currentMission:showBlinkingWarning(string.format(self.warningText, self.objectStorage:getName()), 2000)
 end
-
--- Local values: tx, ty, tz
 function PlaceableObjectStorageActivatable:getDistance(x, y, z)
-	if self.objectStorage.spec_objectStorage.playerTriggerNode == nil then
+	if self.objectStorage.spec_objectStorage.playerTriggerNode ~= nil then
+		local tx, ty, tz = getWorldTranslation(self.objectStorage.spec_objectStorage.playerTriggerNode)
+		return MathUtil.vector3Length(x - tx, y - ty, z - tz)
+	else
 		return math.huge
 	end
-	local v535_, v536_, v537_ = getWorldTranslation(self.objectStorage.spec_objectStorage.playerTriggerNode)
-	return MathUtil.vector3Length(x - v535_, y - v536_, z - v537_)
 end
-
 function PlaceableObjectStorageActivatable:onObjectInfoSelected(objectInfoIndex, amount)
 	if objectInfoIndex ~= nil and amount ~= nil then
 		g_client:getServerConnection():sendEvent(PlaceableObjectStorageUnloadEvent.new(self.objectStorage, objectInfoIndex, amount))
 	end
 end
 PlaceableObjectStorageManualStoreActivatable = {}
-local v_u_541_ = Class(PlaceableObjectStorageManualStoreActivatable)
-function PlaceableObjectStorageManualStoreActivatable.new(p542_)
-	-- upvalues: (copy) v_u_541_
-	local v543_ = v_u_541_
-	local v544_ = setmetatable({}, v543_)
-	v544_.objectStorage = p542_
-	v544_.activateText = g_i18n:getText("button_unload")
-	return v544_
+local PlaceableObjectStorageManualStoreActivatable_mt = Class(PlaceableObjectStorageManualStoreActivatable)
+function PlaceableObjectStorageManualStoreActivatable.new(objectStorage)
+	local self = setmetatable({}, PlaceableObjectStorageManualStoreActivatable_mt)
+	self.objectStorage = objectStorage
+	self.activateText = g_i18n:getText("button_unload")
+	return self
 end
-
 function PlaceableObjectStorageManualStoreActivatable:getIsActivatable()
-	return g_currentMission.accessHandler:canPlayerAccess(self.objectStorage) and true or false
+	if not g_currentMission.accessHandler:canPlayerAccess(self.objectStorage) then
+		return false
+	else
+		return true
+	end
 end
-
 function PlaceableObjectStorageManualStoreActivatable:run()
 	g_client:getServerConnection():sendEvent(PlaceableObjectStorageStoreEvent.new(self.objectStorage))
 end
-
--- Local values: tx, ty, tz
 function PlaceableObjectStorageManualStoreActivatable:getDistance(x, y, z)
-	if self.objectStorage.spec_objectStorage.objectTriggerNode == nil then
+	if self.objectStorage.spec_objectStorage.objectTriggerNode ~= nil then
+		local tx, ty, tz = getWorldTranslation(self.objectStorage.spec_objectStorage.objectTriggerNode)
+		return MathUtil.vector3Length(x - tx, y - ty, z - tz)
+	else
 		return math.huge
 	end
-	local v551_, v552_, v553_ = getWorldTranslation(self.objectStorage.spec_objectStorage.objectTriggerNode)
-	return MathUtil.vector3Length(x - v551_, y - v552_, z - v553_)
 end

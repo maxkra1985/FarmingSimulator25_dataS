@@ -1,4 +1,3 @@
--- Local values: PlaceableVehicleBuyingStationEvent_mt
 PlaceableVehicleBuyingStationEvent = {}
 PlaceableVehicleBuyingStationEvent.STATE_SUCCESS = 0
 PlaceableVehicleBuyingStationEvent.STATE_FAILED_TO_LOAD = 1
@@ -8,37 +7,31 @@ PlaceableVehicleBuyingStationEvent.STATE_NOT_ENOUGH_MONEY = 4
 local PlaceableVehicleBuyingStationEvent_mt = Class(PlaceableVehicleBuyingStationEvent, Event)
 InitStaticEventClass(PlaceableVehicleBuyingStationEvent, "PlaceableVehicleBuyingStationEvent")
 function PlaceableVehicleBuyingStationEvent.emptyNew()
-	-- upvalues: (copy) PlaceableVehicleBuyingStationEvent_mt
-	return Event.new(PlaceableVehicleBuyingStationEvent_mt)
+	local self = Event.new(PlaceableVehicleBuyingStationEvent_mt)
+	return self
 end
-
--- Local values: self
 function PlaceableVehicleBuyingStationEvent.new(placeable, farmId, storeItemIndex)
-	local v5_ = PlaceableVehicleBuyingStationEvent.emptyNew()
-	v5_.placeable = placeable
-	v5_.farmId = farmId
-	v5_.storeItemIndex = storeItemIndex
-	return v5_
+	local self = PlaceableVehicleBuyingStationEvent.emptyNew()
+	self.placeable = placeable
+	self.farmId = farmId
+	self.storeItemIndex = storeItemIndex
+	return self
 end
-
--- Local values: self
 function PlaceableVehicleBuyingStationEvent.newServerToClient(errorCode)
-	local v7_ = PlaceableVehicleBuyingStationEvent.emptyNew()
-	v7_.errorCode = errorCode
-	return v7_
+	local self = PlaceableVehicleBuyingStationEvent.emptyNew()
+	self.errorCode = errorCode
+	return self
 end
-
 function PlaceableVehicleBuyingStationEvent:readStream(streamId, connection)
-	if connection:getIsServer() then
-		self.errorCode = streamReadUIntN(streamId, 3)
-	else
+	if not connection:getIsServer() then
 		self.placeable = NetworkUtil.readNodeObject(streamId)
 		self.farmId = streamReadUIntN(streamId, FarmManager.FARM_ID_SEND_NUM_BITS)
 		self.storeItemIndex = streamReadUIntN(streamId, self.placeable.spec_vehicleBuyingStation.sendNumBits)
+	else
+		self.errorCode = streamReadUIntN(streamId, 3)
 	end
 	self:run(connection)
 end
-
 function PlaceableVehicleBuyingStationEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
 		NetworkUtil.writeNodeObject(streamId, self.placeable)
@@ -48,20 +41,19 @@ function PlaceableVehicleBuyingStationEvent:writeStream(streamId, connection)
 		streamWriteUIntN(streamId, self.errorCode, 3)
 	end
 end
-
--- Local values: userId, farm
 function PlaceableVehicleBuyingStationEvent:run(connection)
 	if connection:getIsServer() then
 		g_messageCenter:publish(PlaceableVehicleBuyingStationEvent, self.errorCode)
-		return
 	else
-		local v16_ = g_currentMission.userManager:getUserIdByConnection(connection)
-		if g_farmManager:getFarmByUserId(v16_) == nil or not g_currentMission:getHasPlayerPermission(Farm.PERMISSION.BUY_VEHICLE, connection) then
+		local userId = g_currentMission.userManager:getUserIdByConnection(connection)
+		local farm = g_farmManager:getFarmByUserId(userId)
+		if farm == nil or not g_currentMission:getHasPlayerPermission(Farm.PERMISSION.BUY_VEHICLE, connection) then
 			connection:sendEvent(PlaceableVehicleBuyingStationEvent.newServerToClient(BuyVehicleEvent.STATE_NO_PERMISSION, self.vehicleBuyData))
-		elseif self.placeable ~= nil then
-			self.placeable:buyVehicle(self.farmId, self.storeItemIndex, function(p17_)
-				-- upvalues: (copy) connection
-				connection:sendEvent(PlaceableVehicleBuyingStationEvent.newServerToClient(p17_))
+			return
+		end
+		if self.placeable ~= nil then
+			self.placeable:buyVehicle(self.farmId, self.storeItemIndex, function(errorCode)
+				connection:sendEvent(PlaceableVehicleBuyingStationEvent.newServerToClient(errorCode))
 			end)
 		end
 	end

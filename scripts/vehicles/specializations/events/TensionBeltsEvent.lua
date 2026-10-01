@@ -1,21 +1,17 @@
--- Local values: TensionBeltsEvent_mt
 TensionBeltsEvent = {}
 local TensionBeltsEvent_mt = Class(TensionBeltsEvent, Event)
 InitStaticEventClass(TensionBeltsEvent, "TensionBeltsEvent")
 function TensionBeltsEvent.emptyNew()
-	-- upvalues: (copy) TensionBeltsEvent_mt
-	return Event.new(TensionBeltsEvent_mt)
+	local self = Event.new(TensionBeltsEvent_mt)
+	return self
 end
-
--- Local values: self
 function TensionBeltsEvent.new(object, isActive, beltId)
-	local v5_ = TensionBeltsEvent.emptyNew()
-	v5_.object = object
-	v5_.isActive = isActive
-	v5_.beltId = beltId
-	return v5_
+	local self = TensionBeltsEvent.emptyNew()
+	self.object = object
+	self.isActive = isActive
+	self.beltId = beltId
+	return self
 end
-
 function TensionBeltsEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	if not streamReadBool(streamId) then
@@ -24,7 +20,6 @@ function TensionBeltsEvent:readStream(streamId, connection)
 	self.isActive = streamReadBool(streamId)
 	self:run(connection)
 end
-
 function TensionBeltsEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	streamWriteBool(streamId, self.beltId == nil)
@@ -33,7 +28,6 @@ function TensionBeltsEvent:writeStream(streamId, connection)
 	end
 	streamWriteBool(streamId, self.isActive)
 end
-
 function TensionBeltsEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -42,7 +36,6 @@ function TensionBeltsEvent:run(connection)
 		self.object:setTensionBeltsActive(self.isActive, self.beltId, true)
 	end
 end
-
 function TensionBeltsEvent.sendEvent(vehicle, isActive, beltId, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

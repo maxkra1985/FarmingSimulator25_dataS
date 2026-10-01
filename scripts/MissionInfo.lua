@@ -1,56 +1,51 @@
--- Local values: MissionInfo_mt
 MissionInfo = {}
 local MissionInfo_mt = Class(MissionInfo)
-
--- Upvalues: MissionInfo_mt
--- Local values: self
 function MissionInfo.new(baseDirectory, customEnvironment, customMt)
-	-- upvalues: (copy) MissionInfo_mt
-	local v5_ = customMt or MissionInfo_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.baseDirectory = baseDirectory
-	v6_.customEnvironment = customEnvironment
-	v6_.savegameDirectory = nil
-	v6_.mapId = nil
-	v6_.mapTitle = nil
-	v6_.mapXMLFilename = nil
-	v6_.isValid = nil
-	v6_.hasInitiallyOwnedFarmlands = nil
-	v6_.initialMoney = nil
-	v6_.initialLoan = nil
-	v6_.isSnowEnabled = nil
-	v6_.disasterDestructionState = nil
-	v6_.growthMode = nil
-	v6_.weedsEnabled = nil
-	v6_.stonesEnabled = nil
-	v6_.timeScale = nil
-	v6_.dirtInterval = nil
-	v6_.fruitDestruction = nil
-	v6_.helperBuySeeds = nil
-	v6_.helperBuyFertilizer = nil
-	v6_.helperSlurrySource = nil
-	v6_.helperManureSource = nil
-	v6_.stopAndGoBraking = nil
-	v6_.trailerFillLimit = nil
-	v6_.automaticMotorStartEnabled = nil
-	v6_.introductionHelpActive = nil
-	v6_.autoSaveInterval = nil
-	v6_.foundHelpIcons = nil
-	v6_.economicDifficulty = nil
-	v6_.trafficEnabled = nil
-	return v6_
+	local self = setmetatable({}, customMt or MissionInfo_mt)
+	self.baseDirectory = baseDirectory
+	self.customEnvironment = customEnvironment
+	self.savegameDirectory = nil
+	self.mapId = nil
+	self.mapTitle = nil
+	self.mapXMLFilename = nil
+	self.isValid = nil
+	self.hasInitiallyOwnedFarmlands = nil
+	self.initialMoney = nil
+	self.initialLoan = nil
+	self.isSnowEnabled = nil
+	self.disasterDestructionState = nil
+	self.growthMode = nil
+	self.weedsEnabled = nil
+	self.stonesEnabled = nil
+	self.timeScale = nil
+	self.dirtInterval = nil
+	self.fruitDestruction = nil
+	self.helperBuySeeds = nil
+	self.helperBuyFertilizer = nil
+	self.helperSlurrySource = nil
+	self.helperManureSource = nil
+	self.stopAndGoBraking = nil
+	self.trailerFillLimit = nil
+	self.automaticMotorStartEnabled = nil
+	self.introductionHelpActive = nil
+	self.autoSaveInterval = nil
+	self.foundHelpIcons = nil
+	self.economicDifficulty = nil
+	self.trafficEnabled = nil
+	return self
 end
-
 function MissionInfo:loadDefaults()
 	self.id = "invalid"
 	self.scriptFilename = ""
 	self.scriptClass = ""
 end
-
 function MissionInfo:isValidMissionId(id)
 	if id == nil or id:len() == 0 then
 		return false
+	end
+	if id:find("[^%w_]") ~= nil then
+		return false
 	else
-		return id:find("[^%w_]") == nil
+		return true
 	end
 end

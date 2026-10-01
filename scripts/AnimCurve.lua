@@ -1,264 +1,227 @@
--- Local values: AnimCurve_mt
 AnimCurve = {}
-
 function linearInterpolator1(first, second, alpha)
 	return second[1] + alpha * (first[1] - second[1])
 end
-
--- Local values: oneMinusAlpha
 function linearInterpolator2(first, second, alpha)
-	local v7_ = 1 - alpha
-	return first[1] * alpha + second[1] * v7_, first[2] * alpha + second[2] * v7_
+	local oneMinusAlpha = 1 - alpha
+	return first[1] * alpha + second[1] * oneMinusAlpha, first[2] * alpha + second[2] * oneMinusAlpha
 end
-
--- Local values: oneMinusAlpha
 function linearInterpolator3(first, second, alpha)
-	local v11_ = 1 - alpha
-	return first[1] * alpha + second[1] * v11_, first[2] * alpha + second[2] * v11_, first[3] * alpha + second[3] * v11_
+	local oneMinusAlpha = 1 - alpha
+	return first[1] * alpha + second[1] * oneMinusAlpha, first[2] * alpha + second[2] * oneMinusAlpha, first[3] * alpha + second[3] * oneMinusAlpha
 end
-
--- Local values: oneMinusAlpha
 function linearInterpolator4(first, second, alpha)
-	local v15_ = 1 - alpha
-	return first[1] * alpha + second[1] * v15_, first[2] * alpha + second[2] * v15_, first[3] * alpha + second[3] * v15_, first[4] * alpha + second[4] * v15_
+	local oneMinusAlpha = 1 - alpha
+	return first[1] * alpha + second[1] * oneMinusAlpha, first[2] * alpha + second[2] * oneMinusAlpha, first[3] * alpha + second[3] * oneMinusAlpha, first[4] * alpha + second[4] * oneMinusAlpha
 end
-
--- Local values: i
 function linearInterpolatorN(first, second, alpha, curValues)
-	for v20_ = 1, #first do
-		if first[v20_] ~= nil and second[v20_] ~= nil then
-			curValues[v20_] = first[v20_] * alpha + second[v20_] * (1 - alpha)
+	for i = 1, #first do
+		if first[i] == nil or second[i] == nil then
+			continue
 		end
+		curValues[i] = first[i] * alpha + second[i] * (1 - alpha)
 	end
 	return unpack(curValues)
 end
-
--- Local values: oneMinusAlpha
 function linearInterpolatorTransRot(first, second, alpha)
-	local v24_ = 1 - alpha
-	return first.x * alpha + second.x * v24_, first.y * alpha + second.y * v24_, first.z * alpha + second.z * v24_, first.rx * alpha + second.rx * v24_, first.ry * alpha + second.ry * v24_, first.rz * alpha + second.rz * v24_
+	local oneMinusAlpha = 1 - alpha
+	return first.x * alpha + second.x * oneMinusAlpha, first.y * alpha + second.y * oneMinusAlpha, first.z * alpha + second.z * oneMinusAlpha, first.rx * alpha + second.rx * oneMinusAlpha, first.ry * alpha + second.ry * oneMinusAlpha, first.rz * alpha + second.rz * oneMinusAlpha
 end
-
--- Local values: oneMinusAlpha
 function linearInterpolatorTransRotScale(first, second, alpha)
-	local v28_ = 1 - alpha
-	return first.x * alpha + second.x * v28_, first.y * alpha + second.y * v28_, first.z * alpha + second.z * v28_, first.rx * alpha + second.rx * v28_, first.ry * alpha + second.ry * v28_, first.rz * alpha + second.rz * v28_, first.sx * alpha + second.sx * v28_, first.sy * alpha + second.sy * v28_, first.sz * alpha + second.sz * v28_
+	local oneMinusAlpha = 1 - alpha
+	return first.x * alpha + second.x * oneMinusAlpha, first.y * alpha + second.y * oneMinusAlpha, first.z * alpha + second.z * oneMinusAlpha, first.rx * alpha + second.rx * oneMinusAlpha, first.ry * alpha + second.ry * oneMinusAlpha, first.rz * alpha + second.rz * oneMinusAlpha, first.sx * alpha + second.sx * oneMinusAlpha, first.sy * alpha + second.sy * oneMinusAlpha, first.sz * alpha + second.sz * oneMinusAlpha
 end
-
--- Local values: t2, t3, p0v, p3v, v
 function catmullRomInterpolator1(p1, p2, p0, p3, t)
-	local v34_ = 1 - t
-	local v35_ = v34_ * v34_
-	local v36_ = v35_ * v34_
-	local v37_
-	if p0 == nil then
-		v37_ = 2 * p1.v - p2.v
-	else
-		v37_ = p0.v
-	end
-	local v38_
-	if p3 == nil then
-		v38_ = 2 * p2.v - p1.v
-	else
-		v38_ = p3.v
-	end
-	return 0.5 * (2 * p1.v + (-v37_ + p2.v) * v34_ + (2 * v37_ - 5 * p1.v + 4 * p2.v - v38_) * v35_ + (-v37_ + 3 * p1.v - 3 * p2.v + v38_) * v36_)
+	t = 1 - t
+	local t2 = t * t
+	local t3 = t2 * t
+	local p0v = nil
+	p0v = p0 == nil and 2 * p1.v - p2.v or p0.v
+	local p3v = nil
+	p3v = p3 == nil and 2 * p2.v - p1.v or p3.v
+	local v = 0.5 * (2 * p1.v + (-p0v + p2.v) * t + (2 * p0v - 5 * p1.v + 4 * p2.v - p3v) * t2 + (-p0v + 3 * p1.v - 3 * p2.v + p3v) * t3)
+	return v
 end
-
--- Local values: t2, t3, p0x, p0y, p0z, p3x, p3y, p3z, x, y, z
 function catmullRomInterpolator3(p1, p2, p0, p3, t)
-	local v44_ = 1 - t
-	local v45_ = v44_ * v44_
-	local v46_ = v45_ * v44_
-	local v47_, v48_, v49_
+	t = 1 - t
+	local t2 = t * t
+	local t3 = t2 * t
+	local p0x = nil
+	local p0y = nil
+	local p0z = nil
 	if p0 == nil then
-		v47_ = 2 * p1.x - p2.x
-		v48_ = 2 * p1.y - p2.y
-		v49_ = 2 * p1.z - p2.z
+		p0x = 2 * p1.x - p2.x
+		p0y = 2 * p1.y - p2.y
+		p0z = 2 * p1.z - p2.z
 	else
-		v47_ = p0.x
-		v48_ = p0.y
-		v49_ = p0.z
+		p0x = p0.x
+		p0y = p0.y
+		p0z = p0.z
 	end
-	local v50_, v51_, v52_
+	local p3x = nil
+	local p3y = nil
+	local p3z = nil
 	if p3 == nil then
-		v50_ = 2 * p2.x - p1.x
-		v51_ = 2 * p2.y - p1.y
-		v52_ = 2 * p2.z - p1.z
+		p3x = 2 * p2.x - p1.x
+		p3y = 2 * p2.y - p1.y
+		p3z = 2 * p2.z - p1.z
 	else
-		v50_ = p3.x
-		v51_ = p3.y
-		v52_ = p3.z
+		p3x = p3.x
+		p3y = p3.y
+		p3z = p3.z
 	end
-	return 0.5 * (2 * p1.x + (-v47_ + p2.x) * v44_ + (2 * v47_ - 5 * p1.x + 4 * p2.x - v50_) * v45_ + (-v47_ + 3 * p1.x - 3 * p2.x + v50_) * v46_), 0.5 * (2 * p1.y + (-v48_ + p2.y) * v44_ + (2 * v48_ - 5 * p1.y + 4 * p2.y - v51_) * v45_ + (-v48_ + 3 * p1.y - 3 * p2.y + v51_) * v46_), 0.5 * (2 * p1.z + (-v49_ + p2.z) * v44_ + (2 * v49_ - 5 * p1.z + 4 * p2.z - v52_) * v45_ + (-v49_ + 3 * p1.z - 3 * p2.z + v52_) * v46_)
+	local x = 0.5 * (2 * p1.x + (-p0x + p2.x) * t + (2 * p0x - 5 * p1.x + 4 * p2.x - p3x) * t2 + (-p0x + 3 * p1.x - 3 * p2.x + p3x) * t3)
+	local y = 0.5 * (2 * p1.y + (-p0y + p2.y) * t + (2 * p0y - 5 * p1.y + 4 * p2.y - p3y) * t2 + (-p0y + 3 * p1.y - 3 * p2.y + p3y) * t3)
+	local z = 0.5 * (2 * p1.z + (-p0z + p2.z) * t + (2 * p0z - 5 * p1.z + 4 * p2.z - p3z) * t2 + (-p0z + 3 * p1.z - 3 * p2.z + p3z) * t3)
+	return x, y, z
 end
-
 function quaternionInterpolator(p1, p2, t)
 	return MathUtil.nlerpQuaternionShortestPath(p2.x, p2.y, p2.z, p2.w, p1.x, p1.y, p1.z, p1.w, t)
 end
-
--- Local values: w0, w3, w1, w2, x, y, z, w
 function quaternionInterpolator2(p1, p2, p0, p3, t)
-	local v61_ = 1 - t
-	local v62_ = (1 - v61_) * 0.6
-	local v63_ = v61_ * 0.6
+	t = 1 - t
+	local w0 = (1 - t) * 0.6
+	local w3 = t * 0.6
 	if p0 == nil then
 		p0 = p1
-		v62_ = 0
+		w0 = 0
 	end
 	if p3 == nil then
 		p3 = p2
-		v63_ = 0
+		w3 = 0
 	end
-	local v64_ = 1 - v61_ + v63_
-	local v65_ = v61_ + v62_
-	local v66_ = p0.x * v62_
-	local v67_ = p0.y * v62_
-	local v68_ = p0.z * v62_
-	local v69_ = p0.w * v62_
-	local v70_, v71_, v72_, v73_ = MathUtil.quaternionMadShortestPath(v66_, v67_, v68_, v69_, p1.x, p1.y, p1.z, p1.w, v64_)
-	local v74_, v75_, v76_, v77_ = MathUtil.quaternionMadShortestPath(v70_, v71_, v72_, v73_, p2.x, p2.y, p2.z, p2.w, v65_)
-	local v78_, v79_, v80_, v81_ = MathUtil.quaternionMadShortestPath(v74_, v75_, v76_, v77_, p3.x, p3.y, p3.z, p3.w, v63_)
-	return MathUtil.quaternionNormalized(v78_, v79_, v80_, v81_)
+	local w1 = 1 - t + w3
+	local w2 = t + w0
+	local x = p0.x * w0
+	local y = p0.y * w0
+	local z = p0.z * w0
+	local w = p0.w * w0
+	x, y, z, w = MathUtil.quaternionMadShortestPath(x, y, z, w, p1.x, p1.y, p1.z, p1.w, w1)
+	x, y, z, w = MathUtil.quaternionMadShortestPath(x, y, z, w, p2.x, p2.y, p2.z, p2.w, w2)
+	x, y, z, w = MathUtil.quaternionMadShortestPath(x, y, z, w, p3.x, p3.y, p3.z, p3.w, w3)
+	return MathUtil.quaternionNormalized(x, y, z, w)
 end
-local v_u_82_ = Class(AnimCurve)
-
--- Upvalues: AnimCurve_mt
--- Local values: self
+local AnimCurve_mt = Class(AnimCurve)
 function AnimCurve.new(interpolator, interpolatorDegree)
-	-- upvalues: (copy) v_u_82_
-	local v85_ = v_u_82_
-	local v86_ = setmetatable({}, v85_)
-	v86_.keyframes = {}
-	v86_.interpolator = interpolator
-	v86_.interpolatorDegree = interpolatorDegree or 2
-	v86_.currentTime = 0
-	v86_.maxTime = 0
-	v86_.numKeyframes = 0
-	return v86_
+	local self = setmetatable({}, AnimCurve_mt)
+	self.keyframes = {}
+	self.interpolator = interpolator
+	self.interpolatorDegree = interpolatorDegree or 2
+	self.currentTime = 0
+	self.maxTime = 0
+	self.numKeyframes = 0
+	return self
 end
-
 function AnimCurve:delete() end
-
 function AnimCurve:reset()
 	table.clear(self.keyframes)
 	self.numKeyframes = 0
 	self.currentTime = 0
 	self.maxTime = 0
 end
-
--- Local values: numKeys
 function AnimCurve:addKeyframe(keyframe, xmlFile, key)
-	local v92_ = self.numKeyframes
-	if v92_ > 0 and keyframe.time < self.keyframes[v92_].time then
-		if xmlFile == nil then
-			printError("Error: keyframes not strictly monotonic increasing")
-		else
+	local numKeys = self.numKeyframes
+	if 0 < numKeys and keyframe.time < self.keyframes[numKeys].time then
+		if xmlFile ~= nil then
 			if type(xmlFile) == "number" then
 				xmlFile = g_xmlManager:getFileByHandle(xmlFile)
 			end
-			if xmlFile == nil then
-				Logging.error("keyframes not strictly monotonic increasing at %s (%.3f)", key, keyframe.time)
-			else
+			if xmlFile ~= nil then
 				Logging.xmlError(xmlFile, "keyframes not strictly monotonic increasing at %s (%.3f)", key, keyframe.time)
-			end
-		end
-	end
-	if self.interpolator == linearInterpolatorN and v92_ == 0 then
-		self.curValues = table.create(#keyframe)
-	end
-	local v93_ = self.keyframes
-	table.insert(v93_, keyframe)
-	self.maxTime = keyframe.time
-	self.numKeyframes = v92_ + 1
-end
-
--- Local values: i
-function AnimCurve:removeKeyframe(index)
-	if index == nil or index >= 1 and #self.keyframes >= index then
-		for v96_ = #self.keyframes - 1, index, -1 do
-			self.keyframes[v96_ + 1].time = self.keyframes[v96_].time
-		end
-		table.remove(self.keyframes, index)
-		self.maxTime = self.keyframes[#self.keyframes] and (self.keyframes[#self.keyframes].time or 0) or 0
-		self.numKeyframes = self.numKeyframes - 1
-	end
-end
-
--- Local values: numKeys, maxValue, maxTime, i, value
-function AnimCurve:getMaximum()
-	local v98_ = #self.keyframes
-	if v98_ == 0 then
-		return 0, 0
-	end
-	if v98_ == 1 then
-		return self:getFromKeyframes(self.keyframes[1], self.keyframes[1], 1, 1, 0), self.keyframes[1].time
-	end
-	local v99_ = self:getFromKeyframes(self.keyframes[1], self.keyframes[2], 1, 2, 0)
-	local v100_ = self.keyframes[1].time
-	for v101_ = 1, v98_ - 1 do
-		local v102_ = self:getFromKeyframes(self.keyframes[v101_], self.keyframes[v101_ + 1], v101_, v101_ + 1, 1)
-		if v99_ < v102_ then
-			v100_ = self.keyframes[v101_ + 1].time
-			v99_ = v102_
-		end
-	end
-	return v99_, v100_
-end
-
--- Local values: numKeys, first, second, firstI, secondI, i, time0, time1, alpha, timesOffset, segmentT, segmentLow, segmentHi, l, p
-function AnimCurve:get(time)
-	local v105_ = self.numKeyframes
-	if v105_ == 0 then
-		return
-	end
-	local v106_ = nil
-	local v107_ = nil
-	local v108_ = nil
-	local v109_ = nil
-	if v105_ >= 2 and self.keyframes[1].time <= time then
-		if time < self.maxTime then
-			for v110_ = 2, v105_ do
-				v107_ = self.keyframes[v110_]
-				if time <= v107_.time then
-					v106_ = self.keyframes[v110_ - 1]
-					v108_ = v110_ - 1
-					v109_ = v110_
-					break
-				end
-				v109_ = v110_
+			else
+				Logging.error("keyframes not strictly monotonic increasing at %s (%.3f)", key, keyframe.time)
 			end
 		else
-			v106_ = self.keyframes[v105_]
-			v109_ = v105_
-			v108_ = v109_
-			v107_ = v106_
-			local v111_ = v109_
-			v109_ = v108_
-			v111_ = v108_
-			v108_ = v109_
+			printError("Error: keyframes not strictly monotonic increasing")
 		end
-	else
-		v106_ = self.keyframes[1]
-		v107_ = v106_
 	end
-	local v112_ = v106_.time
-	local v113_ = v107_.time
-	local v114_ = v112_ >= v113_ and 0 or (v113_ - time) / (v113_ - v112_)
-	if self.segmentTimes ~= nil and v108_ < v105_ then
-		local v115_ = (v108_ - 1) * (self.numTimesPerKeyframe + 1) + 1
-		local v116_ = time - v106_.time
-		local v117_, v118_ = self:getInterval(v116_, self.segmentTimes, v115_, self.numTimesPerKeyframe + 1)
-		local v119_ = self.segmentTimes[v118_ + v115_] - self.segmentTimes[v117_ + v115_]
-		if v119_ > 0 then
-			v117_ = v117_ + (v116_ - self.segmentTimes[v117_ + v115_]) / v119_
-		end
-		v114_ = 1 - v117_ / self.numTimesPerKeyframe
+	if self.interpolator == linearInterpolatorN and numKeys == 0 then
+		self.curValues = table.create(#keyframe)
 	end
-	return self:getFromKeyframes(v106_, v107_, v108_, v109_, v114_)
+	table.insert(self.keyframes, keyframe)
+	self.maxTime = keyframe.time
+	self.numKeyframes = numKeys + 1
 end
-
--- Local values: beforeFirst, afterSecond, numKeys
+function AnimCurve:removeKeyframe(index)
+	if index ~= nil and (index < 1 or #self.keyframes < index) then
+		return
+	end
+	for i = #self.keyframes - 1, index, -1 do
+		self.keyframes[i + 1].time = self.keyframes[i].time
+	end
+	table.remove(self.keyframes, index)
+	self.maxTime = self.keyframes[#self.keyframes] and self.keyframes[#self.keyframes].time or 0
+	self.numKeyframes = self.numKeyframes - 1
+end
+function AnimCurve:getMaximum()
+	local numKeys = #self.keyframes
+	if numKeys == 0 then
+		return 0, 0
+	elseif numKeys == 1 then
+		return self:getFromKeyframes(self.keyframes[1], self.keyframes[1], 1, 1, 0), self.keyframes[1].time
+	else
+		local maxValue = self:getFromKeyframes(self.keyframes[1], self.keyframes[2], 1, 2, 0)
+		local maxTime = self.keyframes[1].time
+		for i = 1, numKeys - 1 do
+			local value = self:getFromKeyframes(self.keyframes[i], self.keyframes[i + 1], i, i + 1, 1)
+			if maxValue < value then
+				maxValue = value
+				maxTime = self.keyframes[i + 1].time
+			end
+		end
+		return maxValue, maxTime
+	end
+end
+function AnimCurve:get(time)
+	local numKeys = self.numKeyframes
+	if numKeys == 0 then
+		return
+	else
+		local first = nil
+		local second = nil
+		local firstI = nil
+		local secondI = nil
+		if 2 <= numKeys then
+			if self.keyframes[1].time > time then
+				first = self.keyframes[1]
+				second = first
+			elseif time >= self.maxTime then
+				first = self.keyframes[numKeys]
+				second = first
+				firstI = numKeys
+				secondI = numKeys
+			else
+				for i = 2, numKeys do
+					second = self.keyframes[i]
+					secondI = i
+					if time <= second.time then
+						first = self.keyframes[i - 1]
+						firstI = i - 1
+						break
+					end
+				end
+			end
+		end
+		local time0 = first.time
+		local time1 = second.time
+		local alpha = nil
+		alpha = time0 < time1 and (time1 - time) / (time1 - time0) or 0
+		if self.segmentTimes ~= nil and firstI < numKeys then
+			local timesOffset = (firstI - 1) * (self.numTimesPerKeyframe + 1) + 1
+			local segmentT = time - first.time
+			local segmentLow, segmentHi = self:getInterval(segmentT, self.segmentTimes, timesOffset, self.numTimesPerKeyframe + 1)
+			alpha = segmentLow
+			local l = self.segmentTimes[segmentHi + timesOffset] - self.segmentTimes[segmentLow + timesOffset]
+			if 0 < l then
+				local p = segmentT - self.segmentTimes[segmentLow + timesOffset]
+				alpha = alpha + p / l
+			end
+			alpha = alpha / self.numTimesPerKeyframe
+			alpha = 1 - alpha
+		end
+		return self:getFromKeyframes(first, second, firstI, secondI, alpha)
+	end
+end
 function AnimCurve:getFromKeyframes(first, second, firstI, secondI, alpha)
 	if self.interpolatorDegree == 2 then
 		if self.interpolator == linearInterpolatorN then
@@ -266,117 +229,103 @@ function AnimCurve:getFromKeyframes(first, second, firstI, secondI, alpha)
 		else
 			return self.interpolator(first, second, alpha)
 		end
-	elseif self.interpolatorDegree == 3 then
-		local v126_
-		if firstI > 1 then
-			v126_ = self.keyframes[firstI - 1]
-		else
-			v126_ = nil
+	end
+	if self.interpolatorDegree == 3 then
+		local beforeFirst = nil
+		if 1 < firstI then
+			beforeFirst = self.keyframes[firstI - 1]
 		end
-		local v127_
-		if secondI < #self.keyframes then
-			v127_ = self.keyframes[secondI + 1]
-		else
-			v127_ = nil
+		local afterSecond = nil
+		local numKeys = #self.keyframes
+		if secondI < numKeys then
+			afterSecond = self.keyframes[secondI + 1]
 		end
 		if self.interpolator == linearInterpolatorN then
-			return self.interpolator(first, second, v126_, self.curValues)
+			return self.interpolator(first, second, beforeFirst, self.curValues)
 		else
-			return self.interpolator(first, second, v126_, v127_, alpha)
+			return self.interpolator(first, second, beforeFirst, afterSecond, alpha)
 		end
+	end
+	return nil
+end
+function AnimCurve:getInterval(time, times, timesOffset, numTimes)
+	local low = 0
+	local hi = numTimes
+	while 1 < hi - low do
+		local kk = math.floor((hi + low) / 2)
+		if time < times[kk + timesOffset] then
+			hi = kk
+		else
+			low = kk
+		end
+	end
+	return low, hi
+end
+function AnimCurve:loadCurveFromXML(xmlFile, baseKey, loadFunc)
+	local i = 0
+	while true do
+		local key = string.format("%s.key(%d)", baseKey, i)
+		if not hasXMLProperty(xmlFile, key) then
+			break
+		end
+		local keyFrame = loadFunc(xmlFile, key)
+		if keyFrame ~= nil then
+			self:addKeyframe(keyFrame)
+		end
+		i = i + 1
+	end
+end
+function loadInterpolator1Curve(xmlFile, key)
+	local time = getXMLFloat(xmlFile, key .. "#time")
+	local value = getXMLFloat(xmlFile, key .. "#value")
+	if value ~= nil then
+		return { value, ["time"] = time }
 	else
 		return nil
 	end
 end
-
--- Local values: low, hi, kk
-function AnimCurve:getInterval(time, times, timesOffset, numTimes)
-	local v132_ = 0
-	while numTimes - v132_ > 1 do
-		local v133_ = (numTimes + v132_) / 2
-		local v134_ = math.floor(v133_)
-		if time < times[v134_ + timesOffset] then
-			numTimes = v134_
-			v134_ = v132_
-		end
-		v132_ = v134_
-	end
-	return v132_, numTimes
-end
-
--- Local values: i, key, keyFrame
-function AnimCurve:loadCurveFromXML(xmlFile, baseKey, loadFunc)
-	local v139_ = 0
-	while true do
-		local v140_ = string.format("%s.key(%d)", baseKey, v139_)
-		if not hasXMLProperty(xmlFile, v140_) then
-			break
-		end
-		local v141_ = loadFunc(xmlFile, v140_)
-		if v141_ ~= nil then
-			self:addKeyframe(v141_)
-		end
-		v139_ = v139_ + 1
-	end
-end
-
--- Local values: time, value
-function loadInterpolator1Curve(xmlFile, key)
-	local v144_ = getXMLFloat(xmlFile, key .. "#time")
-	local v145_ = getXMLFloat(xmlFile, key .. "#value")
-	return v145_ ~= nil and {
-		v145_,
-		["time"] = v144_
-	} or nil
-end
-
--- Local values: time, values
 function loadInterpolator2Curve(xmlFile, key)
-	local v148_ = getXMLFloat(xmlFile, key .. "#time")
-	local v149_ = string.getVector(getXMLString(xmlFile, key .. "#values"), 2)
-	if v149_ == nil then
+	local time = getXMLFloat(xmlFile, key .. "#time")
+	local values = string.getVector(getXMLString(xmlFile, key .. "#values"), 2)
+	if values ~= nil then
+		values.time = time
+		return values
+	else
 		return nil
 	end
-	v149_.time = v148_
-	return v149_
 end
-
--- Local values: time, values
 function loadInterpolator3Curve(xmlFile, key)
-	local v152_ = getXMLFloat(xmlFile, key .. "#time")
-	local v153_ = string.getVector(getXMLString(xmlFile, key .. "#values"), 3)
-	if v153_ == nil then
+	local time = getXMLFloat(xmlFile, key .. "#time")
+	local values = string.getVector(getXMLString(xmlFile, key .. "#values"), 3)
+	if values ~= nil then
+		values.time = time
+		return values
+	else
 		return nil
 	end
-	v153_.time = v152_
-	return v153_
 end
-
--- Local values: time, values
 function loadInterpolator4Curve(xmlFile, key)
-	local v156_ = getXMLFloat(xmlFile, key .. "#time")
-	local v157_ = string.getVector(getXMLString(xmlFile, key .. "#values"), 4)
-	if v157_ == nil then
+	local time = getXMLFloat(xmlFile, key .. "#time")
+	local values = string.getVector(getXMLString(xmlFile, key .. "#values"), 4)
+	if values ~= nil then
+		values.time = time
+		return values
+	else
 		return nil
 	end
-	v157_.time = v156_
-	return v157_
 end
-
 function getLoadNamedInterpolatorCurve(names)
-	return function(p159_, p160_)
-		-- upvalues: (copy) names
-		local v161_ = getXMLString(p159_, p160_ .. "#time")
-		local v162_ = {}
-		for _, v163_ in ipairs(names) do
-			local v164_ = getXMLString(p159_, p160_ .. "#" .. v163_)
-			if v164_ == nil then
+	return function(xmlFile, key)
+		local time = getXMLString(xmlFile, key .. "#time")
+		local values = {}
+		for _, name in ipairs(names) do
+			local value = getXMLString(xmlFile, key .. "#" .. name)
+			if value == nil then
 				return nil
 			end
-			local v165_ = tonumber(v164_)
-			table.insert(v162_, v165_)
+			table.insert(values, tonumber(value))
 		end
-		v162_.time = tonumber(v161_)
-		return v162_
+		values.time = tonumber(time)
+		return values
 	end
 end

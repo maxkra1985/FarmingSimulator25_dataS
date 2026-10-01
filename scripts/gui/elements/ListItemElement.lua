@@ -1,24 +1,18 @@
--- Local values: ListItemElement_mt
 ListItemElement = {}
 local ListItemElement_mt = Class(ListItemElement, BitmapElement)
 Gui.registerGuiElement("ListItem", ListItemElement)
-
--- Upvalues: ListItemElement_mt
--- Local values: self
 function ListItemElement.new(target, custom_mt)
-	-- upvalues: (copy) ListItemElement_mt
-	local v4_ = BitmapElement.new(target, custom_mt or ListItemElement_mt)
-	v4_.mouseEntered = false
-	v4_.allowSelected = true
-	v4_.autoSelectChildren = false
-	v4_.handleFocus = false
-	v4_.hideSelection = false
-	v4_.alternateChildren = false
-	v4_.alternateBackgroundColor = nil
-	v4_.attributes = {}
-	return v4_
+	local self = BitmapElement.new(target, custom_mt or ListItemElement_mt)
+	self.mouseEntered = false
+	self.allowSelected = true
+	self.autoSelectChildren = false
+	self.handleFocus = false
+	self.hideSelection = false
+	self.alternateChildren = false
+	self.alternateBackgroundColor = nil
+	self.attributes = {}
+	return self
 end
-
 function ListItemElement:loadFromXML(xmlFile, key)
 	ListItemElement:superClass().loadFromXML(self, xmlFile, key)
 	self.allowSelected = Utils.getNoNil(getXMLBool(xmlFile, key .. "#allowSelected"), self.allowSelected)
@@ -29,7 +23,6 @@ function ListItemElement:loadFromXML(xmlFile, key)
 	self:addCallback(xmlFile, key .. "#onLeave", "onLeaveCallback")
 	self:addCallback(xmlFile, key .. "#onClick", "onClickCallback")
 end
-
 function ListItemElement:loadProfile(profile, applyProfile)
 	ListItemElement:superClass().loadProfile(self, profile, applyProfile)
 	self.allowSelected = profile:getBool("allowSelected", self.allowSelected)
@@ -42,7 +35,6 @@ function ListItemElement:loadProfile(profile, applyProfile)
 		self.alternateBackgroundLoaded = true
 	end
 end
-
 function ListItemElement:copyAttributes(src)
 	ListItemElement:superClass().copyAttributes(self, src)
 	self.allowSelected = src.allowSelected
@@ -57,44 +49,25 @@ function ListItemElement:copyAttributes(src)
 	self.onFocusCallback = src.onFocusCallback
 	self.onClickCallback = src.onClickCallback
 end
-
 function ListItemElement:onClose()
 	ListItemElement:superClass().onClose(self)
 	self:reset()
 end
-
--- Local values: clone
 function ListItemElement:clone(parent, includeId, suppressOnCreate, blockFocusHandlingReload)
-	local v19_ = ListItemElement:superClass().clone(self, parent, includeId, suppressOnCreate, blockFocusHandlingReload)
-	v19_:findAllAttributes()
-	return v19_
+	local clone = ListItemElement:superClass().clone(self, parent, includeId, suppressOnCreate, blockFocusHandlingReload)
+	clone:findAllAttributes()
+	return clone
 end
-
 function ListItemElement:setSelected(selected)
-	local v22_ = ListItemElement:superClass().setSelected
-	local v23_ = selected and not self.hideSelection
-	if v23_ then
-		v23_ = self.allowSelected
-	end
-	v22_(self, v23_)
+	ListItemElement:superClass().setSelected(self, selected and not self.hideSelection and self.allowSelected)
 end
-
 function ListItemElement:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 	if self:getIsVisible() then
-		eventUsed = ListItemElement:superClass().mouseEvent(self, posX, posY, isDown, isUp, button, eventUsed) and true or eventUsed
-		if eventUsed or not GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], self.hotspot) then
-			if self.mouseEntered then
-				self.mouseEntered = false
-				if self.handleFocus then
-					self:raiseCallback("onLeaveCallback", self)
-				end
-			end
-			self.mouseDown = false
-			if self.handleFocus and self:getIsHighlighted() then
-				FocusManager:unsetHighlight(self)
-			end
-		else
-			if not (isDown or isUp) then
+		if ListItemElement:superClass().mouseEvent(self, posX, posY, isDown, isUp, button, eventUsed) then
+			eventUsed = true
+		end
+		if not eventUsed and GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], self.hotspot) then
+			if not isDown and not isUp then
 				if self.handleFocus then
 					FocusManager:setHighlight(self)
 				end
@@ -113,27 +86,27 @@ function ListItemElement:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 				self.mouseDown = false
 				return eventUsed
 			end
+			return eventUsed
+		end
+		if self.mouseEntered then
+			self.mouseEntered = false
+			if self.handleFocus then
+				self:raiseCallback("onLeaveCallback", self)
+			end
+		end
+		self.mouseDown = false
+		if self.handleFocus and self:getIsHighlighted() then
+			FocusManager:unsetHighlight(self)
 		end
 	end
-	return eventUsed
 end
-
 function ListItemElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUsed)
 	if self:getIsVisible() then
-		eventUsed = ListItemElement:superClass().touchEvent(self, posX, posY, isDown, isUp, touchId, eventUsed) and true or eventUsed
-		if eventUsed or not GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], self.hotspot) then
-			if self.touchEntered then
-				self.touchEntered = false
-				if self.handleFocus then
-					self:raiseCallback("onLeaveCallback", self)
-				end
-			end
-			self.touchDown = false
-			if self.handleFocus and self:getIsHighlighted() then
-				FocusManager:unsetHighlight(self)
-			end
-		else
-			if not (isDown or isUp) then
+		if ListItemElement:superClass().touchEvent(self, posX, posY, isDown, isUp, touchId, eventUsed) then
+			eventUsed = true
+		end
+		if not eventUsed and GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], self.hotspot) then
+			if not isDown and not isUp then
 				if self.handleFocus then
 					FocusManager:setHighlight(self)
 				end
@@ -152,16 +125,24 @@ function ListItemElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUsed
 				self.touchDown = false
 				return eventUsed
 			end
+			return eventUsed
+		end
+		if self.touchEntered then
+			self.touchEntered = false
+			if self.handleFocus then
+				self:raiseCallback("onLeaveCallback", self)
+			end
+		end
+		self.touchDown = false
+		if self.handleFocus and self:getIsHighlighted() then
+			FocusManager:unsetHighlight(self)
 		end
 	end
-	return eventUsed
 end
-
 function ListItemElement:onGuiSetupFinished()
 	ListItemElement:superClass().onGuiSetupFinished(self)
 	self:findAllAttributes()
 end
-
 function ListItemElement:getFocusTarget(incomingDirection, moveDirection)
 	if self.autoSelectChildren then
 		return ListItemElement:superClass().getFocusTarget(self, incomingDirection, moveDirection)
@@ -169,52 +150,37 @@ function ListItemElement:getFocusTarget(incomingDirection, moveDirection)
 		return self
 	end
 end
-
--- Local values: search
 function ListItemElement:findAllAttributes()
-	local function v_u_47_(p43_)
-		-- upvalues: (copy) self, (copy) v_u_47_
-		for v44_ = 1, #p43_ do
-			local v45_ = p43_[v44_]
-			local v46_ = p43_[v44_].name
-			if v46_ ~= nil then
-				self.attributes[v46_] = v45_
+	local function search(elements)
+		for i = 1, #elements do
+			local element = elements[i]
+			local name = elements[i].name
+			if name ~= nil then
+				self.attributes[name] = element
 			end
-			v_u_47_(v45_.elements)
+			search(element.elements)
 		end
 	end
-	v_u_47_(self.elements)
+	search(self.elements)
 end
-
 function ListItemElement:getAttribute(name)
 	return self.attributes[name]
 end
-
--- Local values: alternatingChild
 function ListItemElement:setAlternating(isAlternate)
 	if self.alternateBackgroundColor == nil then
 		return
 	elseif self.alternateChildren then
-		local v52_ = self:getAttribute("alternating")
-		if v52_ ~= nil then
+		local alternatingChild = self:getAttribute("alternating")
+		if alternatingChild ~= nil then
 			if isAlternate then
-				local v53_ = GuiOverlay.STATE_NORMAL
-				local v54_ = self.alternateBackgroundColor
-				v52_:setImageColor(v53_, unpack(v54_))
+				alternatingChild:setImageColor(GuiOverlay.STATE_NORMAL, unpack(self.alternateBackgroundColor))
 				return
 			end
-			local v55_ = GuiOverlay.STATE_NORMAL
-			local v56_ = self.backgroundColor
-			v52_:setImageColor(v55_, unpack(v56_))
+			alternatingChild:setImageColor(GuiOverlay.STATE_NORMAL, unpack(self.backgroundColor))
 		end
-		return
 	elseif isAlternate then
-		local v57_ = GuiOverlay.STATE_NORMAL
-		local v58_ = self.alternateBackgroundColor
-		self:setImageColor(v57_, unpack(v58_))
+		self:setImageColor(GuiOverlay.STATE_NORMAL, unpack(self.alternateBackgroundColor))
 	else
-		local v59_ = GuiOverlay.STATE_NORMAL
-		local v60_ = self.backgroundColor
-		self:setImageColor(v59_, unpack(v60_))
+		self:setImageColor(GuiOverlay.STATE_NORMAL, unpack(self.backgroundColor))
 	end
 end

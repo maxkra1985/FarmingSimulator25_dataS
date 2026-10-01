@@ -1,4 +1,3 @@
--- Local values: InGameMenu_mt
 InGameMenu = {}
 local InGameMenu_mt = Class(InGameMenu, TabbedMenu)
 InGameMenu.SAVE_STATE_NONE = 0
@@ -31,61 +30,55 @@ function InGameMenu.register()
 	if Platform.hasInGameMenuMainPage then
 		InGameMenuMainFrame.register()
 	end
-	local v2_ = InGameMenu.new()
-	g_gui:loadGui("dataS/gui/InGameMenu.xml", "InGameMenu", v2_)
-	return v2_
+	local inGameMenu = InGameMenu.new()
+	g_gui:loadGui("dataS/gui/InGameMenu.xml", "InGameMenu", inGameMenu)
+	return inGameMenu
 end
-
--- Upvalues: InGameMenu_mt
--- Local values: self
 function InGameMenu.new(target, custom_mt)
-	-- upvalues: (copy) InGameMenu_mt
-	local v5_ = InGameMenu:superClass().new(target, custom_mt or InGameMenu_mt)
-	v5_.hud = nil
-	v5_.performBackgroundBlur = true
-	v5_.gameState = GameState.MENU_INGAME
-	v5_.playerFarm = nil
-	v5_.playerFarmId = 0
-	v5_.currentUserId = -1
-	v5_.isSaving = false
-	v5_.missionInfo = {}
-	v5_.missionDynamicInfo = {}
-	v5_.activeDetailPage = nil
-	v5_.lastGaragePage = nil
-	v5_.paused = false
-	v5_.pageMain = nil
-	v5_.pageTour = nil
-	v5_.pageHint = nil
-	v5_.pageMapOverview = nil
-	v5_.pageMapMobile = nil
-	v5_.pageCalendar = nil
-	v5_.pageAnimals = nil
-	v5_.pageContracts = nil
-	v5_.pageProduction = nil
-	v5_.pageStatistics = nil
-	v5_.pageMultiplayer = nil
-	v5_.pageHelpLine = nil
-	v5_.pageSettings = nil
-	v5_.pageSettingsMobile = nil
-	v5_.pageSave = nil
-	v5_.playerAlreadySaved = false
-	v5_.doSaveGameState = InGameMenu.SAVE_STATE_NONE
-	v5_.continueEnabled = true
-	v5_.savingMinEndTime = 0
-	v5_.currentDeviceHasNoSpace = false
-	v5_.quitAfterSave = false
-	v5_.client = nil
-	v5_.server = nil
-	v5_.isMasterUser = false
-	v5_.isServer = false
-	v5_.defaultMenuButtonInfo = {}
-	v5_.backButtonInfo = {}
-	v5_.customItems = {}
-	v5_.blockNextPageNextEvent = false
-	return v5_
+	local self = InGameMenu:superClass().new(target, custom_mt or InGameMenu_mt)
+	self.hud = nil
+	self.performBackgroundBlur = true
+	self.gameState = GameState.MENU_INGAME
+	self.playerFarm = nil
+	self.playerFarmId = 0
+	self.currentUserId = -1
+	self.isSaving = false
+	self.missionInfo = {}
+	self.missionDynamicInfo = {}
+	self.activeDetailPage = nil
+	self.lastGaragePage = nil
+	self.paused = false
+	self.pageMain = nil
+	self.pageTour = nil
+	self.pageHint = nil
+	self.pageMapOverview = nil
+	self.pageMapMobile = nil
+	self.pageCalendar = nil
+	self.pageAnimals = nil
+	self.pageContracts = nil
+	self.pageProduction = nil
+	self.pageStatistics = nil
+	self.pageMultiplayer = nil
+	self.pageHelpLine = nil
+	self.pageSettings = nil
+	self.pageSettingsMobile = nil
+	self.pageSave = nil
+	self.playerAlreadySaved = false
+	self.doSaveGameState = InGameMenu.SAVE_STATE_NONE
+	self.continueEnabled = true
+	self.savingMinEndTime = 0
+	self.currentDeviceHasNoSpace = false
+	self.quitAfterSave = false
+	self.client = nil
+	self.server = nil
+	self.isMasterUser = false
+	self.isServer = false
+	self.defaultMenuButtonInfo = {}
+	self.backButtonInfo = {}
+	self.customItems = {}
+	self.blockNextPageNextEvent = false
+	return self
 end
-
--- Local values: newGui, mission
 function InGameMenu.createFromExistingGui(gui, guiName)
 	if Platform.hasInGameMenuMainPage then
 		InGameMenuMainFrame.createFromExistingGui(g_gui.frames.ingameMenuMain.target, "InGameMenuMainFrame")
@@ -109,28 +102,27 @@ function InGameMenu.createFromExistingGui(gui, guiName)
 		InGameMenuHintFrame.createFromExistingGui(g_gui.frames.ingameMenuHint.target, "InGameMenuHintFrame")
 	end
 	InGameMenuSaveFrame.createFromExistingGui(g_gui.frames.ingameMenuSave.target, "InGameMenuSaveFrame")
-	local v8_ = InGameMenu.new()
+	local newGui = InGameMenu.new()
 	g_gui.guis.InGameMenu:delete()
 	g_gui.guis.InGameMenu.target:delete()
-	g_gui:loadGui(gui.xmlFilename, guiName, v8_)
-	local v9_ = g_currentMission
-	v8_:setEnvironment(v9_.environment)
-	v8_:setConnectedUsers(v9_.userManager:getUsers())
-	v8_:setClient(g_client)
-	v8_:setServer(g_server)
-	v8_:setPlayer(v9_.player)
-	v8_:setMissionInfo(v9_.missionInfo, v9_.missionDynamicInfo, v9_.baseDirectory)
-	v8_:setTerrainSize(v9_.terrainSize)
-	v8_:setHUD(v9_.hud)
-	v8_:setInGameMap(v9_.hud:getIngameMap())
-	v8_:setManureTriggers(v9_.manureLoadingStations, v9_.liquidManureLoadingStations)
-	v8_:setPlayerFarm(gui.playerFarm)
-	v8_:setCurrentUserId(v9_.playerUserId)
-	v8_:onLoadMapFinished()
-	g_inGameMenu = v8_
-	return v8_
+	g_gui:loadGui(gui.xmlFilename, guiName, newGui)
+	local mission = g_currentMission
+	newGui:setEnvironment(mission.environment)
+	newGui:setConnectedUsers(mission.userManager:getUsers())
+	newGui:setClient(g_client)
+	newGui:setServer(g_server)
+	newGui:setPlayer(mission.player)
+	newGui:setMissionInfo(mission.missionInfo, mission.missionDynamicInfo, mission.baseDirectory)
+	newGui:setTerrainSize(mission.terrainSize)
+	newGui:setHUD(mission.hud)
+	newGui:setInGameMap(mission.hud:getIngameMap())
+	newGui:setManureTriggers(mission.manureLoadingStations, mission.liquidManureLoadingStations)
+	newGui:setPlayerFarm(gui.playerFarm)
+	newGui:setCurrentUserId(mission.playerUserId)
+	newGui:onLoadMapFinished()
+	g_inGameMenu = newGui
+	return newGui
 end
-
 function InGameMenu:setInGameMap(inGameMap)
 	if Platform.isMobile then
 		self.pageMapMobile:setInGameMap(inGameMap)
@@ -141,11 +133,9 @@ function InGameMenu:setInGameMap(inGameMap)
 	end
 	self.baseIngameMap = inGameMap
 end
-
 function InGameMenu:setHUD(hud)
 	self.hud = hud
 end
-
 function InGameMenu:setTerrainSize(terrainSize)
 	if Platform.isMobile then
 		self.pageMapMobile:setTerrainSize(terrainSize)
@@ -153,13 +143,11 @@ function InGameMenu:setTerrainSize(terrainSize)
 		self.pageMapOverview:setTerrainSize(terrainSize)
 	end
 end
-
 function InGameMenu:setConnectedUsers(users)
 	if self.pageMultiplayer ~= nil then
 		self.pageMultiplayer:setUsers(users)
 	end
 end
-
 function InGameMenu:setClient(client)
 	self.client = client
 	if Platform.isMobile then
@@ -169,33 +157,28 @@ function InGameMenu:setClient(client)
 	end
 	self.pageStatistics:setClient(client)
 end
-
 function InGameMenu:setServer(server)
 	self.server = server
 	self.isServer = server ~= nil
 	self:updateHasMasterRights()
 end
-
--- Local values: hasMasterRights
 function InGameMenu:updateHasMasterRights()
-	local v23_ = self.isMasterUser or self.isServer
+	local hasMasterRights = self.isMasterUser or self.isServer
 	if Platform.isMobile then
-		self.pageSettingsMobile:setHasMasterRights(v23_)
+		self.pageSettingsMobile:setHasMasterRights(hasMasterRights)
 	else
-		self.pageSettings:setHasMasterRights(v23_)
-		self.pageSave:setHasMasterRights(v23_)
+		self.pageSettings:setHasMasterRights(hasMasterRights)
+		self.pageSave:setHasMasterRights(hasMasterRights)
 	end
 	if self.currentPage ~= nil then
 		self:updatePages()
 	end
 end
-
 function InGameMenu:onGrowthModeChanged()
 	if self.currentPage ~= nil then
 		self:updatePages()
 	end
 end
-
 function InGameMenu:onLoadMapFinished()
 	if Platform.isMobile then
 		self.pageMapMobile:onLoadMapFinished()
@@ -203,17 +186,14 @@ function InGameMenu:onLoadMapFinished()
 		self.pageMapOverview:onLoadMapFinished()
 	end
 end
-
--- Local values: _, frame
 function InGameMenu:unloadMapData()
-	for _, v27_ in pairs(self.pageFrames) do
-		if v27_.unloadMapData ~= nil then
-			v27_:unloadMapData()
+	for _, frame in pairs(self.pageFrames) do
+		if frame.unloadMapData == nil then
+			continue
 		end
+		frame:unloadMapData()
 	end
 end
-
--- Local values: controlsController
 function InGameMenu:initializePages()
 	self.clickBackCallback = self:makeSelfCallback(self.onButtonBack)
 	if Platform.isMobile then
@@ -232,8 +212,8 @@ function InGameMenu:initializePages()
 	if Platform.isMobile then
 		self.pageSettingsMobile:initialize()
 	elseif Platform.canChangeControls then
-		local v29_ = ControlsController.new()
-		self.pageSettings:initialize(self.pageMapOverview, self.clickBackCallback, v29_, true)
+		local controlsController = ControlsController.new()
+		self.pageSettings:initialize(self.pageMapOverview, self.clickBackCallback, controlsController, true)
 	else
 		self.pageSettings:initialize(self.pageMapOverview, self.clickBackCallback)
 	end
@@ -248,60 +228,43 @@ function InGameMenu:initializePages()
 		self.pageMain:initialize()
 	end
 end
-
--- Local values: pageIndex, tryAddPage
 function InGameMenu:setupMenuPages()
-	local v_u_31_ = 1
-	local function v37_(p32_, p33_, p34_, p35_)
-		-- upvalues: (copy) self, (ref) v_u_31_
-		if p32_ == nil then
-			local v36_ = self.pagingElement:getPageElementByIndex(v_u_31_)
-			self.pagingElement:removePageByElement(v36_)
+	local pageIndex = 1
+	local tryAddPage = function(page, isEnabledPredicate, sliceId, soundId)
+		if page ~= nil then
+			self:registerPage(page, pageIndex, isEnabledPredicate)
+			self:addPageTab(page, nil, nil, sliceId, soundId)
+			pageIndex = pageIndex + 1
 		else
-			self:registerPage(p32_, v_u_31_, p33_)
-			self:addPageTab(p32_, nil, nil, p34_, p35_)
-			v_u_31_ = v_u_31_ + 1
+			local pageElement = self.pagingElement:getPageElementByIndex(pageIndex)
+			self.pagingElement:removePageByElement(pageElement)
 		end
 	end
-	v37_(self.pageMain, self:makeIsMainEnabledPredicate(), InGameMenu.SLICE_ID.MAP, InGameMenu.SOUNDS.MAP)
-	v37_(self.pageTour, self:makeIsTourEnabledPredicate(), InGameMenu.SLICE_ID.TOUR, InGameMenu.SOUNDS.TOUR)
-	v37_(self.pageHint, self:makeIsHintEnabledPredicate(), InGameMenu.SLICE_ID.HELP, InGameMenu.SOUNDS.HELP)
-	v37_(self.pageMapOverview, self:makeIsMapEnabledPredicate(), InGameMenu.SLICE_ID.MAP, InGameMenu.SOUNDS.MAP)
-	v37_(self.pageMapMobile, self:makeIsMobileMapEnabledPredicate(), InGameMenu.SLICE_ID.MAP, InGameMenu.SOUNDS.MAP)
-	v37_(self.pageCalendar, self:makeIsCalendarEnabledPredicate(), InGameMenu.SLICE_ID.CALENDAR, InGameMenu.SOUNDS.CALENDAR)
-	v37_(self.pageAnimals, self:makeIsAnimalsEnabledPredicate(), InGameMenu.SLICE_ID.ANIMALS, InGameMenu.SOUNDS.ANIMALS)
-	v37_(self.pageContracts, self:makeIsContractsEnabledPredicate(), InGameMenu.SLICE_ID.CONTRACTS, InGameMenu.SOUNDS.CONTRACTS)
-	v37_(self.pageProduction, self:makeIsProductionEnabledPredicate(), InGameMenu.SLICE_ID.PRODUCTION, InGameMenu.SOUNDS.PRODUCTION)
-	v37_(self.pageStatistics, self:makeIsStatisticsEnabledPredicate(), InGameMenu.SLICE_ID.STATISTICS, InGameMenu.SOUNDS.STATISTICS)
-	v37_(self.pageMultiplayer, self:makeIsMpEnabledPredicate(), InGameMenu.SLICE_ID.MULTIPLAYER, InGameMenu.SOUNDS.MULTIPLAYER)
-	v37_(self.pageHelpLine, self:makeIsHelpEnabledPredicate(), InGameMenu.SLICE_ID.HELP, InGameMenu.SOUNDS.HELP)
-	v37_(self.pageSettings, self:makeIsSettingsEnabledPredicate(), InGameMenu.SLICE_ID.GENERAL_SETTINGS, InGameMenu.SOUNDS.SETTINGS)
-	v37_(self.pageSettingsMobile, self:makeIsMobileSettingsEnabledPredicate(), InGameMenu.SLICE_ID.HELP, InGameMenu.SOUNDS.HELP)
-	v37_(self.pageSave, self:makeIsSaveEnabledPredicate(), InGameMenu.SLICE_ID.SAVE, InGameMenu.SOUNDS.SAVE)
+	tryAddPage(self.pageMain, self:makeIsMainEnabledPredicate(), InGameMenu.SLICE_ID.MAP, InGameMenu.SOUNDS.MAP)
+	tryAddPage(self.pageTour, self:makeIsTourEnabledPredicate(), InGameMenu.SLICE_ID.TOUR, InGameMenu.SOUNDS.TOUR)
+	tryAddPage(self.pageHint, self:makeIsHintEnabledPredicate(), InGameMenu.SLICE_ID.HELP, InGameMenu.SOUNDS.HELP)
+	tryAddPage(self.pageMapOverview, self:makeIsMapEnabledPredicate(), InGameMenu.SLICE_ID.MAP, InGameMenu.SOUNDS.MAP)
+	tryAddPage(self.pageMapMobile, self:makeIsMobileMapEnabledPredicate(), InGameMenu.SLICE_ID.MAP, InGameMenu.SOUNDS.MAP)
+	tryAddPage(self.pageCalendar, self:makeIsCalendarEnabledPredicate(), InGameMenu.SLICE_ID.CALENDAR, InGameMenu.SOUNDS.CALENDAR)
+	tryAddPage(self.pageAnimals, self:makeIsAnimalsEnabledPredicate(), InGameMenu.SLICE_ID.ANIMALS, InGameMenu.SOUNDS.ANIMALS)
+	tryAddPage(self.pageContracts, self:makeIsContractsEnabledPredicate(), InGameMenu.SLICE_ID.CONTRACTS, InGameMenu.SOUNDS.CONTRACTS)
+	tryAddPage(self.pageProduction, self:makeIsProductionEnabledPredicate(), InGameMenu.SLICE_ID.PRODUCTION, InGameMenu.SOUNDS.PRODUCTION)
+	tryAddPage(self.pageStatistics, self:makeIsStatisticsEnabledPredicate(), InGameMenu.SLICE_ID.STATISTICS, InGameMenu.SOUNDS.STATISTICS)
+	tryAddPage(self.pageMultiplayer, self:makeIsMpEnabledPredicate(), InGameMenu.SLICE_ID.MULTIPLAYER, InGameMenu.SOUNDS.MULTIPLAYER)
+	tryAddPage(self.pageHelpLine, self:makeIsHelpEnabledPredicate(), InGameMenu.SLICE_ID.HELP, InGameMenu.SOUNDS.HELP)
+	tryAddPage(self.pageSettings, self:makeIsSettingsEnabledPredicate(), InGameMenu.SLICE_ID.GENERAL_SETTINGS, InGameMenu.SOUNDS.SETTINGS)
+	tryAddPage(self.pageSettingsMobile, self:makeIsMobileSettingsEnabledPredicate(), InGameMenu.SLICE_ID.HELP, InGameMenu.SOUNDS.HELP)
+	tryAddPage(self.pageSave, self:makeIsSaveEnabledPredicate(), InGameMenu.SLICE_ID.SAVE, InGameMenu.SOUNDS.SAVE)
 	self:rebuildTabList()
 end
-
--- Local values: onButtonBackFunction, onButtonPagePreviousFunction, onButtonPageNextFunction
 function InGameMenu:setupMenuButtonInfo()
 	InGameMenu:superClass().setupMenuButtonInfo(self)
-	local v39_ = self.clickBackCallback
-	local v40_ = self:makeSelfCallback(self.onPagePrevious)
-	local v41_ = self:makeSelfCallback(self.onPageNext)
-	self.backButtonInfo = {
-		["inputAction"] = InputAction.MENU_BACK,
-		["text"] = g_i18n:getText(InGameMenu.L10N_SYMBOL.BUTTON_BACK),
-		["callback"] = v39_
-	}
-	self.nextPageButtonInfo = {
-		["inputAction"] = InputAction.MENU_PAGE_NEXT,
-		["text"] = g_i18n:getText("ui_ingameMenuNext"),
-		["callback"] = v41_
-	}
-	self.prevPageButtonInfo = {
-		["inputAction"] = InputAction.MENU_PAGE_PREV,
-		["text"] = g_i18n:getText("ui_ingameMenuPrev"),
-		["callback"] = v40_
-	}
+	local onButtonBackFunction = self.clickBackCallback
+	local onButtonPagePreviousFunction = self:makeSelfCallback(self.onPagePrevious)
+	local onButtonPageNextFunction = self:makeSelfCallback(self.onPageNext)
+	self.backButtonInfo = { callback = onButtonBackFunction, inputAction = InputAction.MENU_BACK, text = g_i18n:getText(InGameMenu.L10N_SYMBOL.BUTTON_BACK) }
+	self.nextPageButtonInfo = { callback = onButtonPageNextFunction, inputAction = InputAction.MENU_PAGE_NEXT, text = g_i18n:getText("ui_ingameMenuNext") }
+	self.prevPageButtonInfo = { callback = onButtonPagePreviousFunction, inputAction = InputAction.MENU_PAGE_PREV, text = g_i18n:getText("ui_ingameMenuPrev") }
 	if Platform.isMobile then
 		self.defaultMenuButtonInfo = { self.backButtonInfo }
 	else
@@ -310,13 +273,8 @@ function InGameMenu:setupMenuButtonInfo()
 	self.defaultMenuButtonInfoByActions[InputAction.MENU_BACK] = self.defaultMenuButtonInfo[1]
 	self.defaultMenuButtonInfoByActions[InputAction.MENU_PAGE_PREV] = self.defaultMenuButtonInfo[2]
 	self.defaultMenuButtonInfoByActions[InputAction.MENU_PAGE_NEXT] = self.defaultMenuButtonInfo[3]
-	self.defaultButtonActionCallbacks = {
-		[InputAction.MENU_BACK] = v39_,
-		[InputAction.MENU_PAGE_PREV] = v40_,
-		[InputAction.MENU_PAGE_NEXT] = v41_
-	}
+	self.defaultButtonActionCallbacks = { [InputAction.MENU_BACK] = onButtonBackFunction, [InputAction.MENU_PAGE_PREV] = onButtonPagePreviousFunction, [InputAction.MENU_PAGE_NEXT] = onButtonPageNextFunction }
 end
-
 function InGameMenu:onGuiSetupFinished()
 	InGameMenu:superClass().onGuiSetupFinished(self)
 	if Platform.isMobile then
@@ -331,15 +289,12 @@ function InGameMenu:onGuiSetupFinished()
 	self:initializePages()
 	self:setupMenuPages()
 end
-
 function InGameMenu:setEnvironment(environment)
 	self.pageStatistics:setEnvironment(environment)
 end
-
 function InGameMenu:updateBackground()
 	self.background:setVisible(self.currentPage.needsSolidBackground)
 end
-
 function InGameMenu:setMissionInfo(missionInfo, missionDynamicInfo, missionBaseDirectory)
 	self.missionInfo = missionInfo
 	self.missionDynamicInfo = missionDynamicInfo
@@ -350,13 +305,12 @@ function InGameMenu:setMissionInfo(missionInfo, missionDynamicInfo, missionBaseD
 	end
 	self.currentDeviceHasNoSpace = false
 end
-
 function InGameMenu:setPlayerFarm(farm)
 	self.playerFarm = farm
-	if farm == nil then
-		self.playerFarmId = 0
-	else
+	if farm ~= nil then
 		self.playerFarmId = farm.farmId
+	else
+		self.playerFarmId = 0
 	end
 	if Platform.isMobile then
 		self.pageMapMobile:setPlayerFarm(farm)
@@ -373,20 +327,17 @@ function InGameMenu:setPlayerFarm(farm)
 		self:updatePages()
 	end
 end
-
 function InGameMenu:setPlayer(player)
 	if self.pageMultiplayer ~= nil then
 		self.pageMultiplayer:setPlayer(player)
 	end
 end
-
 function InGameMenu:setCurrentUserId(currentUserId)
 	self.currentUserId = currentUserId
 	if self.pageMultiplayer ~= nil then
 		self.pageMultiplayer:setCurrentUserId(currentUserId)
 	end
 end
-
 function InGameMenu:setManureTriggers(manureLoadingStations, liquidManureLoadingStations)
 	if Platform.isMobile then
 		self.pageSettingsMobile:setManureTriggers(manureLoadingStations, liquidManureLoadingStations)
@@ -394,27 +345,23 @@ function InGameMenu:setManureTriggers(manureLoadingStations, liquidManureLoading
 		self.pageSettings:setManureTriggers(manureLoadingStations, liquidManureLoadingStations)
 	end
 end
-
 function InGameMenu:leaveCurrentGame()
 	OnInGameMenuMenu()
 end
-
 function InGameMenu:inputEvent(action, value, eventUsed)
-	local v62_ = InGameMenu:superClass().inputEvent(self, action, value, eventUsed)
-	if not v62_ and action == InputAction.MENU then
+	eventUsed = InGameMenu:superClass().inputEvent(self, action, value, eventUsed)
+	if not eventUsed and action == InputAction.MENU then
 		self:playSample(GuiSoundPlayer.SOUND_SAMPLES.BACK)
 		self:exitMenu()
-		v62_ = true
+		eventUsed = true
 	end
-	return v62_
+	return eventUsed
 end
-
 function InGameMenu:exitMenu()
 	if self.continueEnabled and not self.isSaving then
 		InGameMenu:superClass().exitMenu(self)
 	end
 end
-
 function InGameMenu:reset()
 	InGameMenu:superClass().reset(self)
 	self.isSaving = false
@@ -428,31 +375,30 @@ function InGameMenu:reset()
 	self.quitAfterSave = false
 	self.continueEnabled = true
 end
-
--- Local values: farmsPageId, farmsPageIndex
 function InGameMenu:onMenuOpened()
 	if self.playerFarmId == FarmManager.SPECTATOR_FARM_ID then
 		self:setSoundSuppressed(true)
-		local v66_ = self.pagingElement:getPageIdByElement(self.pageMultiplayer)
-		local v67_ = self.pagingElement:getPageMappingIndex(v66_)
-		self.pageSelector:setState(v67_, true)
+		local farmsPageId = self.pagingElement:getPageIdByElement(self.pageMultiplayer)
+		local farmsPageIndex = self.pagingElement:getPageMappingIndex(farmsPageId)
+		self.pageSelector:setState(farmsPageIndex, true)
 		self:setSoundSuppressed(false)
 	end
 	if Platform.isMobile then
 		g_currentMission:setManualPause(true)
 	end
-	if self.currentPage == nil or self.currentPage.dynamicMapImageLoading == nil then
-		g_messageCenter:publish(MessageType.GUI_INGAME_OPEN)
-	elseif self.currentPage.dynamicMapImageLoading:getIsVisible() then
-		self.sendDelayedOpenMessage = true
-	else
-		g_messageCenter:publish(MessageType.GUI_INGAME_OPEN)
+	if self.currentPage ~= nil then
+		if self.currentPage.dynamicMapImageLoading == nil then
+			g_messageCenter:publish(MessageType.GUI_INGAME_OPEN)
+		elseif self.currentPage.dynamicMapImageLoading:getIsVisible() then
+			self.sendDelayedOpenMessage = true
+		else
+			g_messageCenter:publish(MessageType.GUI_INGAME_OPEN)
+		end
 	end
 	if Platform.hasInGameMenuMainPage then
 		self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageMain), true)
 	end
 end
-
 function InGameMenu:onClose(element)
 	if Platform.isMobile then
 		g_currentMission:setManualPause(false)
@@ -468,65 +414,57 @@ function InGameMenu:onClose(element)
 	end
 	g_gameSettings:save()
 end
-
 function InGameMenu:onButtonSaveGame()
-	if (not self.missionDynamicInfo.isMultiplayer or (not self.missionDynamicInfo.isClient or self.isMasterUser)) and (g_currentMission.isMissionStarted and not self.isSaving) then
-		if self.missionInfo:isa(FSCareerMissionInfo) and self.doSaveGameState == InGameMenu.SAVE_STATE_NONE then
-			if not self.isServer and (self.isMasterUser and self.missionDynamicInfo.isMultiplayer) then
-				self.client:getServerConnection():sendEvent(SaveEvent.new())
-				self:notifyStartSaving()
-				self.savingDisplayTimer = g_time + InGameMenu.MULTIPLAYER_SAVING_DISPLAY_DURATION
-				return
+	if (not self.missionDynamicInfo.isMultiplayer or not self.missionDynamicInfo.isClient or self.isMasterUser) and g_currentMission.isMissionStarted then
+		if self.isSaving then
+		else
+			if self.missionInfo:isa(FSCareerMissionInfo) and self.doSaveGameState == InGameMenu.SAVE_STATE_NONE then
+				if not self.isServer and (self.isMasterUser and self.missionDynamicInfo.isMultiplayer) then
+					self.client:getServerConnection():sendEvent(SaveEvent.new())
+					self:notifyStartSaving()
+					self.savingDisplayTimer = g_time + InGameMenu.MULTIPLAYER_SAVING_DISPLAY_DURATION
+					return
+				end
+				g_messageCenter:publish(SaveEvent, false, false)
 			end
-			g_messageCenter:publish(SaveEvent, false, false)
 		end
 	end
 end
-
--- Local values: menu, text, isMultiplayerClient
 function InGameMenu:onButtonQuit()
 	if Platform.isMobile then
-		local v71_ = g_inGameMenu
-		if not v71_.isSaving then
-			v71_.quitAfterSave = true
+		local menu = g_inGameMenu
+		if not menu.isSaving then
+			menu.quitAfterSave = true
 			g_currentMission:startSaveCurrentGame(false)
-			return
 		end
 	else
 		if self.isSaving then
 			return
 		end
-		local v72_ = g_i18n:getText(InGameMenu.L10N_SYMBOL.END_GAME)
-		local v73_ = self.missionDynamicInfo.isMultiplayer
-		if v73_ then
-			v73_ = self.missionDynamicInfo.isClient
-		end
-		if not v73_ then
-			if self.missionInfo:isa(FSCareerMissionInfo) then
-				if not self.playerAlreadySaved then
-					v72_ = g_i18n:getText(InGameMenu.L10N_SYMBOL.END_WITHOUT_SAVING)
-				end
-			else
-				v72_ = g_i18n:getText(InGameMenu.L10N_SYMBOL.END_TUTORIAL)
+		local text = g_i18n:getText(InGameMenu.L10N_SYMBOL.END_GAME)
+		local isMultiplayerClient = self.missionDynamicInfo.isMultiplayer and self.missionDynamicInfo.isClient
+		if not isMultiplayerClient then
+			if not self.missionInfo:isa(FSCareerMissionInfo) then
+				text = g_i18n:getText(InGameMenu.L10N_SYMBOL.END_TUTORIAL)
+			elseif not self.playerAlreadySaved then
+				text = g_i18n:getText(InGameMenu.L10N_SYMBOL.END_WITHOUT_SAVING)
 			end
 		end
-		YesNoDialog.show(self.onYesNoEnd, self, v72_)
+		YesNoDialog.show(self.onYesNoEnd, self, text)
 	end
 end
-
--- Local values: currentPage, closeMenuOneshot, goToMainMenu
 function InGameMenu:onButtonBack()
-	local v75_ = self.currentPage
+	local currentPage = self.currentPage
 	if Platform.isMobile then
-		local v76_ = Utils.getNoNil(v75_.closeMenuOneshot, false)
-		local v77_ = Utils.getNoNil(v75_.goToMainOverview, true)
-		v75_.closeMenuOneshot = false
-		if v76_ or not v77_ then
-			InGameMenu:superClass().onButtonBack(self)
-		else
+		local closeMenuOneshot = Utils.getNoNil(currentPage.closeMenuOneshot, false)
+		local goToMainMenu = Utils.getNoNil(currentPage.goToMainOverview, true)
+		currentPage.closeMenuOneshot = false
+		if not closeMenuOneshot and goToMainMenu then
 			self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageMain), true)
 			self:goToPage(self.pageMain)
+			return
 		end
+		InGameMenu:superClass().onButtonBack(self)
 	else
 		if self.currentPage:requestClose(self.clickBackCallback) then
 			if self.currentPage == self.pageSettings or self.currentPage == self.pageHelpLine then
@@ -535,28 +473,23 @@ function InGameMenu:onButtonBack()
 			end
 			InGameMenu:superClass().onButtonBack(self)
 		end
-		return
 	end
 end
-
 function InGameMenu:setIsGamePaused(paused)
 	self.paused = paused
 	if self.currentPage ~= nil then
 		self:updateButtonsPanel(self.currentPage)
 	end
 end
-
--- Local values: text
 function InGameMenu:startSavingGameDisplay()
-	local v81_ = g_i18n:getText(InGameMenu.L10N_SYMBOL.SAVING_CONTENT)
-	MessageDialog.show(v81_, nil, nil, nil, false)
+	local text = g_i18n:getText(InGameMenu.L10N_SYMBOL.SAVING_CONTENT)
+	MessageDialog.show(text, nil, nil, nil, false)
 	self.savingMinEndTime = getTimeSec() + SavegameController.SAVING_DURATION
 	self.isSaving = true
 end
-
 function InGameMenu:update(dt)
 	self.alreadyClosed = false
-	if self.doSaveGameState == InGameMenu.SAVE_STATE_NONE and (self.isSaving and getTimeSec() >= self.savingMinEndTime) then
+	if self.doSaveGameState == InGameMenu.SAVE_STATE_NONE and (self.isSaving and self.savingMinEndTime <= getTimeSec()) then
 		self.savingMinEndTime = 0
 		MessageDialog.hide()
 		self.isSaving = false
@@ -576,203 +509,183 @@ function InGameMenu:update(dt)
 		if GS_PLATFORM_PLAYSTATION and (g_currentMission ~= nil and (self.missionDynamicInfo.isMultiplayer and (getMultiplayerAvailability() == MultiplayerAvailability.NOT_AVAILABLE and self.continueEnabled))) then
 			self.continueEnabled = false
 			g_gui:showGui("InGameMenu")
-		elseif self.sendDelayedOpenMessage and (self.currentPage ~= nil and (self.currentPage.dynamicMapImageLoading ~= nil and not self.currentPage.dynamicMapImageLoading:getIsVisible())) then
+			return
+		end
+		if self.sendDelayedOpenMessage and (self.currentPage ~= nil and (self.currentPage.dynamicMapImageLoading ~= nil and not self.currentPage.dynamicMapImageLoading:getIsVisible())) then
 			g_messageCenter:publish(MessageType.GUI_INGAME_OPEN)
 			self.sendDelayedOpenMessage = false
 		end
 	end
 end
-
--- Local values: buttonsDisabled
 function InGameMenu:updateButtonsPanel(page)
 	if self.buttonsPanel ~= nil then
-		local v86_ = page.hasFullScreenMap
-		self.buttonsPanel:setVisible(not v86_)
-		self.buttonsPanel:setDisabled(v86_)
+		local buttonsDisabled = page.hasFullScreenMap
+		self.buttonsPanel:setVisible(not buttonsDisabled)
+		self.buttonsPanel:setDisabled(buttonsDisabled)
 		InGameMenu:superClass().updateButtonsPanel(self, page)
 	end
 end
-
--- Local values: prevPage, page
 function InGameMenu:updatePages(prevIndex)
 	self.header:setVisible(true)
 	if prevIndex ~= nil then
-		local v89_ = self.pagingElement:getPageElementByIndex(prevIndex)
-		local v90_ = self.pagingElement:getPageElementByIndex(self.currentPageId)
-		if v90_ == self.pageMain then
+		local prevPage = self.pagingElement:getPageElementByIndex(prevIndex)
+		local page = self.pagingElement:getPageElementByIndex(self.currentPageId)
+		if page == self.pageMain then
 			self.header:setVisible(false)
 			self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageMain), true)
-		elseif Platform.isMobile and v90_ == self.pageMapMobile then
-			self.header:setVisible(false)
-		elseif v89_ == self.pageMain then
-			self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageMain), false)
-			self.pagingElement.currentPageMappingIndex = self.pagingElement.currentPageMappingIndex - 1
-		elseif v89_ == self.pageHelpLine then
-			self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageHelpLine), false)
-		elseif v89_ == self.pageSettings then
-			self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageSettings), false)
+		elseif Platform.isMobile then
+			if page == self.pageMapMobile then
+				self.header:setVisible(false)
+			elseif prevPage == self.pageMain then
+				self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageMain), false)
+				self.pagingElement.currentPageMappingIndex = self.pagingElement.currentPageMappingIndex - 1
+			elseif prevPage == self.pageHelpLine then
+				self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageHelpLine), false)
+			elseif prevPage == self.pageSettings then
+				self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageSettings), false)
+			end
 		end
 	end
 	InGameMenu:superClass().updatePages(self)
 end
-
--- Local values: financesPageIndex
 function InGameMenu:openFinancesScreen()
 	if self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID then
 		self:changeScreen(InGameMenu)
-		local v92_ = self.pagingElement:getPageMappingIndexByElement(self.pageStatistics)
-		self.pageSelector:setState(v92_, true)
+		local financesPageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageStatistics)
+		self.pageSelector:setState(financesPageIndex, true)
 		self.pageStatistics:onClickFinances()
 	end
 end
-
--- Local values: mapOverviewIndex
 function InGameMenu:openMapOverview()
 	self:changeScreen(InGameMenu)
-	local v94_ = self.pagingElement:getPageMappingIndexByElement(self.pageMapOverview)
+	local mapOverviewIndex = self.pagingElement:getPageMappingIndexByElement(self.pageMapOverview)
 	if Platform.isMobile then
-		v94_ = self.pagingElement:getPageMappingIndexByElement(self.pageMapMobile)
+		mapOverviewIndex = self.pagingElement:getPageMappingIndexByElement(self.pageMapMobile)
 	end
-	self.pageSelector:setState(v94_, true)
+	self.pageSelector:setState(mapOverviewIndex, true)
 end
-
--- Local values: pageAIIndex
 function InGameMenu:openAIScreen(vehicle)
 	self:changeScreen(InGameMenu)
-	local v97_ = self.pagingElement:getPageMappingIndexByElement(self.pageMapOverview)
+	local pageAIIndex = self.pagingElement:getPageMappingIndexByElement(self.pageMapOverview)
 	if Platform.isMobile then
-		v97_ = self.pagingElement:getPageMappingIndexByElement(self.pageMapMobile)
+		pageAIIndex = self.pagingElement:getPageMappingIndexByElement(self.pageMapMobile)
 	end
-	self.pageSelector:setState(v97_, true)
+	self.pageSelector:setState(pageAIIndex, true)
 	if not Platform.isMobile then
 		self.pageMapOverview:setAIVehicle(vehicle)
 	end
 end
-
 function InGameMenu:openFarmlandsScreen()
 	self:openMapOverview()
 	self.pageMapOverview.mapOverviewSelector:setState(InGameMenuMapFrame.MAP_FARMLANDS, true)
 end
-
--- Local values: farmsPageIndex
 function InGameMenu:openFarmsScreen()
 	self:changeScreen(InGameMenu)
-	local v100_ = self.pagingElement:getPageMappingIndexByElement(self.pageMultiplayer)
-	self.pageSelector:setState(v100_, true)
+	local farmsPageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageMultiplayer)
+	self.pageSelector:setState(farmsPageIndex, true)
 end
-
--- Local values: statisticsPageIndex
 function InGameMenu:onOpenVehicleOverview()
 	self:changeScreen(InGameMenu)
-	local v102_ = self.pagingElement:getPageMappingIndexByElement(self.pageStatistics)
-	self.pageSelector:setState(v102_, true)
+	local statisticsPageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageStatistics)
+	self.pageSelector:setState(statisticsPageIndex, true)
 	self.pageStatistics:onClickVehicleOverview()
 end
-
--- Local values: helpLineIndex
 function InGameMenu:openHelpLine(categoryIndex, pageIndex)
 	self:changeScreen(InGameMenu)
 	self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageHelpLine), true)
-	local v105_ = self.pagingElement:getPageMappingIndexByElement(self.pageHelpLine)
-	self.pageSelector:setState(v105_, true)
-	self.pageHelpLine:openPage(pageIndex or 1, pageIndex)
+	local helpLineIndex = self.pagingElement:getPageMappingIndexByElement(self.pageHelpLine)
+	self.pageSelector:setState(helpLineIndex, true)
+	categoryIndex = categoryIndex or 1
+	categoryIndex = pageIndex or 1
+	self.pageHelpLine:openPage(categoryIndex, pageIndex)
 end
-
--- Local values: productionPageIndex
 function InGameMenu:openProductionScreen(productionPoint)
 	if not self:getIsOpen() then
 		self:changeScreen(InGameMenu)
 	end
-	local v108_ = self.pagingElement:getPageMappingIndexByElement(self.pageProduction)
-	self.pageSelector:setState(v108_, true)
+	local productionPageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageProduction)
+	self.pageSelector:setState(productionPageIndex, true)
 	self.pageProduction:setSelectedProductionPoint(productionPoint)
 end
-
--- Local values: generalSettingsPageIndex
 function InGameMenu:openGeneralSettingsScreen()
 	if not self:getIsOpen() then
 		self:changeScreen(InGameMenu)
 	end
 	self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageSettings), true)
-	local v110_ = self.pagingElement:getPageMappingIndexByElement(self.pageSettings)
-	self.pageSelector:setState(v110_, true)
+	local generalSettingsPageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageSettings)
+	self.pageSelector:setState(generalSettingsPageIndex, true)
 	self.pageSettings.isOpening = true
 	self.pageSettings:onClickGeneralSettings()
 	self.pageSettings.isOpening = false
 end
-
--- Local values: gameSettingsPageIndex
 function InGameMenu:openGameSettingsScreen()
 	if not self:getIsOpen() then
 		self:changeScreen(InGameMenu)
 	end
 	self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageSettings), true)
-	local v112_ = self.pagingElement:getPageMappingIndexByElement(self.pageSettings)
-	self.pageSelector:setState(v112_, true)
+	local gameSettingsPageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageSettings)
+	self.pageSelector:setState(gameSettingsPageIndex, true)
 	self.pageSettings.isOpening = true
 	self.pageSettings:onClickGameSettings()
 	self.pageSettings.isOpening = false
 end
-
--- Local values: controlsPageIndex
 function InGameMenu:openControlsScreen()
 	if not self:getIsOpen() then
 		self:changeScreen(InGameMenu)
 	end
 	self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageSettings), true)
-	local v114_ = self.pagingElement:getPageMappingIndexByElement(self.pageSettings)
-	self.pageSelector:setState(v114_, true)
+	local controlsPageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageSettings)
+	self.pageSelector:setState(controlsPageIndex, true)
 	self.pageSettings.isOpening = true
 	self.pageSettings:onClickControls()
 	self.pageSettings.isOpening = false
 end
-
--- Local values: savePageIndex
 function InGameMenu:openSaveScreen()
 	if not self:getIsOpen() then
 		self:changeScreen(InGameMenu)
 	end
 	self:setPageEnabled(ClassUtil.getClassObjectByObject(self.pageSave), true)
-	local v116_ = self.pagingElement:getPageMappingIndexByElement(self.pageSave)
-	self.pageSelector:setState(v116_, true)
+	local savePageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageSave)
+	self.pageSelector:setState(savePageIndex, true)
 end
-
--- Local values: gameSettingsPageIndex, quitGame
 function InGameMenu:setMasterServerConnectionFailed(reason)
 	if self.pageSettings == nil then
 		return
 	else
-		local v119_ = self.pagingElement:getPageMappingIndexByElement(self.pageSettings)
-		self.pageSelector:setState(v119_, true)
-		if (reason == MasterServerConnection.FAILED_PERMANENT_BAN or reason == MasterServerConnection.FAILED_TEMPORARY_BAN) and true or not g_currentMission.isMissionStarted or not self.isServer then
+		local gameSettingsPageIndex = self.pagingElement:getPageMappingIndexByElement(self.pageSettings)
+		self.pageSelector:setState(gameSettingsPageIndex, true)
+		local quitGame = true
+		if reason ~= MasterServerConnection.FAILED_PERMANENT_BAN then
+			quitGame = true
+			if reason ~= MasterServerConnection.FAILED_TEMPORARY_BAN then
+				quitGame = not g_currentMission.isMissionStarted
+			end
+		end
+		if quitGame or not self.isServer then
 			self:leaveCurrentGame()
 			InfoDialog.show(g_i18n:getText(InGameMenu.L10N_SYMBOL.MASTER_SERVER_CONNECTION_LOST), self.onConnectionFailedDialogClick, self)
-		else
-			self.continueEnabled = false
-			YesNoDialog.show(self.onConnectionFailedDialogClick, self, g_i18n:getText(InGameMenu.L10N_SYMBOL.MASTER_SERVER_CONNECTION_LOST), nil, g_i18n:getText("button_save"), g_i18n:getText("button_quit"))
+			return
 		end
+		self.continueEnabled = false
+		YesNoDialog.show(self.onConnectionFailedDialogClick, self, g_i18n:getText(InGameMenu.L10N_SYMBOL.MASTER_SERVER_CONNECTION_LOST), nil, g_i18n:getText("button_save"), g_i18n:getText("button_quit"))
 	end
 end
-
 function InGameMenu:onMasterUserAdded(user)
 	if user:getId() == g_currentMission.playerUserId then
 		self.isMasterUser = true
 		self:updateHasMasterRights()
 	end
 end
-
 function InGameMenu:onMasterUserRemoved(user)
 	if user:getId() == g_currentMission.playerUserId then
 		self.isMasterUser = false
 		self:updateHasMasterRights()
 	end
 end
-
 function InGameMenu:onClickMenu()
 	self:exitMenu()
 	return true
 end
-
 function InGameMenu:onYesNoEnd(yes)
 	if yes then
 		if self.missionDynamicInfo.isMultiplayer and self.isServer then
@@ -781,18 +694,18 @@ function InGameMenu:onYesNoEnd(yes)
 		self:leaveCurrentGame()
 	end
 end
-
 function InGameMenu:onPageNext()
 	if self.blockNextPageNextEvent then
 		self.blockNextPageNextEvent = false
-	elseif self.currentPage:requestClose(self.frameClosePageNextCallback) then
-		if self.currentPage == self.pageSettings or self.currentPage == self.pageHelpLine then
-			self:openSaveScreen()
+	else
+		if self.currentPage:requestClose(self.frameClosePageNextCallback) then
+			if self.currentPage == self.pageSettings or self.currentPage == self.pageHelpLine then
+				self:openSaveScreen()
+			end
+			TabbedMenu:superClass().onPageNext(self)
 		end
-		TabbedMenu:superClass().onPageNext(self)
 	end
 end
-
 function InGameMenu:onPagePrevious()
 	if self.currentPage:requestClose(self.frameClosePagePreviousCallback) then
 		if self.currentPage == self.pageSettings or self.currentPage == self.pageHelpLine then
@@ -801,24 +714,21 @@ function InGameMenu:onPagePrevious()
 		TabbedMenu:superClass().onPagePrevious(self)
 	end
 end
-
--- Local values: prevIndex, prevPage, page
 function InGameMenu:onPageChange(pageIndex, pageMappingIndex, element, skipTabVisualUpdate)
-	local v134_ = self.currentPageId or self.restorePageIndex
-	self.pagingElement:getPageElementByIndex(v134_).closeMenuOneshot = false
+	local prevIndex = self.currentPageId or self.restorePageIndex
+	local prevPage = self.pagingElement:getPageElementByIndex(prevIndex)
+	prevPage.closeMenuOneshot = false
 	InGameMenu:superClass().onPageChange(self, pageIndex, pageMappingIndex, element, skipTabVisualUpdate)
-	local v135_ = self.pagingElement:getPageElementByIndex(pageIndex)
-	if v135_.hasFullScreenMap then
-		v135_:resetUIDeadzones()
+	local page = self.pagingElement:getPageElementByIndex(pageIndex)
+	if page.hasFullScreenMap then
+		page:resetUIDeadzones()
 	end
-	self:updatePages(v134_)
+	self:updatePages(prevIndex)
 end
-
--- Local values: buttonInfo
 function InGameMenu:getPageButtonInfo(page)
-	return InGameMenu:superClass().getPageButtonInfo(self, page)
+	local buttonInfo = InGameMenu:superClass().getPageButtonInfo(self, page)
+	return buttonInfo
 end
-
 function InGameMenu:onConnectionFailedDialogClick(yes)
 	if yes then
 		self.quitAfterSave = true
@@ -827,7 +737,6 @@ function InGameMenu:onConnectionFailedDialogClick(yes)
 		self:leaveCurrentGame()
 	end
 end
-
 function InGameMenu:onVehiclesChanged(vehicle, wasAdded, isExitingGame)
 	if Platform.isMobile then
 		self.pageMapMobile:onVehiclesChanged(vehicle, wasAdded, isExitingGame)
@@ -835,34 +744,28 @@ function InGameMenu:onVehiclesChanged(vehicle, wasAdded, isExitingGame)
 		self.pageMapOverview:onVehiclesChanged(vehicle, wasAdded, isExitingGame)
 	end
 end
-
 function InGameMenu:notifyStartSaving()
 	self.doSaveGameState = SavegameController.SAVE_STATE_NOP_WRITE
 	self:startSavingGameDisplay()
 end
-
 function InGameMenu:notifySaveComplete()
 	self.doSaveGameState = SavegameController.SAVE_STATE_NONE
 	self.playerAlreadySaved = true
 end
-
--- Local values: text
 function InGameMenu:notifySavegameNotSaved(errorCode)
 	self.doSaveGameState = SavegameController.SAVE_STATE_NONE
 	self.savingMinEndTime = 0
-	local v148_ = g_i18n:getText(InGameMenu.L10N_SYMBOL.NOT_SAVED)
+	local text = g_i18n:getText(InGameMenu.L10N_SYMBOL.NOT_SAVED)
 	if errorCode == Savegame.ERROR_DEVICE_UNAVAILABLE then
-		v148_ = g_i18n:getText(InGameMenu.L10N_SYMBOL.SAVE_NO_DEVICE)
+		text = g_i18n:getText(InGameMenu.L10N_SYMBOL.SAVE_NO_DEVICE)
 	end
-	InfoDialog.show(v148_, nil, nil, DialogElement.TYPE_WARNING)
+	InfoDialog.show(text, nil, nil, DialogElement.TYPE_WARNING)
 end
-
 function InGameMenu:notifyOverwriteSavegame(dialogCallback, callbackTarget)
 	self.doSaveGameState = SavegameController.SAVE_STATE_OVERWRITE_DIALOG_WAIT
 	MessageDialog.hide()
 	YesNoDialog.show(dialogCallback, callbackTarget, g_i18n:getText(InGameMenu.L10N_SYMBOL.SAVE_OVERWRITE))
 end
-
 function InGameMenu:onSoilSettingChanged()
 	if Platform.isMobile then
 		self.pageMapMobile:onSoilSettingChanged()
@@ -870,231 +773,128 @@ function InGameMenu:onSoilSettingChanged()
 		self.pageMapOverview:onSoilSettingChanged()
 	end
 end
-
 function InGameMenu:makeIsMainEnabledPredicate()
 	return function()
 		return Platform.isMobile
 	end
 end
-
 function InGameMenu:makeIsHintEnabledPredicate()
 	return function()
-		local v153_ = Platform.hasHints
-		if v153_ then
-			v153_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v153_
+		return Platform.hasHints and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsTourEnabledPredicate()
 	return function()
 		return g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsMapEnabledPredicate()
 	return function()
 		return not Platform.isMobile
 	end
 end
-
 function InGameMenu:makeIsMobileMapEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v155_ = Platform.isMobile
-		if v155_ then
-			v155_ = self.showMap
-		end
-		return v155_
+		return Platform.isMobile and self.showMap
 	end
 end
-
 function InGameMenu:makeIsAIEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
 		return not Platform.isMobile or self.showMap
 	end
 end
-
 function InGameMenu:makeIsCalendarEnabledPredicate()
 	return function()
 		return not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsWeatherEnabledPredicate()
 	return function()
 		return not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsPricesEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v158_ = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
-		if v158_ then
-			v158_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v158_
+		local isNotMultiplayerOrIsInFarm = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
+		return isNotMultiplayerOrIsInFarm and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsAnimalsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v160_ = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
-		if v160_ then
-			v160_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v160_
+		local isNotMultiplayerOrIsInFarm = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
+		return isNotMultiplayerOrIsInFarm and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsContractsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v162_
-		if self.missionDynamicInfo.isMultiplayer and self.playerFarmId == FarmManager.SPECTATOR_FARM_ID then
-			v162_ = false
-		else
-			v162_ = not Platform.isMobile
+		local isNotMultiplayerOrIsInFarm = false
+		if not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID then
+			isNotMultiplayerOrIsInFarm = not Platform.isMobile
 		end
-		if v162_ then
-			v162_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v162_
+		return isNotMultiplayerOrIsInFarm and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsGarageEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v164_ = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
-		if v164_ then
-			v164_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v164_
+		local isNotMultiplayerOrIsInFarm = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
+		return isNotMultiplayerOrIsInFarm and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsFinancesEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v166_ = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
-		if v166_ then
-			v166_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v166_
+		local isNotMultiplayerOrIsInFarm = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
+		return isNotMultiplayerOrIsInFarm and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsStatisticsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v168_ = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
-		if v168_ then
-			v168_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v168_
+		local isNotMultiplayerOrIsInFarm = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
+		return isNotMultiplayerOrIsInFarm and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsSettingsEnabledPredicate()
 	return function()
 		return false
 	end
 end
-
 function InGameMenu:makeIsMobileSettingsEnabledPredicate()
 	return function()
-		local v169_ = Platform.isMobile
-		if v169_ then
-			v169_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v169_
+		return Platform.isMobile and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsMpUsersEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		return self.missionDynamicInfo.isMultiplayer
+		local isMultiplayer = self.missionDynamicInfo.isMultiplayer
+		return isMultiplayer
 	end
 end
-
 function InGameMenu:makeIsMpFarmsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
 		return self.missionDynamicInfo.isMultiplayer
 	end
 end
-
 function InGameMenu:makeIsMpEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
 		return self.missionDynamicInfo.isMultiplayer
 	end
 end
-
 function InGameMenu:makeIsHelpEnabledPredicate()
 	return function()
 		return Platform.isMobile
 	end
 end
-
 function InGameMenu:makeIsProductionEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v174_ = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
-		if v174_ then
-			v174_ = not g_guidedTourManager:getIsTourRunning()
-		end
-		return v174_
+		local isNotMultiplayerOrIsInFarm = not self.missionDynamicInfo.isMultiplayer or self.playerFarmId ~= FarmManager.SPECTATOR_FARM_ID
+		return isNotMultiplayerOrIsInFarm and not g_guidedTourManager:getIsTourRunning()
 	end
 end
-
 function InGameMenu:makeIsSaveEnabledPredicate()
 	return function()
 		return not Platform.isMobile
 	end
 end
-InGameMenu.SLICE_ID = {
-	["MAP"] = "gui.icon_ingameMenu_map",
-	["CALENDAR"] = "gui.icon_ingameMenu_calendar",
-	["ANIMALS"] = "gui.icon_ingameMenu_animals",
-	["CONTRACTS"] = "gui.icon_ingameMenu_contracts",
-	["PRODUCTION"] = "gui.icon_ingameMenu_productionChains",
-	["STATISTICS"] = "gui.icon_ingameMenu_finances",
-	["TOUR"] = "gui.icon_tour",
-	["HELP"] = "gui.icon_options_help2",
-	["MULTIPLAYER"] = "gui.icon_multiplayer",
-	["SAVE"] = "gui.icon_ingameMenu_options"
-}
-InGameMenu.SOUNDS = {
-	["MAP"] = "map",
-	["CALENDAR"] = "calendar",
-	["ANIMALS"] = "animals",
-	["CONTRACTS"] = "contracts",
-	["PRODUCTION"] = "productions",
-	["STATISTICS"] = "statistics",
-	["MULTIPLAYER"] = "paging",
-	["SAVE"] = "settings"
-}
-InGameMenu.L10N_SYMBOL = {
-	["BUTTON_BACK"] = "button_back",
-	["BUTTON_RESTART"] = "button_restart",
-	["TUTORIAL_NOT_SAVED"] = "ui_tutorialIsNotSaved",
-	["END_TUTORIAL"] = "ui_endTutorial",
-	["END_WITHOUT_SAVING"] = "ui_endWithoutSaving",
-	["END_GAME"] = "ui_youWantToQuitGame",
-	["SAVING_CONTENT"] = "ui_savingContent",
-	["MASTER_SERVER_CONNECTION_LOST"] = "ui_masterServerConnectionLost",
-	["NOT_SAVED"] = "ui_savegameNotSaved",
-	["SAVE_NO_DEVICE"] = "ui_savegameSaveNoDevice",
-	["SAVE_OVERWRITE"] = "dialog_savegameOverwrite"
-}
-InGameMenu.PROFILES = {
-	["TAB_BAR_LIGHT"] = "uiInGameMenuHeader",
-	["TAB_BAR_DARK"] = "uiInGameMenuHeaderDark"
-}
+InGameMenu.SLICE_ID = { MAP = "gui.icon_ingameMenu_map", CALENDAR = "gui.icon_ingameMenu_calendar", ANIMALS = "gui.icon_ingameMenu_animals", CONTRACTS = "gui.icon_ingameMenu_contracts", PRODUCTION = "gui.icon_ingameMenu_productionChains", STATISTICS = "gui.icon_ingameMenu_finances", TOUR = "gui.icon_tour", HELP = "gui.icon_options_help2", MULTIPLAYER = "gui.icon_multiplayer", SAVE = "gui.icon_ingameMenu_options" }
+InGameMenu.SOUNDS = { MAP = "map", CALENDAR = "calendar", ANIMALS = "animals", CONTRACTS = "contracts", PRODUCTION = "productions", STATISTICS = "statistics", MULTIPLAYER = "paging", SAVE = "settings" }
+InGameMenu.L10N_SYMBOL = { BUTTON_BACK = "button_back", BUTTON_RESTART = "button_restart", TUTORIAL_NOT_SAVED = "ui_tutorialIsNotSaved", END_TUTORIAL = "ui_endTutorial", END_WITHOUT_SAVING = "ui_endWithoutSaving", END_GAME = "ui_youWantToQuitGame", SAVING_CONTENT = "ui_savingContent", MASTER_SERVER_CONNECTION_LOST = "ui_masterServerConnectionLost", NOT_SAVED = "ui_savegameNotSaved", SAVE_NO_DEVICE = "ui_savegameSaveNoDevice", SAVE_OVERWRITE = "dialog_savegameOverwrite" }
+InGameMenu.PROFILES = { TAB_BAR_LIGHT = "uiInGameMenuHeader", TAB_BAR_DARK = "uiInGameMenuHeaderDark" }

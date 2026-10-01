@@ -1,165 +1,154 @@
 SplineUtil = {}
-
 function SplineUtil.getValidSplineTime(t)
 	return t % 1
 end
-
--- Local values: splineLength, currentCheckDistance, stepCounter, t1, t2, fX, _, fZ, bX, _, bZ, fDistance, bDistance
 function SplineUtil.getSplineTimeAtWorldPos(spline, t, posX, posZ, checkDistance, maxSteps)
-	local v8_ = checkDistance / getSplineLength(spline)
-	local v9_ = 0
+	local splineLength = getSplineLength(spline)
+	local currentCheckDistance = checkDistance / splineLength
+	local stepCounter = 0
 	while true do
-		local v10_ = SplineUtil.getValidSplineTime(t + v8_)
-		local v11_ = SplineUtil.getValidSplineTime(t - v8_)
-		local v12_, _, v13_ = getSplinePosition(spline, v10_)
-		local v14_, _, v15_ = getSplinePosition(spline, v11_)
-		local v16_ = MathUtil.vector2LengthSq(posX - v12_, posZ - v13_)
-		local v17_ = MathUtil.vector2LengthSq(posX - v14_, posZ - v15_)
-		v8_ = v8_ * 0.5
-		if v16_ < v17_ then
-			t = SplineUtil.getValidSplineTime(t + v8_)
-		else
-			t = SplineUtil.getValidSplineTime(t - v8_)
+		local t1 = SplineUtil.getValidSplineTime(t + currentCheckDistance)
+		local t2 = SplineUtil.getValidSplineTime(t - currentCheckDistance)
+		local fX, _, fZ = getSplinePosition(spline, t1)
+		local bX, _, bZ = getSplinePosition(spline, t2)
+		local fDistance = MathUtil.vector2LengthSq(posX - fX, posZ - fZ)
+		local bDistance = MathUtil.vector2LengthSq(posX - bX, posZ - bZ)
+		currentCheckDistance = currentCheckDistance * 0.5
+		if fDistance >= bDistance then
+			break
 		end
-		if maxSteps < v9_ then
-			return t, v9_
+		t = SplineUtil.getValidSplineTime(t + currentCheckDistance)
+		if not (maxSteps < stepCounter) then
+			stepCounter = stepCounter + 1
+			continue
 		end
-		v9_ = v9_ + 1
+		return t, stepCounter
 	end
+	t = SplineUtil.getValidSplineTime(t - currentCheckDistance)
 end
-
--- Local values: dx, dy, dz
 function SplineUtil.getSlopeAngle(spline, splineTime)
-	local v20_, v21_, v22_ = getSplineDirection(spline, splineTime)
-	local v23_ = v21_ / MathUtil.vector3Length(v20_, v21_, v22_)
-	return math.acos(v23_) - 1.5707963267948966
+	local dx, dy, dz = getSplineDirection(spline, splineTime)
+	return math.acos(dy / MathUtil.vector3Length(dx, dy, dz)) - 1.5707963267948966
 end
-
--- Local values: splineLength, xSum, ySum, zSum, t, stepSize, i, x, y, z, x, y, z
 function SplineUtil.getCenterPosition(splineNode, samples)
 	if splineNode == nil then
 		return nil
-	end
-	if not I3DUtil.getIsSpline(splineNode) then
+	elseif I3DUtil.getIsSpline(splineNode) then
+		local splineLength = getSplineLength(splineNode)
+		if splineLength == nil or splineLength <= 0 then
+			return nil
+		end
+		samples = samples or 100
+		local xSum = 0
+		local ySum = 0
+		local zSum = 0
+		local t = 0
+		local stepSize = 1 / samples
+		for i = 0, samples do
+			local x, y, z = getSplinePosition(splineNode, t)
+			xSum = xSum + x
+			ySum = ySum + y
+			zSum = zSum + z
+			t = math.clamp(t + stepSize, 0, 1)
+		end
+		if not getIsSplineClosed(splineNode) then
+			local x, y, z = getSplinePosition(splineNode, 0)
+			xSum = xSum + x
+			ySum = ySum + y
+			zSum = zSum + z
+			samples = samples + 1
+		end
+		return xSum / samples, ySum / samples, zSum / samples
+	else
 		return nil
 	end
-	local v26_ = getSplineLength(splineNode)
-	if v26_ == nil or v26_ <= 0 then
-		return nil
-	end
-	local v27_ = samples or 100
-	local v28_ = 1 / v27_
-	local v29_ = 0
-	local v30_ = 0
-	local v31_ = 0
-	local v32_ = 0
-	for _ = 0, v27_ do
-		local v33_, v34_, v35_ = getSplinePosition(splineNode, v29_)
-		v30_ = v30_ + v33_
-		v31_ = v31_ + v34_
-		v32_ = v32_ + v35_
-		local v36_ = v29_ + v28_
-		v29_ = math.clamp(v36_, 0, 1)
-	end
-	if not getIsSplineClosed(splineNode) then
-		local v37_, v38_, v39_ = getSplinePosition(splineNode, 0)
-		v30_ = v30_ + v37_
-		v31_ = v31_ + v38_
-		v32_ = v32_ + v39_
-		v27_ = v27_ + 1
-	end
-	return v30_ / v27_, v31_ / v27_, v32_ / v27_
 end
-
--- Local values: positions, thresholdRad, splineLength, lastDirX, lastDirZ, t, x, y, z, dirX, _, dirZ, delta
 function SplineUtil.convertToLinearSplineXZ(cubicSpline, thresholdAngleDeg, stepSizeInMeter)
 	if not I3DUtil.getIsSpline(cubicSpline) then
 		return nil
 	end
-	local v43_ = math.rad(thresholdAngleDeg or 5)
-	local v44_ = getSplineLength(cubicSpline)
-	local v45_ = 0
-	local v46_ = nil
-	local v47_ = {}
-	local v48_ = stepSizeInMeter or 0.5
-	local v49_ = nil
+	thresholdAngleDeg = thresholdAngleDeg or 5
+	stepSizeInMeter = stepSizeInMeter or 0.5
+	local positions = {}
+	local thresholdRad = math.rad(thresholdAngleDeg)
+	local splineLength = getSplineLength(cubicSpline)
+	local lastDirX = nil
+	local lastDirZ = nil
+	local t = 0
 	while true do
-		local v50_, v51_, v52_ = getSplinePosition(cubicSpline, v45_)
-		local v53_, _, v54_ = getSplineDirection(cubicSpline, v45_)
-		if v46_ == nil then
-			v49_ = v54_
-			v46_ = v53_
+		local x, y, z = getSplinePosition(cubicSpline, t)
+		local dirX, _, dirZ = getSplineDirection(cubicSpline, t)
+		if lastDirX ~= nil then
+			break
 		end
-		local v55_ = MathUtil.getVectorAngleDifference(v53_, 0, v54_, v46_, 0, v49_)
-		if v45_ == 0 or (v45_ == 1 or v43_ < v55_) then
-			table.insert(v47_, { v50_, v51_, v52_ })
-		else
-			v54_ = v49_
-			v53_ = v46_
-		end
-		if v45_ >= 1 then
-			return v47_
-		end
-		local v56_ = v45_ + v48_ / v44_
-		v45_ = math.clamp(v56_, 0, 1)
-		v49_ = v54_
-		v46_ = v53_
+		lastDirX = dirX
+		lastDirZ = dirZ
+		break
 	end
+	while true do
+		local delta = MathUtil.getVectorAngleDifference(dirX, 0, dirZ, lastDirX, 0, lastDirZ)
+		if t == 0 or t == 1 or thresholdRad < delta then
+			break
+		end
+		if t < 1 then
+			t = math.clamp(t + stepSizeInMeter / splineLength, 0, 1)
+		end
+		return positions
+	end
+	table.insert(positions, { x, y, z })
+	lastDirX = dirX
+	lastDirZ = dirZ
 end
-
--- Local values: numCV, closestIndex, closestDistanceSq, closestX, closestY, closestZ, index, x, y, z, distanceSq
 function SplineUtil.getClosestEditPoint(splineNode, posX, posY, posZ)
 	if splineNode == nil or not I3DUtil.getIsSpline(splineNode) then
 		return nil
-	else
-		local v61_ = getSplineNumOfCV(splineNode)
-		if v61_ < 1 then
-			return nil
-		else
-			local v62_ = math.huge
-			local v63_ = -1
-			local v64_ = nil
-			local v65_ = nil
-			local v66_ = nil
-			for v67_ = 0, v61_ - 1 do
-				local v68_, v69_, v70_ = getSplineEP(splineNode, v67_)
-				local v71_ = MathUtil.vector3LengthSq(posX - v68_, posY - v69_, posZ - v70_)
-				if v71_ < v62_ then
-					v66_ = v70_
-					v65_ = v69_
-					v64_ = v68_
-					v63_ = v67_
-					v62_ = v71_
-				end
-			end
-			if v63_ == -1 then
-				return nil
-			else
-				return v63_, math.sqrt(v62_), v64_, v65_, v66_
-			end
+	end
+	local numCV = getSplineNumOfCV(splineNode)
+	if numCV < 1 then
+		return nil
+	end
+	local closestIndex = -1
+	local closestDistanceSq = math.huge
+	local closestX = nil
+	local closestY = nil
+	local closestZ = nil
+	for index = 0, numCV - 1 do
+		local x, y, z = getSplineEP(splineNode, index)
+		local distanceSq = MathUtil.vector3LengthSq(posX - x, posY - y, posZ - z)
+		if distanceSq < closestDistanceSq then
+			closestDistanceSq = distanceSq
+			closestIndex = index
+			closestX = x
+			closestY = y
+			closestZ = z
 		end
 	end
+	if closestIndex == -1 then
+		return nil
+	else
+		return closestIndex, math.sqrt(closestDistanceSq), closestX, closestY, closestZ
+	end
 end
-
--- Local values: splineLength, x, y, z, splineTime, numCV, prevIndex, nextIndex, index, editPointTime
 function SplineUtil.getClosestEditPointsOnCurve(splineNode, posX, posY, posZ, eps)
 	if splineNode == nil or not I3DUtil.getIsSpline(splineNode) then
 		return nil
 	end
-	local v77_ = getSplineLength(splineNode)
-	if v77_ == nil or v77_ <= 0 then
+	local splineLength = getSplineLength(splineNode)
+	if splineLength == nil or splineLength <= 0 then
 		return nil
 	end
-	local v78_ = eps or 0.01 / v77_
-	local v79_, v80_, v81_, v82_ = getClosestSplinePosition(splineNode, posX, posY, posZ, v78_)
-	local v83_ = nil
-	local v84_ = nil
-	for v85_ = 0, getSplineNumOfCV(splineNode) - 1 do
-		if getTimeAtSplineCV(splineNode, v85_) < v82_ then
-			v84_ = v85_
-		elseif v83_ == nil then
-			v83_ = v85_
+	eps = eps or 0.01 / splineLength
+	local x, y, z, splineTime = getClosestSplinePosition(splineNode, posX, posY, posZ, eps)
+	local numCV = getSplineNumOfCV(splineNode)
+	local prevIndex = nil
+	local nextIndex = nil
+	for index = 0, numCV - 1 do
+		local editPointTime = getTimeAtSplineCV(splineNode, index)
+		if editPointTime < splineTime then
+			prevIndex = index
+		elseif nextIndex == nil then
+			nextIndex = index
 		end
 	end
-	return v79_, v80_, v81_, v82_, v84_, v83_
+	return x, y, z, splineTime, prevIndex, nextIndex
 end

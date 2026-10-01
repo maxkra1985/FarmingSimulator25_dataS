@@ -1,133 +1,111 @@
--- Local values: FillLevelListener_mt
 FillLevelListener = {}
 local FillLevelListener_mt = Class(FillLevelListener, Object)
 InitStaticObjectClass(FillLevelListener, "FillLevelListener")
-
--- Upvalues: FillLevelListener_mt
--- Local values: self
 function FillLevelListener.new(isServer, isClient, customMt)
-	-- upvalues: (copy) FillLevelListener_mt
-	return Object.new(isServer, isClient, customMt or FillLevelListener_mt)
+	local self = Object.new(isServer, isClient, customMt or FillLevelListener_mt)
+	return self
 end
-
--- Local values: fillTypeCategories, fillTypeNames, fillTypes, _, fillType, avoidFillTypes, avoidFillTypeNames, _, avoidFillType, minMaxY
 function FillLevelListener:load(id)
 	self.node = id
 	self.fillTypes = {}
-	local v7_ = getUserAttribute(id, "fillTypeCategories")
-	local v8_ = getUserAttribute(id, "fillTypes")
-	local v9_ = nil
-	if v7_ == nil or v8_ ~= nil then
-		if v7_ == nil and v8_ ~= nil then
-			v9_ = g_fillTypeManager:getFillTypesByNames(v8_, "Warning: UnloadTrigger has invalid fillType \'%s\'.")
+	local fillTypeCategories = getUserAttribute(id, "fillTypeCategories")
+	local fillTypeNames = getUserAttribute(id, "fillTypes")
+	local fillTypes = nil
+	if fillTypeCategories ~= nil then
+		if fillTypeNames == nil then
+			fillTypes = g_fillTypeManager:getFillTypesByCategoryNames(fillTypeCategories, "Warning: UnloadTrigger has invalid fillTypeCategory '%s'.")
+		elseif fillTypeCategories == nil then
+			if fillTypeNames ~= nil then
+				fillTypes = g_fillTypeManager:getFillTypesByNames(fillTypeNames, "Warning: UnloadTrigger has invalid fillType '%s'.")
+			end
 		end
-	else
-		v9_ = g_fillTypeManager:getFillTypesByCategoryNames(v7_, "Warning: UnloadTrigger has invalid fillTypeCategory \'%s\'.")
 	end
-	if v9_ == nil then
-		self.fillTypes = nil
-	else
-		for _, v10_ in pairs(v9_) do
-			self.fillTypes[v10_] = true
+	if fillTypes ~= nil then
+		for _, fillType in pairs(fillTypes) do
+			self.fillTypes[fillType] = true
 		end
+	else
+		self.fillTypes = nil
 	end
 	if self.fillTypes ~= nil then
-		local v11_ = getUserAttribute(id, "avoidFillTypes")
-		local v12_
-		if v11_ == nil then
-			v12_ = nil
-		else
-			v12_ = g_fillTypeManager:getFillTypesByNames(v11_, "Warning: UnloadTrigger has invalid avoidFillType \'%s\'.")
+		local avoidFillTypes = nil
+		local avoidFillTypeNames = getUserAttribute(id, "avoidFillTypes")
+		if avoidFillTypeNames ~= nil then
+			avoidFillTypes = g_fillTypeManager:getFillTypesByNames(avoidFillTypeNames, "Warning: UnloadTrigger has invalid avoidFillType '%s'.")
 		end
-		if v12_ ~= nil then
-			for _, v13_ in pairs(v12_) do
-				if self.fillTypes[v13_] ~= nil then
-					self.fillTypes[v13_] = nil
+		if avoidFillTypes ~= nil then
+			for _, avoidFillType in pairs(avoidFillTypes) do
+				if self.fillTypes[avoidFillType] == nil then
+					continue
 				end
+				self.fillTypes[avoidFillType] = nil
 			end
 		end
 	end
 	self.fillLevelMaxY = getUserAttribute(id, "fillLevelMaxY")
-	local v14_ = getUserAttribute(id, "minMaxY")
-	self.minMaxY = string.getVector(v14_, 2)
+	local minMaxY = getUserAttribute(id, "minMaxY")
+	self.minMaxY = string.getVector(minMaxY, 2)
 	self.baseTranslation = { getTranslation(self.node) }
 	self.currentY = self.baseTranslation[2]
-	if self.fillTypes == nil or (self.fillLevelMaxY == nil or self.minMaxY == nil) then
-		return false
+	if self.fillTypes ~= nil and (self.fillLevelMaxY ~= nil and self.minMaxY ~= nil) then
+		self.dirtyFlag = self:getNextDirtyFlag()
+		return true
 	end
-	self.dirtyFlag = self:getNextDirtyFlag()
-	return true
+	return false
 end
-
 function FillLevelListener:delete() end
-
--- Local values: newY
 function FillLevelListener:readStream(streamId, connection)
 	FillLevelListener:superClass().readStream(self, streamId, connection)
 	if connection:getIsServer() then
-		local v18_ = streamReadFloat32(streamId)
-		setTranslation(self.node, self.baseTranslation[1], v18_, self.baseTranslation[3])
+		local newY = streamReadFloat32(streamId)
+		setTranslation(self.node, self.baseTranslation[1], newY, self.baseTranslation[3])
 	end
 end
-
 function FillLevelListener:writeStream(streamId, connection)
 	FillLevelListener:superClass().writeStream(self, streamId, connection)
 	if not connection:getIsServer() then
 		streamWriteFloat32(streamId, self.currentY)
 	end
 end
-
--- Local values: newY
 function FillLevelListener:readUpdateStream(streamId, timestamp, connection)
 	FillLevelListener:superClass().readUpdateStream(self, streamId, timestamp, connection)
 	if connection:getIsServer() and streamReadBool(streamId) then
-		local v26_ = streamReadFloat32(streamId)
-		setTranslation(self.node, self.baseTranslation[1], v26_, self.baseTranslation[3])
+		local newY = streamReadFloat32(streamId)
+		setTranslation(self.node, self.baseTranslation[1], newY, self.baseTranslation[3])
 	end
 end
-
 function FillLevelListener:writeUpdateStream(streamId, connection, dirtyMask)
 	FillLevelListener:superClass().writeUpdateStream(self, streamId, connection, dirtyMask)
-	if not connection:getIsServer() then
-		local v31_ = streamWriteBool
-		local v32_ = self.dirtyFlag
-		if v31_(streamId, bit32.band(dirtyMask, v32_) ~= 0) then
-			streamWriteFloat32(streamId, self.currentY)
-		end
+	if not connection:getIsServer() and streamWriteBool(streamId, bit32.band(dirtyMask, self.dirtyFlag) ~= 0) then
+		streamWriteFloat32(streamId, self.currentY)
 	end
 end
-
--- Local values: supportedFillTypes, fillType, _, fillType, _
 function FillLevelListener:setSource(source)
-	local v35_ = source.getFillLevel ~= nil
-	assert(v35_)
-	local v36_ = source.getSupportedFillTypes ~= nil
-	assert(v36_)
+	assert(source.getFillLevel ~= nil)
+	assert(source.getSupportedFillTypes ~= nil)
 	self.source = source
-	local v37_ = self.source:getSupportedFillTypes()
-	for v38_, _ in pairs(self.fillTypes) do
-		if v37_[v38_] ~= true then
-			self.fillTypes[v38_] = nil
+	local supportedFillTypes = self.source:getSupportedFillTypes()
+	for fillType, _ in pairs(self.fillTypes) do
+		if supportedFillTypes[fillType] == true then
+			continue
 		end
+		self.fillTypes[fillType] = nil
 	end
 	self.fillLevels = {}
-	for v39_, _ in pairs(self.fillTypes) do
-		self.fillLevels[v39_] = 0
+	for fillType, _ in pairs(self.fillTypes) do
+		self.fillLevels[fillType] = 0
 	end
 end
-
--- Local values: fillLevelSum, fillType, fillLevel, p, newY
 function FillLevelListener:fillLevelsChanged()
-	local v41_ = 0
-	for _, v42_ in pairs(self.fillLevels) do
-		v41_ = v41_ + v42_
+	local fillLevelSum = 0
+	for fillType, fillLevel in pairs(self.fillLevels) do
+		fillLevelSum = fillLevelSum + fillLevel
 	end
-	local v43_ = v41_ / self.fillLevelMaxY
-	local v44_ = math.min(1, v43_)
-	local v45_ = self.minMaxY[1] + v44_ * (self.minMaxY[2] - self.minMaxY[1])
-	if v45_ ~= self.currentY then
+	local p = math.min(1, fillLevelSum / self.fillLevelMaxY)
+	local newY = self.minMaxY[1] + p * (self.minMaxY[2] - self.minMaxY[1])
+	if newY ~= self.currentY then
 		self:raiseDirtyFlags(self.dirtyFlag)
 	end
-	self.currentY = v45_
-	setTranslation(self.node, self.baseTranslation[1], v45_, self.baseTranslation[3])
+	self.currentY = newY
+	setTranslation(self.node, self.baseTranslation[1], newY, self.baseTranslation[3])
 end

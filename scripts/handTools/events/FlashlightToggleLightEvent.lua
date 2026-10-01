@@ -1,31 +1,25 @@
--- Local values: FlashlightToggleLightEvent_mt
 FlashlightToggleLightEvent = {}
 local FlashlightToggleLightEvent_mt = Class(FlashlightToggleLightEvent, Event)
 InitStaticEventClass(FlashlightToggleLightEvent, "FlashlightToggleLightEvent")
 function FlashlightToggleLightEvent.emptyNew()
-	-- upvalues: (copy) FlashlightToggleLightEvent_mt
-	return Event.new(FlashlightToggleLightEvent_mt)
+	local self = Event.new(FlashlightToggleLightEvent_mt)
+	return self
 end
-
--- Local values: self
 function FlashlightToggleLightEvent.new(flashlight, isActive)
-	local v4_ = FlashlightToggleLightEvent.emptyNew()
-	v4_.flashlight = flashlight
-	v4_.isActive = isActive
-	return v4_
+	local self = FlashlightToggleLightEvent.emptyNew()
+	self.flashlight = flashlight
+	self.isActive = isActive
+	return self
 end
-
 function FlashlightToggleLightEvent:readStream(streamId, connection)
 	self.flashlight = NetworkUtil.readNodeObject(streamId)
 	self.isActive = streamReadBool(streamId)
 	self:run(connection)
 end
-
 function FlashlightToggleLightEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.flashlight)
 	streamWriteBool(streamId, self.isActive)
 end
-
 function FlashlightToggleLightEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection)
@@ -34,7 +28,6 @@ function FlashlightToggleLightEvent:run(connection)
 		self.flashlight:setFlashlightIsActive(self.isActive, true)
 	end
 end
-
 function FlashlightToggleLightEvent.sendEvent(flashlight, isActive, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

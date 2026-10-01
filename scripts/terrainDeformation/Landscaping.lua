@@ -1,116 +1,61 @@
--- Local values: Landscaping_mt, NO_CALLBACK, SQRT_2_DIV_FACTOR
 Landscaping = {}
 local Landscaping_mt = Class(Landscaping)
 Landscaping.BRUSH_SHAPE_NUM_SEND_BITS = 2
 Landscaping.OPERATION_NUM_SEND_BITS = 3
-Landscaping.BRUSH_SHAPE = {
-	["SQUARE"] = 1,
-	["CIRCLE"] = 2
-}
-Landscaping.OPERATION = {
-	["RAISE"] = 1,
-	["LOWER"] = 2,
-	["SMOOTH"] = 3,
-	["FLATTEN"] = 4,
-	["PAINT"] = 5,
-	["FOLIAGE"] = 6,
-	["SLOPE"] = 7
-}
-Landscaping.OPERATION_HEIGHT_CHANGE_FACTOR_MAP = {
-	[Landscaping.OPERATION.RAISE] = 1,
-	[Landscaping.OPERATION.LOWER] = -1,
-	[Landscaping.OPERATION.SMOOTH] = 0,
-	[Landscaping.OPERATION.FLATTEN] = 0,
-	[Landscaping.OPERATION.PAINT] = 0,
-	[Landscaping.OPERATION.FOLIAGE] = 0,
-	[Landscaping.OPERATION.SLOPE] = 1
-}
+Landscaping.BRUSH_SHAPE = { SQUARE = 1, CIRCLE = 2 }
+Landscaping.OPERATION = { RAISE = 1, LOWER = 2, SMOOTH = 3, FLATTEN = 4, PAINT = 5, FOLIAGE = 6, SLOPE = 7 }
+Landscaping.OPERATION_HEIGHT_CHANGE_FACTOR_MAP = { [Landscaping.OPERATION.RAISE] = 1, [Landscaping.OPERATION.LOWER] = -1, [Landscaping.OPERATION.SMOOTH] = 0, [Landscaping.OPERATION.FLATTEN] = 0, [Landscaping.OPERATION.PAINT] = 0, [Landscaping.OPERATION.FOLIAGE] = 0, [Landscaping.OPERATION.SLOPE] = 1 }
 Landscaping.SCULPT_BASE_COST_PER_M3 = 10
 Landscaping.PAINT_BASE_COST_PER_M2 = 1
 Landscaping.FOLIAGE_BASE_COST_PER_M2 = 0.2
-local function NO_CALLBACK() end
+local NO_CALLBACK = function() end
 local SQRT_2_DIV_FACTOR = 0.7071067811865475
-
--- Upvalues: Landscaping_mt, NO_CALLBACK
--- Local values: self
 function Landscaping.new(terrainDeformationQueue, placementCollisionMap, userId, validateOnly, callbackFunction, callbackFunctionTarget)
-	-- upvalues: (copy) Landscaping_mt, (copy) NO_CALLBACK
-	local v10_ = Landscaping_mt
-	local v11_ = setmetatable({}, v10_)
-	v11_.terrainDeformationQueue = terrainDeformationQueue
-	v11_.placementCollisionMap = placementCollisionMap
-	v11_.userId = userId
-	v11_.validateOnly = validateOnly
-	v11_.callbackFunction = callbackFunction or NO_CALLBACK
-	v11_.callbackFunctionTarget = callbackFunctionTarget
-	v11_.terrainUnit = getTerrainHeightmapUnitSize(g_terrainNode)
-	v11_.halfTerrainUnit = v11_.terrainUnit / 2
-	v11_.targetPositionX = nil
-	v11_.targetPositionY = nil
-	v11_.targetPositionZ = nil
-	v11_.radius = 0
-	v11_.brushShape = Landscaping.BRUSH_SHAPE.SQUARE
-	v11_.smoothingDistance = 0
-	v11_.sculptingOperation = Landscaping.OPERATION.RAISE
-	v11_.modifiedAreas = {}
-	return v11_
+	local self = setmetatable({}, Landscaping_mt)
+	self.terrainDeformationQueue = terrainDeformationQueue
+	self.placementCollisionMap = placementCollisionMap
+	self.userId = userId
+	self.validateOnly = validateOnly
+	self.callbackFunction = callbackFunction or NO_CALLBACK
+	self.callbackFunctionTarget = callbackFunctionTarget
+	self.terrainUnit = getTerrainHeightmapUnitSize(g_terrainNode)
+	self.halfTerrainUnit = self.terrainUnit / 2
+	self.targetPositionX = nil
+	self.targetPositionY = nil
+	self.targetPositionZ = nil
+	self.radius = 0
+	self.brushShape = Landscaping.BRUSH_SHAPE.SQUARE
+	self.smoothingDistance = 0
+	self.sculptingOperation = Landscaping.OPERATION.RAISE
+	self.modifiedAreas = {}
+	return self
 end
-
 function Landscaping:delete() end
-
--- Local values: numOverlaps
 function Landscaping:hasObjectOverlapInModificationArea(x, y, z)
-	return overlapCylinder(x, y, z, self.radius + 0.5, 10, Axis.Y, "", nil, CollisionFlag.PLAYER, true, false, false, false) > 0
+	local numOverlaps = overlapCylinder(x, y, z, self.radius + 0.5, 10, Axis.Y, "", nil, CollisionFlag.PLAYER, true, false, false, false)
+	return 0 < numOverlaps
 end
-
--- Upvalues: SQRT_2_DIV_FACTOR
--- Local values: size, ox, xStart, xEnd, zOffset1, zOffset2, zOffset
 function Landscaping:addModifiedCircleArea(x, z, radius)
-	-- upvalues: (copy) SQRT_2_DIV_FACTOR
 	if radius < self.terrainUnit + self.halfTerrainUnit then
-		self:addModifiedSquareArea(x, z, radius * 2 * 0.7071067811865475)
+		local size = radius * 2 * 0.7071067811865475
+		self:addModifiedSquareArea(x, z, size)
 	else
-		for v20_ = -radius / self.terrainUnit, radius / self.terrainUnit - 1 do
-			local v21_ = v20_ * self.terrainUnit
-			local v22_ = v20_ * self.terrainUnit + self.terrainUnit
-			local v23_ = math.abs(v21_) / radius
-			local v24_ = math.acos(v23_)
-			local v25_ = math.sin(v24_) * radius
-			local v26_ = math.abs(v22_) / radius
-			local v27_ = math.acos(v26_)
-			local v28_ = math.sin(v27_) * radius
-			local v29_ = math.min(v25_, v28_) - 0.02
-			local v30_ = self.modifiedAreas
-			local v31_ = {
-				x + v21_,
-				z - v29_,
-				x + v22_,
-				z - v29_,
-				x + v21_,
-				z + v29_
-			}
-			table.insert(v30_, v31_)
+		for ox = -radius / self.terrainUnit, radius / self.terrainUnit - 1 do
+			local xStart = ox * self.terrainUnit
+			local xEnd = ox * self.terrainUnit + self.terrainUnit
+			local zOffset1 = math.sin(math.acos(math.abs(xStart) / radius)) * radius
+			local zOffset2 = math.sin(math.acos(math.abs(xEnd) / radius)) * radius
+			local zOffset = math.min(zOffset1, zOffset2) - 0.02
+			table.insert(self.modifiedAreas, { x + xStart, z - zOffset, x + xEnd, z - zOffset, x + xStart, z + zOffset })
 		end
 	end
 end
-
--- Local values: halfSide
 function Landscaping:addModifiedSquareArea(x, z, side)
-	local v36_ = side * 0.5
-	local v37_ = self.modifiedAreas
-	local v38_ = {
-		x - v36_,
-		z - v36_,
-		x + v36_,
-		z - v36_,
-		x - v36_,
-		z + v36_
-	}
-	table.insert(v37_, v38_)
+	local halfSide = side * 0.5
+	table.insert(self.modifiedAreas, { x - halfSide, z - halfSide, x + halfSide, z - halfSide, x - halfSide, z + halfSide })
 end
-
--- Local values: hardness
 function Landscaping:assignSmoothingParameters(deform, x, z, radius, strength, brushShape)
+	local hardness = 1
 	deform:setAdditiveHeightChangeAmount(2)
 	if brushShape == Landscaping.BRUSH_SHAPE.CIRCLE then
 		deform:addSoftCircleBrush(x, z, radius, 1, strength)
@@ -121,7 +66,6 @@ function Landscaping:assignSmoothingParameters(deform, x, z, radius, strength, b
 	end
 	deform:enableSmoothingMode()
 end
-
 function Landscaping:assignPaintingParameters(deform, x, z, radius, brushShape, layerIndex)
 	if brushShape == Landscaping.BRUSH_SHAPE.CIRCLE then
 		deform:addSoftCircleBrush(x, z, radius, 1, 1, layerIndex)
@@ -132,9 +76,8 @@ function Landscaping:assignPaintingParameters(deform, x, z, radius, brushShape, 
 	end
 	deform:enablePaintingMode()
 end
-
--- Local values: hardness
 function Landscaping:assignSculptingParameters(deform, x, y, z, nx, ny, nz, d, minY, maxY, radius, strength, brushShape, operation, smoothingDistance)
+	local hardness = 0.2
 	if operation == Landscaping.OPERATION.FLATTEN then
 		deform:setAdditiveHeightChangeAmount(0.75)
 		deform:setHeightTarget(y, y, 0, 1, 0, -y)
@@ -159,192 +102,188 @@ function Landscaping:assignSculptingParameters(deform, x, y, z, nx, ny, nz, d, m
 	end
 	deform:setOutsideAreaConstraints(0, 1.3089969389957472, 1.3089969389957472)
 end
-
--- Local values: deform, displacedFoliageArea, farm, foliageSystem, unit, ox, xStart, xEnd, zOffset1, zOffset2, zOffset, x0, z0, x1, z1, x2, z2
 function Landscaping:sculpt(x, y, z, nx, ny, nz, d, minY, maxY, radius, strength, brushShape, operation, smoothingDistance, terrainPaintingLayer, terrainFoliageLayer, terrainFoliageValue)
-	local v86_ = TerrainDeformation.new(g_terrainNode)
-	self.currentTerrainDeformation = v86_
+	local deform = TerrainDeformation.new(g_terrainNode)
+	self.currentTerrainDeformation = deform
 	self.targetPositionX = x
 	self.targetPositionY = y
 	self.targetPositionZ = z
 	self.radius = radius
 	self.brushShape = brushShape
-	local v87_ = self.terrainUnit
-	self.smoothingDistance = math.max(smoothingDistance, v87_)
+	self.smoothingDistance = math.max(smoothingDistance, self.terrainUnit)
 	self.sculptingOperation = operation
-	local v88_ = 0
+	local displacedFoliageArea = 0
 	if operation == Landscaping.OPERATION.SMOOTH then
-		self:assignSmoothingParameters(v86_, x, z, radius, strength, brushShape)
+		self:assignSmoothingParameters(deform, x, z, radius, strength, brushShape)
 	elseif operation == Landscaping.OPERATION.PAINT then
-		self:assignPaintingParameters(v86_, x, z, radius, brushShape, terrainPaintingLayer)
+		self:assignPaintingParameters(deform, x, z, radius, brushShape, terrainPaintingLayer)
 	elseif operation == Landscaping.OPERATION.FOLIAGE then
-		if g_farmManager:getFarmByUserId(self.userId):getBalance() < Landscaping.FOLIAGE_BASE_COST_PER_M2 then
+		local farm = g_farmManager:getFarmByUserId(self.userId)
+		if farm:getBalance() < Landscaping.FOLIAGE_BASE_COST_PER_M2 then
 			self:onSculptingValidated(TerrainDeformation.STATE_FAILED_NOT_ENOUGH_MONEY, 0, false)
 			return
 		end
-		local v89_ = g_currentMission.foliageSystem
-		if brushShape == Landscaping.BRUSH_SHAPE.CIRCLE and radius >= 1 then
-			for v90_ = -radius / 0.5, radius / 0.5 - 1 do
-				local v91_ = v90_ * 0.5
-				local v92_ = v90_ * 0.5 + 0.5
-				local v93_ = math.abs(v91_) / radius
-				local v94_ = math.acos(v93_)
-				local v95_ = math.sin(v94_) * radius
-				local v96_ = math.abs(v92_) / radius
-				local v97_ = math.acos(v96_)
-				local v98_ = math.sin(v97_) * radius
-				local v99_ = math.min(v95_, v98_) - 0.02
-				v88_ = v88_ + v89_:apply(v89_:getFoliagePaint(terrainFoliageLayer), x + v91_, z - v99_, x + v92_, z - v99_, x + v91_, z + v99_, terrainFoliageValue)
+		local foliageSystem = g_currentMission.foliageSystem
+		if brushShape == Landscaping.BRUSH_SHAPE.CIRCLE then
+			if 1 <= radius then
+				local unit = 0.5
+				for ox = -radius / 0.5, radius / 0.5 - 1 do
+					local xStart = ox * 0.5
+					local xEnd = ox * 0.5 + 0.5
+					local zOffset1 = math.sin(math.acos(math.abs(xStart) / radius)) * radius
+					local zOffset2 = math.sin(math.acos(math.abs(xEnd) / radius)) * radius
+					local zOffset = math.min(zOffset1, zOffset2) - 0.02
+					displacedFoliageArea = displacedFoliageArea + foliageSystem:apply(foliageSystem:getFoliagePaint(terrainFoliageLayer), x + xStart, z - zOffset, x + xEnd, z - zOffset, x + xStart, z + zOffset, terrainFoliageValue)
+				end
+			else
+				if brushShape == Landscaping.BRUSH_SHAPE.CIRCLE then
+					radius = radius / 2
+				end
+				local x0 = x - radius
+				local z0 = z - radius
+				local x1 = x - radius
+				local z1 = z + radius
+				local x2 = x + radius
+				local z2 = z - radius
+				displacedFoliageArea = foliageSystem:apply(foliageSystem:getFoliagePaint(terrainFoliageLayer), x0, z0, x1, z1, x2, z2, terrainFoliageValue)
 			end
-		else
-			if brushShape == Landscaping.BRUSH_SHAPE.CIRCLE then
-				radius = radius / 2
-			end
-			local v100_ = x - radius
-			local v101_ = z - radius
-			local v102_ = x - radius
-			local v103_ = z + radius
-			local v104_ = x + radius
-			local v105_ = z - radius
-			v88_ = v89_:apply(v89_:getFoliagePaint(terrainFoliageLayer), v100_, v101_, v102_, v103_, v104_, v105_, terrainFoliageValue)
 		end
 	else
-		self:assignSculptingParameters(v86_, x, y, z, nx, ny, nz, d, minY, maxY, radius, strength, brushShape, operation, self.smoothingDistance)
+		self:assignSculptingParameters(deform, x, y, z, nx, ny, nz, d, minY, maxY, radius, strength, brushShape, operation, self.smoothingDistance)
 	end
 	if operation ~= Landscaping.OPERATION.PAINT and operation ~= Landscaping.OPERATION.FOLIAGE then
-		v86_:setBlockedAreaMaxDisplacement(0.01)
-		v86_:setDynamicObjectCollisionMask(CollisionMask.LANDSCAPING)
-		v86_:setDynamicObjectMaxDisplacement(0.03)
+		deform:setBlockedAreaMaxDisplacement(0.01)
+		deform:setDynamicObjectCollisionMask(CollisionMask.LANDSCAPING)
+		deform:setDynamicObjectMaxDisplacement(0.03)
 		if self.placementCollisionMap ~= nil then
-			v86_:setBlockedAreaMap(self.placementCollisionMap, 0)
+			deform:setBlockedAreaMap(self.placementCollisionMap, 0)
 		end
 	end
 	if operation == Landscaping.OPERATION.FOLIAGE then
-		self:onSculptingValidated(TerrainDeformation.STATE_SUCCESS, v88_, false)
-		return
-	elseif (operation == Landscaping.OPERATION.SMOOTH or operation == Landscaping.OPERATION.PAINT) and not self.validateOnly then
-		v86_:apply(true, "onSculptingValidated", self)
+		self:onSculptingValidated(TerrainDeformation.STATE_SUCCESS, displacedFoliageArea, false)
 	else
-		self.terrainDeformationQueue:queueJob(v86_, true, "onSculptingValidated", self)
+		if (operation == Landscaping.OPERATION.SMOOTH or operation == Landscaping.OPERATION.PAINT) and not self.validateOnly then
+			deform:apply(true, "onSculptingValidated", self)
+			return
+		end
+		self.terrainDeformationQueue:queueJob(deform, true, "onSculptingValidated", self)
 	end
 end
-
--- Local values: additionalChecksPassed, updatedErrorCode, farm, ownsTargetLand, dynamicObjectBlocking
 function Landscaping:onSculptingValidated(errorCode, displacedVolumeOrArea, blocked)
 	if errorCode == TerrainDeformation.STATE_SUCCESS then
-		local v109_ = g_farmManager:getFarmByUserId(self.userId)
-		local v110_
-		if v109_:getBalance() < self:getCost(displacedVolumeOrArea) then
-			errorCode = TerrainDeformation.STATE_FAILED_NOT_ENOUGH_MONEY
-			v110_ = false
-		else
-			v110_ = true
+		local additionalChecksPassed = true
+		local updatedErrorCode = errorCode
+		local farm = g_farmManager:getFarmByUserId(self.userId)
+		if farm:getBalance() < self:getCost(displacedVolumeOrArea) then
+			updatedErrorCode = TerrainDeformation.STATE_FAILED_NOT_ENOUGH_MONEY
+			additionalChecksPassed = false
 		end
-		if not Landscaping.isModificationAreaOnOwnedLand(self.targetPositionX, self.targetPositionZ, self.radius + self.smoothingDistance, v109_:getId()) then
-			errorCode = TerrainDeformation.STATE_FAILED_NOT_OWNED
-			v110_ = false
+		local ownsTargetLand = Landscaping.isModificationAreaOnOwnedLand(self.targetPositionX, self.targetPositionZ, self.radius + self.smoothingDistance, farm:getId())
+		if not ownsTargetLand then
+			updatedErrorCode = TerrainDeformation.STATE_FAILED_NOT_OWNED
+			additionalChecksPassed = false
 		end
 		if self.sculptingOperation ~= Landscaping.OPERATION.PAINT and self.sculptingOperation ~= Landscaping.OPERATION.FOLIAGE then
 			if self:isModificationAreaPlacementBlocked(self.targetPositionX, self.targetPositionZ, self.radius) then
-				errorCode = TerrainDeformation.STATE_FAILED_BLOCKED
-				v110_ = false
+				updatedErrorCode = TerrainDeformation.STATE_FAILED_BLOCKED
+				additionalChecksPassed = false
 			end
-			if self:hasObjectOverlapInModificationArea(self.targetPositionX, self.targetPositionY, self.targetPositionZ) then
-				errorCode = TerrainDeformation.STATE_FAILED_COLLIDE_WITH_OBJECT
-				v110_ = false
+			local dynamicObjectBlocking = self:hasObjectOverlapInModificationArea(self.targetPositionX, self.targetPositionY, self.targetPositionZ)
+			if dynamicObjectBlocking then
+				updatedErrorCode = TerrainDeformation.STATE_FAILED_COLLIDE_WITH_OBJECT
+				additionalChecksPassed = false
 			end
 		end
 		if self.sculptingOperation == Landscaping.OPERATION.FOLIAGE then
-			self:onSculptingApplied(errorCode, displacedVolumeOrArea, nil)
+			self:onSculptingApplied(updatedErrorCode, displacedVolumeOrArea, nil)
 			return
-		elseif v110_ and not self.validateOnly then
+		elseif additionalChecksPassed and not self.validateOnly then
 			self.terrainDeformationQueue:queueJob(self.currentTerrainDeformation, false, "onSculptingApplied", self)
+			return
 		else
-			self:onSculptingApplied(errorCode, displacedVolumeOrArea, nil)
+			self:onSculptingApplied(updatedErrorCode, displacedVolumeOrArea, nil)
+			return
 		end
-	else
-		self.currentTerrainDeformation:cancel()
-		self:onSculptingApplied(errorCode, 0, nil)
-		return
 	end
+	self.currentTerrainDeformation:cancel()
+	self:onSculptingApplied(errorCode, 0, nil)
 end
-
--- Local values: cost, farm, minX, maxX, minZ, maxZ, _, area, x, z, x1, z1, x2, z2
 function Landscaping:onSculptingApplied(errorCode, displacedVolumeOrArea, _)
 	if errorCode == TerrainDeformation.STATE_SUCCESS and not self.validateOnly then
-		local v114_ = self:getCost(displacedVolumeOrArea)
-		g_farmManager:getFarmByUserId(self.userId):changeBalance(-v114_, MoneyType.SHOP_PROPERTY_BUY)
+		local cost = self:getCost(displacedVolumeOrArea)
+		local farm = g_farmManager:getFarmByUserId(self.userId)
+		farm:changeBalance(-cost, MoneyType.SHOP_PROPERTY_BUY)
 		if self.sculptingOperation ~= Landscaping.OPERATION.FOLIAGE then
-			local v115_ = math.huge
-			local v116_ = -math.huge
-			local v117_ = math.huge
-			local v118_ = -math.huge
-			for _, v119_ in pairs(self.modifiedAreas) do
-				local v120_, v121_, v122_, v123_, v124_, v125_ = unpack(v119_)
+			local minX = math.huge
+			local maxX = -math.huge
+			local minZ = math.huge
+			local maxZ = -math.huge
+			for _, area in pairs(self.modifiedAreas) do
+				local x, z, x1, z1, x2, z2 = unpack(area)
 				if self.sculptingOperation ~= Landscaping.OPERATION.SMOOTH then
-					FSDensityMapUtil.removeFieldArea(v120_, v121_, v122_, v123_, v124_, v125_, false)
-					FSDensityMapUtil.removeWeedArea(v120_, v121_, v122_, v123_, v124_, v125_)
-					FSDensityMapUtil.removeStoneArea(v120_, v121_, v122_, v123_, v124_, v125_)
+					FSDensityMapUtil.removeFieldArea(x, z, x1, z1, x2, z2, false)
+					FSDensityMapUtil.removeWeedArea(x, z, x1, z1, x2, z2)
+					FSDensityMapUtil.removeStoneArea(x, z, x1, z1, x2, z2)
 				end
-				FSDensityMapUtil.eraseTireTrack(v120_, v121_, v122_, v123_, v124_, v125_)
-				DensityMapHeightUtil.clearArea(v120_, v121_, v122_, v123_, v124_, v125_)
+				FSDensityMapUtil.eraseTireTrack(x, z, x1, z1, x2, z2)
+				DensityMapHeightUtil.clearArea(x, z, x1, z1, x2, z2)
 				if self.sculptingOperation == Landscaping.OPERATION.PAINT then
-					FSDensityMapUtil.clearDecoArea(v120_, v121_, v122_, v123_, v124_, v125_)
+					FSDensityMapUtil.clearDecoArea(x, z, x1, z1, x2, z2)
 				end
-				local v126_ = v124_ + (v122_ - v120_)
-				v115_ = math.min(v115_, v120_, v122_, v124_, v126_)
-				local v127_ = v124_ + (v122_ - v120_)
-				v116_ = math.max(v116_, v120_, v122_, v124_, v127_)
-				local v128_ = v125_ + (v123_ - v121_)
-				v117_ = math.min(v117_, v121_, v123_, v125_, v128_)
-				local v129_ = v125_ + (v123_ - v121_)
-				v118_ = math.max(v118_, v121_, v123_, v125_, v129_)
+				minX = math.min(minX, x, x1, x2, x2 + (x1 - x))
+				maxX = math.max(maxX, x, x1, x2, x2 + (x1 - x))
+				minZ = math.min(minZ, z, z1, z2, z2 + (z1 - z))
+				maxZ = math.max(maxZ, z, z1, z2, z2 + (z1 - z))
 			end
-			g_currentMission.aiSystem:setAreaDirty(v115_, v116_, v117_, v118_)
+			g_currentMission.aiSystem:setAreaDirty(minX, maxX, minZ, maxZ)
 		end
 	end
-	if self.callbackFunctionTarget == nil then
-		self.callbackFunction(errorCode, displacedVolumeOrArea)
-	else
+	if self.callbackFunctionTarget ~= nil then
 		self.callbackFunction(self.callbackFunctionTarget, errorCode, displacedVolumeOrArea)
+	else
+		self.callbackFunction(errorCode, displacedVolumeOrArea)
 	end
 	self.currentTerrainDeformation:delete()
 	self.currentTerrainDeformation = nil
 end
-
--- Local values: cost
 function Landscaping:getCost(displacedVolumeOrArea)
+	local cost = 0
 	if self.sculptingOperation == Landscaping.OPERATION.PAINT then
-		return displacedVolumeOrArea * Landscaping.PAINT_BASE_COST_PER_M2
+		cost = displacedVolumeOrArea * Landscaping.PAINT_BASE_COST_PER_M2
+		return cost
 	elseif self.sculptingOperation == Landscaping.OPERATION.FOLIAGE then
-		return displacedVolumeOrArea * Landscaping.FOLIAGE_BASE_COST_PER_M2
+		cost = displacedVolumeOrArea * Landscaping.FOLIAGE_BASE_COST_PER_M2
+		return cost
 	else
-		return displacedVolumeOrArea * Landscaping.SCULPT_BASE_COST_PER_M3
+		cost = displacedVolumeOrArea * Landscaping.SCULPT_BASE_COST_PER_M3
+		return cost
 	end
 end
-
 function Landscaping.isModificationAreaOnOwnedLand(x, z, radius, farmId)
-	local v136_ = g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, x - radius, z - radius) and (g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, x - radius, z + radius) and g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, x + radius, z - radius))
-	if v136_ then
-		v136_ = g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, x + radius, z + radius)
-	end
-	return v136_
+	return g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, x - radius, z - radius) and g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, x - radius, z + radius) and g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, x + radius, z - radius) and g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, x + radius, z + radius)
 end
-function Landscaping.isModificationAreaPlacementBlocked(p137_, p138_, p139_, p140_)
-	local v141_, v142_, v143_, v144_, v145_
-	if p137_.brushShape == Landscaping.BRUSH_SHAPE.CIRCLE then
-		v141_ = p138_ - p140_
-		v142_ = p139_ - p140_
-		v143_ = p139_ + p140_
-		v144_ = p138_
-		v145_ = p139_
+function Landscaping:isModificationAreaPlacementBlocked(x, z, radius)
+	local sx = nil
+	local sz = nil
+	local wx = nil
+	local wz = nil
+	local hx = nil
+	local hz = nil
+	if self.brushShape == Landscaping.BRUSH_SHAPE.CIRCLE then
+		sx = x - radius
+		sz = z
+		wx = x
+		wz = z - radius
+		hx = x
+		hz = z + radius
 	else
-		v141_ = p138_ - p140_
-		v145_ = p139_ - p140_
-		v144_ = p138_ + p140_
-		v142_ = p139_ - p140_
-		p138_ = p138_ - p140_
-		v143_ = p139_ + p140_
+		sx = x - radius
+		sz = z - radius
+		wx = x + radius
+		wz = z - radius
+		hx = x - radius
+		hz = z + radius
 	end
-	return g_densityMapHeightManager:getIsPlacementAreaBlocked(v141_, v145_, v144_, v142_, p138_, v143_)
+	local isBlocked = g_densityMapHeightManager:getIsPlacementAreaBlocked(sx, sz, wx, wz, hx, hz)
+	return isBlocked
 end

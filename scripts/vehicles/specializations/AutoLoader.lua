@@ -1,29 +1,27 @@
 AutoLoader = {}
-
 function AutoLoader.prerequisitesPresent(specializations)
 	return true
 end
 function AutoLoader.initSpecialization()
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("AutoLoader")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.autoLoader.areas.area(?)#node", "Area root node")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.autoLoader.areas.area(?).trigger(?)#node", "Trigger node")
-	v1_:register(XMLValueType.BOOL, "vehicle.autoLoader.areas.area(?).trigger(?)#alwaysActive", "Sets a trigger always active")
-	v1_:register(XMLValueType.FLOAT, "vehicle.autoLoader.areas.area(?)#length", "Area length")
-	v1_:register(XMLValueType.FLOAT, "vehicle.autoLoader.areas.area(?)#width", "Area width")
-	v1_:register(XMLValueType.FLOAT, "vehicle.autoLoader.areas.area(?)#height", "Area height (only used for collision checks)")
-	v1_:register(XMLValueType.FLOAT, "vehicle.autoLoader.areas.area(?)#spacing", "Area spacing")
-	v1_:setXMLSpecializationType()
-	local v2_ = Vehicle.xmlSchemaSavegame
-	v2_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountPosX", "Mount position x")
-	v2_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountPosZ", "Mount position z")
-	v2_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountSizeX", "Mount size x")
-	v2_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountSizeZ", "Mount size z")
-	v2_:register(XMLValueType.INT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountAreaIndex", "Mount area index")
-	v2_:register(XMLValueType.INT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#vehicleUniqueId", "Vehicle unique id")
-	Bale.registerSavegameXMLPaths(v2_, "vehicles.vehicle(?).autoLoader.mountedObject(?).bale")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("AutoLoader")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.autoLoader.areas.area(?)#node", "Area root node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.autoLoader.areas.area(?).trigger(?)#node", "Trigger node")
+	schema:register(XMLValueType.BOOL, "vehicle.autoLoader.areas.area(?).trigger(?)#alwaysActive", "Sets a trigger always active")
+	schema:register(XMLValueType.FLOAT, "vehicle.autoLoader.areas.area(?)#length", "Area length")
+	schema:register(XMLValueType.FLOAT, "vehicle.autoLoader.areas.area(?)#width", "Area width")
+	schema:register(XMLValueType.FLOAT, "vehicle.autoLoader.areas.area(?)#height", "Area height (only used for collision checks)")
+	schema:register(XMLValueType.FLOAT, "vehicle.autoLoader.areas.area(?)#spacing", "Area spacing")
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountPosX", "Mount position x")
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountPosZ", "Mount position z")
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountSizeX", "Mount size x")
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountSizeZ", "Mount size z")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#mountAreaIndex", "Mount area index")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).autoLoader.mountedObject(?)#vehicleUniqueId", "Vehicle unique id")
+	Bale.registerSavegameXMLPaths(schemaSavegame, "vehicles.vehicle(?).autoLoader.mountedObject(?).bale")
 end
-
 function AutoLoader.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "autoLoaderPickupTriggerCallback", AutoLoader.autoLoaderPickupTriggerCallback)
 	SpecializationUtil.registerFunction(vehicleType, "autoLoaderOverlapCallback", AutoLoader.autoLoaderOverlapCallback)
@@ -31,13 +29,11 @@ function AutoLoader.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getIsAutoLoadingAllowed", AutoLoader.getIsAutoLoadingAllowed)
 	SpecializationUtil.registerFunction(vehicleType, "onUnmountObject", AutoLoader.onUnmountObject)
 end
-
 function AutoLoader.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getDynamicMountTimeToMount", AutoLoader.getDynamicMountTimeToMount)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "addToPhysics", AutoLoader.addToPhysics)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "removeFromPhysics", AutoLoader.removeFromPhysics)
 end
-
 function AutoLoader.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AutoLoader)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", AutoLoader)
@@ -45,110 +41,87 @@ function AutoLoader.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", AutoLoader)
 	SpecializationUtil.registerEventListener(vehicleType, "onRootVehicleChanged", AutoLoader)
 end
-
--- Local values: spec
 function AutoLoader:onLoad(savegame)
-	local v_u_7_ = self.spec_autoLoader
+	local spec = self.spec_autoLoader
 	if self.isServer then
-		v_u_7_.collsionMask = CollisionFlag.VEHICLE + CollisionFlag.DYNAMIC_OBJECT
-		v_u_7_.pendingObjects = {}
-		v_u_7_.mountedObjects = {}
-		v_u_7_.triggerToAreas = {}
-		v_u_7_.alwaysActiveTriggers = {}
-		v_u_7_.skippedObjects = {}
-		self.xmlFile:iterate("vehicle.autoLoader.areas.area", function(_, p8_)
-			-- upvalues: (copy) self, (copy) v_u_7_
-			local v9_ = self.xmlFile:getValue(p8_ .. "#node", nil, self.components, self.i3dMappings)
-			local v10_ = self.xmlFile:getValue(p8_ .. "#length", 6)
-			local v11_ = self.xmlFile:getValue(p8_ .. "#width", 2.5)
-			local v12_ = self.xmlFile:getValue(p8_ .. "#height", 4)
-			local v13_ = self.xmlFile:getValue(p8_ .. "#spacing", 0.1)
-			if v9_ ~= nil then
-				if v_u_7_.areas == nil then
-					v_u_7_.areas = {}
+		spec.collsionMask = CollisionFlag.VEHICLE + CollisionFlag.DYNAMIC_OBJECT
+		spec.pendingObjects = {}
+		spec.mountedObjects = {}
+		spec.triggerToAreas = {}
+		spec.alwaysActiveTriggers = {}
+		spec.skippedObjects = {}
+		self.xmlFile:iterate("vehicle.autoLoader.areas.area", function(_, areaKey)
+			local node = self.xmlFile:getValue(areaKey .. "#node", nil, self.components, self.i3dMappings)
+			local length = self.xmlFile:getValue(areaKey .. "#length", 6)
+			local width = self.xmlFile:getValue(areaKey .. "#width", 2.5)
+			local height = self.xmlFile:getValue(areaKey .. "#height", 4)
+			local spacing = self.xmlFile:getValue(areaKey .. "#spacing", 0.1)
+			if node ~= nil then
+				if spec.areas == nil then
+					spec.areas = {}
 				end
-				local v_u_14_ = {
-					["node"] = v9_,
-					["index"] = #v_u_7_.areas + 1,
-					["width"] = v11_,
-					["length"] = v10_,
-					["height"] = v12_,
-					["spacing"] = v13_,
-					["grid"] = PlacementGrid2D.new(v9_, v11_, v10_, v13_, PlacementGrid2D.MODE_SIDES)
-				}
-				self.xmlFile:iterate(p8_ .. ".trigger", function(_, p15_)
-					-- upvalues: (ref) self, (ref) v_u_7_, (copy) v_u_14_
-					local v16_ = self.xmlFile:getValue(p15_ .. "#node", nil, self.components, self.i3dMappings)
-					if v_u_7_.triggerToAreas[v16_] == nil then
-						addTrigger(v16_, "autoLoaderPickupTriggerCallback", self)
-						v_u_7_.triggerToAreas[v16_] = {}
+				local area = {}
+				area.node = node
+				area.index = #spec.areas + 1
+				area.width = width
+				area.length = length
+				area.height = height
+				area.spacing = spacing
+				area.grid = PlacementGrid2D.new(node, width, length, spacing, PlacementGrid2D.MODE_SIDES)
+				self.xmlFile:iterate(areaKey .. ".trigger", function(_, triggerKey)
+					local triggerNode = self.xmlFile:getValue(triggerKey .. "#node", nil, self.components, self.i3dMappings)
+					if spec.triggerToAreas[triggerNode] == nil then
+						addTrigger(triggerNode, "autoLoaderPickupTriggerCallback", self)
+						spec.triggerToAreas[triggerNode] = {}
 					end
-					if self.xmlFile:getValue(p15_ .. "#alwaysActive") then
-						v_u_7_.alwaysActiveTriggers[v16_] = true
+					local alwaysActive = self.xmlFile:getValue(triggerKey .. "#alwaysActive")
+					if alwaysActive then
+						spec.alwaysActiveTriggers[triggerNode] = true
 					end
-					local v17_ = v_u_7_.triggerToAreas[v16_]
-					local v18_ = v_u_14_
-					table.insert(v17_, v18_)
+					table.insert(spec.triggerToAreas[triggerNode], area)
 				end)
-				local v19_ = v_u_7_.areas
-				table.insert(v19_, v_u_14_)
+				table.insert(spec.areas, area)
 			end
 		end)
 	end
-	v_u_7_.isAutoLoadingActive = false
-	v_u_7_.warningNoSpace = g_i18n:getText("autoLoader_warningNoSpace")
-	v_u_7_.warningTooLarge = g_i18n:getText("autoLoader_warningTooLarge")
+	spec.isAutoLoadingActive = false
+	spec.warningNoSpace = g_i18n:getText("autoLoader_warningNoSpace")
+	spec.warningTooLarge = g_i18n:getText("autoLoader_warningTooLarge")
 end
-
--- Local values: spec, xmlFile, key
 function AutoLoader:onPostLoad(savegame)
 	if savegame ~= nil then
-		local v_u_22_ = self.spec_autoLoader
+		local spec = self.spec_autoLoader
 		if not savegame.resetVehicles then
-			local v_u_23_ = savegame.xmlFile
-			local v24_ = string.format("%s.autoLoader.mountedObject", savegame.key)
-			v_u_22_.pendingVehicles = {}
-			v_u_23_:iterate(v24_, function(_, p25_)
-				-- upvalues: (copy) v_u_23_, (copy) v_u_22_, (copy) self
-				local v26_ = v_u_23_:getValue(p25_ .. "#mountPosX")
-				local v27_ = v_u_23_:getValue(p25_ .. "#mountPosZ")
-				local v28_ = v_u_23_:getValue(p25_ .. "#mountSizeX")
-				local v29_ = v_u_23_:getValue(p25_ .. "#mountSizeZ")
-				local v30_ = v_u_23_:getValue(p25_ .. "#mountAreaIndex")
-				local v31_ = v_u_23_:getValue(p25_ .. "#vehicleUniqueId")
-				local v32_ = v_u_22_.areas[v30_]
-				if v32_ ~= nil then
-					if v31_ ~= nil then
-						local v33_ = v_u_22_.pendingVehicles
-						table.insert(v33_, {
-							["posX"] = v26_,
-							["posZ"] = v27_,
-							["sizeX"] = v28_,
-							["sizeZ"] = v29_,
-							["area"] = v32_,
-							["vehicleUniqueId"] = v31_
-						})
+			local xmlFile = savegame.xmlFile
+			local key = string.format("%s.autoLoader.mountedObject", savegame.key)
+			spec.pendingVehicles = {}
+			xmlFile:iterate(key, function(_, objectKey)
+				local posX = xmlFile:getValue(objectKey .. "#mountPosX")
+				local posZ = xmlFile:getValue(objectKey .. "#mountPosZ")
+				local sizeX = xmlFile:getValue(objectKey .. "#mountSizeX")
+				local sizeZ = xmlFile:getValue(objectKey .. "#mountSizeZ")
+				local areaIndex = xmlFile:getValue(objectKey .. "#mountAreaIndex")
+				local vehicleUniqueId = xmlFile:getValue(objectKey .. "#vehicleUniqueId")
+				local area = spec.areas[areaIndex]
+				if area ~= nil then
+					if vehicleUniqueId ~= nil then
+						local pendingVehicle = { posX = posX, posZ = posZ, sizeX = sizeX, sizeZ = sizeZ, area = area, vehicleUniqueId = vehicleUniqueId }
+						table.insert(spec.pendingVehicles, pendingVehicle)
 						return
 					end
-					if v_u_23_:hasProperty(p25_ .. ".bale") then
-						local v34_ = Bale.new(self.isServer, self.isClient)
-						if v34_:loadFromXMLFile(v_u_23_, p25_ .. ".bale", false) then
-							v34_:register()
-							if v34_:autoLoad(self, v32_.node, v26_, v27_, v28_, v29_) then
-								v_u_22_.mountedObjects[v34_] = {
-									v26_,
-									v27_,
-									v28_,
-									v29_,
-									v32_.index
-								}
-								v_u_22_.pendingObjects[v34_] = nil
-								v32_.grid:blockAreaLocal(v26_, v27_, v28_, v29_)
-								return
+					if xmlFile:hasProperty(objectKey .. ".bale") then
+						local bale = Bale.new(self.isServer, self.isClient)
+						if bale:loadFromXMLFile(xmlFile, objectKey .. ".bale", false) then
+							bale:register()
+							local success = bale:autoLoad(self, area.node, posX, posZ, sizeX, sizeZ)
+							if success then
+								spec.mountedObjects[bale] = { posX, posZ, sizeX, sizeZ, area.index }
+								spec.pendingObjects[bale] = nil
+								area.grid:blockAreaLocal(posX, posZ, sizeX, sizeZ)
 							end
 						else
-							Logging.xmlWarning(v_u_23_, "Could not load autoLoader bale for \'%s\'", p25_)
-							v34_:delete()
+							Logging.xmlWarning(xmlFile, "Could not load autoLoader bale for '%s'", objectKey)
+							bale:delete()
 						end
 					end
 				end
@@ -156,319 +129,297 @@ function AutoLoader:onPostLoad(savegame)
 		end
 	end
 end
-
--- Local values: spec, pendingObject, _, object, _, _, area, triggerNode, _
 function AutoLoader:onDelete()
-	local v36_ = self.spec_autoLoader
+	local spec = self.spec_autoLoader
 	if self.isServer then
-		for v37_, _ in pairs(v36_.pendingObjects) do
-			v37_:removeDeleteListener(self, AutoLoader.onDeletePendingObject)
+		for pendingObject, _ in pairs(spec.pendingObjects) do
+			pendingObject:removeDeleteListener(self, AutoLoader.onDeletePendingObject)
 		end
-		for v38_, _ in pairs(v36_.mountedObjects) do
-			v38_:unmountKinematic()
+		for object, _ in pairs(spec.mountedObjects) do
+			object:unmountKinematic()
 		end
-		if v36_.areas ~= nil then
-			for _, v39_ in ipairs(v36_.areas) do
-				v39_.grid:delete()
+		if spec.areas ~= nil then
+			for _, area in ipairs(spec.areas) do
+				area.grid:delete()
 			end
 		end
-		if v36_.triggerToAreas ~= nil then
-			for v40_, _ in pairs(v36_.triggerToAreas) do
-				removeTrigger(v40_)
+		if spec.triggerToAreas ~= nil then
+			for triggerNode, _ in pairs(spec.triggerToAreas) do
+				removeTrigger(triggerNode)
 			end
 		end
 	end
-	v36_.skippedObjects = nil
-	v36_.pendingObjects = nil
-	v36_.mountedObjects = nil
+	spec.skippedObjects = nil
+	spec.pendingObjects = nil
+	spec.mountedObjects = nil
 end
-
--- Local values: spec, i, object, mountData, mountKey
 function AutoLoader:saveToXMLFile(xmlFile, key, usedModNames)
-	local v44_ = self.spec_autoLoader
-	local v45_ = 0
-	for v46_, v47_ in pairs(v44_.mountedObjects) do
-		local v48_ = string.format("%s.mountedObject(%d)", key, v45_)
-		xmlFile:setValue(v48_ .. "#mountPosX", v47_[1])
-		xmlFile:setValue(v48_ .. "#mountPosZ", v47_[2])
-		xmlFile:setValue(v48_ .. "#mountSizeX", v47_[3])
-		xmlFile:setValue(v48_ .. "#mountSizeZ", v47_[4])
-		xmlFile:setValue(v48_ .. "#mountAreaIndex", v47_[5])
-		if v46_:isa(Vehicle) then
-			xmlFile:setValue(v48_ .. "#vehicleUniqueId", v46_:getUniqueId())
-		elseif v46_:isa(Bale) then
-			v46_:saveToXMLFile(xmlFile, v48_ .. ".bale")
+	local spec = self.spec_autoLoader
+	local i = 0
+	for object, mountData in pairs(spec.mountedObjects) do
+		local mountKey = string.format("%s.mountedObject(%d)", key, i)
+		xmlFile:setValue(mountKey .. "#mountPosX", mountData[1])
+		xmlFile:setValue(mountKey .. "#mountPosZ", mountData[2])
+		xmlFile:setValue(mountKey .. "#mountSizeX", mountData[3])
+		xmlFile:setValue(mountKey .. "#mountSizeZ", mountData[4])
+		xmlFile:setValue(mountKey .. "#mountAreaIndex", mountData[5])
+		if object:isa(Vehicle) then
+			xmlFile:setValue(mountKey .. "#vehicleUniqueId", object:getUniqueId())
+		elseif object:isa(Bale) then
+			object:saveToXMLFile(xmlFile, mountKey .. ".bale")
 		end
-		v45_ = v45_ + 1
+		i = i + 1
 	end
 end
-
--- Local values: spec, object, t, _, data, vehicleUniqueId, vehicle, area, posX, posZ, sizeX, sizeZ, success, _, area, object, _, x, y, z, dirX, dirY, dirZ, upX, upY, upZ, extendX, extendY, extendZ, showTooLargeWarning, showNoSpaceWarning, pendingObject, triggerId, sizeX, sizeY, sizeZ, areas, _, area, foundSpace, try, posX, posZ, x, y, z, rx, ry, rz, success
 function AutoLoader:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v51_ = self.spec_autoLoader
-	if self.isServer and v51_.areas ~= nil then
-		for v52_, v53_ in pairs(v51_.skippedObjects) do
-			local v54_ = v53_ - dt
-			v51_.skippedObjects[v52_] = v54_ > 0 and v54_ and v54_ or nil
+	local spec = self.spec_autoLoader
+	if self.isServer and spec.areas ~= nil then
+		for object, t in pairs(spec.skippedObjects) do
+			local t = t - dt
+			spec.skippedObjects[object] = 0 < t and t or nil
 		end
-		if v51_.pendingVehicles ~= nil then
-			for _, v55_ in ipairs(v51_.pendingVehicles) do
-				local v56_ = v55_.vehicleUniqueId
-				local v57_ = g_currentMission.vehicleSystem:getVehicleByUniqueId(v56_)
-				if v57_ ~= nil then
-					local v58_ = v55_.area
-					local v59_ = v55_.posX
-					local v60_ = v55_.posZ
-					local v61_ = v55_.sizeX
-					local v62_ = v55_.sizeZ
-					if v57_:autoLoad(self, v58_.node, v59_, v60_, v61_, v62_) then
-						v51_.mountedObjects[v57_] = {
-							v59_,
-							v60_,
-							v61_,
-							v62_,
-							v58_.index
-						}
-						v51_.pendingObjects[v57_] = nil
-						v57_:removeDeleteListener(self, AutoLoader.onDeletePendingObject)
-						v58_.grid:blockAreaLocal(v59_, v60_, v61_, v62_)
-					end
+		if spec.pendingVehicles ~= nil then
+			for _, data in ipairs(spec.pendingVehicles) do
+				local vehicleUniqueId = data.vehicleUniqueId
+				local vehicle = g_currentMission.vehicleSystem:getVehicleByUniqueId(vehicleUniqueId)
+				if vehicle == nil then
+					continue
+				end
+				local area = data.area
+				local posX = data.posX
+				local posZ = data.posZ
+				local sizeX = data.sizeX
+				local sizeZ = data.sizeZ
+				local success = vehicle:autoLoad(self, area.node, posX, posZ, sizeX, sizeZ)
+				if success then
+					spec.mountedObjects[vehicle] = { posX, posZ, sizeX, sizeZ, area.index }
+					spec.pendingObjects[vehicle] = nil
+					vehicle:removeDeleteListener(self, AutoLoader.onDeletePendingObject)
+					area.grid:blockAreaLocal(posX, posZ, sizeX, sizeZ)
 				end
 			end
-			v51_.pendingVehicles = nil
+			spec.pendingVehicles = nil
 		end
-		if v51_.needGridUpdate then
-			v51_.needGridUpdate = false
-			for _, v63_ in ipairs(v51_.areas) do
-				v63_.grid:reset()
-				for v64_, _ in pairs(v51_.mountedObjects) do
-					local v65_, v66_, v67_, v68_, v69_, v70_, v71_, v72_, v73_, v74_, v75_, v76_ = v64_:getAutoLoadBoundingBox()
-					v63_.grid:blockAreaByBoundingBox(v65_, v66_, v67_, v68_, v69_, v70_, v71_, v72_, v73_, v74_, v75_, v76_)
+		if spec.needGridUpdate then
+			spec.needGridUpdate = false
+			for _, area in ipairs(spec.areas) do
+				area.grid:reset()
+				for object, _ in pairs(spec.mountedObjects) do
+					local x, y, z, dirX, dirY, dirZ, upX, upY, upZ, extendX, extendY, extendZ = object:getAutoLoadBoundingBox()
+					area.grid:blockAreaByBoundingBox(x, y, z, dirX, dirY, dirZ, upX, upY, upZ, extendX, extendY, extendZ)
 				end
 			end
 		end
-		local v77_ = false
-		local v78_ = false
-		for v79_, v80_ in pairs(v51_.pendingObjects) do
-			if v79_.isDeleted then
-				v51_.pendingObjects[v79_] = true
-			else
-				if (v51_.isAutoLoadingActive or v51_.alwaysActiveTriggers[v80_] == true) and v79_:getAutoLoadIsAllowed() then
-					local v81_, v82_, v83_ = v79_:getAutoLoadSize()
-					local v84_ = v51_.triggerToAreas[v80_]
-					for _, v85_ in ipairs(v84_) do
-						if v81_ <= v85_.width and (v82_ <= v85_.height and v83_ <= v85_.length) then
-							local v86_ = false
-							for _ = 1, 3 do
-								local v87_, v88_ = v85_.grid:getFreePosition(v81_, v83_)
-								if v87_ == nil then
-									v77_ = true
+		local showTooLargeWarning = false
+		local showNoSpaceWarning = false
+		for pendingObject, triggerId in pairs(spec.pendingObjects) do
+			if not pendingObject.isDeleted then
+				if (spec.isAutoLoadingActive or spec.alwaysActiveTriggers[triggerId] == true) and pendingObject:getAutoLoadIsAllowed() then
+					local sizeX, sizeY, sizeZ = pendingObject:getAutoLoadSize()
+					local areas = spec.triggerToAreas[triggerId]
+					for _, area in ipairs(areas) do
+						if sizeX <= area.width and (sizeY <= area.height and sizeZ <= area.length) then
+							local foundSpace = false
+							for try = 1, 3 do
+								local posX, posZ = area.grid:getFreePosition(sizeX, sizeZ)
+								if posX ~= nil then
+									local x, y, z = localToWorld(area.node, posX + sizeX * 0.5, sizeY * 0.5, posZ + sizeZ * 0.5)
+									local rx, ry, rz = getWorldRotation(area.node)
+									spec.isAreaBlocked = false
+									spec.currentPendingObject = pendingObject
+									overlapBox(x, y, z, rx, ry, rz, sizeX * 0.5, sizeY * 0.5, sizeZ * 0.5, "autoLoaderOverlapCallback", self, spec.collsionMask, true, true, false, true)
+									spec.currentPendingObject = nil
+									if not spec.isAreaBlocked then
+										local success = pendingObject:autoLoad(self, area.node, posX, posZ, sizeX, sizeZ)
+										if success then
+											spec.mountedObjects[pendingObject] = { posX, posZ, sizeX, sizeZ, area.index }
+											spec.pendingObjects[pendingObject] = nil
+											pendingObject:removeDeleteListener(self, AutoLoader.onDeletePendingObject)
+											area.grid:blockAreaLocal(posX, posZ, sizeX, sizeZ)
+											foundSpace = true
+											showNoSpaceWarning = false
+											showTooLargeWarning = false
+											break
+										end
+									else
+										area.grid:blockAreaLocal(posX, posZ, sizeX, sizeZ)
+									end
 								else
-									local v89_, v90_, v91_ = localToWorld(v85_.node, v87_ + v81_ * 0.5, v82_ * 0.5, v88_ + v83_ * 0.5)
-									local v92_, v93_, v94_ = getWorldRotation(v85_.node)
-									v51_.isAreaBlocked = false
-									v51_.currentPendingObject = v79_
-									overlapBox(v89_, v90_, v91_, v92_, v93_, v94_, v81_ * 0.5, v82_ * 0.5, v83_ * 0.5, "autoLoaderOverlapCallback", self, v51_.collsionMask, true, true, false, true)
-									v51_.currentPendingObject = nil
-									if v51_.isAreaBlocked then
-										v85_.grid:blockAreaLocal(v87_, v88_, v81_, v83_)
-									elseif v79_:autoLoad(self, v85_.node, v87_, v88_, v81_, v83_) then
-										v51_.mountedObjects[v79_] = {
-											v87_,
-											v88_,
-											v81_,
-											v83_,
-											v85_.index
-										}
-										v51_.pendingObjects[v79_] = nil
-										v79_:removeDeleteListener(self, AutoLoader.onDeletePendingObject)
-										v85_.grid:blockAreaLocal(v87_, v88_, v81_, v83_)
-										v86_ = true
-										v77_ = false
-										v78_ = false
-										break
+									showNoSpaceWarning = true
+								end
+							end
+							if not foundSpace then
+								continue
+							end
+							if showNoSpaceWarning then
+								if spec.warningNoSpace ~= nil then
+									g_currentMission:showBlinkingWarning(spec.warningNoSpace, 2000)
+								elseif showTooLargeWarning then
+									if spec.warningTooLarge ~= nil then
+										g_currentMission:showBlinkingWarning(spec.warningTooLarge, 2000)
 									end
 								end
 							end
-							if v86_ then
-								break
-							end
-						else
-							v78_ = true
 						end
+						showTooLargeWarning = true
 					end
 				end
-				if v77_ and v51_.warningNoSpace ~= nil then
-					g_currentMission:showBlinkingWarning(v51_.warningNoSpace, 2000)
-				elseif v78_ and v51_.warningTooLarge ~= nil then
-					g_currentMission:showBlinkingWarning(v51_.warningTooLarge, 2000)
-				end
+			else
+				spec.pendingObjects[pendingObject] = true
 			end
 		end
-		if Platform.gameplay.automaticVehicleControl and v51_.isAutoLoadingActive then
+		if Platform.gameplay.automaticVehicleControl and spec.isAutoLoadingActive then
 			self.rootVehicle:playControlledActions()
 		end
 	end
 end
-
--- Local values: spec, _, area
 function AutoLoader:onDraw()
-	local v96_ = self.spec_autoLoader
-	if v96_.areas ~= nil then
-		for _, v97_ in ipairs(v96_.areas) do
-			v97_.grid:drawDebug()
+	local spec = self.spec_autoLoader
+	if spec.areas ~= nil then
+		for _, area in ipairs(spec.areas) do
+			area.grid:drawDebug()
 		end
 	end
 end
-
--- Local values: spec, object, _
 function AutoLoader:addToPhysics(superFunc)
 	if not superFunc(self) then
 		return false
-	end
-	if self.isServer then
-		local v100_ = self.spec_autoLoader
-		for v101_, _ in pairs(v100_.mountedObjects) do
-			if v101_.addToPhysics ~= nil then
-				v101_:addToPhysics()
+	else
+		if self.isServer then
+			local spec = self.spec_autoLoader
+			for object, _ in pairs(spec.mountedObjects) do
+				if object.addToPhysics == nil then
+					continue
+				end
+				object:addToPhysics()
 			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: ret, spec, object, _
 function AutoLoader:removeFromPhysics(superFunc)
-	local v104_ = superFunc(self)
+	local ret = superFunc(self)
 	if self.isServer then
-		local v105_ = self.spec_autoLoader
-		for v106_, _ in pairs(v105_.mountedObjects) do
-			if v106_.removeFromPhysics ~= nil then
-				v106_:removeFromPhysics()
+		local spec = self.spec_autoLoader
+		for object, _ in pairs(spec.mountedObjects) do
+			if object.removeFromPhysics == nil then
+				continue
 			end
+			object:removeFromPhysics()
 		end
 	end
-	return v104_
+	return ret
 end
-
--- Local values: spec
 function AutoLoader:onUnmountObject(object)
-	local v109_ = self.spec_autoLoader
-	v109_.skippedObjects[object] = 3000
-	v109_.mountedObjects[object] = nil
-	v109_.needGridUpdate = true
+	local spec = self.spec_autoLoader
+	spec.skippedObjects[object] = 3000
+	spec.mountedObjects[object] = nil
+	spec.needGridUpdate = true
 	self:raiseActive()
 end
-
--- Local values: spec
 function AutoLoader:getIsValidAutoLoaderObject(object)
 	if object == nil then
 		return false
-	elseif object == self then
-		return false
-	elseif self.spec_autoLoader.mountedObjects[object] == nil then
-		if object:isa(Vehicle) or object:isa(Bale) then
-			if object.getAutoLoadIsSupported == nil or not object:getAutoLoadIsSupported() then
-				return false
-			else
-				return g_currentMission.accessHandler:canFarmAccess(self:getActiveFarm(), object) and true or false
-			end
-		else
-			return false
-		end
-	else
+	end
+	if object == self then
 		return false
 	end
+	local spec = self.spec_autoLoader
+	if spec.mountedObjects[object] ~= nil then
+		return false
+	end
+	if not object:isa(Vehicle) and not object:isa(Bale) then
+		return false
+	end
+	if object.getAutoLoadIsSupported == nil or not object:getAutoLoadIsSupported() then
+		return false
+	end
+	if not g_currentMission.accessHandler:canFarmAccess(self:getActiveFarm(), object) then
+		return false
+	else
+		return true
+	end
 end
-
--- Local values: spec, object, shouldBeSkipped, object
 function AutoLoader:autoLoaderPickupTriggerCallback(triggerId, otherActorId, onEnter, onLeave, onStay, otherShapeId)
-	local v117_ = self.spec_autoLoader
+	local spec = self.spec_autoLoader
 	if onEnter then
-		local v118_ = g_currentMission:getNodeObject(otherActorId)
-		if otherActorId ~= 0 and (self:getIsAutoLoadingAllowed() and (v118_ == nil or v117_.mountedObjects[v118_] == nil)) then
-			local v119_
-			if v117_.skippedObjects[v118_] == nil then
-				v119_ = false
-			else
-				v119_ = v117_.alwaysActiveTriggers[triggerId] == true
-			end
-			if self:getIsValidAutoLoaderObject(v118_) and (v117_.pendingObjects[v118_] ~= triggerId and not v119_) then
-				v117_.pendingObjects[v118_] = triggerId
-				v118_:addDeleteListener(self, AutoLoader.onDeletePendingObject)
-				v117_.needGridUpdate = true
+		local object = g_currentMission:getNodeObject(otherActorId)
+		if otherActorId ~= 0 and (self:getIsAutoLoadingAllowed() and (object == nil or spec.mountedObjects[object] == nil)) then
+			local shouldBeSkipped = spec.skippedObjects[object] ~= nil and spec.alwaysActiveTriggers[triggerId] == true
+			if self:getIsValidAutoLoaderObject(object) and (spec.pendingObjects[object] ~= triggerId and not shouldBeSkipped) then
+				spec.pendingObjects[object] = triggerId
+				object:addDeleteListener(self, AutoLoader.onDeletePendingObject)
+				spec.needGridUpdate = true
 				self:raiseActive()
-				return
 			end
 		end
 	elseif onLeave then
-		local v120_ = g_currentMission:getNodeObject(otherActorId)
-		if v120_ ~= nil and v117_.pendingObjects[v120_] ~= nil then
-			v117_.pendingObjects[v120_] = nil
-			v120_:removeDeleteListener(self, AutoLoader.onDeletePendingObject)
+		local object = g_currentMission:getNodeObject(otherActorId)
+		if object ~= nil and spec.pendingObjects[object] ~= nil then
+			spec.pendingObjects[object] = nil
+			object:removeDeleteListener(self, AutoLoader.onDeletePendingObject)
 		end
 	end
 end
-
--- Local values: object, spec
 function AutoLoader:autoLoaderOverlapCallback(transformId)
 	if transformId ~= 0 and (getHasClassId(transformId, ClassIds.SHAPE) and not getHasTrigger(transformId)) then
-		local v123_ = g_currentMission:getNodeObject(transformId)
-		local v124_ = self.spec_autoLoader
-		if v123_ ~= self and (v124_.mountedObjects[v123_] == nil and v124_.currentPendingObject ~= v123_) then
-			v124_.isAreaBlocked = true
+		local object = g_currentMission:getNodeObject(transformId)
+		local spec = self.spec_autoLoader
+		if object ~= self and (spec.mountedObjects[object] == nil and spec.currentPendingObject ~= object) then
+			spec.isAreaBlocked = true
 			return false
 		end
 	end
 	return true
 end
-
--- Local values: _, y1, _, _, y2, _
 function AutoLoader:getIsAutoLoadingAllowed()
-	local _, v126_, _ = getWorldTranslation(self.components[1].node)
-	local _, v127_, _ = localToWorld(self.components[1].node, 0, 1, 0)
-	return v127_ - v126_ >= 0.5
-end
-
-function AutoLoader:getDynamicMountTimeToMount(superFunc)
-	return self:getIsAutoLoadingAllowed() and -1 or math.huge
-end
-
--- Local values: spec, actionController
-function AutoLoader:onRootVehicleChanged(rootVehicle)
-	local v131_ = self.spec_autoLoader
-	local v132_ = rootVehicle.actionController
-	if v132_ == nil then
-		if v131_.controlledAction ~= nil then
-			v131_.controlledAction:remove()
-			v131_.controlledAction = nil
-		end
-		return
-	elseif v131_.controlledAction == nil then
-		v131_.controlledAction = v132_:registerAction("autoLoaderLoad", nil, 4)
-		v131_.controlledAction:setCallback(self, AutoLoader.actionControllerEvent)
-		v131_.controlledAction:setIsAvailableFunction(function()
-			-- upvalues: (copy) self
-			return next(self.spec_autoLoader.pendingObjects) ~= nil
-		end)
-		v131_.controlledAction:setActionIcons("AUTO_LOAD", "AUTO_LOAD", false)
+	local _, y1, _ = getWorldTranslation(self.components[1].node)
+	local _, y2, _ = localToWorld(self.components[1].node, 0, 1, 0)
+	if y2 - y1 < 0.5 then
+		return false
 	else
-		v131_.controlledAction:updateParent(v132_)
+		return true
 	end
 end
-
--- Local values: spec
-function AutoLoader:actionControllerEvent(direction)
-	local v135_ = self.spec_autoLoader
-	if direction < 0 then
-		v135_.isAutoLoadingActive = false
+function AutoLoader:getDynamicMountTimeToMount(superFunc)
+	if self:getIsAutoLoadingAllowed() then
+		return -1
 	else
-		v135_.isAutoLoadingActive = true
+		return math.huge
+	end
+end
+function AutoLoader:onRootVehicleChanged(rootVehicle)
+	local spec = self.spec_autoLoader
+	local actionController = rootVehicle.actionController
+	if actionController ~= nil then
+		if spec.controlledAction ~= nil then
+			spec.controlledAction:updateParent(actionController)
+			return
+		else
+			spec.controlledAction = actionController:registerAction("autoLoaderLoad", nil, 4)
+			spec.controlledAction:setCallback(self, AutoLoader.actionControllerEvent)
+			spec.controlledAction:setIsAvailableFunction(function()
+				return next(self.spec_autoLoader.pendingObjects) ~= nil
+			end)
+			spec.controlledAction:setActionIcons("AUTO_LOAD", "AUTO_LOAD", false)
+			return
+		end
+	end
+	if spec.controlledAction ~= nil then
+		spec.controlledAction:remove()
+		spec.controlledAction = nil
+	end
+end
+function AutoLoader:actionControllerEvent(direction)
+	local spec = self.spec_autoLoader
+	if direction < 0 then
+		spec.isAutoLoadingActive = false
+	else
+		spec.isAutoLoadingActive = true
 	end
 	return true
 end
-
--- Local values: spec
 function AutoLoader:onDeletePendingObject(object)
-	self.spec_autoLoader.pendingObjects[object] = nil
+	local spec = self.spec_autoLoader
+	spec.pendingObjects[object] = nil
 end

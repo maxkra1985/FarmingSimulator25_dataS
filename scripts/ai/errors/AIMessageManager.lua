@@ -1,4 +1,3 @@
--- Local values: AIMessageManager_mt
 AIMessageManager = {}
 AIMessageType = {}
 AIMessageType.OK = 1
@@ -33,15 +32,10 @@ source("dataS/scripts/ai/errors/AIMessageSuccessFinishedJob.lua")
 source("dataS/scripts/ai/errors/AIMessageSuccessSiloEmpty.lua")
 source("dataS/scripts/ai/errors/AIMessageSuccessStoppedByUser.lua")
 local AIMessageManager_mt = Class(AIMessageManager)
-
--- Upvalues: AIMessageManager_mt
--- Local values: self
 function AIMessageManager.new(customMt)
-	-- upvalues: (copy) AIMessageManager_mt
-	local v3_ = customMt or AIMessageManager_mt
-	return setmetatable({}, v3_)
+	local self = setmetatable({}, customMt or AIMessageManager_mt)
+	return self
 end
-
 function AIMessageManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	self.messages = {}
 	self.nameToIndex = {}
@@ -74,59 +68,50 @@ function AIMessageManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	self:registerMessage("SUCCESS_SILO_EMPTY", AIMessageSuccessSiloEmpty)
 	self:registerMessage("SUCCESS_STOPPED_BY_USER", AIMessageSuccessStoppedByUser)
 end
-
 function AIMessageManager:delete()
 	self.messages = {}
 	self.nameToIndex = {}
 	self.classObjectToIndex = {}
 end
-
--- Local values: aiMessage
 function AIMessageManager:registerMessage(name, classObject)
 	if not ClassUtil.getIsValidIndexName(name) then
-		Logging.warning("\'%s\' is not a valid name for a ai message!", (tostring(name)))
+		Logging.warning("'%s' is not a valid name for a ai message!", tostring(name))
 		return nil
 	end
-	local v9_ = string.upper(name)
-	if self.nameToIndex[v9_] ~= nil then
-		Logging.warning("AI message \'%s\' already exists!", (tostring(v9_)))
+	name = string.upper(name)
+	if self.nameToIndex[name] ~= nil then
+		Logging.warning("AI message '%s' already exists!", tostring(name))
 		return nil
-	end
-	if classObject == nil then
-		Logging.warning("AI message \'%s\' class not defined!", (tostring(v9_)))
-		return nil
-	end
-	local v10_ = {
-		["name"] = v9_,
-		["classObject"] = classObject
-	}
-	local v11_ = self.messages
-	table.insert(v11_, v10_)
-	self.nameToIndex[v9_] = #self.messages
-	self.classObjectToIndex[classObject] = #self.messages
-	return v10_
-end
-
--- Local values: classObject
-function AIMessageManager:getMessageIndex(messageObject)
-	local v14_ = ClassUtil.getClassObjectByObject(messageObject)
-	if v14_ == nil then
+	elseif classObject == nil then
+		Logging.warning("AI message '%s' class not defined!", tostring(name))
 		return nil
 	else
-		return self.classObjectToIndex[v14_]
+		local aiMessage = {}
+		aiMessage.name = name
+		aiMessage.classObject = classObject
+		table.insert(self.messages, aiMessage)
+		self.nameToIndex[name] = #self.messages
+		self.classObjectToIndex[classObject] = #self.messages
+		return aiMessage
 	end
 end
-
--- Local values: aiMessage, instance
+function AIMessageManager:getMessageIndex(messageObject)
+	local classObject = ClassUtil.getClassObjectByObject(messageObject)
+	if classObject == nil then
+		return nil
+	else
+		return self.classObjectToIndex[classObject]
+	end
+end
 function AIMessageManager:createMessage(messageIndex)
 	if messageIndex == nil then
 		return nil
+	end
+	local aiMessage = self.messages[messageIndex]
+	if aiMessage == nil then
+		return nil
 	else
-		local v17_ = self.messages[messageIndex]
-		if v17_ == nil then
-			return nil
-		else
-			return v17_.classObject.new()
-		end
+		local instance = aiMessage.classObject.new()
+		return instance
 	end
 end

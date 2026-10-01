@@ -1,21 +1,17 @@
--- Local values: NPCConversationAnswerEvent_mt
 NPCConversationAnswerEvent = {}
 local NPCConversationAnswerEvent_mt = Class(NPCConversationAnswerEvent, Event)
 InitStaticEventClass(NPCConversationAnswerEvent, "NPCConversationAnswerEvent")
 function NPCConversationAnswerEvent.emptyNew()
-	-- upvalues: (copy) NPCConversationAnswerEvent_mt
-	return Event.new(NPCConversationAnswerEvent_mt)
+	local self = Event.new(NPCConversationAnswerEvent_mt)
+	return self
 end
-
--- Local values: self
 function NPCConversationAnswerEvent.new(npc, conversationItemIndex, optionIndex)
-	local v5_ = NPCConversationAnswerEvent.emptyNew()
-	v5_.npc = npc
-	v5_.conversationItemIndex = conversationItemIndex
-	v5_.optionIndex = optionIndex
-	return v5_
+	local self = NPCConversationAnswerEvent.emptyNew()
+	self.npc = npc
+	self.conversationItemIndex = conversationItemIndex
+	self.optionIndex = optionIndex
+	return self
 end
-
 function NPCConversationAnswerEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
 		NetworkUtil.writeNodeObject(streamId, self.npc)
@@ -25,7 +21,6 @@ function NPCConversationAnswerEvent:writeStream(streamId, connection)
 		end
 	end
 end
-
 function NPCConversationAnswerEvent:readStream(streamId, connection)
 	if not connection:getIsServer() then
 		self.npc = NetworkUtil.readNodeObject(streamId)
@@ -36,7 +31,6 @@ function NPCConversationAnswerEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function NPCConversationAnswerEvent:run(connection)
 	if not connection:getIsServer() and self.npc ~= nil then
 		self.npc:processAnswer(connection, self.conversationItemIndex, self.optionIndex)

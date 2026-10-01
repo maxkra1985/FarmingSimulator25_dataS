@@ -1,24 +1,16 @@
--- Local values: RiceFieldUpdateTask_mt
 RiceFieldUpdateTask = {}
 local RiceFieldUpdateTask_mt = Class(RiceFieldUpdateTask, DensityMapUpdateTask)
-
 function RiceFieldUpdateTask.registerXMLPaths(schema, basePath)
 	DensityMapUpdateTask.registerXMLPaths(schema, basePath)
 end
-
--- Upvalues: RiceFieldUpdateTask_mt
--- Local values: self
 function RiceFieldUpdateTask.new(customMt)
-	-- upvalues: (copy) RiceFieldUpdateTask_mt
-	local v5_ = RiceFieldUpdateTask:superClass().new(customMt or RiceFieldUpdateTask_mt)
-	v5_.multiModifier = DensityMapMultiModifier.new()
-	return v5_
+	local self = RiceFieldUpdateTask:superClass().new(customMt or RiceFieldUpdateTask_mt)
+	self.multiModifier = DensityMapMultiModifier.new()
+	return self
 end
-
 function RiceFieldUpdateTask:saveToXMLFile(xmlFile, key)
 	RiceFieldUpdateTask:superClass().saveToXMLFile(self, xmlFile, key)
 end
-
 function RiceFieldUpdateTask:loadFromXMLFile(xmlFile, key)
 	RiceFieldUpdateTask:superClass().loadFromXMLFile(self, xmlFile, key)
 	if self.state == DensityMapUpdateTaskState.RUNNING then
@@ -26,55 +18,39 @@ function RiceFieldUpdateTask:loadFromXMLFile(xmlFile, key)
 	end
 	return true
 end
-
--- Local values: _, desc, modifier, fruitReqWaterFilter, growthState, hasTooLittleWater, hasTooMuchWater, replacementFoliageState, percentageToReplace, filterThreshold
 function RiceFieldUpdateTask:performPerlinNoiseDestruction(fruitTypes, waterFillLevelPerSqm, perlinFilter)
-	for _, v16_ in ipairs(fruitTypes) do
-		if v16_.minWaterLitersPerSqm == nil and v16_.maxWaterLitersPerSqm == nil then
+	for _, desc in ipairs(fruitTypes) do
+		if desc.minWaterLitersPerSqm == nil and desc.maxWaterLitersPerSqm == nil then
 			return
 		end
-		local v17_ = v16_:getModifier()
-		local v18_ = v16_:getFilter()
-		for v19_ = v16_.numGrowthStates, 1, -1 do
-			local v20_
-			if v16_.minWaterLitersPerSqm[v19_] == nil then
-				v20_ = false
-			else
-				v20_ = waterFillLevelPerSqm < v16_.minWaterLitersPerSqm[v19_]
-			end
-			local v21_
-			if v16_.maxWaterLitersPerSqm[v19_] == nil then
-				v21_ = false
-			else
-				v21_ = v16_.maxWaterLitersPerSqm[v19_] < waterFillLevelPerSqm
-			end
-			if v20_ or v21_ then
-				local v22_ = v16_.penaltyStateName[v19_] and (v16_:getGrowthStateByName(v16_.penaltyStateName[v19_]) or 0) or 0
-				local v23_ = 10000 * (1 - (v16_.penaltyPercentage and (v16_.penaltyPercentage[v19_] or 0.1) or 0.1))
-				perlinFilter:setValueCompareParams(DensityValueCompareType.GREATER, v23_)
-				v18_:setValueCompareParams(DensityValueCompareType.EQUAL, v19_ + 1)
-				self.multiModifier:addExecuteSet(v22_, v17_, perlinFilter, v18_)
+		local modifier = desc:getModifier()
+		local fruitReqWaterFilter = desc:getFilter()
+		for growthState = desc.numGrowthStates, 1, -1 do
+			local hasTooLittleWater = desc.minWaterLitersPerSqm[growthState] ~= nil and waterFillLevelPerSqm < desc.minWaterLitersPerSqm[growthState]
+			local hasTooMuchWater = desc.maxWaterLitersPerSqm[growthState] ~= nil and desc.maxWaterLitersPerSqm[growthState] < waterFillLevelPerSqm
+			if hasTooLittleWater or hasTooMuchWater then
+				local replacementFoliageState = desc.penaltyStateName[growthState] and desc:getGrowthStateByName(desc.penaltyStateName[growthState]) or 0
+				local percentageToReplace = desc.penaltyPercentage and desc.penaltyPercentage[growthState] or 0.1
+				local filterThreshold = 10000 * (1 - percentageToReplace)
+				perlinFilter:setValueCompareParams(DensityValueCompareType.GREATER, filterThreshold)
+				fruitReqWaterFilter:setValueCompareParams(DensityValueCompareType.EQUAL, growthState + 1)
+				self.multiModifier:addExecuteSet(replacementFoliageState, modifier, perlinFilter, fruitReqWaterFilter)
 			end
 		end
 	end
 end
-
 function RiceFieldUpdateTask:enqueue()
 	g_fieldManager:addFieldUpdateTask(self)
 end
-
--- Local values: multiModifier
 function RiceFieldUpdateTask:start(_, immediate)
 	if self.area == nil then
 		self.state = DensityMapUpdateTaskState.FINISHED
 		Logging.warning("Missing area for RiceFieldUpdateTask")
 	else
 		self.state = DensityMapUpdateTaskState.RUNNING
-		local v27_ = self.multiModifier
-		self.area:applyToModifier(v27_)
-		local v28_, v29_ = v27_:getPolygonMinMaxZ()
-		self.minY = v28_
-		self.maxY = v29_
+		local multiModifier = self.multiModifier
+		self.area:applyToModifier(multiModifier)
+		self.minY, self.maxY = multiModifier:getPolygonMinMaxZ()
 		if self.minY ~= nil then
 			if self.currentMinY == nil then
 				self.currentMinY = self.minY
@@ -87,26 +63,21 @@ function RiceFieldUpdateTask:start(_, immediate)
 		end
 	end
 end
-
--- Local values: multiModifier
 function RiceFieldUpdateTask:update(dt)
 	if self.state == DensityMapUpdateTaskState.RUNNING then
-		local v31_ = self.multiModifier
+		local multiModifier = self.multiModifier
 		if self.currentMinY ~= nil then
-			v31_:setPolygonClipRegion(self.currentMinY, self.currentMaxY)
+			multiModifier:setPolygonClipRegion(self.currentMinY, self.currentMaxY)
 		end
-		v31_:execute()
-		if self.minY == nil then
-			self.state = DensityMapUpdateTaskState.FINISHED
-		else
+		multiModifier:execute()
+		if self.minY ~= nil then
 			self.currentMinY = self.currentMaxY
-			local v32_ = self.currentMinY + self.maxRegionPerFrame
-			local v33_ = self.maxY
-			self.currentMaxY = math.min(v32_, v33_)
+			self.currentMaxY = math.min(self.currentMinY + self.maxRegionPerFrame, self.maxY)
 			if self.currentMinY == self.maxY then
 				self.state = DensityMapUpdateTaskState.FINISHED
-				return
 			end
+		else
+			self.state = DensityMapUpdateTaskState.FINISHED
 		end
 	end
 end

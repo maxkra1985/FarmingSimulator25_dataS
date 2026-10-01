@@ -1,111 +1,76 @@
--- Local values: TextElement_mt
 TextElement = {}
 local TextElement_mt = Class(TextElement, GuiElement)
 Gui.registerGuiElement("Text", TextElement)
-TextElement.VERTICAL_ALIGNMENT = {
-	["TOP"] = "top",
-	["MIDDLE"] = "middle",
-	["BOTTOM"] = "bottom"
-}
-TextElement.FORMAT = {
-	["NONE"] = 1,
-	["TEMPERATURE"] = 2,
-	["CURRENCY"] = 3,
-	["ACCOUNTING"] = 4,
-	["NUMBER"] = 5,
-	["PERCENTAGE"] = 6
-}
-TextElement.LAYOUT_MODE = {
-	["TRUNCATE"] = 1,
-	["RESIZE"] = 2,
-	["OVERFLOW"] = 3,
-	["CLIP"] = 4,
-	["SCROLLING"] = 5,
-	["FILL"] = 6
-}
+TextElement.VERTICAL_ALIGNMENT = { TOP = "top", MIDDLE = "middle", BOTTOM = "bottom" }
+TextElement.FORMAT = { NONE = 1, TEMPERATURE = 2, CURRENCY = 3, ACCOUNTING = 4, NUMBER = 5, PERCENTAGE = 6 }
+TextElement.LAYOUT_MODE = { TRUNCATE = 1, RESIZE = 2, OVERFLOW = 3, CLIP = 4, SCROLLING = 5, FILL = 6 }
 TextElement.REGEX_LAST_CHARACTER_ALLOWS_BREAK = "[%s%p\227\128\130]$"
 TextElement.REGEX_BREAKING_CHARAKTERS_BEFORE = "[%s]$"
 TextElement.REGEX_BREAKING_CHARAKTERS_AFTER = "[%p\227\128\130]$"
-
--- Upvalues: TextElement_mt
--- Local values: self
 function TextElement.new(target, custom_mt)
-	-- upvalues: (copy) TextElement_mt
-	local v4_ = GuiElement.new(target, custom_mt or TextElement_mt)
-	v4_.textColor = {
-		1,
-		1,
-		1,
-		1
-	}
-	v4_.textDisabledColor = nil
-	v4_.textSelectedColor = nil
-	v4_.textFocusedColor = nil
-	v4_.textHighlightedColor = nil
-	v4_.textFocusedSelectedColor = nil
-	v4_.textHighlightedSelectedColor = nil
-	v4_.textOffset = { 0, 0 }
-	v4_.textSize = 0.03
-	v4_.textBold = false
-	v4_.textSelectedBold = false
-	v4_.textFocusedBold = false
-	v4_.textHighlightedBold = false
-	v4_.text2Color = {
-		1,
-		1,
-		1,
-		1
-	}
-	v4_.text2DisabledColor = nil
-	v4_.text2SelectedColor = nil
-	v4_.text2FocusedColor = nil
-	v4_.text2HighlightedColor = nil
-	v4_.text2Offset = { 0, 0 }
-	v4_.text2FocusedOffset = { 0, 0 }
-	v4_.text2Size = 0
-	v4_.text2Bold = false
-	v4_.text2SelectedBold = false
-	v4_.text2HighlightedBold = false
-	v4_.textUpperCase = false
-	v4_.textLinesPerPage = 0
-	v4_.currentPage = 1
-	v4_.defaultTextSize = v4_.textSize
-	v4_.defaultText2Size = v4_.text2Size
-	v4_.textLineHeightScale = RenderText.DEFAULT_LINE_HEIGHT_SCALE
-	v4_.text = ""
-	v4_.textAlignment = RenderText.ALIGN_CENTER
-	v4_.textOriginalAlignment = RenderText.ALIGN_CENTER
-	v4_.textVerticalAlignment = TextElement.VERTICAL_ALIGNMENT.MIDDLE
-	v4_.ignoreDisabled = false
-	v4_.firstLineIndentation = nil
-	v4_.format = TextElement.FORMAT.NONE
-	v4_.locaKey = nil
-	v4_.value = nil
-	v4_.formatDecimalPlaces = 0
-	v4_.textMaxWidth = nil
-	v4_.textMinWidth = 0
-	v4_.textMaxNumLines = 1
-	v4_.textAutoWidth = false
-	v4_.textAutoHeight = false
-	v4_.textLayoutMode = TextElement.LAYOUT_MODE.TRUNCATE
-	v4_.textScrollOnFocusOnly = true
-	v4_.textMinSize = 0.01
-	v4_.sourceText = ""
-	v4_.scrollingStartPos = 0
-	v4_.scrollingOffset = 0
-	v4_.scrollingMaxOffset = 0
-	v4_.scrollingClipArea = nil
-	v4_.scrollTime = 0
-	v4_.updatedTextLayoutMode = false
-	return v4_
+	local self = GuiElement.new(target, custom_mt or TextElement_mt)
+	self.textColor = { 1, 1, 1, 1 }
+	self.textDisabledColor = nil
+	self.textSelectedColor = nil
+	self.textFocusedColor = nil
+	self.textHighlightedColor = nil
+	self.textFocusedSelectedColor = nil
+	self.textHighlightedSelectedColor = nil
+	self.textOffset = { 0, 0 }
+	self.textSize = 0.03
+	self.textBold = false
+	self.textSelectedBold = false
+	self.textFocusedBold = false
+	self.textHighlightedBold = false
+	self.text2Color = { 1, 1, 1, 1 }
+	self.text2DisabledColor = nil
+	self.text2SelectedColor = nil
+	self.text2FocusedColor = nil
+	self.text2HighlightedColor = nil
+	self.text2Offset = { 0, 0 }
+	self.text2FocusedOffset = { 0, 0 }
+	self.text2Size = 0
+	self.text2Bold = false
+	self.text2SelectedBold = false
+	self.text2HighlightedBold = false
+	self.textUpperCase = false
+	self.textLinesPerPage = 0
+	self.currentPage = 1
+	self.defaultTextSize = self.textSize
+	self.defaultText2Size = self.text2Size
+	self.textLineHeightScale = RenderText.DEFAULT_LINE_HEIGHT_SCALE
+	self.text = ""
+	self.textAlignment = RenderText.ALIGN_CENTER
+	self.textOriginalAlignment = RenderText.ALIGN_CENTER
+	self.textVerticalAlignment = TextElement.VERTICAL_ALIGNMENT.MIDDLE
+	self.ignoreDisabled = false
+	self.firstLineIndentation = nil
+	self.format = TextElement.FORMAT.NONE
+	self.locaKey = nil
+	self.value = nil
+	self.formatDecimalPlaces = 0
+	self.textMaxWidth = nil
+	self.textMinWidth = 0
+	self.textMaxNumLines = 1
+	self.textAutoWidth = false
+	self.textAutoHeight = false
+	self.textLayoutMode = TextElement.LAYOUT_MODE.TRUNCATE
+	self.textScrollOnFocusOnly = true
+	self.textMinSize = 0.01
+	self.sourceText = ""
+	self.scrollingStartPos = 0
+	self.scrollingOffset = 0
+	self.scrollingMaxOffset = 0
+	self.scrollingClipArea = nil
+	self.scrollTime = 0
+	self.updatedTextLayoutMode = false
+	return self
 end
-
--- Local values: xmlFilename, modName, _, textAlignment, wrapModeKey, textVerticalAlignment, verticalAlignKey, text, hasColon, format, f
 function TextElement:loadFromXML(xmlFile, key)
-	local v8_ = getXMLFilename(xmlFile)
-	local v9_, _ = Utils.getModNameAndBaseDirectory(v8_)
-	if v9_ ~= nil then
-		self.customEnvironment = v9_
+	local xmlFilename = getXMLFilename(xmlFile)
+	local modName, _ = Utils.getModNameAndBaseDirectory(xmlFilename)
+	if modName ~= nil then
+		self.customEnvironment = modName
 	end
 	TextElement:superClass().loadFromXML(self, xmlFile, key)
 	self.textColor = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#textColor"), self.textColor)
@@ -147,82 +112,79 @@ function TextElement:loadFromXML(xmlFile, key)
 	self.textAutoWidth = Utils.getNoNil(getXMLBool(xmlFile, key .. "#textAutoWidth"), self.textAutoWidth)
 	self.textAutoHeight = Utils.getNoNil(getXMLBool(xmlFile, key .. "#textAutoHeight"), self.textAutoHeight)
 	self.textMinSize = GuiUtils.getNormalizedYValue(getXMLString(xmlFile, key .. "#textMinSize"), self.textMinSize)
-	local v10_ = getXMLString(xmlFile, key .. "#textAlignment")
-	if v10_ ~= nil then
-		local v11_ = string.lower(v10_)
-		if v11_ == "right" then
+	local textAlignment = getXMLString(xmlFile, key .. "#textAlignment")
+	if textAlignment ~= nil then
+		textAlignment = string.lower(textAlignment)
+		if textAlignment == "right" then
 			self.textAlignment = RenderText.ALIGN_RIGHT
-		elseif v11_ == "center" then
+		elseif textAlignment == "center" then
 			self.textAlignment = RenderText.ALIGN_CENTER
 		else
 			self.textAlignment = RenderText.ALIGN_LEFT
 		end
 		self.textOriginalAlignment = self.textAlignment
 	end
-	local v12_ = getXMLString(xmlFile, key .. "#textLayoutMode")
-	if v12_ ~= nil then
-		local v13_ = string.lower(v12_)
-		if v13_ == "truncate" then
+	local wrapModeKey = getXMLString(xmlFile, key .. "#textLayoutMode")
+	if wrapModeKey ~= nil then
+		wrapModeKey = string.lower(wrapModeKey)
+		if wrapModeKey == "truncate" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.TRUNCATE
-		elseif v13_ == "resize" then
+		elseif wrapModeKey == "resize" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.RESIZE
-		elseif v13_ == "overflow" then
+		elseif wrapModeKey == "overflow" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.OVERFLOW
-		elseif v13_ == "scrolling" then
+		elseif wrapModeKey == "scrolling" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.SCROLLING
 			self.textMaxNumLines = 1
-		elseif v13_ == "fill" then
+		elseif wrapModeKey == "fill" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.FILL
 		end
 	end
 	self.textScrollOnFocusOnly = Utils.getNoNil(getXMLBool(xmlFile, key .. "#textScrollOnFocusOnly"), self.textScrollOnFocusOnly)
-	local v14_ = getXMLString(xmlFile, key .. "#textVerticalAlignment") or ""
-	local v15_ = string.upper(v14_)
-	self.textVerticalAlignment = TextElement.VERTICAL_ALIGNMENT[v15_] or self.textVerticalAlignment
+	local textVerticalAlignment = getXMLString(xmlFile, key .. "#textVerticalAlignment") or ""
+	local verticalAlignKey = string.upper(textVerticalAlignment)
+	self.textVerticalAlignment = TextElement.VERTICAL_ALIGNMENT[verticalAlignKey] or self.textVerticalAlignment
 	self.ignoreDisabled = Utils.getNoNil(getXMLBool(xmlFile, key .. "#ignoreDisabled"), self.ignoreDisabled)
-	local v16_ = getXMLString(xmlFile, key .. "#text")
-	if v16_ ~= nil then
-		if v16_ ~= "" and string.startsWith(v16_, "$l10n_") then
-			local v17_ = string.endsWith(v16_, ":")
-			if v17_ then
-				v16_ = utf8Substr(v16_, 0, utf8Strlen(v16_) - 1)
+	local text = getXMLString(xmlFile, key .. "#text")
+	if text ~= nil then
+		if text ~= "" and string.startsWith(text, "$l10n_") then
+			local hasColon = string.endsWith(text, ":")
+			if hasColon then
+				text = utf8Substr(text, 0, utf8Strlen(text) - 1)
 			end
-			v16_ = g_i18n:getText(v16_:sub(7), self.customEnvironment)
-			if v17_ then
-				v16_ = v16_ .. ":"
+			text = g_i18n:getText(text:sub(7), self.customEnvironment)
+			if hasColon then
+				text = text .. ":"
 			end
 		end
-		self.sourceText = v16_
+		self.sourceText = text
 		if self.format == TextElement.FORMAT.NONE then
-			self:setText(v16_, false, true)
+			self:setText(text, false, true)
 		end
 	end
-	local v18_ = getXMLInt(xmlFile, key .. "#formatDecimalPlaces") or self.formatDecimalPlaces
-	self.formatDecimalPlaces = math.max(v18_, 0)
-	local v19_ = getXMLString(xmlFile, key .. "#format")
-	if v19_ ~= nil then
-		local v20_ = string.lower(v19_)
-		local v21_ = TextElement.FORMAT.NONE
-		if v20_ == "currency" then
-			v21_ = TextElement.FORMAT.CURRENCY
-		elseif v20_ == "accounting" then
-			v21_ = TextElement.FORMAT.ACCOUNTING
-		elseif v20_ == "temperature" then
-			v21_ = TextElement.FORMAT.TEMPERATURE
-		elseif v20_ == "number" then
-			v21_ = TextElement.FORMAT.NUMBER
-		elseif v20_ == "percentage" then
-			v21_ = TextElement.FORMAT.PERCENTAGE
-		elseif v20_ == "none" then
-			v21_ = TextElement.FORMAT.NONE
+	self.formatDecimalPlaces = math.max(getXMLInt(xmlFile, key .. "#formatDecimalPlaces") or self.formatDecimalPlaces, 0)
+	local format = getXMLString(xmlFile, key .. "#format")
+	if format ~= nil then
+		format = string.lower(format)
+		local f = TextElement.FORMAT.NONE
+		if format == "currency" then
+			f = TextElement.FORMAT.CURRENCY
+		elseif format == "accounting" then
+			f = TextElement.FORMAT.ACCOUNTING
+		elseif format == "temperature" then
+			f = TextElement.FORMAT.TEMPERATURE
+		elseif format == "number" then
+			f = TextElement.FORMAT.NUMBER
+		elseif format == "percentage" then
+			f = TextElement.FORMAT.PERCENTAGE
+		elseif format == "none" then
+			f = TextElement.FORMAT.NONE
 		end
-		self:setFormat(v21_)
+		self:setFormat(f)
 	end
 	self:addCallback(xmlFile, key .. "#onTextChanged", "onTextChangedCallback")
 	self:updateSize()
 end
-
--- Local values: textAlignment, wrapModeKey, textVerticalAlignment, verticalAlignKey, format, f
 function TextElement:loadProfile(profile, applyProfile)
 	TextElement:superClass().loadProfile(self, profile, applyProfile)
 	self.textColor = GuiUtils.getColorArray(profile:getValue("textColor"), self.textColor)
@@ -265,64 +227,62 @@ function TextElement:loadProfile(profile, applyProfile)
 	self.defaultTextSize = self.textSize
 	self.defaultText2Size = self.text2Size
 	self.ignoreDisabled = profile:getBool("ignoreDisabled", self.ignoreDisabled)
-	local v25_ = profile:getValue("textAlignment")
-	if v25_ ~= nil then
-		local v26_ = string.lower(v25_)
-		if v26_ == "right" then
+	local textAlignment = profile:getValue("textAlignment")
+	if textAlignment ~= nil then
+		textAlignment = string.lower(textAlignment)
+		if textAlignment == "right" then
 			self.textAlignment = RenderText.ALIGN_RIGHT
-		elseif v26_ == "center" then
+		elseif textAlignment == "center" then
 			self.textAlignment = RenderText.ALIGN_CENTER
 		else
 			self.textAlignment = RenderText.ALIGN_LEFT
 		end
 		self.textOriginalAlignment = self.textAlignment
 	end
-	local v27_ = profile:getValue("textLayoutMode")
-	if v27_ ~= nil then
-		local v28_ = string.lower(v27_)
-		if v28_ == "truncate" then
+	local wrapModeKey = profile:getValue("textLayoutMode")
+	if wrapModeKey ~= nil then
+		wrapModeKey = string.lower(wrapModeKey)
+		if wrapModeKey == "truncate" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.TRUNCATE
-		elseif v28_ == "resize" then
+		elseif wrapModeKey == "resize" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.RESIZE
-		elseif v28_ == "overflow" then
+		elseif wrapModeKey == "overflow" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.OVERFLOW
-		elseif v28_ == "scrolling" then
+		elseif wrapModeKey == "scrolling" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.SCROLLING
 			self.textMaxNumLines = 1
-		elseif v28_ == "fill" then
+		elseif wrapModeKey == "fill" then
 			self.textLayoutMode = TextElement.LAYOUT_MODE.FILL
 		end
 	end
 	self.textScrollOnFocusOnly = profile:getBool("textScrollOnFocusOnly", self.textScrollOnFocusOnly)
-	local v29_ = profile:getValue("textVerticalAlignment", "")
-	local v30_ = string.upper(v29_)
-	self.textVerticalAlignment = TextElement.VERTICAL_ALIGNMENT[v30_] or self.textVerticalAlignment
-	local v31_ = profile:getNumber("formatDecimalPlaces", self.formatDecimalPlaces)
-	self.formatDecimalPlaces = math.max(v31_, 0)
-	local v32_ = profile:getValue("format")
-	if v32_ ~= nil then
-		local v33_ = string.lower(v32_)
-		local v34_ = TextElement.FORMAT.NONE
-		if v33_ == "currency" then
-			v34_ = TextElement.FORMAT.CURRENCY
-		elseif v33_ == "accounting" then
-			v34_ = TextElement.FORMAT.ACCOUNTING
-		elseif v33_ == "temperature" then
-			v34_ = TextElement.FORMAT.TEMPERATURE
-		elseif v33_ == "number" then
-			v34_ = TextElement.FORMAT.NUMBER
-		elseif v33_ == "percentage" then
-			v34_ = TextElement.FORMAT.PERCENTAGE
-		elseif v33_ == "none" then
-			v34_ = TextElement.FORMAT.NONE
+	local textVerticalAlignment = profile:getValue("textVerticalAlignment", "")
+	local verticalAlignKey = string.upper(textVerticalAlignment)
+	self.textVerticalAlignment = TextElement.VERTICAL_ALIGNMENT[verticalAlignKey] or self.textVerticalAlignment
+	self.formatDecimalPlaces = math.max(profile:getNumber("formatDecimalPlaces", self.formatDecimalPlaces), 0)
+	local format = profile:getValue("format")
+	if format ~= nil then
+		format = string.lower(format)
+		local f = TextElement.FORMAT.NONE
+		if format == "currency" then
+			f = TextElement.FORMAT.CURRENCY
+		elseif format == "accounting" then
+			f = TextElement.FORMAT.ACCOUNTING
+		elseif format == "temperature" then
+			f = TextElement.FORMAT.TEMPERATURE
+		elseif format == "number" then
+			f = TextElement.FORMAT.NUMBER
+		elseif format == "percentage" then
+			f = TextElement.FORMAT.PERCENTAGE
+		elseif format == "none" then
+			f = TextElement.FORMAT.NONE
 		end
-		self:setFormat(v34_)
+		self:setFormat(f)
 	end
 	if applyProfile then
 		self:updateSize()
 	end
 end
-
 function TextElement:copyAttributes(src)
 	TextElement:superClass().copyAttributes(self, src)
 	self.text = src.text
@@ -407,35 +367,29 @@ function TextElement:copyAttributes(src)
 	self.textVerticalAlignment = src.textVerticalAlignment
 	self.onTextChangedCallback = src.onTextChangedCallback
 end
-
 function TextElement:delete()
 	g_messageCenter:unsubscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.USE_FAHRENHEIT], self)
 	g_messageCenter:unsubscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.MONEY_UNIT], self)
 	TextElement:superClass().delete(self)
 end
-
 function TextElement:setTextSize(size)
 	self.textSize = size
 	self:updateSize()
 end
-
 function TextElement:setAbsolutePosition(x, y)
 	TextElement:superClass().setAbsolutePosition(self, x, y)
 	if not self.ignoreStartPositionUpdate then
 		self.scrollingStartPos = self.absPosition[1]
 	end
 end
-
 function TextElement:setDisabled(isDisabled)
 	TextElement:superClass().setDisabled(self, isDisabled)
 	self:updateScrollingLayoutMode()
 end
-
--- Local values: textLayoutMode
 function TextElement:updateAbsolutePosition()
 	TextElement:superClass().updateAbsolutePosition(self)
-	local v46_ = self:getTextLayoutMode()
-	if (self.textMaxNumLines ~= 1 or v46_ ~= TextElement.LAYOUT_MODE.OVERFLOW and v46_ ~= TextElement.LAYOUT_MODE.SCROLLING) and not (self.textAutoWidth or self.textAutoHeight) then
+	local textLayoutMode = self:getTextLayoutMode()
+	if (self.textMaxNumLines ~= 1 or textLayoutMode ~= TextElement.LAYOUT_MODE.OVERFLOW and textLayoutMode ~= TextElement.LAYOUT_MODE.SCROLLING) and (not self.textAutoWidth and not self.textAutoHeight) then
 		self:setTextInternal(self.sourceText, nil, true)
 	end
 	if not self.ignoreStartPositionUpdate then
@@ -443,7 +397,6 @@ function TextElement:updateAbsolutePosition()
 		self:updateScrollingParameters()
 	end
 end
-
 function TextElement:setText(text, forceTextSize, isInitializing, forceScrollingParameterUpdate)
 	self.locaKey = nil
 	self.value = nil
@@ -453,123 +406,124 @@ function TextElement:setText(text, forceTextSize, isInitializing, forceScrolling
 		self:updateScrollingParameters()
 	end
 end
-
--- Local values: textHasChanged, maxWidth, limitVerticalLines, textLayoutMode, textMaxNumLines, lengthWithNoLineLimit, _, numLines, lastCharAllowsBreak, needsBreak, breakOffset
 function TextElement:setTextInternal(text, forceTextSize, skipCallback, doNotUpdateSize)
-	local v56_ = text == nil and "" or text
-	setTextWidthScale(g_textWidthScale)
-	local v57_ = tostring(v56_)
-	if self.textUpperCase then
-		v57_ = utf8ToUpper(v57_)
+	if text == nil then
+		text = ""
 	end
-	local v58_ = self.sourceText ~= v57_
-	self.sourceText = v57_
+	setTextWidthScale(g_textWidthScale)
+	text = tostring(text)
+	if self.textUpperCase then
+		text = utf8ToUpper(text)
+	end
+	local textHasChanged = self.sourceText ~= text
+	self.sourceText = text
 	self.textSize = self.defaultTextSize
 	self.text2Size = self.defaultText2Size
 	self:updateSize()
-	local v59_ = self.absSize[1]
-	local v60_
-	if self.textMaxWidth == nil then
-		v60_ = self.textAutoWidth and 1 or v59_
-	else
-		v60_ = self.textMaxWidth
+	local maxWidth = self.absSize[1]
+	if self.textMaxWidth ~= nil then
+		maxWidth = self.textMaxWidth
+	elseif self.textAutoWidth then
+		maxWidth = 1
 	end
-	local v61_ = false
-	local v62_ = self:getTextLayoutMode()
+	local limitVerticalLines = false
+	local textLayoutMode = self:getTextLayoutMode()
 	setTextBold(self.textBold)
-	if v62_ == TextElement.LAYOUT_MODE.RESIZE then
-		local v63_ = self.textMaxNumLines
-		local v64_ = v57_:find("[ -]") == nil and 1 or v63_
-		if v64_ > 1 then
-			setTextWrapWidth(v60_, false)
-			local v65_ = getTextLength(self.textSize, v57_, 99999)
-			while getTextLength(self.textSize, v57_, v64_) < v65_ do
+	if textLayoutMode == TextElement.LAYOUT_MODE.RESIZE then
+		local textMaxNumLines = self.textMaxNumLines
+		if text:find("[ -]") == nil then
+			textMaxNumLines = 1
+		end
+		if 1 < textMaxNumLines then
+			setTextWrapWidth(maxWidth, false)
+			local lengthWithNoLineLimit = getTextLength(self.textSize, text, 99999)
+			while getTextLength(self.textSize, text, textMaxNumLines) < lengthWithNoLineLimit do
 				self.textSize = self.textSize - self.defaultTextSize * 0.05
 				self.text2Size = self.text2Size - self.defaultText2Size * 0.05
 				if self.textSize <= self.textMinSize then
 					self.textSize = self.textSize + self.defaultTextSize * 0.05
 					self.text2Size = self.text2Size + self.defaultText2Size * 0.05
-					if v64_ == 1 then
-						v57_ = Utils.limitTextToWidth(v57_, self.textSize, v60_, false, "...")
-					else
-						v61_ = true
-					end
-					break
-				end
-			end
-		else
-			while v60_ < getTextWidth(self.textSize, v57_) do
-				self.textSize = self.textSize - self.defaultTextSize * 0.05
-				self.text2Size = self.text2Size - self.defaultText2Size * 0.05
-				if self.textSize <= self.textMinSize then
-					self.textSize = self.textSize + self.defaultTextSize * 0.05
-					self.text2Size = self.text2Size + self.defaultText2Size * 0.05
-					v57_ = Utils.limitTextToWidth(v57_, self.textSize, v60_, false, "...")
-					break
-				end
-			end
-		end
-		setTextWrapWidth(0)
-	elseif v62_ ~= TextElement.LAYOUT_MODE.OVERFLOW and (v62_ ~= TextElement.LAYOUT_MODE.SCROLLING and (v62_ == TextElement.LAYOUT_MODE.TRUNCATE or v62_ == TextElement.LAYOUT_MODE.FILL)) then
-		if self.textMaxNumLines == 1 and v62_ == TextElement.LAYOUT_MODE.TRUNCATE then
-			v57_ = Utils.limitTextToWidth(v57_, self.textSize, v60_, false, "...")
-		else
-			v61_ = true
-		end
-	end
-	if v61_ then
-		setTextWrapWidth(v60_)
-		local _, v66_ = getTextHeight(self.textSize, v57_)
-		if self.textMaxNumLines < v66_ then
-			local v67_ = nil
-			while true do
-				local _, v68_ = getTextHeight(self.textSize, v57_)
-				if self.textMaxNumLines >= v68_ then
-					break
-				end
-				v67_ = string.match(v57_, TextElement.REGEX_LAST_CHARACTER_ALLOWS_BREAK)
-				v57_ = utf8Substr(v57_, 0, utf8Strlen(v57_) - 1)
-			end
-			if v62_ == TextElement.LAYOUT_MODE.TRUNCATE then
-				local v69_ = utf8Substr
-				local v70_ = utf8Strlen(v57_) - 3
-				v57_ = v69_(v57_, 0, (math.max(v70_, 0))) .. "..."
-			elseif self.textLayoutMode == TextElement.LAYOUT_MODE.FILL and v67_ == nil then
-				while utf8Strlen(v57_) > 0 do
-					local v71_ = string.match(v57_, TextElement.REGEX_LAST_CHARACTER_ALLOWS_BREAK)
-					local v72_ = v71_ and string.match(v57_, TextElement.REGEX_BREAKING_CHARAKTERS_AFTER) ~= nil and 0 or -1
-					v57_ = utf8Substr(v57_, 0, utf8Strlen(v57_) + v72_)
-					if v71_ then
+					if textMaxNumLines == 1 then
+						text = Utils.limitTextToWidth(text, self.textSize, maxWidth, false, "...")
 						break
 					end
+					limitVerticalLines = true
+					break
+				end
+			end
+		else
+			while maxWidth < getTextWidth(self.textSize, text) do
+				self.textSize = self.textSize - self.defaultTextSize * 0.05
+				self.text2Size = self.text2Size - self.defaultText2Size * 0.05
+				if self.textSize <= self.textMinSize then
+					self.textSize = self.textSize + self.defaultTextSize * 0.05
+					self.text2Size = self.text2Size + self.defaultText2Size * 0.05
+					text = Utils.limitTextToWidth(text, self.textSize, maxWidth, false, "...")
+					break
 				end
 			end
 		end
 		setTextWrapWidth(0)
+	elseif textLayoutMode ~= TextElement.LAYOUT_MODE.OVERFLOW then
+		if textLayoutMode ~= TextElement.LAYOUT_MODE.SCROLLING and (textLayoutMode == TextElement.LAYOUT_MODE.TRUNCATE or textLayoutMode == TextElement.LAYOUT_MODE.FILL) and self.textMaxNumLines == 1 then
+			if textLayoutMode == TextElement.LAYOUT_MODE.TRUNCATE then
+				text = Utils.limitTextToWidth(text, self.textSize, maxWidth, false, "...")
+			else
+				limitVerticalLines = true
+			end
+		end
 	end
-	setTextBold(false)
-	self.text = v57_
-	if v58_ and not skipCallback then
-		self:raiseCallback("onTextChangedCallback", self, self.text)
-		self:updateScaledWidth(1, 1)
+	if limitVerticalLines then
+		setTextWrapWidth(maxWidth)
+		local _, numLines = getTextHeight(self.textSize, text)
+		if self.textMaxNumLines < numLines then
+			local lastCharAllowsBreak = nil
+			while true do
+				_, numLines = getTextHeight(self.textSize, text)
+				if self.textMaxNumLines >= numLines then
+					break
+				end
+				lastCharAllowsBreak = string.match(text, TextElement.REGEX_LAST_CHARACTER_ALLOWS_BREAK)
+				text = utf8Substr(text, 0, utf8Strlen(text) - 1)
+			end
+			if textLayoutMode == TextElement.LAYOUT_MODE.TRUNCATE then
+				text = utf8Substr(text, 0, math.max(utf8Strlen(text) - 3, 0)) .. "..."
+			elseif self.textLayoutMode == TextElement.LAYOUT_MODE.FILL then
+				if lastCharAllowsBreak == nil then
+					while 0 < utf8Strlen(text) do
+						local needsBreak = string.match(text, TextElement.REGEX_LAST_CHARACTER_ALLOWS_BREAK)
+						if needsBreak then
+							local breakOffset = string.match(text, TextElement.REGEX_BREAKING_CHARAKTERS_AFTER) ~= nil and 0 or -1
+							text = utf8Substr(text, 0, utf8Strlen(text) + breakOffset)
+							if not needsBreak then
+								continue
+							end
+							setTextWrapWidth(0)
+							setTextBold(false)
+							self.text = text
+							if textHasChanged and not skipCallback then
+								self:raiseCallback("onTextChangedCallback", self, self.text)
+								self:updateScaledWidth(1, 1)
+							end
+							self:updateSize(forceTextSize)
+							return textHasChanged
+						end
+					end
+				end
+			end
+		end
 	end
-	self:updateSize(forceTextSize)
-	return v58_
 end
-
 function TextElement:getText()
 	return self.sourceText
 end
-
 function TextElement:setValue(value)
 	self.value = value
 	self:updateFormattedText()
 end
-
 function TextElement:getValue()
 	return self.value
 end
-
 function TextElement:setFormat(format)
 	if format == nil then
 		format = TextElement.FORMAT.NONE
@@ -591,192 +545,123 @@ function TextElement:setFormat(format)
 		end
 	end
 end
-
 function TextElement:setLocaKey(key)
 	self.locaKey = key
 	self.format = TextElement.FORMAT.NONE
 	self.value = nil
 	self:updateFormattedText()
 end
-
--- Local values: text, value, format, decimalPlaces, length
 function TextElement:updateFormattedText()
-	local v82_ = ""
-	local v83_ = self.value
-	if v83_ == nil then
-		if self.locaKey ~= nil then
-			local v84_ = self.locaKey:len()
-			if self.locaKey:sub(v84_, v84_ + 1) == ":" then
-				v82_ = g_i18n:getText(self.locaKey:sub(1, v84_ - 1), self.customEnvironment) .. ":"
-			else
-				v82_ = g_i18n:getText(self.locaKey, self.customEnvironment)
-			end
+	local text = ""
+	local value = self.value
+	if value ~= nil then
+		local format = self.format
+		local decimalPlaces = self.formatDecimalPlaces
+		if format == TextElement.FORMAT.NONE then
+			text = tostring(value)
+		elseif format == TextElement.FORMAT.NUMBER then
+			text = g_i18n:formatNumber(value, decimalPlaces)
+		elseif format == TextElement.FORMAT.CURRENCY then
+			text = g_i18n:formatMoney(value, decimalPlaces, true, true)
+		elseif format == TextElement.FORMAT.ACCOUNTING then
+			text = g_i18n:formatMoney(value, decimalPlaces, true, false)
+		elseif format == TextElement.FORMAT.TEMPERATURE then
+			text = g_i18n:formatTemperature(value, decimalPlaces)
+		elseif format == TextElement.FORMAT.PERCENTAGE then
+			text = g_i18n:formatNumber(value * 100, decimalPlaces) .. "%"
 		end
-	else
-		local v85_ = self.format
-		local v86_ = self.formatDecimalPlaces
-		if v85_ == TextElement.FORMAT.NONE then
-			v82_ = tostring(v83_)
-		elseif v85_ == TextElement.FORMAT.NUMBER then
-			v82_ = g_i18n:formatNumber(v83_, v86_)
-		elseif v85_ == TextElement.FORMAT.CURRENCY then
-			v82_ = g_i18n:formatMoney(v83_, v86_, true, true)
-		elseif v85_ == TextElement.FORMAT.ACCOUNTING then
-			v82_ = g_i18n:formatMoney(v83_, v86_, true, false)
-		elseif v85_ == TextElement.FORMAT.TEMPERATURE then
-			v82_ = g_i18n:formatTemperature(v83_, v86_)
-		elseif v85_ == TextElement.FORMAT.PERCENTAGE then
-			v82_ = g_i18n:formatNumber(v83_ * 100, v86_) .. "%"
+	elseif self.locaKey ~= nil then
+		local length = self.locaKey:len()
+		if self.locaKey:sub(length, length + 1) == ":" then
+			text = g_i18n:getText(self.locaKey:sub(1, length - 1), self.customEnvironment) .. ":"
+		else
+			text = g_i18n:getText(self.locaKey, self.customEnvironment)
 		end
 	end
-	self:setTextInternal(v82_)
+	self:setTextInternal(text)
 end
-
 function TextElement:updateScrollingParameters()
 	if self.textLayoutMode == TextElement.LAYOUT_MODE.SCROLLING then
 		self:setAbsolutePosition(self.scrollingStartPos)
 		self.scrollingOffset = 0
-		local v88_ = self:getTextWidth(true) - self.absSize[1]
-		self.scrollingMaxOffset = math.max(0, v88_)
+		self.scrollingMaxOffset = math.max(0, self:getTextWidth(true) - self.absSize[1])
 		self.scrollingClipArea = self.scrollingClipArea or {}
 		self.scrollingClipArea[1] = self.scrollingStartPos
 		self.scrollingClipArea[2] = self.absPosition[2]
 		self.scrollingClipArea[3] = self.scrollingStartPos + self.absSize[1]
 		self.scrollingClipArea[4] = self.absPosition[2] + self.absSize[2]
-		if self.scrollingMaxOffset > 0 then
+		if 0 < self.scrollingMaxOffset then
 			self.textAlignment = RenderText.ALIGN_LEFT
 			return
 		end
 		self.textAlignment = self.textOriginalAlignment
 	end
 end
-
 function TextElement:onFormatUnitChanged()
 	self:updateFormattedText()
 end
-
 function TextElement:setFirstLineIndentation(indentation)
 	self.firstLineIndentation = indentation
 end
-
 function TextElement:setTextColor(r, g, b, a)
-	self.textColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.textColor = { r, g, b, a }
 end
-
 function TextElement:setTextSelectedColor(r, g, b, a)
-	self.textSelectedColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.textSelectedColor = { r, g, b, a }
 end
-
 function TextElement:setTextFocusedColor(r, g, b, a)
-	self.textFocusedColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.textFocusedColor = { r, g, b, a }
 end
-
 function TextElement:setTextFocusedSelectedColor(r, g, b, a)
-	self.textFocusedSelectedColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.textFocusedSelectedColor = { r, g, b, a }
 end
-
 function TextElement:setTextHighlightedSelectedColor(r, g, b, a)
-	self.textHighlightedSelectedColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.textHighlightedSelectedColor = { r, g, b, a }
 end
-
 function TextElement:setTextHighlightedColor(r, g, b, a)
-	self.textHighlightedColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.textHighlightedColor = { r, g, b, a }
 end
-
--- Local values: retColor
 function TextElement:getTextColor()
-	local v123_ = self.textColor
-	if self.disabled and not self.ignoreDisabled then
-		v123_ = self.textDisabledColor
-	elseif self:getIsSelected() then
-		if self:getIsFocused() then
-			v123_ = self.textFocusedSelectedColor or self.textSelectedColor
+	local retColor = self.textColor
+	if self.disabled then
+		if not self.ignoreDisabled then
+			retColor = self.textDisabledColor
+		elseif self:getIsSelected() then
+			if self:getIsFocused() then
+				retColor = self.textFocusedSelectedColor or self.textSelectedColor
+			elseif self:getIsHighlighted() then
+				retColor = self.textHighlightedSelectedColor or self.textSelectedColor
+			else
+				retColor = self.textSelectedColor
+			end
+		elseif self:getIsFocused() then
+			retColor = self.textFocusedColor
 		elseif self:getIsHighlighted() then
-			v123_ = self.textHighlightedSelectedColor or self.textSelectedColor
-		else
-			v123_ = self.textSelectedColor
+			retColor = self.textHighlightedColor
 		end
-	elseif self:getIsFocused() then
-		v123_ = self.textFocusedColor
-	elseif self:getIsHighlighted() then
-		v123_ = self.textHighlightedColor
 	end
-	if v123_ == nil then
-		v123_ = self.textColor
+	if retColor == nil then
+		retColor = self.textColor
 	end
-	return v123_
+	return retColor
 end
-
 function TextElement:setText2Color(r, g, b, a)
-	self.text2Color = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.text2Color = { r, g, b, a }
 end
-
 function TextElement:setText2SelectedColor(r, g, b, a)
-	self.text2SelectedColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.text2SelectedColor = { r, g, b, a }
 end
-
 function TextElement:setText2FocusedColor(r, g, b, a)
-	self.text2FocusedColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.text2FocusedColor = { r, g, b, a }
 end
-
 function TextElement:setText2HighlightedColor(r, g, b, a)
-	self.text2HighlightedColor = {
-		r,
-		g,
-		b,
-		a
-	}
+	self.text2HighlightedColor = { r, g, b, a }
 end
-
 function TextElement:getText2Color()
 	if self.disabled and not self.ignoreDisabled then
 		return self.text2DisabledColor
-	elseif self:getIsSelected() then
+	end
+	if self:getIsSelected() then
 		return self.text2SelectedColor
 	elseif self:getIsFocused() then
 		return self.text2FocusedColor
@@ -786,142 +671,133 @@ function TextElement:getText2Color()
 		return self.text2Color
 	end
 end
-
--- Local values: width
 function TextElement:getTextWidth(useSourceText)
 	setTextBold(self.textBold)
-	local v147_ = getTextWidth(self.textSize, self.text)
+	local width = getTextWidth(self.textSize, self.text)
 	if useSourceText then
-		v147_ = getTextWidth(self.textSize, self.sourceText)
+		width = getTextWidth(self.textSize, self.sourceText)
 	end
 	setTextBold(false)
 	if self:getTextLayoutMode() ~= TextElement.LAYOUT_MODE.OVERFLOW and (self.textLayoutMode ~= TextElement.LAYOUT_MODE.SCROLLING and not self.textAutoWidth) then
-		local v148_ = self.absSize[1]
-		v147_ = math.min(v147_, v148_)
+		width = math.min(width, self.absSize[1])
 	end
-	return v147_
+	return width
 end
-
--- Local values: height, numLines
 function TextElement:getTextHeight(includeNegativeSpacing)
-	if self.textMaxNumLines > 1 then
-		if self.textMaxWidth == nil then
-			setTextWrapWidth(self.absSize[1])
-		else
+	if 1 < self.textMaxNumLines then
+		if self.textMaxWidth ~= nil then
 			setTextWrapWidth(self.textMaxWidth)
+		else
+			setTextWrapWidth(self.absSize[1])
 		end
 	end
 	setTextBold(self.textBold)
 	setTextFirstLineIndentation(self.firstLineIndentation or 0)
 	setTextLineHeightScale(self.textLineHeightScale)
-	local v151_, v152_ = getTextHeight(self.textSize, self.text)
-	if includeNegativeSpacing == true and v152_ > 0 then
-		v151_ = v151_ + v151_ / v152_ * 0.1
+	local height, numLines = getTextHeight(self.textSize, self.text)
+	if includeNegativeSpacing == true and 0 < numLines then
+		height = height + height / numLines * 0.1
 	end
 	setTextLineHeightScale(RenderText.DEFAULT_LINE_HEIGHT_SCALE)
 	setTextFirstLineIndentation(0)
 	setTextBold(false)
 	setTextWrapWidth(0)
-	return v151_, v152_
+	return height, numLines
 end
-
--- Local values: state, xOffset, yOffset
 function TextElement:getTextOffset()
-	local v154_ = self:getOverlayState()
-	local v155_ = self.textOffset[1]
-	local v156_ = self.textOffset[2]
-	if v154_ == GuiOverlay.STATE_FOCUSED and self.textFocusedOffset ~= nil then
-		return self.textFocusedOffset[1], self.textFocusedOffset[2]
+	local state = self:getOverlayState()
+	local xOffset = self.textOffset[1]
+	local yOffset = self.textOffset[2]
+	if state == GuiOverlay.STATE_FOCUSED and self.textFocusedOffset ~= nil then
+		xOffset = self.textFocusedOffset[1]
+		yOffset = self.textFocusedOffset[2]
+		return xOffset, yOffset
 	end
-	if v154_ == GuiOverlay.STATE_SELECTED and self.textSelectedOffset ~= nil then
-		return self.textSelectedOffset[1], self.textSelectedOffset[2]
+	if state == GuiOverlay.STATE_SELECTED and self.textSelectedOffset ~= nil then
+		xOffset = self.textSelectedOffset[1]
+		yOffset = self.textSelectedOffset[2]
+		return xOffset, yOffset
 	end
-	if v154_ == GuiOverlay.STATE_HIGHLIGHTED and self.textHighlightedOffset ~= nil then
-		return self.textHighlightedOffset[1], self.textHighlightedOffset[2]
+	if state == GuiOverlay.STATE_HIGHLIGHTED and self.textHighlightedOffset ~= nil then
+		xOffset = self.textHighlightedOffset[1]
+		yOffset = self.textHighlightedOffset[2]
+		return xOffset, yOffset
 	end
-	if v154_ == GuiOverlay.STATE_PRESSED and self.textPressedOffset ~= nil then
-		v155_ = self.textPressedOffset[1]
-		v156_ = self.textPressedOffset[2]
+	if state == GuiOverlay.STATE_PRESSED and self.textPressedOffset ~= nil then
+		xOffset = self.textPressedOffset[1]
+		yOffset = self.textPressedOffset[2]
 	end
-	return v155_, v156_
+	return xOffset, yOffset
 end
-
--- Local values: xOffset, yOffset, state
 function TextElement:getText2Offset()
-	local v158_ = self.text2Offset[1]
-	local v159_ = self.text2Offset[2]
-	local v160_ = self:getOverlayState()
-	if v160_ == GuiOverlay.STATE_FOCUSED or (v160_ == GuiOverlay.STATE_PRESSED or (v160_ == GuiOverlay.STATE_SELECTED or v160_ == GuiOverlay.STATE_HIGHLIGHTED)) then
-		v158_ = self.text2FocusedOffset[1]
-		v159_ = self.text2FocusedOffset[2]
+	local xOffset = self.text2Offset[1]
+	local yOffset = self.text2Offset[2]
+	local state = self:getOverlayState()
+	if state == GuiOverlay.STATE_FOCUSED or state == GuiOverlay.STATE_PRESSED or state == GuiOverlay.STATE_SELECTED or state == GuiOverlay.STATE_HIGHLIGHTED then
+		xOffset = self.text2FocusedOffset[1]
+		yOffset = self.text2FocusedOffset[2]
 	end
-	return v158_, v159_
+	return xOffset, yOffset
 end
-
 function TextElement:getIsScrollingAllowed()
-	return not self.textScrollOnFocusOnly or self:getIsFocused() or (self:getIsHighlighted() or self:getIsSelected())
+	return not self.textScrollOnFocusOnly or self:getIsFocused() or self:getIsHighlighted() or self:getIsSelected()
 end
-
 function TextElement:getTextLayoutMode()
 	if self.textLayoutMode == TextElement.LAYOUT_MODE.SCROLLING and not self:getIsScrollingAllowed() then
 		return TextElement.LAYOUT_MODE.TRUNCATE
-	else
-		return self.textLayoutMode
 	end
+	return self.textLayoutMode
 end
-
 function TextElement:getDoRenderText()
 	return true
 end
-
--- Local values: xPos
 function TextElement:getTextPositionX()
-	local v164_ = self.absPosition[1]
+	local xPos = self.absPosition[1]
 	if self.textAlignment == RenderText.ALIGN_CENTER then
-		return v164_ + self.absSize[1] * 0.5
-	end
-	if self.textAlignment == RenderText.ALIGN_RIGHT then
-		v164_ = v164_ + self.absSize[1]
-	end
-	return v164_
-end
-
--- Local values: yPos
-function TextElement:getTextPositionY(lineHeight, totalHeight)
-	local v168_ = self.absPosition[2]
-	if self.textVerticalAlignment == TextElement.VERTICAL_ALIGNMENT.TOP then
-		return v168_ + self.absSize[2] - lineHeight
-	elseif self.textVerticalAlignment == TextElement.VERTICAL_ALIGNMENT.MIDDLE then
-		return v168_ + (self.absSize[2] + totalHeight) * 0.5 - lineHeight
+		xPos = xPos + self.absSize[1] * 0.5
+		return xPos
 	else
-		return v168_ + totalHeight - lineHeight
+		if self.textAlignment == RenderText.ALIGN_RIGHT then
+			xPos = xPos + self.absSize[1]
+		end
+		return xPos
 	end
 end
-
--- Local values: lineHeight, totalHeight, xPos, yPos
-function TextElement:getTextPosition(text)
-	local v171_ = getTextHeight(self.textSize, utf8ToUpper(utf8Substr(text, 0, 1) or ""))
-	local v172_ = getTextHeight(self.textSize, text)
-	return self:getTextPositionX(), self:getTextPositionY(v171_, v172_)
+function TextElement:getTextPositionY(lineHeight, totalHeight)
+	local yPos = self.absPosition[2]
+	if self.textVerticalAlignment == TextElement.VERTICAL_ALIGNMENT.TOP then
+		yPos = yPos + self.absSize[2] - lineHeight
+		return yPos
+	elseif self.textVerticalAlignment == TextElement.VERTICAL_ALIGNMENT.MIDDLE then
+		yPos = yPos + (self.absSize[2] + totalHeight) * 0.5 - lineHeight
+		return yPos
+	else
+		yPos = yPos + totalHeight - lineHeight
+		return yPos
+	end
 end
-
--- Local values: currentTextLayoutMode, scrollLengthFactor, scrollDuration, alpha
+function TextElement:getTextPosition(text)
+	local lineHeight = getTextHeight(self.textSize, utf8ToUpper(utf8Substr(text, 0, 1) or ""))
+	local totalHeight = getTextHeight(self.textSize, text)
+	local xPos = self:getTextPositionX()
+	local yPos = self:getTextPositionY(lineHeight, totalHeight)
+	return xPos, yPos
+end
 function TextElement:update(dt)
 	TextElement:superClass().update(self, dt)
 	if self.textLayoutMode == TextElement.LAYOUT_MODE.SCROLLING then
-		local v175_ = self:getTextLayoutMode()
+		local currentTextLayoutMode = self:getTextLayoutMode()
 		self:updateScrollingLayoutMode()
-		if v175_ == TextElement.LAYOUT_MODE.SCROLLING then
-			if self.scrollingMaxOffset > 0 then
-				local v176_ = 9000 * ((self.scrollingMaxOffset / self.absSize[1] - 1) * 0.5 + 1)
+		if currentTextLayoutMode == TextElement.LAYOUT_MODE.SCROLLING then
+			if 0 < self.scrollingMaxOffset then
+				local scrollLengthFactor = self.scrollingMaxOffset / self.absSize[1]
+				local scrollDuration = 9000 * ((scrollLengthFactor - 1) * 0.5 + 1)
 				self.scrollTime = self.scrollTime + dt
-				if v176_ <= self.scrollTime then
-					self.scrollTime = -v176_
+				if scrollDuration <= self.scrollTime then
+					self.scrollTime = -scrollDuration
 				end
-				local v177_ = MathUtil.smoothstep
-				local v178_ = self.scrollTime
-				local v179_ = v177_(0.2, 0.8, math.abs(v178_) / v176_)
-				self.scrollingOffset = self.scrollingMaxOffset * v179_
+				local alpha = MathUtil.smoothstep(0.2, 0.8, math.abs(self.scrollTime) / scrollDuration)
+				self.scrollingOffset = self.scrollingMaxOffset * alpha
 			end
 			if self.absPosition[1] ~= self.scrollingStartPos - self.scrollingOffset then
 				self.ignoreStartPositionUpdate = true
@@ -931,60 +807,54 @@ function TextElement:update(dt)
 		end
 	end
 end
-
--- Local values: xOffset, yOffset, maxWidth, text, bold, xPos, yPos, baselineOffset, x2Offset, y2Offset, r, g, b, a, r, g, b, a, x, width, debugWidth, debugHeight
 function TextElement:draw(clipX1, clipY1, clipX2, clipY2)
 	if self:getDoRenderText() and (self.text ~= nil and self.text ~= "") then
-		local v185_, v186_ = self:getTextOffset()
-		if self:getTextLayoutMode() == TextElement.LAYOUT_MODE.SCROLLING and self.scrollingMaxOffset > 0 then
-			local v187_ = self.scrollingClipArea[1] + v185_
-			clipX1 = math.max(v187_, clipX1 or 0)
-			local v188_ = self.scrollingClipArea[2] + v186_
-			clipY1 = math.max(v188_, clipY1 or 0)
-			local v189_ = self.scrollingClipArea[3] + v185_
-			clipX2 = math.min(v189_, clipX2 or math.huge)
-			local v190_ = self.scrollingClipArea[4] + v186_
-			clipY2 = math.min(v190_, clipY2 or math.huge)
+		local xOffset, yOffset = self:getTextOffset()
+		if self:getTextLayoutMode() == TextElement.LAYOUT_MODE.SCROLLING and 0 < self.scrollingMaxOffset then
+			clipX1 = math.max(self.scrollingClipArea[1] + xOffset, clipX1 or 0)
+			clipY1 = math.max(self.scrollingClipArea[2] + yOffset, clipY1 or 0)
+			clipX2 = math.min(self.scrollingClipArea[3] + xOffset, clipX2 or math.huge)
+			clipY2 = math.min(self.scrollingClipArea[4] + yOffset, clipY2 or math.huge)
 		end
 		if clipX1 ~= nil then
 			setTextClipArea(clipX1, clipY1, clipX2, clipY2)
 		end
 		setTextAlignment(self.textAlignment)
-		local v191_ = self.absSize[1]
-		local v192_
-		if self.textMaxWidth == nil then
-			v192_ = self.textAutoWidth and 1 or v191_
-		else
-			v192_ = self.textMaxWidth
+		local maxWidth = self.absSize[1]
+		if self.textMaxWidth ~= nil then
+			maxWidth = self.textMaxWidth
+		elseif self.textAutoWidth then
+			maxWidth = 1
 		end
-		if self.textMaxNumLines > 1 then
-			setTextWrapWidth(v192_)
+		if 1 < self.textMaxNumLines then
+			setTextWrapWidth(maxWidth)
 		end
 		setTextFirstLineIndentation(self.firstLineIndentation or 0)
 		setTextLineBounds((self.currentPage - 1) * self.textLinesPerPage, self.textLinesPerPage)
 		setTextLineHeightScale(self.textLineHeightScale)
-		local v193_ = self.text
-		local v194_ = not (self.textBold or self.textSelectedBold and self:getIsSelected()) and (not (self.textHighlightedBold and self:getIsHighlighted()) and self.textFocusedBold)
-		if v194_ then
-			v194_ = self:getIsFocused()
+		local text = self.text
+		if not self.textBold and ((not self.textSelectedBold or not self:getIsSelected()) and (not self.textHighlightedBold or not self:getIsHighlighted())) then
+			local bold = self.textFocusedBold and self:getIsFocused()
 		end
-		setTextBold(v194_)
-		local v195_, v196_ = self:getTextPosition(v193_)
-		local v197_ = v196_ + self.textSize * 0.1
-		if self.text2Size > 0 then
-			local v198_, v199_ = self:getText2Offset()
-			local v200_ = not self.text2Bold and (not (self.text2SelectedBold and self:getIsSelected()) and self.text2HighlightedBold)
-			if v200_ then
-				v200_ = self:getIsHighlighted()
+		setTextBold(bold)
+		local xPos, yPos = self:getTextPosition(text)
+		local baselineOffset = self.textSize * 0.1
+		yPos = yPos + baselineOffset
+		if 0 < self.text2Size then
+			local x2Offset, y2Offset = self:getText2Offset()
+			local _v62 = self.text2Bold
+			if not _v62 and (not self.text2SelectedBold or not self:getIsSelected()) then
+				self:getIsHighlighted()
 			end
-			setTextBold(v200_)
-			local v201_, v202_, v203_, v204_ = unpack(self:getText2Color())
-			setTextColor(v201_, v202_, v203_, v204_ * self.alpha)
-			renderText(v195_ + v198_, v197_ + v199_, self.text2Size, v193_)
+			bold = _v62
+			setTextBold(bold)
+			local r, g, b, a = unpack(self:getText2Color())
+			setTextColor(r, g, b, a * self.alpha)
+			renderText(xPos + x2Offset, yPos + y2Offset, self.text2Size, text)
 		end
-		local v205_, v206_, v207_, v208_ = unpack(self:getTextColor())
-		setTextColor(v205_, v206_, v207_, v208_ * self.alpha)
-		renderText(v195_ + v185_, v197_ + v186_, self.textSize, v193_)
+		local r, g, b, a = unpack(self:getTextColor())
+		setTextColor(r, g, b, a * self.alpha)
+		renderText(xPos + xOffset, yPos + yOffset, self.textSize, text)
 		setTextBold(false)
 		setTextAlignment(RenderText.ALIGN_LEFT)
 		setTextLineHeightScale(RenderText.DEFAULT_LINE_HEIGHT_SCALE)
@@ -997,93 +867,79 @@ function TextElement:draw(clipX1, clipY1, clipX2, clipY2)
 		end
 		if self.debugEnabled or g_uiDebugEnabled then
 			setOverlayColor(GuiElement.debugOverlay, 0, 0, 0, 1)
-			local v209_ = v195_ + v185_
+			local x = xPos + xOffset
 			if self.textAlignment == RenderText.ALIGN_RIGHT then
-				v209_ = v209_ - v192_
+				x = x - maxWidth
 			elseif self.textAlignment == RenderText.ALIGN_CENTER then
-				v209_ = v209_ - v192_ / 2
+				x = x - maxWidth / 2
 			end
-			renderOverlay(GuiElement.debugOverlay, v209_, v197_ + v186_, v192_, g_pixelSizeY * 2)
-			local v210_ = self:getTextWidth()
-			local v211_ = v195_ + v185_
+			renderOverlay(GuiElement.debugOverlay, x, yPos + yOffset, maxWidth, g_pixelSizeY * 2)
+			local width = self:getTextWidth()
+			x = xPos + xOffset
 			if self.textAlignment == RenderText.ALIGN_RIGHT then
-				v211_ = v211_ - v210_
+				x = x - width
 			elseif self.textAlignment == RenderText.ALIGN_CENTER then
-				v211_ = v211_ - v210_ * 0.5
+				x = x - width * 0.5
 			end
 			setOverlayColor(GuiElement.debugOverlay, 0, 1, 0, 1)
-			renderOverlay(GuiElement.debugOverlay, v211_, v197_ + v186_, v210_, 1 * g_pixelSizeY)
+			renderOverlay(GuiElement.debugOverlay, x, yPos + yOffset, width, 1 * g_pixelSizeY)
 			setOverlayColor(GuiElement.debugOverlay, 1, 0.5, 0, 1)
-			renderOverlay(GuiElement.debugOverlay, v211_, v197_ + v186_ + getTextHeight(self.textSize, v193_) * 0.5, v210_, 1 * g_pixelSizeY)
+			renderOverlay(GuiElement.debugOverlay, x, yPos + yOffset + getTextHeight(self.textSize, text) * 0.5, width, 1 * g_pixelSizeY)
 			setOverlayColor(GuiElement.debugOverlay, 0, 0, 1, 1)
-			renderOverlay(GuiElement.debugOverlay, v211_, v197_ + v186_ + getTextHeight(self.textSize, v193_) * 0.75, v210_, 1 * g_pixelSizeY)
-			if self:getTextLayoutMode() == TextElement.LAYOUT_MODE.SCROLLING and self.scrollingMaxOffset > 0 then
-				local v212_ = self.scrollingClipArea[3] - self.scrollingClipArea[1]
-				local v213_ = self.scrollingClipArea[4] - self.scrollingClipArea[2]
-				drawOutlineRect(self.scrollingClipArea[1], self.scrollingClipArea[2], v212_, v213_, 2 * g_pixelSizeX, 2 * g_pixelSizeY, 0, 0, 1, 1)
+			renderOverlay(GuiElement.debugOverlay, x, yPos + yOffset + getTextHeight(self.textSize, text) * 0.75, width, 1 * g_pixelSizeY)
+			if self:getTextLayoutMode() == TextElement.LAYOUT_MODE.SCROLLING and 0 < self.scrollingMaxOffset then
+				local debugWidth = self.scrollingClipArea[3] - self.scrollingClipArea[1]
+				local debugHeight = self.scrollingClipArea[4] - self.scrollingClipArea[2]
+				drawOutlineRect(self.scrollingClipArea[1], self.scrollingClipArea[2], debugWidth, debugHeight, 2 * g_pixelSizeX, 2 * g_pixelSizeY, 0, 0, 1, 1)
 			end
 		end
 	end
 	TextElement:superClass().draw(self, clipX1, clipY1, clipX2, clipY2)
 end
-
--- Local values: currentTextLayoutMode
 function TextElement:updateScrollingLayoutMode()
-	local v215_ = self:getTextLayoutMode()
-	if self.lastTextLayoutMode ~= v215_ then
+	local currentTextLayoutMode = self:getTextLayoutMode()
+	if self.lastTextLayoutMode ~= currentTextLayoutMode then
 		self:setText(self.sourceText, nil, nil, true)
-		self.lastTextLayoutMode = v215_
+		self.lastTextLayoutMode = currentTextLayoutMode
 	end
 end
-
--- Local values: width
 function TextElement:updateScaledWidth(xScale)
 	if self.text ~= nil and (self.text ~= "" and (self.absSize[1] == 0 and self.absSize[2] == 0)) then
-		self:setSize(self:getTextWidth() / xScale, self.textSize)
+		local width = self:getTextWidth()
+		self:setSize(width / xScale, self.textSize)
 	end
 end
-
--- Local values: width, height, textHeight, numLines, offset, textSize, textWidth
 function TextElement:updateSize(forceTextSize)
-	local v220_ = nil
-	local v221_, _ = self:getTextHeight()
-	local v222_
+	local width = nil
+	local height = nil
+	local textHeight, numLines = self:getTextHeight()
 	if self.textAutoWidth and forceTextSize ~= true then
-		local v223_ = self:getTextOffset()
-		local v224_ = self.textSize
+		local offset = self:getTextOffset()
+		local textSize = self.textSize
 		setTextBold(self.textBold)
-		local v225_ = getTextWidth(v224_, self.sourceText)
+		local textWidth = getTextWidth(textSize, self.sourceText)
 		setTextBold(false)
 		if self.textMaxWidth ~= nil then
-			local v226_ = self.textMaxWidth
-			v225_ = math.min(v226_, v225_)
+			textWidth = math.min(self.textMaxWidth, textWidth)
 		end
 		if self.textMinWidth ~= nil then
-			local v227_ = self.textMinWidth
-			v225_ = math.max(v227_, v225_)
+			textWidth = math.max(self.textMinWidth, textWidth)
 		end
-		v222_ = v223_ + v225_
-		if v222_ ~= self.size[1] and self.size[2] == 0 then
-			v220_ = self.textSize
+		width = offset + textWidth
+		if width ~= self.size[1] and self.size[2] == 0 then
+			height = self.textSize
 		end
-	else
-		v222_ = nil
 	end
-	if self.textAutoHeight then
-		if forceTextSize == true then
-			v221_ = v220_
-		end
-	else
-		v221_ = v220_
+	if self.textAutoHeight and forceTextSize ~= true then
+		height = textHeight
 	end
-	if v222_ ~= nil or v221_ ~= nil then
-		self:setSize(v222_, v221_)
+	if width ~= nil or height ~= nil then
+		self:setSize(width, height)
 		if self.parent ~= nil and (self.parent.invalidateLayout ~= nil and self.parent.autoValidateLayout) then
 			self.parent:invalidateLayout()
 		end
 	end
 	if self.textLayoutMode == TextElement.LAYOUT_MODE.FILL then
-		local v228_ = self.absSize[2] / (self.textSize * self.textLineHeightScale)
-		self.textMaxNumLines = math.floor(v228_)
+		self.textMaxNumLines = math.floor(self.absSize[2] / (self.textSize * self.textLineHeightScale))
 	end
 end

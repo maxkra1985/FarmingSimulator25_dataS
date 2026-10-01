@@ -1,22 +1,18 @@
--- Local values: EnterablePassengerEnterResponseEvent_mt
 EnterablePassengerEnterResponseEvent = {}
 local EnterablePassengerEnterResponseEvent_mt = Class(EnterablePassengerEnterResponseEvent, Event)
 InitStaticEventClass(EnterablePassengerEnterResponseEvent, "EnterablePassengerEnterResponseEvent")
 function EnterablePassengerEnterResponseEvent.emptyNew()
-	-- upvalues: (copy) EnterablePassengerEnterResponseEvent_mt
-	return Event.new(EnterablePassengerEnterResponseEvent_mt)
+	local self = Event.new(EnterablePassengerEnterResponseEvent_mt)
+	return self
 end
-
--- Local values: self
 function EnterablePassengerEnterResponseEvent.new(id, isOwner, seatIndex, userId)
-	local v6_ = EnterablePassengerEnterResponseEvent.emptyNew()
-	v6_.id = id
-	v6_.isOwner = isOwner
-	v6_.seatIndex = seatIndex
-	v6_.userId = userId
-	return v6_
+	local self = EnterablePassengerEnterResponseEvent.emptyNew()
+	self.id = id
+	self.isOwner = isOwner
+	self.seatIndex = seatIndex
+	self.userId = userId
+	return self
 end
-
 function EnterablePassengerEnterResponseEvent:readStream(streamId, connection)
 	self.id = NetworkUtil.readNodeObjectId(streamId)
 	self.isOwner = streamReadBool(streamId)
@@ -24,29 +20,23 @@ function EnterablePassengerEnterResponseEvent:readStream(streamId, connection)
 	self.userId = User.streamReadUserId(streamId)
 	self:run(connection)
 end
-
 function EnterablePassengerEnterResponseEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObjectId(streamId, self.id)
 	streamWriteBool(streamId, self.isOwner)
-	local v12_ = streamWriteUIntN
-	local v13_ = self.seatIndex - 1
-	local v14_ = 2 ^ EnterablePassenger.SEAT_INDEX_SEND_NUM_BITS - 1
-	v12_(streamId, math.clamp(v13_, 0, v14_), EnterablePassenger.SEAT_INDEX_SEND_NUM_BITS)
+	streamWriteUIntN(streamId, math.clamp(self.seatIndex - 1, 0, 2 ^ EnterablePassenger.SEAT_INDEX_SEND_NUM_BITS - 1), EnterablePassenger.SEAT_INDEX_SEND_NUM_BITS)
 	User.streamWriteUserId(streamId, self.userId)
 end
-
--- Local values: object, uniqueUserId, player, _, missionPlayer
 function EnterablePassengerEnterResponseEvent:run(connection)
-	local v16_ = NetworkUtil.getObject(self.id)
-	if v16_ ~= nil and v16_:getIsSynchronized() then
-		local v17_ = g_currentMission.userManager:getUniqueUserIdByUserId(self.userId)
-		local v18_ = nil
-		for _, v19_ in pairs(g_currentMission.playerSystem.players) do
-			if v19_.uniqueUserId == v17_ then
-				v18_ = v19_
+	local object = NetworkUtil.getObject(self.id)
+	if object ~= nil and object:getIsSynchronized() then
+		local uniqueUserId = g_currentMission.userManager:getUniqueUserIdByUserId(self.userId)
+		local player = nil
+		for _, missionPlayer in pairs(g_currentMission.playerSystem.players) do
+			if missionPlayer.uniqueUserId == uniqueUserId then
+				player = missionPlayer
 				break
 			end
 		end
-		v18_:onEnterVehicleAsPassenger(v16_, self.seatIndex)
+		player:onEnterVehicleAsPassenger(object, self.seatIndex)
 	end
 end

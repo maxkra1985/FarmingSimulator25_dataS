@@ -16,15 +16,12 @@ FieldGroundType.HARVEST_READY_OTHER = 14
 FieldGroundType.GRASS = 15
 FieldGroundType.GRASS_CUT = 16
 Enum(FieldGroundType)
-
 function FieldGroundType.getValueByType(typeIndex)
 	return g_currentMission.fieldGroundSystem:getFieldGroundValue(typeIndex)
 end
-
 function FieldGroundType.getValueByName(name)
 	return g_currentMission.fieldGroundSystem:getFieldGroundValueByName(name)
 end
-
 function FieldGroundType.getTypeByValue(value)
 	return g_currentMission.fieldGroundSystem:getFieldGroundTypeByValue(value)
 end

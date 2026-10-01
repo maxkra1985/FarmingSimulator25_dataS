@@ -1,23 +1,19 @@
--- Local values: VehicleEnterResponseEvent_mt
 VehicleEnterResponseEvent = {}
 local VehicleEnterResponseEvent_mt = Class(VehicleEnterResponseEvent, Event)
 InitStaticEventClass(VehicleEnterResponseEvent, "VehicleEnterResponseEvent")
 function VehicleEnterResponseEvent.emptyNew()
-	-- upvalues: (copy) VehicleEnterResponseEvent_mt
-	return Event.new(VehicleEnterResponseEvent_mt, NetworkNode.CHANNEL_MAIN)
+	local self = Event.new(VehicleEnterResponseEvent_mt, NetworkNode.CHANNEL_MAIN)
+	return self
 end
-
--- Local values: self
 function VehicleEnterResponseEvent.new(id, isOwner, playerStyle, farmId, userId)
-	local v7_ = VehicleEnterResponseEvent.emptyNew()
-	v7_.id = id
-	v7_.isOwner = isOwner
-	v7_.playerStyle = playerStyle
-	v7_.farmId = farmId
-	v7_.userId = userId
-	return v7_
+	local self = VehicleEnterResponseEvent.emptyNew()
+	self.id = id
+	self.isOwner = isOwner
+	self.playerStyle = playerStyle
+	self.farmId = farmId
+	self.userId = userId
+	return self
 end
-
 function VehicleEnterResponseEvent:readStream(streamId, connection)
 	self.id = NetworkUtil.readNodeObjectId(streamId)
 	self.isOwner = streamReadBool(streamId)
@@ -29,7 +25,6 @@ function VehicleEnterResponseEvent:readStream(streamId, connection)
 	self.userId = User.streamReadUserId(streamId)
 	self:run(connection)
 end
-
 function VehicleEnterResponseEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObjectId(streamId, self.id)
 	streamWriteBool(streamId, self.isOwner)
@@ -37,22 +32,20 @@ function VehicleEnterResponseEvent:writeStream(streamId, connection)
 	streamWriteUIntN(streamId, self.farmId, FarmManager.FARM_ID_SEND_NUM_BITS)
 	User.streamWriteUserId(streamId, self.userId)
 end
-
--- Local values: vehicle, player
 function VehicleEnterResponseEvent:run(connection)
-	local v15_ = NetworkUtil.getObject(self.id)
-	if v15_ == nil then
-		Logging.devWarning("VehicleEnterResponseEvent: Vehicle \'%s\' not found. Skip entering", self.id)
+	local vehicle = NetworkUtil.getObject(self.id)
+	if vehicle == nil then
+		Logging.devWarning("VehicleEnterResponseEvent: Vehicle '%s' not found. Skip entering", self.id)
 		return
-	elseif v15_:getIsSynchronized() then
-		local v16_ = g_currentMission.playerSystem:getPlayerByUserId(self.userId)
-		if v16_ == nil then
-			Logging.devWarning("VehicleEnterResponseEvent: Player \'%s\' not found. Skip entering", self.userId)
-		else
-			v16_:onEnterVehicle(v15_)
-		end
+	end
+	if not vehicle:getIsSynchronized() then
+		Logging.devWarning("VehicleEnterResponseEvent: Vehicle '%s' not synchronized. Skip entering", vehicle.configFileName)
+		return
+	end
+	local player = g_currentMission.playerSystem:getPlayerByUserId(self.userId)
+	if player == nil then
+		Logging.devWarning("VehicleEnterResponseEvent: Player '%s' not found. Skip entering", self.userId)
 	else
-		Logging.devWarning("VehicleEnterResponseEvent: Vehicle \'%s\' not synchronized. Skip entering", v15_.configFileName)
-		return
+		player:onEnterVehicle(vehicle)
 	end
 end

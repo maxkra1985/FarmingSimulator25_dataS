@@ -1,121 +1,121 @@
 NPCUtil = {}
-
--- Local values: xmlFile, requiredDLC, className, class, npc
 function NPCUtil.createFromXML(xmlFilename)
-	local v2_ = XMLFile.load("NPC", xmlFilename, NPC.xmlSchema)
-	if v2_ == nil then
+	local xmlFile = XMLFile.load("NPC", xmlFilename, NPC.xmlSchema)
+	if xmlFile == nil then
 		return nil
 	end
-	local v3_ = v2_:getString("npc#requiredDLC")
-	if v3_ ~= nil and g_modIsLoaded[g_uniqueDlcNamePrefix .. v3_] == nil then
-		v2_:delete()
+	local requiredDLC = xmlFile:getString("npc#requiredDLC")
+	if requiredDLC ~= nil and g_modIsLoaded[g_uniqueDlcNamePrefix .. requiredDLC] == nil then
+		xmlFile:delete()
 		return nil, true
 	end
-	local v4_ = v2_:getValue("npc.class", "NPC")
-	v2_:delete()
-	local v5_ = ClassUtil.getClassObject(v4_)
-	if v5_ == nil then
-		Logging.xmlWarning(v2_, "NPC controller class \'%s\' not found!", v4_)
+	local className = xmlFile:getValue("npc.class", "NPC")
+	xmlFile:delete()
+	local class = ClassUtil.getClassObject(className)
+	if class == nil then
+		Logging.xmlWarning(xmlFile, "NPC controller class '%s' not found!", className)
 		return nil
 	end
-	local v6_ = v5_.new(g_server ~= nil, g_client ~= nil)
-	if v6_:load(xmlFilename) then
-		return v6_
+	local npc = class.new(g_server ~= nil, g_client ~= nil)
+	if not npc:load(xmlFilename) then
+		npc:delete()
+		return nil
+	else
+		return npc
 	end
-	v6_:delete()
-	return nil
 end
-
--- Local values: xmlFile, className, class, conversation
 function NPCUtil.createConversationFromXML(npc, xmlFilename, uniqueId)
-	local v10_ = XMLFile.load("NPCConversation", xmlFilename, NPCConversation.xmlSchema)
-	if v10_ == nil then
+	local xmlFile = XMLFile.load("NPCConversation", xmlFilename, NPCConversation.xmlSchema)
+	if xmlFile == nil then
 		return nil
 	end
-	local v11_ = v10_:getValue("conversation.class", "NPCConversation")
-	v10_:delete()
-	local v12_ = ClassUtil.getClassObject(v11_)
-	if v12_ == nil then
-		Logging.xmlWarning(v10_, "NPC Conversation class \'%s\' not found!", v11_)
+	local className = xmlFile:getValue("conversation.class", "NPCConversation")
+	xmlFile:delete()
+	local class = ClassUtil.getClassObject(className)
+	if class == nil then
+		Logging.xmlWarning(xmlFile, "NPC Conversation class '%s' not found!", className)
 		return nil
 	end
-	local v13_ = v12_.new(npc, uniqueId)
-	if v13_:load(xmlFilename) then
-		return v13_
+	local conversation = class.new(npc, uniqueId)
+	if not conversation:load(xmlFilename) then
+		Logging.warning("Could not load NPC conversation '%s'!", xmlFilename)
+		conversation:delete()
+		return nil
+	else
+		return conversation
 	end
-	Logging.warning("Could not load NPC conversation \'%s\'!", xmlFilename)
-	v13_:delete()
-	return nil
 end
-
--- Local values: englishTextFilename, xmlFile, text
 function NPCUtil.createTextFromPath(path, isOption, isActive)
-	local v17_ = path .. "_en.xml"
-	local v18_ = XMLFile.load("NPCText", v17_, NPCText.xmlSchema)
-	if v18_ == nil then
+	local englishTextFilename = path .. "_en.xml"
+	local xmlFile = XMLFile.load("NPCText", englishTextFilename, NPCText.xmlSchema)
+	if xmlFile == nil then
 		return nil
+	else
+		xmlFile:delete()
+		local text = NPCText.new(isActive)
+		text:load(path, isOption)
+		return text
 	end
-	v18_:delete()
-	local v19_ = NPCText.new(isActive)
-	v19_:load(path, isOption)
-	return v19_
 end
-
--- Local values: actions, actionClasses, name, actionClass, actionIteratorKey, _, actionKey, action
 function NPCUtil.loadActionsFromXMLFile(xmlFile, key, conversation, baseDirectory, customEnvironment)
-	local v25_ = g_npcManager:getAllConverationActionClasses()
-	local v26_ = nil
-	for v27_, v28_ in pairs(v25_) do
-		for _, v29_ in xmlFile:iterator(key .. ".actions." .. v27_) do
-			local v30_ = v28_.createFromXML(xmlFile, v29_, conversation, baseDirectory, customEnvironment)
-			if v30_ == nil then
-				Logging.xmlWarning(xmlFile, "Could not create conversation action in \'%s\'", v29_)
+	local actions = nil
+	local actionClasses = g_npcManager:getAllConverationActionClasses()
+	for name, actionClass in pairs(actionClasses) do
+		local actionIteratorKey = key .. ".actions." .. name
+		for _, actionKey in xmlFile:iterator(actionIteratorKey) do
+			local action = actionClass.createFromXML(xmlFile, actionKey, conversation, baseDirectory, customEnvironment)
+			if action ~= nil then
+				if actions == nil then
+					actions = {}
+				end
+				table.insert(actions, action)
 			else
-				v26_ = v26_ == nil and {} or v26_
-				table.insert(v26_, v30_)
+				Logging.xmlWarning(xmlFile, "Could not create conversation action in '%s'", actionKey)
 			end
 		end
 	end
-	return v26_
+	return actions
 end
-
--- Local values: inputs, inputClasses, name, inputClass, inputIteratorKey, _, inputKey, input
 function NPCUtil.loadInputsFromXMLFile(xmlFile, key, conversation, baseDirectory, customEnvironment)
-	local v36_ = g_npcManager:getAllConverationInputClasses()
-	local v37_ = nil
-	for v38_, v39_ in pairs(v36_) do
-		for _, v40_ in xmlFile:iterator(key .. ".inputs." .. v38_) do
-			local v41_ = v39_.createFromXML(xmlFile, v40_, conversation, baseDirectory, customEnvironment)
-			if v41_ == nil then
-				Logging.xmlWarning(xmlFile, "Could not create conversation input in \'%s\'", v40_)
+	local inputs = nil
+	local inputClasses = g_npcManager:getAllConverationInputClasses()
+	for name, inputClass in pairs(inputClasses) do
+		local inputIteratorKey = key .. ".inputs." .. name
+		for _, inputKey in xmlFile:iterator(inputIteratorKey) do
+			local input = inputClass.createFromXML(xmlFile, inputKey, conversation, baseDirectory, customEnvironment)
+			if input ~= nil then
+				if inputs == nil then
+					inputs = {}
+				end
+				table.insert(inputs, input)
 			else
-				v37_ = v37_ == nil and {} or v37_
-				table.insert(v37_, v41_)
+				Logging.xmlWarning(xmlFile, "Could not create conversation input in '%s'", inputKey)
 			end
 		end
 	end
-	return v37_
+	return inputs
 end
-
--- Local values: prerequisites, optionPrerequisiteClasses, name, class, iteratorKey, _, prerequisiteKey, prerequisite
 function NPCUtil.loadOptionPrerequisitesFromXMLFile(xmlFile, key, conversation, baseDirectory, customEnvironment)
-	local v47_ = g_npcManager:getAllConverationOptionPrerequisiteClasses()
-	local v48_ = nil
-	for v49_, v50_ in pairs(v47_) do
-		for _, v51_ in xmlFile:iterator(key .. ".prerequisites." .. v49_) do
-			local v52_ = v50_.createFromXML(xmlFile, v51_, conversation, baseDirectory, customEnvironment)
-			if v52_ == nil then
-				Logging.xmlWarning(xmlFile, "Could not create conversation option prerequisite in \'%s\'", v51_)
+	local prerequisites = nil
+	local optionPrerequisiteClasses = g_npcManager:getAllConverationOptionPrerequisiteClasses()
+	for name, class in pairs(optionPrerequisiteClasses) do
+		local iteratorKey = key .. ".prerequisites." .. name
+		for _, prerequisiteKey in xmlFile:iterator(iteratorKey) do
+			local prerequisite = class.createFromXML(xmlFile, prerequisiteKey, conversation, baseDirectory, customEnvironment)
+			if prerequisite ~= nil then
+				if prerequisites == nil then
+					prerequisites = {}
+				end
+				table.insert(prerequisites, prerequisite)
 			else
-				v48_ = v48_ == nil and {} or v48_
-				table.insert(v48_, v52_)
+				Logging.xmlWarning(xmlFile, "Could not create conversation option prerequisite in '%s'", prerequisiteKey)
 			end
 		end
 	end
-	return v48_
+	return prerequisites
 end
-
 function NPCUtil.cleanEmotionalText(text)
-	local v54_ = string.gsub(text, "(%[[%w, ]*%])", "")
-	return string.gsub(v54_, "(%[/[%w ]*%])", "")
+	text = string.gsub(text, "(%[[%w, ]*%])", "")
+	text = string.gsub(text, "(%[/[%w ]*%])", "")
+	return text
 end

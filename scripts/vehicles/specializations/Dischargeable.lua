@@ -19,26 +19,21 @@ Dischargeable.DISCHARGE_WARNINGS[Dischargeable.DISCHARGE_REASON_NO_ACCESS] = "wa
 Dischargeable.DISCHARGE_WARNINGS[Dischargeable.DISCHARGE_REASON_NO_ACCESS_LAND] = "warning_youDontHaveAccessToThisLand"
 Dischargeable.DISCHARGE_NODE_XML_PATH = "vehicle.dischargeable.dischargeNode(?)"
 Dischargeable.DISCHARGE_NODE_CONFIG_XML_PATH = "vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(?).dischargeNode(?)"
-
 function Dischargeable.prerequisitesPresent(specializations)
-	local v2_ = SpecializationUtil.hasSpecialization(FillUnit, specializations)
-	if v2_ then
-		v2_ = SpecializationUtil.hasSpecialization(FillVolume, specializations)
-	end
-	return v2_
+	return SpecializationUtil.hasSpecialization(FillUnit, specializations) and SpecializationUtil.hasSpecialization(FillVolume, specializations)
 end
 function Dischargeable.initSpecialization()
 	g_vehicleConfigurationManager:addConfigurationType("dischargeable", g_i18n:getText("configuration_dischargeable"), "dischargeable", VehicleConfigurationItem)
-	local v3_ = Vehicle.xmlSchema
-	v3_:setXMLSpecializationType("Dischargeable")
-	Dischargeable.registerXMLPaths(v3_, "vehicle.dischargeable")
-	Dischargeable.registerXMLPaths(v3_, "vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(?)")
-	Dashboard.registerDashboardXMLPaths(v3_, "vehicle.dischargeable.dashboards", { "activeDischargeNode", "dischargeState" })
-	v3_:register(XMLValueType.INT, "vehicle.dischargeable.dashboards.dashboard(?)#dischargeNodeIndex", "Index of discharge node")
-	v3_:setXMLSpecializationType()
-	Vehicle.xmlSchemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).dischargeable#isAllowed", "If is dicharge allowed", nil)
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Dischargeable")
+	Dischargeable.registerXMLPaths(schema, "vehicle.dischargeable")
+	Dischargeable.registerXMLPaths(schema, "vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(?)")
+	Dashboard.registerDashboardXMLPaths(schema, "vehicle.dischargeable.dashboards", { "activeDischargeNode", "dischargeState" })
+	schema:register(XMLValueType.INT, "vehicle.dischargeable.dashboards.dashboard(?)#dischargeNodeIndex", "Index of discharge node")
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).dischargeable#isAllowed", "If is dicharge allowed", nil)
 end
-
 function Dischargeable.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. "#requiresTipOcclusionArea", "Requires tip occlusion area", true)
 	schema:register(XMLValueType.BOOL, basePath .. "#consumePower", "While in discharge state, PTO power is consumed", true)
@@ -52,7 +47,7 @@ function Dischargeable.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. ".dischargeNode(?)#canDischargeToVehicle", "Can discharge to other vehicles", "same as canDischargeToObject")
 	schema:register(XMLValueType.BOOL, basePath .. ".dischargeNode(?)#canStartDischargeAutomatically", "Can start discharge automatically", false)
 	schema:register(XMLValueType.BOOL, basePath .. ".dischargeNode(?)#canStartGroundDischargeAutomatically", "Can start discharge to ground automatically", false)
-	schema:register(XMLValueType.BOOL, basePath .. ".dischargeNode(?)#stopDischargeIfNotPossible", "Stop discharge if not possible", "default \'true\' while having discharge trigger")
+	schema:register(XMLValueType.BOOL, basePath .. ".dischargeNode(?)#stopDischargeIfNotPossible", "Stop discharge if not possible", "default 'true' while having discharge trigger")
 	schema:register(XMLValueType.BOOL, basePath .. ".dischargeNode(?)#canDischargeToGroundAnywhere", "Can discharge to ground independent of land owned state", false)
 	schema:register(XMLValueType.BOOL, basePath .. ".dischargeNode(?)#canDischargeToMissionGround", "Can discharge to ground if an active mission is running on the farmland", false)
 	schema:register(XMLValueType.BOOL, basePath .. ".dischargeNode(?)#canFillOwnVehicle", "Discharge node can fill other fill units of the vehicle itself", false)
@@ -91,7 +86,6 @@ function Dischargeable.registerXMLPaths(schema, basePath)
 	AnimationManager.registerAnimationNodesXMLPaths(schema, basePath .. ".dischargeNode(?).animationNodes")
 	AnimationManager.registerAnimationNodesXMLPaths(schema, basePath .. ".dischargeNode(?).effectAnimationNodes")
 end
-
 function Dischargeable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "loadDischargeNode", Dischargeable.loadDischargeNode)
 	SpecializationUtil.registerFunction(vehicleType, "setCurrentDischargeNodeIndex", Dischargeable.setCurrentDischargeNodeIndex)
@@ -138,7 +132,6 @@ function Dischargeable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "onDeleteActivationTriggerObject", Dischargeable.onDeleteActivationTriggerObject)
 	SpecializationUtil.registerFunction(vehicleType, "setForcedFillTypeIndex", Dischargeable.setForcedFillTypeIndex)
 end
-
 function Dischargeable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getRequiresTipOcclusionArea", Dischargeable.getRequiresTipOcclusionArea)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getCanBeSelected", Dischargeable.getCanBeSelected)
@@ -146,12 +139,10 @@ function Dischargeable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getIsPowerTakeOffActive", Dischargeable.getIsPowerTakeOffActive)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getAllowLoadTriggerActivation", Dischargeable.getAllowLoadTriggerActivation)
 end
-
 function Dischargeable.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onDischargeStateChanged")
 	SpecializationUtil.registerEvent(vehicleType, "onDischargeTargetObjectChanged")
 end
-
 function Dischargeable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Dischargeable)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", Dischargeable)
@@ -168,76 +159,68 @@ function Dischargeable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onDeactivate", Dischargeable)
 	SpecializationUtil.registerEventListener(vehicleType, "onStateChange", Dischargeable)
 end
-
--- Local values: spec, coverConfigurationId, configKey
 function Dischargeable:onLoad(savegame)
-	local v_u_11_ = self.spec_dischargeable
+	local spec = self.spec_dischargeable
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipeEffect", "vehicle.dischargeable.dischargeNode.effects")
-	local v12_ = Utils.getNoNil(self.configurations.dischargeable, 1)
-	local v13_ = string.format("vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(%d)", v12_ - 1)
-	local v14_ = not self.xmlFile:hasProperty(v13_) and "vehicle.dischargeable" or v13_
-	v_u_11_.isDischargeAllowed = true
-	v_u_11_.dischargeNodes = {}
-	v_u_11_.fillUnitDischargeNodeMapping = {}
-	v_u_11_.dischargNodeMapping = {}
-	v_u_11_.triggerToDischargeNode = {}
-	v_u_11_.activationTriggerToDischargeNode = {}
-	v_u_11_.requiresTipOcclusionArea = self.xmlFile:getValue(v14_ .. "#requiresTipOcclusionArea", true)
-	v_u_11_.consumePower = self.xmlFile:getValue(v14_ .. "#consumePower", true)
-	v_u_11_.stopDischargeOnDeactivate = self.xmlFile:getValue(v14_ .. "#stopDischargeOnDeactivate", true)
-	v_u_11_.dischargedLiters = 0
-	self.xmlFile:iterate(v14_ .. ".dischargeNode", function(_, p15_)
-		-- upvalues: (copy) self, (copy) v_u_11_
-		local v16_ = {}
-		if self:loadDischargeNode(self.xmlFile, p15_, v16_) then
-			local v17_
-			if v_u_11_.dischargNodeMapping[v16_.node] == nil then
-				v17_ = true
-			else
-				Logging.xmlWarning(self.xmlFile, "DischargeNode \'%d | %s\' already defined. Discharge nodes need to be unique. Ignoring it!", v16_.node, getName(v16_.node))
-				v17_ = false
+	local coverConfigurationId = Utils.getNoNil(self.configurations.dischargeable, 1)
+	local configKey = string.format("vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(%d)", coverConfigurationId - 1)
+	if not self.xmlFile:hasProperty(configKey) then
+		configKey = "vehicle.dischargeable"
+	end
+	spec.isDischargeAllowed = true
+	spec.dischargeNodes = {}
+	spec.fillUnitDischargeNodeMapping = {}
+	spec.dischargNodeMapping = {}
+	spec.triggerToDischargeNode = {}
+	spec.activationTriggerToDischargeNode = {}
+	spec.requiresTipOcclusionArea = self.xmlFile:getValue(configKey .. "#requiresTipOcclusionArea", true)
+	spec.consumePower = self.xmlFile:getValue(configKey .. "#consumePower", true)
+	spec.stopDischargeOnDeactivate = self.xmlFile:getValue(configKey .. "#stopDischargeOnDeactivate", true)
+	spec.dischargedLiters = 0
+	self.xmlFile:iterate(configKey .. ".dischargeNode", function(i, key)
+		local entry = {}
+		if self:loadDischargeNode(self.xmlFile, key, entry) then
+			local canBeAdded = true
+			if spec.dischargNodeMapping[entry.node] ~= nil then
+				Logging.xmlWarning(self.xmlFile, "DischargeNode '%d | %s' already defined. Discharge nodes need to be unique. Ignoring it!", entry.node, getName(entry.node))
+				canBeAdded = false
 			end
-			if v16_.trigger.node ~= nil and v_u_11_.triggerToDischargeNode[v16_.trigger.node] ~= nil then
-				Logging.xmlWarning(self.xmlFile, "DischargeNode trigger \'%d | %s\' already defined. DischargeNode triggers need to be unique. Ignoring it!", v16_.trigger.node, getName(v16_.trigger.node))
-				v17_ = false
+			if entry.trigger.node ~= nil and spec.triggerToDischargeNode[entry.trigger.node] ~= nil then
+				Logging.xmlWarning(self.xmlFile, "DischargeNode trigger '%d | %s' already defined. DischargeNode triggers need to be unique. Ignoring it!", entry.trigger.node, getName(entry.trigger.node))
+				canBeAdded = false
 			end
-			if v16_.activationTrigger.node ~= nil and v_u_11_.activationTriggerToDischargeNode[v16_.activationTrigger.node] ~= nil then
-				Logging.xmlWarning(self.xmlFile, "DischargeNode activationTrigger \'%d | %s\' already defined. DischargeNode activationTriggers need to be unique. Ignoring it!", v16_.activationTrigger.node, getName(v16_.activationTrigger.node))
-				v17_ = false
+			if entry.activationTrigger.node ~= nil and spec.activationTriggerToDischargeNode[entry.activationTrigger.node] ~= nil then
+				Logging.xmlWarning(self.xmlFile, "DischargeNode activationTrigger '%d | %s' already defined. DischargeNode activationTriggers need to be unique. Ignoring it!", entry.activationTrigger.node, getName(entry.activationTrigger.node))
+				canBeAdded = false
 			end
-			if self.getFillUnitExists ~= nil and not self:getFillUnitExists(v16_.fillUnitIndex) then
-				Logging.xmlWarning(self.xmlFile, "FillUnit with index \'%d\' does not exist for discharge node \'%s\'. Ignoring discharge node!", v16_.fillUnitIndex, p15_)
-				v17_ = false
+			if self.getFillUnitExists ~= nil and not self:getFillUnitExists(entry.fillUnitIndex) then
+				Logging.xmlWarning(self.xmlFile, "FillUnit with index '%d' does not exist for discharge node '%s'. Ignoring discharge node!", entry.fillUnitIndex, key)
+				canBeAdded = false
 			end
-			if v17_ then
-				local v18_ = v_u_11_.dischargeNodes
-				table.insert(v18_, v16_)
-				v16_.index = #v_u_11_.dischargeNodes
-				v_u_11_.fillUnitDischargeNodeMapping[v16_.fillUnitIndex] = v16_
-				v_u_11_.dischargNodeMapping[v16_.node] = v16_
-				if v16_.trigger.node ~= nil then
-					v_u_11_.triggerToDischargeNode[v16_.trigger.node] = v16_
+			if canBeAdded then
+				table.insert(spec.dischargeNodes, entry)
+				entry.index = #spec.dischargeNodes
+				spec.fillUnitDischargeNodeMapping[entry.fillUnitIndex] = entry
+				spec.dischargNodeMapping[entry.node] = entry
+				if entry.trigger.node ~= nil then
+					spec.triggerToDischargeNode[entry.trigger.node] = entry
 				end
-				if v16_.activationTrigger.node ~= nil then
-					v_u_11_.activationTriggerToDischargeNode[v16_.activationTrigger.node] = v16_
+				if entry.activationTrigger.node ~= nil then
+					spec.activationTriggerToDischargeNode[entry.activationTrigger.node] = entry
 				end
 			end
 		end
 	end)
-	local v19_ = v_u_11_.requiresTipOcclusionArea
-	if v19_ then
-		v19_ = #v_u_11_.dischargeNodes > 0
-	end
-	v_u_11_.requiresTipOcclusionArea = v19_
-	v_u_11_.currentDischargeState = Dischargeable.DISCHARGE_STATE_OFF
-	v_u_11_.currentRaycast = nil
-	v_u_11_.forcedFillTypeIndex = nil
-	v_u_11_.raycastCollisionMask = CollisionFlag.FILLABLE + CollisionFlag.VEHICLE + CollisionFlag.TERRAIN
-	v_u_11_.isAsyncRaycastActive = false
-	v_u_11_.currentRaycast = {}
+	spec.requiresTipOcclusionArea = spec.requiresTipOcclusionArea and 0 < #spec.dischargeNodes
+	spec.currentDischargeState = Dischargeable.DISCHARGE_STATE_OFF
+	spec.currentRaycast = nil
+	spec.forcedFillTypeIndex = nil
+	spec.raycastCollisionMask = CollisionFlag.FILLABLE + CollisionFlag.VEHICLE + CollisionFlag.TERRAIN
+	spec.isAsyncRaycastActive = false
+	spec.currentRaycast = {}
 	self:setCurrentDischargeNodeIndex(1)
-	v_u_11_.dirtyFlag = self:getNextDirtyFlag()
-	if #v_u_11_.dischargeNodes == 0 then
+	spec.dirtyFlag = self:getNextDirtyFlag()
+	if #spec.dischargeNodes == 0 then
 		SpecializationUtil.removeEventListener(self, "onPostLoad", Dischargeable)
 		SpecializationUtil.removeEventListener(self, "onReadStream", Dischargeable)
 		SpecializationUtil.removeEventListener(self, "onWriteStream", Dischargeable)
@@ -250,804 +233,734 @@ function Dischargeable:onLoad(savegame)
 		SpecializationUtil.removeEventListener(self, "onDeactivate", Dischargeable)
 	end
 end
-
--- Local values: spec
 function Dischargeable:onPostLoad(savegame)
-	local v22_ = self.spec_dischargeable
+	local spec = self.spec_dischargeable
 	if savegame ~= nil and not savegame.resetVehicles then
-		v22_.isDischargeAllowed = savegame.xmlFile:getValue(savegame.key .. ".dischargeable#isAllowed", v22_.isDischargeAllowed)
+		spec.isDischargeAllowed = savegame.xmlFile:getValue(savegame.key .. ".dischargeable#isAllowed", spec.isDischargeAllowed)
 	end
 end
-
--- Local values: spec
 function Dischargeable:saveToXMLFile(xmlFile, key, usedModNames)
-	local v26_ = self.spec_dischargeable
-	xmlFile:setValue(key .. "#isAllowed", v26_.isDischargeAllowed)
+	local spec = self.spec_dischargeable
+	xmlFile:setValue(key .. "#isAllowed", spec.isDischargeAllowed)
 end
-
--- Local values: spec, activeDischargeNode, dischargeState
 function Dischargeable:onRegisterDashboardValueTypes()
-	local v28_ = self.spec_dischargeable
-	local v29_ = DashboardValueType.new("dischargeable", "activeDischargeNode")
-	v29_:setValue(self, function(_, p30_)
-		-- upvalues: (copy) self
-		local v31_
-		if p30_.dischargeNodeIndex == nil then
-			v31_ = false
-		else
-			v31_ = self:getCurrentDischargeNodeIndex() == p30_.dischargeNodeIndex
-		end
-		return v31_
+	local spec = self.spec_dischargeable
+	local activeDischargeNode = DashboardValueType.new("dischargeable", "activeDischargeNode")
+	activeDischargeNode:setValue(self, function(_, dashboard)
+		return dashboard.dischargeNodeIndex ~= nil and self:getCurrentDischargeNodeIndex() == dashboard.dischargeNodeIndex
 	end)
-	v29_:setAdditionalFunctions(Dischargeable.dashboardDischargeAttributes)
-	v29_:setPollUpdate(false)
-	self:registerDashboardValueType(v29_)
-	local v32_ = DashboardValueType.new("dischargeable", "dischargeState")
-	v32_:setValue(v28_, "currentDischargeState")
-	v32_:setValueCompare(Dischargeable.DISCHARGE_STATE_OBJECT, Dischargeable.DISCHARGE_STATE_GROUND)
-	v32_:setPollUpdate(false)
-	self:registerDashboardValueType(v32_)
+	activeDischargeNode:setAdditionalFunctions(Dischargeable.dashboardDischargeAttributes)
+	activeDischargeNode:setPollUpdate(false)
+	self:registerDashboardValueType(activeDischargeNode)
+	local dischargeState = DashboardValueType.new("dischargeable", "dischargeState")
+	dischargeState:setValue(spec, "currentDischargeState")
+	dischargeState:setValueCompare(Dischargeable.DISCHARGE_STATE_OBJECT, Dischargeable.DISCHARGE_STATE_GROUND)
+	dischargeState:setPollUpdate(false)
+	self:registerDashboardValueType(dischargeState)
 end
-
--- Local values: spec, _, dischargeNode, trigger, object, _, trigger, object, _
 function Dischargeable:onDelete()
-	local v34_ = self.spec_dischargeable
-	if v34_.dischargeNodes ~= nil then
-		for _, v35_ in ipairs(v34_.dischargeNodes) do
-			g_effectManager:deleteEffects(v35_.effects)
-			g_soundManager:deleteSample(v35_.sample)
-			g_soundManager:deleteSample(v35_.dischargeSample)
-			g_soundManager:deleteSamples(v35_.dischargeStateSamples)
-			g_animationManager:deleteAnimations(v35_.animationNodes)
-			g_animationManager:deleteAnimations(v35_.effectAnimationNodes)
-			if v35_.trigger.node ~= nil then
-				local v36_ = v35_.trigger
-				removeTrigger(v36_.node)
-				for v37_, _ in pairs(v36_.objects) do
-					if v37_.removeDeleteListener ~= nil then
-						v37_:removeDeleteListener(self, "onDeleteDischargeTriggerObject")
+	local spec = self.spec_dischargeable
+	if spec.dischargeNodes ~= nil then
+		for _, dischargeNode in ipairs(spec.dischargeNodes) do
+			g_effectManager:deleteEffects(dischargeNode.effects)
+			g_soundManager:deleteSample(dischargeNode.sample)
+			g_soundManager:deleteSample(dischargeNode.dischargeSample)
+			g_soundManager:deleteSamples(dischargeNode.dischargeStateSamples)
+			g_animationManager:deleteAnimations(dischargeNode.animationNodes)
+			g_animationManager:deleteAnimations(dischargeNode.effectAnimationNodes)
+			if dischargeNode.trigger.node ~= nil then
+				local trigger = dischargeNode.trigger
+				removeTrigger(trigger.node)
+				for object, _ in pairs(trigger.objects) do
+					if object.removeDeleteListener == nil then
+						continue
 					end
+					object:removeDeleteListener(self, "onDeleteDischargeTriggerObject")
 				end
-				table.clear(v36_.objects)
-				v36_.numObjects = 0
+				table.clear(trigger.objects)
+				trigger.numObjects = 0
 			end
-			if v35_.activationTrigger.node ~= nil then
-				local v38_ = v35_.activationTrigger
-				removeTrigger(v38_.node)
-				for v39_, _ in pairs(v38_.objects) do
-					if v39_.removeDeleteListener ~= nil then
-						v39_:removeDeleteListener(self, "onDeleteActivationTriggerObject")
-					end
+			if dischargeNode.activationTrigger.node == nil then
+				continue
+			end
+			local trigger = dischargeNode.activationTrigger
+			removeTrigger(trigger.node)
+			for object, _ in pairs(trigger.objects) do
+				if object.removeDeleteListener == nil then
+					continue
 				end
-				table.clear(v38_.objects)
-				v38_.numObjects = 0
+				object:removeDeleteListener(self, "onDeleteActivationTriggerObject")
 			end
+			table.clear(trigger.objects)
+			trigger.numObjects = 0
 		end
 	end
-	v34_.dischargeNodes = nil
+	spec.dischargeNodes = nil
 end
-
--- Local values: spec, _, dischargeNode, distance, fillTypeIndex
 function Dischargeable:onReadStream(streamId, connection)
 	if connection:getIsServer() then
-		local v43_ = self.spec_dischargeable
-		for _, v44_ in ipairs(v43_.dischargeNodes) do
+		local spec = self.spec_dischargeable
+		for _, dischargeNode in ipairs(spec.dischargeNodes) do
 			if streamReadBool(streamId) then
-				local v45_ = streamReadUIntN(streamId, 8) * v44_.maxDistance / 255
-				v44_.dischargeDistance = v45_
-				self:setDischargeEffectActive(v44_, true, true, (streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)))
-				self:setDischargeEffectDistance(v44_, v45_)
+				local distance = streamReadUIntN(streamId, 8) * dischargeNode.maxDistance / 255
+				dischargeNode.dischargeDistance = distance
+				local fillTypeIndex = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+				self:setDischargeEffectActive(dischargeNode, true, true, fillTypeIndex)
+				self:setDischargeEffectDistance(dischargeNode, distance)
 			else
-				self:setDischargeEffectActive(v44_, false, true)
+				self:setDischargeEffectActive(dischargeNode, false, true)
 			end
 		end
 		self:setDischargeState(streamReadUIntN(streamId, Dischargeable.SEND_NUM_BITS_DISCHARGE_STATE), true)
 	end
 end
-
--- Local values: spec, _, dischargeNode
 function Dischargeable:onWriteStream(streamId, connection)
 	if not connection:getIsServer() then
-		local v49_ = self.spec_dischargeable
-		for _, v50_ in ipairs(v49_.dischargeNodes) do
-			if streamWriteBool(streamId, v50_.isEffectActiveSent) then
-				local v51_ = streamWriteUIntN
-				local v52_ = v50_.dischargeDistanceSent / v50_.maxDistance * 255
-				local v53_ = math.floor(v52_)
-				v51_(streamId, math.clamp(v53_, 1, 255), 8)
-				streamWriteUIntN(streamId, self:getDischargeFillType(v50_), FillTypeManager.SEND_NUM_BITS)
+		local spec = self.spec_dischargeable
+		for _, dischargeNode in ipairs(spec.dischargeNodes) do
+			if streamWriteBool(streamId, dischargeNode.isEffectActiveSent) then
+				streamWriteUIntN(streamId, math.clamp(math.floor(dischargeNode.dischargeDistanceSent / dischargeNode.maxDistance * 255), 1, 255), 8)
+				streamWriteUIntN(streamId, self:getDischargeFillType(dischargeNode), FillTypeManager.SEND_NUM_BITS)
 			end
 		end
-		streamWriteUIntN(streamId, v49_.currentDischargeState, Dischargeable.SEND_NUM_BITS_DISCHARGE_STATE)
+		streamWriteUIntN(streamId, spec.currentDischargeState, Dischargeable.SEND_NUM_BITS_DISCHARGE_STATE)
 	end
 end
-
--- Local values: spec, _, dischargeNode, distance, fillTypeIndex
 function Dischargeable:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
-		local v57_ = self.spec_dischargeable
+		local spec = self.spec_dischargeable
 		if streamReadBool(streamId) then
-			for _, v58_ in ipairs(v57_.dischargeNodes) do
+			for _, dischargeNode in ipairs(spec.dischargeNodes) do
 				if streamReadBool(streamId) then
-					local v59_ = streamReadUIntN(streamId, 8) * v58_.maxDistance / 255
-					v58_.dischargeDistance = v59_
-					self:setDischargeEffectActive(v58_, true, true, (streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)))
-					self:setDischargeEffectDistance(v58_, v59_)
+					local distance = streamReadUIntN(streamId, 8) * dischargeNode.maxDistance / 255
+					dischargeNode.dischargeDistance = distance
+					local fillTypeIndex = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+					self:setDischargeEffectActive(dischargeNode, true, true, fillTypeIndex)
+					self:setDischargeEffectDistance(dischargeNode, distance)
 				else
-					self:setDischargeEffectActive(v58_, false, true)
+					self:setDischargeEffectActive(dischargeNode, false, true)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, _, dischargeNode
 function Dischargeable:onWriteUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
-		local v64_ = self.spec_dischargeable
-		local v65_ = streamWriteBool
-		local v66_ = v64_.dirtyFlag
-		if v65_(streamId, bit32.band(dirtyMask, v66_) ~= 0) then
-			for _, v67_ in ipairs(v64_.dischargeNodes) do
-				if streamWriteBool(streamId, v67_.isEffectActiveSent) then
-					local v68_ = streamWriteUIntN
-					local v69_ = v67_.dischargeDistanceSent / v67_.maxDistance * 255
-					local v70_ = math.floor(v69_)
-					v68_(streamId, math.clamp(v70_, 1, 255), 8)
-					streamWriteUIntN(streamId, self:getDischargeFillType(v67_), FillTypeManager.SEND_NUM_BITS)
+		local spec = self.spec_dischargeable
+		if streamWriteBool(streamId, bit32.band(dirtyMask, spec.dirtyFlag) ~= 0) then
+			for _, dischargeNode in ipairs(spec.dischargeNodes) do
+				if streamWriteBool(streamId, dischargeNode.isEffectActiveSent) then
+					streamWriteUIntN(streamId, math.clamp(math.floor(dischargeNode.dischargeDistanceSent / dischargeNode.maxDistance * 255), 1, 255), 8)
+					streamWriteUIntN(streamId, self:getDischargeFillType(dischargeNode), FillTypeManager.SEND_NUM_BITS)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, dischargeNode
 function Dischargeable:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v72_ = self.spec_dischargeable
-	local v73_ = v72_.currentDischargeNode
-	if v73_ ~= nil and (v73_.activationTrigger.numObjects > 0 or v72_.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF) then
+	local spec = self.spec_dischargeable
+	local dischargeNode = spec.currentDischargeNode
+	if dischargeNode ~= nil and (0 < dischargeNode.activationTrigger.numObjects or spec.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF) then
 		self:raiseActive()
 	end
 end
-
--- Local values: spec, dischargeNode, trigger, lastDischargeObject, nearestDistance, object, data, fillType, dischargeFailedReason, dischargeFailedReasonShowAuto, customNotAllowedWarning, allowFillType, allowToolType, freeSpace, accessible, exactFillRootNode, distance, fillLevel, emptySpeed, canDischargeToObject, canDischargeToGround, canDischarge, allowedToDischarge, isReadyToStartDischarge, isReadyForDischarge, emptyLiters, dischargedLiters, minDropReached, hasMinDropFillLevel, currentDischargeNode, warning, _, inactiveDischargeNode, _, dischargeNode
 function Dischargeable:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v78_ = self.spec_dischargeable
-	local v79_ = v78_.currentDischargeNode
-	if v79_ ~= nil then
+	local spec = self.spec_dischargeable
+	local dischargeNode = spec.currentDischargeNode
+	if dischargeNode ~= nil then
 		if isActiveForInputIgnoreSelection then
 			Dischargeable.updateActionEvents(self)
 		end
-		if self:getIsDischargeNodeActive(v79_) then
-			local v80_ = v79_.trigger
-			if v80_.numObjects > 0 then
-				local v81_ = v79_.dischargeObject
-				v79_.dischargeObject = nil
-				v79_.dischargeHitObject = nil
-				v79_.dischargeHitObjectUnitIndex = nil
-				v79_.dischargeHitTerrain = false
-				v79_.dischargeShape = nil
-				v79_.dischargeDistance = 0
-				v79_.dischargeFillUnitIndex = nil
-				v79_.dischargeHit = false
-				local v82_ = math.huge
-				for v83_, v84_ in pairs(v80_.objects) do
-					local v85_ = v78_.forcedFillTypeIndex
-					if v85_ == nil then
-						v85_ = self:getDischargeFillType(v79_)
+		if self:getIsDischargeNodeActive(dischargeNode) then
+			local trigger = dischargeNode.trigger
+			if 0 < trigger.numObjects then
+				local lastDischargeObject = dischargeNode.dischargeObject
+				dischargeNode.dischargeObject = nil
+				dischargeNode.dischargeHitObject = nil
+				dischargeNode.dischargeHitObjectUnitIndex = nil
+				dischargeNode.dischargeHitTerrain = false
+				dischargeNode.dischargeShape = nil
+				dischargeNode.dischargeDistance = 0
+				dischargeNode.dischargeFillUnitIndex = nil
+				dischargeNode.dischargeHit = false
+				local nearestDistance = math.huge
+				for object, data in pairs(trigger.objects) do
+					local fillType = spec.forcedFillTypeIndex
+					if fillType == nil then
+						fillType = self:getDischargeFillType(dischargeNode)
 					end
-					local v86_ = nil
-					local v87_ = false
-					local v88_ = nil
-					local v89_
-					if v83_:getFillUnitSupportsFillType(v84_.fillUnitIndex, v85_) then
-						local v90_ = v83_:getFillUnitAllowsFillType(v84_.fillUnitIndex, v85_)
-						local v91_ = v83_:getFillUnitSupportsToolType(v84_.fillUnitIndex, ToolType.TRIGGER)
-						local v92_ = v83_:getFillUnitFreeCapacity(v84_.fillUnitIndex, v85_, self:getActiveFarm()) > 0
-						local v93_ = v83_:getIsFillAllowedFromFarm(self:getActiveFarm())
-						if v90_ and (v91_ and v92_) then
-							local v94_ = v83_:getFillUnitExactFillRootNode(v84_.fillUnitIndex)
-							if v94_ == nil or not entityExists(v94_) then
-								v89_ = v82_
-							else
-								v89_ = calcDistanceFrom(v79_.node, v94_)
-								if v89_ < v82_ then
-									v79_.dischargeObject = v83_
-									v79_.dischargeHitTerrain = false
-									v79_.dischargeShape = v84_.shape
-									v79_.dischargeDistance = v89_
-									v79_.dischargeFillUnitIndex = v84_.fillUnitIndex
-									if v83_ ~= v81_ then
-										SpecializationUtil.raiseEvent(self, "onDischargeTargetObjectChanged", v83_)
-										self.rootVehicle:raiseActive()
+					local dischargeFailedReason = nil
+					local dischargeFailedReasonShowAuto = false
+					local customNotAllowedWarning = nil
+					if object:getFillUnitSupportsFillType(data.fillUnitIndex, fillType) then
+						local allowFillType = object:getFillUnitAllowsFillType(data.fillUnitIndex, fillType)
+						local allowToolType = object:getFillUnitSupportsToolType(data.fillUnitIndex, ToolType.TRIGGER)
+						local freeSpace = 0 < object:getFillUnitFreeCapacity(data.fillUnitIndex, fillType, self:getActiveFarm())
+						local accessible = object:getIsFillAllowedFromFarm(self:getActiveFarm())
+						if allowFillType and allowToolType then
+							if freeSpace then
+								local exactFillRootNode = object:getFillUnitExactFillRootNode(data.fillUnitIndex)
+								if exactFillRootNode ~= nil and entityExists(exactFillRootNode) then
+									local distance = calcDistanceFrom(dischargeNode.node, exactFillRootNode)
+									if distance < nearestDistance then
+										dischargeNode.dischargeObject = object
+										dischargeNode.dischargeHitTerrain = false
+										dischargeNode.dischargeShape = data.shape
+										dischargeNode.dischargeDistance = distance
+										dischargeNode.dischargeFillUnitIndex = data.fillUnitIndex
+										nearestDistance = distance
+										if object ~= lastDischargeObject then
+											SpecializationUtil.raiseEvent(self, "onDischargeTargetObjectChanged", object)
+											self.rootVehicle:raiseActive()
+										end
 									end
-								else
-									v89_ = v82_
 								end
+							elseif not allowFillType then
+								dischargeFailedReason = Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED
+							elseif not allowToolType then
+								dischargeFailedReason = Dischargeable.DISCHARGE_REASON_TOOLTYPE_NOT_SUPPORTED
+							elseif not accessible then
+								dischargeFailedReason = Dischargeable.DISCHARGE_REASON_NO_ACCESS
+							elseif not freeSpace then
+								dischargeFailedReason = Dischargeable.DISCHARGE_REASON_NO_FREE_CAPACITY
 							end
-						elseif v90_ then
-							if v91_ then
-								if v93_ then
-									if v92_ then
-										v89_ = v82_
-									else
-										v86_ = Dischargeable.DISCHARGE_REASON_NO_FREE_CAPACITY
-										v89_ = v82_
-									end
-								else
-									v86_ = Dischargeable.DISCHARGE_REASON_NO_ACCESS
-									v89_ = v82_
-								end
-							else
-								v86_ = Dischargeable.DISCHARGE_REASON_TOOLTYPE_NOT_SUPPORTED
-								v89_ = v82_
+						end
+						dischargeNode.dischargeHitObject = object
+						dischargeNode.dischargeHitObjectUnitIndex = data.fillUnitIndex
+					elseif fillType ~= FillType.UNKNOWN then
+						dischargeFailedReason = Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED
+					end
+					if (dischargeFailedReason == Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED or dischargeFailedReason == Dischargeable.DISCHARGE_REASON_NO_FREE_CAPACITY or dischargeFailedReason == Dischargeable.DISCHARGE_REASON_NO_ACCESS) and (object.isa == nil or not object:isa(Vehicle)) then
+						dischargeFailedReasonShowAuto = true
+					end
+					if dischargeFailedReason ~= nil and (dischargeFailedReason ~= Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED and object.getCustomDischargeNotAllowedWarning ~= nil) then
+						customNotAllowedWarning = object:getCustomDischargeNotAllowedWarning()
+					end
+					if dischargeNode.dischargeObject == nil then
+						if dischargeFailedReason ~= nil then
+							if dischargeNode.dischargeFailedReason == nil or dischargeFailedReason < dischargeNode.dischargeFailedReason then
+								dischargeNode.dischargeFailedReason = dischargeFailedReason
+								dischargeNode.dischargeFailedReasonShowAuto = dischargeFailedReasonShowAuto
+								dischargeNode.customNotAllowedWarning = customNotAllowedWarning
 							end
 						else
-							v86_ = Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED
-							v89_ = v82_
+							dischargeNode.dischargeFailedReason = nil
+							dischargeNode.dischargeFailedReasonShowAuto = false
+							dischargeNode.customNotAllowedWarning = nil
 						end
-						v79_.dischargeHitObject = v83_
-						v79_.dischargeHitObjectUnitIndex = v84_.fillUnitIndex
-					elseif v85_ == FillType.UNKNOWN then
-						v89_ = v82_
-					else
-						v86_ = Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED
-						v89_ = v82_
 					end
-					if v86_ == Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED or (v86_ == Dischargeable.DISCHARGE_REASON_NO_FREE_CAPACITY or v86_ == Dischargeable.DISCHARGE_REASON_NO_ACCESS) then
-						v87_ = (v83_.isa == nil or not v83_:isa(Vehicle)) and true or v87_
-					end
-					if v86_ ~= nil and (v86_ ~= Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED and v83_.getCustomDischargeNotAllowedWarning ~= nil) then
-						v88_ = v83_:getCustomDischargeNotAllowedWarning()
-					end
-					if v79_.dischargeObject == nil and v86_ ~= nil then
-						if v79_.dischargeFailedReason == nil or v86_ < v79_.dischargeFailedReason then
-							v79_.dischargeFailedReason = v86_
-							v79_.dischargeFailedReasonShowAuto = v87_
-							v79_.customNotAllowedWarning = v88_
-						end
-					else
-						v79_.dischargeFailedReason = nil
-						v79_.dischargeFailedReasonShowAuto = false
-						v79_.customNotAllowedWarning = nil
-					end
-					v79_.dischargeHit = true
-					v82_ = v89_
+					dischargeNode.dischargeHit = true
 				end
-				if v81_ ~= nil and v79_.dischargeObject == nil then
+				if lastDischargeObject ~= nil and dischargeNode.dischargeObject == nil then
 					SpecializationUtil.raiseEvent(self, "onDischargeTargetObjectChanged", nil)
 					self.rootVehicle:raiseActive()
 				end
-			elseif not v78_.isAsyncRaycastActive then
-				self:updateRaycast(v79_)
+			elseif not spec.isAsyncRaycastActive then
+				self:updateRaycast(dischargeNode)
 			end
 		else
-			if v78_.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF then
+			if spec.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF then
 				self:setDischargeState(Dischargeable.DISCHARGE_STATE_OFF, true)
 			end
-			if v79_.dischargeObject ~= nil then
+			if dischargeNode.dischargeObject ~= nil then
 				SpecializationUtil.raiseEvent(self, "onDischargeTargetObjectChanged", nil)
 				self.rootVehicle:raiseActive()
 			end
-			v79_.dischargeObject = nil
-			v79_.dischargeHitObject = nil
-			v79_.dischargeHitObjectUnitIndex = nil
-			v79_.dischargeHitTerrain = false
-			v79_.dischargeShape = nil
-			v79_.dischargeDistance = 0
-			v79_.dischargeFillUnitIndex = nil
-			v79_.dischargeHit = false
+			dischargeNode.dischargeObject = nil
+			dischargeNode.dischargeHitObject = nil
+			dischargeNode.dischargeHitObjectUnitIndex = nil
+			dischargeNode.dischargeHitTerrain = false
+			dischargeNode.dischargeShape = nil
+			dischargeNode.dischargeDistance = 0
+			dischargeNode.dischargeFillUnitIndex = nil
+			dischargeNode.dischargeHit = false
 		end
-		self:updateDischargeSound(v79_, dt)
+		self:updateDischargeSound(dischargeNode, dt)
 		if self.isServer then
-			if v78_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
-				if v79_.dischargeObject ~= nil then
-					self:handleFoundDischargeObject(v79_)
+			if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
+				if dischargeNode.dischargeObject ~= nil then
+					self:handleFoundDischargeObject(dischargeNode)
 				end
 			else
-				local v95_ = self:getFillUnitFillLevel(v79_.fillUnitIndex)
-				local v96_ = self:getDischargeNodeEmptyFactor(v79_)
-				local v97_ = self:getCanDischargeToObject(v79_)
-				if v97_ then
-					v97_ = v78_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OBJECT
+				local fillLevel = self:getFillUnitFillLevel(dischargeNode.fillUnitIndex)
+				local emptySpeed = self:getDischargeNodeEmptyFactor(dischargeNode)
+				self:getCanDischargeToObject(dischargeNode)
+				local canDischargeToObject = false
+				self:getCanDischargeToGround(dischargeNode)
+				local allowedToDischarge = Dischargeable.DISCHARGE_STATE_GROUND
+				local canDischargeToGround = false
+				local canDischarge = canDischargeToObject or canDischargeToGround
+				allowedToDischarge = true
+				if dischargeNode.dischargeObject == nil then
+					allowedToDischarge = self:getCanDischargeToLand(dischargeNode) and self:getCanDischargeAtPosition(dischargeNode)
 				end
-				local v98_ = self:getCanDischargeToGround(v79_)
-				if v98_ then
-					v98_ = v78_.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND
-				end
-				local v99_ = v97_ or v98_
-				local v100_ = v79_.dischargeObject == nil and self:getCanDischargeToLand(v79_)
-				if v100_ then
-					v100_ = self:getCanDischargeAtPosition(v79_)
-				end
-				local v101_
-				if v95_ > 0 and v96_ > 0 then
-					if v100_ then
-						v101_ = v99_
-					else
-						v101_ = v100_
+				local isReadyToStartDischarge = false
+				if 0 < fillLevel then
+					isReadyToStartDischarge = false
+					if 0 < emptySpeed then
+						isReadyToStartDischarge = allowedToDischarge and canDischarge
 					end
-				else
-					v101_ = false
 				end
-				self:setDischargeEffectActive(v79_, v101_)
-				self:setDischargeEffectDistance(v79_, v79_.dischargeDistance)
-				if (v79_.lastEffect == nil and true or v79_.lastEffect:getIsFullyVisible()) and (v100_ and v99_) then
-					local v102_ = v79_.emptySpeed * v96_ * dt
-					local v103_, v104_, v105_ = self:discharge(v79_, (math.min(v95_, v102_)))
-					v78_.dischargedLiters = v103_
-					self:handleDischarge(v79_, v103_, v104_, v105_)
+				self:setDischargeEffectActive(dischargeNode, isReadyToStartDischarge)
+				self:setDischargeEffectDistance(dischargeNode, dischargeNode.dischargeDistance)
+				local isReadyForDischarge = true
+				if dischargeNode.lastEffect ~= nil then
+					isReadyForDischarge = dischargeNode.lastEffect:getIsFullyVisible()
+				end
+				if isReadyForDischarge and (allowedToDischarge and canDischarge) then
+					local emptyLiters = math.min(fillLevel, dischargeNode.emptySpeed * emptySpeed * dt)
+					local dischargedLiters, minDropReached, hasMinDropFillLevel = self:discharge(dischargeNode, emptyLiters)
+					spec.dischargedLiters = dischargedLiters
+					self:handleDischarge(dischargeNode, dischargedLiters, minDropReached, hasMinDropFillLevel)
 				end
 			end
-			local v106_ = v79_.dischargeDistanceSent - v79_.dischargeDistance
-			if math.abs(v106_) > 0.05 then
-				self:raiseDirtyFlags(v78_.dirtyFlag)
-				v79_.dischargeDistanceSent = v79_.dischargeDistance
+			if 0.05 < math.abs(dischargeNode.dischargeDistanceSent - dischargeNode.dischargeDistance) then
+				self:raiseDirtyFlags(spec.dirtyFlag)
+				dischargeNode.dischargeDistanceSent = dischargeNode.dischargeDistance
 			end
 		end
 	end
-	if v78_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF and (isActiveForInput and (self:getCanDischargeToObject(v78_.currentDischargeNode) and self:getCanToggleDischargeToObject())) then
-		g_currentMission:showTipContext(self:getFillUnitFillType(v79_.fillUnitIndex))
+	if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
+		local currentDischargeNode = spec.currentDischargeNode
+		if isActiveForInput and (self:getCanDischargeToObject(currentDischargeNode) and self:getCanToggleDischargeToObject()) then
+			g_currentMission:showTipContext(self:getFillUnitFillType(dischargeNode.fillUnitIndex))
+		end
 	end
-	if isActiveForInputIgnoreSelection and (v79_ ~= nil and (v79_.canStartDischargeAutomatically and (v79_.dischargeHit and (v79_.dischargeFailedReasonShowAuto and (v79_.dischargeFailedReason ~= nil and g_currentMission.time > 10000))))) then
-		local v107_ = self:getDischargeNotAllowedWarning(v79_)
-		g_currentMission:showBlinkingWarning(v107_, 5000)
+	if isActiveForInputIgnoreSelection and (dischargeNode ~= nil and (dischargeNode.canStartDischargeAutomatically and (dischargeNode.dischargeHit and (dischargeNode.dischargeFailedReasonShowAuto and (dischargeNode.dischargeFailedReason ~= nil and 10000 < g_currentMission.time))))) then
+		local warning = self:getDischargeNotAllowedWarning(dischargeNode)
+		g_currentMission:showBlinkingWarning(warning, 5000)
 	end
 	if self.isServer then
-		for _, v108_ in ipairs(v78_.dischargeNodes) do
-			if v108_.stopEffectTime ~= nil then
-				if v108_.stopEffectTime < g_time then
-					self:setDischargeEffectActive(v108_, false, true)
-					v108_.stopEffectTime = nil
-				else
-					self:raiseActive()
-				end
+		for _, inactiveDischargeNode in ipairs(spec.dischargeNodes) do
+			if inactiveDischargeNode.stopEffectTime == nil then
+				continue
+			end
+			if inactiveDischargeNode.stopEffectTime < g_time then
+				self:setDischargeEffectActive(inactiveDischargeNode, false, true)
+				inactiveDischargeNode.stopEffectTime = nil
+			else
+				self:raiseActive()
 			end
 		end
 	end
 	if self.isClient then
-		for _, v109_ in ipairs(v78_.dischargeNodes) do
-			if g_soundManager:getIsSamplePlaying(v109_.dischargeSample) then
+		for _, dischargeNode in ipairs(spec.dischargeNodes) do
+			if g_soundManager:getIsSamplePlaying(dischargeNode.dischargeSample) then
 				self:raiseActive()
 			end
-			if v109_.sample ~= nil and g_soundManager:getIsSamplePlaying(v109_.sample) then
+			if dischargeNode.sample == nil then
+				continue
+			end
+			if g_soundManager:getIsSamplePlaying(dischargeNode.sample) then
 				self:raiseActive()
 			end
 		end
 	end
 end
-
--- Local values: toolTypeStr, raycastMaxDistance, fillTypeConverterName
 function Dischargeable:loadDischargeNode(xmlFile, key, entry)
 	entry.isActive = true
 	entry.node = xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
 	if entry.node == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing discharge \'node\' for dischargeNode \'%s\'", key)
+		Logging.xmlWarning(self.xmlFile, "Missing discharge 'node' for dischargeNode '%s'", key)
 		return false
 	end
 	entry.fillUnitIndex = xmlFile:getValue(key .. "#fillUnitIndex")
 	if entry.fillUnitIndex == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing \'fillUnitIndex\' for dischargeNode \'%s\'", key)
+		Logging.xmlWarning(self.xmlFile, "Missing 'fillUnitIndex' for dischargeNode '%s'", key)
 		return false
-	end
-	entry.unloadInfoIndex = xmlFile:getValue(key .. "#unloadInfoIndex", 1)
-	entry.stopDischargeOnEmpty = xmlFile:getValue(key .. "#stopDischargeOnEmpty", true)
-	entry.canDischargeToGround = xmlFile:getValue(key .. "#canDischargeToGround", true)
-	entry.canDischargeToObject = xmlFile:getValue(key .. "#canDischargeToObject", true)
-	entry.canDischargeToVehicle = xmlFile:getValue(key .. "#canDischargeToVehicle", entry.canDischargeToObject)
-	entry.canStartDischargeAutomatically = xmlFile:getValue(key .. "#canStartDischargeAutomatically", Platform.gameplay.automaticDischarge)
-	entry.canStartGroundDischargeAutomatically = xmlFile:getValue(key .. "#canStartGroundDischargeAutomatically", false)
-	entry.stopDischargeIfNotPossible = xmlFile:getValue(key .. "#stopDischargeIfNotPossible", xmlFile:hasProperty(key .. ".trigger#node"))
-	entry.canDischargeToGroundAnywhere = xmlFile:getValue(key .. "#canDischargeToGroundAnywhere", false)
-	entry.canDischargeToMissionGround = xmlFile:getValue(key .. "#canDischargeToMissionGround", false)
-	entry.canFillOwnVehicle = xmlFile:getValue(key .. "#canFillOwnVehicle", false)
-	entry.limitGroundTipToFillLevel = xmlFile:getValue(key .. "#limitGroundTipToFillLevel", false)
-	entry.emptySpeed = xmlFile:getValue(key .. "#emptySpeed", self:getFillUnitCapacity(entry.fillUnitIndex)) / 1000 * Platform.gameplay.dischargeSpeedFactor
-	entry.effectTurnOffThreshold = xmlFile:getValue(key .. "#effectTurnOffThreshold", 0.25)
-	entry.lineOffset = 0
-	entry.litersToDrop = 0
-	local v114_ = xmlFile:getValue(key .. "#toolType", "dischargeable")
-	entry.toolType = g_toolTypeManager:getToolTypeIndexByName(v114_)
-	entry.info = {}
-	entry.info.node = xmlFile:getValue(key .. ".info#node", entry.node, self.components, self.i3dMappings)
-	if entry.info.node == entry.node then
-		entry.info.node = createTransformGroup("dischargeInfoNode")
-		link(entry.node, entry.info.node)
-	end
-	entry.info.width = xmlFile:getValue(key .. ".info#width", 1) / 2
-	entry.info.length = xmlFile:getValue(key .. ".info#length", 1) / 2
-	entry.info.zOffset = xmlFile:getValue(key .. ".info#zOffset", 0)
-	entry.info.yOffset = xmlFile:getValue(key .. ".info#yOffset", 2)
-	entry.info.limitToGround = xmlFile:getValue(key .. ".info#limitToGround", true)
-	entry.info.useRaycastHitPosition = xmlFile:getValue(key .. ".info#useRaycastHitPosition", false)
-	entry.trigger = {}
-	entry.trigger.node = xmlFile:getValue(key .. ".trigger#node", nil, self.components, self.i3dMappings)
-	if entry.trigger.node ~= nil then
-		addTrigger(entry.trigger.node, "dischargeTriggerCallback", self)
-		setTriggerReportStatics(entry.trigger.node, true)
-	end
-	entry.trigger.objects = {}
-	entry.trigger.numObjects = 0
-	entry.raycast = {}
-	entry.raycast.node = xmlFile:getValue(key .. ".raycast#node", nil, self.components, self.i3dMappings)
-	if entry.raycast.node == nil and entry.trigger.node == nil then
-		entry.raycast.node = entry.node
-	end
-	entry.raycast.useWorldNegYDirection = xmlFile:getValue(key .. ".raycast#useWorldNegYDirection", false)
-	entry.raycast.yOffset = xmlFile:getValue(key .. ".raycast#yOffset", 0)
-	local v115_ = xmlFile:getValue(key .. ".raycast#maxDistance")
-	entry.maxDistance = xmlFile:getValue(key .. "#maxDistance", v115_) or 10
-	entry.dischargeObject = nil
-	entry.dischargeHitObject = nil
-	entry.dischargeHitObjectUnitIndex = nil
-	entry.dischargeHitTerrain = false
-	entry.dischargeShape = nil
-	entry.dischargeDistance = 0
-	entry.dischargeDistanceSent = 0
-	entry.dischargeFillUnitIndex = nil
-	entry.dischargeHit = false
-	entry.activationTrigger = {}
-	entry.activationTrigger.node = xmlFile:getValue(key .. ".activationTrigger#node", nil, self.components, self.i3dMappings)
-	if entry.activationTrigger.node ~= nil then
-		addTrigger(entry.activationTrigger.node, "dischargeActivationTriggerCallback", self)
-	end
-	entry.activationTrigger.objects = {}
-	entry.activationTrigger.numObjects = 0
-	local v116_ = xmlFile:getValue(key .. ".fillType#converterName")
-	if v116_ ~= nil then
-		entry.fillTypeConverter = g_fillTypeManager:getConverterDataByName(v116_)
-	end
-	entry.distanceObjectChanges = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, key .. ".distanceObjectChanges", entry.distanceObjectChanges, self.components, self)
-	if #entry.distanceObjectChanges == 0 then
-		entry.distanceObjectChanges = nil
 	else
-		entry.distanceObjectChangeThreshold = xmlFile:getValue(key .. ".distanceObjectChanges#threshold", 0.5)
-		ObjectChangeUtil.setObjectChanges(entry.distanceObjectChanges, false, self, self.setMovingToolDirty)
-	end
-	entry.stateObjectChanges = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, key .. ".stateObjectChanges", entry.stateObjectChanges, self.components, self)
-	if #entry.stateObjectChanges == 0 then
-		entry.stateObjectChanges = nil
-	else
-		ObjectChangeUtil.setObjectChanges(entry.stateObjectChanges, false, self, self.setMovingToolDirty)
-	end
-	entry.nodeActiveObjectChanges = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, key .. ".nodeActiveObjectChanges", entry.nodeActiveObjectChanges, self.components, self)
-	if #entry.nodeActiveObjectChanges == 0 then
-		entry.nodeActiveObjectChanges = nil
-	else
-		ObjectChangeUtil.setObjectChanges(entry.nodeActiveObjectChanges, false, self, self.setMovingToolDirty)
-	end
-	entry.effects = g_effectManager:loadEffect(xmlFile, key .. ".effects", self.components, self, self.i3dMappings, math.huge)
-	entry.animationName = xmlFile:getValue(key .. ".animation#name")
-	entry.animationSpeed = xmlFile:getValue(key .. ".animation#speed", 1)
-	entry.animationResetSpeed = xmlFile:getValue(key .. ".animation#resetSpeed", 1)
-	if self.isClient then
-		entry.playSound = xmlFile:getValue(key .. "#playSound", true)
-		entry.soundNode = xmlFile:getValue(key .. "#soundNode", nil, self.components, self.i3dMappings)
-		if entry.playSound then
-			entry.dischargeSample = g_soundManager:loadSampleFromXML(self.xmlFile, key, "dischargeSound", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		entry.unloadInfoIndex = xmlFile:getValue(key .. "#unloadInfoIndex", 1)
+		entry.stopDischargeOnEmpty = xmlFile:getValue(key .. "#stopDischargeOnEmpty", true)
+		entry.canDischargeToGround = xmlFile:getValue(key .. "#canDischargeToGround", true)
+		entry.canDischargeToObject = xmlFile:getValue(key .. "#canDischargeToObject", true)
+		entry.canDischargeToVehicle = xmlFile:getValue(key .. "#canDischargeToVehicle", entry.canDischargeToObject)
+		entry.canStartDischargeAutomatically = xmlFile:getValue(key .. "#canStartDischargeAutomatically", Platform.gameplay.automaticDischarge)
+		entry.canStartGroundDischargeAutomatically = xmlFile:getValue(key .. "#canStartGroundDischargeAutomatically", false)
+		entry.stopDischargeIfNotPossible = xmlFile:getValue(key .. "#stopDischargeIfNotPossible", xmlFile:hasProperty(key .. ".trigger#node"))
+		entry.canDischargeToGroundAnywhere = xmlFile:getValue(key .. "#canDischargeToGroundAnywhere", false)
+		entry.canDischargeToMissionGround = xmlFile:getValue(key .. "#canDischargeToMissionGround", false)
+		entry.canFillOwnVehicle = xmlFile:getValue(key .. "#canFillOwnVehicle", false)
+		entry.limitGroundTipToFillLevel = xmlFile:getValue(key .. "#limitGroundTipToFillLevel", false)
+		entry.emptySpeed = xmlFile:getValue(key .. "#emptySpeed", self:getFillUnitCapacity(entry.fillUnitIndex)) / 1000 * Platform.gameplay.dischargeSpeedFactor
+		entry.effectTurnOffThreshold = xmlFile:getValue(key .. "#effectTurnOffThreshold", 0.25)
+		entry.lineOffset = 0
+		entry.litersToDrop = 0
+		local toolTypeStr = xmlFile:getValue(key .. "#toolType", "dischargeable")
+		entry.toolType = g_toolTypeManager:getToolTypeIndexByName(toolTypeStr)
+		entry.info = {}
+		entry.info.node = xmlFile:getValue(key .. ".info#node", entry.node, self.components, self.i3dMappings)
+		if entry.info.node == entry.node then
+			entry.info.node = createTransformGroup("dischargeInfoNode")
+			link(entry.node, entry.info.node)
 		end
-		if xmlFile:getValue(key .. ".dischargeSound#overwriteSharedSound", false) then
-			entry.playSound = false
+		entry.info.width = xmlFile:getValue(key .. ".info#width", 1) / 2
+		entry.info.length = xmlFile:getValue(key .. ".info#length", 1) / 2
+		entry.info.zOffset = xmlFile:getValue(key .. ".info#zOffset", 0)
+		entry.info.yOffset = xmlFile:getValue(key .. ".info#yOffset", 2)
+		entry.info.limitToGround = xmlFile:getValue(key .. ".info#limitToGround", true)
+		entry.info.useRaycastHitPosition = xmlFile:getValue(key .. ".info#useRaycastHitPosition", false)
+		entry.trigger = {}
+		entry.trigger.node = xmlFile:getValue(key .. ".trigger#node", nil, self.components, self.i3dMappings)
+		if entry.trigger.node ~= nil then
+			addTrigger(entry.trigger.node, "dischargeTriggerCallback", self)
+			setTriggerReportStatics(entry.trigger.node, true)
 		end
-		entry.dischargeStateSamples = g_soundManager:loadSamplesFromXML(self.xmlFile, key, "dischargeStateSound", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		entry.animationNodes = g_animationManager:loadAnimations(self.xmlFile, key .. ".animationNodes", self.components, self, self.i3dMappings)
-		entry.effectAnimationNodes = g_animationManager:loadAnimations(self.xmlFile, key .. ".effectAnimationNodes", self.components, self, self.i3dMappings)
+		entry.trigger.objects = {}
+		entry.trigger.numObjects = 0
+		entry.raycast = {}
+		entry.raycast.node = xmlFile:getValue(key .. ".raycast#node", nil, self.components, self.i3dMappings)
+		if entry.raycast.node == nil and entry.trigger.node == nil then
+			entry.raycast.node = entry.node
+		end
+		entry.raycast.useWorldNegYDirection = xmlFile:getValue(key .. ".raycast#useWorldNegYDirection", false)
+		entry.raycast.yOffset = xmlFile:getValue(key .. ".raycast#yOffset", 0)
+		local raycastMaxDistance = xmlFile:getValue(key .. ".raycast#maxDistance")
+		entry.maxDistance = xmlFile:getValue(key .. "#maxDistance", raycastMaxDistance) or 10
+		entry.dischargeObject = nil
+		entry.dischargeHitObject = nil
+		entry.dischargeHitObjectUnitIndex = nil
+		entry.dischargeHitTerrain = false
+		entry.dischargeShape = nil
+		entry.dischargeDistance = 0
+		entry.dischargeDistanceSent = 0
+		entry.dischargeFillUnitIndex = nil
+		entry.dischargeHit = false
+		entry.activationTrigger = {}
+		entry.activationTrigger.node = xmlFile:getValue(key .. ".activationTrigger#node", nil, self.components, self.i3dMappings)
+		if entry.activationTrigger.node ~= nil then
+			addTrigger(entry.activationTrigger.node, "dischargeActivationTriggerCallback", self)
+		end
+		entry.activationTrigger.objects = {}
+		entry.activationTrigger.numObjects = 0
+		local fillTypeConverterName = xmlFile:getValue(key .. ".fillType#converterName")
+		if fillTypeConverterName ~= nil then
+			entry.fillTypeConverter = g_fillTypeManager:getConverterDataByName(fillTypeConverterName)
+		end
+		entry.distanceObjectChanges = {}
+		ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, key .. ".distanceObjectChanges", entry.distanceObjectChanges, self.components, self)
+		if #entry.distanceObjectChanges == 0 then
+			entry.distanceObjectChanges = nil
+		else
+			entry.distanceObjectChangeThreshold = xmlFile:getValue(key .. ".distanceObjectChanges#threshold", 0.5)
+			ObjectChangeUtil.setObjectChanges(entry.distanceObjectChanges, false, self, self.setMovingToolDirty)
+		end
+		entry.stateObjectChanges = {}
+		ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, key .. ".stateObjectChanges", entry.stateObjectChanges, self.components, self)
+		if #entry.stateObjectChanges == 0 then
+			entry.stateObjectChanges = nil
+		else
+			ObjectChangeUtil.setObjectChanges(entry.stateObjectChanges, false, self, self.setMovingToolDirty)
+		end
+		entry.nodeActiveObjectChanges = {}
+		ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, key .. ".nodeActiveObjectChanges", entry.nodeActiveObjectChanges, self.components, self)
+		if #entry.nodeActiveObjectChanges == 0 then
+			entry.nodeActiveObjectChanges = nil
+		else
+			ObjectChangeUtil.setObjectChanges(entry.nodeActiveObjectChanges, false, self, self.setMovingToolDirty)
+		end
+		entry.effects = g_effectManager:loadEffect(xmlFile, key .. ".effects", self.components, self, self.i3dMappings, math.huge)
+		entry.animationName = xmlFile:getValue(key .. ".animation#name")
+		entry.animationSpeed = xmlFile:getValue(key .. ".animation#speed", 1)
+		entry.animationResetSpeed = xmlFile:getValue(key .. ".animation#resetSpeed", 1)
+		if self.isClient then
+			entry.playSound = xmlFile:getValue(key .. "#playSound", true)
+			entry.soundNode = xmlFile:getValue(key .. "#soundNode", nil, self.components, self.i3dMappings)
+			if entry.playSound then
+				entry.dischargeSample = g_soundManager:loadSampleFromXML(self.xmlFile, key, "dischargeSound", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+			end
+			if xmlFile:getValue(key .. ".dischargeSound#overwriteSharedSound", false) then
+				entry.playSound = false
+			end
+			entry.dischargeStateSamples = g_soundManager:loadSamplesFromXML(self.xmlFile, key, "dischargeStateSound", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+			entry.animationNodes = g_animationManager:loadAnimations(self.xmlFile, key .. ".animationNodes", self.components, self, self.i3dMappings)
+			entry.effectAnimationNodes = g_animationManager:loadAnimations(self.xmlFile, key .. ".effectAnimationNodes", self.components, self, self.i3dMappings)
+		end
+		entry.sentHitDistance = 0
+		entry.isEffectActive = false
+		entry.isEffectActiveSent = false
+		entry.lastEffect = entry.effects[#entry.effects]
+		return true
 	end
-	entry.sentHitDistance = 0
-	entry.isEffectActive = false
-	entry.isEffectActiveSent = false
-	entry.lastEffect = entry.effects[#entry.effects]
-	return true
 end
-
--- Local values: spec, i, node
 function Dischargeable:setCurrentDischargeNodeIndex(dischargeNodeIndex)
-	local v119_ = self.spec_dischargeable
-	if v119_.currentDischargeNode ~= nil and v119_.dischargeNodes[dischargeNodeIndex] ~= v119_.currentDischargeNode then
-		self:setDischargeEffectActive(v119_.currentDischargeNode, false, true)
-		self:updateDischargeSound(v119_.currentDischargeNode, 99999)
-		if v119_.dischargeNodes[dischargeNodeIndex] ~= v119_.currentDischargeNode then
-			g_animationManager:stopAnimations(v119_.currentDischargeNode.animationNodes)
-			g_animationManager:stopAnimations(v119_.currentDischargeNode.effectAnimationNodes)
+	local spec = self.spec_dischargeable
+	if spec.currentDischargeNode ~= nil and spec.dischargeNodes[dischargeNodeIndex] ~= spec.currentDischargeNode then
+		self:setDischargeEffectActive(spec.currentDischargeNode, false, true)
+		self:updateDischargeSound(spec.currentDischargeNode, 99999)
+		if spec.dischargeNodes[dischargeNodeIndex] ~= spec.currentDischargeNode then
+			g_animationManager:stopAnimations(spec.currentDischargeNode.animationNodes)
+			g_animationManager:stopAnimations(spec.currentDischargeNode.effectAnimationNodes)
 		end
-		g_soundManager:stopSamples(v119_.currentDischargeNode.dischargeStateSamples)
+		g_soundManager:stopSamples(spec.currentDischargeNode.dischargeStateSamples)
 	end
-	v119_.currentDischargeNode = v119_.dischargeNodes[dischargeNodeIndex]
-	for v120_ = 1, #v119_.dischargeNodes do
-		local v121_ = v119_.dischargeNodes[v120_]
-		if v121_.nodeActiveObjectChanges ~= nil then
-			ObjectChangeUtil.setObjectChanges(v121_.nodeActiveObjectChanges, v120_ == dischargeNodeIndex, self, self.setMovingToolDirty)
+	spec.currentDischargeNode = spec.dischargeNodes[dischargeNodeIndex]
+	for i = 1, #spec.dischargeNodes do
+		local node = spec.dischargeNodes[i]
+		if node.nodeActiveObjectChanges == nil then
+			continue
 		end
+		ObjectChangeUtil.setObjectChanges(node.nodeActiveObjectChanges, i == dischargeNodeIndex, self, self.setMovingToolDirty)
 	end
 	if self.isClient and self.updateDashboardValueType ~= nil then
 		self:updateDashboardValueType("dischargeable.activeDischargeNode")
 	end
 	self:handleDischargeNodeChanged()
 end
-
--- Local values: spec
 function Dischargeable:getCurrentDischargeNode()
-	return self.spec_dischargeable.currentDischargeNode
+	local spec = self.spec_dischargeable
+	return spec.currentDischargeNode
 end
-
--- Local values: spec
 function Dischargeable:getCurrentDischargeNodeIndex()
-	local v124_ = self.spec_dischargeable
-	return v124_.currentDischargeNode == nil and 0 or v124_.currentDischargeNode.index
+	local spec = self.spec_dischargeable
+	if spec.currentDischargeNode ~= nil then
+		return spec.currentDischargeNode.index
+	else
+		return 0
+	end
 end
-
 function Dischargeable:getDischargeTargetObject(dischargeNode)
 	return dischargeNode.dischargeObject, dischargeNode.dischargeFillUnitIndex
 end
-
 function Dischargeable:getCurrentDischargeObject(dischargeNode)
 	return dischargeNode.currentDischargeObject
 end
-
--- Local values: spec
 function Dischargeable:getRequiresTipOcclusionArea()
-	return self.spec_dischargeable.requiresTipOcclusionArea
+	local spec = self.spec_dischargeable
+	return spec.requiresTipOcclusionArea
 end
-
 function Dischargeable:getCanBeSelected(superFunc)
 	return true
 end
-
 function Dischargeable:getDoConsumePtoPower(superFunc)
-	return self.spec_dischargeable.consumePower and self:getDischargeState() ~= Dischargeable.DISCHARGE_STATE_OFF and true or superFunc(self)
+	if not (not self.spec_dischargeable.consumePower or self:getDischargeState() == Dischargeable.DISCHARGE_STATE_OFF) then
+		return true
+	end
+	return superFunc(self)
 end
-
 function Dischargeable:getIsPowerTakeOffActive(superFunc)
-	return self.spec_dischargeable.consumePower and self:getDischargeState() ~= Dischargeable.DISCHARGE_STATE_OFF and true or superFunc(self)
+	if not (not self.spec_dischargeable.consumePower or self:getDischargeState() == Dischargeable.DISCHARGE_STATE_OFF) then
+		return true
+	end
+	return superFunc(self)
 end
-
--- Local values: spec, object
 function Dischargeable:getAllowLoadTriggerActivation(superFunc, rootVehicle)
 	if superFunc(self, rootVehicle) then
 		return true
-	end
-	local v135_ = self.spec_dischargeable
-	if v135_.currentDischargeNode ~= nil then
-		local v136_ = v135_.currentDischargeNode.dischargeHitObject
-		if v136_ ~= nil and v136_.getAllowLoadTriggerActivation ~= nil then
-			if v136_ == rootVehicle then
-				return false
-			else
-				return v136_:getAllowLoadTriggerActivation(rootVehicle)
+	else
+		local spec = self.spec_dischargeable
+		if spec.currentDischargeNode ~= nil then
+			local object = spec.currentDischargeNode.dischargeHitObject
+			if object ~= nil and object.getAllowLoadTriggerActivation ~= nil then
+				if object == rootVehicle then
+					return false
+				else
+					return object:getAllowLoadTriggerActivation(rootVehicle)
+				end
 			end
 		end
+		return false
 	end
-	return false
 end
-
--- Local values: spec, dischargedLiters, minDropReached, hasMinDropFillLevel, object, fillUnitIndex
 function Dischargeable:discharge(dischargeNode, emptyLiters)
-	local v140_ = self.spec_dischargeable
-	local v141_ = 0
-	local v142_ = true
-	local v143_ = true
-	local v144_, v145_ = self:getDischargeTargetObject(dischargeNode)
+	local spec = self.spec_dischargeable
+	local dischargedLiters = 0
+	local minDropReached = true
+	local hasMinDropFillLevel = true
+	local object, fillUnitIndex = self:getDischargeTargetObject(dischargeNode)
 	dischargeNode.currentDischargeObject = nil
-	if v144_ == nil then
-		if dischargeNode.dischargeHitTerrain and v140_.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
-			v141_, v142_, v143_ = self:dischargeToGround(dischargeNode, emptyLiters)
+	if object ~= nil then
+		if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OBJECT then
+			dischargedLiters = self:dischargeToObject(dischargeNode, emptyLiters, object, fillUnitIndex)
+			return dischargedLiters, minDropReached, hasMinDropFillLevel
 		end
-	elseif v140_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OBJECT then
-		return self:dischargeToObject(dischargeNode, emptyLiters, v144_, v145_), v142_, v143_
+	elseif dischargeNode.dischargeHitTerrain then
+		if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
+			dischargedLiters, minDropReached, hasMinDropFillLevel = self:dischargeToGround(dischargeNode, emptyLiters)
+		end
 	end
-	return v141_, v142_, v143_
+	return dischargedLiters, minDropReached, hasMinDropFillLevel
 end
-
--- Local values: fillType, factor, fillLevel, minLiterToDrop, minDropReached, hasMinDropFillLevel, info, dischargedLiters, sx, sy, sz, ex, ey, ez, dropped, lineOffset, unloadInfo
 function Dischargeable:dischargeToGround(dischargeNode, emptyLiters)
 	if emptyLiters == 0 then
 		return 0, false, false
-	end
-	local v149_, v150_ = self:getDischargeFillType(dischargeNode)
-	local v151_ = self:getFillUnitFillLevel(dischargeNode.fillUnitIndex)
-	local v152_ = g_densityMapHeightManager:getMinValidLiterValue(v149_)
-	local v153_ = dischargeNode.litersToDrop + emptyLiters
-	local v154_ = dischargeNode.emptySpeed * 250
-	local v155_ = math.max(v154_, v152_)
-	dischargeNode.litersToDrop = math.min(v153_, v155_)
-	if dischargeNode.limitGroundTipToFillLevel then
-		local v156_ = dischargeNode.litersToDrop
-		dischargeNode.litersToDrop = math.min(v156_, v151_)
-	end
-	local v157_ = v152_ < dischargeNode.litersToDrop
-	local v158_ = v152_ < v151_
-	local v159_ = dischargeNode.info
-	local v160_ = 0
-	local v161_, v162_, v163_ = localToWorld(v159_.node, -v159_.width, 0, v159_.zOffset)
-	local v164_, v165_, v166_ = localToWorld(v159_.node, v159_.width, 0, v159_.zOffset)
-	local v167_ = v162_ + v159_.yOffset
-	local v168_ = v165_ + v159_.yOffset
-	if v159_.limitToGround then
-		local v169_ = getTerrainHeightAtWorldPos(g_terrainNode, v161_, 0, v163_) + 0.1
-		v167_ = math.max(v169_, v167_)
-		local v170_ = getTerrainHeightAtWorldPos(g_terrainNode, v164_, 0, v166_) + 0.1
-		v168_ = math.max(v170_, v168_)
-	end
-	local v171_, v172_ = DensityMapHeightUtil.tipToGroundAroundLine(self, dischargeNode.litersToDrop * v150_, v149_, v161_, v167_, v163_, v164_, v168_, v166_, v159_.length, nil, dischargeNode.lineOffset, true, nil, true)
-	local v173_ = v171_ / v150_
-	dischargeNode.lineOffset = v172_
-	dischargeNode.litersToDrop = dischargeNode.litersToDrop - v173_
-	if v173_ > 0 then
-		local v174_ = self:getFillVolumeUnloadInfo(dischargeNode.unloadInfoIndex)
-		v160_ = self:addFillUnitFillLevel(self:getOwnerFarmId(), dischargeNode.fillUnitIndex, -v173_, self:getFillUnitFillType(dischargeNode.fillUnitIndex), ToolType.UNDEFINED, v174_)
-	end
-	local v175_ = self:getFillUnitFillLevel(dischargeNode.fillUnitIndex)
-	if v175_ > 0 and v175_ <= v152_ then
-		dischargeNode.litersToDrop = v152_
-	end
-	return v160_, v157_, v158_
-end
-
--- Local values: fillType, factor, supportsFillType, dischargedLiters, allowFillType, delta, unloadInfo
-function Dischargeable:dischargeToObject(dischargeNode, emptyLiters, object, targetFillUnitIndex)
-	local v181_, v182_ = self:getDischargeFillType(dischargeNode)
-	local v183_
-	if object:getFillUnitSupportsFillType(targetFillUnitIndex, v181_) and object:getFillUnitAllowsFillType(targetFillUnitIndex, v181_) then
-		dischargeNode.currentDischargeObject = object
-		local v184_ = object:addFillUnitFillLevel(self:getActiveFarm(), targetFillUnitIndex, emptyLiters * v182_, v181_, dischargeNode.toolType, dischargeNode.info) / v182_
-		local v185_ = self:getFillVolumeUnloadInfo(dischargeNode.unloadInfoIndex)
-		v183_ = self:addFillUnitFillLevel(self:getOwnerFarmId(), dischargeNode.fillUnitIndex, -v184_, self:getFillUnitFillType(dischargeNode.fillUnitIndex), ToolType.UNDEFINED, v185_)
 	else
-		v183_ = 0
+		local fillType, factor = self:getDischargeFillType(dischargeNode)
+		local fillLevel = self:getFillUnitFillLevel(dischargeNode.fillUnitIndex)
+		local minLiterToDrop = g_densityMapHeightManager:getMinValidLiterValue(fillType)
+		dischargeNode.litersToDrop = math.min(dischargeNode.litersToDrop + emptyLiters, math.max(dischargeNode.emptySpeed * 250, minLiterToDrop))
+		if dischargeNode.limitGroundTipToFillLevel then
+			dischargeNode.litersToDrop = math.min(dischargeNode.litersToDrop, fillLevel)
+		end
+		local minDropReached = minLiterToDrop < dischargeNode.litersToDrop
+		local hasMinDropFillLevel = minLiterToDrop < fillLevel
+		local info = dischargeNode.info
+		local dischargedLiters = 0
+		local sx, sy, sz = localToWorld(info.node, -info.width, 0, info.zOffset)
+		local ex, ey, ez = localToWorld(info.node, info.width, 0, info.zOffset)
+		sy = sy + info.yOffset
+		ey = ey + info.yOffset
+		if info.limitToGround then
+			sy = math.max(getTerrainHeightAtWorldPos(g_terrainNode, sx, 0, sz) + 0.1, sy)
+			ey = math.max(getTerrainHeightAtWorldPos(g_terrainNode, ex, 0, ez) + 0.1, ey)
+		end
+		local dropped, lineOffset = DensityMapHeightUtil.tipToGroundAroundLine(self, dischargeNode.litersToDrop * factor, fillType, sx, sy, sz, ex, ey, ez, info.length, nil, dischargeNode.lineOffset, true, nil, true)
+		dropped = dropped / factor
+		dischargeNode.lineOffset = lineOffset
+		dischargeNode.litersToDrop = dischargeNode.litersToDrop - dropped
+		if 0 < dropped then
+			local unloadInfo = self:getFillVolumeUnloadInfo(dischargeNode.unloadInfoIndex)
+			dischargedLiters = self:addFillUnitFillLevel(self:getOwnerFarmId(), dischargeNode.fillUnitIndex, -dropped, self:getFillUnitFillType(dischargeNode.fillUnitIndex), ToolType.UNDEFINED, unloadInfo)
+		end
+		fillLevel = self:getFillUnitFillLevel(dischargeNode.fillUnitIndex)
+		if 0 < fillLevel and fillLevel <= minLiterToDrop then
+			dischargeNode.litersToDrop = minLiterToDrop
+		end
+		return dischargedLiters, minDropReached, hasMinDropFillLevel
 	end
-	return v183_
 end
-
+function Dischargeable:dischargeToObject(dischargeNode, emptyLiters, object, targetFillUnitIndex)
+	local fillType, factor = self:getDischargeFillType(dischargeNode)
+	local supportsFillType = object:getFillUnitSupportsFillType(targetFillUnitIndex, fillType)
+	local dischargedLiters = 0
+	if supportsFillType then
+		local allowFillType = object:getFillUnitAllowsFillType(targetFillUnitIndex, fillType)
+		if allowFillType then
+			dischargeNode.currentDischargeObject = object
+			local delta = object:addFillUnitFillLevel(self:getActiveFarm(), targetFillUnitIndex, emptyLiters * factor, fillType, dischargeNode.toolType, dischargeNode.info)
+			delta = delta / factor
+			local unloadInfo = self:getFillVolumeUnloadInfo(dischargeNode.unloadInfoIndex)
+			dischargedLiters = self:addFillUnitFillLevel(self:getOwnerFarmId(), dischargeNode.fillUnitIndex, -delta, self:getFillUnitFillType(dischargeNode.fillUnitIndex), ToolType.UNDEFINED, unloadInfo)
+		end
+	end
+	return dischargedLiters
+end
 function Dischargeable:setManualDischargeState(state, noEventSend)
 	self:setDischargeState(state, noEventSend)
 end
-
--- Local values: spec, dischargeNode, i, node
 function Dischargeable:setDischargeState(state, noEventSend)
-	local v192_ = self.spec_dischargeable
-	if state ~= v192_.currentDischargeState then
+	local spec = self.spec_dischargeable
+	if state ~= spec.currentDischargeState then
 		SetDischargeStateEvent.sendEvent(self, state, noEventSend)
-		v192_.currentDischargeState = state
-		local v193_ = v192_.currentDischargeNode
+		spec.currentDischargeState = state
+		local dischargeNode = spec.currentDischargeNode
 		if self.isServer and state == Dischargeable.DISCHARGE_STATE_OFF then
-			self:setDischargeEffectActive(v193_, false)
+			self:setDischargeEffectActive(dischargeNode, false)
 		end
 		if self.isClient then
 			if state == Dischargeable.DISCHARGE_STATE_OFF then
-				g_animationManager:stopAnimations(v193_.animationNodes)
-				g_soundManager:stopSamples(v193_.dischargeStateSamples)
+				g_animationManager:stopAnimations(dischargeNode.animationNodes)
+				g_soundManager:stopSamples(dischargeNode.dischargeStateSamples)
 			else
-				g_animationManager:startAnimations(v193_.animationNodes)
-				g_soundManager:playSamples(v193_.dischargeStateSamples)
+				g_animationManager:startAnimations(dischargeNode.animationNodes)
+				g_soundManager:playSamples(dischargeNode.dischargeStateSamples)
 			end
 			if self.updateDashboardValueType ~= nil then
 				self:updateDashboardValueType("dischargeable.dischargeState")
 			end
 		end
-		for v194_ = 1, #v192_.dischargeNodes do
-			local v195_ = v192_.dischargeNodes[v194_]
-			if v195_.stateObjectChanges ~= nil then
-				local v196_ = ObjectChangeUtil.setObjectChanges
-				local v197_ = v195_.stateObjectChanges
-				local v198_
-				if state == Dischargeable.DISCHARGE_STATE_OFF then
-					v198_ = false
-				else
-					v198_ = v195_ == v193_
-				end
-				v196_(v197_, v198_, self, self.setMovingToolDirty)
+		for i = 1, #spec.dischargeNodes do
+			local node = spec.dischargeNodes[i]
+			if node.stateObjectChanges == nil then
+				continue
 			end
+			ObjectChangeUtil.setObjectChanges(node.stateObjectChanges, state ~= Dischargeable.DISCHARGE_STATE_OFF and node == dischargeNode, self, self.setMovingToolDirty)
 		end
-		if v193_.animationName ~= nil then
-			if state == Dischargeable.DISCHARGE_STATE_OFF then
-				self:playAnimation(v193_.animationName, -v193_.animationResetSpeed, self:getAnimationTime(v193_.animationName), true)
+		if dischargeNode.animationName ~= nil then
+			if state ~= Dischargeable.DISCHARGE_STATE_OFF then
+				self:playAnimation(dischargeNode.animationName, dischargeNode.animationSpeed, self:getAnimationTime(dischargeNode.animationName), true)
 			else
-				self:playAnimation(v193_.animationName, v193_.animationSpeed, self:getAnimationTime(v193_.animationName), true)
+				self:playAnimation(dischargeNode.animationName, -dischargeNode.animationResetSpeed, self:getAnimationTime(dischargeNode.animationName), true)
 			end
 		end
 		SpecializationUtil.raiseEvent(self, "onDischargeStateChanged", state)
 	end
 end
-
 function Dischargeable:getDischargeState()
 	return self.spec_dischargeable.currentDischargeState
 end
-
--- Local values: fillType, conversionFactor, conversion
 function Dischargeable:getDischargeFillType(dischargeNode)
-	local v202_ = self:getFillUnitFillType(dischargeNode.fillUnitIndex)
-	local v203_ = 1
+	local fillType = self:getFillUnitFillType(dischargeNode.fillUnitIndex)
+	local conversionFactor = 1
 	if dischargeNode.fillTypeConverter ~= nil then
-		local v204_ = dischargeNode.fillTypeConverter[v202_]
-		if v204_ ~= nil then
-			v202_ = v204_.targetFillTypeIndex
-			v203_ = v204_.conversionFactor
+		local conversion = dischargeNode.fillTypeConverter[fillType]
+		if conversion ~= nil then
+			fillType = conversion.targetFillTypeIndex
+			conversionFactor = conversion.conversionFactor
 		end
 	end
-	return v202_, v203_
+	return fillType, conversionFactor
 end
-
--- Local values: fillTypeIndex
 function Dischargeable:getCanDischargeToGround(dischargeNode)
 	if not self.spec_dischargeable.isDischargeAllowed then
 		return false
-	end
-	if dischargeNode == nil then
+	elseif dischargeNode == nil then
 		return false
-	end
-	if not dischargeNode.dischargeHitTerrain then
+	elseif not dischargeNode.dischargeHitTerrain then
 		return false
-	end
-	if self:getFillUnitFillLevel(dischargeNode.fillUnitIndex) > 0 then
-		local v207_ = self:getDischargeFillType(dischargeNode)
-		if not DensityMapHeightUtil.getCanTipToGround(v207_) then
-			return false
-		end
-	end
-	return true
-end
-
--- Local values: info, sx, _, sz, ex, _, ez, activeFarmId, mission
-function Dischargeable:getCanDischargeToLand(dischargeNode)
-	if dischargeNode == nil then
-		return false
-	elseif dischargeNode.canDischargeToGroundAnywhere then
-		return true
 	else
-		local v210_ = dischargeNode.info
-		local v211_, _, v212_ = localToWorld(v210_.node, -v210_.width, 0, v210_.zOffset)
-		local v213_, _, v214_ = localToWorld(v210_.node, v210_.width, 0, v210_.zOffset)
-		local v215_ = self:getActiveFarm()
-		if dischargeNode.canDischargeToMissionGround then
-			local v216_ = g_missionManager:getMissionAtWorldPosition(v211_, v212_)
-			if v216_ == nil then
-				v216_ = g_missionManager:getMissionAtWorldPosition(v213_, v214_)
-			end
-			if v216_ ~= nil and (v216_.farmId ~= nil and v216_.farmId == v215_) then
-				return true
-			end
-		end
-		if g_currentMission.accessHandler:canFarmAccessLand(v215_, v211_, v212_) then
-			return g_currentMission.accessHandler:canFarmAccessLand(v215_, v213_, v214_) and true or false
-		else
-			return false
-		end
-	end
-end
-
--- Local values: info, sx, sy, sz, ex, ey, ez, spec, fillType, testDrop
-function Dischargeable:getCanDischargeAtPosition(dischargeNode)
-	if dischargeNode == nil then
-		return false
-	end
-	if self:getFillUnitFillLevel(dischargeNode.fillUnitIndex) > 0 then
-		local v219_ = dischargeNode.info
-		local v220_, v221_, v222_ = localToWorld(v219_.node, -v219_.width, 0, v219_.zOffset)
-		local v223_, v224_, v225_ = localToWorld(v219_.node, v219_.width, 0, v219_.zOffset)
-		local v226_ = self.spec_dischargeable
-		if v226_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF or v226_.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
-			local v227_ = v221_ + v219_.yOffset
-			local v228_ = v224_ + v219_.yOffset
-			if v219_.limitToGround then
-				local v229_ = getTerrainHeightAtWorldPos(g_terrainNode, v220_, 0, v222_) + 0.1
-				v227_ = math.max(v229_, v227_)
-				local v230_ = getTerrainHeightAtWorldPos(g_terrainNode, v223_, 0, v225_) + 0.1
-				v228_ = math.max(v230_, v228_)
-			end
-			local v231_ = self:getDischargeFillType(dischargeNode)
-			local v232_ = g_densityMapHeightManager:getMinValidLiterValue(v231_)
-			if not DensityMapHeightUtil.getCanTipToGroundAroundLine(self, v232_, v231_, v220_, v227_, v222_, v223_, v228_, v225_, v219_.length, nil, dischargeNode.lineOffset, true, nil, true) then
+		if 0 < self:getFillUnitFillLevel(dischargeNode.fillUnitIndex) then
+			local fillTypeIndex = self:getDischargeFillType(dischargeNode)
+			if not DensityMapHeightUtil.getCanTipToGround(fillTypeIndex) then
 				return false
 			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: object, fillType, allowFillType, mounter
+function Dischargeable:getCanDischargeToLand(dischargeNode)
+	if dischargeNode == nil then
+		return false
+	end
+	if dischargeNode.canDischargeToGroundAnywhere then
+		return true
+	end
+	local info = dischargeNode.info
+	local sx, _, sz = localToWorld(info.node, -info.width, 0, info.zOffset)
+	local ex, _, ez = localToWorld(info.node, info.width, 0, info.zOffset)
+	local activeFarmId = self:getActiveFarm()
+	if dischargeNode.canDischargeToMissionGround then
+		local mission = g_missionManager:getMissionAtWorldPosition(sx, sz)
+		if mission == nil then
+			mission = g_missionManager:getMissionAtWorldPosition(ex, ez)
+		end
+		if mission ~= nil and (mission.farmId ~= nil and mission.farmId == activeFarmId) then
+			return true
+		end
+	end
+	if not g_currentMission.accessHandler:canFarmAccessLand(activeFarmId, sx, sz) then
+		return false
+	elseif not g_currentMission.accessHandler:canFarmAccessLand(activeFarmId, ex, ez) then
+		return false
+	else
+		return true
+	end
+end
+function Dischargeable:getCanDischargeAtPosition(dischargeNode)
+	if dischargeNode == nil then
+		return false
+	else
+		if 0 < self:getFillUnitFillLevel(dischargeNode.fillUnitIndex) then
+			local info = dischargeNode.info
+			local sx, sy, sz = localToWorld(info.node, -info.width, 0, info.zOffset)
+			local ex, ey, ez = localToWorld(info.node, info.width, 0, info.zOffset)
+			local spec = self.spec_dischargeable
+			if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF or spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
+				sy = sy + info.yOffset
+				ey = ey + info.yOffset
+				if info.limitToGround then
+					sy = math.max(getTerrainHeightAtWorldPos(g_terrainNode, sx, 0, sz) + 0.1, sy)
+					ey = math.max(getTerrainHeightAtWorldPos(g_terrainNode, ex, 0, ez) + 0.1, ey)
+				end
+				local fillType = self:getDischargeFillType(dischargeNode)
+				local testDrop = g_densityMapHeightManager:getMinValidLiterValue(fillType)
+				if not DensityMapHeightUtil.getCanTipToGroundAroundLine(self, testDrop, fillType, sx, sy, sz, ex, ey, ez, info.length, nil, dischargeNode.lineOffset, true, nil, true) then
+					return false
+				end
+			end
+		end
+		return true
+	end
+end
 function Dischargeable:getCanDischargeToObject(dischargeNode)
 	if not self.spec_dischargeable.isDischargeAllowed then
 		return false
@@ -1055,104 +968,88 @@ function Dischargeable:getCanDischargeToObject(dischargeNode)
 	if dischargeNode == nil then
 		return false
 	end
-	local v235_ = dischargeNode.dischargeObject
-	if v235_ == nil then
+	local object = dischargeNode.dischargeObject
+	if object == nil then
 		return false
 	end
-	local v236_ = self:getDischargeFillType(dischargeNode)
-	if not v235_:getFillUnitSupportsFillType(dischargeNode.dischargeFillUnitIndex, v236_) then
+	local fillType = self:getDischargeFillType(dischargeNode)
+	if not object:getFillUnitSupportsFillType(dischargeNode.dischargeFillUnitIndex, fillType) then
 		return false
 	end
-	if not v235_:getFillUnitAllowsFillType(dischargeNode.dischargeFillUnitIndex, v236_) then
+	local allowFillType = object:getFillUnitAllowsFillType(dischargeNode.dischargeFillUnitIndex, fillType)
+	if not allowFillType then
 		return false
-	end
-	if v235_.getFillUnitFreeCapacity ~= nil and v235_:getFillUnitFreeCapacity(dischargeNode.dischargeFillUnitIndex, v236_, self:getActiveFarm()) <= 0 then
+	elseif object.getFillUnitFreeCapacity ~= nil and object:getFillUnitFreeCapacity(dischargeNode.dischargeFillUnitIndex, fillType, self:getActiveFarm()) <= 0 then
 		return false
-	end
-	if v235_.getIsFillAllowedFromFarm ~= nil and not v235_:getIsFillAllowedFromFarm(self:getActiveFarm()) then
+	elseif object.getIsFillAllowedFromFarm ~= nil and not object:getIsFillAllowedFromFarm(self:getActiveFarm()) then
 		return false
-	end
-	if self.getDynamicMountObject ~= nil then
-		local v237_ = self:getDynamicMountObject()
-		if v237_ ~= nil and not g_currentMission.accessHandler:canFarmAccess(v237_:getActiveFarm(), self, true) then
-			return false
-		end
-	end
-	return true
-end
-
--- Local values: text, fillType, fillTypeDesc
-function Dischargeable:getDischargeNotAllowedWarning(dischargeNode)
-	local v240_ = g_i18n:getText(Dischargeable.DISCHARGE_WARNINGS[dischargeNode.dischargeFailedReason or Dischargeable.DISCHARGE_REASON_NOT_ALLOWED_HERE] or "warning_actionNotAllowedHere")
-	if dischargeNode.customNotAllowedWarning ~= nil then
-		v240_ = dischargeNode.customNotAllowedWarning
-	end
-	local v241_ = self:getDischargeFillType(dischargeNode)
-	local v242_ = g_fillTypeManager:getFillTypeByIndex(v241_)
-	return string.format(v240_, v242_.title)
-end
-
--- Local values: spec, dischargeNode
-function Dischargeable:getCanToggleDischargeToObject()
-	local v244_ = self.spec_dischargeable.currentDischargeNode
-	local v245_
-	if v244_ == nil then
-		v245_ = false
 	else
-		v245_ = v244_.canDischargeToObject
+		if self.getDynamicMountObject ~= nil then
+			local mounter = self:getDynamicMountObject()
+			if mounter ~= nil and not g_currentMission.accessHandler:canFarmAccess(mounter:getActiveFarm(), self, true) then
+				return false
+			end
+		end
+		return true
 	end
-	return v245_
 end
-
--- Local values: spec, dischargeNode
+function Dischargeable:getDischargeNotAllowedWarning(dischargeNode)
+	local text = g_i18n:getText(Dischargeable.DISCHARGE_WARNINGS[dischargeNode.dischargeFailedReason or Dischargeable.DISCHARGE_REASON_NOT_ALLOWED_HERE] or "warning_actionNotAllowedHere")
+	if dischargeNode.customNotAllowedWarning ~= nil then
+		text = dischargeNode.customNotAllowedWarning
+	end
+	local fillType = self:getDischargeFillType(dischargeNode)
+	local fillTypeDesc = g_fillTypeManager:getFillTypeByIndex(fillType)
+	return string.format(text, fillTypeDesc.title)
+end
+function Dischargeable:getCanToggleDischargeToObject()
+	local spec = self.spec_dischargeable
+	local dischargeNode = spec.currentDischargeNode
+	local _v1 = false
+	if dischargeNode ~= nil then
+		_v1 = dischargeNode.canDischargeToObject
+	end
+	return _v1
+end
 function Dischargeable:getCanToggleDischargeToGround()
-	local v247_ = self.spec_dischargeable.currentDischargeNode
-	local v248_ = v247_ ~= nil and v247_.canDischargeToGround
-	if v248_ then
-		v248_ = not v247_.canStartGroundDischargeAutomatically
+	local spec = self.spec_dischargeable
+	local dischargeNode = spec.currentDischargeNode
+	local _v1 = false
+	if dischargeNode ~= nil then
+		_v1 = dischargeNode.canDischargeToGround and not dischargeNode.canStartGroundDischargeAutomatically
 	end
-	return v248_
+	return _v1
 end
-
--- Local values: spec, currentDischargeNode
 function Dischargeable:getIsPossibleToDischargeToObject()
-	local v250_ = self.spec_dischargeable
-	if v250_.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF then
+	local spec = self.spec_dischargeable
+	if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
+		local currentDischargeNode = spec.currentDischargeNode
+		return self:getIsActiveForInput() and self:getCanDischargeToObject(currentDischargeNode) and self:getCanToggleDischargeToObject()
+	else
 		return false
 	end
-	local v251_ = v250_.currentDischargeNode
-	local v252_ = self:getIsActiveForInput() and self:getCanDischargeToObject(v251_)
-	if v252_ then
-		v252_ = self:getCanToggleDischargeToObject()
-	end
-	return v252_
 end
-
 function Dischargeable:getIsDischargeNodeActive(dischargeNode)
 	return self.spec_dischargeable.isDischargeAllowed
 end
-
 function Dischargeable:setIsDischargeAllowed(isAllowed)
 	self.spec_dischargeable.isDischargeAllowed = isAllowed
 end
-
 function Dischargeable:getDischargeNodeEmptyFactor(dischargeNode)
 	return 1
 end
-
 function Dischargeable:getDischargeNodeAutomaticDischarge(dischargeNode)
 	return dischargeNode.canStartDischargeAutomatically
 end
-
 function Dischargeable:getDischargeNodeByNode(node)
 	return self.spec_dischargeable.dischargNodeMapping[node]
 end
-
--- Local values: spec, raycast, x, y, z, dx, dy, dz
 function Dischargeable:updateRaycast(dischargeNode)
-	local v261_ = self.spec_dischargeable
-	local v262_ = dischargeNode.raycast
-	if v262_.node ~= nil then
+	local spec = self.spec_dischargeable
+	local raycast = dischargeNode.raycast
+	if raycast.node == nil then
+		return
+	else
 		dischargeNode.lastDischargeObject = dischargeNode.dischargeObject
 		dischargeNode.raycastDischargeObject = nil
 		dischargeNode.raycastDischargeHitObject = nil
@@ -1163,231 +1060,211 @@ function Dischargeable:updateRaycast(dischargeNode)
 		dischargeNode.raycastDischargeFillUnitIndex = nil
 		dischargeNode.raycastDischargeHit = false
 		dischargeNode.raycastDischargeFailedReason = nil
-		local v263_, v264_, v265_ = getWorldTranslation(v262_.node)
-		local v266_ = v264_ + v262_.yOffset
-		local v267_, v268_, v269_
-		if v262_.useWorldNegYDirection then
-			v267_ = 0
-			v268_ = 0
-			v269_ = -1
-		else
-			v268_, v269_, v267_ = localDirectionToWorld(v262_.node, 0, -1, 0)
+		local x, y, z = getWorldTranslation(raycast.node)
+		local dx = 0
+		local dy = -1
+		local dz = 0
+		y = y + raycast.yOffset
+		if not raycast.useWorldNegYDirection then
+			dx, dy, dz = localDirectionToWorld(raycast.node, 0, -1, 0)
 		end
-		v261_.currentRaycastDischargeNode = dischargeNode
-		v261_.currentRaycast = v262_
-		v261_.isAsyncRaycastActive = true
-		raycastAllAsync(v263_, v266_, v265_, v268_, v269_, v267_, dischargeNode.maxDistance, "raycastCallbackDischargeNode", self, v261_.raycastCollisionMask)
+		spec.currentRaycastDischargeNode = dischargeNode
+		spec.currentRaycast = raycast
+		spec.isAsyncRaycastActive = true
+		raycastAllAsync(x, y, z, dx, dy, dz, dischargeNode.maxDistance, "raycastCallbackDischargeNode", self, spec.raycastCollisionMask)
 		if VehicleDebug.state == VehicleDebug.DEBUG then
-			drawDebugLine(v263_, v266_, v265_, 0, 1, 0, v263_ + v268_ * dischargeNode.maxDistance, v266_ + v269_ * dischargeNode.maxDistance, v265_ + v267_ * dischargeNode.maxDistance, 0, 1, 0, true)
+			drawDebugLine(x, y, z, 0, 1, 0, x + dx * dischargeNode.maxDistance, y + dy * dischargeNode.maxDistance, z + dz * dischargeNode.maxDistance, 0, 1, 0, true)
 		end
 	end
 end
-
 function Dischargeable:updateDischargeInfo(dischargeNode, x, y, z)
 	if dischargeNode.info.useRaycastHitPosition then
 		setWorldTranslation(dischargeNode.info.node, x, y, z)
 	end
 end
-
--- Local values: spec, dischargeNode, object, validObject, fillUnitIndex, fillType, dischargeFailedReason, dischargeFailedReasonShowAuto, customNotAllowedWarning, allowFillType, allowToolType, freeSpace, accessible
 function Dischargeable:raycastCallbackDischargeNode(hitActorId, x, y, z, distance, nx, ny, nz, subShapeIndex, hitShapeId, isLast)
-	if not (self.isDeleted or self.isDeleting) then
-		local v282_ = self.spec_dischargeable
-		local v283_ = v282_.currentRaycastDischargeNode
-		if hitActorId ~= 0 then
-			local v284_ = g_currentMission:getNodeObject(hitActorId)
-			local v285_ = distance - v283_.raycast.yOffset
-			if VehicleDebug.state == VehicleDebug.DEBUG then
-				DebugGizmo.renderAtPositionSimple(x, y, z, string.format("hitActorId %d | %s; hitShape %d | %s; object %s", hitActorId, getName(hitActorId), hitShapeId, getName(hitShapeId), v284_))
+	if self.isDeleted or self.isDeleting then
+		return
+	end
+	local spec = self.spec_dischargeable
+	local dischargeNode = spec.currentRaycastDischargeNode
+	if hitActorId ~= 0 then
+		local object = g_currentMission:getNodeObject(hitActorId)
+		distance = distance - dischargeNode.raycast.yOffset
+		if VehicleDebug.state == VehicleDebug.DEBUG then
+			DebugGizmo.renderAtPositionSimple(x, y, z, string.format("hitActorId %d | %s; hitShape %d | %s; object %s", hitActorId, getName(hitActorId), hitShapeId, getName(hitShapeId), object))
+		end
+		local validObject = false
+		if object ~= nil then
+			validObject = true
+			if object == self then
+				validObject = dischargeNode.canFillOwnVehicle
 			end
-			local v286_
-			if v284_ == nil then
-				v286_ = false
-			else
-				v286_ = v284_ ~= self and true or v283_.canFillOwnVehicle
+		end
+		if validObject and distance < 0 then
+			if object.getFillUnitIndexFromNode ~= nil then
+				validObject = validObject and object:getFillUnitIndexFromNode(hitShapeId) ~= nil
 			end
-			if v286_ and v285_ < 0 then
-				if v284_.getFillUnitIndexFromNode ~= nil then
-					if v286_ then
-						v286_ = v284_:getFillUnitIndexFromNode(hitShapeId) ~= nil
+			if not dischargeNode.canDischargeToVehicle then
+				validObject = validObject and not object:isa(Vehicle)
+			end
+		end
+		if validObject then
+			if object.getFillUnitIndexFromNode ~= nil then
+				local fillUnitIndex = object:getFillUnitIndexFromNode(hitShapeId)
+				if fillUnitIndex ~= nil then
+					local fillType = spec.forcedFillTypeIndex
+					if fillType == nil then
+						fillType = self:getDischargeFillType(dischargeNode)
 					end
-				end
-				if not v283_.canDischargeToVehicle then
-					if v286_ then
-						v286_ = not v284_:isa(Vehicle)
-					end
-				end
-			end
-			if v286_ then
-				if v284_.getFillUnitIndexFromNode ~= nil then
-					local v287_ = v284_:getFillUnitIndexFromNode(hitShapeId)
-					if v287_ == nil then
-						if v283_.raycastDischargeHit then
-							v283_.raycastDischargeDistance = v285_ + (v283_.raycastDischargeExtraDistance or 0)
-							v283_.raycastDischargeExtraDistance = nil
-							self:updateDischargeInfo(v283_, x, y, z)
-							self:finishDischargeRaycast()
-							return false
-						end
-					else
-						local v288_ = v282_.forcedFillTypeIndex
-						if v288_ == nil then
-							v288_ = self:getDischargeFillType(v283_)
-						end
-						local v289_ = nil
-						local v290_ = false
-						local v291_ = nil
-						if v284_:getFillUnitSupportsFillType(v287_, v288_) then
-							local v292_ = v284_:getFillUnitAllowsFillType(v287_, v288_)
-							local v293_ = v284_:getFillUnitSupportsToolType(v287_, v283_.toolType)
-							local v294_ = v284_:getFillUnitFreeCapacity(v287_, v288_, self:getActiveFarm()) > 0
-							local v295_ = v284_:getIsFillAllowedFromFarm(self:getActiveFarm())
-							if v292_ and (v293_ and v294_) then
-								v283_.raycastDischargeObject = v284_
-								v283_.raycastDischargeShape = hitShapeId
-								v283_.raycastDischargeDistance = v285_
-								v283_.raycastDischargeFillUnitIndex = v287_
-								if v284_.getFillUnitExtraDistanceFromNode ~= nil then
-									v283_.raycastDischargeExtraDistance = v284_:getFillUnitExtraDistanceFromNode(hitShapeId)
+					local dischargeFailedReason = nil
+					local dischargeFailedReasonShowAuto = false
+					local customNotAllowedWarning = nil
+					if object:getFillUnitSupportsFillType(fillUnitIndex, fillType) then
+						local allowFillType = object:getFillUnitAllowsFillType(fillUnitIndex, fillType)
+						local allowToolType = object:getFillUnitSupportsToolType(fillUnitIndex, dischargeNode.toolType)
+						local freeSpace = 0 < object:getFillUnitFreeCapacity(fillUnitIndex, fillType, self:getActiveFarm())
+						local accessible = object:getIsFillAllowedFromFarm(self:getActiveFarm())
+						if allowFillType and allowToolType then
+							if freeSpace then
+								dischargeNode.raycastDischargeObject = object
+								dischargeNode.raycastDischargeShape = hitShapeId
+								dischargeNode.raycastDischargeDistance = distance
+								dischargeNode.raycastDischargeFillUnitIndex = fillUnitIndex
+								if object.getFillUnitExtraDistanceFromNode ~= nil then
+									dischargeNode.raycastDischargeExtraDistance = object:getFillUnitExtraDistanceFromNode(hitShapeId)
 								end
-							elseif v292_ then
-								if v293_ then
-									if v295_ then
-										if not v294_ then
-											v289_ = Dischargeable.DISCHARGE_REASON_NO_FREE_CAPACITY
-										end
-									else
-										v289_ = Dischargeable.DISCHARGE_REASON_NO_ACCESS
-									end
-								else
-									v289_ = Dischargeable.DISCHARGE_REASON_TOOLTYPE_NOT_SUPPORTED
-								end
-							else
-								v289_ = Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED
+							elseif not allowFillType then
+								dischargeFailedReason = Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED
+							elseif not allowToolType then
+								dischargeFailedReason = Dischargeable.DISCHARGE_REASON_TOOLTYPE_NOT_SUPPORTED
+							elseif not accessible then
+								dischargeFailedReason = Dischargeable.DISCHARGE_REASON_NO_ACCESS
+							elseif not freeSpace then
+								dischargeFailedReason = Dischargeable.DISCHARGE_REASON_NO_FREE_CAPACITY
 							end
-						elseif v288_ ~= FillType.UNKNOWN then
-							v289_ = Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED
 						end
-						if v289_ == Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED or (v289_ == Dischargeable.DISCHARGE_REASON_NO_FREE_CAPACITY or v289_ == Dischargeable.DISCHARGE_REASON_NO_ACCESS) then
-							v290_ = (v284_.isa == nil or not v284_:isa(Vehicle)) and true or v290_
-						end
-						if v289_ ~= nil and (v289_ ~= Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED and v284_.getCustomDischargeNotAllowedWarning ~= nil) then
-							v291_ = v284_:getCustomDischargeNotAllowedWarning()
-						end
-						if v283_.raycastDischargeObject == nil and v289_ ~= nil then
-							if v283_.raycastDischargeFailedReason == nil or v289_ < v283_.raycastDischargeFailedReason then
-								v283_.raycastDischargeFailedReason = v289_
-								v283_.raycastDischargeFailedReasonShowAuto = v290_
-								v283_.customNotAllowedWarning = v291_
+					elseif fillType ~= FillType.UNKNOWN then
+						dischargeFailedReason = Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED
+					end
+					if (dischargeFailedReason == Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED or dischargeFailedReason == Dischargeable.DISCHARGE_REASON_NO_FREE_CAPACITY or dischargeFailedReason == Dischargeable.DISCHARGE_REASON_NO_ACCESS) and (object.isa == nil or not object:isa(Vehicle)) then
+						dischargeFailedReasonShowAuto = true
+					end
+					if dischargeFailedReason ~= nil and (dischargeFailedReason ~= Dischargeable.DISCHARGE_REASON_FILLTYPE_NOT_SUPPORTED and object.getCustomDischargeNotAllowedWarning ~= nil) then
+						customNotAllowedWarning = object:getCustomDischargeNotAllowedWarning()
+					end
+					if dischargeNode.raycastDischargeObject == nil then
+						if dischargeFailedReason ~= nil then
+							if dischargeNode.raycastDischargeFailedReason == nil or dischargeFailedReason < dischargeNode.raycastDischargeFailedReason then
+								dischargeNode.raycastDischargeFailedReason = dischargeFailedReason
+								dischargeNode.raycastDischargeFailedReasonShowAuto = dischargeFailedReasonShowAuto
+								dischargeNode.customNotAllowedWarning = customNotAllowedWarning
 							end
 						else
-							v283_.raycastDischargeFailedReason = nil
-							v283_.raycastDischargeFailedReasonShowAuto = false
-							v283_.customNotAllowedWarning = nil
+							dischargeNode.raycastDischargeFailedReason = nil
+							dischargeNode.raycastDischargeFailedReasonShowAuto = false
+							dischargeNode.customNotAllowedWarning = nil
 						end
-						v283_.raycastDischargeHit = true
-						v283_.raycastDischargeHitObject = v284_
-						v283_.raycastDischargeHitObjectUnitIndex = v287_
 					end
+					dischargeNode.raycastDischargeHit = true
+					dischargeNode.raycastDischargeHitObject = object
+					dischargeNode.raycastDischargeHitObjectUnitIndex = fillUnitIndex
+				elseif dischargeNode.raycastDischargeHit then
+					dischargeNode.raycastDischargeDistance = distance + (dischargeNode.raycastDischargeExtraDistance or 0)
+					dischargeNode.raycastDischargeExtraDistance = nil
+					self:updateDischargeInfo(dischargeNode, x, y, z)
+					self:finishDischargeRaycast()
+					return false
 				end
-			elseif hitActorId == g_terrainNode then
-				local v296_ = v283_.raycastDischargeDistance
-				v283_.raycastDischargeDistance = math.min(v296_, v285_)
-				v283_.raycastDischargeHitTerrain = true
-				self:updateDischargeInfo(v283_, x, y, z)
-				self:finishDischargeRaycast()
-				return false
 			end
+		elseif hitActorId == g_terrainNode then
+			dischargeNode.raycastDischargeDistance = math.min(dischargeNode.raycastDischargeDistance, distance)
+			dischargeNode.raycastDischargeHitTerrain = true
+			self:updateDischargeInfo(dischargeNode, x, y, z)
+			self:finishDischargeRaycast()
+			return false
 		end
-		if not isLast then
-			return true
-		end
+	end
+	if isLast then
 		self:finishDischargeRaycast()
 		return false
+	else
+		return true
 	end
 end
-
--- Local values: spec, dischargeNode
 function Dischargeable:finishDischargeRaycast()
-	local v298_ = self.spec_dischargeable
-	local v299_ = v298_.currentRaycastDischargeNode
-	v299_.dischargeObject = v299_.raycastDischargeObject
-	v299_.dischargeHitObject = v299_.raycastDischargeHitObject
-	v299_.dischargeHitObjectUnitIndex = v299_.raycastDischargeHitObjectUnitIndex
-	v299_.dischargeHitTerrain = v299_.raycastDischargeHitTerrain
-	v299_.dischargeShape = v299_.raycastDischargeShape
-	v299_.dischargeDistance = v299_.raycastDischargeDistance
-	v299_.dischargeFillUnitIndex = v299_.raycastDischargeFillUnitIndex
-	v299_.dischargeHit = v299_.raycastDischargeHit
-	v299_.dischargeFailedReason = v299_.raycastDischargeFailedReason
-	self:handleDischargeRaycast(v299_, v299_.dischargeObject, v299_.dischargeShape, v299_.dischargeDistance, v299_.dischargeFillUnitIndex, v299_.dischargeHitTerrain)
-	v298_.isAsyncRaycastActive = false
-	if v299_.lastDischargeObject ~= v299_.dischargeObject then
-		SpecializationUtil.raiseEvent(self, "onDischargeTargetObjectChanged", v299_.dischargeObject)
+	local spec = self.spec_dischargeable
+	local dischargeNode = spec.currentRaycastDischargeNode
+	dischargeNode.dischargeObject = dischargeNode.raycastDischargeObject
+	dischargeNode.dischargeHitObject = dischargeNode.raycastDischargeHitObject
+	dischargeNode.dischargeHitObjectUnitIndex = dischargeNode.raycastDischargeHitObjectUnitIndex
+	dischargeNode.dischargeHitTerrain = dischargeNode.raycastDischargeHitTerrain
+	dischargeNode.dischargeShape = dischargeNode.raycastDischargeShape
+	dischargeNode.dischargeDistance = dischargeNode.raycastDischargeDistance
+	dischargeNode.dischargeFillUnitIndex = dischargeNode.raycastDischargeFillUnitIndex
+	dischargeNode.dischargeHit = dischargeNode.raycastDischargeHit
+	dischargeNode.dischargeFailedReason = dischargeNode.raycastDischargeFailedReason
+	self:handleDischargeRaycast(dischargeNode, dischargeNode.dischargeObject, dischargeNode.dischargeShape, dischargeNode.dischargeDistance, dischargeNode.dischargeFillUnitIndex, dischargeNode.dischargeHitTerrain)
+	spec.isAsyncRaycastActive = false
+	if dischargeNode.lastDischargeObject ~= dischargeNode.dischargeObject then
+		SpecializationUtil.raiseEvent(self, "onDischargeTargetObjectChanged", dischargeNode.dischargeObject)
 		self.rootVehicle:raiseActive()
 	end
 end
-
--- Local values: spec
 function Dischargeable:getDischargeNodeByIndex(index)
-	return self.spec_dischargeable.dischargeNodes[index]
+	local spec = self.spec_dischargeable
+	return spec.dischargeNodes[index]
 end
-
--- Local values: spec
 function Dischargeable:handleDischargeOnEmpty(dischargeNode)
-	if self.spec_dischargeable.currentDischargeNode.stopDischargeOnEmpty then
+	local spec = self.spec_dischargeable
+	if spec.currentDischargeNode.stopDischargeOnEmpty then
 		self:setDischargeState(Dischargeable.DISCHARGE_STATE_OFF, true)
 	end
 end
-
 function Dischargeable:handleDischargeNodeChanged() end
-
--- Local values: spec, canDrop
 function Dischargeable:handleDischarge(dischargeNode, dischargedLiters, minDropReached, hasMinDropFillLevel)
-	if self.spec_dischargeable.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
-		if dischargeNode.stopDischargeIfNotPossible and (dischargedLiters == 0 and ((minDropReached or not hasMinDropFillLevel) and true or false)) then
+	local spec = self.spec_dischargeable
+	if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
+		local canDrop = not minDropReached and hasMinDropFillLevel
+		if dischargeNode.stopDischargeIfNotPossible and (dischargedLiters == 0 and not canDrop) then
 			self:setDischargeState(Dischargeable.DISCHARGE_STATE_OFF)
-			return
 		end
-	elseif dischargeNode.stopDischargeIfNotPossible and dischargedLiters == 0 then
-		self:setDischargeState(Dischargeable.DISCHARGE_STATE_OFF)
+	elseif dischargeNode.stopDischargeIfNotPossible then
+		if dischargedLiters == 0 then
+			self:setDischargeState(Dischargeable.DISCHARGE_STATE_OFF)
+		end
 	end
 end
-
--- Local values: spec, currentDischargeNode
 function Dischargeable:handleDischargeRaycast(dischargeNode, object, shape, distance, illUnitIndex, hitTerrain)
-	local v312_ = self.spec_dischargeable
+	local spec = self.spec_dischargeable
 	if self.isServer then
-		if object == nil and v312_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OBJECT then
+		if object == nil and spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OBJECT then
 			self:setDischargeState(Dischargeable.DISCHARGE_STATE_OFF)
 		end
 		if object == nil and (dischargeNode.canStartGroundDischargeAutomatically and (self:getCanDischargeToGround(dischargeNode) and (self:getCanDischargeToLand(dischargeNode) and self:getCanDischargeAtPosition(dischargeNode)))) then
 			self:setDischargeState(Dischargeable.DISCHARGE_STATE_GROUND)
 		end
 	end
-	local v313_ = v312_.currentDischargeNode
-	if v313_.distanceObjectChanges ~= nil then
-		ObjectChangeUtil.setObjectChanges(v313_.distanceObjectChanges, v313_.distanceObjectChangeThreshold < distance and true or v312_.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF, self, self.setMovingToolDirty)
+	local currentDischargeNode = spec.currentDischargeNode
+	if currentDischargeNode.distanceObjectChanges ~= nil then
+		ObjectChangeUtil.setObjectChanges(currentDischargeNode.distanceObjectChanges, currentDischargeNode.distanceObjectChangeThreshold < distance or spec.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF, self, self.setMovingToolDirty)
 	end
 end
-
 function Dischargeable:handleFoundDischargeObject(dischargeNode)
 	if self:getDischargeNodeAutomaticDischarge(dischargeNode) then
 		self:setDischargeState(Dischargeable.DISCHARGE_STATE_OBJECT)
 	end
 end
-
--- Local values: _, effect
 function Dischargeable:setDischargeEffectDistance(dischargeNode, distance)
 	if dischargeNode.isEffectActive and (dischargeNode.effects ~= nil and distance ~= math.huge) then
-		for _, v318_ in pairs(dischargeNode.effects) do
-			if v318_.setDistance ~= nil then
-				v318_:setDistance(distance, g_terrainNode)
+		for _, effect in pairs(dischargeNode.effects) do
+			if effect.setDistance == nil then
+				continue
 			end
+			effect:setDistance(distance, g_terrainNode)
 		end
 	end
 end
-
 function Dischargeable:setDischargeEffectActive(dischargeNode, isActive, force, fillTypeIndex)
 	if isActive then
 		if not dischargeNode.isEffectActive then
@@ -1405,47 +1282,61 @@ function Dischargeable:setDischargeEffectActive(dischargeNode, isActive, force, 
 			dischargeNode.stopEffectTime = g_time + dischargeNode.effectTurnOffThreshold
 			self:raiseActive()
 		end
-	elseif dischargeNode.isEffectActive then
-		g_effectManager:stopEffects(dischargeNode.effects)
-		g_animationManager:stopAnimations(dischargeNode.effectAnimationNodes)
-		dischargeNode.isEffectActive = false
+	else
+		if dischargeNode.isEffectActive then
+			g_effectManager:stopEffects(dischargeNode.effects)
+			g_animationManager:stopAnimations(dischargeNode.effectAnimationNodes)
+			dischargeNode.isEffectActive = false
+		end
 	end
 	if self.isServer and dischargeNode.isEffectActive ~= dischargeNode.isEffectActiveSent then
 		self:raiseDirtyFlags(self.spec_dischargeable.dirtyFlag)
 		dischargeNode.isEffectActiveSent = dischargeNode.isEffectActive
 	end
 end
-
--- Local values: fillType, isInDischargeState, isEffectActive, lastEffectVisible, effectsStillActive, sharedSample
 function Dischargeable:updateDischargeSound(dischargeNode, dt)
 	if self.isClient then
-		local v327_ = self:getDischargeFillType(dischargeNode)
-		local v328_ = self.spec_dischargeable.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF
-		local v329_ = dischargeNode.isEffectActive
-		if v329_ then
-			v329_ = v327_ ~= FillType.UNKNOWN
+		local fillType = self:getDischargeFillType(dischargeNode)
+		local isInDischargeState = self.spec_dischargeable.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF
+		local isEffectActive = dischargeNode.isEffectActive and fillType ~= FillType.UNKNOWN
+		local lastEffectVisible = true
+		if dischargeNode.lastEffect ~= nil then
+			lastEffectVisible = dischargeNode.lastEffect:getIsVisible()
 		end
-		local v330_ = dischargeNode.lastEffect == nil and true or dischargeNode.lastEffect:getIsVisible()
-		local v331_
-		if dischargeNode.lastEffect == nil then
-			v331_ = false
-		else
-			v331_ = dischargeNode.lastEffect:getIsVisible()
+		local effectsStillActive = false
+		if dischargeNode.lastEffect ~= nil then
+			effectsStillActive = dischargeNode.lastEffect:getIsVisible()
 		end
-		if (v328_ and v329_ or v331_) and v330_ then
-			if dischargeNode.playSound and v327_ ~= FillType.UNKNOWN then
-				local v332_ = g_fillTypeManager:getSampleByFillType(v327_)
-				if v332_ ~= nil then
-					if v332_ == dischargeNode.sharedSample then
-						if not g_soundManager:getIsSamplePlaying(dischargeNode.sample) then
-							g_soundManager:playSample(dischargeNode.sample)
+		if not isInDischargeState or not isEffectActive then
+			if effectsStillActive then
+			else
+				if dischargeNode.turnOffSoundTimer ~= nil and 0 < dischargeNode.turnOffSoundTimer then
+					dischargeNode.turnOffSoundTimer = dischargeNode.turnOffSoundTimer - dt
+					if dischargeNode.turnOffSoundTimer <= 0 then
+						if dischargeNode.playSound and g_soundManager:getIsSamplePlaying(dischargeNode.sample) then
+							g_soundManager:stopSample(dischargeNode.sample)
 						end
-					else
+						if dischargeNode.dischargeSample ~= nil and g_soundManager:getIsSamplePlaying(dischargeNode.dischargeSample) then
+							g_soundManager:stopSample(dischargeNode.dischargeSample)
+						end
+						dischargeNode.turnOffSoundTimer = 0
+					end
+				end
+				return
+			end
+		end
+		if lastEffectVisible then
+			if dischargeNode.playSound and fillType ~= FillType.UNKNOWN then
+				local sharedSample = g_fillTypeManager:getSampleByFillType(fillType)
+				if sharedSample ~= nil then
+					if sharedSample ~= dischargeNode.sharedSample then
 						if dischargeNode.sample ~= nil then
 							g_soundManager:deleteSample(dischargeNode.sample)
 						end
-						dischargeNode.sample = g_soundManager:cloneSample(v332_, dischargeNode.node or dischargeNode.soundNode, self)
-						dischargeNode.sharedSample = v332_
+						dischargeNode.sample = g_soundManager:cloneSample(sharedSample, dischargeNode.node or dischargeNode.soundNode, self)
+						dischargeNode.sharedSample = sharedSample
+						g_soundManager:playSample(dischargeNode.sample)
+					elseif not g_soundManager:getIsSamplePlaying(dischargeNode.sample) then
 						g_soundManager:playSample(dischargeNode.sample)
 					end
 				end
@@ -1454,376 +1345,269 @@ function Dischargeable:updateDischargeSound(dischargeNode, dt)
 				g_soundManager:playSample(dischargeNode.dischargeSample)
 			end
 			dischargeNode.turnOffSoundTimer = 250
-			return
-		end
-		if dischargeNode.turnOffSoundTimer ~= nil and dischargeNode.turnOffSoundTimer > 0 then
-			dischargeNode.turnOffSoundTimer = dischargeNode.turnOffSoundTimer - dt
-			if dischargeNode.turnOffSoundTimer <= 0 then
-				if dischargeNode.playSound and g_soundManager:getIsSamplePlaying(dischargeNode.sample) then
-					g_soundManager:stopSample(dischargeNode.sample)
-				end
-				if dischargeNode.dischargeSample ~= nil and g_soundManager:getIsSamplePlaying(dischargeNode.dischargeSample) then
-					g_soundManager:stopSample(dischargeNode.dischargeSample)
-				end
-				dischargeNode.turnOffSoundTimer = 0
-			end
 		end
 	end
 end
-
--- Local values: spec, object, fillUnitIndex, dischargeNode, validObject, trigger
 function Dischargeable:dischargeTriggerCallback(triggerId, otherActorId, onEnter, onLeave, onStay, otherShapeId)
-	local v339_ = self.spec_dischargeable
+	local spec = self.spec_dischargeable
 	if onEnter or onLeave then
-		local v340_ = g_currentMission:getNodeObject(otherActorId)
-		if v340_ ~= nil and (v340_ ~= self and v340_.getFillUnitIndexFromNode ~= nil) then
-			local v341_ = v340_:getFillUnitIndexFromNode(otherShapeId)
-			local v342_ = v339_.triggerToDischargeNode[triggerId]
-			local v343_ = v341_ ~= nil
-			if not v342_.canDischargeToVehicle then
-				if v343_ then
-					v343_ = not v340_:isa(Vehicle)
-				end
+		local object = g_currentMission:getNodeObject(otherActorId)
+		if object ~= nil and (object ~= self and object.getFillUnitIndexFromNode ~= nil) then
+			local fillUnitIndex = object:getFillUnitIndexFromNode(otherShapeId)
+			local dischargeNode = spec.triggerToDischargeNode[triggerId]
+			local validObject = fillUnitIndex ~= nil
+			if not dischargeNode.canDischargeToVehicle then
+				validObject = validObject and not object:isa(Vehicle)
 			end
-			if v342_ ~= nil and v343_ then
-				local v344_ = v342_.trigger
+			if dischargeNode ~= nil and validObject then
+				local trigger = dischargeNode.trigger
 				if onEnter then
-					if v344_.objects[v340_] == nil then
-						v344_.objects[v340_] = {
-							["count"] = 0,
-							["fillUnitIndex"] = v341_,
-							["shape"] = otherShapeId
-						}
-						v344_.numObjects = v344_.numObjects + 1
-						v340_:addDeleteListener(self, "onDeleteDischargeTriggerObject")
+					if trigger.objects[object] == nil then
+						trigger.objects[object] = { count = 0, fillUnitIndex = fillUnitIndex, shape = otherShapeId }
+						trigger.numObjects = trigger.numObjects + 1
+						object:addDeleteListener(self, "onDeleteDischargeTriggerObject")
 					end
-					v344_.objects[v340_].count = v344_.objects[v340_].count + 1
+					trigger.objects[object].count = trigger.objects[object].count + 1
 					self:raiseActive()
 					return
 				end
 				if onLeave then
-					v344_.objects[v340_].count = v344_.objects[v340_].count - 1
-					if v344_.objects[v340_].count == 0 then
-						v344_.objects[v340_] = nil
-						v344_.numObjects = v344_.numObjects - 1
-						if v340_ == v342_.dischargeObject then
-							v342_.dischargeObject = nil
-							v342_.dischargeHitTerrain = false
-							v342_.dischargeShape = nil
-							v342_.dischargeDistance = 0
-							v342_.dischargeFillUnitIndex = nil
+					trigger.objects[object].count = trigger.objects[object].count - 1
+					if trigger.objects[object].count == 0 then
+						trigger.objects[object] = nil
+						trigger.numObjects = trigger.numObjects - 1
+						if object == dischargeNode.dischargeObject then
+							dischargeNode.dischargeObject = nil
+							dischargeNode.dischargeHitTerrain = false
+							dischargeNode.dischargeShape = nil
+							dischargeNode.dischargeDistance = 0
+							dischargeNode.dischargeFillUnitIndex = nil
 						end
-						v340_:removeDeleteListener(self, "onDeleteDischargeTriggerObject")
+						object:removeDeleteListener(self, "onDeleteDischargeTriggerObject")
 					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, _, dischargeNode, trigger
 function Dischargeable:onDeleteDischargeTriggerObject(object)
-	local v347_ = self.spec_dischargeable
-	for _, v348_ in pairs(v347_.triggerToDischargeNode) do
-		local v349_ = v348_.trigger
-		if object == v348_.dischargeObject then
-			v348_.dischargeObject = nil
-			v348_.dischargeHitTerrain = false
-			v348_.dischargeShape = nil
-			v348_.dischargeDistance = 0
-			v348_.dischargeFillUnitIndex = nil
+	local spec = self.spec_dischargeable
+	for _, dischargeNode in pairs(spec.triggerToDischargeNode) do
+		local trigger = dischargeNode.trigger
+		if object == dischargeNode.dischargeObject then
+			dischargeNode.dischargeObject = nil
+			dischargeNode.dischargeHitTerrain = false
+			dischargeNode.dischargeShape = nil
+			dischargeNode.dischargeDistance = 0
+			dischargeNode.dischargeFillUnitIndex = nil
 		end
-		if v349_.objects[object] ~= nil then
-			v349_.objects[object] = nil
-			v349_.numObjects = v349_.numObjects - 1
+		if trigger.objects[object] == nil then
+			continue
 		end
+		trigger.objects[object] = nil
+		trigger.numObjects = trigger.numObjects - 1
 	end
 end
-
--- Local values: spec, object, fillUnitIndex, dischargeNode, trigger
 function Dischargeable:dischargeActivationTriggerCallback(triggerId, otherActorId, onEnter, onLeave, onStay, otherShapeId)
-	local v356_ = self.spec_dischargeable
+	local spec = self.spec_dischargeable
 	if onEnter or onLeave then
-		local v357_ = g_currentMission:getNodeObject(otherActorId)
-		if v357_ ~= nil and (v357_ ~= self and v357_.getFillUnitIndexFromNode ~= nil) then
-			local v358_ = v357_:getFillUnitIndexFromNode(otherShapeId)
-			local v359_ = v356_.activationTriggerToDischargeNode[triggerId]
-			if v359_ ~= nil and v358_ ~= nil then
-				local v360_ = v359_.activationTrigger
+		local object = g_currentMission:getNodeObject(otherActorId)
+		if object ~= nil and (object ~= self and object.getFillUnitIndexFromNode ~= nil) then
+			local fillUnitIndex = object:getFillUnitIndexFromNode(otherShapeId)
+			local dischargeNode = spec.activationTriggerToDischargeNode[triggerId]
+			if dischargeNode ~= nil and fillUnitIndex ~= nil then
+				local trigger = dischargeNode.activationTrigger
 				if onEnter then
-					if v360_.objects[v357_] == nil then
-						v360_.objects[v357_] = {
-							["count"] = 0,
-							["fillUnitIndex"] = v358_,
-							["shape"] = otherShapeId
-						}
-						v360_.numObjects = v360_.numObjects + 1
-						v357_:addDeleteListener(self, "onDeleteActivationTriggerObject")
+					if trigger.objects[object] == nil then
+						trigger.objects[object] = { count = 0, fillUnitIndex = fillUnitIndex, shape = otherShapeId }
+						trigger.numObjects = trigger.numObjects + 1
+						object:addDeleteListener(self, "onDeleteActivationTriggerObject")
 					end
-					v360_.objects[v357_].count = v360_.objects[v357_].count + 1
+					trigger.objects[object].count = trigger.objects[object].count + 1
 					self:raiseActive()
 					return
 				end
 				if onLeave then
-					v360_.objects[v357_].count = v360_.objects[v357_].count - 1
-					if v360_.objects[v357_].count == 0 then
-						v360_.objects[v357_] = nil
-						v360_.numObjects = v360_.numObjects - 1
-						v357_:removeDeleteListener(self, "onDeleteActivationTriggerObject")
+					trigger.objects[object].count = trigger.objects[object].count - 1
+					if trigger.objects[object].count == 0 then
+						trigger.objects[object] = nil
+						trigger.numObjects = trigger.numObjects - 1
+						object:removeDeleteListener(self, "onDeleteActivationTriggerObject")
 					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, _, dischargeNode, trigger
 function Dischargeable:onDeleteActivationTriggerObject(object)
-	local v363_ = self.spec_dischargeable
-	for _, v364_ in pairs(v363_.activationTriggerToDischargeNode) do
-		local v365_ = v364_.activationTrigger
-		if v365_.objects[object] ~= nil then
-			v365_.objects[object] = nil
-			v365_.numObjects = v365_.numObjects - 1
+	local spec = self.spec_dischargeable
+	for _, dischargeNode in pairs(spec.activationTriggerToDischargeNode) do
+		local trigger = dischargeNode.activationTrigger
+		if trigger.objects[object] == nil then
+			continue
 		end
+		trigger.objects[object] = nil
+		trigger.numObjects = trigger.numObjects - 1
 	end
 end
-
 function Dischargeable:setForcedFillTypeIndex(fillTypeIndex)
 	self.spec_dischargeable.forcedFillTypeIndex = fillTypeIndex
 end
-
--- Local values: spec, _, actionEventId, _, actionEventId
 function Dischargeable:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v370_ = self.spec_dischargeable
-		self:clearActionEventsTable(v370_.actionEvents)
+		local spec = self.spec_dischargeable
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
 			if self:getCanToggleDischargeToGround() then
-				local _, v371_ = self:addPoweredActionEvent(v370_.actionEvents, InputAction.TOGGLE_TIPSTATE_GROUND, self, Dischargeable.actionEventToggleDischargeToGround, false, true, false, true, nil)
-				g_inputBinding:setActionEventTextPriority(v371_, GS_PRIO_NORMAL)
+				local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.TOGGLE_TIPSTATE_GROUND, self, Dischargeable.actionEventToggleDischargeToGround, false, true, false, true, nil)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_NORMAL)
 			end
 			if self:getCanToggleDischargeToObject() then
-				local _, v372_ = self:addPoweredActionEvent(v370_.actionEvents, InputAction.TOGGLE_TIPSTATE, self, Dischargeable.actionEventToggleDischarging, false, true, false, true, nil)
-				g_inputBinding:setActionEventTextPriority(v372_, GS_PRIO_VERY_HIGH)
+				local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.TOGGLE_TIPSTATE, self, Dischargeable.actionEventToggleDischarging, false, true, false, true, nil)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_VERY_HIGH)
 			end
 			Dischargeable.updateActionEvents(self)
 		end
 	end
 end
-
--- Local values: spec, dischargeNode, fillLevel
 function Dischargeable:onFillUnitFillLevelChanged(fillUnitIndex, fillLevelDelta, fillType, toolType, fillPositionData, appliedDelta)
-	local v375_ = self.spec_dischargeable.fillUnitDischargeNodeMapping[fillUnitIndex]
-	if v375_ ~= nil and self:getFillUnitFillLevel(fillUnitIndex) == 0 then
-		self:handleDischargeOnEmpty(v375_)
+	local spec = self.spec_dischargeable
+	local dischargeNode = spec.fillUnitDischargeNodeMapping[fillUnitIndex]
+	if dischargeNode ~= nil then
+		local fillLevel = self:getFillUnitFillLevel(fillUnitIndex)
+		if fillLevel == 0 then
+			self:handleDischargeOnEmpty(dischargeNode)
+		end
 	end
 end
-
--- Local values: spec
 function Dischargeable:onDeactivate()
-	local v377_ = self.spec_dischargeable
-	if v377_.stopDischargeOnDeactivate and v377_.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF then
+	local spec = self.spec_dischargeable
+	if spec.stopDischargeOnDeactivate and spec.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF then
 		self:setDischargeState(Dischargeable.DISCHARGE_STATE_OFF, true)
 	end
 end
-
--- Local values: spec
 function Dischargeable:onStateChange(state, data)
 	if state == VehicleStateChange.MOTOR_TURN_OFF and not self:getIsPowered() then
-		local v380_ = self.spec_dischargeable
-		if v380_.stopDischargeOnDeactivate and v380_.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF then
+		local spec = self.spec_dischargeable
+		if spec.stopDischargeOnDeactivate and spec.currentDischargeState ~= Dischargeable.DISCHARGE_STATE_OFF then
 			self:setDischargeState(Dischargeable.DISCHARGE_STATE_OFF, true)
 		end
 	end
 end
-
--- Local values: spec, currentDischargeNode, state, _, dischargeNode, object
 function Dischargeable:updateDebugValues(values)
-	local v383_ = self.spec_dischargeable
-	local v384_ = v383_.currentDischargeNode
-	local v385_ = v383_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OBJECT and "OBJECT" or (v383_.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND and "GROUND" or "OFF")
-	table.insert(values, {
-		["name"] = "state",
-		["value"] = v385_
-	})
-	local v386_ = {
-		["name"] = "getCanDischargeToObject",
-		["value"] = tostring(self:getCanDischargeToObject(v384_))
-	}
-	table.insert(values, v386_)
-	local v387_ = {
-		["name"] = "getCanDischargeToGround",
-		["value"] = tostring(self:getCanDischargeToGround(v384_))
-	}
-	table.insert(values, v387_)
-	local v388_ = {
-		["name"] = "dischargedLiters"
-	}
-	local v389_ = v383_.dischargedLiters
-	v388_.value = tostring(v389_)
-	table.insert(values, v388_)
-	local v390_ = {
-		["name"] = "currentNode",
-		["value"] = tostring(v384_)
-	}
-	table.insert(values, v390_)
-	for _, v391_ in ipairs(v383_.dischargeNodes) do
-		local v392_ = {
-			["name"] = "--->",
-			["value"] = tostring(v391_)
-		}
-		table.insert(values, v392_)
-		local v393_
-		if v391_.dischargeObject == nil then
-			v393_ = nil
-		else
-			local v394_ = v391_.dischargeObject.configFileName
-			v393_ = tostring(v394_)
+	local spec = self.spec_dischargeable
+	local currentDischargeNode = spec.currentDischargeNode
+	local state = "OFF"
+	if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OBJECT then
+		state = "OBJECT"
+	elseif spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
+		state = "GROUND"
+	end
+	table.insert(values, { name = "state", value = state })
+	table.insert(values, { name = "getCanDischargeToObject", value = tostring(self:getCanDischargeToObject(currentDischargeNode)) })
+	table.insert(values, { name = "getCanDischargeToGround", value = tostring(self:getCanDischargeToGround(currentDischargeNode)) })
+	table.insert(values, { name = "dischargedLiters", value = tostring(spec.dischargedLiters) })
+	table.insert(values, { name = "currentNode", value = tostring(currentDischargeNode) })
+	for _, dischargeNode in ipairs(spec.dischargeNodes) do
+		table.insert(values, { name = "--->", value = tostring(dischargeNode) })
+		local object = nil
+		if dischargeNode.dischargeObject ~= nil then
+			object = tostring(dischargeNode.dischargeObject.configFileName)
 		end
-		local v395_ = {
-			["name"] = "object",
-			["value"] = tostring(v393_)
-		}
-		table.insert(values, v395_)
-		local v396_ = {
-			["name"] = "distance",
-			["value"] = v391_.dischargeDistance
-		}
-		table.insert(values, v396_)
-		local v397_ = {
-			["name"] = "effect"
-		}
-		local v398_ = v391_.isEffectActive
-		v397_.value = tostring(v398_)
-		table.insert(values, v397_)
-		local v399_ = {
-			["name"] = "fillLevel"
-		}
-		local v400_ = v391_.fillUnitIndex
-		v399_.value = tostring(self:getFillUnitFillLevel(v400_))
-		table.insert(values, v399_)
-		local v401_ = {
-			["name"] = "litersToDrop"
-		}
-		local v402_ = v391_.litersToDrop
-		v401_.value = tostring(v402_)
-		table.insert(values, v401_)
-		local v403_ = {
-			["name"] = "emptyFactor",
-			["value"] = tostring(self:getDischargeNodeEmptyFactor(v391_))
-		}
-		table.insert(values, v403_)
-		local v404_ = {
-			["name"] = "emptySpeed",
-			["value"] = tostring(self:getDischargeNodeEmptyFactor(v391_))
-		}
-		table.insert(values, v404_)
-		local v405_ = {
-			["name"] = "readyForDischarge"
-		}
-		local v406_ = v391_.lastEffect == nil and true or v391_.lastEffect:getIsFullyVisible()
-		v405_.value = tostring(v406_)
-		table.insert(values, v405_)
-		local v407_ = {
-			["name"] = "objectsInTrigger"
-		}
-		local v408_ = v391_.trigger.numObjects
-		v407_.value = tostring(v408_)
-		table.insert(values, v407_)
-		local v409_ = {
-			["name"] = "objectsInActivationTrigger"
-		}
-		local v410_ = v391_.activationTrigger.numObjects
-		v409_.value = tostring(v410_)
-		table.insert(values, v409_)
+		table.insert(values, { name = "object", value = tostring(object) })
+		table.insert(values, { name = "distance", value = dischargeNode.dischargeDistance })
+		table.insert(values, { name = "effect", value = tostring(dischargeNode.isEffectActive) })
+		table.insert(values, { name = "fillLevel", value = tostring(self:getFillUnitFillLevel(dischargeNode.fillUnitIndex)) })
+		table.insert(values, { name = "litersToDrop", value = tostring(dischargeNode.litersToDrop) })
+		table.insert(values, { name = "emptyFactor", value = tostring(self:getDischargeNodeEmptyFactor(dischargeNode)) })
+		table.insert(values, { name = "emptySpeed", value = tostring(self:getDischargeNodeEmptyFactor(dischargeNode)) })
+		local _v116 = { name = "readyForDischarge" }
+		if dischargeNode.lastEffect ~= nil then
+			dischargeNode.lastEffect:getIsFullyVisible()
+		end
+		_v116.value = tostring(true)
+		table.insert(values, _v116)
+		table.insert(values, { name = "objectsInTrigger", value = tostring(dischargeNode.trigger.numObjects) })
+		table.insert(values, { name = "objectsInActivationTrigger", value = tostring(dischargeNode.activationTrigger.numObjects) })
 	end
 end
-
--- Local values: spec, currentDischargeNode
 function Dischargeable:actionEventToggleDischargeToGround(actionName, inputValue, callbackState, isAnalog)
 	if self:getCanToggleDischargeToGround() then
-		local v412_ = self.spec_dischargeable
-		local v413_ = v412_.currentDischargeNode
-		if v412_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
-			if self:getCanDischargeToGround(v413_) then
-				if self:getCanDischargeToLand(v413_) then
-					if self:getCanDischargeAtPosition(v413_) then
+		local spec = self.spec_dischargeable
+		local currentDischargeNode = spec.currentDischargeNode
+		if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
+			if self:getCanDischargeToGround(currentDischargeNode) then
+				if self:getCanDischargeToLand(currentDischargeNode) then
+					if self:getCanDischargeAtPosition(currentDischargeNode) then
 						self:setManualDischargeState(Dischargeable.DISCHARGE_STATE_GROUND)
+						return
 					else
 						g_currentMission:showBlinkingWarning(g_i18n:getText("warning_actionNotAllowedHere"), 5000)
+						return
 					end
-				else
-					g_currentMission:showBlinkingWarning(g_i18n:getText("warning_youDontHaveAccessToThisLand"), 5000)
-					return
 				end
+				g_currentMission:showBlinkingWarning(g_i18n:getText("warning_youDontHaveAccessToThisLand"), 5000)
 			end
 		else
 			self:setManualDischargeState(Dischargeable.DISCHARGE_STATE_OFF)
 		end
 	end
 end
-
--- Local values: spec, currentDischargeNode, warning
 function Dischargeable:actionEventToggleDischarging(actionName, inputValue, callbackState, isAnalog)
 	if self:getCanToggleDischargeToObject() then
-		local v415_ = self.spec_dischargeable
-		local v416_ = v415_.currentDischargeNode
-		if v415_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
-			if self:getCanDischargeToObject(v416_) then
+		local spec = self.spec_dischargeable
+		local currentDischargeNode = spec.currentDischargeNode
+		if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
+			if self:getCanDischargeToObject(currentDischargeNode) then
 				self:setManualDischargeState(Dischargeable.DISCHARGE_STATE_OBJECT)
 				return
 			end
-			if v416_.dischargeHit and self:getDischargeFillType(v416_) ~= FillType.UNKNOWN then
-				local v417_ = self:getDischargeNotAllowedWarning(v416_)
-				g_currentMission:showBlinkingWarning(v417_, 5000)
-				return
+			if currentDischargeNode.dischargeHit and self:getDischargeFillType(currentDischargeNode) ~= FillType.UNKNOWN then
+				local warning = self:getDischargeNotAllowedWarning(currentDischargeNode)
+				g_currentMission:showBlinkingWarning(warning, 5000)
 			end
 		else
 			self:setManualDischargeState(Dischargeable.DISCHARGE_STATE_OFF)
 		end
 	end
 end
-
--- Local values: spec, actionEventTip, actionEventTipGround, showTip, showTipGround, currentDischargeNode
 function Dischargeable:updateActionEvents()
-	local v419_ = self.spec_dischargeable
-	local v420_ = v419_.actionEvents[InputAction.TOGGLE_TIPSTATE]
-	local v421_ = v419_.actionEvents[InputAction.TOGGLE_TIPSTATE_GROUND]
-	local v422_ = false
-	local v423_ = false
-	if v419_.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
-		if v420_ ~= nil or v421_ ~= nil then
-			local v424_ = v419_.currentDischargeNode
-			if self:getIsDischargeNodeActive(v424_) then
-				if v420_ == nil or not (self:getCanDischargeToObject(v424_) and self:getCanToggleDischargeToObject()) then
-					if v421_ ~= nil and (self:getCanDischargeToGround(v424_) and self:getCanToggleDischargeToGround()) then
-						g_inputBinding:setActionEventText(v421_.actionEventId, g_i18n:getText("action_startTipToGround"))
-						v423_ = true
+	local spec = self.spec_dischargeable
+	local actionEventTip = spec.actionEvents[InputAction.TOGGLE_TIPSTATE]
+	local actionEventTipGround = spec.actionEvents[InputAction.TOGGLE_TIPSTATE_GROUND]
+	local showTip = false
+	local showTipGround = false
+	if spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_OFF then
+		if actionEventTip ~= nil or actionEventTipGround ~= nil then
+			local currentDischargeNode = spec.currentDischargeNode
+			if self:getIsDischargeNodeActive(currentDischargeNode) and (actionEventTip ~= nil and self:getCanDischargeToObject(currentDischargeNode)) then
+				if self:getCanToggleDischargeToObject() then
+					g_inputBinding:setActionEventText(actionEventTip.actionEventId, g_i18n:getText("action_startOverloading"))
+					showTip = true
+				elseif actionEventTipGround ~= nil then
+					if self:getCanDischargeToGround(currentDischargeNode) and self:getCanToggleDischargeToGround() then
+						g_inputBinding:setActionEventText(actionEventTipGround.actionEventId, g_i18n:getText("action_startTipToGround"))
+						showTipGround = true
 					end
-				else
-					g_inputBinding:setActionEventText(v420_.actionEventId, g_i18n:getText("action_startOverloading"))
-					v422_ = true
 				end
 			end
 		end
-	elseif v419_.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
-		if v421_ ~= nil then
-			g_inputBinding:setActionEventText(v421_.actionEventId, g_i18n:getText("action_stopTipToGround"))
-			v423_ = true
+	elseif spec.currentDischargeState == Dischargeable.DISCHARGE_STATE_GROUND then
+		if actionEventTipGround ~= nil then
+			g_inputBinding:setActionEventText(actionEventTipGround.actionEventId, g_i18n:getText("action_stopTipToGround"))
+			showTipGround = true
 		end
-	elseif v420_ ~= nil then
-		g_inputBinding:setActionEventText(v420_.actionEventId, g_i18n:getText("action_stopOverloading"))
-		v422_ = true
+	elseif actionEventTip ~= nil then
+		g_inputBinding:setActionEventText(actionEventTip.actionEventId, g_i18n:getText("action_stopOverloading"))
+		showTip = true
 	end
-	if v420_ ~= nil then
-		g_inputBinding:setActionEventTextVisibility(v420_.actionEventId, v422_)
+	if actionEventTip ~= nil then
+		g_inputBinding:setActionEventTextVisibility(actionEventTip.actionEventId, showTip)
 	end
-	if v421_ ~= nil then
-		g_inputBinding:setActionEventTextVisibility(v421_.actionEventId, v423_)
+	if actionEventTipGround ~= nil then
+		g_inputBinding:setActionEventTextVisibility(actionEventTipGround.actionEventId, showTipGround)
 	end
 end
-
 function Dischargeable:dashboardDischargeAttributes(xmlFile, key, dashboard, isActive)
 	dashboard.dischargeNodeIndex = xmlFile:getValue(key .. "#dischargeNodeIndex")
 	return true

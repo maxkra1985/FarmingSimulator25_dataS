@@ -1,84 +1,70 @@
--- Local values: AccessHandler_mt
 AccessHandler = {}
 AccessHandler.EVERYONE = 0
 AccessHandler.NOBODY = 2 ^ FarmManager.FARM_ID_SEND_NUM_BITS - 1
 local AccessHandler_mt = Class(AccessHandler)
-
--- Upvalues: AccessHandler_mt
--- Local values: self
 function AccessHandler.new(customMt)
-	-- upvalues: (copy) AccessHandler_mt
-	local v3_ = customMt or AccessHandler_mt
-	return setmetatable({}, v3_)
+	local self = setmetatable({}, customMt or AccessHandler_mt)
+	return self
 end
-
 function AccessHandler:delete() end
-
--- Local values: playerFarmId
 function AccessHandler:canPlayerAccess(object, player, allowEqualAlways)
-	local v8_
+	local playerFarmId = nil
 	if player == nil then
-		v8_ = g_currentMission:getFarmId()
+		playerFarmId = g_currentMission:getFarmId()
 	else
-		v8_ = player.farmId
+		playerFarmId = player.farmId
 	end
-	return self:canFarmAccess(v8_, object, allowEqualAlways)
+	return self:canFarmAccess(playerFarmId, object, allowEqualAlways)
 end
-
--- Local values: ownerFarmId
 function AccessHandler:canFarmAccess(farmId, object, allowEqualAlways)
 	if object == nil then
 		return false
+	end
+	local ownerFarmId = object:getOwnerFarmId()
+	if farmId == FarmManager.SPECTATOR_FARM_ID and (not allowEqualAlways or farmId ~= ownerFarmId) then
+		return false
+	end
+	if ownerFarmId == nil or ownerFarmId == AccessHandler.EVERYONE then
+		return true
+	end
+	if farmId == nil then
+		return ownerFarmId == AccessHandler.EVERYONE
 	else
-		local v13_ = object:getOwnerFarmId()
-		if farmId == FarmManager.SPECTATOR_FARM_ID and (not allowEqualAlways or farmId ~= v13_) then
-			return false
-		elseif v13_ == nil or v13_ == AccessHandler.EVERYONE then
-			return true
-		elseif farmId == nil then
-			return v13_ == AccessHandler.EVERYONE
-		else
-			return self:canFarmAccessOtherId(farmId, v13_)
-		end
+		return self:canFarmAccessOtherId(farmId, ownerFarmId)
 	end
 end
-
--- Local values: farm
 function AccessHandler:canFarmAccessOtherId(farmId, objectFarmId)
 	if objectFarmId == AccessHandler.EVERYONE then
 		return true
-	elseif objectFarmId == AccessHandler.NOBODY then
+	end
+	if objectFarmId == AccessHandler.NOBODY then
 		return false
-	elseif objectFarmId == farmId then
+	end
+	if objectFarmId == farmId then
 		return true
+	end
+	local farm = g_farmManager:getFarmById(farmId)
+	if farm == nil then
+		return false
 	else
-		local v16_ = g_farmManager:getFarmById(farmId)
-		if v16_ == nil then
-			return false
-		else
-			return v16_:getIsContractingFor(objectFarmId)
-		end
+		return farm:getIsContractingFor(objectFarmId)
 	end
 end
-
--- Local values: ownerFarmId, farm
 function AccessHandler:canFarmAccessLand(farmId, x, z, disallowContracting)
 	if farmId == FarmlandManager.NO_OWNER_FARM_ID then
 		return false
 	end
-	local v21_ = g_farmlandManager:getOwnerIdAtWorldPosition(x, z)
-	if v21_ == farmId then
+	local ownerFarmId = g_farmlandManager:getOwnerIdAtWorldPosition(x, z)
+	if ownerFarmId == farmId then
 		return true
 	end
-	local v22_ = g_farmManager:getFarmById(farmId)
-	if v22_ == nil then
+	local farm = g_farmManager:getFarmById(farmId)
+	if farm == nil then
+		return false
+	else
+		if disallowContracting ~= true then
+			farm:getIsContractingFor(ownerFarmId)
+		end
 		return false
 	end
-	local v23_
-	if disallowContracting == true then
-		v23_ = false
-	else
-		v23_ = v22_:getIsContractingFor(v21_)
-	end
-	return v23_
 end

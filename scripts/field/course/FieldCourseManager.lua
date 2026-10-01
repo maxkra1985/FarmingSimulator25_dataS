@@ -1,4 +1,3 @@
--- Local values: FieldCourseManager_mt
 FieldCourseManager = {}
 source("dataS/scripts/field/course/FieldCourseUtil.lua")
 source("dataS/scripts/field/course/FieldCourse.lua")
@@ -17,120 +16,101 @@ source("dataS/scripts/field/course/enums/FieldCourseDetectionState.lua")
 source("dataS/scripts/field/course/enums/FieldCourseGenerationState.lua")
 source("dataS/scripts/field/course/ai/AIFieldCourse.lua")
 local FieldCourseManager_mt = Class(FieldCourseManager, AbstractManager)
-
--- Upvalues: FieldCourseManager_mt
--- Local values: self
 function FieldCourseManager.new(customMt)
-	-- upvalues: (copy) FieldCourseManager_mt
-	local v3_ = AbstractManager.new(customMt or FieldCourseManager_mt)
-	v3_.updateables = {}
-	v3_.sortedUpdateables = {}
-	v3_.pendingFieldCourseGenerators = {}
-	return v3_
+	local self = AbstractManager.new(customMt or FieldCourseManager_mt)
+	self.updateables = {}
+	self.sortedUpdateables = {}
+	self.pendingFieldCourseGenerators = {}
+	return self
 end
-
 function FieldCourseManager:initDataStructures() end
-
--- Local values: i
 function FieldCourseManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	self.terrainDetailMapSize = g_currentMission.terrainDetailMapSize
 	self.terrainDetailResolution = g_currentMission.terrainSize / self.terrainDetailMapSize
 	self.terrainDetailMapNumBits = 1
-	for v5_ = 1, 16 do
-		if 2 ^ v5_ == self.terrainDetailMapSize then
-			self.terrainDetailMapNumBits = v5_
+	for i = 1, 16 do
+		if 2 ^ i == self.terrainDetailMapSize then
+			self.terrainDetailMapNumBits = i
 		end
 	end
 	if g_fieldCourseTool == nil then
 		self.fieldCourseVisual = FieldCourseVisual.new()
 	end
 end
-
--- Local values: k, updateable
 function FieldCourseManager:unloadMapData()
 	if self.fieldCourseVisual ~= nil then
 		self.fieldCourseVisual:delete()
 		self.fieldCourseVisual = nil
 	end
-	for v7_, v8_ in pairs(self.updateables) do
-		if v8_.delete ~= nil then
-			v8_:delete()
+	for k, updateable in pairs(self.updateables) do
+		if updateable.delete ~= nil then
+			updateable:delete()
 		end
-		table.removeElement(self.sortedUpdateables, v8_)
-		self.updateables[v7_] = nil
+		table.removeElement(self.sortedUpdateables, updateable)
+		self.updateables[k] = nil
 	end
 end
-
 function FieldCourseManager:addFieldCourseToGenerate(fieldCourseSegmentGenerator)
-	local v11_ = self.pendingFieldCourseGenerators
-	table.insert(v11_, fieldCourseSegmentGenerator)
+	table.insert(self.pendingFieldCourseGenerators, fieldCourseSegmentGenerator)
 end
-
--- Local values: oldUpdateable
 function FieldCourseManager:addUpdateable(updateable, key)
-	local v15_ = self.updateables[key or updateable]
-	if v15_ ~= nil then
-		table.removeElement(self.sortedUpdateables, v15_)
+	local oldUpdateable = self.updateables[key or updateable]
+	if oldUpdateable ~= nil then
+		table.removeElement(self.sortedUpdateables, oldUpdateable)
 	end
 	self.updateables[key or updateable] = updateable
 	table.addElement(self.sortedUpdateables, updateable)
 end
-
 function FieldCourseManager:removeUpdateable(updateableOrKey)
 	if self.updateables[updateableOrKey] ~= nil then
 		table.removeElement(self.sortedUpdateables, self.updateables[updateableOrKey])
 	end
 	self.updateables[updateableOrKey] = nil
 end
-
--- Local values: i, fieldCourseSegmentGenerator
 function FieldCourseManager:update(dt)
-	for v20_ = #self.sortedUpdateables, 1, -1 do
-		if self.sortedUpdateables[v20_] ~= nil then
-			self.sortedUpdateables[v20_]:update(dt)
+	for i = #self.sortedUpdateables, 1, -1 do
+		if self.sortedUpdateables[i] == nil then
+			continue
 		end
+		self.sortedUpdateables[i]:update(dt)
 	end
-	if #self.pendingFieldCourseGenerators > 0 then
-		local v21_ = self.pendingFieldCourseGenerators[1]
-		if v21_ ~= nil then
-			v21_:update(dt)
-			if v21_:getHasFinished() then
+	if 0 < #self.pendingFieldCourseGenerators then
+		local fieldCourseSegmentGenerator = self.pendingFieldCourseGenerators[1]
+		if fieldCourseSegmentGenerator ~= nil then
+			fieldCourseSegmentGenerator:update(dt)
+			if fieldCourseSegmentGenerator:getHasFinished() then
 				table.remove(self.pendingFieldCourseGenerators, 1)
 			end
 		end
 	end
 end
-
 function FieldCourseManager:generateFieldCourseAtWorldPos(wx, wz, fieldCourseSettings, callback, callbackTarget)
-	FieldCourse.generateByFieldPosition(wx, wz, fieldCourseSettings, function(p27_)
-		-- upvalues: (copy) callback, (copy) callbackTarget
-		if p27_ == nil then
-			callback(callbackTarget)
+	FieldCourse.generateByFieldPosition(wx, wz, fieldCourseSettings, function(fieldCourse)
+		if fieldCourse ~= nil then
+			callback(callbackTarget, fieldCourse)
 		else
-			callback(callbackTarget, p27_)
+			callback(callbackTarget)
 		end
 	end)
 end
-
 function FieldCourseManager:setActiveSteeringFieldCourse(steeringFieldCourse, vehicle)
 	if self.fieldCourseVisual ~= nil then
 		self.fieldCourseVisual:setActiveSteeringFieldCourse(steeringFieldCourse, vehicle)
 	end
 end
-
--- Local values: terrainDetailResolution
 function FieldCourseManager:roundToTerrainDetailPixel(wx, wz)
-	local v34_ = self.terrainDetailResolution
-	return MathUtil.round((wx - v34_ * 0.25) / v34_) * v34_ + v34_ * 0.5, MathUtil.round((wz - v34_ * 0.25) / v34_) * v34_ + v34_ * 0.5
+	local terrainDetailResolution = self.terrainDetailResolution
+	wx = MathUtil.round((wx - terrainDetailResolution * 0.25) / terrainDetailResolution) * terrainDetailResolution + terrainDetailResolution * 0.5
+	wz = MathUtil.round((wz - terrainDetailResolution * 0.25) / terrainDetailResolution) * terrainDetailResolution + terrainDetailResolution * 0.5
+	return wx, wz
 end
-
 function FieldCourseManager:writeTerrainDetailPixel(streamId, x, z)
 	streamWriteUIntN(streamId, (x - self.terrainDetailResolution * 0.5) / self.terrainDetailResolution + self.terrainDetailMapSize * 0.5, self.terrainDetailMapNumBits)
 	streamWriteUIntN(streamId, (z - self.terrainDetailResolution * 0.5) / self.terrainDetailResolution + self.terrainDetailMapSize * 0.5, self.terrainDetailMapNumBits)
 end
-
--- Local values: x, z
 function FieldCourseManager:readTerrainDetailPixel(streamId)
-	return (streamReadUIntN(streamId, self.terrainDetailMapNumBits) - self.terrainDetailMapSize * 0.5) * self.terrainDetailResolution + self.terrainDetailResolution * 0.5, (streamReadUIntN(streamId, self.terrainDetailMapNumBits) - self.terrainDetailMapSize * 0.5) * self.terrainDetailResolution + self.terrainDetailResolution * 0.5
+	local x = (streamReadUIntN(streamId, self.terrainDetailMapNumBits) - self.terrainDetailMapSize * 0.5) * self.terrainDetailResolution + self.terrainDetailResolution * 0.5
+	local z = (streamReadUIntN(streamId, self.terrainDetailMapNumBits) - self.terrainDetailMapSize * 0.5) * self.terrainDetailResolution + self.terrainDetailResolution * 0.5
+	return x, z
 end
 g_fieldCourseManager = FieldCourseManager.new()

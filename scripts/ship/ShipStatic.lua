@@ -1,31 +1,24 @@
--- Local values: ShipStatic_mt
 ShipStatic = {}
 local ShipStatic_mt = Class(ShipStatic, Object)
 InitStaticObjectClass(ShipStatic, "ShipStatic")
 g_xmlManager:addInitSchemaFunction(function()
-	local v2_ = OnCreateObjectSystem.xmlSchemaSavegame
-	v2_:register(XMLValueType.BOOL, "onCreateLoadedObjects.object(?)#isVisible", "If ship is visible")
-	v2_:register(XMLValueType.BOOL, "onCreateLoadedObjects.object(?)#isSwitchPending", "If ship visibilit switch is pending")
-	v2_:register(XMLValueType.INT, "onCreateLoadedObjects.object(?)#nextChangeHour", "Next switching hour")
+	local savegameSchema = OnCreateObjectSystem.xmlSchemaSavegame
+	savegameSchema:register(XMLValueType.BOOL, "onCreateLoadedObjects.object(?)#isVisible", "If ship is visible")
+	savegameSchema:register(XMLValueType.BOOL, "onCreateLoadedObjects.object(?)#isSwitchPending", "If ship visibilit switch is pending")
+	savegameSchema:register(XMLValueType.INT, "onCreateLoadedObjects.object(?)#nextChangeHour", "Next switching hour")
 end)
-
--- Local values: ship
 function ShipStatic:onCreate(node)
-	local v4_ = ShipStatic.new(g_server ~= nil, g_client ~= nil)
-	if v4_:load(node) then
-		v4_:register(true)
+	local ship = ShipStatic.new(g_server ~= nil, g_client ~= nil)
+	if ship:load(node) then
+		ship:register(true)
 	else
-		v4_:delete()
+		ship:delete()
 	end
 end
-
--- Upvalues: ShipStatic_mt
--- Local values: self
 function ShipStatic.new(isServer, isClient, customMt)
-	-- upvalues: (copy) ShipStatic_mt
-	return Object.new(isServer, isClient, customMt or ShipStatic_mt)
+	local self = Object.new(isServer, isClient, customMt or ShipStatic_mt)
+	return self
 end
-
 function ShipStatic:load(node)
 	self.rootNode = node
 	self.isVisible = true
@@ -39,12 +32,10 @@ function ShipStatic:load(node)
 	g_currentMission.onCreateObjectSystem:add(self, true)
 	return true
 end
-
 function ShipStatic:delete()
 	g_messageCenter:unsubscribeAll(self)
 	ShipStatic:superClass().delete(self)
 end
-
 function ShipStatic:loadFromXMLFile(xmlFile, key)
 	self.isVisible = xmlFile:getValue(key .. "#isVisible", self.isVisible)
 	self.isSwitchPending = xmlFile:getValue(key .. "#isSwitchPending", self.isSwitchPending)
@@ -55,13 +46,11 @@ function ShipStatic:loadFromXMLFile(xmlFile, key)
 	end
 	return true
 end
-
 function ShipStatic:saveToXMLFile(xmlFile, key, usedModNames)
 	xmlFile:setValue(key .. "#isVisible", self.isVisible)
 	xmlFile:setValue(key .. "#isSwitchPending", self.isSwitchPending)
 	xmlFile:setValue(key .. "#nextChangeHour", self.nextChangeHour)
 end
-
 function ShipStatic:setVisibility(isVisible)
 	self.isVisible = isVisible
 	setVisibility(self.rootNode, isVisible)
@@ -71,45 +60,40 @@ function ShipStatic:setVisibility(isVisible)
 		removeFromPhysics(self.rootNode)
 	end
 end
-
 function ShipStatic:readStream(streamId, connection, objectId)
 	if connection:getIsServer() then
 		self:setVisibility(streamReadBool(streamId))
 	end
 end
-
 function ShipStatic:writeStream(streamId, connection)
 	if not connection:getIsServer() then
 		streamWriteBool(streamId, self.isVisible)
 	end
 end
-
 function ShipStatic:readUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
 		self:setVisibility(streamReadBool(streamId))
 	end
 end
-
 function ShipStatic:writeUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
 		streamWriteBool(streamId, self.isVisible)
 	end
 end
-
--- Local values: x, y, z, clipDistance, isInRange, _, streamId, cx, cy, cz, distance
 function ShipStatic:updateTick(dt)
 	if self.isServer and self.isSwitchPending then
-		local v32_, v33_, v34_ = getWorldTranslation(self.rootNode)
-		local v35_ = getEffectiveClipDistancesWithLOD(self.rootNode)
-		local v36_ = false
-		for _, v37_ in ipairs(g_server.clients) do
-			local v38_, v39_, v40_ = g_server:getClientPosition(v37_)
-			if MathUtil.vector3Length(v32_ - v38_, v33_ - v39_, v34_ - v40_) < v35_ then
-				v36_ = true
+		local x, y, z = getWorldTranslation(self.rootNode)
+		local clipDistance = getEffectiveClipDistancesWithLOD(self.rootNode)
+		local isInRange = false
+		for _, streamId in ipairs(g_server.clients) do
+			local cx, cy, cz = g_server:getClientPosition(streamId)
+			local distance = MathUtil.vector3Length(x - cx, y - cy, z - cz)
+			if distance < clipDistance then
+				isInRange = true
 				break
 			end
 		end
-		if not v36_ then
+		if not isInRange then
 			self:setVisibility(not self.isVisible)
 			self:raiseDirtyFlags(self.dirtyFlag)
 			self.isSwitchPending = false
@@ -118,7 +102,6 @@ function ShipStatic:updateTick(dt)
 		self:raiseActive()
 	end
 end
-
 function ShipStatic:onHourChanged(currentHour)
 	if self.isServer and self.nextChangeHour == currentHour then
 		self.isSwitchPending = true

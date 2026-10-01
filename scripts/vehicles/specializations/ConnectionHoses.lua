@@ -1,34 +1,31 @@
--- Local values: ADDITIONAL_TOOL_CONNECTION_HOSES, ADDITIONAL_TOOL_CONNECTION_HOSES_XML, addHoseTarget
 ConnectionHoses = {}
 ConnectionHoses.DEFAULT_MAX_UPDATE_DISTANCE = 50
 source("dataS/scripts/vehicles/specializations/components/ToolConnectionHoseMount.lua")
-
-function ConnectionHoses.prerequisitesPresent(self)
+function ConnectionHoses.prerequisitesPresent(specializations)
 	return true
 end
 function ConnectionHoses.initSpecialization()
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("ConnectionHoses")
-	v1_:register(XMLValueType.FLOAT, "vehicle.connectionHoses#maxUpdateDistance", "Max. distance to vehicle root to update connection hoses", ConnectionHoses.DEFAULT_MAX_UPDATE_DISTANCE)
-	ConnectionHoses.registerConnectionHoseXMLPaths(v1_, "vehicle.connectionHoses")
-	ConnectionHoses.registerConnectionHoseXMLPaths(v1_, "vehicle.connectionHoses.connectionHoseConfigurations.connectionHoseConfiguration(?)")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.connectionHoses.sounds", "connect(?)")
-	v1_:register(XMLValueType.STRING, "vehicle.connectionHoses.sounds.connect(?)#type", "Connection hose type")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.connectionHoses.sounds", "disconnect(?)")
-	v1_:register(XMLValueType.STRING, "vehicle.connectionHoses.sounds.disconnect(?)#type", "Connection hose type")
-	v1_:addDelayedRegistrationFunc("Cylindered:movingTool", function(p2_, p3_)
-		p2_:register(XMLValueType.VECTOR_N, p3_ .. ".connectionHoses#customHoseIndices", "Custom hoses to update")
-		p2_:register(XMLValueType.VECTOR_N, p3_ .. ".connectionHoses#customTargetIndices", "Custom hose targets to update")
-		p2_:register(XMLValueType.VECTOR_N, p3_ .. ".connectionHoses#localHoseIndices", "Local hoses to update")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("ConnectionHoses")
+	schema:register(XMLValueType.FLOAT, "vehicle.connectionHoses#maxUpdateDistance", "Max. distance to vehicle root to update connection hoses", ConnectionHoses.DEFAULT_MAX_UPDATE_DISTANCE)
+	ConnectionHoses.registerConnectionHoseXMLPaths(schema, "vehicle.connectionHoses")
+	ConnectionHoses.registerConnectionHoseXMLPaths(schema, "vehicle.connectionHoses.connectionHoseConfigurations.connectionHoseConfiguration(?)")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.connectionHoses.sounds", "connect(?)")
+	schema:register(XMLValueType.STRING, "vehicle.connectionHoses.sounds.connect(?)#type", "Connection hose type")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.connectionHoses.sounds", "disconnect(?)")
+	schema:register(XMLValueType.STRING, "vehicle.connectionHoses.sounds.disconnect(?)#type", "Connection hose type")
+	schema:addDelayedRegistrationFunc("Cylindered:movingTool", function(cSchema, cKey)
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. ".connectionHoses#customHoseIndices", "Custom hoses to update")
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. ".connectionHoses#customTargetIndices", "Custom hose targets to update")
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. ".connectionHoses#localHoseIndices", "Local hoses to update")
 	end)
-	v1_:addDelayedRegistrationFunc("Cylindered:movingPart", function(p4_, p5_)
-		p4_:register(XMLValueType.VECTOR_N, p5_ .. ".connectionHoses#customHoseIndices", "Custom hoses to update")
-		p4_:register(XMLValueType.VECTOR_N, p5_ .. ".connectionHoses#customTargetIndices", "Custom hose targets to update")
-		p4_:register(XMLValueType.VECTOR_N, p5_ .. ".connectionHoses#localHoseIndices", "Local hoses to update")
+	schema:addDelayedRegistrationFunc("Cylindered:movingPart", function(cSchema, cKey)
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. ".connectionHoses#customHoseIndices", "Custom hoses to update")
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. ".connectionHoses#customTargetIndices", "Custom hose targets to update")
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. ".connectionHoses#localHoseIndices", "Local hoses to update")
 	end)
-	v1_:setXMLSpecializationType()
+	schema:setXMLSpecializationType()
 end
-
 function ConnectionHoses.registerConnectionHoseXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".skipNode(?)#node", "Skip node")
 	schema:register(XMLValueType.INT, basePath .. ".skipNode(?)#inputAttacherJointIndex", "Input attacher joint index", 1)
@@ -51,7 +48,6 @@ function ConnectionHoses.registerConnectionHoseXMLPaths(schema, basePath)
 	ConnectionHoses.registerCustomHoseNodesXMLPaths(schema, basePath .. ".customHose(?)")
 	ConnectionHoses.registerCustomHoseTargetNodesXMLPaths(schema, basePath .. ".customTarget(?)")
 end
-
 function ConnectionHoses.registerHoseTargetNodesXMLPaths(schema, basePath)
 	schema:addDelayedRegistrationPath(basePath, "ConnectionHoses:targetNode")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#node", "Target node")
@@ -68,7 +64,6 @@ function ConnectionHoses.registerHoseTargetNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#adapterType", "Adapter type to use", "DEFAULT")
 	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, basePath)
 end
-
 function ConnectionHoses.registerHoseNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.VECTOR_N, basePath .. "#inputAttacherJointIndices", "List of corresponding input attacher joint indices")
 	schema:register(XMLValueType.NODE_INDICES, basePath .. "#inputAttacherJointNodes", "List of corresponding input attacher joint nodes (i3dIdentifiers or paths separated by space)")
@@ -84,7 +79,7 @@ function ConnectionHoses.registerHoseNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. "#dynamicLength", "Use will calculate the length on attach", false)
 	schema:register(XMLValueType.FLOAT, basePath .. "#diameter", "Hose diameter", 0.02)
 	schema:register(XMLValueType.FLOAT, basePath .. "#straighteningFactor", "Straightening Factor", 1)
-	schema:register(XMLValueType.FLOAT, basePath .. "#centerPointDropFactor", "Can be used to manipulate how much the hose will drop while it\'s getting shorter then set", 1)
+	schema:register(XMLValueType.FLOAT, basePath .. "#centerPointDropFactor", "Can be used to manipulate how much the hose will drop while it's getting shorter then set", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. "#centerPointTension", "Defines the tension on the center control point (0: default behavior)", 0)
 	schema:register(XMLValueType.ANGLE, basePath .. "#minCenterPointAngle", "Min. angle of sagged curve", "Defined on connectionHose xml, default 90 degree")
 	schema:register(XMLValueType.VECTOR_TRANS, basePath .. "#minCenterPointOffset", "Min. center point offset from hose node", "unlimited")
@@ -103,7 +98,6 @@ function ConnectionHoses.registerHoseNodesXMLPaths(schema, basePath)
 	schema:registerAutoCompletionDataSource(basePath .. "#socketMaterialTemplateName", "$data/shared/brandMaterialTemplates.xml", "templates.template#name")
 	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, basePath)
 end
-
 function ConnectionHoses.registerCustomHoseNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#node", "Target or source node")
 	schema:register(XMLValueType.STRING, basePath .. "#type", "Hose type which can be any string that needs to match between hose and target node")
@@ -112,7 +106,6 @@ function ConnectionHoses.registerCustomHoseNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. "#isActiveDirty", "Custom hose is permanently updated", false)
 	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, basePath)
 end
-
 function ConnectionHoses.registerCustomHoseTargetNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#node", "Target or source node")
 	schema:register(XMLValueType.STRING, basePath .. "#type", "Hose type which can be any string that needs to match between hose and target node")
@@ -120,7 +113,6 @@ function ConnectionHoses.registerCustomHoseTargetNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.VECTOR_N, basePath .. "#attacherJointIndices", "Attacher joint indices")
 	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, basePath)
 end
-
 function ConnectionHoses.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getConnectionHoseConfigIndex", ConnectionHoses.getConnectionHoseConfigIndex)
 	SpecializationUtil.registerFunction(vehicleType, "updateAttachedConnectionHoses", ConnectionHoses.updateAttachedConnectionHoses)
@@ -154,12 +146,10 @@ function ConnectionHoses.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "disconnectCustomHoseNode", ConnectionHoses.disconnectCustomHoseNode)
 	SpecializationUtil.registerFunction(vehicleType, "setConnectionHosesActive", ConnectionHoses.setConnectionHosesActive)
 end
-
 function ConnectionHoses.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "loadExtraDependentParts", ConnectionHoses.loadExtraDependentParts)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "updateExtraDependentParts", ConnectionHoses.updateExtraDependentParts)
 end
-
 function ConnectionHoses.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreLoad", ConnectionHoses)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", ConnectionHoses)
@@ -170,478 +160,420 @@ function ConnectionHoses.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostAttach", ConnectionHoses)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreDetach", ConnectionHoses)
 end
-
--- Local values: spec
 function ConnectionHoses:onPreLoad(savegame)
-	local v20_ = self.spec_connectionHoses
-	v20_.configIndex = self:getConnectionHoseConfigIndex()
-	v20_.connectionHosesActive = true
-	v20_.numHosesByType = {}
-	v20_.numToolConnectionsByType = {}
-	v20_.hoseSkipNodes = {}
-	v20_.hoseSkipNodeByType = {}
-	v20_.targetNodes = {}
-	v20_.targetNodesByType = {}
-	v20_.toolConnectorHoses = {}
-	v20_.targetNodeToToolConnection = {}
-	v20_.hoseNodes = {}
-	v20_.hoseNodesByInputAttacher = {}
-	v20_.localHoseNodes = {}
-	v20_.customHoses = {}
-	v20_.customHosesByAttacher = {}
-	v20_.customHosesByInputAttacher = {}
-	v20_.customHosesActiveDirty = {}
-	v20_.customHoseTargets = {}
-	v20_.customHoseTargetsByAttacher = {}
-	v20_.customHoseTargetsByInputAttacher = {}
-	v20_.additionalSharedLoadRequestIds = {}
-	v20_.toolConnectionHoseMounts = {}
-	v20_.maxUpdateDistance = self.xmlFile:getValue("vehicle.connectionHoses#maxUpdateDistance", ConnectionHoses.DEFAULT_MAX_UPDATE_DISTANCE)
+	local spec = self.spec_connectionHoses
+	spec.configIndex = self:getConnectionHoseConfigIndex()
+	spec.connectionHosesActive = true
+	spec.numHosesByType = {}
+	spec.numToolConnectionsByType = {}
+	spec.hoseSkipNodes = {}
+	spec.hoseSkipNodeByType = {}
+	spec.targetNodes = {}
+	spec.targetNodesByType = {}
+	spec.toolConnectorHoses = {}
+	spec.targetNodeToToolConnection = {}
+	spec.hoseNodes = {}
+	spec.hoseNodesByInputAttacher = {}
+	spec.localHoseNodes = {}
+	spec.customHoses = {}
+	spec.customHosesByAttacher = {}
+	spec.customHosesByInputAttacher = {}
+	spec.customHosesActiveDirty = {}
+	spec.customHoseTargets = {}
+	spec.customHoseTargetsByAttacher = {}
+	spec.customHoseTargetsByInputAttacher = {}
+	spec.additionalSharedLoadRequestIds = {}
+	spec.toolConnectionHoseMounts = {}
+	spec.maxUpdateDistance = self.xmlFile:getValue("vehicle.connectionHoses#maxUpdateDistance", ConnectionHoses.DEFAULT_MAX_UPDATE_DISTANCE)
 end
-
--- Local values: spec, configKey, loadSamplesFromKey
 function ConnectionHoses:onPostLoad(savegame)
-	local v_u_22_ = self.spec_connectionHoses
-	local v23_ = string.format("vehicle.connectionHoses.connectionHoseConfigurations.connectionHoseConfiguration(%d)", v_u_22_.configIndex - 1)
+	local spec = self.spec_connectionHoses
+	local configKey = string.format("vehicle.connectionHoses.connectionHoseConfigurations.connectionHoseConfiguration(%d)", spec.configIndex - 1)
 	self:loadConnectionHosesFromXML(self.xmlFile, "vehicle.connectionHoses")
-	if self.xmlFile:hasProperty(v23_) then
-		self:loadConnectionHosesFromXML(self.xmlFile, v23_)
+	if self.xmlFile:hasProperty(configKey) then
+		self:loadConnectionHosesFromXML(self.xmlFile, configKey)
 	end
 	ConnectionHoses.registerAdditionalToolConnectionHoses(self)
-	v_u_22_.targetNodesAvailable = #v_u_22_.targetNodes > 0
-	v_u_22_.hoseNodesAvailable = #v_u_22_.hoseNodes > 0
-	v_u_22_.localHosesAvailable = #v_u_22_.localHoseNodes > 0
-	v_u_22_.skipNodesAvailable = #v_u_22_.hoseSkipNodes > 0
-	v_u_22_.activeDirtyCustomHosesAvailable = #v_u_22_.customHosesActiveDirty > 0
-	v_u_22_.updateableHoses = {}
+	spec.targetNodesAvailable = 0 < #spec.targetNodes
+	spec.hoseNodesAvailable = 0 < #spec.hoseNodes
+	spec.localHosesAvailable = 0 < #spec.localHoseNodes
+	spec.skipNodesAvailable = 0 < #spec.hoseSkipNodes
+	spec.activeDirtyCustomHosesAvailable = 0 < #spec.customHosesActiveDirty
+	spec.updateableHoses = {}
 	if self.isClient then
-		local function v33_(p24_)
-			-- upvalues: (copy) self, (copy) v_u_22_
-			local v25_ = 0
-			local v26_ = {}
+		local loadSamplesFromKey = function(key)
+			local samples = {}
+			local i = 0
 			while true do
-				local v27_ = string.format("%s(%d)", p24_, v25_)
-				local v28_ = "vehicle.connectionHoses.sounds." .. v27_
-				if not self.xmlFile:hasProperty(v28_) then
-					return v26_
+				local actionKey = string.format("%s(%d)", key, i)
+				local baseKey = "vehicle.connectionHoses.sounds." .. actionKey
+				if not self.xmlFile:hasProperty(baseKey) then
+					break
 				end
-				local v29_ = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.connectionHoses.sounds", v27_, self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-				if v29_ ~= nil then
-					local v30_ = self.xmlFile:getValue(v28_ .. "#type")
-					local v31_ = false
-					for _, v32_ in ipairs(v_u_22_.hoseNodes) do
-						if v32_.type == v30_ then
-							v31_ = true
+				local sample = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.connectionHoses.sounds", actionKey, self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+				if sample ~= nil then
+					local type = self.xmlFile:getValue(baseKey .. "#type")
+					local isValid = false
+					for i, hose in ipairs(spec.hoseNodes) do
+						if hose.type == type then
+							isValid = true
 							break
 						end
 					end
-					if v31_ then
-						v26_[v30_] = v29_
+					if isValid then
+						samples[type] = sample
 					else
-						Logging.xmlWarning(self.xmlFile, "Failed load %s-sound with type %s. No hose with that type available.", p24_, v30_)
+						Logging.xmlWarning(self.xmlFile, "Failed load %s-sound with type %s. No hose with that type available.", key, type)
 					end
 				end
-				v25_ = v25_ + 1
+				i = i + 1
 			end
+			return samples
 		end
-		v_u_22_.samples = {}
-		v_u_22_.samples.connect = v33_("connect")
-		v_u_22_.samples.disconnect = v33_("disconnect")
+		spec.samples = {}
+		spec.samples.connect = loadSamplesFromKey("connect")
+		spec.samples.disconnect = loadSamplesFromKey("disconnect")
 	end
-	if not (self.isClient and (v_u_22_.targetNodesAvailable or (v_u_22_.hoseNodesAvailable or (v_u_22_.localHosesAvailable or (v_u_22_.skipNodesAvailable or v_u_22_.activeDirtyCustomHosesAvailable))))) then
+	if not self.isClient or not spec.targetNodesAvailable and not spec.hoseNodesAvailable and not spec.localHosesAvailable and not spec.skipNodesAvailable and not spec.activeDirtyCustomHosesAvailable then
 		SpecializationUtil.removeEventListener(self, "onUpdateInterpolation", ConnectionHoses)
 	end
 end
-
--- Local values: spec, _, localHoseNode
 function ConnectionHoses:onLoadFinished(savegame)
-	local v35_ = self.spec_connectionHoses
-	for _, v36_ in ipairs(v35_.localHoseNodes) do
-		self:connectHose(v36_.hose, self, v36_.target, false)
+	local spec = self.spec_connectionHoses
+	for _, localHoseNode in ipairs(spec.localHoseNodes) do
+		self:connectHose(localHoseNode.hose, self, localHoseNode.target, false)
 	end
 end
-
--- Local values: spec, i, _, toolConnectionHoseMount
 function ConnectionHoses:onDelete()
-	local v38_ = self.spec_connectionHoses
-	if v38_.additionalSharedLoadRequestIds ~= nil then
-		for v39_ = 1, #v38_.additionalSharedLoadRequestIds do
-			g_i3DManager:releaseSharedI3DFile(v38_.additionalSharedLoadRequestIds[v39_])
+	local spec = self.spec_connectionHoses
+	if spec.additionalSharedLoadRequestIds ~= nil then
+		for i = 1, #spec.additionalSharedLoadRequestIds do
+			g_i3DManager:releaseSharedI3DFile(spec.additionalSharedLoadRequestIds[i])
 		end
-		v38_.additionalSharedLoadRequestIds = nil
+		spec.additionalSharedLoadRequestIds = nil
 	end
-	if v38_.toolConnectionHoseMounts ~= nil then
-		for _, v40_ in pairs(v38_.toolConnectionHoseMounts) do
-			v40_:delete()
+	if spec.toolConnectionHoseMounts ~= nil then
+		for _, toolConnectionHoseMount in pairs(spec.toolConnectionHoseMounts) do
+			toolConnectionHoseMount:delete()
 		end
-		v38_.toolConnectionHoseMounts = nil
+		spec.toolConnectionHoseMounts = nil
 	end
-	if v38_.samples ~= nil then
-		g_soundManager:deleteSamples(v38_.samples.connect)
-		g_soundManager:deleteSamples(v38_.samples.disconnect)
+	if spec.samples ~= nil then
+		g_soundManager:deleteSamples(spec.samples.connect)
+		g_soundManager:deleteSamples(spec.samples.disconnect)
 	end
 end
-
--- Local values: spec, i, hose, i, customHose, impements, i, object
 function ConnectionHoses:onUpdateInterpolation(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v42_ = self.spec_connectionHoses
-	if self.currentUpdateDistance < v42_.maxUpdateDistance then
-		for v43_ = 1, #v42_.updateableHoses do
-			local v44_ = v42_.updateableHoses[v43_]
-			if self.updateLoopIndex == v44_.connectedObject.updateLoopIndex then
-				self:updateConnectionHose(v44_, v43_)
+	local spec = self.spec_connectionHoses
+	if self.currentUpdateDistance < spec.maxUpdateDistance then
+		for i = 1, #spec.updateableHoses do
+			local hose = spec.updateableHoses[i]
+			if self.updateLoopIndex == hose.connectedObject.updateLoopIndex then
+				self:updateConnectionHose(hose, i)
 			end
 		end
-		for _, v45_ in ipairs(v42_.customHosesActiveDirty) do
-			if v45_.isActive and (v45_.connectedTarget ~= nil and self.updateLoopIndex == v45_.connectedObject.updateLoopIndex) then
-				self:updateCustomHoseNode(v45_, v45_.connectedTarget)
+		for i, customHose in ipairs(spec.customHosesActiveDirty) do
+			if customHose.isActive then
+				if customHose.connectedTarget == nil then
+					continue
+				end
+				if self.updateLoopIndex == customHose.connectedObject.updateLoopIndex then
+					self:updateCustomHoseNode(customHose, customHose.connectedTarget)
+				end
 			end
 		end
 		if self.getAttachedImplements ~= nil then
-			local v46_ = self:getAttachedImplements()
-			for v47_ = 1, #v46_ do
-				local v48_ = v46_[v47_].object
-				if v48_.updateAttachedConnectionHoses ~= nil then
-					v48_:updateAttachedConnectionHoses(self)
+			local impements = self:getAttachedImplements()
+			for i = 1, #impements do
+				local object = impements[i].object
+				if object.updateAttachedConnectionHoses == nil then
+					continue
 				end
+				object:updateAttachedConnectionHoses(self)
 			end
 		end
 	end
 end
-
 function ConnectionHoses:onUpdateEnd(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	ConnectionHoses.onUpdateInterpolation(self, dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 end
-
-function ConnectionHoses.getConnectionHoseConfigIndex(self)
+function ConnectionHoses:getConnectionHoseConfigIndex()
 	return 1
 end
-
--- Local values: spec, i, hose, i, customHose
 function ConnectionHoses:updateAttachedConnectionHoses(attacherVehicle)
-	local v56_ = self.spec_connectionHoses
-	for v57_ = 1, #v56_.updateableHoses do
-		local v58_ = v56_.updateableHoses[v57_]
-		if v58_.connectedObject == attacherVehicle and self.updateLoopIndex == v58_.connectedObject.updateLoopIndex then
-			self:updateConnectionHose(v58_, v57_)
+	local spec = self.spec_connectionHoses
+	for i = 1, #spec.updateableHoses do
+		local hose = spec.updateableHoses[i]
+		if hose.connectedObject == attacherVehicle and self.updateLoopIndex == hose.connectedObject.updateLoopIndex then
+			self:updateConnectionHose(hose, i)
 		end
 	end
-	for _, v59_ in ipairs(v56_.customHosesActiveDirty) do
-		if v59_.isActive and (v59_.connectedTarget ~= nil and (v59_.connectedObject == attacherVehicle and self.updateLoopIndex == v59_.connectedObject.updateLoopIndex)) then
-			self:updateCustomHoseNode(v59_, v59_.connectedTarget)
+	for i, customHose in ipairs(spec.customHosesActiveDirty) do
+		if customHose.isActive then
+			if customHose.connectedTarget == nil then
+				continue
+			end
+			if customHose.connectedObject == attacherVehicle and self.updateLoopIndex == customHose.connectedObject.updateLoopIndex then
+				self:updateCustomHoseNode(customHose, customHose.connectedTarget)
+			end
 		end
 	end
 end
-
--- Local values: p0x, p0y, p0z, p3x, p3y, p3z, p4x, p4y, p4z, p2x, p2y, p2z, w1x, w1y, w1z, w2x, w2y, w2z, d, lengthDifference, p2yStart, _, x, y, z, _, yTarget, _, angle1, angle2, centerPointAngle, newX, newY, newZ, newVelX, newVelY, newVelZ, velX, velY, velZ, worldX, worldY, worldZ, _, _, wp2y, _, realLengthDifference, realLength, x1, y1, z1, x2, y2, z2, x0, y0, z0, x3, y3, z3, x4, y4, z4, x, y, z, upX, upY, upZ, dirX, dirY, dirZ, sideDirX, sideDirY, sideDirZ, minX, maxX, minY, maxY, minZ, maxZ, cx, cy, cz, blue, cx, cy, cz, green, cx, cy, cz, red, lx, _, lz, _, ly, _, x, y, z, upX, upY, upZ, dirX, dirY, dirZ
 function ConnectionHoses:updateConnectionHose(hose, index)
-	local v63_ = -hose.startStraightening
-	local v64_, v65_, v66_ = localToLocal(hose.targetNode, hose.hoseNode, 0, 0, 0)
-	local v67_, v68_, v69_ = localToLocal(hose.targetNode, hose.hoseNode, hose.endStraighteningDirection[1] * hose.endStraightening, hose.endStraighteningDirection[2] * hose.endStraightening, hose.endStraighteningDirection[3] * hose.endStraightening)
-	local v70_, v71_, v72_
+	local p0x = 0
+	local p0y = 0
+	local p0z = -hose.startStraightening
+	local p3x, p3y, p3z = localToLocal(hose.targetNode, hose.hoseNode, 0, 0, 0)
+	local p4x, p4y, p4z = localToLocal(hose.targetNode, hose.hoseNode, hose.endStraighteningDirection[1] * hose.endStraightening, hose.endStraighteningDirection[2] * hose.endStraightening, hose.endStraighteningDirection[3] * hose.endStraightening)
+	local p2x = nil
+	local p2y = nil
+	local p2z = nil
 	if hose.isWorldSpaceHose then
-		local v73_, v74_, v75_ = getWorldTranslation(hose.hoseNode)
-		local v76_, v77_, v78_ = getWorldTranslation(hose.targetNode)
-		v70_ = (v73_ + v76_) / 2
-		v71_ = (v74_ + v77_) / 2
-		v72_ = (v75_ + v78_) / 2
+		local w1x, w1y, w1z = getWorldTranslation(hose.hoseNode)
+		local w2x, w2y, w2z = getWorldTranslation(hose.targetNode)
+		p2x = (w1x + w2x) / 2
+		p2y = (w1y + w2y) / 2
+		p2z = (w1z + w2z) / 2
 	else
-		v70_ = v64_ / 2
-		v71_ = v65_ / 2
-		v72_ = v66_ / 2
+		p2x = p3x / 2
+		p2y = p3y / 2
+		p2z = p3z / 2
 	end
-	local v79_ = MathUtil.vector3Length(v64_, v65_, v66_)
-	local v80_ = hose.length - v79_
-	local v81_ = math.max(v80_, 0) * (hose.centerPointDropFactor or 1)
-	local v82_
-	if hose.isWorldSpaceHose then
-		v82_ = v71_
-	else
-		local v83_, v84_
-		v83_, v82_, v84_ = localToWorld(hose.hoseNode, v70_, v71_, v72_)
+	local d = MathUtil.vector3Length(p3x, p3y, p3z)
+	local lengthDifference = math.max(hose.length - d, 0) * (hose.centerPointDropFactor or 1)
+	local p2yStart = p2y
+	if not hose.isWorldSpaceHose then
+		local _ = nil
+		_, p2yStart, _ = localToWorld(hose.hoseNode, p2x, p2y, p2z)
 	end
-	local v85_ = 0.04 * v79_
-	local v86_ = v71_ - math.max(v81_, v85_)
+	p2y = p2y - math.max(lengthDifference, 0.04 * d)
 	if hose.isWorldSpaceHose then
 		if hose.minDeltaY ~= math.huge then
-			local v87_, v88_, v89_ = worldToLocal(hose.minDeltaYComponent, v70_, v86_, v72_)
-			local _, v90_, _ = localToLocal(hose.hoseNode, hose.minDeltaYComponent, 0, 0, 0)
-			local v91_ = localToWorld
-			local v92_ = hose.minDeltaYComponent
-			local v93_ = v90_ + hose.minDeltaY
-			v70_, v86_, v72_ = v91_(v92_, v87_, math.max(v88_, v93_), v89_)
+			local x, y, z = worldToLocal(hose.minDeltaYComponent, p2x, p2y, p2z)
+			local _, yTarget, _ = localToLocal(hose.hoseNode, hose.minDeltaYComponent, 0, 0, 0)
+			p2x, p2y, p2z = localToWorld(hose.minDeltaYComponent, x, math.max(y, yTarget + hose.minDeltaY), z)
 		end
-		v70_, v86_, v72_ = worldToLocal(hose.hoseNode, v70_, v86_, v72_)
+		p2x, p2y, p2z = worldToLocal(hose.hoseNode, p2x, p2y, p2z)
 	end
-	local v94_, v95_ = self:getCenterPointAngle(hose.hoseNode, v70_, v86_, v72_, v64_, v65_, v66_, hose.isWorldSpaceHose)
-	local v96_ = v94_ + v95_
-	if v96_ < hose.minCenterPointAngle then
-		v70_, v86_, v72_ = self:getCenterPointAngleRegulation(hose.hoseNode, v70_, v86_, v72_, v64_, v65_, v66_, v94_, v95_, hose.minCenterPointAngle, hose.isWorldSpaceHose)
+	local angle1, angle2 = self:getCenterPointAngle(hose.hoseNode, p2x, p2y, p2z, p3x, p3y, p3z, hose.isWorldSpaceHose)
+	local centerPointAngle = angle1 + angle2
+	if centerPointAngle < hose.minCenterPointAngle then
+		p2x, p2y, p2z = self:getCenterPointAngleRegulation(hose.hoseNode, p2x, p2y, p2z, p3x, p3y, p3z, angle1, angle2, hose.minCenterPointAngle, hose.isWorldSpaceHose)
 	end
 	if hose.minCenterPointOffset ~= nil and hose.maxCenterPointOffset ~= nil then
-		local v97_ = hose.minCenterPointOffset[1]
-		local v98_ = hose.maxCenterPointOffset[1]
-		v70_ = math.clamp(v70_, v97_, v98_)
-		local v99_ = hose.minCenterPointOffset[2]
-		local v100_ = hose.maxCenterPointOffset[2]
-		v86_ = math.clamp(v86_, v99_, v100_)
-		local v101_ = hose.minCenterPointOffset[3]
-		local v102_ = hose.maxCenterPointOffset[3]
-		v72_ = math.clamp(v72_, v101_, v102_)
+		p2x = math.clamp(p2x, hose.minCenterPointOffset[1], hose.maxCenterPointOffset[1])
+		p2y = math.clamp(p2y, hose.minCenterPointOffset[2], hose.maxCenterPointOffset[2])
+		p2z = math.clamp(p2z, hose.minCenterPointOffset[3], hose.maxCenterPointOffset[3])
 	end
-	local v103_, v104_, v105_ = getWorldTranslation(hose.component)
+	local newX, newY, newZ = getWorldTranslation(hose.component)
 	if hose.lastComponentPosition == nil or hose.lastComponentVelocity == nil then
-		hose.lastComponentPosition = { v103_, v104_, v105_ }
-		hose.lastComponentVelocity = { v103_, v104_, v105_ }
+		hose.lastComponentPosition = { newX, newY, newZ }
+		hose.lastComponentVelocity = { newX, newY, newZ }
 	end
-	local v106_ = v103_ - hose.lastComponentPosition[1]
-	local v107_ = v104_ - hose.lastComponentPosition[2]
-	local v108_ = v105_ - hose.lastComponentPosition[3]
-	local v109_ = hose.lastComponentPosition
-	local v110_ = hose.lastComponentPosition
-	local v111_ = hose.lastComponentPosition
-	v109_[1] = v103_
-	v110_[2] = v104_
-	v111_[3] = v105_
-	local v112_ = v106_ - hose.lastComponentVelocity[1]
-	local v113_ = v107_ - hose.lastComponentVelocity[2]
-	local v114_ = v108_ - hose.lastComponentVelocity[3]
-	local v115_ = hose.lastComponentVelocity
-	local v116_ = hose.lastComponentVelocity
-	local v117_ = hose.lastComponentVelocity
-	v115_[1] = v106_
-	v116_[2] = v107_
-	v117_[3] = v108_
-	local v118_, v119_, v120_ = getWorldTranslation(hose.hoseNode)
-	local _, v121_, v122_ = worldToLocal(hose.hoseNode, v118_ + v112_, v119_ + v113_, v120_ + v114_)
-	local _, v123_, _ = localToWorld(hose.hoseNode, v70_, v86_, v72_)
-	local v124_ = v82_ - v123_
-	local v125_ = v121_ * -hose.dampingFactor
-	local v126_ = -hose.dampingRange
-	local v127_ = hose.dampingRange
-	local v128_ = math.clamp(v125_, v126_, v127_) * v124_
-	local v129_ = v122_ * -hose.dampingFactor
-	local v130_ = -hose.dampingRange
-	local v131_ = hose.dampingRange
-	local v132_ = math.clamp(v129_, v130_, v131_) * v124_
-	local v133_ = v128_ * 0.1 + hose.lastVelY * 0.9
-	local v134_ = v132_ * 0.1 + hose.lastVelZ * 0.9
-	hose.lastVelY = v133_
-	hose.lastVelZ = v134_
-	local v135_ = v86_ + v133_
-	local v136_ = v72_ + v134_
+	local newVelX = newX - hose.lastComponentPosition[1]
+	local newVelY = newY - hose.lastComponentPosition[2]
+	local newVelZ = newZ - hose.lastComponentPosition[3]
+	hose.lastComponentPosition[1] = newX
+	hose.lastComponentPosition[2] = newY
+	hose.lastComponentPosition[3] = newZ
+	local velX = newVelX - hose.lastComponentVelocity[1]
+	local velY = newVelY - hose.lastComponentVelocity[2]
+	local velZ = newVelZ - hose.lastComponentVelocity[3]
+	hose.lastComponentVelocity[1] = newVelX
+	hose.lastComponentVelocity[2] = newVelY
+	hose.lastComponentVelocity[3] = newVelZ
+	local worldX, worldY, worldZ = getWorldTranslation(hose.hoseNode)
+	local _ = nil
+	_, velY, velZ = worldToLocal(hose.hoseNode, worldX + velX, worldY + velY, worldZ + velZ)
+	local _, wp2y, _ = localToWorld(hose.hoseNode, p2x, p2y, p2z)
+	local realLengthDifference = p2yStart - wp2y
+	velY = math.clamp(velY * -hose.dampingFactor, -hose.dampingRange, hose.dampingRange) * realLengthDifference
+	velZ = math.clamp(velZ * -hose.dampingFactor, -hose.dampingRange, hose.dampingRange) * realLengthDifference
+	velY = velY * 0.1 + hose.lastVelY * 0.9
+	velZ = velZ * 0.1 + hose.lastVelZ * 0.9
+	hose.lastVelY = velY
+	hose.lastVelZ = velZ
+	p2y = p2y + velY
+	p2z = p2z + velZ
 	if hose.isTwoPointHose then
-		v70_ = 0
-		v135_ = 0
-		v136_ = 0
+		p2x = 0
+		p2y = 0
+		p2z = 0
 	end
-	setShaderParameter(hose.hoseNode, "cv2", v70_, v135_, v136_, hose.centerPointTension or 0, false)
-	setShaderParameter(hose.hoseNode, "cv3", v64_, v65_, v66_, 0, false)
-	setShaderParameter(hose.hoseNode, "cv4", v67_, v68_, v69_, 1, false)
+	setShaderParameter(hose.hoseNode, "cv2", p2x, p2y, p2z, hose.centerPointTension or 0, false)
+	setShaderParameter(hose.hoseNode, "cv3", p3x, p3y, p3z, 0, false)
+	setShaderParameter(hose.hoseNode, "cv4", p4x, p4y, p4z, 1, false)
 	if VehicleDebug.state == VehicleDebug.DEBUG_ATTACHER_JOINTS and self:getIsActiveForInput() then
-		local v137_ = MathUtil.vector3Length(v70_, v135_, v136_) + MathUtil.vector3Length(v70_ - v64_, v135_ - v65_, v136_ - v66_)
+		local realLength = MathUtil.vector3Length(p2x, p2y, p2z)
+		realLength = realLength + MathUtil.vector3Length(p2x - p3x, p2y - p3y, p2z - p3z)
 		renderText(0.5, 0.9 - index * 0.02, 0.0175, string.format("hose %s:", getName(hose.node)))
-		local v138_ = renderText
-		local v139_ = 0.9 - index * 0.02
-		local v140_ = string.format
-		local v141_ = hose.length
-		local v142_ = math.deg(v96_)
-		local v143_ = hose.minCenterPointAngle
-		v138_(0.62, v139_, 0.0175, v140_("directLength: %.2f configLength: %.2f realLength: %.2f angle: %.2f minAngle: %.2f", v79_, v141_, v137_, v142_, (math.deg(v143_))))
-		local v144_, v145_, v146_ = localToWorld(hose.hoseNode, 0, 0, v63_)
-		local v147_, v148_, v149_ = localToWorld(hose.hoseNode, 0, 0, 0)
-		drawDebugLine(v144_, v145_, v146_, 1, 0, 0, v147_, v148_, v149_, 0, 1, 0)
-		local v150_, v151_, v152_ = localToWorld(hose.hoseNode, 0, 0, 0)
-		local v153_, v154_, v155_ = localToWorld(hose.hoseNode, v70_, v135_, v136_)
-		drawDebugLine(v150_, v151_, v152_, 1, 0, 0, v153_, v154_, v155_, 0, 1, 0)
-		local v156_, v157_, v158_ = localToWorld(hose.hoseNode, v70_, v135_, v136_)
-		local v159_, v160_, v161_ = localToWorld(hose.hoseNode, v64_, v65_, v66_)
-		drawDebugLine(v156_, v157_, v158_, 1, 0, 0, v159_, v160_, v161_, 0, 1, 0)
-		local v162_, v163_, v164_ = localToWorld(hose.hoseNode, v64_, v65_, v66_)
-		local v165_, v166_, v167_ = localToWorld(hose.hoseNode, v67_, v68_, v69_)
-		drawDebugLine(v162_, v163_, v164_, 1, 0, 0, v165_, v166_, v167_, 0, 1, 0)
-		local v168_, v169_, v170_ = localToWorld(hose.hoseNode, 0, 0, v63_)
-		local v171_, v172_, v173_ = localToWorld(hose.hoseNode, 0, 0, 0)
-		local v174_, v175_, v176_ = localToWorld(hose.hoseNode, v70_, v135_, v136_)
-		local v177_, v178_, v179_ = localToWorld(hose.hoseNode, v64_, v65_, v66_)
-		local v180_, v181_, v182_ = localToWorld(hose.hoseNode, v67_, v68_, v69_)
-		drawDebugPoint(v168_, v169_, v170_, 1, 0, 0, 1)
-		drawDebugPoint(v171_, v172_, v173_, 1, 0, 0, 1)
-		drawDebugPoint(v174_, v175_, v176_, 1, 0, 0, 1)
-		drawDebugPoint(v177_, v178_, v179_, 1, 0, 0, 1)
-		drawDebugPoint(v180_, v181_, v182_, 1, 0, 0, 1)
+		renderText(0.62, 0.9 - index * 0.02, 0.0175, string.format("directLength: %.2f configLength: %.2f realLength: %.2f angle: %.2f minAngle: %.2f", d, hose.length, realLength, math.deg(centerPointAngle), math.deg(hose.minCenterPointAngle)))
+		local x1, y1, z1 = localToWorld(hose.hoseNode, 0, 0, p0z)
+		local x2, y2, z2 = localToWorld(hose.hoseNode, 0, 0, 0)
+		drawDebugLine(x1, y1, z1, 1, 0, 0, x2, y2, z2, 0, 1, 0)
+		x1, y1, z1 = localToWorld(hose.hoseNode, 0, 0, 0)
+		x2, y2, z2 = localToWorld(hose.hoseNode, p2x, p2y, p2z)
+		drawDebugLine(x1, y1, z1, 1, 0, 0, x2, y2, z2, 0, 1, 0)
+		x1, y1, z1 = localToWorld(hose.hoseNode, p2x, p2y, p2z)
+		x2, y2, z2 = localToWorld(hose.hoseNode, p3x, p3y, p3z)
+		drawDebugLine(x1, y1, z1, 1, 0, 0, x2, y2, z2, 0, 1, 0)
+		x1, y1, z1 = localToWorld(hose.hoseNode, p3x, p3y, p3z)
+		x2, y2, z2 = localToWorld(hose.hoseNode, p4x, p4y, p4z)
+		drawDebugLine(x1, y1, z1, 1, 0, 0, x2, y2, z2, 0, 1, 0)
+		local x0, y0, z0 = localToWorld(hose.hoseNode, 0, 0, p0z)
+		x1, y1, z1 = localToWorld(hose.hoseNode, 0, 0, 0)
+		x2, y2, z2 = localToWorld(hose.hoseNode, p2x, p2y, p2z)
+		local x3, y3, z3 = localToWorld(hose.hoseNode, p3x, p3y, p3z)
+		local x4, y4, z4 = localToWorld(hose.hoseNode, p4x, p4y, p4z)
+		drawDebugPoint(x0, y0, z0, 1, 0, 0, 1)
+		drawDebugPoint(x1, y1, z1, 1, 0, 0, 1)
+		drawDebugPoint(x2, y2, z2, 1, 0, 0, 1)
+		drawDebugPoint(x3, y3, z3, 1, 0, 0, 1)
+		drawDebugPoint(x4, y4, z4, 1, 0, 0, 1)
 		DebugGizmo.renderAtNode(hose.hoseNode, "hn")
 		DebugGizmo.renderAtNode(hose.targetNode, "tn")
 		if hose.minCenterPointOffset ~= nil and hose.maxCenterPointOffset ~= nil then
-			local v183_, v184_, v185_ = localToWorld(hose.hoseNode, 0, 0, 0)
-			local v186_, v187_, v188_ = localDirectionToWorld(hose.hoseNode, 0, 1, 0)
-			local v189_, v190_, v191_ = localDirectionToWorld(hose.hoseNode, 0, 0, 1)
-			local v192_, v193_, v194_ = localDirectionToWorld(hose.hoseNode, 1, 0, 0)
-			local v195_ = hose.minCenterPointOffset[1]
-			local v196_ = math.clamp(v195_, -1, 1)
-			local v197_ = hose.maxCenterPointOffset[1]
-			local v198_ = math.clamp(v197_, -1, 1)
-			local v199_ = hose.minCenterPointOffset[2]
-			local v200_ = math.clamp(v199_, -1, 1)
-			local v201_ = hose.maxCenterPointOffset[2]
-			local v202_ = math.clamp(v201_, -1, 1)
-			local v203_ = hose.minCenterPointOffset[3]
-			local v204_ = math.clamp(v203_, -1, 1)
-			local v205_ = hose.maxCenterPointOffset[3]
-			local v206_ = math.clamp(v205_, -1, 1)
+			local x, y, z = localToWorld(hose.hoseNode, 0, 0, 0)
+			local upX, upY, upZ = localDirectionToWorld(hose.hoseNode, 0, 1, 0)
+			local dirX, dirY, dirZ = localDirectionToWorld(hose.hoseNode, 0, 0, 1)
+			local sideDirX, sideDirY, sideDirZ = localDirectionToWorld(hose.hoseNode, 1, 0, 0)
+			local minX = math.clamp(hose.minCenterPointOffset[1], -1, 1)
+			local maxX = math.clamp(hose.maxCenterPointOffset[1], -1, 1)
+			local minY = math.clamp(hose.minCenterPointOffset[2], -1, 1)
+			local maxY = math.clamp(hose.maxCenterPointOffset[2], -1, 1)
+			local minZ = math.clamp(hose.minCenterPointOffset[3], -1, 1)
+			local maxZ = math.clamp(hose.maxCenterPointOffset[3], -1, 1)
 			if hose.minCenterPointOffset[3] ~= -math.huge or hose.maxCenterPointOffset[3] ~= math.huge then
-				local v207_ = v183_ + v186_ * (v200_ + v202_) * 0.5
-				local v208_ = v184_ + v187_ * (v200_ + v202_) * 0.5
-				local v209_ = v185_ + v188_ * (v200_ + v202_) * 0.5
-				local v210_ = v207_ + v192_ * (v196_ + v198_) * 0.5
-				local v211_ = v208_ + v193_ * (v196_ + v198_) * 0.5
-				local v212_ = v209_ + v194_ * (v196_ + v198_) * 0.5
-				local v213_ = Color.new(0, 0, 1, 0.1)
-				DebugPlane.newSimple(true, true, v213_, false):createFromPosAndDir(v210_ + v189_ * v204_, v211_ + v190_ * v204_, v212_ + v191_ * v204_, v186_, v187_, v188_, v189_, v190_, v191_, v198_ - v196_, v202_ - v200_):draw()
-				DebugPlane.newSimple(true, true, v213_, false):createFromPosAndDir(v210_ + v189_ * v206_, v211_ + v190_ * v206_, v212_ + v191_ * v206_, v186_, v187_, v188_, v189_, v190_, v191_, v198_ - v196_, v202_ - v200_):draw()
+				local cx = x + upX * (minY + maxY) * 0.5
+				local cy = y + upY * (minY + maxY) * 0.5
+				local cz = z + upZ * (minY + maxY) * 0.5
+				cx = cx + sideDirX * (minX + maxX) * 0.5
+				cy = cy + sideDirY * (minX + maxX) * 0.5
+				cz = cz + sideDirZ * (minX + maxX) * 0.5
+				local blue = Color.new(0, 0, 1, 0.1)
+				DebugPlane.newSimple(true, true, blue, false):createFromPosAndDir(cx + dirX * minZ, cy + dirY * minZ, cz + dirZ * minZ, upX, upY, upZ, dirX, dirY, dirZ, maxX - minX, maxY - minY):draw()
+				DebugPlane.newSimple(true, true, blue, false):createFromPosAndDir(cx + dirX * maxZ, cy + dirY * maxZ, cz + dirZ * maxZ, upX, upY, upZ, dirX, dirY, dirZ, maxX - minX, maxY - minY):draw()
 			end
 			if hose.minCenterPointOffset[2] ~= -math.huge or hose.maxCenterPointOffset[2] ~= math.huge then
-				local v214_ = v183_ + v189_ * (v204_ + v206_) * 0.5
-				local v215_ = v184_ + v190_ * (v204_ + v206_) * 0.5
-				local v216_ = v185_ + v191_ * (v204_ + v206_) * 0.5
-				local v217_ = v214_ + v192_ * (v196_ + v198_) * 0.5
-				local v218_ = v215_ + v193_ * (v196_ + v198_) * 0.5
-				local v219_ = v216_ + v194_ * (v196_ + v198_) * 0.5
-				local v220_ = Color.new(0, 1, 0, 0.1)
-				DebugPlane.newSimple(true, true, v220_, false):createFromPosAndDir(v217_ + v186_ * v200_, v218_ + v187_ * v200_, v219_ + v188_ * v200_, v189_, v190_, v191_, v186_, v187_, v188_, v198_ - v196_, v206_ - v204_):draw()
-				DebugPlane.newSimple(true, true, v220_, false):createFromPosAndDir(v217_ + v186_ * v202_, v218_ + v187_ * v202_, v219_ + v188_ * v202_, v189_, v190_, v191_, v186_, v187_, v188_, v198_ - v196_, v206_ - v204_):draw()
+				local cx = x + dirX * (minZ + maxZ) * 0.5
+				local cy = y + dirY * (minZ + maxZ) * 0.5
+				local cz = z + dirZ * (minZ + maxZ) * 0.5
+				cx = cx + sideDirX * (minX + maxX) * 0.5
+				cy = cy + sideDirY * (minX + maxX) * 0.5
+				cz = cz + sideDirZ * (minX + maxX) * 0.5
+				local green = Color.new(0, 1, 0, 0.1)
+				DebugPlane.newSimple(true, true, green, false):createFromPosAndDir(cx + upX * minY, cy + upY * minY, cz + upZ * minY, dirX, dirY, dirZ, upX, upY, upZ, maxX - minX, maxZ - minZ):draw()
+				DebugPlane.newSimple(true, true, green, false):createFromPosAndDir(cx + upX * maxY, cy + upY * maxY, cz + upZ * maxY, dirX, dirY, dirZ, upX, upY, upZ, maxX - minX, maxZ - minZ):draw()
 			end
 			if hose.minCenterPointOffset[1] ~= -math.huge or hose.maxCenterPointOffset[1] ~= math.huge then
-				local v221_ = v183_ + v189_ * (v204_ + v206_) * 0.5
-				local v222_ = v184_ + v190_ * (v204_ + v206_) * 0.5
-				local v223_ = v185_ + v191_ * (v204_ + v206_) * 0.5
-				local v224_ = Color.new(1, 0, 0, 0.1)
-				DebugPlane.newSimple(true, true, v224_, false):createFromPosAndDir(v221_ + v192_ * v196_, v222_ + v193_ * v196_, v223_ + v194_ * v196_, v189_, v190_, v191_, v192_, v193_, v194_, v202_ - v200_, v206_ - v204_):draw()
-				DebugPlane.newSimple(true, true, v224_, false):createFromPosAndDir(v221_ + v192_ * v198_, v222_ + v193_ * v198_, v223_ + v194_ * v198_, v189_, v190_, v191_, v192_, v193_, v194_, v202_ - v200_, v206_ - v204_):draw()
+				local cx = x + dirX * (minZ + maxZ) * 0.5
+				local cy = y + dirY * (minZ + maxZ) * 0.5
+				local cz = z + dirZ * (minZ + maxZ) * 0.5
+				local red = Color.new(1, 0, 0, 0.1)
+				DebugPlane.newSimple(true, true, red, false):createFromPosAndDir(cx + sideDirX * minX, cy + sideDirY * minX, cz + sideDirZ * minX, dirX, dirY, dirZ, sideDirX, sideDirY, sideDirZ, maxY - minY, maxZ - minZ):draw()
+				DebugPlane.newSimple(true, true, red, false):createFromPosAndDir(cx + sideDirX * maxX, cy + sideDirY * maxX, cz + sideDirZ * maxX, dirX, dirY, dirZ, sideDirX, sideDirY, sideDirZ, maxY - minY, maxZ - minZ):draw()
 			end
 		end
 		if hose.minDeltaY ~= math.huge and hose.minDeltaYComponent ~= nil then
-			local v225_, _, v226_ = localToLocal(hose.hoseNode, hose.minDeltaYComponent, v70_, v135_, v136_)
-			local _, v227_, _ = localToLocal(hose.hoseNode, hose.minDeltaYComponent, 0, 0, 0)
-			local v228_, v229_, v230_ = localToWorld(hose.minDeltaYComponent, v225_, v227_ + hose.minDeltaY, v226_)
-			local v231_, v232_, v233_ = localDirectionToWorld(hose.minDeltaYComponent, 0, 1, 0)
-			local v234_, v235_, v236_ = localDirectionToWorld(hose.minDeltaYComponent, 0, 0, 1)
-			DebugPlane.newSimple(true, true, Color.new(0, 1, 0, 0.1), false):createFromPosAndDir(v228_, v229_, v230_, v234_, v235_, v236_, v231_, v232_, v233_, 1, 1):draw()
+			local lx, _, lz = localToLocal(hose.hoseNode, hose.minDeltaYComponent, p2x, p2y, p2z)
+			local _, ly, _ = localToLocal(hose.hoseNode, hose.minDeltaYComponent, 0, 0, 0)
+			local x, y, z = localToWorld(hose.minDeltaYComponent, lx, ly + hose.minDeltaY, lz)
+			local upX, upY, upZ = localDirectionToWorld(hose.minDeltaYComponent, 0, 1, 0)
+			local dirX, dirY, dirZ = localDirectionToWorld(hose.minDeltaYComponent, 0, 0, 1)
+			DebugPlane.newSimple(true, true, Color.new(0, 1, 0, 0.1), false):createFromPosAndDir(x, y, z, dirX, dirY, dirZ, upX, upY, upZ, 1, 1):draw()
 		end
 	end
 end
-
--- Local values: lengthStartToCenter, lengthCenterToEnd, _, sY, _, lengthStartToCenter2, lengthCenterToEnd2, angle1, angle2
 function ConnectionHoses:getCenterPointAngle(node, cX, cY, cZ, eX, eY, eZ, useWorldSpace)
-	local v245_ = MathUtil.vector3Length(cX, cY, cZ)
-	local v246_ = MathUtil.vector3Length(cX - eX, cY - eY, cZ - eZ)
-	local v247_ = math.abs(v246_)
-	local _, v248_, _ = getWorldTranslation(node)
+	local lengthStartToCenter = MathUtil.vector3Length(cX, cY, cZ)
+	local lengthCenterToEnd = math.abs(MathUtil.vector3Length(cX - eX, cY - eY, cZ - eZ))
+	local _, sY, _ = getWorldTranslation(node)
 	if useWorldSpace then
-		local v249_, v250_
-		v249_, cY, v250_ = localToWorld(node, cX, cY, cZ)
-		local v251_, v252_
-		v251_, eY, v252_ = localToWorld(node, eX, eY, eZ)
+		_, cY, _ = localToWorld(node, cX, cY, cZ)
+		_, eY, _ = localToWorld(node, eX, eY, eZ)
 	else
-		v248_ = 0
+		sY = 0
 	end
-	local v253_ = v248_ - cY
-	local v254_ = eY - cY
-	local v255_ = v253_ / v245_
-	local v256_ = math.acos(v255_)
-	local v257_ = v254_ / v247_
-	return v256_, math.acos(v257_)
+	local lengthStartToCenter2 = sY - cY
+	local lengthCenterToEnd2 = eY - cY
+	local angle1 = math.acos(lengthStartToCenter2 / lengthStartToCenter)
+	local angle2 = math.acos(lengthCenterToEnd2 / lengthCenterToEnd)
+	return angle1, angle2
 end
-
--- Local values: sX, sY, sZ, _, startCenterLength, centerEndLength, pct, alpha, newY1, newY2, newY
 function ConnectionHoses:getCenterPointAngleRegulation(node, cX, cY, cZ, eX, eY, eZ, angle1, angle2, targetAngle, useWorldSpace)
-	local v269_, v270_, v271_ = getWorldTranslation(node)
+	local sX, sY, sZ = getWorldTranslation(node)
 	if useWorldSpace then
-		local v272_
-		cX, v272_, cZ = localToWorld(node, cX, cY, cZ)
-		local v273_
-		eX, v273_, eZ = localToWorld(node, eX, eY, eZ)
+		local _ = nil
+		cX, _, cZ = localToWorld(node, cX, cY, cZ)
+		eX, _, eZ = localToWorld(node, eX, eY, eZ)
 	else
-		v270_ = 0
-		v269_ = 0
-		v271_ = 0
+		sX = 0
+		sY = 0
+		sZ = 0
 	end
-	local v274_ = MathUtil.vector2Length(v269_ - cX, v271_ - cZ)
-	local v275_ = MathUtil.vector2Length(eX - cX, eZ - cZ)
-	local v276_ = 1.5707963267948966 - angle1 / (angle1 + angle2) * targetAngle
-	local v277_ = (math.tan(v276_) * v274_ + math.tan(v276_) * v275_) / 2
+	local startCenterLength = MathUtil.vector2Length(sX - cX, sZ - cZ)
+	local centerEndLength = MathUtil.vector2Length(eX - cX, eZ - cZ)
+	local pct = angle1 / (angle1 + angle2)
+	local alpha = 1.5707963267948966 - pct * targetAngle
+	local newY1 = math.tan(alpha) * startCenterLength
+	local newY2 = math.tan(alpha) * centerEndLength
+	local newY = (newY1 + newY2) / 2
 	if useWorldSpace then
-		return worldToLocal(node, cX, v270_ - v277_, cZ)
+		return worldToLocal(node, cX, sY - newY, cZ)
 	else
-		return cX, v270_ - v277_, cZ
+		return cX, sY - newY, cZ
 	end
 end
-
--- Local values: spec
 function ConnectionHoses:loadConnectionHosesFromXML(xmlFile, key)
-	local v_u_281_ = self.spec_connectionHoses
-	xmlFile:iterate(key .. ".skipNode", function(_, p282_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) v_u_281_
-		local v283_ = {}
-		if self:loadHoseSkipNode(xmlFile, p282_, v283_) then
-			local v284_ = v_u_281_.hoseSkipNodes
-			table.insert(v284_, v283_)
-			if v_u_281_.hoseSkipNodeByType[v283_.type] == nil then
-				v_u_281_.hoseSkipNodeByType[v283_.type] = {}
+	local spec = self.spec_connectionHoses
+	xmlFile:iterate(key .. ".skipNode", function(_, hoseKey)
+		local entry = {}
+		if self:loadHoseSkipNode(xmlFile, hoseKey, entry) then
+			table.insert(spec.hoseSkipNodes, entry)
+			if spec.hoseSkipNodeByType[entry.type] == nil then
+				spec.hoseSkipNodeByType[entry.type] = {}
 			end
-			local v285_ = v_u_281_.hoseSkipNodeByType[v283_.type]
-			table.insert(v285_, v283_)
+			table.insert(spec.hoseSkipNodeByType[entry.type], entry)
 		end
 	end)
 	self:addHoseTargetNodes(xmlFile, key .. ".target")
-	xmlFile:iterate(key .. ".toolConnectorHose", function(_, p286_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) v_u_281_
-		local v287_ = {}
-		if self:loadToolConnectorHoseNode(xmlFile, p286_, v287_) then
-			local v288_ = v_u_281_.toolConnectorHoses
-			table.insert(v288_, v287_)
-			v_u_281_.targetNodeToToolConnection[v287_.startTargetNodeIndex] = v287_
-			v_u_281_.targetNodeToToolConnection[v287_.endTargetNodeIndex] = v287_
+	xmlFile:iterate(key .. ".toolConnectorHose", function(_, hoseKey)
+		local entry = {}
+		if self:loadToolConnectorHoseNode(xmlFile, hoseKey, entry) then
+			table.insert(spec.toolConnectorHoses, entry)
+			spec.targetNodeToToolConnection[entry.startTargetNodeIndex] = entry
+			spec.targetNodeToToolConnection[entry.endTargetNodeIndex] = entry
 		end
 	end)
-	xmlFile:iterate(key .. ".hose", function(_, p289_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) v_u_281_
-		local v290_ = {}
-		if self:loadHoseNode(xmlFile, p289_, v290_, true) then
-			local v291_ = v_u_281_.hoseNodes
-			table.insert(v291_, v290_)
-			v290_.index = #v_u_281_.hoseNodes
-			for _, v292_ in pairs(v290_.inputAttacherJointIndices) do
-				if v_u_281_.hoseNodesByInputAttacher[v292_] == nil then
-					v_u_281_.hoseNodesByInputAttacher[v292_] = {}
+	xmlFile:iterate(key .. ".hose", function(_, hoseKey)
+		local entry = {}
+		if self:loadHoseNode(xmlFile, hoseKey, entry, true) then
+			table.insert(spec.hoseNodes, entry)
+			entry.index = #spec.hoseNodes
+			for _, index in pairs(entry.inputAttacherJointIndices) do
+				if spec.hoseNodesByInputAttacher[index] == nil then
+					spec.hoseNodesByInputAttacher[index] = {}
 				end
-				local v293_ = v_u_281_.hoseNodesByInputAttacher[v292_]
-				table.insert(v293_, v290_)
+				table.insert(spec.hoseNodesByInputAttacher[index], entry)
 			end
 		end
 	end)
-	xmlFile:iterate(key .. ".localHose", function(_, p294_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) v_u_281_
-		local v295_ = {}
-		if self:loadHoseNode(xmlFile, p294_ .. ".hose", v295_, false) then
-			local v296_ = {}
-			if self:loadHoseTargetNode(xmlFile, p294_ .. ".target", v296_) then
-				local v297_ = v_u_281_.localHoseNodes
-				table.insert(v297_, {
-					["hose"] = v295_,
-					["target"] = v296_
-				})
+	xmlFile:iterate(key .. ".localHose", function(_, hoseKey)
+		local hose = {}
+		if self:loadHoseNode(xmlFile, hoseKey .. ".hose", hose, false) then
+			local target = {}
+			if self:loadHoseTargetNode(xmlFile, hoseKey .. ".target", target) then
+				table.insert(spec.localHoseNodes, { hose = hose, target = target })
 			end
 		end
 	end)
-	self:loadCustomHosesFromXML(true, v_u_281_.customHoses, v_u_281_.customHosesByAttacher, v_u_281_.customHosesByInputAttacher, xmlFile, key .. ".customHose")
-	self:loadCustomHosesFromXML(false, v_u_281_.customHoseTargets, v_u_281_.customHoseTargetsByAttacher, v_u_281_.customHoseTargetsByInputAttacher, xmlFile, key .. ".customTarget")
+	self:loadCustomHosesFromXML(true, spec.customHoses, spec.customHosesByAttacher, spec.customHosesByInputAttacher, xmlFile, key .. ".customHose")
+	self:loadCustomHosesFromXML(false, spec.customHoseTargets, spec.customHoseTargetsByAttacher, spec.customHoseTargetsByInputAttacher, xmlFile, key .. ".customTarget")
 end
-
 function ConnectionHoses:loadHoseSkipNode(xmlFile, targetKey, entry)
 	entry.node = xmlFile:getValue(targetKey .. "#node", nil, self.components, self.i3dMappings)
 	if entry.node == nil then
-		Logging.xmlWarning(xmlFile, "Missing node for hose skip node \'%s\'", targetKey)
+		Logging.xmlWarning(xmlFile, "Missing node for hose skip node '%s'", targetKey)
 		return false
 	end
 	entry.inputAttacherJointIndex = xmlFile:getValue(targetKey .. "#inputAttacherJointIndex", 1)
@@ -649,244 +581,238 @@ function ConnectionHoses:loadHoseSkipNode(xmlFile, targetKey, entry)
 	entry.type = xmlFile:getValue(targetKey .. "#type")
 	entry.specType = xmlFile:getValue(targetKey .. "#specType")
 	if entry.type == nil then
-		Logging.xmlWarning(xmlFile, "Missing type for hose skip node \'%s\'", targetKey)
+		Logging.xmlWarning(xmlFile, "Missing type for hose skip node '%s'", targetKey)
 		return false
+	else
+		entry.length = xmlFile:getValue(targetKey .. "#length")
+		entry.isTwoPointHose = xmlFile:getValue(targetKey .. "#isTwoPointHose", false)
+		entry.objectChanges = {}
+		ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, targetKey, entry.objectChanges, self.components, self)
+		ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
+		entry.objectChangesTarget = self
+		entry.isSkipNode = true
+		return true
 	end
-	entry.length = xmlFile:getValue(targetKey .. "#length")
-	entry.isTwoPointHose = xmlFile:getValue(targetKey .. "#isTwoPointHose", false)
-	entry.objectChanges = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, targetKey, entry.objectChanges, self.components, self)
-	ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
-	entry.objectChangesTarget = self
-	entry.isSkipNode = true
-	return true
 end
-
--- Local values: spec, key, startTarget, endTarget, index, _, x1, y1, z1, x2, y2, z2, dirX, dirY, dirZ, upX, upY, upZ, type
 function ConnectionHoses:loadToolConnectorHoseNode(xmlFile, targetKey, entry)
-	local v306_ = self.spec_connectionHoses
-	entry.startTargetNodeIndex = self:addHoseTargetNodes(xmlFile, (string.format("%s.startTarget", targetKey)))
+	local spec = self.spec_connectionHoses
+	local key = string.format("%s.startTarget", targetKey)
+	entry.startTargetNodeIndex = self:addHoseTargetNodes(xmlFile, key)
 	if entry.startTargetNodeIndex == nil then
-		Logging.xmlWarning(xmlFile, "startTarget is missing for tool connection hose \'%s\'", targetKey)
+		Logging.xmlWarning(xmlFile, "startTarget is missing for tool connection hose '%s'", targetKey)
 		return false
 	end
-	entry.endTargetNodeIndex = self:addHoseTargetNodes(xmlFile, (string.format("%s.endTarget", targetKey)))
+	key = string.format("%s.endTarget", targetKey)
+	entry.endTargetNodeIndex = self:addHoseTargetNodes(xmlFile, key)
 	if entry.endTargetNodeIndex == nil then
-		Logging.xmlWarning(xmlFile, "endTarget is missing for tool connection hose \'%s\'", targetKey)
+		Logging.xmlWarning(xmlFile, "endTarget is missing for tool connection hose '%s'", targetKey)
 		return false
-	end
-	local v307_ = v306_.targetNodes[entry.startTargetNodeIndex]
-	local v308_ = v306_.targetNodes[entry.endTargetNodeIndex]
-	for v309_, _ in pairs(v307_.attacherJointIndices) do
-		if v308_.attacherJointIndices[v309_] ~= nil then
-			Logging.xmlWarning(xmlFile, "Double usage of attacher joint index \'%d\' in \'%s\'", v309_, targetKey)
-		end
-	end
-	entry.moveNodes = xmlFile:getValue(targetKey .. "#moveNodes", true)
-	entry.additionalHose = xmlFile:getValue(targetKey .. "#additionalHose", true)
-	if entry.moveNodes then
-		local v310_, v311_, v312_ = getTranslation(v307_.node)
-		local v313_, v314_, v315_ = getTranslation(v308_.node)
-		local v316_, v317_, v318_ = MathUtil.vector3Normalize(v310_ - v313_, v311_ - v314_, v312_ - v315_)
-		local v319_, v320_, v321_ = localDirectionToLocal(v308_.node, getParent(v308_.node), 0, 1, 0)
-		if (v316_ ~= 0 or (v317_ ~= 0 or v318_ ~= 0)) and not (MathUtil.isNan(v316_) or (MathUtil.isNan(v317_) or MathUtil.isNan(v318_))) then
-			setDirection(v307_.node, -v316_, -v317_, -v318_, v319_, v320_, v321_)
-			setDirection(v308_.node, v316_, v317_, v318_, v319_, v320_, v321_)
-		end
-	end
-	entry.mountingNode = xmlFile:getValue(targetKey .. "#mountingNode", nil, self.components, self.i3dMappings)
-	if entry.mountingNode ~= nil then
-		setVisibility(entry.mountingNode, false)
-	end
-	entry.objectChanges = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, targetKey, entry.objectChanges, self.components, self)
-	ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
-	entry.objectChangesTarget = self
-	local v322_ = v306_.targetNodes[entry.startTargetNodeIndex].type .. (v306_.targetNodes[entry.startTargetNodeIndex].specType or "")
-	if v306_.numToolConnectionsByType[v322_] == nil then
-		v306_.numToolConnectionsByType[v322_] = 0
-	end
-	v306_.numToolConnectionsByType[v322_] = v306_.numToolConnectionsByType[v322_] + 1
-	entry.typedIndex = v306_.numToolConnectionsByType[v322_]
-	entry.connected = false
-	return true
-end
-
--- Local values: spec, addedTarget
-function ConnectionHoses:addHoseTargetNodes(xmlFile, key)
-	local v_u_326_ = self.spec_connectionHoses
-	local v_u_327_ = false
-	xmlFile:iterate(key, function(_, p328_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) v_u_326_, (ref) v_u_327_
-		local v329_ = {}
-		if self:loadHoseTargetNode(xmlFile, p328_, v329_) then
-			local v330_ = v_u_326_.targetNodes
-			table.insert(v330_, v329_)
-			v329_.index = #v_u_326_.targetNodes
-			if v_u_326_.targetNodesByType[v329_.type] == nil then
-				v_u_326_.targetNodesByType[v329_.type] = {}
+	else
+		local startTarget = spec.targetNodes[entry.startTargetNodeIndex]
+		local endTarget = spec.targetNodes[entry.endTargetNodeIndex]
+		for index, _ in pairs(startTarget.attacherJointIndices) do
+			if endTarget.attacherJointIndices[index] == nil then
+				continue
 			end
-			local v331_ = v_u_326_.targetNodesByType[v329_.type]
-			table.insert(v331_, v329_)
-			v_u_327_ = true
+			Logging.xmlWarning(xmlFile, "Double usage of attacher joint index '%d' in '%s'", index, targetKey)
+		end
+		entry.moveNodes = xmlFile:getValue(targetKey .. "#moveNodes", true)
+		entry.additionalHose = xmlFile:getValue(targetKey .. "#additionalHose", true)
+		if entry.moveNodes then
+			local x1, y1, z1 = getTranslation(startTarget.node)
+			local x2, y2, z2 = getTranslation(endTarget.node)
+			local dirX, dirY, dirZ = MathUtil.vector3Normalize(x1 - x2, y1 - y2, z1 - z2)
+			local upX, upY, upZ = localDirectionToLocal(endTarget.node, getParent(endTarget.node), 0, 1, 0)
+			if (dirX ~= 0 or dirY ~= 0 or dirZ ~= 0) and (not MathUtil.isNan(dirX) and (not MathUtil.isNan(dirY) and not MathUtil.isNan(dirZ))) then
+				setDirection(startTarget.node, -dirX, -dirY, -dirZ, upX, upY, upZ)
+				setDirection(endTarget.node, dirX, dirY, dirZ, upX, upY, upZ)
+			end
+		end
+		entry.mountingNode = xmlFile:getValue(targetKey .. "#mountingNode", nil, self.components, self.i3dMappings)
+		if entry.mountingNode ~= nil then
+			setVisibility(entry.mountingNode, false)
+		end
+		entry.objectChanges = {}
+		ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, targetKey, entry.objectChanges, self.components, self)
+		ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
+		entry.objectChangesTarget = self
+		local type = spec.targetNodes[entry.startTargetNodeIndex].type .. (spec.targetNodes[entry.startTargetNodeIndex].specType or "")
+		if spec.numToolConnectionsByType[type] == nil then
+			spec.numToolConnectionsByType[type] = 0
+		end
+		spec.numToolConnectionsByType[type] = spec.numToolConnectionsByType[type] + 1
+		entry.typedIndex = spec.numToolConnectionsByType[type]
+		entry.connected = false
+		return true
+	end
+end
+function ConnectionHoses:addHoseTargetNodes(xmlFile, key)
+	local spec = self.spec_connectionHoses
+	local addedTarget = false
+	xmlFile:iterate(key, function(_, targetKey)
+		local entry = {}
+		if self:loadHoseTargetNode(xmlFile, targetKey, entry) then
+			table.insert(spec.targetNodes, entry)
+			entry.index = #spec.targetNodes
+			if spec.targetNodesByType[entry.type] == nil then
+				spec.targetNodesByType[entry.type] = {}
+			end
+			table.insert(spec.targetNodesByType[entry.type], entry)
+			addedTarget = true
 		end
 	end)
-	return v_u_327_ and #v_u_326_.targetNodes or nil
+	if addedTarget then
+		return #spec.targetNodes
+	else
+		return nil
+	end
 end
-
 function ConnectionHoses:loadCustomHosesFromXML(isHose, targetTable, attacherJointMapping, inputAttacherJointMapping, xmlFile, key)
-	xmlFile:iterate(key, function(_, p339_)
-		-- upvalues: (copy) xmlFile, (copy) self, (copy) inputAttacherJointMapping, (copy) attacherJointMapping, (copy) isHose, (copy) targetTable
-		local v340_ = {
-			["node"] = xmlFile:getValue(p339_ .. "#node", nil, self.components, self.i3dMappings)
-		}
-		if v340_.node == nil then
-			Logging.xmlWarning(xmlFile, "Missing node for custom hose \'%s\'", p339_)
-			return
-		else
-			v340_.type = xmlFile:getValue(p339_ .. "#type")
-			if v340_.type == nil then
-				Logging.xmlWarning(xmlFile, "Missing type for custom hose \'%s\'", p339_)
-			else
-				v340_.type = string.upper(v340_.type)
-				v340_.inputAttacherJointIndices = {}
-				local v341_ = xmlFile:getValue(p339_ .. "#inputAttacherJointIndices", nil, true)
-				if v341_ ~= nil then
-					for _, v342_ in ipairs(v341_) do
-						v340_.inputAttacherJointIndices[v342_] = v342_
-						if inputAttacherJointMapping[v342_] == nil then
-							inputAttacherJointMapping[v342_] = {}
+	xmlFile:iterate(key, function(_, customKey)
+		local entry = {}
+		entry.node = xmlFile:getValue(customKey .. "#node", nil, self.components, self.i3dMappings)
+		if entry.node ~= nil then
+			entry.type = xmlFile:getValue(customKey .. "#type")
+			if entry.type ~= nil then
+				entry.type = string.upper(entry.type)
+				entry.inputAttacherJointIndices = {}
+				local inputAttacherJointIndices = xmlFile:getValue(customKey .. "#inputAttacherJointIndices", nil, true)
+				if inputAttacherJointIndices ~= nil then
+					for _, v in ipairs(inputAttacherJointIndices) do
+						entry.inputAttacherJointIndices[v] = v
+						if inputAttacherJointMapping[v] == nil then
+							inputAttacherJointMapping[v] = {}
 						end
-						local v343_ = inputAttacherJointMapping[v342_]
-						table.insert(v343_, v340_)
+						table.insert(inputAttacherJointMapping[v], entry)
 					end
 				end
-				v340_.attacherJointIndices = {}
-				local v344_ = xmlFile:getValue(p339_ .. "#attacherJointIndices", nil, true)
-				if v344_ ~= nil then
-					for _, v345_ in ipairs(v344_) do
-						v340_.attacherJointIndices[v345_] = v345_
-						if attacherJointMapping[v345_] == nil then
-							attacherJointMapping[v345_] = {}
+				entry.attacherJointIndices = {}
+				local attacherJointIndices = xmlFile:getValue(customKey .. "#attacherJointIndices", nil, true)
+				if attacherJointIndices ~= nil then
+					for _, v in ipairs(attacherJointIndices) do
+						entry.attacherJointIndices[v] = v
+						if attacherJointMapping[v] == nil then
+							attacherJointMapping[v] = {}
 						end
-						local v346_ = attacherJointMapping[v345_]
-						table.insert(v346_, v340_)
+						table.insert(attacherJointMapping[v], entry)
 					end
 				end
 				if isHose then
-					v340_.isActiveDirty = xmlFile:getValue(p339_ .. "#isActiveDirty", false)
-					if v340_.isActiveDirty then
-						local v347_ = self.spec_connectionHoses.customHosesActiveDirty
-						table.insert(v347_, v340_)
+					entry.isActiveDirty = xmlFile:getValue(customKey .. "#isActiveDirty", false)
+					if entry.isActiveDirty then
+						table.insert(self.spec_connectionHoses.customHosesActiveDirty, entry)
 					end
-					v340_.startTranslation = { getTranslation(v340_.node) }
-					v340_.startRotation = { getRotation(v340_.node) }
+					entry.startTranslation = { getTranslation(entry.node) }
+					entry.startRotation = { getRotation(entry.node) }
 				end
-				if next(v340_.inputAttacherJointIndices) == nil and next(v340_.attacherJointIndices) == nil then
-					Logging.xmlWarning(xmlFile, "Missing inputAttacherJointIndices for custom hose \'%s\'", p339_)
+				if next(entry.inputAttacherJointIndices) == nil and next(entry.attacherJointIndices) == nil then
+					Logging.xmlWarning(xmlFile, "Missing inputAttacherJointIndices for custom hose '%s'", customKey)
 					return false
 				end
-				v340_.objectChanges = {}
-				ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, p339_, v340_.objectChanges, self.components, self)
-				ObjectChangeUtil.setObjectChanges(v340_.objectChanges, false, self, self.setMovingToolDirty, true)
-				v340_.objectChangesTarget = self
-				v340_.isActive = false
-				local v348_ = targetTable
-				table.insert(v348_, v340_)
+				entry.objectChanges = {}
+				ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, customKey, entry.objectChanges, self.components, self)
+				ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
+				entry.objectChangesTarget = self
+				entry.isActive = false
+				table.insert(targetTable, entry)
+				return
+			else
+				Logging.xmlWarning(xmlFile, "Missing type for custom hose '%s'", customKey)
+				return
 			end
 		end
+		Logging.xmlWarning(xmlFile, "Missing node for custom hose '%s'", customKey)
 	end)
 end
-
--- Local values: attacherJointIndices, _, attacherJointIndex, attacherJointNodes, _, node, attacherJointIndex, socketName, socketMaterial
 function ConnectionHoses:loadHoseTargetNode(xmlFile, targetKey, entry)
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, targetKey .. "#socketColor", targetKey .. "#socketMaterialTemplateName")
 	entry.node = xmlFile:getValue(targetKey .. "#node", nil, self.components, self.i3dMappings)
 	if entry.node == nil then
-		Logging.xmlWarning(xmlFile, "Missing node for connection hose target \'%s\'", targetKey)
+		Logging.xmlWarning(xmlFile, "Missing node for connection hose target '%s'", targetKey)
 		return false
 	end
 	entry.attacherJointIndices = {}
-	local v353_ = xmlFile:getValue(targetKey .. "#attacherJointIndices", nil, true)
-	if v353_ ~= nil then
-		for _, v354_ in ipairs(v353_) do
-			entry.attacherJointIndices[v354_] = v354_
+	local attacherJointIndices = xmlFile:getValue(targetKey .. "#attacherJointIndices", nil, true)
+	if attacherJointIndices ~= nil then
+		for _, attacherJointIndex in ipairs(attacherJointIndices) do
+			entry.attacherJointIndices[attacherJointIndex] = attacherJointIndex
 		end
 	end
-	local v355_ = xmlFile:getValue(targetKey .. "#attacherJointNodes", nil, self.components, self.i3dMappings, true)
-	if v355_ ~= nil then
-		for _, v356_ in ipairs(v355_) do
-			local v357_ = self:getAttacherJointIndexByNode(v356_)
-			if v357_ ~= nil then
-				entry.attacherJointIndices[v357_] = v357_
+	local attacherJointNodes = xmlFile:getValue(targetKey .. "#attacherJointNodes", nil, self.components, self.i3dMappings, true)
+	if attacherJointNodes ~= nil then
+		for _, node in ipairs(attacherJointNodes) do
+			local attacherJointIndex = self:getAttacherJointIndexByNode(node)
+			if attacherJointIndex == nil then
+				continue
 			end
+			entry.attacherJointIndices[attacherJointIndex] = attacherJointIndex
 		end
 	end
 	entry.type = xmlFile:getValue(targetKey .. "#type")
 	entry.specType = xmlFile:getValue(targetKey .. "#specType")
 	entry.straighteningFactor = xmlFile:getValue(targetKey .. "#straighteningFactor", 1)
 	entry.straighteningDirection = xmlFile:getValue(targetKey .. "#straighteningDirection", nil, true)
-	local v358_ = xmlFile:getValue(targetKey .. "#socket")
-	if v358_ ~= nil then
-		local v359_ = xmlFile:getValue(targetKey .. "#socketMaterialTemplateName", nil, self.customEnvironment)
-		entry.socket = g_connectionHoseManager:linkSocketToNode(v358_, entry.node, self.customEnvironment, v359_)
+	local socketName = xmlFile:getValue(targetKey .. "#socket")
+	if socketName ~= nil then
+		local socketMaterial = xmlFile:getValue(targetKey .. "#socketMaterialTemplateName", nil, self.customEnvironment)
+		entry.socket = g_connectionHoseManager:linkSocketToNode(socketName, entry.node, self.customEnvironment, socketMaterial)
 	end
-	if entry.type == nil then
-		Logging.xmlWarning(xmlFile, "Missing type for \'%s\'", targetKey)
+	if entry.type ~= nil then
+		entry.adapterName = xmlFile:getValue(targetKey .. "#adapterType", "DEFAULT")
+		if entry.adapter == nil then
+			entry.adapter = {}
+			entry.adapter.node = entry.node
+			entry.adapter.refNode = entry.node
+		end
+		entry.objectChanges = {}
+		ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, targetKey, entry.objectChanges, self.components, self)
+		ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
+		return true
+	else
+		Logging.xmlWarning(xmlFile, "Missing type for '%s'", targetKey)
 		return false
 	end
-	entry.adapterName = xmlFile:getValue(targetKey .. "#adapterType", "DEFAULT")
-	if entry.adapter == nil then
-		entry.adapter = {}
-		entry.adapter.node = entry.node
-		entry.adapter.refNode = entry.node
-	end
-	entry.objectChanges = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, targetKey, entry.objectChanges, self.components, self)
-	ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
-	return true
 end
-
--- Local values: inputAttacherJointIndices, _, inputAttacherJointIndex, inputAttacherJointNodes, _, node, inputAttacherJointIndex, spec, type, i, i, node, socketName, socketMaterial, hose, startStraightening, endStraightening, minCenterPointAngle, outgoingNode, visibilityNode, rx, ry, rz, node, referenceNode
 function ConnectionHoses:loadHoseNode(xmlFile, hoseKey, entry, isBaseHose)
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, hoseKey .. "#color", hoseKey .. "#materialTemplateName")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, hoseKey .. "#socketColor", hoseKey .. "#socketMaterialTemplateName")
 	entry.inputAttacherJointIndices = {}
-	local v365_ = xmlFile:getValue(hoseKey .. "#inputAttacherJointIndices", nil, true)
-	if v365_ ~= nil then
-		for _, v366_ in ipairs(v365_) do
-			entry.inputAttacherJointIndices[v366_] = v366_
+	local inputAttacherJointIndices = xmlFile:getValue(hoseKey .. "#inputAttacherJointIndices", nil, true)
+	if inputAttacherJointIndices ~= nil then
+		for _, inputAttacherJointIndex in ipairs(inputAttacherJointIndices) do
+			entry.inputAttacherJointIndices[inputAttacherJointIndex] = inputAttacherJointIndex
 		end
 	end
-	local v367_ = xmlFile:getValue(hoseKey .. "#inputAttacherJointNodes", nil, self.components, self.i3dMappings, true)
-	if v367_ ~= nil then
-		for _, v368_ in ipairs(v367_) do
-			local v369_ = self:getInputAttacherJointIndexByNode(v368_)
-			if v369_ ~= nil then
-				entry.inputAttacherJointIndices[v369_] = v369_
+	local inputAttacherJointNodes = xmlFile:getValue(hoseKey .. "#inputAttacherJointNodes", nil, self.components, self.i3dMappings, true)
+	if inputAttacherJointNodes ~= nil then
+		for _, node in ipairs(inputAttacherJointNodes) do
+			local inputAttacherJointIndex = self:getInputAttacherJointIndexByNode(node)
+			if inputAttacherJointIndex == nil then
+				continue
 			end
+			entry.inputAttacherJointIndices[inputAttacherJointIndex] = inputAttacherJointIndex
 		end
 	end
 	entry.type = xmlFile:getValue(hoseKey .. "#type")
 	entry.specType = xmlFile:getValue(hoseKey .. "#specType")
 	if entry.type == nil then
-		Logging.xmlWarning(xmlFile, "Missing type attribute in \'%s\'", hoseKey)
+		Logging.xmlWarning(xmlFile, "Missing type attribute in '%s'", hoseKey)
 		return false
 	end
 	entry.hoseType = xmlFile:getValue(hoseKey .. "#hoseType", "DEFAULT")
 	entry.node = xmlFile:getValue(hoseKey .. "#node", nil, self.components, self.i3dMappings)
 	if entry.node == nil then
-		Logging.xmlWarning(xmlFile, "Missing node for connection hose \'%s\'", hoseKey)
+		Logging.xmlWarning(xmlFile, "Missing node for connection hose '%s'", hoseKey)
 		return false
 	end
 	if isBaseHose then
-		local v370_ = self.spec_connectionHoses
-		local v371_ = entry.type .. (entry.specType or "")
-		if v370_.numHosesByType[v371_] == nil then
-			v370_.numHosesByType[v371_] = 0
+		local spec = self.spec_connectionHoses
+		local type = entry.type .. (entry.specType or "")
+		if spec.numHosesByType[type] == nil then
+			spec.numHosesByType[type] = 0
 		end
-		v370_.numHosesByType[v371_] = v370_.numHosesByType[v371_] + 1
-		entry.typedIndex = v370_.numHosesByType[v371_]
+		spec.numHosesByType[type] = spec.numHosesByType[type] + 1
+		entry.typedIndex = spec.numHosesByType[type]
 	end
 	entry.isTwoPointHose = xmlFile:getValue(hoseKey .. "#isTwoPointHose", false)
 	entry.isWorldSpaceHose = xmlFile:getValue(hoseKey .. "#isWorldSpaceHose", true)
@@ -905,321 +831,316 @@ function ConnectionHoses:loadHoseNode(xmlFile, hoseKey, entry, isBaseHose)
 	entry.minCenterPointOffset = xmlFile:getValue(hoseKey .. "#minCenterPointOffset", nil, true)
 	entry.maxCenterPointOffset = xmlFile:getValue(hoseKey .. "#maxCenterPointOffset", nil, true)
 	if entry.minCenterPointOffset ~= nil and entry.maxCenterPointOffset ~= nil then
-		for v372_ = 1, 3 do
-			if entry.minCenterPointOffset[v372_] == 0 then
-				entry.minCenterPointOffset[v372_] = -math.huge
+		for i = 1, 3 do
+			if entry.minCenterPointOffset[i] == 0 then
+				entry.minCenterPointOffset[i] = -math.huge
 			end
-			if entry.maxCenterPointOffset[v372_] == 0 then
-				entry.maxCenterPointOffset[v372_] = math.huge
+			if entry.maxCenterPointOffset[i] == 0 then
+				entry.maxCenterPointOffset[i] = math.huge
 			end
 		end
-		for v373_ = 1, 3 do
-			if entry.maxCenterPointOffset[v373_] < entry.minCenterPointOffset[v373_] or entry.minCenterPointOffset[v373_] > entry.maxCenterPointOffset[v373_] then
+		for i = 1, 3 do
+			if entry.maxCenterPointOffset[i] < entry.minCenterPointOffset[i] or entry.maxCenterPointOffset[i] < entry.minCenterPointOffset[i] then
 				entry.minCenterPointOffset = nil
 				entry.maxCenterPointOffset = nil
-				Logging.xmlWarning(xmlFile, "Invalid centerPointOffset in \'%s\'. Max is smaller than min or min is greater than max.", hoseKey)
-				break
-			end
-		end
-	end
-	entry.minDeltaY = xmlFile:getValue(hoseKey .. "#minDeltaY", math.huge)
-	entry.minDeltaYComponent = xmlFile:getValue(hoseKey .. "#minDeltaYComponent", entry.component, self.components, self.i3dMappings)
-	entry.material = xmlFile:getValue(hoseKey .. "#materialTemplateName", nil, self.customEnvironment)
-	entry.adapterMaterial = xmlFile:getValue(hoseKey .. "#adapterMaterialTemplateName", nil, self.customEnvironment)
-	entry.adapterName = xmlFile:getValue(hoseKey .. "#adapterType")
-	entry.outgoingAdapter = xmlFile:getValue(hoseKey .. "#outgoingAdapter")
-	entry.adapterNode = xmlFile:getValue(hoseKey .. "#adapterNode", nil, self.components, self.i3dMappings)
-	if entry.adapterNode ~= nil then
-		local v374_ = g_connectionHoseManager:getClonedAdapterNode(entry.type, entry.adapterName or "DEFAULT", self.customEnvironment, true)
-		if v374_ == nil then
-			Logging.xmlWarning(xmlFile, "Unable to find detached adapter for type \'%s\' in \'%s\'", entry.adapterName or "DEFAULT", hoseKey)
-		else
-			if entry.adapterMaterial ~= nil then
-				entry.adapterMaterial:apply(v374_, "connector_color_mat")
-			end
-			link(entry.adapterNode, v374_)
-		end
-	end
-	local v375_ = xmlFile:getValue(hoseKey .. "#socket")
-	if v375_ ~= nil then
-		local v376_ = xmlFile:getValue(hoseKey .. "#socketMaterialTemplateName", nil, self.customEnvironment)
-		entry.socket = g_connectionHoseManager:linkSocketToNode(v375_, entry.node, self.customEnvironment, v376_)
-		if entry.socket ~= nil then
-			setRotation(entry.socket.node, 0, 3.141592653589793, 0)
-		end
-	end
-	local v377_, v378_, v379_, v380_ = g_connectionHoseManager:getClonedHoseNode(entry.type, entry.hoseType, entry.length, entry.diameter, entry.material, self.customEnvironment)
-	if v377_ == nil then
-		Logging.xmlWarning(xmlFile, "Unable to find connection hose with length \'%.2f\' and diameter \'%.2f\' in \'%s\'", entry.length, entry.diameter, hoseKey)
-		return false
-	end
-	local v381_ = g_connectionHoseManager:getSocketTarget(entry.socket, entry.node)
-	local v382_ = 0
-	local v383_
-	if entry.outgoingAdapter == nil then
-		v383_ = v377_
-	else
-		local v384_
-		v383_, v384_ = g_connectionHoseManager:getClonedAdapterNode(entry.type, entry.outgoingAdapter, self.customEnvironment)
-		if v383_ == nil then
-			Logging.xmlWarning(xmlFile, "Unable to find adapter type \'%s\' in \'%s\'", entry.outgoingAdapter, hoseKey)
-			v383_ = v377_
-		else
-			if entry.adapterMaterial ~= nil then
-				entry.adapterMaterial:apply(v383_, "connector_color_mat")
-			end
-			link(v381_, v383_)
-			v382_ = 3.141592653589793
-			if entry.socket == nil then
-				setRotation(v383_, 0, v382_, 0)
-				v381_ = v384_
+				Logging.xmlWarning(xmlFile, "Invalid centerPointOffset in '%s'. Max is smaller than min or min is greater than max.", hoseKey)
 			else
-				v381_ = v384_
+			end
+			entry.minDeltaY = xmlFile:getValue(hoseKey .. "#minDeltaY", math.huge)
+			entry.minDeltaYComponent = xmlFile:getValue(hoseKey .. "#minDeltaYComponent", entry.component, self.components, self.i3dMappings)
+			entry.material = xmlFile:getValue(hoseKey .. "#materialTemplateName", nil, self.customEnvironment)
+			entry.adapterMaterial = xmlFile:getValue(hoseKey .. "#adapterMaterialTemplateName", nil, self.customEnvironment)
+			entry.adapterName = xmlFile:getValue(hoseKey .. "#adapterType")
+			entry.outgoingAdapter = xmlFile:getValue(hoseKey .. "#outgoingAdapter")
+			entry.adapterNode = xmlFile:getValue(hoseKey .. "#adapterNode", nil, self.components, self.i3dMappings)
+			if entry.adapterNode ~= nil then
+				local node = g_connectionHoseManager:getClonedAdapterNode(entry.type, entry.adapterName or "DEFAULT", self.customEnvironment, true)
+				if node ~= nil then
+					if entry.adapterMaterial ~= nil then
+						entry.adapterMaterial:apply(node, "connector_color_mat")
+					end
+					link(entry.adapterNode, node)
+				else
+					Logging.xmlWarning(xmlFile, "Unable to find detached adapter for type '%s' in '%s'", entry.adapterName or "DEFAULT", hoseKey)
+				end
+			end
+			local socketName = xmlFile:getValue(hoseKey .. "#socket")
+			if socketName ~= nil then
+				local socketMaterial = xmlFile:getValue(hoseKey .. "#socketMaterialTemplateName", nil, self.customEnvironment)
+				entry.socket = g_connectionHoseManager:linkSocketToNode(socketName, entry.node, self.customEnvironment, socketMaterial)
+				if entry.socket ~= nil then
+					setRotation(entry.socket.node, 0, 3.141592653589793, 0)
+				end
+			end
+			local hose, startStraightening, endStraightening, minCenterPointAngle = g_connectionHoseManager:getClonedHoseNode(entry.type, entry.hoseType, entry.length, entry.diameter, entry.material, self.customEnvironment)
+			if hose ~= nil then
+				local outgoingNode = g_connectionHoseManager:getSocketTarget(entry.socket, entry.node)
+				local visibilityNode = hose
+				local rx = 0
+				local ry = 0
+				local rz = 0
+				if entry.outgoingAdapter ~= nil then
+					local node, referenceNode = g_connectionHoseManager:getClonedAdapterNode(entry.type, entry.outgoingAdapter, self.customEnvironment)
+					if node ~= nil then
+						if entry.adapterMaterial ~= nil then
+							entry.adapterMaterial:apply(node, "connector_color_mat")
+						end
+						link(outgoingNode, node)
+						outgoingNode = referenceNode
+						visibilityNode = node
+						ry = 3.141592653589793
+						if entry.socket == nil then
+							setRotation(node, 0, ry, 0)
+						end
+					else
+						Logging.xmlWarning(xmlFile, "Unable to find adapter type '%s' in '%s'", entry.outgoingAdapter, hoseKey)
+					end
+				end
+				link(outgoingNode, hose)
+				setTranslation(hose, 0, 0, 0)
+				setRotation(hose, 0, ry, 0)
+				entry.hoseNode = hose
+				entry.visibilityNode = visibilityNode
+				entry.startStraightening = startStraightening * entry.straighteningFactor
+				entry.endStraightening = endStraightening
+				entry.endStraighteningBase = endStraightening
+				entry.endStraighteningDirectionBase = { 0, 0, 1 }
+				entry.endStraighteningDirection = entry.endStraighteningDirectionBase
+				entry.minCenterPointAngle = entry.minCenterPointAngle or minCenterPointAngle
+				setVisibility(entry.visibilityNode, false)
+				entry.objectChanges = {}
+				ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, hoseKey, entry.objectChanges, self.components, self)
+				ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
+				return true
+			else
+				Logging.xmlWarning(xmlFile, "Unable to find connection hose with length '%.2f' and diameter '%.2f' in '%s'", entry.length, entry.diameter, hoseKey)
+				return false
 			end
 		end
 	end
-	link(v381_, v377_)
-	setTranslation(v377_, 0, 0, 0)
-	setRotation(v377_, 0, v382_, 0)
-	entry.hoseNode = v377_
-	entry.visibilityNode = v383_
-	entry.startStraightening = v378_ * entry.straighteningFactor
-	entry.endStraightening = v379_
-	entry.endStraighteningBase = v379_
-	entry.endStraighteningDirectionBase = { 0, 0, 1 }
-	entry.endStraighteningDirection = entry.endStraighteningDirectionBase
-	entry.minCenterPointAngle = entry.minCenterPointAngle or v380_
-	setVisibility(entry.visibilityNode, false)
-	entry.objectChanges = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, hoseKey, entry.objectChanges, self.components, self)
-	ObjectChangeUtil.setObjectChanges(entry.objectChanges, false, self, self.setMovingToolDirty, true)
-	return true
 end
-
--- Local values: clonedHose, hose, startStraightening, endStraightening, minCenterPointAngle
 function ConnectionHoses:getClonedSkipHoseNode(sourceHose, skipNode)
-	local v388_ = {
-		["isClonedSkipNodeHose"] = true,
-		["type"] = sourceHose.type,
-		["specType"] = sourceHose.specType,
-		["hoseType"] = sourceHose.hoseType,
-		["node"] = skipNode.node,
-		["component"] = self:getParentComponent(skipNode.node),
-		["lastVelY"] = 0,
-		["lastVelZ"] = 0,
-		["dampingRange"] = 0.05,
-		["dampingFactor"] = 50,
-		["minDeltaYComponent"] = self:getParentComponent(skipNode.node),
-		["minDeltaY"] = math.huge,
-		["length"] = skipNode.length or sourceHose.length,
-		["diameter"] = sourceHose.diameter,
-		["isTwoPointHose"] = skipNode.isTwoPointHose,
-		["material"] = sourceHose.material
-	}
-	local v389_, v390_, v391_, v392_ = g_connectionHoseManager:getClonedHoseNode(v388_.type, v388_.hoseType, v388_.length, v388_.diameter, v388_.material, self.customEnvironment)
-	if v389_ == nil then
-		Logging.xmlWarning(self.xmlFile, "Unable to find connection hose with length \'%.2f\' and diameter \'%.2f\' in \'%s\'", v388_.length, v388_.diameter, "skipHoseClone")
+	local clonedHose = {}
+	clonedHose.isClonedSkipNodeHose = true
+	clonedHose.type = sourceHose.type
+	clonedHose.specType = sourceHose.specType
+	clonedHose.hoseType = sourceHose.hoseType
+	clonedHose.node = skipNode.node
+	clonedHose.component = self:getParentComponent(skipNode.node)
+	clonedHose.lastVelY = 0
+	clonedHose.lastVelZ = 0
+	clonedHose.dampingRange = 0.05
+	clonedHose.dampingFactor = 50
+	clonedHose.minDeltaYComponent = self:getParentComponent(skipNode.node)
+	clonedHose.minDeltaY = math.huge
+	clonedHose.length = skipNode.length or sourceHose.length
+	clonedHose.diameter = sourceHose.diameter
+	clonedHose.isTwoPointHose = skipNode.isTwoPointHose
+	clonedHose.material = sourceHose.material
+	local hose, startStraightening, endStraightening, minCenterPointAngle = g_connectionHoseManager:getClonedHoseNode(clonedHose.type, clonedHose.hoseType, clonedHose.length, clonedHose.diameter, clonedHose.material, self.customEnvironment)
+	if hose ~= nil then
+		link(clonedHose.node, hose)
+		setTranslation(hose, 0, 0, 0)
+		setRotation(hose, 0, 0, 0)
+		clonedHose.hoseNode = hose
+		clonedHose.visibilityNode = hose
+		clonedHose.startStraightening = startStraightening
+		clonedHose.endStraightening = endStraightening
+		clonedHose.endStraighteningBase = endStraightening
+		clonedHose.endStraighteningDirectionBase = { 0, 0, 1 }
+		clonedHose.endStraighteningDirection = clonedHose.endStraighteningDirectionBase
+		clonedHose.minCenterPointAngle = minCenterPointAngle
+		setVisibility(clonedHose.visibilityNode, false)
+		clonedHose.objectChanges = {}
+		return clonedHose
+	else
+		Logging.xmlWarning(self.xmlFile, "Unable to find connection hose with length '%.2f' and diameter '%.2f' in '%s'", clonedHose.length, clonedHose.diameter, "skipHoseClone")
 		return false
 	end
-	link(v388_.node, v389_)
-	setTranslation(v389_, 0, 0, 0)
-	setRotation(v389_, 0, 0, 0)
-	v388_.hoseNode = v389_
-	v388_.visibilityNode = v389_
-	v388_.startStraightening = v390_
-	v388_.endStraightening = v391_
-	v388_.endStraighteningBase = v391_
-	v388_.endStraighteningDirectionBase = { 0, 0, 1 }
-	v388_.endStraighteningDirection = v388_.endStraighteningDirectionBase
-	v388_.minCenterPointAngle = v392_
-	setVisibility(v388_.visibilityNode, false)
-	v388_.objectChanges = {}
-	return v388_
 end
-
--- Local values: spec, nodes, _, node, toolConnectionHose, _, node
 function ConnectionHoses:getConnectionTarget(attacherJointIndex, type, specType, excludeToolConnections)
-	local v398_ = self.spec_connectionHoses
-	if #v398_.targetNodes == 0 and #v398_.hoseSkipNodes == 0 then
+	local spec = self.spec_connectionHoses
+	if #spec.targetNodes == 0 and #spec.hoseSkipNodes == 0 then
 		return nil
 	end
-	local v399_ = v398_.targetNodesByType[type]
-	if v399_ ~= nil then
-		for _, v400_ in ipairs(v399_) do
-			if v400_.attacherJointIndices[attacherJointIndex] ~= nil and (v400_.specType == specType and not self:getIsConnectionTargetUsed(v400_)) then
-				local v401_ = v398_.targetNodeToToolConnection[v400_.index]
-				if v401_ == nil or (excludeToolConnections == nil or (not excludeToolConnections or v401_.delayedMounting ~= nil)) then
-					return v400_, false
-				else
+	local nodes = spec.targetNodesByType[type]
+	if nodes ~= nil then
+		for _, node in ipairs(nodes) do
+			if node.attacherJointIndices[attacherJointIndex] == nil then
+				continue
+			end
+			if node.specType == specType then
+				if self:getIsConnectionTargetUsed(node) then
+					continue
+				end
+				local toolConnectionHose = spec.targetNodeToToolConnection[node.index]
+				if toolConnectionHose ~= nil and (excludeToolConnections ~= nil and (excludeToolConnections and toolConnectionHose.delayedMounting == nil)) then
 					return nil
 				end
+				return node, false
 			end
 		end
 	end
-	local v402_ = v398_.hoseSkipNodeByType[type]
-	if v402_ ~= nil then
-		for _, v403_ in ipairs(v402_) do
-			if v403_.specType == specType and self:getIsSkipNodeAvailable(v403_) then
-				return v403_, true
+	nodes = spec.hoseSkipNodeByType[type]
+	if nodes ~= nil then
+		for _, node in ipairs(nodes) do
+			if node.specType == specType and self:getIsSkipNodeAvailable(node) then
+				return node, true
 			end
 		end
 	end
 	return nil
 end
-
--- Local values: spec, nodes, _, node, toolConnectionHose, _, node
 function ConnectionHoses:iterateConnectionTargets(func, attacherJointIndex, type, specType, excludeToolConnections)
-	local v410_ = self.spec_connectionHoses
-	if #v410_.targetNodes == 0 and #v410_.hoseSkipNodes == 0 then
+	local spec = self.spec_connectionHoses
+	if #spec.targetNodes == 0 and #spec.hoseSkipNodes == 0 then
 		return nil
 	end
-	local v411_ = v410_.targetNodesByType[type]
-	if v411_ ~= nil then
-		for _, v412_ in ipairs(v411_) do
-			if v412_.attacherJointIndices[attacherJointIndex] ~= nil and (v412_.specType == specType and not self:getIsConnectionTargetUsed(v412_)) then
-				local v413_ = v410_.targetNodeToToolConnection[v412_.index]
-				if v413_ ~= nil and (excludeToolConnections ~= nil and (excludeToolConnections and v413_.delayedMounting == nil)) then
+	local nodes = spec.targetNodesByType[type]
+	if nodes ~= nil then
+		for _, node in ipairs(nodes) do
+			if node.attacherJointIndices[attacherJointIndex] == nil then
+				continue
+			end
+			if node.specType == specType then
+				if self:getIsConnectionTargetUsed(node) then
+					continue
+				end
+				local toolConnectionHose = spec.targetNodeToToolConnection[node.index]
+				if toolConnectionHose ~= nil and (excludeToolConnections ~= nil and (excludeToolConnections and toolConnectionHose.delayedMounting == nil)) then
 					return nil
 				end
-				if not func(v412_, false) then
-					break
+				if func(node, false) then
+					continue
+				end
+				nodes = spec.hoseSkipNodeByType[type]
+				if nodes ~= nil then
+					for _, node in ipairs(nodes) do
+						if node.specType == specType and self:getIsSkipNodeAvailable(node) then
+							if func(node, true) then
+								continue
+							end
+							return nil
+						end
+					end
 				end
 			end
 		end
 	end
-	local v414_ = v410_.hoseSkipNodeByType[type]
-	if v414_ ~= nil then
-		for _, v415_ in ipairs(v414_) do
-			if v415_.specType == specType and (self:getIsSkipNodeAvailable(v415_) and not func(v415_, true)) then
-				break
-			end
-		end
-	end
-	return nil
 end
-
 function ConnectionHoses:getIsConnectionTargetUsed(desc)
 	return desc.connectedObject ~= nil
 end
-
 function ConnectionHoses:getIsConnectionHoseUsed(desc)
 	return desc.connectedObject ~= nil
 end
-
--- Local values: attacherVehicle, attacherJointIndex, implement
 function ConnectionHoses:getIsSkipNodeAvailable(skipNode)
 	if self.getAttacherVehicle == nil then
 		return false
-	end
-	local v420_ = self:getAttacherVehicle()
-	if v420_ ~= nil then
-		local v421_ = v420_:getAttacherJointIndexFromObject(self)
-		if v420_:getImplementFromAttacherJointIndex(v421_).inputJointDescIndex == skipNode.inputAttacherJointIndex then
-			local v422_
-			if v420_:getConnectionTarget(v421_, skipNode.type, skipNode.specType, true) == nil then
-				v422_ = false
-			else
-				v422_ = skipNode.parentHose == nil
-			end
-			return v422_
-		end
-	end
-	return false
-end
-
--- Local values: spec
-function ConnectionHoses:getConnectionHosesByInputAttacherJoint(inputJointDescIndex)
-	local v425_ = self.spec_connectionHoses
-	return v425_.hoseNodesByInputAttacher[inputJointDescIndex] == nil and {} or v425_.hoseNodesByInputAttacher[inputJointDescIndex]
-end
-
--- Local values: spec, doConnect, node, referenceNode, hoseType, material, realLength, _, _, _, actualLength, sample
-function ConnectionHoses:connectHose(sourceHose, targetObject, targetHose, updateToolConnections)
-	local v431_ = self.spec_connectionHoses
-	local v432_ = false
-	if (updateToolConnections == nil or updateToolConnections) and not targetObject:updateToolConnectionHose(self, sourceHose, targetObject, targetHose, true) then
-		targetObject:addHoseToDelayedMountings(self, sourceHose, targetObject, targetHose)
 	else
-		v432_ = true
-	end
-	if not v432_ then
+		local attacherVehicle = self:getAttacherVehicle()
+		if attacherVehicle ~= nil then
+			local attacherJointIndex = attacherVehicle:getAttacherJointIndexFromObject(self)
+			local implement = attacherVehicle:getImplementFromAttacherJointIndex(attacherJointIndex)
+			if implement.inputJointDescIndex == skipNode.inputAttacherJointIndex then
+				return false
+			end
+		end
 		return false
 	end
-	targetHose.connectedObject = self
-	sourceHose.connectedObject = targetObject
-	sourceHose.targetHose = targetHose
-	local v433_ = nil
-	local v434_ = nil
-	if sourceHose.adapterName == nil then
-		if targetHose.adapterName ~= "NONE" then
-			v433_, v434_ = g_connectionHoseManager:getClonedAdapterNode(targetHose.type, targetHose.adapterName, self.customEnvironment)
-		end
-	elseif sourceHose.adapterName ~= "NONE" then
-		v433_, v434_ = g_connectionHoseManager:getClonedAdapterNode(targetHose.type, sourceHose.adapterName, self.customEnvironment)
+end
+function ConnectionHoses:getConnectionHosesByInputAttacherJoint(inputJointDescIndex)
+	local spec = self.spec_connectionHoses
+	if spec.hoseNodesByInputAttacher[inputJointDescIndex] ~= nil then
+		return spec.hoseNodesByInputAttacher[inputJointDescIndex]
+	else
+		return {}
 	end
-	if v433_ ~= nil then
-		if sourceHose.adapterMaterial ~= nil then
-			sourceHose.adapterMaterial:apply(v433_, "connector_color_mat")
+end
+function ConnectionHoses:connectHose(sourceHose, targetObject, targetHose, updateToolConnections)
+	local spec = self.spec_connectionHoses
+	local doConnect = false
+	if updateToolConnections ~= nil then
+		if not updateToolConnections then
+			doConnect = true
+		elseif targetObject:updateToolConnectionHose(self, sourceHose, targetObject, targetHose, true) then
+			doConnect = true
+		else
+			targetObject:addHoseToDelayedMountings(self, sourceHose, targetObject, targetHose)
 		end
-		link(g_connectionHoseManager:getSocketTarget(targetHose.socket, targetHose.node), v433_)
-		setTranslation(v433_, 0, 0, 0)
-		setRotation(v433_, 0, 0, 0)
-		targetObject:addAllSubWashableNodes(v433_)
-		targetHose.adapter.node = v433_
-		targetHose.adapter.refNode = v434_
-		targetHose.adapter.isLinked = true
 	end
-	sourceHose.targetNode = targetHose.adapter.refNode
-	setVisibility(sourceHose.visibilityNode, true)
-	setShaderParameter(sourceHose.hoseNode, "cv0", 0, 0, -sourceHose.startStraightening, 1, false)
-	sourceHose.endStraightening = sourceHose.endStraighteningBase * targetHose.straighteningFactor
-	sourceHose.endStraighteningDirection = targetHose.straighteningDirection or sourceHose.endStraighteningDirectionBase
-	if sourceHose.dynamicLength then
-		local v435_ = g_connectionHoseManager:getHoseTypeByName(sourceHose.type, self.customEnvironment)
-		if v435_ ~= nil then
-			local v436_ = g_connectionHoseManager:getHoseMaterialByName(v435_, sourceHose.hoseType, self.customEnvironment)
-			if v436_ ~= nil then
-				local v437_, _, _, _ = getShaderParameter(sourceHose.hoseNode, "lengthAndDiameter")
-				local v438_ = calcDistanceFrom(sourceHose.hoseNode, sourceHose.targetNode)
-				setShaderParameter(sourceHose.hoseNode, "uvScale", v438_ / v437_ * v436_.uvLengthScale, nil, nil, nil, false)
+	if doConnect then
+		targetHose.connectedObject = self
+		sourceHose.connectedObject = targetObject
+		sourceHose.targetHose = targetHose
+		local node = nil
+		local referenceNode = nil
+		if sourceHose.adapterName ~= nil then
+			if sourceHose.adapterName ~= "NONE" then
+				node, referenceNode = g_connectionHoseManager:getClonedAdapterNode(targetHose.type, sourceHose.adapterName, self.customEnvironment)
+			end
+		elseif targetHose.adapterName ~= "NONE" then
+			node, referenceNode = g_connectionHoseManager:getClonedAdapterNode(targetHose.type, targetHose.adapterName, self.customEnvironment)
+		end
+		if node ~= nil then
+			if sourceHose.adapterMaterial ~= nil then
+				sourceHose.adapterMaterial:apply(node, "connector_color_mat")
+			end
+			link(g_connectionHoseManager:getSocketTarget(targetHose.socket, targetHose.node), node)
+			setTranslation(node, 0, 0, 0)
+			setRotation(node, 0, 0, 0)
+			targetObject:addAllSubWashableNodes(node)
+			targetHose.adapter.node = node
+			targetHose.adapter.refNode = referenceNode
+			targetHose.adapter.isLinked = true
+		end
+		sourceHose.targetNode = targetHose.adapter.refNode
+		setVisibility(sourceHose.visibilityNode, true)
+		setShaderParameter(sourceHose.hoseNode, "cv0", 0, 0, -sourceHose.startStraightening, 1, false)
+		sourceHose.endStraightening = sourceHose.endStraighteningBase * targetHose.straighteningFactor
+		sourceHose.endStraighteningDirection = targetHose.straighteningDirection or sourceHose.endStraighteningDirectionBase
+		if sourceHose.dynamicLength then
+			local hoseType = g_connectionHoseManager:getHoseTypeByName(sourceHose.type, self.customEnvironment)
+			if hoseType ~= nil then
+				local material = g_connectionHoseManager:getHoseMaterialByName(hoseType, sourceHose.hoseType, self.customEnvironment)
+				if material ~= nil then
+					local realLength, _, _, _ = getShaderParameter(sourceHose.hoseNode, "lengthAndDiameter")
+					local actualLength = calcDistanceFrom(sourceHose.hoseNode, sourceHose.targetNode)
+					setShaderParameter(sourceHose.hoseNode, "uvScale", actualLength / realLength * material.uvLengthScale, nil, nil, nil, false)
+				end
 			end
 		end
-	end
-	ObjectChangeUtil.setObjectChanges(targetHose.objectChanges, true, sourceHose.connectedObject, sourceHose.connectedObject.setMovingToolDirty)
-	ObjectChangeUtil.setObjectChanges(sourceHose.objectChanges, true, targetHose.connectedObject, targetHose.connectedObject.setMovingToolDirty)
-	g_connectionHoseManager:openSocket(sourceHose.socket)
-	g_connectionHoseManager:openSocket(targetHose.socket)
-	self:updateConnectionHose(sourceHose, 0)
-	if self.isClient then
-		local v439_ = v431_.samples.connect[sourceHose.type]
-		if v439_ ~= nil and not g_soundManager:getIsSamplePlaying(v439_) then
-			g_soundManager:playSample(v439_)
+		ObjectChangeUtil.setObjectChanges(targetHose.objectChanges, true, sourceHose.connectedObject, sourceHose.connectedObject.setMovingToolDirty)
+		ObjectChangeUtil.setObjectChanges(sourceHose.objectChanges, true, targetHose.connectedObject, targetHose.connectedObject.setMovingToolDirty)
+		g_connectionHoseManager:openSocket(sourceHose.socket)
+		g_connectionHoseManager:openSocket(targetHose.socket)
+		self:updateConnectionHose(sourceHose, 0)
+		if self.isClient then
+			local sample = spec.samples.connect[sourceHose.type]
+			if sample ~= nil and not g_soundManager:getIsSamplePlaying(sample) then
+				g_soundManager:playSample(sample)
+			end
 		end
+		table.insert(spec.updateableHoses, sourceHose)
+		return true
+	else
+		return false
 	end
-	local v440_ = v431_.updateableHoses
-	table.insert(v440_, sourceHose)
-	return true
 end
-
--- Local values: spec, target, hoseHasSkipNodeTarget, hoseIsFromSkipNodeTarget, sample
 function ConnectionHoses:disconnectHose(hose)
-	local v443_ = self.spec_connectionHoses
-	local v444_ = hose.targetHose
-	if v444_ ~= nil then
-		hose.connectedObject:updateToolConnectionHose(self, hose, hose.connectedObject, v444_, false)
-		local v445_
-		if v444_.isSkipNode == nil then
-			v445_ = false
-		else
-			v445_ = v444_.isSkipNode
+	local spec = self.spec_connectionHoses
+	local target = hose.targetHose
+	if target ~= nil then
+		hose.connectedObject:updateToolConnectionHose(self, hose, hose.connectedObject, target, false)
+		local hoseHasSkipNodeTarget = false
+		if target.isSkipNode ~= nil then
+			hoseHasSkipNodeTarget = target.isSkipNode
 		end
-		local v446_
-		if hose.isClonedSkipNodeHose == nil then
-			v446_ = false
-		else
-			v446_ = hose.isClonedSkipNodeHose
+		local hoseIsFromSkipNodeTarget = false
+		if hose.isClonedSkipNodeHose ~= nil then
+			hoseIsFromSkipNodeTarget = hose.isClonedSkipNodeHose
 		end
-		if v445_ or v446_ then
+		if hoseHasSkipNodeTarget or hoseIsFromSkipNodeTarget then
 			if hose.parentVehicle ~= nil and hose.parentHose ~= nil then
 				hose.parentHose.childVehicle = nil
 				hose.parentHose.childHose = nil
@@ -1230,215 +1151,196 @@ function ConnectionHoses:disconnectHose(hose)
 				hose.childHose.parentHose = nil
 				hose.childVehicle:disconnectHose(hose.childHose)
 			end
-			v444_.parentHose = nil
+			target.parentHose = nil
 		end
-		if v444_.adapter ~= nil and (v444_.adapter.isLinked ~= nil and v444_.adapter.isLinked) then
-			hose.connectedObject:removeAllSubWashableNodes(v444_.adapter.node)
-			delete(v444_.adapter.node)
-			v444_.adapter.node = v444_.node
-			v444_.adapter.refNode = v444_.node
-			v444_.adapter.isLinked = false
+		if target.adapter ~= nil and (target.adapter.isLinked ~= nil and target.adapter.isLinked) then
+			hose.connectedObject:removeAllSubWashableNodes(target.adapter.node)
+			delete(target.adapter.node)
+			target.adapter.node = target.node
+			target.adapter.refNode = target.node
+			target.adapter.isLinked = false
 		end
 		setVisibility(hose.visibilityNode, false)
-		ObjectChangeUtil.setObjectChanges(v444_.objectChanges, false, hose.connectedObject, hose.connectedObject.setMovingToolDirty)
-		ObjectChangeUtil.setObjectChanges(hose.objectChanges, false, v444_.connectedObject, v444_.connectedObject.setMovingToolDirty)
+		ObjectChangeUtil.setObjectChanges(target.objectChanges, false, hose.connectedObject, hose.connectedObject.setMovingToolDirty)
+		ObjectChangeUtil.setObjectChanges(hose.objectChanges, false, target.connectedObject, target.connectedObject.setMovingToolDirty)
 		g_connectionHoseManager:closeSocket(hose.socket)
-		g_connectionHoseManager:closeSocket(v444_.socket)
-		v444_.connectedObject = nil
+		g_connectionHoseManager:closeSocket(target.socket)
+		target.connectedObject = nil
 		hose.connectedObject = nil
 		hose.targetHose = nil
-		table.removeElement(v443_.updateableHoses, hose)
+		table.removeElement(spec.updateableHoses, hose)
 		if self.isClient then
-			local v447_ = v443_.samples.disconnect[hose.type]
-			if v447_ ~= nil and not g_soundManager:getIsSamplePlaying(v447_) then
-				g_soundManager:playSample(v447_)
+			local sample = spec.samples.disconnect[hose.type]
+			if sample ~= nil and not g_soundManager:getIsSamplePlaying(sample) then
+				g_soundManager:playSample(sample)
 			end
 		end
 	end
 end
-
--- Local values: spec, setTargetNodeTranslation, toolConnectionHose, opositTargetIndex, opositTarget, differentSource, sameType, x, y, z, length, hose, _, _, _, dirX, dirY, dirZ, meshLength, diameterScale, _, _, materialId, _, additionalHoseNode, additionalLength, hose, _, _, _, dirX, dirY, dirZ, meshLength, diameterScale, _, _, materialId, parentToolConnectionHose, delayedHose, _, additionalHoseNode, parentToolConnectionHose, _, hose
 function ConnectionHoses:updateToolConnectionHose(sourceObject, sourceHose, targetObject, targetHose, visibility)
-	local v454_ = self.spec_connectionHoses
-	local function v465_(p455_)
-		-- upvalues: (copy) sourceHose
-		if p455_.originalNodeTranslation == nil then
-			p455_.originalNodeTranslation = { getTranslation(p455_.node) }
+	local spec = self.spec_connectionHoses
+	local setTargetNodeTranslation = function(hose)
+		if hose.originalNodeTranslation == nil then
+			hose.originalNodeTranslation = { getTranslation(hose.node) }
 		else
-			local v456_ = setTranslation
-			local v457_ = p455_.node
-			local v458_ = p455_.originalNodeTranslation
-			v456_(v457_, unpack(v458_))
+			setTranslation(hose.node, unpack(hose.originalNodeTranslation))
 		end
-		local v459_, v460_, v461_ = localToWorld(p455_.node, 0, sourceHose.diameter * 0.5, 0)
-		local v462_, v463_, v464_ = worldToLocal(getParent(p455_.node), v459_, v460_, v461_)
-		setTranslation(p455_.node, v462_, v463_, v464_)
+		local wx, wy, wz = localToWorld(hose.node, 0, sourceHose.diameter * 0.5, 0)
+		local lx, ly, lz = worldToLocal(getParent(hose.node), wx, wy, wz)
+		setTranslation(hose.node, lx, ly, lz)
 	end
-	local v466_ = v454_.targetNodeToToolConnection[targetHose.index]
-	if v466_ == nil then
-		return true
-	end
-	local v467_ = v466_.startTargetNodeIndex
-	if v467_ == targetHose.index then
-		v467_ = v466_.endTargetNodeIndex
-	end
-	local v468_ = v454_.targetNodes[v467_]
-	if v468_ ~= nil then
-		if visibility and (v466_.delayedMounting ~= nil and v466_.delayedMounting.sourceHose.connectedObject == nil) then
-			local v469_ = v466_.delayedMounting.sourceObject ~= sourceObject
-			local v470_
-			if v466_.delayedMounting.sourceHose.type == sourceHose.type then
-				v470_ = v466_.delayedMounting.sourceHose.specType == sourceHose.specType
-			else
-				v470_ = false
-			end
-			if v469_ and v470_ then
-				local v471_, v472_, v473_ = localToLocal(targetHose.node, v468_.node, 0, 0, 0)
-				local v474_ = MathUtil.vector3Length(v471_, v472_, v473_) - (v466_.additionalHoseOffset or 0) * 2
-				if v466_.additionalHose then
-					local v475_, _, _, _ = g_connectionHoseManager:getClonedHoseNode(sourceHose.type, sourceHose.hoseType, v474_, sourceHose.diameter, sourceHose.material, self.customEnvironment)
-					if v475_ == nil then
-						return false
-					end
-					link(targetHose.node, v475_)
-					setTranslation(v475_, 0, 0, v466_.additionalHoseOffset or 0)
-					local v476_, v477_, v478_ = localToLocal(v475_, v468_.node, 0, 0, 0)
-					if v476_ ~= 0 or (v477_ ~= 0 or v478_ ~= 0) then
-						setDirection(v475_, v476_, v477_, v478_, 0, 0, 1)
-					end
-					local v479_, v480_, _, _ = getShaderParameter(v475_, "lengthAndDiameter", 0)
-					setScale(v475_, v480_, v480_, v474_ / v479_)
-					local v481_ = getMaterial(v475_, 0)
-					local v482_ = setMaterialCustomShaderVariation(v481_, "uvTransform", false)
-					setMaterial(v475_, v482_, 0)
-					if v466_.moveNodes then
-						v465_(targetHose)
-						v465_(v468_)
-					end
-					sourceObject:addAllSubWashableNodes(v475_)
-					v466_.hoseNode = v475_
-					v466_.hoseNodeObject = sourceObject
+	local toolConnectionHose = spec.targetNodeToToolConnection[targetHose.index]
+	if toolConnectionHose ~= nil then
+		local opositTargetIndex = toolConnectionHose.startTargetNodeIndex
+		if opositTargetIndex == targetHose.index then
+			opositTargetIndex = toolConnectionHose.endTargetNodeIndex
+		end
+		local opositTarget = spec.targetNodes[opositTargetIndex]
+		if opositTarget ~= nil then
+			if visibility and (toolConnectionHose.delayedMounting ~= nil and toolConnectionHose.delayedMounting.sourceHose.connectedObject == nil) then
+				local differentSource = toolConnectionHose.delayedMounting.sourceObject ~= sourceObject
+				local sameType = false
+				if toolConnectionHose.delayedMounting.sourceHose.type == sourceHose.type then
+					sameType = toolConnectionHose.delayedMounting.sourceHose.specType == sourceHose.specType
 				end
-				if v466_.additionalHoses ~= nil then
-					for _, v483_ in ipairs(v466_.additionalHoses) do
-						local v484_ = calcDistanceFrom(v483_.startNode, v483_.endNode)
-						local v485_, _, _, _ = g_connectionHoseManager:getClonedHoseNode(sourceHose.type, sourceHose.hoseType, v484_, sourceHose.diameter, sourceHose.material, self.customEnvironment)
-						if v485_ ~= nil then
-							link(v483_.startNode, v485_)
-							setTranslation(v485_, 0, 0, 0)
-							local v486_, v487_, v488_ = localToLocal(v483_.endNode, v483_.startNode, 0, 0, 0)
-							if v486_ ~= 0 or (v487_ ~= 0 or v488_ ~= 0) then
-								setDirection(v485_, v486_, v487_, v488_, 0, 0, 1)
+				if differentSource and sameType then
+					local x, y, z = localToLocal(targetHose.node, opositTarget.node, 0, 0, 0)
+					local length = MathUtil.vector3Length(x, y, z) - (toolConnectionHose.additionalHoseOffset or 0) * 2
+					if toolConnectionHose.additionalHose then
+						local hose, _, _, _ = g_connectionHoseManager:getClonedHoseNode(sourceHose.type, sourceHose.hoseType, length, sourceHose.diameter, sourceHose.material, self.customEnvironment)
+						if hose ~= nil then
+							link(targetHose.node, hose)
+							setTranslation(hose, 0, 0, toolConnectionHose.additionalHoseOffset or 0)
+							local dirX, dirY, dirZ = localToLocal(hose, opositTarget.node, 0, 0, 0)
+							if dirX ~= 0 or dirY ~= 0 or dirZ ~= 0 then
+								setDirection(hose, dirX, dirY, dirZ, 0, 0, 1)
 							end
-							local v489_, v490_, _, _ = getShaderParameter(v485_, "lengthAndDiameter", 0)
-							setScale(v485_, v490_, v490_, v484_ / v489_)
-							local v491_ = getMaterial(v485_, 0)
-							local v492_ = setMaterialCustomShaderVariation(v491_, "uvTransform", false)
-							setMaterial(v485_, v492_, 0)
-							sourceObject:addAllSubWashableNodes(v485_)
-							v483_.hoseNode = v485_
-							v483_.hoseNodeObject = sourceObject
+							local meshLength, diameterScale, _, _ = getShaderParameter(hose, "lengthAndDiameter", 0)
+							setScale(hose, diameterScale, diameterScale, length / meshLength)
+							local materialId = getMaterial(hose, 0)
+							materialId = setMaterialCustomShaderVariation(materialId, "uvTransform", false)
+							setMaterial(hose, materialId, 0)
+							if toolConnectionHose.moveNodes then
+								setTargetNodeTranslation(targetHose)
+								setTargetNodeTranslation(opositTarget)
+							end
+							sourceObject:addAllSubWashableNodes(hose)
+							toolConnectionHose.hoseNode = hose
+							toolConnectionHose.hoseNodeObject = sourceObject
+						else
+							return false
 						end
 					end
-				end
-				v466_.connected = true
-				if v466_.mountingNode ~= nil then
-					setVisibility(v466_.mountingNode, true)
-				end
-				ObjectChangeUtil.setObjectChanges(v466_.objectChanges, true, v466_.objectChangesTarget, v466_.objectChangesTarget.setMovingToolDirty)
-				if v466_.parentToolConnectionHose ~= nil then
-					local v493_ = v466_.parentToolConnectionHose
-					if v493_.mountingNode ~= nil then
-						setVisibility(v493_.mountingNode, true)
-					end
-					ObjectChangeUtil.setObjectChanges(v493_.objectChanges, true, v493_.objectChangesTarget, v493_.objectChangesTarget.setMovingToolDirty)
-				end
-				if v466_.delayedMounting ~= nil then
-					v466_.delayedUnmounting = {}
-					local v494_ = v466_.delayedUnmounting
-					local v495_ = v466_.delayedMounting
-					table.insert(v494_, v495_)
-					local v496_ = v466_.delayedUnmounting
-					table.insert(v496_, {
-						["sourceObject"] = sourceObject,
-						["sourceHose"] = sourceHose,
-						["targetObject"] = targetObject,
-						["targetHose"] = targetHose
-					})
-					local v497_ = v466_.delayedMounting
-					v466_.delayedMounting = nil
-					v497_.sourceObject:connectHose(v497_.sourceHose, v497_.targetObject, v497_.targetHose, false)
-					v497_.sourceObject:retryHoseSkipNodeConnections(false)
-				end
-				return true
-			end
-		elseif v466_.connected then
-			v466_.connected = false
-			if v466_.hoseNode ~= nil then
-				v466_.hoseNodeObject:removeAllSubWashableNodes(v466_.hoseNode)
-				delete(v466_.hoseNode)
-				v466_.hoseNode = nil
-				v466_.hoseNodeObject = nil
-			end
-			if v466_.additionalHoses ~= nil then
-				for _, v498_ in ipairs(v466_.additionalHoses) do
-					if v498_.hoseNode ~= nil then
-						v498_.hoseNodeObject:removeAllSubWashableNodes(v498_.hoseNode)
-						delete(v498_.hoseNode)
-						v498_.hoseNode = nil
-						v498_.hoseNodeObject = nil
-					end
-				end
-			end
-			if v466_.mountingNode ~= nil then
-				setVisibility(v466_.mountingNode, false)
-			end
-			ObjectChangeUtil.setObjectChanges(v466_.objectChanges, false, v466_.objectChangesTarget, v466_.objectChangesTarget.setMovingToolDirty)
-			if v466_.parentToolConnectionHose ~= nil then
-				local v499_ = v466_.parentToolConnectionHose
-				if not v499_.connected then
-					if v499_.mountingNode ~= nil then
-						setVisibility(v499_.mountingNode, false)
-					end
-					ObjectChangeUtil.setObjectChanges(v499_.objectChanges, false, v499_.objectChangesTarget, v499_.objectChangesTarget.setMovingToolDirty)
-				end
-			end
-			if v466_.delayedUnmounting ~= nil then
-				for _, v500_ in ipairs(v466_.delayedUnmounting) do
-					if sourceHose ~= v500_.sourceHose then
-						v500_.sourceObject:disconnectHose(v500_.sourceHose)
-						if v500_.sourceHose.isClonedSkipNodeHose == nil or not v500_.sourceHose.isClonedSkipNodeHose then
-							v466_.delayedMounting = v500_
+					if toolConnectionHose.additionalHoses ~= nil then
+						for _, additionalHoseNode in ipairs(toolConnectionHose.additionalHoses) do
+							local additionalLength = calcDistanceFrom(additionalHoseNode.startNode, additionalHoseNode.endNode)
+							local hose, _, _, _ = g_connectionHoseManager:getClonedHoseNode(sourceHose.type, sourceHose.hoseType, additionalLength, sourceHose.diameter, sourceHose.material, self.customEnvironment)
+							if hose == nil then
+								continue
+							end
+							link(additionalHoseNode.startNode, hose)
+							setTranslation(hose, 0, 0, 0)
+							local dirX, dirY, dirZ = localToLocal(additionalHoseNode.endNode, additionalHoseNode.startNode, 0, 0, 0)
+							if dirX ~= 0 or dirY ~= 0 or dirZ ~= 0 then
+								setDirection(hose, dirX, dirY, dirZ, 0, 0, 1)
+							end
+							local meshLength, diameterScale, _, _ = getShaderParameter(hose, "lengthAndDiameter", 0)
+							setScale(hose, diameterScale, diameterScale, additionalLength / meshLength)
+							local materialId = getMaterial(hose, 0)
+							materialId = setMaterialCustomShaderVariation(materialId, "uvTransform", false)
+							setMaterial(hose, materialId, 0)
+							sourceObject:addAllSubWashableNodes(hose)
+							additionalHoseNode.hoseNode = hose
+							additionalHoseNode.hoseNodeObject = sourceObject
 						end
 					end
+					toolConnectionHose.connected = true
+					if toolConnectionHose.mountingNode ~= nil then
+						setVisibility(toolConnectionHose.mountingNode, true)
+					end
+					ObjectChangeUtil.setObjectChanges(toolConnectionHose.objectChanges, true, toolConnectionHose.objectChangesTarget, toolConnectionHose.objectChangesTarget.setMovingToolDirty)
+					if toolConnectionHose.parentToolConnectionHose ~= nil then
+						local parentToolConnectionHose = toolConnectionHose.parentToolConnectionHose
+						if parentToolConnectionHose.mountingNode ~= nil then
+							setVisibility(parentToolConnectionHose.mountingNode, true)
+						end
+						ObjectChangeUtil.setObjectChanges(parentToolConnectionHose.objectChanges, true, parentToolConnectionHose.objectChangesTarget, parentToolConnectionHose.objectChangesTarget.setMovingToolDirty)
+					end
+					if toolConnectionHose.delayedMounting ~= nil then
+						toolConnectionHose.delayedUnmounting = {}
+						table.insert(toolConnectionHose.delayedUnmounting, toolConnectionHose.delayedMounting)
+						table.insert(toolConnectionHose.delayedUnmounting, { sourceObject = sourceObject, sourceHose = sourceHose, targetObject = targetObject, targetHose = targetHose })
+						local delayedHose = toolConnectionHose.delayedMounting
+						toolConnectionHose.delayedMounting = nil
+						delayedHose.sourceObject:connectHose(delayedHose.sourceHose, delayedHose.targetObject, delayedHose.targetHose, false)
+						delayedHose.sourceObject:retryHoseSkipNodeConnections(false)
+					end
+					return true
 				end
-				v466_.delayedUnmounting = nil
+				return false
+			end
+			if toolConnectionHose.connected then
+				toolConnectionHose.connected = false
+				if toolConnectionHose.hoseNode ~= nil then
+					toolConnectionHose.hoseNodeObject:removeAllSubWashableNodes(toolConnectionHose.hoseNode)
+					delete(toolConnectionHose.hoseNode)
+					toolConnectionHose.hoseNode = nil
+					toolConnectionHose.hoseNodeObject = nil
+				end
+				if toolConnectionHose.additionalHoses ~= nil then
+					for _, additionalHoseNode in ipairs(toolConnectionHose.additionalHoses) do
+						if additionalHoseNode.hoseNode == nil then
+							continue
+						end
+						additionalHoseNode.hoseNodeObject:removeAllSubWashableNodes(additionalHoseNode.hoseNode)
+						delete(additionalHoseNode.hoseNode)
+						additionalHoseNode.hoseNode = nil
+						additionalHoseNode.hoseNodeObject = nil
+					end
+				end
+				if toolConnectionHose.mountingNode ~= nil then
+					setVisibility(toolConnectionHose.mountingNode, false)
+				end
+				ObjectChangeUtil.setObjectChanges(toolConnectionHose.objectChanges, false, toolConnectionHose.objectChangesTarget, toolConnectionHose.objectChangesTarget.setMovingToolDirty)
+				if toolConnectionHose.parentToolConnectionHose ~= nil then
+					local parentToolConnectionHose = toolConnectionHose.parentToolConnectionHose
+					if not parentToolConnectionHose.connected then
+						if parentToolConnectionHose.mountingNode ~= nil then
+							setVisibility(parentToolConnectionHose.mountingNode, false)
+						end
+						ObjectChangeUtil.setObjectChanges(parentToolConnectionHose.objectChanges, false, parentToolConnectionHose.objectChangesTarget, parentToolConnectionHose.objectChangesTarget.setMovingToolDirty)
+					end
+				end
+				if toolConnectionHose.delayedUnmounting ~= nil then
+					for _, hose in ipairs(toolConnectionHose.delayedUnmounting) do
+						if sourceHose == hose.sourceHose then
+							continue
+						end
+						hose.sourceObject:disconnectHose(hose.sourceHose)
+						if hose.sourceHose.isClonedSkipNodeHose == nil or not hose.sourceHose.isClonedSkipNodeHose then
+							toolConnectionHose.delayedMounting = hose
+						end
+					end
+					toolConnectionHose.delayedUnmounting = nil
+				end
 			end
 		end
 	end
-	return false
+	return true
 end
-
--- Local values: spec, toolConnectionHose, retry
 function ConnectionHoses:addHoseToDelayedMountings(sourceObject, sourceHose, targetObject, targetHose)
-	local v506_ = self.spec_connectionHoses.targetNodeToToolConnection[targetHose.index]
-	if v506_ ~= nil and (v506_.delayedMounting == nil or sourceHose.typedIndex == v506_.typedIndex) then
-		local v507_ = v506_.delayedMounting == nil
-		v506_.delayedMounting = {
-			["sourceObject"] = sourceObject,
-			["sourceHose"] = sourceHose,
-			["targetObject"] = targetObject,
-			["targetHose"] = targetHose
-		}
-		if v507_ then
+	local spec = self.spec_connectionHoses
+	local toolConnectionHose = spec.targetNodeToToolConnection[targetHose.index]
+	if toolConnectionHose ~= nil and (toolConnectionHose.delayedMounting == nil or sourceHose.typedIndex == toolConnectionHose.typedIndex) then
+		local retry = toolConnectionHose.delayedMounting == nil
+		toolConnectionHose.delayedMounting = { sourceObject = sourceObject, sourceHose = sourceHose, targetObject = targetObject, targetHose = targetHose }
+		if retry then
 			self.rootVehicle:retryHoseSkipNodeConnections(true, sourceObject)
 		end
 	end
 end
-
--- Local values: spec, attacherVehicle1, attacherVehicle2, attacherJointIndex, implement, firstValidTarget, isSkipNode, hose
 function ConnectionHoses:connectHoseToSkipNode(sourceHose, targetObject, skipNode, childHose, childVehicle)
-	local v514_ = self.spec_connectionHoses
+	local spec = self.spec_connectionHoses
 	skipNode.connectedObject = self
 	sourceHose.connectedObject = targetObject
 	sourceHose.targetHose = skipNode
@@ -1451,117 +1353,116 @@ function ConnectionHoses:connectHoseToSkipNode(sourceHose, targetObject, skipNod
 	sourceHose.childVehicle = childVehicle
 	sourceHose.childHose = childHose
 	if self.getAttacherVehicle ~= nil then
-		local v515_ = self:getAttacherVehicle()
-		if v515_.getAttacherVehicle ~= nil then
-			local v516_ = v515_:getAttacherVehicle()
-			if v516_ ~= nil then
-				local v517_ = v516_:getAttacherJointIndexFromObject(v515_)
-				if v516_:getImplementFromAttacherJointIndex(v517_).inputJointDescIndex == skipNode.inputAttacherJointIndex then
-					local v518_, v519_ = v516_:getConnectionTarget(v517_, skipNode.type, skipNode.specType)
-					if v518_ == nil then
-						if skipNode.parentHose ~= nil then
-							sourceHose.parentVehicle = skipNode.parentVehicle
-							sourceHose.parentHose = skipNode.parentHose
-							sourceHose.parentHose.childVehicle = self
-							sourceHose.parentHose.childHose = sourceHose
-						end
-					else
-						local v520_ = v515_:getClonedSkipHoseNode(sourceHose, skipNode)
-						if v519_ then
-							v515_:connectHoseToSkipNode(v520_, v516_, v518_, sourceHose, v515_)
+		local attacherVehicle1 = self:getAttacherVehicle()
+		if attacherVehicle1.getAttacherVehicle ~= nil then
+			local attacherVehicle2 = attacherVehicle1:getAttacherVehicle()
+			if attacherVehicle2 ~= nil then
+				local attacherJointIndex = attacherVehicle2:getAttacherJointIndexFromObject(attacherVehicle1)
+				local implement = attacherVehicle2:getImplementFromAttacherJointIndex(attacherJointIndex)
+				if implement.inputJointDescIndex == skipNode.inputAttacherJointIndex then
+					local firstValidTarget, isSkipNode = attacherVehicle2:getConnectionTarget(attacherJointIndex, skipNode.type, skipNode.specType)
+					if firstValidTarget ~= nil then
+						local hose = attacherVehicle1:getClonedSkipHoseNode(sourceHose, skipNode)
+						if not isSkipNode then
+							attacherVehicle1:connectHose(hose, attacherVehicle2, firstValidTarget)
 						else
-							v515_:connectHose(v520_, v516_, v518_)
+							attacherVehicle1:connectHoseToSkipNode(hose, attacherVehicle2, firstValidTarget, sourceHose, attacherVehicle1)
 						end
 						if skipNode.parentHose ~= nil then
 							skipNode.parentVehicle:removeWashableNode(skipNode.parentHose.hoseNode)
 							delete(skipNode.parentHose.hoseNode)
-							table.removeElement(v514_.updateableHoses, skipNode.parentHose.childHose)
+							table.removeElement(spec.updateableHoses, skipNode.parentHose.childHose)
 						end
-						skipNode.parentVehicle = v515_
-						skipNode.parentHose = v520_
-						sourceHose.parentVehicle = v515_
-						sourceHose.parentHose = v520_
-						v520_.childVehicle = self
-						v520_.childHose = sourceHose
-						v515_:addAllSubWashableNodes(v520_.hoseNode)
+						skipNode.parentVehicle = attacherVehicle1
+						skipNode.parentHose = hose
+						sourceHose.parentVehicle = attacherVehicle1
+						sourceHose.parentHose = hose
+						hose.childVehicle = self
+						hose.childHose = sourceHose
+						attacherVehicle1:addAllSubWashableNodes(hose.hoseNode)
+					elseif skipNode.parentHose ~= nil then
+						sourceHose.parentVehicle = skipNode.parentVehicle
+						sourceHose.parentHose = skipNode.parentHose
+						sourceHose.parentHose.childVehicle = self
+						sourceHose.parentHose.childHose = sourceHose
 					end
 				end
 			end
 		end
 	end
-	local v521_ = v514_.updateableHoses
-	table.insert(v521_, sourceHose)
+	table.insert(spec.updateableHoses, sourceHose)
 	return true
 end
-
--- Local values: hoses, _, hose
 function ConnectionHoses:connectHosesToAttacherVehicle(attacherVehicle, inputJointDescIndex, jointDescIndex, updateToolConnections, excludeVehicle)
 	if attacherVehicle.getConnectionTarget ~= nil then
-		local v528_ = self:getConnectionHosesByInputAttacherJoint(inputJointDescIndex)
-		for _, v_u_529_ in ipairs(v528_) do
-			attacherVehicle:iterateConnectionTargets(function(p530_, p531_)
-				-- upvalues: (copy) self, (copy) v_u_529_, (copy) attacherVehicle, (copy) updateToolConnections
-				if self:getIsConnectionHoseUsed(v_u_529_) then
-					return false
-				end
-				if p531_ then
-					if self:connectHoseToSkipNode(v_u_529_, attacherVehicle, p530_) then
+		local hoses = self:getConnectionHosesByInputAttacherJoint(inputJointDescIndex)
+		for _, hose in ipairs(hoses) do
+			attacherVehicle:iterateConnectionTargets(function(target, isSkipNode)
+				if not self:getIsConnectionHoseUsed(hose) then
+					if not isSkipNode then
+						if self:connectHose(hose, attacherVehicle, target, updateToolConnections) then
+							return false
+						end
+					elseif self:connectHoseToSkipNode(hose, attacherVehicle, target) then
 						return false
 					end
-				elseif self:connectHose(v_u_529_, attacherVehicle, p530_, updateToolConnections) then
+					return true
+				else
 					return false
 				end
-				return true
-			end, jointDescIndex, v_u_529_.type, v_u_529_.specType)
+			end, jointDescIndex, hose.type, hose.specType)
 		end
 		self:retryHoseSkipNodeConnections(updateToolConnections, excludeVehicle)
 	end
 end
-
--- Local values: attachedImplements, _, implement, object
 function ConnectionHoses:retryHoseSkipNodeConnections(updateToolConnections, excludeVehicle)
 	if self.getAttachedImplements ~= nil then
-		local v535_ = self:getAttachedImplements()
-		for _, v536_ in ipairs(v535_) do
-			local v537_ = v536_.object
-			if v537_ ~= excludeVehicle and v537_.connectHosesToAttacherVehicle ~= nil then
-				v537_:connectHosesToAttacherVehicle(self, v536_.inputJointDescIndex, v536_.jointDescIndex, updateToolConnections, excludeVehicle)
+		local attachedImplements = self:getAttachedImplements()
+		for _, implement in ipairs(attachedImplements) do
+			local object = implement.object
+			if object == excludeVehicle or object.connectHosesToAttacherVehicle == nil then
+				continue
 			end
+			object:connectHosesToAttacherVehicle(self, implement.inputJointDescIndex, implement.jointDescIndex, updateToolConnections, excludeVehicle)
 		end
 	end
 end
-
--- Local values: spec, customHoses, i, customHose, customTargets, j, customTarget, customTargets, i, customTarget, j, customHose
 function ConnectionHoses:connectCustomHosesToAttacherVehicle(attacherVehicle, inputJointDescIndex, jointDescIndex)
-	local v542_ = self.spec_connectionHoses
-	local v543_ = v542_.customHosesByInputAttacher[inputJointDescIndex]
-	if v543_ ~= nil then
-		for v544_ = 1, #v543_ do
-			local v545_ = v543_[v544_]
-			if not v545_.isActive and attacherVehicle.spec_connectionHoses ~= nil then
-				local v546_ = attacherVehicle.spec_connectionHoses.customHoseTargetsByAttacher[jointDescIndex]
-				if v546_ ~= nil then
-					for v547_ = 1, #v546_ do
-						local v548_ = v546_[v547_]
-						if not v548_.isActive and (v545_.type == v548_.type and v545_.specType == v548_.specType) then
-							self:connectCustomHoseNode(v545_, v548_, attacherVehicle)
+	local spec = self.spec_connectionHoses
+	local customHoses = spec.customHosesByInputAttacher[inputJointDescIndex]
+	if customHoses ~= nil then
+		for i = 1, #customHoses do
+			local customHose = customHoses[i]
+			if not customHose.isActive and attacherVehicle.spec_connectionHoses ~= nil then
+				local customTargets = attacherVehicle.spec_connectionHoses.customHoseTargetsByAttacher[jointDescIndex]
+				if customTargets ~= nil then
+					for j = 1, #customTargets do
+						local customTarget = customTargets[j]
+						if customTarget.isActive then
+							continue
+						end
+						if customHose.type == customTarget.type and customHose.specType == customTarget.specType then
+							self:connectCustomHoseNode(customHose, customTarget, attacherVehicle)
 						end
 					end
 				end
 			end
 		end
 	end
-	local v549_ = v542_.customHoseTargetsByInputAttacher[inputJointDescIndex]
-	if v549_ ~= nil then
-		for v550_ = 1, #v549_ do
-			local v551_ = v549_[v550_]
-			if not v551_.isActive and attacherVehicle.spec_connectionHoses ~= nil then
-				local v552_ = attacherVehicle.spec_connectionHoses.customHosesByAttacher[jointDescIndex]
-				if v552_ ~= nil then
-					for v553_ = 1, #v552_ do
-						local v554_ = v552_[v553_]
-						if not v554_.isActive and (v554_.type == v551_.type and v554_.specType == v551_.specType) then
-							self:connectCustomHoseNode(v554_, v551_, attacherVehicle)
+	local customTargets = spec.customHoseTargetsByInputAttacher[inputJointDescIndex]
+	if customTargets ~= nil then
+		for i = 1, #customTargets do
+			local customTarget = customTargets[i]
+			if not customTarget.isActive and attacherVehicle.spec_connectionHoses ~= nil then
+				customHoses = attacherVehicle.spec_connectionHoses.customHosesByAttacher[jointDescIndex]
+				if customHoses ~= nil then
+					for j = 1, #customHoses do
+						local customHose = customHoses[j]
+						if customHose.isActive then
+							continue
+						end
+						if customHose.type == customTarget.type and customHose.specType == customTarget.specType then
+							self:connectCustomHoseNode(customHose, customTarget, attacherVehicle)
 						end
 					end
 				end
@@ -1569,7 +1470,6 @@ function ConnectionHoses:connectCustomHosesToAttacherVehicle(attacherVehicle, in
 		end
 	end
 end
-
 function ConnectionHoses:connectCustomHoseNode(customHose, customTarget, targetObject)
 	self:updateCustomHoseNode(customHose, customTarget)
 	customHose.isActive = true
@@ -1584,7 +1484,6 @@ function ConnectionHoses:connectCustomHoseNode(customHose, customTarget, targetO
 		self:setMovingToolDirty(customHose.node, true)
 	end
 end
-
 function ConnectionHoses:updateCustomHoseNode(customHose, customTarget)
 	setTranslation(customHose.node, localToLocal(customTarget.node, getParent(customHose.node), 0, 0, 0))
 	setRotation(customHose.node, localRotationToLocal(customTarget.node, getParent(customHose.node), 0, 0, 0))
@@ -1592,16 +1491,9 @@ function ConnectionHoses:updateCustomHoseNode(customHose, customTarget)
 		self:setMovingToolDirty(customHose.node)
 	end
 end
-
 function ConnectionHoses:disconnectCustomHoseNode(customHose, customTarget)
-	local v565_ = setTranslation
-	local v566_ = customHose.node
-	local v567_ = customHose.startTranslation
-	v565_(v566_, unpack(v567_))
-	local v568_ = setRotation
-	local v569_ = customHose.node
-	local v570_ = customHose.startRotation
-	v568_(v569_, unpack(v570_))
+	setTranslation(customHose.node, unpack(customHose.startTranslation))
+	setRotation(customHose.node, unpack(customHose.startRotation))
 	if self.setMovingToolDirty ~= nil then
 		self:setMovingToolDirty(customHose.node, true)
 	end
@@ -1614,449 +1506,421 @@ function ConnectionHoses:disconnectCustomHoseNode(customHose, customTarget)
 	ObjectChangeUtil.setObjectChanges(customHose.objectChanges, false, customHose.objectChangesTarget, customHose.objectChangesTarget.setMovingToolDirty)
 	ObjectChangeUtil.setObjectChanges(customTarget.objectChanges, false, customTarget.objectChangesTarget, customTarget.objectChangesTarget.setMovingToolDirty)
 end
-
--- Local values: spec, attacherVehicle, implement
 function ConnectionHoses:setConnectionHosesActive(connectionHosesActive)
-	local v573_ = self.spec_connectionHoses
-	if connectionHosesActive ~= v573_.connectionHosesActive then
-		v573_.connectionHosesActive = connectionHosesActive
-		local v574_ = self:getAttacherVehicle()
-		if v574_ ~= nil then
-			local v575_ = v574_:getImplementByObject(self)
-			if v575_ ~= nil then
+	local spec = self.spec_connectionHoses
+	if connectionHosesActive ~= spec.connectionHosesActive then
+		spec.connectionHosesActive = connectionHosesActive
+		local attacherVehicle = self:getAttacherVehicle()
+		if attacherVehicle ~= nil then
+			local implement = attacherVehicle:getImplementByObject(self)
+			if implement ~= nil then
 				if connectionHosesActive then
-					self:connectHosesToAttacherVehicle(v574_, v575_.inputJointDescIndex, v575_.jointDescIndex)
-					self:connectCustomHosesToAttacherVehicle(v574_, v575_.inputJointDescIndex, v575_.jointDescIndex)
+					self:connectHosesToAttacherVehicle(attacherVehicle, implement.inputJointDescIndex, implement.jointDescIndex)
+					self:connectCustomHosesToAttacherVehicle(attacherVehicle, implement.inputJointDescIndex, implement.jointDescIndex)
 					return
 				end
-				ConnectionHoses.onPreDetach(self, v574_, v575_)
+				ConnectionHoses.onPreDetach(self, attacherVehicle, implement)
 			end
 		end
 	end
 end
-
--- Local values: customHoseIndices, customTargetIndices, localHoseIndices
 function ConnectionHoses:loadExtraDependentParts(superFunc, xmlFile, baseName, entry)
 	if not superFunc(self, xmlFile, baseName, entry) then
 		return false
+	else
+		local customHoseIndices = xmlFile:getValue(baseName .. ".connectionHoses#customHoseIndices", nil, true)
+		if customHoseIndices ~= nil and 0 < #customHoseIndices then
+			entry.customHoseIndices = customHoseIndices
+		end
+		local customTargetIndices = xmlFile:getValue(baseName .. ".connectionHoses#customTargetIndices", nil, true)
+		if customTargetIndices ~= nil and 0 < #customTargetIndices then
+			entry.customTargetIndices = customTargetIndices
+		end
+		local localHoseIndices = xmlFile:getValue(baseName .. ".connectionHoses#localHoseIndices", nil, true)
+		if localHoseIndices ~= nil and 0 < #localHoseIndices then
+			entry.localHoseIndices = localHoseIndices
+		end
+		return true
 	end
-	local v581_ = xmlFile:getValue(baseName .. ".connectionHoses#customHoseIndices", nil, true)
-	if v581_ ~= nil and #v581_ > 0 then
-		entry.customHoseIndices = v581_
-	end
-	local v582_ = xmlFile:getValue(baseName .. ".connectionHoses#customTargetIndices", nil, true)
-	if v582_ ~= nil and #v582_ > 0 then
-		entry.customTargetIndices = v582_
-	end
-	local v583_ = xmlFile:getValue(baseName .. ".connectionHoses#localHoseIndices", nil, true)
-	if v583_ ~= nil and #v583_ > 0 then
-		entry.localHoseIndices = v583_
-	end
-	return true
 end
-
--- Local values: spec, i, customHoseIndex, customHose, spec, i, customTargetIndex, customTarget, spec, i, localHoseIndex, localHose
 function ConnectionHoses:updateExtraDependentParts(superFunc, part, dt)
 	superFunc(self, part, dt)
 	if part.customHoseIndices ~= nil then
-		local v588_ = self.spec_connectionHoses
-		for v589_ = 1, #part.customHoseIndices do
-			local v590_ = part.customHoseIndices[v589_]
-			local v591_ = v588_.customHoses[v590_]
-			if v591_ ~= nil and v591_.isActive then
-				self:updateCustomHoseNode(v591_, v591_.connectedTarget)
+		local spec = self.spec_connectionHoses
+		for i = 1, #part.customHoseIndices do
+			local customHoseIndex = part.customHoseIndices[i]
+			local customHose = spec.customHoses[customHoseIndex]
+			if customHose == nil then
+				continue
+			end
+			if customHose.isActive then
+				self:updateCustomHoseNode(customHose, customHose.connectedTarget)
 			end
 		end
 	end
 	if part.customTargetIndices ~= nil then
-		local v592_ = self.spec_connectionHoses
-		for v593_ = 1, #part.customTargetIndices do
-			local v594_ = part.customTargetIndices[v593_]
-			local v595_ = v592_.customHoseTargets[v594_]
-			if v595_ ~= nil and v595_.isActive then
-				self:updateCustomHoseNode(v595_.connectedHose, v595_)
+		local spec = self.spec_connectionHoses
+		for i = 1, #part.customTargetIndices do
+			local customTargetIndex = part.customTargetIndices[i]
+			local customTarget = spec.customHoseTargets[customTargetIndex]
+			if customTarget == nil then
+				continue
+			end
+			if customTarget.isActive then
+				self:updateCustomHoseNode(customTarget.connectedHose, customTarget)
 			end
 		end
 	end
 	if part.localHoseIndices ~= nil then
-		local v596_ = self.spec_connectionHoses
-		for v597_ = 1, #part.localHoseIndices do
-			local v598_ = part.localHoseIndices[v597_]
-			local v599_ = v596_.localHoseNodes[v598_]
-			if v599_ ~= nil and v599_.hose.connectedObject ~= nil then
-				self:updateConnectionHose(v599_.hose, v598_)
+		local spec = self.spec_connectionHoses
+		for i = 1, #part.localHoseIndices do
+			local localHoseIndex = part.localHoseIndices[i]
+			local localHose = spec.localHoseNodes[localHoseIndex]
+			if localHose == nil or localHose.hose.connectedObject == nil then
+				continue
 			end
+			self:updateConnectionHose(localHose.hose, localHoseIndex)
 		end
 	end
 end
-
 function ConnectionHoses:onPostAttach(attacherVehicle, inputJointDescIndex, jointDescIndex)
 	if self.spec_connectionHoses.connectionHosesActive then
 		self:connectHosesToAttacherVehicle(attacherVehicle, inputJointDescIndex, jointDescIndex)
 		self:connectCustomHosesToAttacherVehicle(attacherVehicle, inputJointDescIndex, jointDescIndex)
 	end
 end
-
--- Local values: spec, inputJointDescIndex, hoses, _, hose, i, hose, attacherVehicleSpec, _, toolConnector, customHoses, i, customHose, customTargets, i, customTarget
 function ConnectionHoses:onPreDetach(attacherVehicle, implement)
-	local v606_ = self.spec_connectionHoses
-	local v607_ = self:getActiveInputAttacherJointDescIndex()
-	local v608_ = self:getConnectionHosesByInputAttacherJoint(v607_)
-	for _, v609_ in ipairs(v608_) do
-		self:disconnectHose(v609_)
+	local spec = self.spec_connectionHoses
+	local inputJointDescIndex = self:getActiveInputAttacherJointDescIndex()
+	local hoses = self:getConnectionHosesByInputAttacherJoint(inputJointDescIndex)
+	for _, hose in ipairs(hoses) do
+		self:disconnectHose(hose)
 	end
-	for v610_ = #v606_.updateableHoses, 1, -1 do
-		local v611_ = v606_.updateableHoses[v610_]
-		if v611_.connectedObject == attacherVehicle then
-			self:disconnectHose(v611_)
+	for i = #spec.updateableHoses, 1, -1 do
+		local hose = spec.updateableHoses[i]
+		if hose.connectedObject == attacherVehicle then
+			self:disconnectHose(hose)
 		end
 	end
-	local v612_ = attacherVehicle.spec_connectionHoses
-	if v612_ ~= nil then
-		for _, v613_ in pairs(v612_.toolConnectorHoses) do
-			if v613_.delayedMounting ~= nil and v613_.delayedMounting.sourceObject == self then
-				v613_.delayedMounting = nil
+	local attacherVehicleSpec = attacherVehicle.spec_connectionHoses
+	if attacherVehicleSpec ~= nil then
+		for _, toolConnector in pairs(attacherVehicleSpec.toolConnectorHoses) do
+			if toolConnector.delayedMounting == nil then
+				continue
+			end
+			if toolConnector.delayedMounting.sourceObject == self then
+				toolConnector.delayedMounting = nil
 			end
 		end
 	end
-	local v614_ = v606_.customHosesByInputAttacher[v607_]
-	if v614_ ~= nil then
-		for v615_ = 1, #v614_ do
-			local v616_ = v614_[v615_]
-			if v616_.isActive then
-				self:disconnectCustomHoseNode(v616_, v616_.connectedTarget)
+	local customHoses = spec.customHosesByInputAttacher[inputJointDescIndex]
+	if customHoses ~= nil then
+		for i = 1, #customHoses do
+			local customHose = customHoses[i]
+			if customHose.isActive then
+				self:disconnectCustomHoseNode(customHose, customHose.connectedTarget)
 			end
 		end
 	end
-	local v617_ = v606_.customHoseTargetsByInputAttacher[v607_]
-	if v617_ ~= nil then
-		for v618_ = 1, #v617_ do
-			local v619_ = v617_[v618_]
-			if v619_.isActive then
-				self:disconnectCustomHoseNode(v619_.connectedHose, v619_)
+	local customTargets = spec.customHoseTargetsByInputAttacher[inputJointDescIndex]
+	if customTargets ~= nil then
+		for i = 1, #customTargets do
+			local customTarget = customTargets[i]
+			if customTarget.isActive then
+				self:disconnectCustomHoseNode(customTarget.connectedHose, customTarget)
 			end
 		end
 	end
 end
-local v_u_620_ = {
-	{
-		["sourceType"] = "TOOL_CONNECTOR_TOP_RIGHT",
-		["name"] = "TOOL_CONNECTOR_TOP_RIGHT_02",
-		["filename"] = "data/shared/connectionHoses/AdditionalTopRightHose.i3d",
-		["sourceLength"] = 3.045
-	}
-}
-local v_u_621_ = {
-	{
-		["sourceType"] = "TOOL_CONNECTOR_TOP_RIGHT",
-		["filename"] = "data/shared/connectionHoses/toolConnectionHoseMounts/vaderstadProceedV.xml"
-	},
-	{
-		["sourceType"] = "TOOL_CONNECTOR_TOP_RIGHT",
-		["filename"] = "data/shared/connectionHoses/toolConnectionHoseMounts/skyProgressTF.xml"
-	}
-}
-
--- Upvalues: ADDITIONAL_TOOL_CONNECTION_HOSES, ADDITIONAL_TOOL_CONNECTION_HOSES_XML
--- Local values: spec, i, toolConnectorHose, startTarget, endTarget, _, data, length, arguments, sharedLoadRequestId, _, data, length, linkNode, x, y, z, rx, ry, rz, toolConnectionHoseMount
+local ADDITIONAL_TOOL_CONNECTION_HOSES = { { sourceType = "TOOL_CONNECTOR_TOP_RIGHT", name = "TOOL_CONNECTOR_TOP_RIGHT_02", filename = "data/shared/connectionHoses/AdditionalTopRightHose.i3d", sourceLength = 3.045 } }
+local ADDITIONAL_TOOL_CONNECTION_HOSES_XML = { { sourceType = "TOOL_CONNECTOR_TOP_RIGHT", filename = "data/shared/connectionHoses/toolConnectionHoseMounts/vaderstadProceedV.xml" }, { sourceType = "TOOL_CONNECTOR_TOP_RIGHT", filename = "data/shared/connectionHoses/toolConnectionHoseMounts/skyProgressTF.xml" }, { sourceType = "TOOL_CONNECTOR_TOP_RIGHT", filename = "data/shared/connectionHoses/toolConnectionHoseMounts/solaAura.xml" } }
 function ConnectionHoses:registerAdditionalToolConnectionHoses()
-	-- upvalues: (copy) v_u_620_, (copy) v_u_621_
-	local v_u_623_ = self.spec_connectionHoses
-	for v624_ = 1, #v_u_623_.toolConnectorHoses do
-		local v625_ = v_u_623_.toolConnectorHoses[v624_]
-		local v626_ = v_u_623_.targetNodes[v625_.startTargetNodeIndex]
-		local v627_ = v_u_623_.targetNodes[v625_.endTargetNodeIndex]
-		for _, v628_ in pairs(v_u_620_) do
-			if v626_ ~= nil and (v626_.type == v628_.sourceType and (v627_ ~= nil and (v627_.type == v628_.sourceType and calcDistanceFrom(v626_.node, v627_.node) > 0))) then
-				local v629_ = self:loadSubSharedI3DFile(v628_.filename, false, false, ConnectionHoses.onAdditionalI3DFileLoaded, self, {
-					["spec"] = v_u_623_,
-					["startTarget"] = v626_,
-					["endTarget"] = v627_,
-					["data"] = v628_
-				})
-				local v630_ = v_u_623_.additionalSharedLoadRequestIds
-				table.insert(v630_, v629_)
+	local spec = self.spec_connectionHoses
+	for i = 1, #spec.toolConnectorHoses do
+		local toolConnectorHose = spec.toolConnectorHoses[i]
+		local startTarget = spec.targetNodes[toolConnectorHose.startTargetNodeIndex]
+		local endTarget = spec.targetNodes[toolConnectorHose.endTargetNodeIndex]
+		for _, data in pairs(ADDITIONAL_TOOL_CONNECTION_HOSES) do
+			if startTarget == nil then
+				continue
+			end
+			if startTarget.type == data.sourceType then
+				if endTarget == nil then
+					continue
+				end
+				if endTarget.type == data.sourceType then
+					local length = calcDistanceFrom(startTarget.node, endTarget.node)
+					if 0 < length then
+						local arguments = {}
+						arguments.spec = spec
+						arguments.startTarget = startTarget
+						arguments.endTarget = endTarget
+						arguments.data = data
+						local sharedLoadRequestId = self:loadSubSharedI3DFile(data.filename, false, false, ConnectionHoses.onAdditionalI3DFileLoaded, self, arguments)
+						table.insert(spec.additionalSharedLoadRequestIds, sharedLoadRequestId)
+					end
+				end
 			end
 		end
-		for _, v631_ in pairs(v_u_621_) do
-			if v626_ ~= nil and (v626_.type == v631_.sourceType and (v627_ ~= nil and v627_.type == v631_.sourceType)) then
-				local v632_ = calcDistanceFrom(v626_.node, v627_.node)
-				if v632_ > 0 then
-					local v633_ = getParent(v627_.node)
-					local v634_, v635_, v636_ = getTranslation(v627_.node)
-					local v637_, v638_, v639_ = getRotation(v627_.node)
-					local v_u_640_ = ToolConnectionHoseMount.new(self)
-					v_u_640_:setReferenceTargets(v626_, v627_)
-					v_u_640_:setLinkNode(v633_, v634_, v635_, v636_, v637_, v638_, v639_)
-					v_u_640_:setLength(v632_)
-					v_u_640_:setCallback(function(p641_)
-						-- upvalues: (copy) v_u_623_, (copy) v_u_640_
-						if p641_ then
-							local v642_ = v_u_623_.toolConnectionHoseMounts
-							local v643_ = v_u_640_
-							table.insert(v642_, v643_)
-						else
-							v_u_640_:delete()
-						end
-					end)
-					v_u_640_:loadFromXML(v631_.filename, self.baseDirectory)
+		for _, data in pairs(ADDITIONAL_TOOL_CONNECTION_HOSES_XML) do
+			if startTarget == nil then
+				continue
+			end
+			if startTarget.type == data.sourceType then
+				if endTarget == nil then
+					continue
+				end
+				if endTarget.type == data.sourceType then
+					local length = calcDistanceFrom(startTarget.node, endTarget.node)
+					if 0 < length then
+						local linkNode = getParent(endTarget.node)
+						local x, y, z = getTranslation(endTarget.node)
+						local rx, ry, rz = getRotation(endTarget.node)
+						local toolConnectionHoseMount = ToolConnectionHoseMount.new(self)
+						toolConnectionHoseMount:setReferenceTargets(startTarget, endTarget)
+						toolConnectionHoseMount:setLinkNode(linkNode, x, y, z, rx, ry, rz)
+						toolConnectionHoseMount:setLength(length)
+						toolConnectionHoseMount:setCallback(function(success)
+							if success then
+								table.insert(spec.toolConnectionHoseMounts, toolConnectionHoseMount)
+							else
+								toolConnectionHoseMount:delete()
+							end
+						end)
+						toolConnectionHoseMount:loadFromXML(data.filename, self.baseDirectory)
+					end
 				end
 			end
 		end
 	end
 end
-local function v_u_651_(p644_, p645_, p646_, p647_)
-	local v648_ = {
-		["node"] = p645_,
-		["attacherJointIndices"] = p646_.attacherJointIndices,
-		["type"] = p647_,
-		["straighteningFactor"] = p646_.straighteningFactor,
-		["adapterName"] = p646_.adapterName,
-		["adapter"] = {}
-	}
-	v648_.adapter.node = p645_
-	v648_.adapter.refNode = p645_
-	v648_.objectChanges = {}
-	local v649_ = p644_.targetNodes
-	table.insert(v649_, v648_)
-	v648_.index = #p644_.targetNodes
-	if p644_.targetNodesByType[v648_.type] == nil then
-		p644_.targetNodesByType[v648_.type] = {}
+local addHoseTarget = function(spec, node, sourceTarget, newType)
+	local hoseTarget = {}
+	hoseTarget.node = node
+	hoseTarget.attacherJointIndices = sourceTarget.attacherJointIndices
+	hoseTarget.type = newType
+	hoseTarget.straighteningFactor = sourceTarget.straighteningFactor
+	hoseTarget.adapterName = sourceTarget.adapterName
+	hoseTarget.adapter = {}
+	hoseTarget.adapter.node = node
+	hoseTarget.adapter.refNode = node
+	hoseTarget.objectChanges = {}
+	table.insert(spec.targetNodes, hoseTarget)
+	hoseTarget.index = #spec.targetNodes
+	if spec.targetNodesByType[hoseTarget.type] == nil then
+		spec.targetNodesByType[hoseTarget.type] = {}
 	end
-	local v650_ = p644_.targetNodesByType[v648_.type]
-	table.insert(v650_, v648_)
-	return v648_.index
+	table.insert(spec.targetNodesByType[hoseTarget.type], hoseTarget)
+	return hoseTarget.index
 end
-
--- Upvalues: addHoseTarget
--- Local values: spec, newMounting, newStartNode, newEndNode, length, newToolConnectionHose
 function ConnectionHoses:onAdditionalI3DFileLoaded(node, failedReason, args)
-	-- upvalues: (copy) v_u_651_
 	if node ~= 0 then
-		local v655_ = args.spec
-		local v656_ = getChildAt(node, 0)
-		local v657_ = getChildAt(v656_, 1)
-		local v658_ = getChildAt(v656_, 0)
-		link(getParent(args.endTarget.node), v656_)
-		setTranslation(v656_, getTranslation(args.endTarget.node))
-		setRotation(v656_, getRotation(args.endTarget.node))
-		local v659_ = calcDistanceFrom(args.startTarget.node, args.endTarget.node)
-		setScale(v656_, 1, 1, v659_ / args.data.sourceLength)
-		setScale(v657_, 1, 1, 1 / (v659_ / args.data.sourceLength))
-		setScale(v658_, 1, 1, 1 / (v659_ / args.data.sourceLength))
+		local spec = args.spec
+		local newMounting = getChildAt(node, 0)
+		local newStartNode = getChildAt(newMounting, 1)
+		local newEndNode = getChildAt(newMounting, 0)
+		link(getParent(args.endTarget.node), newMounting)
+		setTranslation(newMounting, getTranslation(args.endTarget.node))
+		setRotation(newMounting, getRotation(args.endTarget.node))
+		local length = calcDistanceFrom(args.startTarget.node, args.endTarget.node)
+		setScale(newMounting, 1, 1, length / args.data.sourceLength)
+		setScale(newStartNode, 1, 1, 1 / (length / args.data.sourceLength))
+		setScale(newEndNode, 1, 1, 1 / (length / args.data.sourceLength))
 		delete(node)
-		local v660_ = {
-			["startTargetNodeIndex"] = v_u_651_(v655_, v657_, args.startTarget, args.data.name),
-			["endTargetNodeIndex"] = v_u_651_(v655_, v658_, args.endTarget, args.data.name),
-			["mountingNode"] = v656_,
-			["moveNodes"] = true,
-			["additionalHose"] = true,
-			["objectChanges"] = {},
-			["objectChangesTarget"] = self
-		}
-		setVisibility(v656_, false)
-		if getHasShaderParameter(v660_.mountingNode, "colorMat0") then
-			v660_.mountingNodeDefaultColor = { getShaderParameter(v660_.mountingNode, "colorMat0") }
+		local newToolConnectionHose = {}
+		newToolConnectionHose.startTargetNodeIndex = addHoseTarget(spec, newStartNode, args.startTarget, args.data.name)
+		newToolConnectionHose.endTargetNodeIndex = addHoseTarget(spec, newEndNode, args.endTarget, args.data.name)
+		newToolConnectionHose.mountingNode = newMounting
+		newToolConnectionHose.moveNodes = true
+		newToolConnectionHose.additionalHose = true
+		newToolConnectionHose.objectChanges = {}
+		newToolConnectionHose.objectChangesTarget = self
+		setVisibility(newMounting, false)
+		if getHasShaderParameter(newToolConnectionHose.mountingNode, "colorMat0") then
+			newToolConnectionHose.mountingNodeDefaultColor = { getShaderParameter(newToolConnectionHose.mountingNode, "colorMat0") }
 		end
-		local v661_ = args.spec.toolConnectorHoses
-		table.insert(v661_, v660_)
-		args.spec.targetNodeToToolConnection[v660_.startTargetNodeIndex] = v660_
-		args.spec.targetNodeToToolConnection[v660_.endTargetNodeIndex] = v660_
+		table.insert(args.spec.toolConnectorHoses, newToolConnectionHose)
+		args.spec.targetNodeToToolConnection[newToolConnectionHose.startTargetNodeIndex] = newToolConnectionHose
+		args.spec.targetNodeToToolConnection[newToolConnectionHose.endTargetNodeIndex] = newToolConnectionHose
 	end
 end
-
--- Local values: spec, colors, prefix, indexByType, index, targetHose, node, referenceNode, material, attacherJointDesc
 function ConnectionHoses.consoleCommandTestSockets(vehicle, attacherJointIndex)
-	local v664_ = vehicle.spec_connectionHoses
-	if v664_ ~= nil then
-		local v665_ = {
-			["hydraulicIn"] = Color.new(0, 1, 0),
-			["hydraulicOut"] = Color.new(0, 0, 1),
-			["electric"] = Color.new(1, 0, 1),
-			["airDoubleRed"] = Color.new(1, 0, 0),
-			["airDoubleYellow"] = Color.new(1, 1, 0),
-			["isobus"] = Color.new(1, 1, 1)
-		}
-		local v666_ = {}
-		local v667_ = {
-			["hydraulicIn"] = "in",
-			["hydraulicOut"] = "out",
-			["electric"] = "e",
-			["airDoubleRed"] = "red",
-			["airDoubleYellow"] = "yel",
-			["isobus"] = "iso"
-		}
-		for _, v668_ in ipairs(v664_.targetNodes) do
-			if v668_.socket ~= nil then
-				g_connectionHoseManager:closeSocket(v668_.socket)
+	local spec = vehicle.spec_connectionHoses
+	if spec ~= nil then
+		local colors = {}
+		colors.hydraulicIn = Color.new(0, 1, 0)
+		colors.hydraulicOut = Color.new(0, 0, 1)
+		colors.electric = Color.new(1, 0, 1)
+		colors.airDoubleRed = Color.new(1, 0, 0)
+		colors.airDoubleYellow = Color.new(1, 1, 0)
+		colors.isobus = Color.new(1, 1, 1)
+		local prefix = { ["hydraulicIn"] = "in", ["hydraulicOut"] = "out", ["electric"] = "e", ["airDoubleRed"] = "red", ["airDoubleYellow"] = "yel", ["isobus"] = "iso" }
+		local indexByType = {}
+		for index, targetHose in ipairs(spec.targetNodes) do
+			if targetHose.socket ~= nil then
+				g_connectionHoseManager:closeSocket(targetHose.socket)
 			end
-			if v668_.debugNode ~= nil then
-				delete(v668_.debugNode)
-				v668_.debugNode = nil
+			if targetHose.debugNode ~= nil then
+				delete(targetHose.debugNode)
+				targetHose.debugNode = nil
 			end
-			if v668_.debugLine ~= nil then
-				g_debugManager:removeElement(v668_.debugLine)
-				v668_.debugLine = nil
+			if targetHose.debugLine ~= nil then
+				g_debugManager:removeElement(targetHose.debugLine)
+				targetHose.debugLine = nil
 			end
-			if v668_.debugText ~= nil then
-				g_debugManager:removeElement(v668_.debugText)
-				v668_.debugText = nil
+			if targetHose.debugText ~= nil then
+				g_debugManager:removeElement(targetHose.debugText)
+				targetHose.debugText = nil
 			end
-			if v668_.objectChanges ~= nil then
-				ObjectChangeUtil.setObjectChanges(v668_.objectChanges, false, vehicle, vehicle.setMovingToolDirty)
+			if targetHose.objectChanges ~= nil then
+				ObjectChangeUtil.setObjectChanges(targetHose.objectChanges, false, vehicle, vehicle.setMovingToolDirty)
 			end
-			if v668_.attacherJointIndices[attacherJointIndex] ~= nil then
-				if v666_[v668_.type] == nil then
-					v666_[v668_.type] = 0
-				end
-				v666_[v668_.type] = v666_[v668_.type] + 1
-				if v668_.socket ~= nil then
-					g_connectionHoseManager:openSocket(v668_.socket)
-				end
-				local v669_, v670_ = g_connectionHoseManager:getClonedAdapterNode(v668_.type, "DEFAULT", vehicle.customEnvironment)
-				if v669_ ~= nil then
-					local v671_ = VehicleMaterial.new()
-					v671_:setTemplateName("plasticPainted")
-					v671_:setColor(1, 1, 1)
-					v671_:apply(v669_)
-					link(g_connectionHoseManager:getSocketTarget(v668_.socket, v668_.node), v669_)
-					setTranslation(v669_, 0, 0, 0)
-					setRotation(v669_, 0, 0, 0)
-					v668_.debugNode = v669_
-					local v672_ = vehicle:getAttacherJointByJointDescIndex(attacherJointIndex)
-					if v672_ ~= nil then
-						v668_.debugLine = DebugLine.new():createWithStartAndEndNode(v672_.jointTransform, v670_ or v669_, false, true, 100, true)
-						v668_.debugLine:setColors(v665_[v668_.type], v665_[v668_.type])
-						g_debugManager:addElement(v668_.debugLine, nil, nil, math.huge)
-						local v673_ = DebugText.new()
-						local v674_ = v667_[v668_.type]
-						local v675_ = v666_[v668_.type]
-						v668_.debugText = v673_:createWithNode(v670_, v674_ .. tostring(v675_), 0.015, true)
-						v668_.debugText.color = v665_[v668_.type]
-						g_debugManager:addElement(v668_.debugText, nil, nil, math.huge)
-					end
-				end
-				if v668_.objectChanges ~= nil then
-					ObjectChangeUtil.setObjectChanges(v668_.objectChanges, true, vehicle, vehicle.setMovingToolDirty)
+			if targetHose.attacherJointIndices[attacherJointIndex] == nil then
+				continue
+			end
+			if indexByType[targetHose.type] == nil then
+				indexByType[targetHose.type] = 0
+			end
+			indexByType[targetHose.type] = indexByType[targetHose.type] + 1
+			if targetHose.socket ~= nil then
+				g_connectionHoseManager:openSocket(targetHose.socket)
+			end
+			local node, referenceNode = g_connectionHoseManager:getClonedAdapterNode(targetHose.type, "DEFAULT", vehicle.customEnvironment)
+			if node ~= nil then
+				local material = VehicleMaterial.new()
+				material:setTemplateName("plasticPainted")
+				material:setColor(1, 1, 1)
+				material:apply(node)
+				link(g_connectionHoseManager:getSocketTarget(targetHose.socket, targetHose.node), node)
+				setTranslation(node, 0, 0, 0)
+				setRotation(node, 0, 0, 0)
+				targetHose.debugNode = node
+				local attacherJointDesc = vehicle:getAttacherJointByJointDescIndex(attacherJointIndex)
+				if attacherJointDesc ~= nil then
+					targetHose.debugLine = DebugLine.new():createWithStartAndEndNode(attacherJointDesc.jointTransform, referenceNode or node, false, true, 100, true)
+					targetHose.debugLine:setColors(colors[targetHose.type], colors[targetHose.type])
+					g_debugManager:addElement(targetHose.debugLine, nil, nil, math.huge)
+					targetHose.debugText = DebugText.new():createWithNode(referenceNode, prefix[targetHose.type] .. tostring(indexByType[targetHose.type]), 0.015, true)
+					targetHose.debugText.color = colors[targetHose.type]
+					g_debugManager:addElement(targetHose.debugText, nil, nil, math.huge)
 				end
 			end
+			if targetHose.objectChanges == nil then
+				continue
+			end
+			ObjectChangeUtil.setObjectChanges(targetHose.objectChanges, true, vehicle, vehicle.setMovingToolDirty)
 		end
 	end
 end
-
--- Local values: spec, startColor, betweenColor, endColor, _, targetHose, _, element, i, toolConnectionHose, parentToolConnectionHose, _, element, toolConnectionHose, startTarget, endTarget, _, attacherJointIndex, attacherJointDesc, debugLine, debugText, _, attacherJointIndex, attacherJointDesc, debugLine, debugText, debugLine, debugTextStart, debugTextEnd, parentToolConnectionHose
 function ConnectionHoses.consoleCommandTestToolConnection(vehicle, toolConnectionIndex)
-	local v678_ = vehicle.spec_connectionHoses
-	if v678_ ~= nil then
-		local v679_ = Color.new(0, 1, 0)
-		local v680_ = Color.new(0, 0, 1)
-		local v681_ = Color.new(1, 0, 0)
-		for _, v682_ in ipairs(v678_.targetNodes) do
-			if v682_.socket ~= nil then
-				g_connectionHoseManager:closeSocket(v682_.socket)
+	local spec = vehicle.spec_connectionHoses
+	if spec ~= nil then
+		local startColor = Color.new(0, 1, 0)
+		local betweenColor = Color.new(0, 0, 1)
+		local endColor = Color.new(1, 0, 0)
+		for _, targetHose in ipairs(spec.targetNodes) do
+			if targetHose.socket ~= nil then
+				g_connectionHoseManager:closeSocket(targetHose.socket)
 			end
-			if v682_.debugElements ~= nil then
-				for _, v683_ in pairs(v682_.debugElements) do
-					g_debugManager:removeElement(v683_)
+			if targetHose.debugElements ~= nil then
+				for _, element in pairs(targetHose.debugElements) do
+					g_debugManager:removeElement(element)
 				end
-				v682_.debugElements = nil
+				targetHose.debugElements = nil
 			end
-			if v682_.debugText ~= nil then
-				g_debugManager:removeElement(v682_.debugText)
-				v682_.debugText = nil
+			if targetHose.debugText ~= nil then
+				g_debugManager:removeElement(targetHose.debugText)
+				targetHose.debugText = nil
 			end
-			if v682_.objectChanges ~= nil then
-				ObjectChangeUtil.setObjectChanges(v682_.objectChanges, false, vehicle, vehicle.setMovingToolDirty)
+			if targetHose.objectChanges == nil then
+				continue
 			end
+			ObjectChangeUtil.setObjectChanges(targetHose.objectChanges, false, vehicle, vehicle.setMovingToolDirty)
 		end
-		for v684_ = 1, #v678_.toolConnectorHoses do
-			local v685_ = v678_.toolConnectorHoses[v684_]
-			if v685_.mountingNode ~= nil then
-				setVisibility(v685_.mountingNode, false)
+		for i = 1, #spec.toolConnectorHoses do
+			local toolConnectionHose = spec.toolConnectorHoses[i]
+			if toolConnectionHose.mountingNode ~= nil then
+				setVisibility(toolConnectionHose.mountingNode, false)
 			end
-			ObjectChangeUtil.setObjectChanges(v685_.objectChanges, false, v685_.objectChangesTarget, v685_.objectChangesTarget.setMovingToolDirty)
-			if v685_.parentToolConnectionHose ~= nil then
-				local v686_ = v685_.parentToolConnectionHose
-				if v686_.mountingNode ~= nil then
-					setVisibility(v686_.mountingNode, false)
+			ObjectChangeUtil.setObjectChanges(toolConnectionHose.objectChanges, false, toolConnectionHose.objectChangesTarget, toolConnectionHose.objectChangesTarget.setMovingToolDirty)
+			if toolConnectionHose.parentToolConnectionHose ~= nil then
+				local parentToolConnectionHose = toolConnectionHose.parentToolConnectionHose
+				if parentToolConnectionHose.mountingNode ~= nil then
+					setVisibility(parentToolConnectionHose.mountingNode, false)
 				end
-				ObjectChangeUtil.setObjectChanges(v686_.objectChanges, false, v686_.objectChangesTarget, v686_.objectChangesTarget.setMovingToolDirty)
+				ObjectChangeUtil.setObjectChanges(parentToolConnectionHose.objectChanges, false, parentToolConnectionHose.objectChangesTarget, parentToolConnectionHose.objectChangesTarget.setMovingToolDirty)
 			end
-			if v685_.debugElements ~= nil then
-				for _, v687_ in pairs(v685_.debugElements) do
-					g_debugManager:removeElement(v687_)
-				end
-				v685_.debugElements = nil
+			if toolConnectionHose.debugElements == nil then
+				continue
 			end
+			for _, element in pairs(toolConnectionHose.debugElements) do
+				g_debugManager:removeElement(element)
+			end
+			toolConnectionHose.debugElements = nil
 		end
-		local v688_ = v678_.toolConnectorHoses[toolConnectionIndex]
-		if v688_ ~= nil then
-			local v689_ = v678_.targetNodes[v688_.startTargetNodeIndex]
-			local v690_ = v678_.targetNodes[v688_.endTargetNodeIndex]
-			for _, v691_ in pairs(v689_.attacherJointIndices) do
-				local v692_ = vehicle:getAttacherJointByJointDescIndex(v691_)
-				if v692_ ~= nil then
-					local v693_ = DebugLine.new():createWithStartAndEndNode(v692_.jointTransform, v689_.node, false, false, 100, true)
-					v693_:setColors(v679_, v679_)
-					g_debugManager:addElement(v693_, nil, nil, math.huge)
-					local v694_ = DebugText.new():createWithNode(v692_.jointTransform, getName(v692_.jointTransform), 0.01, true)
-					v694_.color = v679_
-					g_debugManager:addElement(v694_, nil, nil, math.huge)
-					if v689_.debugElements == nil then
-						v689_.debugElements = {}
-					end
-					local v695_ = v689_.debugElements
-					table.insert(v695_, v693_)
-					local v696_ = v689_.debugElements
-					table.insert(v696_, v694_)
+		local toolConnectionHose = spec.toolConnectorHoses[toolConnectionIndex]
+		if toolConnectionHose ~= nil then
+			local startTarget = spec.targetNodes[toolConnectionHose.startTargetNodeIndex]
+			local endTarget = spec.targetNodes[toolConnectionHose.endTargetNodeIndex]
+			for _, attacherJointIndex in pairs(startTarget.attacherJointIndices) do
+				local attacherJointDesc = vehicle:getAttacherJointByJointDescIndex(attacherJointIndex)
+				if attacherJointDesc == nil then
+					continue
 				end
-			end
-			for _, v697_ in pairs(v690_.attacherJointIndices) do
-				local v698_ = vehicle:getAttacherJointByJointDescIndex(v697_)
-				if v698_ ~= nil then
-					local v699_ = DebugLine.new():createWithStartAndEndNode(v698_.jointTransform, v690_.node, false, false, 100, true)
-					v699_:setColors(v681_, v681_)
-					g_debugManager:addElement(v699_, nil, nil, math.huge)
-					local v700_ = DebugText.new():createWithNode(v698_.jointTransform, getName(v698_.jointTransform), 0.01, true)
-					v700_.color = v681_
-					g_debugManager:addElement(v700_, nil, nil, math.huge)
-					if v690_.debugElements == nil then
-						v690_.debugElements = {}
-					end
-					local v701_ = v690_.debugElements
-					table.insert(v701_, v699_)
-					local v702_ = v690_.debugElements
-					table.insert(v702_, v700_)
+				local debugLine = DebugLine.new():createWithStartAndEndNode(attacherJointDesc.jointTransform, startTarget.node, false, false, 100, true)
+				debugLine:setColors(startColor, startColor)
+				g_debugManager:addElement(debugLine, nil, nil, math.huge)
+				local debugText = DebugText.new():createWithNode(attacherJointDesc.jointTransform, getName(attacherJointDesc.jointTransform), 0.01, true)
+				debugText.color = startColor
+				g_debugManager:addElement(debugText, nil, nil, math.huge)
+				if startTarget.debugElements == nil then
+					startTarget.debugElements = {}
 				end
+				table.insert(startTarget.debugElements, debugLine)
+				table.insert(startTarget.debugElements, debugText)
 			end
-			local v703_ = DebugLine.new():createWithStartAndEndNode(v689_.node, v690_.node, false, true, 100, true)
-			v703_:setColors(v680_, v680_)
-			g_debugManager:addElement(v703_, nil, nil, math.huge)
-			local v704_ = DebugText.new():createWithNode(v689_.node, getName(v689_.node), 0.01, true)
-			v704_.color = v679_
-			g_debugManager:addElement(v704_, nil, nil, math.huge)
-			local v705_ = DebugText.new():createWithNode(v690_.node, getName(v690_.node), 0.01, true)
-			v705_.color = v681_
-			g_debugManager:addElement(v705_, nil, nil, math.huge)
-			if v688_.debugElements == nil then
-				v688_.debugElements = {}
-			end
-			local v706_ = v688_.debugElements
-			table.insert(v706_, v703_)
-			local v707_ = v688_.debugElements
-			table.insert(v707_, v704_)
-			local v708_ = v688_.debugElements
-			table.insert(v708_, v705_)
-			if v688_.mountingNode ~= nil then
-				setVisibility(v688_.mountingNode, true)
-			end
-			ObjectChangeUtil.setObjectChanges(v688_.objectChanges, true, v688_.objectChangesTarget, v688_.objectChangesTarget.setMovingToolDirty)
-			if v688_.parentToolConnectionHose ~= nil then
-				local v709_ = v688_.parentToolConnectionHose
-				if v709_.mountingNode ~= nil then
-					setVisibility(v709_.mountingNode, true)
+			for _, attacherJointIndex in pairs(endTarget.attacherJointIndices) do
+				local attacherJointDesc = vehicle:getAttacherJointByJointDescIndex(attacherJointIndex)
+				if attacherJointDesc == nil then
+					continue
 				end
-				ObjectChangeUtil.setObjectChanges(v709_.objectChanges, true, v709_.objectChangesTarget, v709_.objectChangesTarget.setMovingToolDirty)
+				local debugLine = DebugLine.new():createWithStartAndEndNode(attacherJointDesc.jointTransform, endTarget.node, false, false, 100, true)
+				debugLine:setColors(endColor, endColor)
+				g_debugManager:addElement(debugLine, nil, nil, math.huge)
+				local debugText = DebugText.new():createWithNode(attacherJointDesc.jointTransform, getName(attacherJointDesc.jointTransform), 0.01, true)
+				debugText.color = endColor
+				g_debugManager:addElement(debugText, nil, nil, math.huge)
+				if endTarget.debugElements == nil then
+					endTarget.debugElements = {}
+				end
+				table.insert(endTarget.debugElements, debugLine)
+				table.insert(endTarget.debugElements, debugText)
+			end
+			local debugLine = DebugLine.new():createWithStartAndEndNode(startTarget.node, endTarget.node, false, true, 100, true)
+			debugLine:setColors(betweenColor, betweenColor)
+			g_debugManager:addElement(debugLine, nil, nil, math.huge)
+			local debugTextStart = DebugText.new():createWithNode(startTarget.node, getName(startTarget.node), 0.01, true)
+			debugTextStart.color = startColor
+			g_debugManager:addElement(debugTextStart, nil, nil, math.huge)
+			local debugTextEnd = DebugText.new():createWithNode(endTarget.node, getName(endTarget.node), 0.01, true)
+			debugTextEnd.color = endColor
+			g_debugManager:addElement(debugTextEnd, nil, nil, math.huge)
+			if toolConnectionHose.debugElements == nil then
+				toolConnectionHose.debugElements = {}
+			end
+			table.insert(toolConnectionHose.debugElements, debugLine)
+			table.insert(toolConnectionHose.debugElements, debugTextStart)
+			table.insert(toolConnectionHose.debugElements, debugTextEnd)
+			if toolConnectionHose.mountingNode ~= nil then
+				setVisibility(toolConnectionHose.mountingNode, true)
+			end
+			ObjectChangeUtil.setObjectChanges(toolConnectionHose.objectChanges, true, toolConnectionHose.objectChangesTarget, toolConnectionHose.objectChangesTarget.setMovingToolDirty)
+			if toolConnectionHose.parentToolConnectionHose ~= nil then
+				local parentToolConnectionHose = toolConnectionHose.parentToolConnectionHose
+				if parentToolConnectionHose.mountingNode ~= nil then
+					setVisibility(parentToolConnectionHose.mountingNode, true)
+				end
+				ObjectChangeUtil.setObjectChanges(parentToolConnectionHose.objectChanges, true, parentToolConnectionHose.objectChangesTarget, parentToolConnectionHose.objectChangesTarget.setMovingToolDirty)
 			end
 		end
 	end

@@ -1,28 +1,22 @@
--- Local values: FellerBuncherReleaseEvent_mt
 FellerBuncherReleaseEvent = {}
 local FellerBuncherReleaseEvent_mt = Class(FellerBuncherReleaseEvent, Event)
 InitStaticEventClass(FellerBuncherReleaseEvent, "FellerBuncherReleaseEvent")
 function FellerBuncherReleaseEvent.emptyNew()
-	-- upvalues: (copy) FellerBuncherReleaseEvent_mt
-	return Event.new(FellerBuncherReleaseEvent_mt)
+	local self = Event.new(FellerBuncherReleaseEvent_mt)
+	return self
 end
-
--- Local values: self
 function FellerBuncherReleaseEvent.new(object)
-	local v3_ = FellerBuncherReleaseEvent.emptyNew()
-	v3_.object = object
-	return v3_
+	local self = FellerBuncherReleaseEvent.emptyNew()
+	self.object = object
+	return self
 end
-
 function FellerBuncherReleaseEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self:run(connection)
 end
-
 function FellerBuncherReleaseEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 end
-
 function FellerBuncherReleaseEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -31,7 +25,6 @@ function FellerBuncherReleaseEvent:run(connection)
 		self.object:releaseMountedTrees(true)
 	end
 end
-
 function FellerBuncherReleaseEvent.sendEvent(vehicle, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

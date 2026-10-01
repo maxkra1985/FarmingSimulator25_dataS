@@ -1,23 +1,21 @@
 PrecisionFarmingGUI = {}
 PrecisionFarmingGUI.MOD_NAME = g_currentModName
 PrecisionFarmingGUI.MOD_DIR = g_currentModDirectory
-
--- Local values: newElement, xmlFile
 function PrecisionFarmingGUI.loadAdditionalGUI(filename, parentTarget, parentElement)
-	local v4_ = nil
-	local v5_ = loadXMLFile("Temp", PrecisionFarmingGUI.MOD_DIR .. filename)
-	if v5_ ~= nil and v5_ ~= 0 then
+	local newElement = nil
+	local xmlFile = loadXMLFile("Temp", PrecisionFarmingGUI.MOD_DIR .. filename)
+	if xmlFile ~= nil and xmlFile ~= 0 then
 		if parentElement ~= nil then
-			g_gui:loadProfileSet(v5_, "GUI.GuiProfiles", g_gui.presets)
-			g_gui:loadGuiRec(v5_, "GUI", parentElement, parentTarget)
-			v4_ = parentElement.elements[#parentElement.elements]
-			v4_:updateAbsolutePosition()
+			g_gui:loadProfileSet(xmlFile, "GUI.GuiProfiles", g_gui.presets)
+			g_gui:loadGuiRec(xmlFile, "GUI", parentElement, parentTarget)
+			newElement = parentElement.elements[#parentElement.elements]
+			newElement:updateAbsolutePosition()
 			parentTarget:exposeControlsAsFields()
 			parentTarget:onGuiSetupFinished()
 		end
-		delete(v5_)
+		delete(xmlFile)
 	end
-	return v4_
+	return newElement
 end
 function PrecisionFarmingGUI.initializeGUI()
 	g_gui:loadProfiles(PrecisionFarmingGUI.MOD_DIR .. "gui/guiProfiles.xml")

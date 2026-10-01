@@ -1,29 +1,19 @@
--- Local values: CollectibleHotspot_mt
 CollectibleHotspot = {}
 local CollectibleHotspot_mt = Class(CollectibleHotspot, MapHotspot)
-
--- Upvalues: CollectibleHotspot_mt
--- Local values: self, _
 function CollectibleHotspot.new(collectible)
-	-- upvalues: (copy) CollectibleHotspot_mt
-	local v3_ = MapHotspot.new(CollectibleHotspot_mt)
-	local v4_, v5_ = getNormalizedScreenValues(40, 40)
-	v3_.width = v4_
-	v3_.height = v5_
-	v3_.icon = g_overlayManager:createOverlay("mapHotspots.other", 0, 0, v3_.width, v3_.height)
-	v3_.color[1] = 0.8
-	v3_.color[2] = 0.5
-	v3_.color[3] = 0
-	local v6_, _, v7_ = getWorldTranslation(collectible.node)
-	v3_.worldX = v6_
-	v3_.worldZ = v7_
-	return v3_
+	local self = MapHotspot.new(CollectibleHotspot_mt)
+	self.width, self.height = getNormalizedScreenValues(40, 40)
+	self.icon = g_overlayManager:createOverlay("mapHotspots.other", 0, 0, self.width, self.height)
+	self.color[1] = 0.8
+	self.color[2] = 0.5
+	self.color[3] = 0
+	local _ = nil
+	self.worldX, _, self.worldZ = getWorldTranslation(collectible.node)
+	return self
 end
-
 function CollectibleHotspot:getCategory()
 	return MapHotspot.CATEGORY_OTHER
 end
-
 function CollectibleHotspot:hasMouseOverlap(x, y)
 	return false
 end

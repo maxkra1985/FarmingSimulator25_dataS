@@ -1,17 +1,10 @@
--- Local values: HumanGraphicsComponentState_mt
 HumanGraphicsComponentState = {}
 local HumanGraphicsComponentState_mt = Class(HumanGraphicsComponentState)
-
--- Upvalues: HumanGraphicsComponentState_mt
--- Local values: self
 function HumanGraphicsComponentState.new(customMt)
-	-- upvalues: (copy) HumanGraphicsComponentState_mt
-	local v3_ = customMt or HumanGraphicsComponentState_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_:setDefault()
-	return v4_
+	local self = setmetatable({}, customMt or HumanGraphicsComponentState_mt)
+	self:setDefault()
+	return self
 end
-
 function HumanGraphicsComponentState:setDefault()
 	self.absSpeed = 0
 	self.relativeVelocityX = 0
@@ -36,44 +29,41 @@ function HumanGraphicsComponentState:setDefault()
 	self.isVerticalCut = false
 	self.isStrafeWalkMode = false
 end
-
--- Local values: renderValue
 function HumanGraphicsComponentState:drawDebug(posX, posY, textSize)
-	local function v13_(p10_)
-		-- upvalues: (copy) self, (copy) posX, (ref) posY, (copy) textSize
-		local v11_ = self[p10_]
-		local v12_
-		if type(v11_) == "boolean" then
-			v12_ = tostring(v11_)
+	local renderValue = function(key)
+		local value = self[key]
+		local str = nil
+		if type(value) == "boolean" then
+			str = tostring(value)
 		else
-			v12_ = string.format("%.4f", v11_)
+			str = string.format("%.4f", value)
 		end
 		setTextAlignment(RenderText.ALIGN_RIGHT)
-		renderText(posX, posY, textSize, p10_ .. " : ")
+		renderText(posX, posY, textSize, key .. " : ")
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		renderText(posX, posY, textSize, v12_)
+		renderText(posX, posY, textSize, str)
 		posY = posY - textSize - 2 * g_pixelSizeY
 	end
-	v13_("absSpeed")
-	v13_("movementDirX")
-	v13_("movementDirZ")
-	v13_("relativeVelocityX")
-	v13_("relativeVelocityY")
-	v13_("relativeVelocityZ")
-	v13_("rotationVelocity")
-	v13_("distanceToGround")
-	v13_("isCloseToGround")
-	v13_("isIdling")
-	v13_("isWalking")
-	v13_("isRunning")
-	v13_("isCrouching")
-	v13_("isGrounded")
-	v13_("isInWater")
-	v13_("isSwimming")
-	v13_("isStrafeWalkMode")
-	v13_("isNPC")
-	v13_("isFirstPerson")
-	v13_("isHoldingChainsaw")
-	v13_("isCutting")
-	v13_("isVerticalCut")
+	renderValue("absSpeed")
+	renderValue("movementDirX")
+	renderValue("movementDirZ")
+	renderValue("relativeVelocityX")
+	renderValue("relativeVelocityY")
+	renderValue("relativeVelocityZ")
+	renderValue("rotationVelocity")
+	renderValue("distanceToGround")
+	renderValue("isCloseToGround")
+	renderValue("isIdling")
+	renderValue("isWalking")
+	renderValue("isRunning")
+	renderValue("isCrouching")
+	renderValue("isGrounded")
+	renderValue("isInWater")
+	renderValue("isSwimming")
+	renderValue("isStrafeWalkMode")
+	renderValue("isNPC")
+	renderValue("isFirstPerson")
+	renderValue("isHoldingChainsaw")
+	renderValue("isCutting")
+	renderValue("isVerticalCut")
 end

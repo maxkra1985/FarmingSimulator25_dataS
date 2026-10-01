@@ -1,20 +1,20 @@
 LogGrab = {}
 LogGrab.GRAB_INDEX_NUM_BITS = 3
 source("dataS/scripts/vehicles/specializations/events/LogGrabClawStateEvent.lua")
-
 function LogGrab.prerequisitesPresent(specializations)
 	return true
 end
 function LogGrab.initSpecialization()
 	g_vehicleConfigurationManager:addConfigurationType("logGrab", g_i18n:getText("shop_configuration"), "logGrab", VehicleConfigurationItem)
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("LogGrab")
-	LogGrab.registerLogGrabXMLPaths(v1_, "vehicle.logGrab.grab(?)")
-	LogGrab.registerLogGrabXMLPaths(v1_, "vehicle.logGrab.logGrabConfigurations.logGrabConfiguration(?).grab(?)")
-	v1_:setXMLSpecializationType()
-	Vehicle.xmlSchemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).logGrab.grab(?)#state", "Grab claw state")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("LogGrab")
+	LogGrab.registerLogGrabXMLPaths(schema, "vehicle.logGrab.grab(?)")
+	LogGrab.registerLogGrabXMLPaths(schema, "vehicle.logGrab.logGrabConfigurations.logGrabConfiguration(?).grab(?)")
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	local key = "vehicles.vehicle(?).logGrab"
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).logGrab" .. ".grab(?)#state", "Grab claw state")
 end
-
 function LogGrab.registerLogGrabXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#jointNode", "Joint node")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#jointRoot", "Joint root node")
@@ -61,11 +61,9 @@ function LogGrab.registerLogGrabXMLPaths(schema, basePath)
 	schema:register(XMLValueType.VECTOR_3, basePath .. ".componentJointMassSetting(?)#minMaxRotDriveForce", "Max. rot drive force applied when the trees weight #minMass")
 	schema:register(XMLValueType.VECTOR_3, basePath .. ".componentJointMassSetting(?)#maxMaxRotDriveForce", "Max. rot drive force applied when the trees weight #maxMass")
 end
-
 function LogGrab.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onLogGrabMountedTreesChanged")
 end
-
 function LogGrab.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "loadLogGrabFromXML", LogGrab.loadLogGrabFromXML)
 	SpecializationUtil.registerFunction(vehicleType, "updateLogGrabClawState", LogGrab.updateLogGrabClawState)
@@ -75,13 +73,11 @@ function LogGrab.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getIsLogGrabClawStateChangeAllowed", LogGrab.getIsLogGrabClawStateChangeAllowed)
 	SpecializationUtil.registerFunction(vehicleType, "setLogGrabClawState", LogGrab.setLogGrabClawState)
 end
-
 function LogGrab.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "setComponentJointFrame", LogGrab.setComponentJointFrame)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getMovingToolMoveValue", LogGrab.getMovingToolMoveValue)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "onDelimbTree", LogGrab.onDelimbTree)
 end
-
 function LogGrab.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", LogGrab)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", LogGrab)
@@ -96,11 +92,9 @@ function LogGrab.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onFoldStateChanged", LogGrab)
 	SpecializationUtil.registerEventListener(vehicleType, "onFoldTimeChanged", LogGrab)
 end
-
--- Local values: spec, configurationId, configKey
 function LogGrab:onLoad(savegame)
-	local v_u_9_ = self.spec_logGrab
-	v_u_9_.grabs = {}
+	local spec = self.spec_logGrab
+	spec.grabs = {}
 	if self.xmlFile:hasProperty("vehicle.logGrab") then
 		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.logGrab.trigger#node", "vehicle.logGrab.grab.trigger#node")
 		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.logGrab#jointNode", "vehicle.logGrab.grab#jointNode")
@@ -111,26 +105,22 @@ function LogGrab:onLoad(savegame)
 		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.logGrab.grab#axis", "vehicle.logGrab.grab.claw#axis")
 		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.logGrab.grab#rotationOffsetThreshold", "vehicle.logGrab.grab.claw#rotationOffsetThreshold")
 		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.logGrab.grab#rotationOffsetTime", "vehicle.logGrab.grab.claw#rotationOffsetTime")
-		local v10_ = self.configurations.logGrab or 1
-		local v11_ = string.format("vehicle.logGrab.logGrabConfigurations.logGrabConfiguration(%d)", v10_ - 1)
-		self.xmlFile:iterate(v11_ .. ".grab", function(_, p12_)
-			-- upvalues: (copy) self, (copy) v_u_9_
-			local v13_ = {}
-			if self:loadLogGrabFromXML(self.xmlFile, p12_, v13_) then
-				local v14_ = v_u_9_.grabs
-				table.insert(v14_, v13_)
+		local configurationId = self.configurations.logGrab or 1
+		local configKey = string.format("vehicle.logGrab.logGrabConfigurations.logGrabConfiguration(%d)", configurationId - 1)
+		self.xmlFile:iterate(configKey .. ".grab", function(_, grabKey)
+			local logGrab = {}
+			if self:loadLogGrabFromXML(self.xmlFile, grabKey, logGrab) then
+				table.insert(spec.grabs, logGrab)
 			end
 		end)
-		self.xmlFile:iterate("vehicle.logGrab.grab", function(_, p15_)
-			-- upvalues: (copy) self, (copy) v_u_9_
-			local v16_ = {}
-			if self:loadLogGrabFromXML(self.xmlFile, p15_, v16_) then
-				local v17_ = v_u_9_.grabs
-				table.insert(v17_, v16_)
+		self.xmlFile:iterate("vehicle.logGrab.grab", function(_, grabKey)
+			local logGrab = {}
+			if self:loadLogGrabFromXML(self.xmlFile, grabKey, logGrab) then
+				table.insert(spec.grabs, logGrab)
 			end
 		end)
 	end
-	if #v_u_9_.grabs == 0 then
+	if #spec.grabs == 0 then
 		SpecializationUtil.removeEventListener(self, "onPostLoad", LogGrab)
 		SpecializationUtil.removeEventListener(self, "onDelete", LogGrab)
 		SpecializationUtil.removeEventListener(self, "onReadStream", LogGrab)
@@ -144,271 +134,252 @@ function LogGrab:onLoad(savegame)
 		SpecializationUtil.removeEventListener(self, "onFoldTimeChanged", LogGrab)
 	end
 end
-
--- Local values: spec, i, grab, state, grabKey, j, clawData, ti, movingToolData
 function LogGrab:onPostLoad(savegame)
-	local v20_ = self.spec_logGrab
-	for v21_ = 1, #v20_.grabs do
-		local v22_ = v20_.grabs[v21_]
-		if v22_.clawAnimation.name ~= nil then
-			local v23_ = v22_.clawAnimation.initialState
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		if grab.clawAnimation.name ~= nil then
+			local state = grab.clawAnimation.initialState
 			if savegame ~= nil and not savegame.resetVehicles then
-				local v24_ = string.format("%s.logGrab.grab(%d)", savegame.key, v21_ - 1)
-				v23_ = savegame.xmlFile:getValue(v24_ .. "#state", v23_)
+				local grabKey = string.format("%s.logGrab.grab(%d)", savegame.key, i - 1)
+				state = savegame.xmlFile:getValue(grabKey .. "#state", state)
 			end
-			if v23_ then
-				v22_.clawAnimation.state = true
-				self:playAnimation(v22_.clawAnimation.name, 1, 0, true)
-				AnimatedVehicle.updateAnimationByName(self, v22_.clawAnimation.name, 9999999, true)
+			if state then
+				grab.clawAnimation.state = true
+				self:playAnimation(grab.clawAnimation.name, 1, 0, true)
+				AnimatedVehicle.updateAnimationByName(self, grab.clawAnimation.name, 9999999, true)
 			end
 		end
-		for v25_ = 1, #v22_.claws do
-			local v26_ = v22_.claws[v25_]
-			for v27_ = #v26_.movingTools, 1, -1 do
-				local v28_ = v26_.movingTools[v27_]
-				v28_.movingTool = self:getMovingToolByNode(v28_.node)
-				if v28_.movingTool == nil then
-					table.remove(v26_.movingTools, v27_)
+		for j = 1, #grab.claws do
+			local clawData = grab.claws[j]
+			for ti = #clawData.movingTools, 1, -1 do
+				local movingToolData = clawData.movingTools[ti]
+				movingToolData.movingTool = self:getMovingToolByNode(movingToolData.node)
+				if movingToolData.movingTool == nil then
+					table.remove(clawData.movingTools, ti)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, i, grab
 function LogGrab:onDelete()
-	local v30_ = self.spec_logGrab
-	if v30_.grabs ~= nil then
-		for v31_ = 1, #v30_.grabs do
-			local v32_ = v30_.grabs[v31_]
-			if v32_.callbackId ~= nil then
-				removeTrigger(v32_.triggerNode, v32_.callbackId)
+	local spec = self.spec_logGrab
+	if spec.grabs ~= nil then
+		for i = 1, #spec.grabs do
+			local grab = spec.grabs[i]
+			if grab.callbackId == nil then
+				continue
 			end
+			removeTrigger(grab.triggerNode, grab.callbackId)
 		end
 	end
 end
-
--- Local values: spec, i, grab, grabKey
 function LogGrab:saveToXMLFile(xmlFile, key, usedModNames)
-	local v36_ = self.spec_logGrab
-	for v37_ = 1, #v36_.grabs do
-		local v38_ = v36_.grabs[v37_]
-		if v38_.clawAnimation.name ~= nil then
-			xmlFile:setValue((key .. string.format(".grab(%d)", v37_ - 1)) .. "#state", v38_.clawAnimation.state)
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		if grab.clawAnimation.name == nil then
+			continue
 		end
+		local grabKey = key .. string.format(".grab(%d)", i - 1)
+		xmlFile:setValue(grabKey .. "#state", grab.clawAnimation.state)
 	end
 end
-
--- Local values: spec, i, grab, state
 function LogGrab:onReadStream(streamId, connection)
-	local v41_ = self.spec_logGrab
-	for v42_ = 1, #v41_.grabs do
-		if v41_.grabs[v42_].clawAnimation.name ~= nil then
-			self:setLogGrabClawState(v42_, streamReadBool(streamId), true)
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		if grab.clawAnimation.name == nil then
+			continue
 		end
+		local state = streamReadBool(streamId)
+		self:setLogGrabClawState(i, state, true)
 	end
 end
-
--- Local values: spec, i, grab
 function LogGrab:onWriteStream(streamId, connection)
-	local v45_ = self.spec_logGrab
-	for v46_ = 1, #v45_.grabs do
-		local v47_ = v45_.grabs[v46_]
-		if v47_.clawAnimation.name ~= nil then
-			streamWriteBool(streamId, v47_.clawAnimation.state)
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		if grab.clawAnimation.name == nil then
+			continue
 		end
+		streamWriteBool(streamId, grab.clawAnimation.state)
 	end
 end
-
--- Local values: spec, i, grab, isGrabClosed, triggerEmpty, j, claw, clawState, clawsClosed, j, shape, _, shape, _, jointIndex, jointTransform, j, claw, componentJoint, axis, shapeId, shapeData, j, claw, componentJoint, state, clawAnimationRunning, isActive, j, componentJointLimit, alpha, x, y, z
 function LogGrab:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	if self.isServer then
-		local v50_ = self.spec_logGrab
-		for v51_ = 1, #v50_.grabs do
-			local v52_ = v50_.grabs[v51_]
-			local v53_ = true
-			if v52_.clawAnimation.name == nil then
-				local v54_
-				if next(v52_.dynamicMountedShapes) == nil then
-					v54_ = next(v52_.pendingDynamicMountShapes) == nil
-				else
-					v54_ = false
+		local spec = self.spec_logGrab
+		for i = 1, #spec.grabs do
+			local grab = spec.grabs[i]
+			local isGrabClosed = true
+			if grab.clawAnimation.name == nil then
+				local triggerEmpty = next(grab.dynamicMountedShapes) == nil and next(grab.pendingDynamicMountShapes) == nil
+				for j = 1, #grab.claws do
+					local claw = grab.claws[j]
+					local clawState = self:updateLogGrabClawState(claw, dt, nil, triggerEmpty)
+					if 2500 < g_time - grab.lastGrabChangeTime then
+						clawState = claw.lastClawState
+					end
+					if grab.unmountOnTreeCut and (self.spec_woodHarvester ~= nil and self.spec_woodHarvester.attachedSplitShape ~= nil) then
+						clawState = false
+					end
+					if not clawState then
+						isGrabClosed = false
+					end
+					claw.lastClawState = clawState
 				end
-				for v55_ = 1, #v52_.claws do
-					local v56_ = v52_.claws[v55_]
-					local v57_ = self:updateLogGrabClawState(v56_, dt, nil, v54_)
-					if g_time - v52_.lastGrabChangeTime > 2500 then
-						v57_ = v56_.lastClawState
-					end
-					if v52_.unmountOnTreeCut and (self.spec_woodHarvester ~= nil and self.spec_woodHarvester.attachedSplitShape ~= nil) then
-						v57_ = false
-					end
-					if not v57_ then
-						v53_ = false
-					end
-					v56_.lastClawState = v57_
-				end
-			elseif v52_.clawAnimation.state then
-				if self:getIsAnimationPlaying(v52_.clawAnimation.name) then
-					local v58_ = true
-					for v59_ = 1, #v52_.claws do
-						if not self:updateLogGrabClawState(v52_.claws[v59_], dt, true) then
-							v58_ = false
+			elseif grab.clawAnimation.state then
+				if self:getIsAnimationPlaying(grab.clawAnimation.name) then
+					local clawsClosed = true
+					for j = 1, #grab.claws do
+						if self:updateLogGrabClawState(grab.claws[j], dt, true) then
+							continue
 						end
+						clawsClosed = false
 					end
-					if v58_ then
-						self:stopAnimation(v52_.clawAnimation.name)
+					if clawsClosed then
+						self:stopAnimation(grab.clawAnimation.name)
 					end
 				end
-				if self:getIsAnimationPlaying(v52_.clawAnimation.name) and self:getAnimationTime(v52_.clawAnimation.name) < v52_.clawAnimation.lockTime then
-					v53_ = false
+				if self:getIsAnimationPlaying(grab.clawAnimation.name) and self:getAnimationTime(grab.clawAnimation.name) < grab.clawAnimation.lockTime then
+					isGrabClosed = false
 				end
-			elseif self:getAnimationTime(v52_.clawAnimation.name) < v52_.clawAnimation.lockTime then
-				v53_ = false
+			elseif self:getAnimationTime(grab.clawAnimation.name) < grab.clawAnimation.lockTime then
+				isGrabClosed = false
 			end
-			for v60_, _ in pairs(v52_.pendingDynamicMountShapes) do
-				if not entityExists(v60_) then
-					v52_.pendingDynamicMountShapes[v60_] = nil
+			for shape, _ in pairs(grab.pendingDynamicMountShapes) do
+				if entityExists(shape) then
+					continue
 				end
+				grab.pendingDynamicMountShapes[shape] = nil
 			end
-			if v53_ then
-				for v61_, _ in pairs(v52_.pendingDynamicMountShapes) do
-					if v52_.dynamicMountedShapes[v61_] == nil and self:getGrabCanMountSplitShape(v52_, v61_) then
-						local v62_, v63_ = self:mountSplitShape(v52_, v61_)
-						if v62_ ~= nil then
-							v52_.dynamicMountedShapes[v61_] = {
-								["jointIndex"] = v62_,
-								["jointTransform"] = v63_
-							}
-							v52_.pendingDynamicMountShapes[v61_] = nil
+			if isGrabClosed then
+				for shape, _ in pairs(grab.pendingDynamicMountShapes) do
+					if grab.dynamicMountedShapes[shape] == nil and self:getGrabCanMountSplitShape(grab, shape) then
+						local jointIndex, jointTransform = self:mountSplitShape(grab, shape)
+						if jointIndex == nil then
+							continue
 						end
+						grab.dynamicMountedShapes[shape] = { jointIndex = jointIndex, jointTransform = jointTransform }
+						grab.pendingDynamicMountShapes[shape] = nil
 					end
 				end
-				if not v52_.jointLimitsOpen and next(v52_.dynamicMountedShapes) ~= nil then
-					v52_.jointLimitsOpen = true
-					for v64_ = 1, #v52_.claws do
-						local v65_ = v52_.claws[v64_]
-						local v66_ = self.componentJoints[v65_.componentJoint]
-						if v66_ ~= nil then
-							for v67_ = 1, 3 do
-								setJointRotationLimitSpring(v66_.jointIndex, v67_ - 1, v66_.rotLimitSpring[v67_], v66_.rotLimitDamping[v67_] * v65_.dampingFactor)
+				if not grab.jointLimitsOpen and next(grab.dynamicMountedShapes) ~= nil then
+					grab.jointLimitsOpen = true
+					for j = 1, #grab.claws do
+						local claw = grab.claws[j]
+						local componentJoint = self.componentJoints[claw.componentJoint]
+						if componentJoint ~= nil then
+							for axis = 1, 3 do
+								setJointRotationLimitSpring(componentJoint.jointIndex, axis - 1, componentJoint.rotLimitSpring[axis], componentJoint.rotLimitDamping[axis] * claw.dampingFactor)
 							end
 						end
 					end
 				end
 			else
-				for v68_, v69_ in pairs(v52_.dynamicMountedShapes) do
-					self:unmountSplitShape(v52_, v68_, v69_.jointIndex, v69_.jointTransform, false)
+				for shapeId, shapeData in pairs(grab.dynamicMountedShapes) do
+					self:unmountSplitShape(grab, shapeId, shapeData.jointIndex, shapeData.jointTransform, false)
 				end
-				if v52_.jointLimitsOpen then
-					v52_.jointLimitsOpen = false
-					for v70_ = 1, #v52_.claws do
-						local v71_ = v52_.claws[v70_]
-						local v72_ = self.componentJoints[v71_.componentJoint]
-						if v72_ ~= nil then
-							setJointRotationLimitSpring(v72_.jointIndex, 0, v72_.rotLimitSpring[1], v72_.rotLimitDamping[1])
-							setJointRotationLimitSpring(v72_.jointIndex, 1, v72_.rotLimitSpring[2], v72_.rotLimitDamping[2])
-							setJointRotationLimitSpring(v72_.jointIndex, 2, v72_.rotLimitSpring[3], v72_.rotLimitDamping[3])
+				if grab.jointLimitsOpen then
+					grab.jointLimitsOpen = false
+					for j = 1, #grab.claws do
+						local claw = grab.claws[j]
+						local componentJoint = self.componentJoints[claw.componentJoint]
+						if componentJoint == nil then
+							continue
 						end
+						setJointRotationLimitSpring(componentJoint.jointIndex, 0, componentJoint.rotLimitSpring[1], componentJoint.rotLimitDamping[1])
+						setJointRotationLimitSpring(componentJoint.jointIndex, 1, componentJoint.rotLimitSpring[2], componentJoint.rotLimitDamping[2])
+						setJointRotationLimitSpring(componentJoint.jointIndex, 2, componentJoint.rotLimitSpring[3], componentJoint.rotLimitDamping[3])
 					end
 				end
 			end
-			if v52_.lockAnimation.name ~= nil then
-				if v53_ then
-					v53_ = next(v52_.dynamicMountedShapes) ~= nil
-				end
-				if v53_ ~= v52_.lockAnimation.state then
-					v52_.lockAnimation.state = v53_
-					if v53_ then
-						self:playAnimation(v52_.lockAnimation.name, v52_.lockAnimation.speedScale, self:getAnimationTime(v52_.lockAnimation.name))
+			if grab.lockAnimation.name ~= nil then
+				local state = isGrabClosed and next(grab.dynamicMountedShapes) ~= nil
+				if state ~= grab.lockAnimation.state then
+					grab.lockAnimation.state = state
+					if state then
+						self:playAnimation(grab.lockAnimation.name, grab.lockAnimation.speedScale, self:getAnimationTime(grab.lockAnimation.name))
 					else
-						self:playAnimation(v52_.lockAnimation.name, v52_.lockAnimation.unlockSpeedScale, self:getAnimationTime(v52_.lockAnimation.name))
+						self:playAnimation(grab.lockAnimation.name, grab.lockAnimation.unlockSpeedScale, self:getAnimationTime(grab.lockAnimation.name))
 					end
 				end
 			end
-			local v73_
-			if v52_.clawAnimation.name == nil then
-				v73_ = false
-			else
-				v73_ = self:getIsAnimationPlaying(v52_.clawAnimation.name)
+			local clawAnimationRunning = false
+			if grab.clawAnimation.name ~= nil then
+				clawAnimationRunning = self:getIsAnimationPlaying(grab.clawAnimation.name)
 			end
-			if v52_.componentLimitsDirty or v73_ then
-				local v74_ = next(v52_.dynamicMountedShapes) ~= nil
-				for v75_ = 1, #v52_.componentJointLimits do
-					local v76_ = v52_.componentJointLimits[v75_]
-					if v76_.isActive ~= v74_ or v73_ then
-						v76_.isActive = v74_
-						local v77_ = next(v52_.dynamicMountedShapes) == nil and 1 or 0
-						if v52_.clawAnimation.name ~= nil and (next(v52_.dynamicMountedShapes) ~= nil or next(v52_.pendingDynamicMountShapes)) then
-							v77_ = 1 - self:getAnimationTime(v52_.clawAnimation.name)
+			if grab.componentLimitsDirty or clawAnimationRunning then
+				local isActive = next(grab.dynamicMountedShapes) ~= nil
+				for j = 1, #grab.componentJointLimits do
+					local componentJointLimit = grab.componentJointLimits[j]
+					if componentJointLimit.isActive ~= isActive or clawAnimationRunning then
+						componentJointLimit.isActive = isActive
+						local alpha = next(grab.dynamicMountedShapes) ~= nil and 0 or 1
+						if grab.clawAnimation.name ~= nil and (next(grab.dynamicMountedShapes) ~= nil or next(grab.pendingDynamicMountShapes)) then
+							alpha = 1 - self:getAnimationTime(grab.clawAnimation.name)
 						end
-						local v78_, v79_, v80_ = MathUtil.vector3Lerp(v76_.limitActive[1], v76_.limitActive[2], v76_.limitActive[3], v76_.limitInactive[1], v76_.limitInactive[2], v76_.limitInactive[3], v77_)
-						self:setComponentJointRotLimit(v76_.joint, 0, -v78_, v78_)
-						self:setComponentJointRotLimit(v76_.joint, 1, -v79_, v79_)
-						self:setComponentJointRotLimit(v76_.joint, 2, -v80_, v80_)
+						local x, y, z = MathUtil.vector3Lerp(componentJointLimit.limitActive[1], componentJointLimit.limitActive[2], componentJointLimit.limitActive[3], componentJointLimit.limitInactive[1], componentJointLimit.limitInactive[2], componentJointLimit.limitInactive[3], alpha)
+						self:setComponentJointRotLimit(componentJointLimit.joint, 0, -x, x)
+						self:setComponentJointRotLimit(componentJointLimit.joint, 1, -y, y)
+						self:setComponentJointRotLimit(componentJointLimit.joint, 2, -z, z)
 					end
 				end
-				v52_.componentLimitsDirty = false
+				grab.componentLimitsDirty = false
 			end
 		end
 	end
 end
-
--- Local values: collisionMask
 function LogGrab:loadLogGrabFromXML(xmlFile, key, logGrab)
 	logGrab.claws = {}
-	xmlFile:iterate(key .. ".claw", function(_, p85_)
-		-- upvalues: (copy) self, (copy) xmlFile, (copy) logGrab
-		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, p85_ .. "#componentJoint", p85_ .. "#componentJointIndex")
-		local v_u_86_ = {
-			["componentJoint"] = xmlFile:getValue(p85_ .. "#componentJointIndex")
-		}
-		if v_u_86_.componentJoint == nil then
-			Logging.xmlWarning(xmlFile, "Missing claw componentJoint in xml. \'%s\'", p85_)
-		else
-			v_u_86_.dampingFactor = xmlFile:getValue(p85_ .. "#dampingFactor", 20)
-			v_u_86_.axis = xmlFile:getValue(p85_ .. "#axis", 1)
-			v_u_86_.direction = { 0, 0, 0 }
-			v_u_86_.direction[v_u_86_.axis] = 1
-			local v87_ = self.componentJoints[v_u_86_.componentJoint]
-			if v87_ == nil then
-				Logging.xmlWarning(xmlFile, "Unable to load claw componentJoint from xml. \'%s\'", p85_)
-				return false
+	xmlFile:iterate(key .. ".claw", function(_, clawKey)
+		XMLUtil.checkDeprecatedXMLElements(self.xmlFile, clawKey .. "#componentJoint", clawKey .. "#componentJointIndex")
+		local clawData = {}
+		clawData.componentJoint = xmlFile:getValue(clawKey .. "#componentJointIndex")
+		if clawData.componentJoint == nil then
+			Logging.xmlWarning(xmlFile, "Missing claw componentJoint in xml. '%s'", clawKey)
+			return
+		end
+		clawData.dampingFactor = xmlFile:getValue(clawKey .. "#dampingFactor", 20)
+		clawData.axis = xmlFile:getValue(clawKey .. "#axis", 1)
+		clawData.direction = { 0, 0, 0 }
+		clawData.direction[clawData.axis] = 1
+		local componentJoint = self.componentJoints[clawData.componentJoint]
+		if componentJoint ~= nil then
+			clawData.jointActor0 = componentJoint.jointNode
+			clawData.jointActor1 = componentJoint.jointNodeActor1
+			if componentJoint.jointNodeActor1 == componentJoint.jointNode then
+				local actor1Reference = createTransformGroup("jointNodeActor1Reference")
+				local component2 = self.components[componentJoint.componentIndices[2]]
+				link(component2.node, actor1Reference)
+				setWorldTranslation(actor1Reference, getWorldTranslation(componentJoint.jointNode))
+				setWorldRotation(actor1Reference, getWorldRotation(componentJoint.jointNode))
+				clawData.jointActor1 = actor1Reference
 			end
-			v_u_86_.jointActor0 = v87_.jointNode
-			v_u_86_.jointActor1 = v87_.jointNodeActor1
-			if v87_.jointNodeActor1 == v87_.jointNode then
-				local v88_ = createTransformGroup("jointNodeActor1Reference")
-				local v89_ = self.components[v87_.componentIndices[2]]
-				link(v89_.node, v88_)
-				setWorldTranslation(v88_, getWorldTranslation(v87_.jointNode))
-				setWorldRotation(v88_, getWorldRotation(v87_.jointNode))
-				v_u_86_.jointActor1 = v88_
-			end
-			v_u_86_.rotationOffsetThreshold = xmlFile:getValue(p85_ .. "#rotationOffsetThreshold", 10)
-			v_u_86_.rotationOffsetInverted = xmlFile:getValue(p85_ .. "#rotationOffsetInverted", false)
-			v_u_86_.rotationOffsetTime = xmlFile:getValue(p85_ .. "#rotationOffsetTime", 1000)
-			v_u_86_.rotationOffsetTimer = 0
-			v_u_86_.rotationChangedTimer = 0
-			v_u_86_.currentOffset = 0
-			v_u_86_.lastClawState = false
-			v_u_86_.movingTools = {}
-			xmlFile:iterate(p85_ .. ".movingTool", function(_, p90_)
-				-- upvalues: (ref) xmlFile, (ref) self, (copy) v_u_86_
-				local v91_ = {
-					["node"] = xmlFile:getValue(p90_ .. "#node", nil, self.components, self.i3dMappings)
-				}
-				if v91_.node == nil then
-					Logging.xmlWarning(xmlFile, "Unable to load movingTool from xml. \'%s\'", p90_)
+			clawData.rotationOffsetThreshold = xmlFile:getValue(clawKey .. "#rotationOffsetThreshold", 10)
+			clawData.rotationOffsetInverted = xmlFile:getValue(clawKey .. "#rotationOffsetInverted", false)
+			clawData.rotationOffsetTime = xmlFile:getValue(clawKey .. "#rotationOffsetTime", 1000)
+			clawData.rotationOffsetTimer = 0
+			clawData.rotationChangedTimer = 0
+			clawData.currentOffset = 0
+			clawData.lastClawState = false
+			clawData.movingTools = {}
+			xmlFile:iterate(clawKey .. ".movingTool", function(_, movingToolKey)
+				local movingToolData = {}
+				movingToolData.node = xmlFile:getValue(movingToolKey .. "#node", nil, self.components, self.i3dMappings)
+				if movingToolData.node ~= nil then
+					movingToolData.direction = xmlFile:getValue(movingToolKey .. "#direction", 1)
+					movingToolData.closeDirection = xmlFile:getValue(movingToolKey .. "#closeDirection")
+					table.insert(clawData.movingTools, movingToolData)
 				else
-					v91_.direction = xmlFile:getValue(p90_ .. "#direction", 1)
-					v91_.closeDirection = xmlFile:getValue(p90_ .. "#closeDirection")
-					local v92_ = v_u_86_.movingTools
-					table.insert(v92_, v91_)
+					Logging.xmlWarning(xmlFile, "Unable to load movingTool from xml. '%s'", movingToolKey)
 				end
 			end)
-			local v93_ = logGrab.claws
-			table.insert(v93_, v_u_86_)
+			table.insert(logGrab.claws, clawData)
+			return
+		else
+			Logging.xmlWarning(xmlFile, "Unable to load claw componentJoint from xml. '%s'", clawKey)
+			return false
 		end
 	end)
 	logGrab.clawAnimation = {}
@@ -439,420 +410,439 @@ function LogGrab:loadLogGrabFromXML(xmlFile, key, logGrab)
 	logGrab.foldMinLimit = xmlFile:getValue(key .. "#foldMinLimit", 0)
 	logGrab.foldMaxLimit = xmlFile:getValue(key .. "#foldMaxLimit", 1)
 	logGrab.triggerNode = xmlFile:getValue(key .. ".trigger#node", nil, self.components, self.i3dMappings)
-	if logGrab.triggerNode == nil then
-		Logging.xmlWarning(xmlFile, "Missing grab trigger in \'%s\'", key)
-		return false
-	end
-	if getCollisionFilterMask(logGrab.triggerNode) == CollisionFlag.TREE then
+	if logGrab.triggerNode ~= nil then
+		local collisionMask = getCollisionFilterMask(logGrab.triggerNode)
+		if collisionMask ~= CollisionFlag.TREE then
+			Logging.xmlWarning(xmlFile, "LogGrab trigger '%s' has wrong collision mask, only the Tree bit is allowed!", getName(logGrab.triggerNode))
+			return
+		end
 		logGrab.callbackId = addTrigger(logGrab.triggerNode, "logGrabTriggerCallback", self, false, LogGrab.logGrabTriggerCallback)
 		logGrab.pendingDynamicMountShapes = {}
 		logGrab.dynamicMountedShapes = {}
 		logGrab.jointLimitsOpen = false
 		logGrab.treeDetectionNode = xmlFile:getValue(key .. ".treeDetection#node", nil, self.components, self.i3dMappings)
 		if logGrab.treeDetectionNode == nil then
-			Logging.xmlWarning(xmlFile, "Missing tree detection node in \'%s\'", key)
+			Logging.xmlWarning(xmlFile, "Missing tree detection node in '%s'", key)
 			return false
+		else
+			logGrab.treeDetectionNodeSizeY = xmlFile:getValue(key .. ".treeDetection#sizeY", 2)
+			logGrab.treeDetectionNodeSizeZ = xmlFile:getValue(key .. ".treeDetection#sizeZ", 2)
+			logGrab.componentJointLimits = {}
+			xmlFile:iterate(key .. ".componentJointLimit", function(_, limitKey)
+				local componentJointLimit = {}
+				componentJointLimit.jointIndex = xmlFile:getValue(limitKey .. "#jointIndex")
+				if componentJointLimit.jointIndex ~= nil then
+					componentJointLimit.joint = self.componentJoints[componentJointLimit.jointIndex]
+					componentJointLimit.limitActive = xmlFile:getValue(limitKey .. "#limitActive", nil, true)
+					componentJointLimit.limitInactive = xmlFile:getValue(limitKey .. "#limitInactive", nil, true)
+					if componentJointLimit.joint ~= nil and (componentJointLimit.limitActive ~= nil and componentJointLimit.limitInactive ~= nil) then
+						componentJointLimit.isActive = false
+						table.insert(logGrab.componentJointLimits, componentJointLimit)
+					end
+				end
+			end)
+			logGrab.componentJointMassSettings = {}
+			xmlFile:iterate(key .. ".componentJointMassSetting", function(_, limitKey)
+				local componentJointMassSetting = {}
+				componentJointMassSetting.jointIndex = xmlFile:getValue(limitKey .. "#jointIndex")
+				if componentJointMassSetting.jointIndex ~= nil then
+					componentJointMassSetting.joint = self.componentJoints[componentJointMassSetting.jointIndex]
+					componentJointMassSetting.minMass = xmlFile:getValue(limitKey .. "#minMass", 0)
+					componentJointMassSetting.maxMass = xmlFile:getValue(limitKey .. "#maxMass", 1)
+					componentJointMassSetting.minMaxRotDriveForce = xmlFile:getValue(limitKey .. "#minMaxRotDriveForce", nil, true)
+					componentJointMassSetting.maxMaxRotDriveForce = xmlFile:getValue(limitKey .. "#maxMaxRotDriveForce", nil, true)
+					componentJointMassSetting.maxRotDriveForce = { 0, 0, 0 }
+					if componentJointMassSetting.joint ~= nil and (componentJointMassSetting.minMaxRotDriveForce ~= nil and componentJointMassSetting.maxMaxRotDriveForce ~= nil) then
+						table.insert(logGrab.componentJointMassSettings, componentJointMassSetting)
+					end
+				end
+			end)
+			logGrab.componentLimitsDirty = false
+			logGrab.lastGrabChangeTime = -math.huge
+			return true
 		end
-		logGrab.treeDetectionNodeSizeY = xmlFile:getValue(key .. ".treeDetection#sizeY", 2)
-		logGrab.treeDetectionNodeSizeZ = xmlFile:getValue(key .. ".treeDetection#sizeZ", 2)
-		logGrab.componentJointLimits = {}
-		xmlFile:iterate(key .. ".componentJointLimit", function(_, p94_)
-			-- upvalues: (copy) xmlFile, (copy) self, (copy) logGrab
-			local v95_ = {
-				["jointIndex"] = xmlFile:getValue(p94_ .. "#jointIndex")
-			}
-			if v95_.jointIndex ~= nil then
-				v95_.joint = self.componentJoints[v95_.jointIndex]
-				v95_.limitActive = xmlFile:getValue(p94_ .. "#limitActive", nil, true)
-				v95_.limitInactive = xmlFile:getValue(p94_ .. "#limitInactive", nil, true)
-				if v95_.joint ~= nil and (v95_.limitActive ~= nil and v95_.limitInactive ~= nil) then
-					v95_.isActive = false
-					local v96_ = logGrab.componentJointLimits
-					table.insert(v96_, v95_)
-				end
-			end
-		end)
-		logGrab.componentJointMassSettings = {}
-		xmlFile:iterate(key .. ".componentJointMassSetting", function(_, p97_)
-			-- upvalues: (copy) xmlFile, (copy) self, (copy) logGrab
-			local v98_ = {
-				["jointIndex"] = xmlFile:getValue(p97_ .. "#jointIndex")
-			}
-			if v98_.jointIndex ~= nil then
-				v98_.joint = self.componentJoints[v98_.jointIndex]
-				v98_.minMass = xmlFile:getValue(p97_ .. "#minMass", 0)
-				v98_.maxMass = xmlFile:getValue(p97_ .. "#maxMass", 1)
-				v98_.minMaxRotDriveForce = xmlFile:getValue(p97_ .. "#minMaxRotDriveForce", nil, true)
-				v98_.maxMaxRotDriveForce = xmlFile:getValue(p97_ .. "#maxMaxRotDriveForce", nil, true)
-				v98_.maxRotDriveForce = { 0, 0, 0 }
-				if v98_.joint ~= nil and (v98_.minMaxRotDriveForce ~= nil and v98_.maxMaxRotDriveForce ~= nil) then
-					local v99_ = logGrab.componentJointMassSettings
-					table.insert(v99_, v98_)
-				end
-			end
-		end)
-		logGrab.componentLimitsDirty = false
-		logGrab.lastGrabChangeTime = -math.huge
-		return true
 	end
-	Logging.xmlWarning(xmlFile, "LogGrab trigger \'%s\' has wrong collision mask, only the Tree bit is allowed!", getName(logGrab.triggerNode))
+	Logging.xmlWarning(xmlFile, "Missing grab trigger in '%s'", key)
+	return false
 end
-function LogGrab.updateLogGrabClawState()
-	-- failed to decompile
+function LogGrab:updateLogGrabClawState(claw, dt, ignoreTiming, forceDirty)
+	local componentJoint = self.componentJoints[claw.componentJoint]
+	if componentJoint ~= nil then
+		local xOff, yOff, zOff = localRotationToLocal(claw.jointActor1, claw.jointActor0, 0, 0, 0)
+		local currentOffset = 0
+		if claw.axis == 1 then
+			currentOffset = xOff
+		elseif claw.axis == 2 then
+			currentOffset = yOff
+		elseif claw.axis == 3 then
+			currentOffset = zOff
+		end
+		if claw.rotationOffsetInverted then
+			currentOffset = -currentOffset
+		end
+		local fullyClosed = true
+		local hasCloseDirectionDefined = false
+		for ti = 1, #claw.movingTools do
+			local movingToolData = claw.movingTools[ti]
+			if movingToolData.closeDirection then
+				local state = Cylindered.getMovingToolState(self, movingToolData.movingTool)
+				if 0 < movingToolData.closeDirection then
+					fullyClosed = fullyClosed and 0.99 < state
+				else
+					fullyClosed = fullyClosed and state < 0.01
+				end
+				hasCloseDirectionDefined = true
+			end
+		end
+		local grabClosed = claw.rotationOffsetThreshold < currentOffset
+		grabClosed = grabClosed or hasCloseDirectionDefined and fullyClosed
+		local x, y, z = getRotation(componentJoint.jointNode)
+		local rotSum = x + y + z
+		if grabClosed then
+			claw.lastRotation = rotSum
+			if claw.rotationOffsetTime < claw.rotationOffsetTimer or ignoreTiming then
+				return true
+			end
+			claw.rotationOffsetTimer = claw.rotationOffsetTimer + dt
+		elseif 0 < claw.rotationOffsetTimer then
+			if not ignoreTiming then
+				if claw.lastRotation == nil or rotSum == claw.lastRotation then
+					if forceDirty then
+					else
+						claw.rotationChangedTimer = math.max(claw.rotationChangedTimer - dt, 0)
+						if claw.rotationChangedTimer <= 0 then
+							claw.lastRotation = rotSum
+							return true
+						else
+							claw.currentOffset = currentOffset
+							return false
+						end
+					end
+				end
+				claw.rotationOffsetTimer = 0
+				claw.rotationChangedTimer = 750
+				claw.lastRotation = nil
+			end
+		end
+	end
 end
-
--- Local values: spec, i
 function LogGrab:onCutTree(radius, isNewTree)
-	if self.isServer and (radius > 0 and isNewTree) then
-		for v103_ = 1, #self.spec_logGrab.grabs do
-			if self:getIsLogGrabClawStateChangeAllowed(v103_) then
-				self:setLogGrabClawState(v103_, true)
+	if self.isServer and (0 < radius and isNewTree) then
+		local spec = self.spec_logGrab
+		for i = 1, #spec.grabs do
+			if self:getIsLogGrabClawStateChangeAllowed(i) then
+				self:setLogGrabClawState(i, true)
 			end
 		end
 	end
 end
-
--- Local values: spec, i
 function LogGrab:onTurnedOn()
 	if self.isServer then
-		for v105_ = 1, #self.spec_logGrab.grabs do
-			if self:getIsLogGrabClawStateChangeAllowed(v105_) then
-				self:setLogGrabClawState(v105_, false)
+		local spec = self.spec_logGrab
+		for i = 1, #spec.grabs do
+			if self:getIsLogGrabClawStateChangeAllowed(i) then
+				self:setLogGrabClawState(i, false)
 			end
 		end
 	end
 end
-
--- Local values: spec, i
 function LogGrab:onTurnedOff()
 	if self.isServer then
-		for v107_ = 1, #self.spec_logGrab.grabs do
-			if self:getIsLogGrabClawStateChangeAllowed(v107_) then
-				self:setLogGrabClawState(v107_, true)
+		local spec = self.spec_logGrab
+		for i = 1, #spec.grabs do
+			if self:getIsLogGrabClawStateChangeAllowed(i) then
+				self:setLogGrabClawState(i, true)
 			end
 		end
 	end
 end
-
--- Local values: spec, i, grab, _, actionEventId
 function LogGrab:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v110_ = self.spec_logGrab
-		self:clearActionEventsTable(v110_.actionEvents)
+		local spec = self.spec_logGrab
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			for v111_ = 1, #v110_.grabs do
-				local v112_ = v110_.grabs[v111_]
-				if v112_.clawAnimation.name ~= nil and (v112_.clawAnimation.controlGroupIndex == nil or (self.spec_cylindered == nil or self.spec_cylindered.currentControlGroupIndex == v112_.clawAnimation.controlGroupIndex)) then
-					local _, v113_ = self:addPoweredActionEvent(v110_.actionEvents, v112_.clawAnimation.inputAction, self, LogGrab.actionEventClawAnimation, false, true, false, true, v111_)
-					g_inputBinding:setActionEventTextPriority(v113_, GS_PRIO_HIGH)
+			for i = 1, #spec.grabs do
+				local grab = spec.grabs[i]
+				if grab.clawAnimation.name == nil then
+					continue
+				end
+				if grab.clawAnimation.controlGroupIndex == nil or self.spec_cylindered == nil or self.spec_cylindered.currentControlGroupIndex == grab.clawAnimation.controlGroupIndex then
+					local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, grab.clawAnimation.inputAction, self, LogGrab.actionEventClawAnimation, false, true, false, true, i)
+					g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
 					LogGrab.updateActionEvents(self)
 				end
 			end
 		end
 	end
 end
-
 function LogGrab:actionEventClawAnimation(actionName, inputValue, callbackState, isAnalog)
 	if self:getIsLogGrabClawStateChangeAllowed(callbackState) then
 		self:setLogGrabClawState(callbackState, nil)
 	end
 end
-
--- Local values: spec, i, grab, actionEvent
 function LogGrab:updateActionEvents()
-	local v117_ = self.spec_logGrab
-	for v118_ = 1, #v117_.grabs do
-		local v119_ = v117_.grabs[v118_]
-		local v120_ = v117_.actionEvents[v119_.clawAnimation.inputAction]
-		if v120_ ~= nil then
-			g_inputBinding:setActionEventText(v120_.actionEventId, v119_.clawAnimation.state and v119_.clawAnimation.textNeg or v119_.clawAnimation.textPos)
-			g_inputBinding:setActionEventActive(v120_.actionEventId, self:getIsLogGrabClawStateChangeAllowed(v118_))
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		local actionEvent = spec.actionEvents[grab.clawAnimation.inputAction]
+		if actionEvent == nil then
+			continue
 		end
+		g_inputBinding:setActionEventText(actionEvent.actionEventId, grab.clawAnimation.state and grab.clawAnimation.textNeg or grab.clawAnimation.textPos)
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, self:getIsLogGrabClawStateChangeAllowed(i))
 	end
 end
-
--- Local values: spec, i, grab, j, claw, componentJoint
 function LogGrab:setComponentJointFrame(superFunc, jointDesc, anchorActor)
 	superFunc(self, jointDesc, anchorActor)
-	local v125_ = self.spec_logGrab
-	for v126_ = 1, #v125_.grabs do
-		local v127_ = v125_.grabs[v126_]
-		for v128_ = 1, #v127_.claws do
-			local v129_ = v127_.claws[v128_]
-			if jointDesc == self.componentJoints[v129_.componentJoint] then
-				v127_.lastGrabChangeTime = g_time
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		for j = 1, #grab.claws do
+			local claw = grab.claws[j]
+			local componentJoint = self.componentJoints[claw.componentJoint]
+			if jointDesc == componentJoint then
+				grab.lastGrabChangeTime = g_time
 			end
 		end
 	end
 end
-
--- Local values: move, spec, i, grab, j, claw, ti, movingToolData
 function LogGrab:getMovingToolMoveValue(superFunc, movingTool)
-	local v133_ = superFunc(self, movingTool)
-	local v134_ = self.spec_logGrab
-	for v135_ = 1, #v134_.grabs do
-		local v136_ = v134_.grabs[v135_]
-		for v137_ = 1, #v136_.claws do
-			local v138_ = v136_.claws[v137_]
-			for v139_ = 1, #v138_.movingTools do
-				local v140_ = v138_.movingTools[v139_]
-				if v140_.movingTool == movingTool then
-					v140_.lastMoveValue = v133_
-					if v138_.currentOffset > v138_.rotationOffsetThreshold and math.sign(v133_) == v140_.direction then
-						v133_ = 0
+	local move = superFunc(self, movingTool)
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		for j = 1, #grab.claws do
+			local claw = grab.claws[j]
+			for ti = 1, #claw.movingTools do
+				local movingToolData = claw.movingTools[ti]
+				if movingToolData.movingTool == movingTool then
+					movingToolData.lastMoveValue = move
+					if claw.rotationOffsetThreshold < claw.currentOffset and math.sign(move) == movingToolData.direction then
+						move = 0
 					end
 				end
 			end
 		end
 	end
-	return v133_
+	return move
 end
-function LogGrab.onDelimbTree(p141_, p142_, p143_, ...)
-	local v144_ = p141_.spec_logGrab
-	for v145_ = 1, #v144_.grabs do
-		if v144_.grabs[v145_].clawAnimation.state then
-			p141_:setLogGrabClawState(v145_, false, true)
+function LogGrab:onDelimbTree(superFunc, state, ...)
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		if spec.grabs[i].clawAnimation.state then
+			self:setLogGrabClawState(i, false, true)
 		end
 	end
-	return p142_(p141_, p143_, ...)
+	return superFunc(self, state, ...)
 end
-
--- Local values: t
 function LogGrab:getGrabCanMountSplitShape(grab, shapeId)
 	if self.getFoldAnimTime ~= nil then
-		local v148_ = self:getFoldAnimTime()
-		if v148_ < grab.foldMinLimit or grab.foldMaxLimit < v148_ then
+		local t = self:getFoldAnimTime()
+		if t < grab.foldMinLimit or grab.foldMaxLimit < t then
 			return false
 		end
 	end
 	return true
 end
-
--- Local values: constr, jointTransform, cx, cy, cz, nx, ny, nz, yx, yy, yz, minY, maxY, minZ, maxZ, x, y, z, springForce, springDamping
 function LogGrab:mountSplitShape(grab, shapeId)
-	local v152_ = JointConstructor.new()
-	v152_:setActors(grab.jointRoot, shapeId)
-	local v153_ = createTransformGroup("dynamicMountJoint")
-	local v154_, v155_, v156_ = getWorldTranslation(grab.treeDetectionNode)
-	local v157_, v158_, v159_ = localDirectionToWorld(grab.treeDetectionNode, 1, 0, 0)
-	local v160_, v161_, v162_ = localDirectionToWorld(grab.treeDetectionNode, 0, 1, 0)
-	local v163_, v164_, v165_, v166_ = testSplitShape(shapeId, v154_, v155_, v156_, v157_, v158_, v159_, v160_, v161_, v162_, grab.treeDetectionNodeSizeY, grab.treeDetectionNodeSizeZ)
-	if v163_ == nil then
-		link(grab.jointNode, v153_)
-		setTranslation(v153_, 0, 0, 0)
-		v152_:setRotationLimit(0, 0, 0)
-		v152_:setRotationLimit(1, 0, 0)
-		v152_:setRotationLimit(2, 0, 0)
+	local constr = JointConstructor.new()
+	constr:setActors(grab.jointRoot, shapeId)
+	local jointTransform = createTransformGroup("dynamicMountJoint")
+	local cx, cy, cz = getWorldTranslation(grab.treeDetectionNode)
+	local nx, ny, nz = localDirectionToWorld(grab.treeDetectionNode, 1, 0, 0)
+	local yx, yy, yz = localDirectionToWorld(grab.treeDetectionNode, 0, 1, 0)
+	local minY, maxY, minZ, maxZ = testSplitShape(shapeId, cx, cy, cz, nx, ny, nz, yx, yy, yz, grab.treeDetectionNodeSizeY, grab.treeDetectionNodeSizeZ)
+	if minY ~= nil then
+		link(grab.jointNode, jointTransform)
+		local x, y, z = localToWorld(grab.treeDetectionNode, 0, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5)
+		setWorldTranslation(jointTransform, x, y, z)
+		constr:setRotationLimit(0, -grab.rotLimit, grab.rotLimit)
+		constr:setRotationLimit(1, -grab.rotLimit, grab.rotLimit)
+		constr:setRotationLimit(2, -grab.rotLimit, grab.rotLimit)
 	else
-		link(grab.jointNode, v153_)
-		local v167_, v168_, v169_ = localToWorld(grab.treeDetectionNode, 0, (v163_ + v164_) * 0.5, (v165_ + v166_) * 0.5)
-		setWorldTranslation(v153_, v167_, v168_, v169_)
-		v152_:setRotationLimit(0, -grab.rotLimit, grab.rotLimit)
-		v152_:setRotationLimit(1, -grab.rotLimit, grab.rotLimit)
-		v152_:setRotationLimit(2, -grab.rotLimit, grab.rotLimit)
+		link(grab.jointNode, jointTransform)
+		setTranslation(jointTransform, 0, 0, 0)
+		constr:setRotationLimit(0, 0, 0)
+		constr:setRotationLimit(1, 0, 0)
+		constr:setRotationLimit(2, 0, 0)
 	end
-	v152_:setJointTransforms(v153_, v153_)
+	constr:setJointTransforms(jointTransform, jointTransform)
 	if not grab.lockAllAxis then
 		if grab.limitYAxis then
-			v152_:setTranslationLimit(1, true, -0.1, 2)
-			v152_:setTranslationLimit(2, false, 0, 0)
+			constr:setTranslationLimit(1, true, -0.1, 2)
+			constr:setTranslationLimit(2, false, 0, 0)
 		else
-			v152_:setTranslationLimit(1, false, 0, 0)
-			v152_:setTranslationLimit(2, false, 0, 0)
+			constr:setTranslationLimit(1, false, 0, 0)
+			constr:setTranslationLimit(2, false, 0, 0)
 		end
-		v152_:setEnableCollision(true)
+		constr:setEnableCollision(true)
 	end
-	v152_:setRotationLimitSpring(7500, 1500, 7500, 1500, 7500, 1500)
-	v152_:setTranslationLimitSpring(7500, 1500, 7500, 1500, 7500, 1500)
+	local springForce = 7500
+	local springDamping = 1500
+	constr:setRotationLimitSpring(7500, 1500, 7500, 1500, 7500, 1500)
+	constr:setTranslationLimitSpring(7500, 1500, 7500, 1500, 7500, 1500)
 	grab.componentLimitsDirty = true
 	g_messageCenter:publish(MessageType.TREE_SHAPE_MOUNTED, shapeId, self)
 	SpecializationUtil.raiseEvent(self, "onLogGrabMountedTreesChanged", grab)
-	return v152_:finalize(), v153_
+	return constr:finalize(), jointTransform
 end
-
 function LogGrab:unmountSplitShape(grab, shapeId, jointIndex, jointTransform, isDeleting)
 	removeJoint(jointIndex)
 	delete(jointTransform)
 	grab.dynamicMountedShapes[shapeId] = nil
-	if isDeleting == nil or not isDeleting then
-		grab.pendingDynamicMountShapes[shapeId] = true
-	else
-		grab.pendingDynamicMountShapes[shapeId] = nil
+	if isDeleting ~= nil then
+		if isDeleting then
+			grab.pendingDynamicMountShapes[shapeId] = nil
+		else
+			grab.pendingDynamicMountShapes[shapeId] = true
+		end
 	end
 	grab.componentLimitsDirty = true
 	SpecializationUtil.raiseEvent(self, "onLogGrabMountedTreesChanged", grab)
 end
-
--- Local values: mass, shapeId, _, i, setting, alpha, jointDesc, axis, pos, vel
 function LogGrab:onLogGrabMountedTreesChanged(grab)
 	if self.isServer then
-		local v178_ = 0
-		for v179_, _ in pairs(grab.dynamicMountedShapes) do
-			if entityExists(v179_) then
-				v178_ = v178_ + getMass(v179_)
+		local mass = 0
+		for shapeId, _ in pairs(grab.dynamicMountedShapes) do
+			if entityExists(shapeId) then
+				mass = mass + getMass(shapeId)
 			end
 		end
-		for v180_ = 1, #grab.componentJointMassSettings do
-			local v181_ = grab.componentJointMassSettings[v180_]
-			local v182_ = MathUtil.inverseLerp(v181_.minMass, v181_.maxMass, v178_)
-			local v183_ = v181_.maxRotDriveForce
-			local v184_ = v181_.maxRotDriveForce
-			local v185_ = v181_.maxRotDriveForce
-			local v186_, v187_, v188_ = MathUtil.vector3ArrayLerp(v181_.minMaxRotDriveForce, v181_.maxMaxRotDriveForce, v182_)
-			v183_[1] = v186_
-			v184_[1] = v187_
-			v185_[3] = v188_
-			local v189_ = v181_.joint
-			for v190_ = 1, 3 do
-				local v191_ = v189_.rotDriveRotation[v190_] or 0
-				local v192_ = v189_.rotDriveVelocity[v190_] or 0
-				setJointAngularDrive(v189_.jointIndex, v190_ - 1, v189_.rotDriveRotation[v190_] ~= nil, v189_.rotDriveVelocity[v190_] ~= nil, v189_.rotDriveSpring[v190_], v189_.rotDriveDamping[v190_], v181_.maxRotDriveForce[v190_], v191_, v192_)
+		for i = 1, #grab.componentJointMassSettings do
+			local setting = grab.componentJointMassSettings[i]
+			local alpha = MathUtil.inverseLerp(setting.minMass, setting.maxMass, mass)
+			setting.maxRotDriveForce[1], setting.maxRotDriveForce[1], setting.maxRotDriveForce[3] = MathUtil.vector3ArrayLerp(setting.minMaxRotDriveForce, setting.maxMaxRotDriveForce, alpha)
+			local jointDesc = setting.joint
+			for axis = 1, 3 do
+				local pos = jointDesc.rotDriveRotation[axis] or 0
+				local vel = jointDesc.rotDriveVelocity[axis] or 0
+				setJointAngularDrive(jointDesc.jointIndex, axis - 1, jointDesc.rotDriveRotation[axis] ~= nil, jointDesc.rotDriveVelocity[axis] ~= nil, jointDesc.rotDriveSpring[axis], jointDesc.rotDriveDamping[axis], setting.maxRotDriveForce[axis], pos, vel)
 			end
 		end
 	end
 end
-
--- Local values: spec, i, grab
 function LogGrab:onFoldStateChanged(direction, moveToMiddle)
-	local v195_ = self.spec_logGrab
-	for v196_ = 1, #v195_.grabs do
-		local v197_ = v195_.grabs[v196_]
-		if v197_.clawAnimation.openDuringFolding then
-			if direction ~= self.spec_foldable.turnOnFoldDirection then
-				self:setLogGrabClawState(v196_, false, true)
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		if grab.clawAnimation.openDuringFolding then
+			if direction == self.spec_foldable.turnOnFoldDirection then
+				continue
 			end
-		elseif v197_.clawAnimation.closeDuringFolding and direction ~= self.spec_foldable.turnOnFoldDirection then
-			self:setLogGrabClawState(v196_, true, true)
+			self:setLogGrabClawState(i, false, true)
+		elseif grab.clawAnimation.closeDuringFolding then
+			if direction == self.spec_foldable.turnOnFoldDirection then
+				continue
+			end
+			self:setLogGrabClawState(i, true, true)
 		end
 	end
 end
-
 function LogGrab:onFoldTimeChanged(time)
 	LogGrab.updateActionEvents(self)
 end
-
--- Local values: spec, grab, t
 function LogGrab:getIsLogGrabClawStateChangeAllowed(grabIndex)
-	local v201_ = self.spec_logGrab.grabs[grabIndex]
-	if v201_ ~= nil and self.getFoldAnimTime ~= nil then
-		local v202_ = self:getFoldAnimTime()
-		if v202_ < v201_.clawAnimation.foldMinLimit or v201_.clawAnimation.foldMaxLimit < v202_ then
+	local spec = self.spec_logGrab
+	local grab = spec.grabs[grabIndex]
+	if grab ~= nil and self.getFoldAnimTime ~= nil then
+		local t = self:getFoldAnimTime()
+		if t < grab.clawAnimation.foldMinLimit or grab.clawAnimation.foldMaxLimit < t then
 			return false
 		end
 	end
 	return true
 end
-
--- Local values: spec, grab
 function LogGrab:setLogGrabClawState(grabIndex, state, noEventSend)
-	local v207_ = self.spec_logGrab.grabs[grabIndex]
-	if v207_ ~= nil then
+	local spec = self.spec_logGrab
+	local grab = spec.grabs[grabIndex]
+	if grab ~= nil then
 		if state == nil then
-			state = not v207_.clawAnimation.state
+			state = not grab.clawAnimation.state
 		end
-		v207_.clawAnimation.state = state
-		self:playAnimation(v207_.clawAnimation.name, v207_.clawAnimation.state and v207_.clawAnimation.speedScale or -v207_.clawAnimation.speedScale, self:getAnimationTime(v207_.clawAnimation.name), true)
+		grab.clawAnimation.state = state
+		self:playAnimation(grab.clawAnimation.name, grab.clawAnimation.state and grab.clawAnimation.speedScale or -grab.clawAnimation.speedScale, self:getAnimationTime(grab.clawAnimation.name), true)
 	end
 	LogGrab.updateActionEvents(self)
 	LogGrabClawStateEvent.sendEvent(self, state, grabIndex, noEventSend)
 end
-
--- Local values: spec, i, grab, rigidBodyType
 function LogGrab:logGrabTriggerCallback(triggerId, otherActorId, onEnter, onLeave, onStay, otherShapeId)
-	local v213_ = self.spec_logGrab
-	for v214_ = 1, #v213_.grabs do
-		local v215_ = v213_.grabs[v214_]
-		if v215_.triggerNode == triggerId then
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		if grab.triggerNode == triggerId then
 			if onEnter then
-				if getSplitType(otherActorId) ~= 0 then
-					local v216_ = getRigidBodyType(otherActorId)
-					if (v216_ == RigidBodyType.DYNAMIC or v216_ == RigidBodyType.KINEMATIC) and v215_.pendingDynamicMountShapes[otherActorId] == nil then
-						v215_.pendingDynamicMountShapes[otherActorId] = true
-					end
+				if getSplitType(otherActorId) == 0 then
+					continue
 				end
-			elseif onLeave and getSplitType(otherActorId) ~= 0 then
-				if v215_.pendingDynamicMountShapes[otherActorId] == nil then
-					if v215_.dynamicMountedShapes[otherActorId] ~= nil then
-						self:unmountSplitShape(v215_, otherActorId, v215_.dynamicMountedShapes[otherActorId].jointIndex, v215_.dynamicMountedShapes[otherActorId].jointTransform, true)
-					end
+				local rigidBodyType = getRigidBodyType(otherActorId)
+				if (rigidBodyType == RigidBodyType.DYNAMIC or rigidBodyType == RigidBodyType.KINEMATIC) and grab.pendingDynamicMountShapes[otherActorId] == nil then
+					grab.pendingDynamicMountShapes[otherActorId] = true
+				end
+			elseif onLeave then
+				if getSplitType(otherActorId) == 0 then
+					continue
+				end
+				if grab.pendingDynamicMountShapes[otherActorId] ~= nil then
+					grab.pendingDynamicMountShapes[otherActorId] = nil
 				else
-					v215_.pendingDynamicMountShapes[otherActorId] = nil
+					if grab.dynamicMountedShapes[otherActorId] == nil then
+						continue
+					end
+					self:unmountSplitShape(grab, otherActorId, grab.dynamicMountedShapes[otherActorId].jointIndex, grab.dynamicMountedShapes[otherActorId].jointTransform, true)
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, i, grab
 function LogGrab:addNodeObjectMapping(superFunc, list)
 	superFunc(self, list)
-	local v220_ = self.spec_logGrab
-	for v221_ = 1, #v220_.grabs do
-		local v222_ = v220_.grabs[v221_]
-		if v222_.triggerNode ~= nil then
-			list[v222_.triggerNode] = self
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		if grab.triggerNode == nil then
+			continue
 		end
+		list[grab.triggerNode] = self
 	end
 end
-
--- Local values: spec, i, grab
 function LogGrab:removeNodeObjectMapping(superFunc, list)
 	superFunc(self, list)
-	local v226_ = self.spec_logGrab
-	for v227_ = 1, #v226_.grabs do
-		local v228_ = v226_.grabs[v227_]
-		if v228_.triggerNode ~= nil then
-			list[v228_.triggerNode] = nil
+	local spec = self.spec_logGrab
+	for i = 1, #spec.grabs do
+		local grab = spec.grabs[i]
+		if grab.triggerNode == nil then
+			continue
 		end
+		list[grab.triggerNode] = nil
 	end
 end
-
--- Local values: spec, i, grab, j, claw, lastMove, direction, ti, movingToolStr, closing, shapeId, _, shapeId, _
 function LogGrab:updateDebugValues(values)
 	if self.isServer then
-		local v231_ = self.spec_logGrab
-		for v232_ = 1, #v231_.grabs do
-			local v233_ = v231_.grabs[v232_]
-			for v234_, v235_ in ipairs(v233_.claws) do
-				local v236_ = nil
-				local v237_ = nil
-				for v238_ = 1, #v235_.movingTools do
-					v236_ = v235_.movingTools[v238_].lastMoveValue
-					v237_ = v235_.movingTools[v238_].direction
+		local spec = self.spec_logGrab
+		for i = 1, #spec.grabs do
+			local grab = spec.grabs[i]
+			for j, claw in ipairs(grab.claws) do
+				local lastMove = nil
+				local direction = nil
+				for ti = 1, #claw.movingTools do
+					lastMove = claw.movingTools[ti].lastMoveValue
+					direction = claw.movingTools[ti].direction
 				end
-				local v239_
-				if v236_ == nil or v237_ == nil then
-					v239_ = ""
-				else
-					local v240_ = math.sign(v236_) == v237_
-					v239_ = string.format(" | isClosing: %s (%.2f/%d)", v240_, v236_, v237_)
+				local movingToolStr = ""
+				if lastMove ~= nil and direction ~= nil then
+					local closing = math.sign(lastMove) == direction
+					movingToolStr = string.format(" | isClosing: %s (%.2f/%d)", closing, lastMove, direction)
 				end
-				local v241_ = {
-					["name"] = string.format("grab (%d) claw (%d):", v232_, v234_)
-				}
-				local v242_ = string.format
-				local v243_ = v235_.currentOffset
-				local v244_ = math.deg(v243_)
-				local v245_ = v235_.rotationOffsetThreshold
-				v241_.value = v242_("current: %.2fdeg / threshold: %.2fdeg  (timer: %d)%s", v244_, math.deg(v245_), v235_.rotationOffsetTimer, v239_)
-				table.insert(values, v241_)
+				table.insert(values, { name = string.format("grab (%d) claw (%d):", i, j), value = string.format("current: %.2fdeg / threshold: %.2fdeg  (timer: %d)%s", math.deg(claw.currentOffset), math.deg(claw.rotationOffsetThreshold), claw.rotationOffsetTimer, movingToolStr) })
 			end
-			for v246_, _ in pairs(v233_.dynamicMountedShapes) do
-				if entityExists(v246_) then
-					local v247_ = {
-						["name"] = string.format("grab (%d) mounted:", v232_),
-						["value"] = string.format("%s - %d", getName(v246_), v246_)
-					}
-					table.insert(values, v247_)
+			for shapeId, _ in pairs(grab.dynamicMountedShapes) do
+				if entityExists(shapeId) then
+					table.insert(values, { name = string.format("grab (%d) mounted:", i), value = string.format("%s - %d", getName(shapeId), shapeId) })
 				end
 			end
-			for v248_, _ in pairs(v233_.pendingDynamicMountShapes) do
-				if entityExists(v248_) then
-					local v249_ = {
-						["name"] = string.format("grab (%d) pending:", v232_),
-						["value"] = string.format("%s - %d", getName(v248_), v248_)
-					}
-					table.insert(values, v249_)
+			for shapeId, _ in pairs(grab.pendingDynamicMountShapes) do
+				if entityExists(shapeId) then
+					table.insert(values, { name = string.format("grab (%d) pending:", i), value = string.format("%s - %d", getName(shapeId), shapeId) })
 				end
 			end
 		end

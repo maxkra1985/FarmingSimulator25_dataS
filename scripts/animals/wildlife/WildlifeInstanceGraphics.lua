@@ -1,10 +1,8 @@
--- Local values: WildlifeInstanceGraphics_mt
 WildlifeInstanceGraphics = {}
 local WildlifeInstanceGraphics_mt = Class(WildlifeInstanceGraphics)
 WildlifeInstanceGraphics.SHADER_OPCODE_NAME = "indicesAndBlend"
 WildlifeInstanceGraphics.SHADER_SPEED_NAME = "speeds"
 WildlifeInstanceGraphics.SHADER_OFFSET_NAME = "animOffset"
-
 function WildlifeInstanceGraphics.registerXMLPaths(xmlSchema, basePath)
 	xmlSchema:register(XMLValueType.STRING, basePath .. ".asset#node", "The filename of the i3d file", nil, true)
 	xmlSchema:register(XMLValueType.STRING, basePath .. ".asset#filename", "The filename of the i3d file", nil, true)
@@ -14,31 +12,24 @@ function WildlifeInstanceGraphics.registerXMLPaths(xmlSchema, basePath)
 	xmlSchema:register(XMLValueType.FLOAT, basePath .. ".asset.animations.animation(?)#transitionTime", "The transition time for the animation", nil, true)
 	xmlSchema:register(XMLValueType.STRING, basePath .. ".asset.animations.animation(?)#name", "The name of the state required for the animation", nil, true)
 end
-
--- Upvalues: WildlifeInstanceGraphics_mt
--- Local values: self
 function WildlifeInstanceGraphics.new(attributes, custom_mt)
-	-- upvalues: (copy) WildlifeInstanceGraphics_mt
-	local v6_ = custom_mt or WildlifeInstanceGraphics_mt
-	local v7_ = setmetatable({}, v6_)
-	v7_.attributes = attributes
-	v7_.rootNode = nil
-	v7_.node = nil
-	v7_.shaderNode = nil
-	v7_.sharedLoadRequestId = nil
-	v7_.currentAnimation = nil
-	v7_.nextAnimation = nil
-	v7_.timeOfLastTransition = 0
-	v7_.pendingAnimation = nil
-	v7_.pendingAnimationOffset = nil
-	return v7_
+	local self = setmetatable({}, custom_mt or WildlifeInstanceGraphics_mt)
+	self.attributes = attributes
+	self.rootNode = nil
+	self.node = nil
+	self.shaderNode = nil
+	self.sharedLoadRequestId = nil
+	self.currentAnimation = nil
+	self.nextAnimation = nil
+	self.timeOfLastTransition = 0
+	self.pendingAnimation = nil
+	self.pendingAnimationOffset = nil
+	return self
 end
-
 function WildlifeInstanceGraphics:load(node)
 	self.rootNode = node
 	self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(self.attributes.filename, false, true, self.onI3DLoadingFinished, self)
 end
-
 function WildlifeInstanceGraphics:onI3DLoadingFinished(node, failedReason, args)
 	if failedReason == LoadI3DFailedReason.NONE then
 		self.node = I3DUtil.indexToObject(node, self.attributes.nodeIndex)
@@ -57,7 +48,6 @@ function WildlifeInstanceGraphics:onI3DLoadingFinished(node, failedReason, args)
 		end
 	end
 end
-
 function WildlifeInstanceGraphics:delete()
 	if self.sharedLoadRequestId ~= nil then
 		g_i3DManager:releaseSharedI3DFile(self.sharedLoadRequestId)
@@ -69,25 +59,21 @@ function WildlifeInstanceGraphics:delete()
 		self.shaderNode = nil
 	end
 end
-
--- Local values: timeSinceTransitionStart, transitionAlpha
 function WildlifeInstanceGraphics:update(dt)
 	if self.shaderNode == nil then
 		return
-	elseif self.nextStateAnimation == nil then
+	end
+	if self.nextStateAnimation == nil then
 		return
+	end
+	local timeSinceTransitionStart = g_time - self.timeOfLastTransition
+	if self.timeSinceTransitionStart < self.nextStateAnimation.transitionTime then
+		local transitionAlpha = math.clamp(timeSinceTransitionStart / self.nextStateAnimation.transitionTime, 0, 1)
+		setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_OPCODE_NAME, self.currentAnimation.opcode, self.nextStateAnimation.opcode, transitionAlpha, 0, false)
 	else
-		local v15_ = g_time - self.timeOfLastTransition
-		if self.timeSinceTransitionStart < self.nextStateAnimation.transitionTime then
-			local v16_ = v15_ / self.nextStateAnimation.transitionTime
-			local v17_ = math.clamp(v16_, 0, 1)
-			setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_OPCODE_NAME, self.currentAnimation.opcode, self.nextStateAnimation.opcode, v17_, 0, false)
-		else
-			self:setAnimation(self.nextStateAnimation.stateName)
-		end
+		self:setAnimation(self.nextStateAnimation.stateName)
 	end
 end
-
 function WildlifeInstanceGraphics:setAnimationOffset(offset)
 	if self.shaderNode == nil then
 		self.pendingAnimationOffset = offset
@@ -95,63 +81,54 @@ function WildlifeInstanceGraphics:setAnimationOffset(offset)
 		setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_OFFSET_NAME, offset, nil, nil, nil, false)
 	end
 end
-
--- Local values: animation
 function WildlifeInstanceGraphics:setAnimation(animationName, alsoSetTime)
 	if self.shaderNode == nil then
 		self.pendingAnimation = animationName
-		return
 	else
-		local v23_ = self.attributes.animations[animationName]
-		if v23_ ~= nil and v23_ ~= self.currentAnimation then
-			if alsoSetTime then
-				self.timeOfLastTransition = g_time - v23_.transitionTime
-			end
-			self.currentAnimation = v23_
-			self.nextStateAnimation = nil
-			setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_OPCODE_NAME, v23_.opcode, 0, 0, 0, false)
-			setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_SPEED_NAME, v23_.speed, 0, 0, 0, false)
+		local animation = self.attributes.animations[animationName]
+		if animation == nil or animation == self.currentAnimation then
+			return
 		end
+		if alsoSetTime then
+			self.timeOfLastTransition = g_time - animation.transitionTime
+		end
+		self.currentAnimation = animation
+		self.nextStateAnimation = nil
+		setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_OPCODE_NAME, animation.opcode, 0, 0, 0, false)
+		setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_SPEED_NAME, animation.speed, 0, 0, 0, false)
 	end
 end
-
--- Local values: nextAnimation
 function WildlifeInstanceGraphics:transitionToAnimation(animationName)
 	if self.shaderNode == nil then
 		self.pendingAnimation = animationName
-		return
 	else
-		local v26_ = self.attributes.animations[animationName]
-		if v26_ ~= nil and (v26_ ~= self.currentAnimation and v26_ ~= self.nextStateAnimation) then
-			self.nextStateAnimation = v26_
-			self.timeOfLastTransition = g_time
-			setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_OPCODE_NAME, self.currentAnimation.opcode, v26_.opcode, 1, 0, false)
-			setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_SPEED_NAME, self.currentAnimation.speed, v26_.speed, 0, 0, false)
+		local nextAnimation = self.attributes.animations[animationName]
+		if nextAnimation == nil or nextAnimation == self.currentAnimation or nextAnimation == self.nextStateAnimation then
+			return
 		end
+		self.nextStateAnimation = nextAnimation
+		self.timeOfLastTransition = g_time
+		setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_OPCODE_NAME, self.currentAnimation.opcode, nextAnimation.opcode, 1, 0, false)
+		setShaderParameter(self.shaderNode, WildlifeInstanceGraphics.SHADER_SPEED_NAME, self.currentAnimation.speed, nextAnimation.speed, 0, 0, false)
 	end
 end
-
--- Local values: animation
 function WildlifeInstanceGraphics:getHasAnimation(animationName)
-	return self.attributes.animations[animationName] ~= nil
+	local animation = self.attributes.animations[animationName]
+	return animation ~= nil
 end
-
--- Local values: attributes, i, key, animation
 function WildlifeInstanceGraphics.loadAttributesTable(xmlFile, key)
-	local v31_ = {
-		["filename"] = xmlFile:getValue(key .. ".asset#filename"),
-		["nodeIndex"] = xmlFile:getValue(key .. ".asset#node"),
-		["shaderNodeIndex"] = xmlFile:getValue(key .. ".asset.animations#shaderNode"),
-		["animations"] = {}
-	}
-	for _, v32_ in xmlFile:iterator(key .. ".asset.animations.animation") do
-		local v33_ = {
-			["name"] = xmlFile:getValue(v32_ .. "#name"),
-			["opcode"] = xmlFile:getValue(v32_ .. "#opcode"),
-			["speed"] = xmlFile:getValue(v32_ .. "#speed"),
-			["transitionTime"] = xmlFile:getValue(v32_ .. "#transitionTime") * 1000
-		}
-		v31_.animations[v33_.name] = v33_
+	local attributes = {}
+	attributes.filename = xmlFile:getValue(key .. ".asset#filename")
+	attributes.nodeIndex = xmlFile:getValue(key .. ".asset#node")
+	attributes.shaderNodeIndex = xmlFile:getValue(key .. ".asset.animations#shaderNode")
+	attributes.animations = {}
+	for i, key in xmlFile:iterator(key .. ".asset.animations.animation") do
+		local animation = {}
+		animation.name = xmlFile:getValue(key .. "#name")
+		animation.opcode = xmlFile:getValue(key .. "#opcode")
+		animation.speed = xmlFile:getValue(key .. "#speed")
+		animation.transitionTime = xmlFile:getValue(key .. "#transitionTime") * 1000
+		attributes.animations[animation.name] = animation
 	end
-	return v31_
+	return attributes
 end

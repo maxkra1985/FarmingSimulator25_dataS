@@ -1,4 +1,3 @@
--- Local values: LicensePlateManager_mt
 LicensePlateManager = {}
 LicensePlateManager.PLATE_TYPE = {}
 LicensePlateManager.PLATE_TYPE.SQUARISH = 0
@@ -29,27 +28,21 @@ local LicensePlateManager_mt = Class(LicensePlateManager, AbstractManager)
 g_xmlManager:addInitSchemaFunction(function()
 	LicensePlateManager.createLicensePlateXMLSchema()
 end)
-
--- Upvalues: LicensePlateManager_mt
 function LicensePlateManager.new(customMt)
-	-- upvalues: (copy) LicensePlateManager_mt
 	return AbstractManager.new(customMt or LicensePlateManager_mt)
 end
-
 function LicensePlateManager:initDataStructures()
 	self.licensePlates = {}
 	self.colorConfigurations = {}
 	self.licensePlatesAvailable = false
 	self.sharedLoadRequestIds = {}
 end
-
--- Local values: filename
 function LicensePlateManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	LicensePlateManager:superClass().loadMapData(self)
 	self.baseDirectory = baseDirectory
-	local v7_ = getXMLString(xmlFile, "map.licensePlates#filename")
-	if v7_ ~= nil then
-		self.xmlFilename = Utils.getFilename(v7_, baseDirectory)
+	local filename = getXMLString(xmlFile, "map.licensePlates#filename")
+	if filename ~= nil then
+		self.xmlFilename = Utils.getFilename(filename, baseDirectory)
 		self.licensePlateXML = XMLFile.load("mapLicensePlates", self.xmlFilename, LicensePlateManager.xmlSchema)
 		if self.licensePlateXML ~= nil then
 			self.xmlReferences = 0
@@ -62,15 +55,13 @@ function LicensePlateManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	end
 	return true
 end
-
--- Local values: i, _, sharedLoadRequestId
 function LicensePlateManager:unloadMapData()
-	for v9_ = 1, #self.licensePlates do
-		self.licensePlates[v9_]:delete()
+	for i = 1, #self.licensePlates do
+		self.licensePlates[i]:delete()
 	end
 	if self.sharedLoadRequestIds ~= nil then
-		for _, v10_ in ipairs(self.sharedLoadRequestIds) do
-			g_i3DManager:releaseSharedI3DFile(v10_)
+		for _, sharedLoadRequestId in ipairs(self.sharedLoadRequestIds) do
+			g_i3DManager:releaseSharedI3DFile(sharedLoadRequestId)
 		end
 		self.sharedLoadRequestIds = nil
 	end
@@ -80,29 +71,22 @@ function LicensePlateManager:unloadMapData()
 	end
 	LicensePlateManager:superClass().unloadMapData(self)
 end
-
--- Local values: customEnvironment, _, defaultConfiguration, j, j, brandMaterialName, color, title, colorData, brightness, placementStr
 function LicensePlateManager:loadLicensePlatesFromXML(xmlFile, baseDirectory)
-	local v_u_14_, _ = Utils.getModNameAndBaseDirectory(baseDirectory)
+	local customEnvironment, _ = Utils.getModNameAndBaseDirectory(baseDirectory)
 	self.fontName = xmlFile:getValue("licensePlates.font#name", "GENERIC")
-	self.customEnvironment = v_u_14_
-	xmlFile:iterate("licensePlates.licensePlate", function(_, p15_)
-		-- upvalues: (copy) xmlFile, (copy) self, (copy) baseDirectory, (copy) v_u_14_
-		local v16_ = xmlFile:getValue(p15_ .. "#filename")
-		if v16_ == nil then
-			Logging.xmlError(xmlFile, "Missing filename for license plate \'%s\'", p15_)
-		else
+	self.customEnvironment = customEnvironment
+	xmlFile:iterate("licensePlates.licensePlate", function(_, plateKey)
+		local filename = xmlFile:getValue(plateKey .. "#filename")
+		if filename ~= nil then
 			self.xmlReferences = self.xmlReferences + 1
-			local v17_ = Utils.getFilename(v16_, baseDirectory)
-			local v18_ = {
-				["filename"] = v17_,
-				["xmlFile"] = xmlFile,
-				["plateKey"] = p15_,
-				["customEnvironment"] = v_u_14_
-			}
-			local v19_ = g_i3DManager:loadSharedI3DFileAsync(v17_, false, false, self.licensePlateI3DFileLoaded, self, v18_)
-			local v20_ = self.sharedLoadRequestIds
-			table.insert(v20_, v19_)
+			filename = Utils.getFilename(filename, baseDirectory)
+			local arguments = { filename = filename, plateKey = plateKey }
+			arguments.xmlFile = xmlFile
+			arguments.customEnvironment = customEnvironment
+			local sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(filename, false, false, self.licensePlateI3DFileLoaded, self, arguments)
+			table.insert(self.sharedLoadRequestIds, sharedLoadRequestId)
+		else
+			Logging.xmlError(xmlFile, "Missing filename for license plate '%s'", plateKey)
 		end
 	end)
 	self.materialNamePlate = xmlFile:getValue("licensePlates.colorConfigurations#materialName", "licensePlateColored_mat")
@@ -110,224 +94,174 @@ function LicensePlateManager:loadLicensePlatesFromXML(xmlFile, baseDirectory)
 	self.useDefaultColors = xmlFile:getValue("licensePlates.colorConfigurations#useDefaultColors", false)
 	self.defaultColorIndex = xmlFile:getValue("licensePlates.colorConfigurations#defaultColorIndex")
 	self.defaultColorMaxBrightness = xmlFile:getValue("licensePlates.colorConfigurations#defaultColorMaxBrightness", 0.55)
-	local v_u_21_ = 1
-	xmlFile:iterate("licensePlates.colorConfigurations.colorConfiguration", function(p22_, p23_)
-		-- upvalues: (copy) xmlFile, (copy) self, (ref) v_u_21_
-		local v24_ = xmlFile:getValue(p23_ .. "#name", "", self.customEnvironment, false)
-		local v25_ = xmlFile:getValue(p23_ .. "#color", nil, true)
-		local v26_ = xmlFile:getValue(p23_ .. "#isDefault", false)
-		if v25_ ~= nil then
-			if v26_ then
-				v_u_21_ = p22_
+	local defaultConfiguration = 1
+	xmlFile:iterate("licensePlates.colorConfigurations.colorConfiguration", function(index, baseKey)
+		local name = xmlFile:getValue(baseKey .. "#name", "", self.customEnvironment, false)
+		local color = xmlFile:getValue(baseKey .. "#color", nil, true)
+		local isDefault = xmlFile:getValue(baseKey .. "#isDefault", false)
+		if color ~= nil then
+			if isDefault then
+				defaultConfiguration = index
 			end
-			local v27_ = self.colorConfigurations
-			table.insert(v27_, {
-				["name"] = v24_,
-				["color"] = v25_,
-				["isDefault"] = v26_
-			})
+			table.insert(self.colorConfigurations, { name = name, color = color, isDefault = isDefault })
 		end
 	end)
-	if self.defaultColorIndex == nil then
-		self.defaultColorIndex = v_u_21_
-	else
+	if self.defaultColorIndex ~= nil then
 		self.defaultColorIndex = self.defaultColorIndex + #self.colorConfigurations
+	else
+		self.defaultColorIndex = defaultConfiguration
 	end
 	self.colors = {}
-	for v28_ = 1, #self.colorConfigurations do
-		local v29_ = self.colors
-		local v30_ = self.colorConfigurations[v28_]
-		table.insert(v29_, v30_)
+	for j = 1, #self.colorConfigurations do
+		table.insert(self.colors, self.colorConfigurations[j])
 	end
 	if self.useDefaultColors then
-		for v31_ = 1, #VehicleConfigurationItemColor.DEFAULT_COLORS do
-			local v32_ = VehicleConfigurationItemColor.DEFAULT_COLORS[v31_]
-			local v33_, v34_ = g_vehicleMaterialManager:getMaterialTemplateColorAndTitleByName(v32_, v_u_14_)
-			if v33_ ~= nil then
-				local v35_ = {
-					["name"] = v34_ or "",
-					["color"] = v33_
-				}
-				if MathUtil.getBrightnessFromColor(v33_[1], v33_[2], v33_[3]) < self.defaultColorMaxBrightness then
-					local v36_ = self.colors
-					table.insert(v36_, v35_)
-				end
+		for j = 1, #VehicleConfigurationItemColor.DEFAULT_COLORS do
+			local brandMaterialName = VehicleConfigurationItemColor.DEFAULT_COLORS[j]
+			local color, title = g_vehicleMaterialManager:getMaterialTemplateColorAndTitleByName(brandMaterialName, customEnvironment)
+			if color == nil then
+				continue
+			end
+			local colorData = { color = color }
+			colorData.name = title or ""
+			local brightness = MathUtil.getBrightnessFromColor(color[1], color[2], color[3])
+			if brightness < self.defaultColorMaxBrightness then
+				table.insert(self.colors, colorData)
 			end
 		end
 	end
 	self.defaultPlacementIndex = LicensePlateManager.PLACEMENT_OPTION.BOTH
-	local v37_ = xmlFile:getValue("licensePlates.placement#defaultType")
-	if v37_ ~= nil then
-		self.defaultPlacementIndex = LicensePlateManager.PLACEMENT_OPTION[string.upper(v37_)] or self.defaultPlacementIndex
+	local placementStr = xmlFile:getValue("licensePlates.placement#defaultType")
+	if placementStr ~= nil then
+		self.defaultPlacementIndex = LicensePlateManager.PLACEMENT_OPTION[string.upper(placementStr)] or self.defaultPlacementIndex
 	end
 end
-
--- Local values: filename, xmlFile, plateKey, customEnvironment, node, licensePlate
 function LicensePlateManager:licensePlateI3DFileLoaded(i3dNode, failedReason, args)
-	local v41_ = args.filename
-	local v42_ = args.xmlFile
-	local v43_ = args.plateKey
-	local v44_ = args.customEnvironment
+	local filename = args.filename
+	local xmlFile = args.xmlFile
+	local plateKey = args.plateKey
+	local customEnvironment = args.customEnvironment
 	if i3dNode ~= nil and i3dNode ~= 0 then
-		local v45_ = v42_:getValue(v43_ .. "#node", nil, i3dNode)
-		if v45_ ~= nil then
-			unlink(v45_)
-			local v46_ = LicensePlate.new()
-			if v46_:loadFromXML(v45_, v41_, v44_, v42_, v43_) then
-				local v47_ = self.licensePlates
-				table.insert(v47_, v46_)
+		local node = xmlFile:getValue(plateKey .. "#node", nil, i3dNode)
+		if node ~= nil then
+			unlink(node)
+			local licensePlate = LicensePlate.new()
+			if licensePlate:loadFromXML(node, filename, customEnvironment, xmlFile, plateKey) then
+				table.insert(self.licensePlates, licensePlate)
 			end
 		end
 		delete(i3dNode)
 	end
 	self.xmlReferences = self.xmlReferences - 1
 	if self.xmlReferences == 0 then
-		v42_:delete()
-		self.licensePlatesAvailable = #self.licensePlates > 0
-		if v42_ == self.licensePlateXML then
+		xmlFile:delete()
+		self.licensePlatesAvailable = 0 < #self.licensePlates
+		if xmlFile == self.licensePlateXML then
 			self.licensePlateXML = nil
 		end
 	end
 end
-
 function LicensePlateManager:getAreLicensePlatesAvailable()
-	local v49_ = self.licensePlatesAvailable
-	if v49_ then
-		v49_ = g_materialManager:getFontMaterial(self.fontName, self.customEnvironment)
-	end
-	return v49_
+	return self.licensePlatesAvailable and g_materialManager:getFontMaterial(self.fontName, self.customEnvironment)
 end
-
--- Local values: licensePlate, i
 function LicensePlateManager:getLicensePlate(preferedType, includeFrame)
-	local v53_ = self.licensePlates[1]
-	for v54_ = 1, #self.licensePlates do
-		if self.licensePlates[v54_].type == preferedType then
-			v53_ = self.licensePlates[v54_]
+	local licensePlate = self.licensePlates[1]
+	for i = 1, #self.licensePlates do
+		if self.licensePlates[i].type == preferedType then
+			licensePlate = self.licensePlates[i]
 		end
 	end
-	if v53_ == nil then
-		return nil
+	if licensePlate ~= nil then
+		return licensePlate:clone(includeFrame)
 	else
-		return v53_:clone(includeFrame)
+		return nil
 	end
 end
-
--- Local values: variation
 function LicensePlateManager:getLicensePlateValues(licensePlate, variationIndex)
-	local v57_ = licensePlate.variations[variationIndex]
-	if v57_ == nil then
-		return nil
+	local variation = licensePlate.variations[variationIndex]
+	if variation ~= nil then
+		return variation.values
 	else
-		return v57_.values
+		return nil
 	end
 end
-
--- Local values: licensePlate, variationIndex, characters, colorIndex
 function LicensePlateManager:getRandomLicensePlateData()
-	local v59_ = self.licensePlates[1]
-	return v59_ == nil and {
-		["variation"] = 1,
-		["characters"] = nil,
-		["colorIndex"] = nil,
-		["placementIndex"] = self:getDefaultPlacementIndex()
-	} or {
-		["variation"] = 1,
-		["characters"] = v59_:getRandomCharacters(1),
-		["colorIndex"] = self.defaultColorIndex,
-		["placementIndex"] = self:getDefaultPlacementIndex()
-	}
+	local licensePlate = self.licensePlates[1]
+	if licensePlate ~= nil then
+		local variationIndex = 1
+		local characters = licensePlate:getRandomCharacters(1)
+		local colorIndex = self.defaultColorIndex
+		return { variation = variationIndex, characters = characters, colorIndex = colorIndex, placementIndex = self:getDefaultPlacementIndex() }
+	else
+		return { variation = 1, characters = nil, colorIndex = nil, placementIndex = self:getDefaultPlacementIndex() }
+	end
 end
-
 function LicensePlateManager:getAvailableColors()
 	return self.colors, self.defaultColorIndex
 end
-
 function LicensePlateManager:getDefaultPlacementIndex()
 	return self.defaultPlacementIndex
 end
-
 function LicensePlateManager:getFont()
 	return g_materialManager:getFontMaterial(self.fontName, self.customEnvironment)
 end
-
--- Local values: licensePlateData, valid, font, numCharacters, i, index, character
 function LicensePlateManager.readLicensePlateData(streamId, connection)
-	local v64_ = {
-		["variation"] = 1,
-		["characters"] = nil,
-		["colorIndex"] = nil,
-		["placementIndex"] = 1
-	}
-	if streamReadBool(streamId) then
-		v64_.variation = streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_VARIATION)
-		v64_.colorIndex = streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_COLOR)
-		v64_.placementIndex = streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_PLACEMENT)
-		local v65_ = g_licensePlateManager:getFont()
-		v64_.characters = {}
-		for _ = 1, streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_CHARACTER) do
-			local v66_ = v65_:getCharacterByCharacterIndex((streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_CHARACTER))) or "_"
-			local v67_ = v64_.characters
-			table.insert(v67_, v66_)
+	local licensePlateData = { variation = 1, characters = nil, colorIndex = nil, placementIndex = 1 }
+	local valid = streamReadBool(streamId)
+	if valid then
+		licensePlateData.variation = streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_VARIATION)
+		licensePlateData.colorIndex = streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_COLOR)
+		licensePlateData.placementIndex = streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_PLACEMENT)
+		local font = g_licensePlateManager:getFont()
+		licensePlateData.characters = {}
+		local numCharacters = streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_CHARACTER)
+		for i = 1, numCharacters do
+			local index = streamReadUIntN(streamId, LicensePlateManager.SEND_NUM_BITS_CHARACTER)
+			local character = font:getCharacterByCharacterIndex(index) or "_"
+			table.insert(licensePlateData.characters, character)
 		end
 	end
-	return v64_
+	return licensePlateData
 end
-
--- Local values: font, i, index
 function LicensePlateManager.writeLicensePlateData(streamId, connection, licensePlateData)
-	local v70_ = streamWriteBool
-	local v71_
-	if licensePlateData == nil or (licensePlateData.variation == nil or (licensePlateData.characters == nil or licensePlateData.colorIndex == nil)) then
-		v71_ = false
-	else
-		v71_ = licensePlateData.placementIndex ~= nil
-	end
-	if v70_(streamId, v71_) then
+	if streamWriteBool(streamId, licensePlateData ~= nil and licensePlateData.variation ~= nil and licensePlateData.characters ~= nil and licensePlateData.colorIndex ~= nil and licensePlateData.placementIndex ~= nil) then
 		streamWriteUIntN(streamId, licensePlateData.variation, LicensePlateManager.SEND_NUM_BITS_VARIATION)
 		streamWriteUIntN(streamId, licensePlateData.colorIndex, LicensePlateManager.SEND_NUM_BITS_COLOR)
 		streamWriteUIntN(streamId, licensePlateData.placementIndex, LicensePlateManager.SEND_NUM_BITS_PLACEMENT)
-		local v72_ = g_licensePlateManager:getFont()
+		local font = g_licensePlateManager:getFont()
 		streamWriteUIntN(streamId, #licensePlateData.characters, LicensePlateManager.SEND_NUM_BITS_CHARACTER)
-		for v73_ = 1, #licensePlateData.characters do
-			local v74_ = v72_:getCharacterIndexByCharacter(licensePlateData.characters[v73_])
-			streamWriteUIntN(streamId, v74_, LicensePlateManager.SEND_NUM_BITS_CHARACTER)
+		for i = 1, #licensePlateData.characters do
+			local index = font:getCharacterIndexByCharacter(licensePlateData.characters[i])
+			streamWriteUIntN(streamId, index, LicensePlateManager.SEND_NUM_BITS_CHARACTER)
 		end
 	end
 end
-
--- Local values: valid, licensePlateData, characters, characterLength, i
 function LicensePlateManager.loadLicensePlateDataFromXML(xmlFile, key, useAbsolutePaths)
-	if not xmlFile:hasProperty(key .. "#variation") then
+	local valid = xmlFile:hasProperty(key .. "#variation")
+	if valid then
+		local licensePlateData = {}
+		if useAbsolutePaths then
+			licensePlateData.xmlFilename = xmlFile:getString(key .. "#configuration")
+		else
+			licensePlateData.xmlFilename = NetworkUtil.convertFromNetworkFilename(xmlFile:getString(key .. "#configuration"))
+		end
+		licensePlateData.variation = xmlFile:getInt(key .. "#variation")
+		licensePlateData.colorIndex = xmlFile:getInt(key .. "#color")
+		licensePlateData.placementIndex = xmlFile:getInt(key .. "#placement")
+		licensePlateData.characters = {}
+		local characters = xmlFile:getString(key .. "#characters")
+		local characterLength = characters:len()
+		for i = 1, characterLength do
+			table.insert(licensePlateData.characters, characters:sub(i, i))
+		end
+		return licensePlateData
+	else
 		return nil
 	end
-	local v78_ = {}
-	if useAbsolutePaths then
-		v78_.xmlFilename = xmlFile:getString(key .. "#configuration")
-	else
-		v78_.xmlFilename = NetworkUtil.convertFromNetworkFilename(xmlFile:getString(key .. "#configuration"))
-	end
-	v78_.variation = xmlFile:getInt(key .. "#variation")
-	v78_.colorIndex = xmlFile:getInt(key .. "#color")
-	v78_.placementIndex = xmlFile:getInt(key .. "#placement")
-	v78_.characters = {}
-	local v79_ = xmlFile:getString(key .. "#characters")
-	for v80_ = 1, v79_:len() do
-		local v81_ = v78_.characters
-		table.insert(v81_, v79_:sub(v80_, v80_))
-	end
-	return v78_
 end
-
--- Local values: valid
 function LicensePlateManager.saveLicensePlateDataToXML(xmlFile, key, licensePlateData, useAbsolutePaths)
-	local v86_
-	if licensePlateData == nil or (licensePlateData.variation == nil or (licensePlateData.characters == nil or licensePlateData.colorIndex == nil)) then
-		v86_ = false
-	else
-		v86_ = licensePlateData.placementIndex ~= nil
-	end
-	if v86_ then
+	local valid = licensePlateData ~= nil and licensePlateData.variation ~= nil and licensePlateData.characters ~= nil and licensePlateData.colorIndex ~= nil and licensePlateData.placementIndex ~= nil
+	if valid then
 		xmlFile:setInt(key .. "#variation", licensePlateData.variation)
 		xmlFile:setInt(key .. "#color", licensePlateData.colorIndex)
 		xmlFile:setInt(key .. "#placement", licensePlateData.placementIndex)
@@ -339,7 +273,6 @@ function LicensePlateManager.saveLicensePlateDataToXML(xmlFile, key, licensePlat
 		xmlFile:setString(key .. "#configuration", NetworkUtil.convertToNetworkFilename(licensePlateData.xmlFilename))
 	end
 end
-
 function LicensePlateManager.registerSavegameXMLpaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. "#variation", nil, "Variation of the license place")
 	schema:register(XMLValueType.INT, basePath .. "#color", nil, "Color index of the license place")
@@ -347,94 +280,91 @@ function LicensePlateManager.registerSavegameXMLpaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#characters", nil, "Used characters of the license place")
 	schema:register(XMLValueType.STRING, basePath .. "#configuration", nil, "Configuration of the license place")
 end
-
--- Local values: position, rootPlate, ratio, availableHeight, availableWidth, charactersPerRow, row, useLastRowCharacters, rowPosition, col, licensePlate, characters, cameraNode
 function LicensePlateManager.createLicensePlateAIIcons(_, numX, numY, variationIndex, positionStr)
-	if LicensePlateManager.licensePlatesIconRootNode == nil then
-		local v93_ = tonumber(numX) or 3
-		local v94_ = tonumber(numY) or 10
-		local v95_ = tonumber(variationIndex) or 1
-		local v96_
-		if positionStr == nil then
-			v96_ = nil
-		else
-			v96_ = LicensePlateManager.PLATE_POSITION[string.upper(positionStr)]
-		end
-		LicensePlateManager.licensePlatesIconRootNode = createTransformGroup("licensePlatesIconRootNode")
-		link(getRootNode(), LicensePlateManager.licensePlatesIconRootNode)
-		setTranslation(LicensePlateManager.licensePlatesIconRootNode, 0, -10, 0)
-		local v97_ = g_licensePlateManager:getLicensePlate(LicensePlateManager.PLATE_TYPE.ELONGATED)
-		if v97_ ~= nil then
-			local _ = v97_.height / v97_.width
-			local v98_ = v94_ * v97_.height
-			local v99_ = v93_ * v97_.width
-			local v100_ = {}
-			for v101_ = 1, v94_ do
-				v100_[v101_] = {}
-				local v102_ = false
-				local v103_
-				if v96_ == nil then
-					if v101_ % 2 == 0 then
-						v103_ = LicensePlateManager.PLATE_POSITION.FRONT
-						v102_ = true
-					else
-						v103_ = LicensePlateManager.PLATE_POSITION.BACK
-					end
-				else
-					v103_ = v96_
-				end
-				for v104_ = 1, v93_ do
-					local v105_ = g_licensePlateManager:getLicensePlate(LicensePlateManager.PLATE_TYPE.ELONGATED)
-					if v105_ ~= nil then
-						link(LicensePlateManager.licensePlatesIconRootNode, v105_.node)
-						setTranslation(v105_.node, (v104_ - 1) * v97_.width + v97_.width * 0.5, (v101_ - 1) * v97_.height + v97_.height * 0.5, 0)
-						setRotation(v105_.node, 0, 0, 0)
-						local v106_
-						if v102_ and v101_ > 1 then
-							v106_ = v100_[v101_ - 1][v104_]
-						else
-							v106_ = v105_:getRandomCharacters(v95_)
-						end
-						v100_[v101_][v104_] = v106_
-						v105_:updateData(v95_, v103_, table.concat(v106_, ""))
-					end
-				end
-			end
-			local v107_ = createCamera("licensePlatesIconCamera", 3437.746770784939, 0.1, 12)
-			link(LicensePlateManager.licensePlatesIconRootNode, v107_)
-			setTranslation(v107_, v99_ * 0.5, v98_ * 0.5, 10)
-			setIsOrthographic(v107_, true)
-			setOrthographicHeight(v107_, v98_)
-			LicensePlateManager.licensePlatesIconLastCamera = g_cameraManager:getActiveCamera()
-			g_cameraManager:addCamera(v107_)
-			g_cameraManager:setActiveCamera(v107_)
-			g_currentMission.hud:setIsVisible(false)
-			g_noHudModeEnabled = true
-		end
-	else
+	if LicensePlateManager.licensePlatesIconRootNode ~= nil then
 		delete(LicensePlateManager.licensePlatesIconRootNode)
 		LicensePlateManager.licensePlatesIconRootNode = nil
 		g_cameraManager:setActiveCamera(LicensePlateManager.licensePlatesIconLastCamera)
 		LicensePlateManager.licensePlatesIconLastCamera = nil
 		g_currentMission.hud:setIsVisible(true)
+	else
+		numX = tonumber(numX) or 3
+		numY = tonumber(numY) or 10
+		variationIndex = tonumber(variationIndex) or 1
+		local position = nil
+		if positionStr ~= nil then
+			position = LicensePlateManager.PLATE_POSITION[string.upper(positionStr)]
+		end
+		LicensePlateManager.licensePlatesIconRootNode = createTransformGroup("licensePlatesIconRootNode")
+		link(getRootNode(), LicensePlateManager.licensePlatesIconRootNode)
+		setTranslation(LicensePlateManager.licensePlatesIconRootNode, 0, -10, 0)
+		local rootPlate = g_licensePlateManager:getLicensePlate(LicensePlateManager.PLATE_TYPE.ELONGATED)
+		if rootPlate ~= nil then
+			local ratio = rootPlate.height / rootPlate.width
+			local availableHeight = numY * rootPlate.height
+			local availableWidth = numX * rootPlate.width
+			local charactersPerRow = {}
+			for row = 1, numY do
+				charactersPerRow[row] = {}
+				local useLastRowCharacters = false
+				local rowPosition = position
+				if rowPosition == nil then
+					if row % 2 == 0 then
+						rowPosition = LicensePlateManager.PLATE_POSITION.FRONT
+						useLastRowCharacters = true
+					else
+						rowPosition = LicensePlateManager.PLATE_POSITION.BACK
+					end
+				end
+				for col = 1, numX do
+					local licensePlate = g_licensePlateManager:getLicensePlate(LicensePlateManager.PLATE_TYPE.ELONGATED)
+					if licensePlate == nil then
+						continue
+					end
+					link(LicensePlateManager.licensePlatesIconRootNode, licensePlate.node)
+					setTranslation(licensePlate.node, (col - 1) * rootPlate.width + rootPlate.width * 0.5, (row - 1) * rootPlate.height + rootPlate.height * 0.5, 0)
+					setRotation(licensePlate.node, 0, 0, 0)
+					local characters = nil
+					if useLastRowCharacters then
+						if 1 < row then
+							characters = charactersPerRow[row - 1][col]
+						else
+							characters = licensePlate:getRandomCharacters(variationIndex)
+						end
+					end
+					charactersPerRow[row][col] = characters
+					licensePlate:updateData(variationIndex, rowPosition, table.concat(characters, ""))
+				end
+			end
+			local cameraNode = createCamera("licensePlatesIconCamera", 3437.746770784939, 0.1, 12)
+			link(LicensePlateManager.licensePlatesIconRootNode, cameraNode)
+			setTranslation(cameraNode, availableWidth * 0.5, availableHeight * 0.5, 10)
+			setIsOrthographic(cameraNode, true)
+			setOrthographicHeight(cameraNode, availableHeight)
+			LicensePlateManager.licensePlatesIconLastCamera = g_cameraManager:getActiveCamera()
+			g_cameraManager:addCamera(cameraNode)
+			g_cameraManager:setActiveCamera(cameraNode)
+			g_currentMission.hud:setIsVisible(false)
+			g_noHudModeEnabled = true
+		end
 	end
 end
 addConsoleCommand("gsLicensePlateCreateAIIcons", "Create license plate icons for AI vehicles", "createLicensePlateAIIcons", LicensePlateManager, "numX; numY; variationIndex; position")
 function LicensePlateManager.createLicensePlateXMLSchema()
 	if LicensePlateManager.xmlSchema == nil then
-		local v108_ = XMLSchema.new("mapLicensePlates")
-		LicensePlate.registerXMLPaths(v108_, "licensePlates.licensePlate(?)")
-		v108_:register(XMLValueType.STRING, "licensePlates.font#name", "License plate font name", "GENERIC")
-		v108_:register(XMLValueType.STRING, "licensePlates.colorConfigurations#materialName", "Name of colored license plate material", "licensePlateColored_mat")
-		v108_:register(XMLValueType.STRING, "licensePlates.colorConfigurations#shaderParameterCharacters", "Color shader parameter of characters", "colorSale")
-		v108_:register(XMLValueType.BOOL, "licensePlates.colorConfigurations#useDefaultColors", "License plate can be colored with all available default colors", false)
-		v108_:register(XMLValueType.INT, "licensePlates.colorConfigurations#defaultColorIndex", "Default selected color")
-		v108_:register(XMLValueType.FLOAT, "licensePlates.colorConfigurations#defaultColorMaxBrightness", "Default colors with higher brightness will be skipped", 0.55)
-		v108_:register(XMLValueType.L10N_STRING, "licensePlates.colorConfigurations.colorConfiguration(?)#name", "Name of color to display")
-		v108_:register(XMLValueType.COLOR, "licensePlates.colorConfigurations.colorConfiguration(?)#color", "Color values")
-		v108_:register(XMLValueType.BOOL, "licensePlates.colorConfigurations.colorConfiguration(?)#isDefault", "Color is default selected")
-		v108_:register(XMLValueType.STRING, "licensePlates.placement#defaultType", "Default type of placement (none/both/back_only)", "both")
-		LicensePlateManager.xmlSchema = v108_
+		local schema = XMLSchema.new("mapLicensePlates")
+		LicensePlate.registerXMLPaths(schema, "licensePlates.licensePlate(?)")
+		schema:register(XMLValueType.STRING, "licensePlates.font#name", "License plate font name", "GENERIC")
+		schema:register(XMLValueType.STRING, "licensePlates.colorConfigurations#materialName", "Name of colored license plate material", "licensePlateColored_mat")
+		schema:register(XMLValueType.STRING, "licensePlates.colorConfigurations#shaderParameterCharacters", "Color shader parameter of characters", "colorSale")
+		schema:register(XMLValueType.BOOL, "licensePlates.colorConfigurations#useDefaultColors", "License plate can be colored with all available default colors", false)
+		schema:register(XMLValueType.INT, "licensePlates.colorConfigurations#defaultColorIndex", "Default selected color")
+		schema:register(XMLValueType.FLOAT, "licensePlates.colorConfigurations#defaultColorMaxBrightness", "Default colors with higher brightness will be skipped", 0.55)
+		schema:register(XMLValueType.L10N_STRING, "licensePlates.colorConfigurations.colorConfiguration(?)#name", "Name of color to display")
+		schema:register(XMLValueType.COLOR, "licensePlates.colorConfigurations.colorConfiguration(?)#color", "Color values")
+		schema:register(XMLValueType.BOOL, "licensePlates.colorConfigurations.colorConfiguration(?)#isDefault", "Color is default selected")
+		schema:register(XMLValueType.STRING, "licensePlates.placement#defaultType", "Default type of placement (none/both/back_only)", "both")
+		LicensePlateManager.xmlSchema = schema
 	end
 end
 g_licensePlateManager = LicensePlateManager.new()

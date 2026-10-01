@@ -1,26 +1,21 @@
--- Local values: VehicleSetIsReconfiguratingEvent_mt
 VehicleSetIsReconfiguratingEvent = {}
 local VehicleSetIsReconfiguratingEvent_mt = Class(VehicleSetIsReconfiguratingEvent, Event)
 InitStaticEventClass(VehicleSetIsReconfiguratingEvent, "VehicleSetIsReconfiguratingEvent")
 function VehicleSetIsReconfiguratingEvent.emptyNew()
-	-- upvalues: (copy) VehicleSetIsReconfiguratingEvent_mt
-	return Event.new(VehicleSetIsReconfiguratingEvent_mt)
+	local self = Event.new(VehicleSetIsReconfiguratingEvent_mt)
+	return self
 end
-
--- Local values: self
 function VehicleSetIsReconfiguratingEvent.new(object)
-	local v3_ = VehicleSetIsReconfiguratingEvent.emptyNew()
-	v3_.object = object
-	return v3_
+	local self = VehicleSetIsReconfiguratingEvent.emptyNew()
+	self.object = object
+	return self
 end
-
 function VehicleSetIsReconfiguratingEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	if self.object ~= nil and self.object:getIsSynchronized() then
 		self.object.isReconfigurating = true
 	end
 end
-
 function VehicleSetIsReconfiguratingEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 end

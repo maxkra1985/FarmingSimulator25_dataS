@@ -1,51 +1,42 @@
--- Local values: ConstructionScreen_mt
 ConstructionScreen = {}
 ConstructionScreen.CELL_NAME_DETAIL = "detailTemplate"
 ConstructionScreen.CELL_NAME_FILL_TYPES = "fillTypesTemplate"
 ConstructionScreen.INPUT_CONTEXT = "CONSTRUCTION_MENU"
 local ConstructionScreen_mt = Class(ConstructionScreen, ScreenElement)
 function ConstructionScreen.register()
-	local v2_ = ConstructionScreen.new()
-	g_gui:loadGui("dataS/gui/ConstructionScreen.xml", "ConstructionScreen", v2_)
+	local constructionScreen = ConstructionScreen.new()
+	g_gui:loadGui("dataS/gui/ConstructionScreen.xml", "ConstructionScreen", constructionScreen)
 	if g_addCheatCommands then
 		addConsoleCommand("gsConstructionScreenUIToggle", "Toggle construction screen UI", "consoleCommandToggleUI", ConstructionScreen)
 	end
-	return v2_
+	return constructionScreen
 end
-
--- Upvalues: ConstructionScreen_mt
--- Local values: self
 function ConstructionScreen.new(target, custom_mt)
-	-- upvalues: (copy) ConstructionScreen_mt
-	local v5_ = ScreenElement.new(target, custom_mt or ConstructionScreen_mt)
-	v5_.isMouseMode = true
-	v5_.camera = GuiTopDownCamera.new()
-	v5_.cursor = GuiTopDownCursor.new()
-	v5_.sound = ConstructionSound.new()
-	v5_.brush = nil
-	v5_.items = {}
-	v5_.menuEvents = {}
-	v5_.brushEvents = {}
-	v5_.configEvents = {}
-	v5_.marqueeBoxes = {}
-	v5_.clonedElements = {}
-	v5_.detailsCache = {}
-	v5_.detailsTemplates = {}
-	v5_.configItemCache = {}
-	v5_.configItemCacheLarge = {}
-	return v5_
+	local self = ScreenElement.new(target, custom_mt or ConstructionScreen_mt)
+	self.isMouseMode = true
+	self.camera = GuiTopDownCamera.new()
+	self.cursor = GuiTopDownCursor.new()
+	self.sound = ConstructionSound.new()
+	self.brush = nil
+	self.items = {}
+	self.menuEvents = {}
+	self.brushEvents = {}
+	self.configEvents = {}
+	self.marqueeBoxes = {}
+	self.clonedElements = {}
+	self.detailsCache = {}
+	self.detailsTemplates = {}
+	self.configItemCache = {}
+	self.configItemCacheLarge = {}
+	return self
 end
-
--- Local values: newGui
 function ConstructionScreen.createFromExistingGui(gui, guiName)
-	local v8_ = ConstructionScreen.new()
+	local newGui = ConstructionScreen.new()
 	g_gui.guis[guiName]:delete()
 	g_gui.guis[guiName].target:delete()
-	g_gui:loadGui(gui.xmlFilename, guiName, v8_)
-	return v8_
+	g_gui:loadGui(gui.xmlFilename, guiName, newGui)
+	return newGui
 end
-
--- Local values: k, clone, k, clone, k, clone, k, cell, l, clone, _, element, _, element
 function ConstructionScreen:delete()
 	self.camera:delete()
 	self.cursor:delete()
@@ -56,31 +47,31 @@ function ConstructionScreen:delete()
 	if self.destructBrush ~= nil then
 		self.destructBrush:delete()
 	end
-	for v10_, v11_ in pairs(self.clonedElements) do
-		v11_:delete()
-		self.clonedElements[v10_] = nil
+	for k, clone in pairs(self.clonedElements) do
+		clone:delete()
+		self.clonedElements[k] = nil
 	end
-	for v12_, v13_ in pairs(self.detailsTemplates) do
-		v13_:delete()
-		self.detailsTemplates[v12_] = nil
+	for k, clone in pairs(self.detailsTemplates) do
+		clone:delete()
+		self.detailsTemplates[k] = nil
 	end
-	for v14_, v15_ in pairs(self.subCategoryDotBox.elements) do
-		v15_:delete()
-		self.subCategoryDotBox.elements[v14_] = nil
+	for k, clone in pairs(self.subCategoryDotBox.elements) do
+		clone:delete()
+		self.subCategoryDotBox.elements[k] = nil
 	end
-	for v16_, v17_ in pairs(self.detailsCache) do
-		for v18_, v19_ in pairs(v17_) do
-			v19_:delete()
-			self.detailsCache[v16_][v18_] = nil
+	for k, cell in pairs(self.detailsCache) do
+		for l, clone in pairs(cell) do
+			clone:delete()
+			self.detailsCache[k][l] = nil
 		end
-		self.detailsCache[v16_] = nil
+		self.detailsCache[k] = nil
 	end
-	for _, v20_ in ipairs(self.configItemCache) do
-		v20_:delete()
+	for _, element in ipairs(self.configItemCache) do
+		element:delete()
 	end
 	self.configItemCache = {}
-	for _, v21_ in ipairs(self.configItemCacheLarge) do
-		v21_:delete()
+	for _, element in ipairs(self.configItemCacheLarge) do
+		element:delete()
 	end
 	self.configItemCacheLarge = {}
 	self.subCategoryDotTemplate:delete()
@@ -88,26 +79,26 @@ function ConstructionScreen:delete()
 	self.configurationItemTemplateLarge:delete()
 	ConstructionScreen:superClass().delete(self)
 end
-
--- Local values: viewPortStartX, class, class
 function ConstructionScreen:onOpen()
 	ConstructionScreen:superClass().onOpen(self)
 	g_currentMission.lastConstructionScreenOpenTime = g_time
 	g_inputBinding:setContext(ConstructionScreen.INPUT_CONTEXT)
-	local v23_ = self.menuBox.absPosition[1] + self.menuBox.absSize[1]
-	self.viewPortStartX = v23_
+	local viewPortStartX = self.menuBox.absPosition[1] + self.menuBox.absSize[1]
+	self.viewPortStartX = viewPortStartX
 	self.camera:setTerrainRootNode(g_terrainNode)
-	self.camera:setEdgeScrollingOffset(v23_, 0, 1, 1)
+	self.camera:setEdgeScrollingOffset(viewPortStartX, 0, 1, 1)
 	self.camera:activate()
 	self.cursor:activate()
 	self.originalSafeFrameOffsetX = g_safeFrameOffsetX
-	g_safeFrameOffsetX = v23_ + g_safeFrameOffsetX
+	g_safeFrameOffsetX = viewPortStartX + g_safeFrameOffsetX
 	if self.selectorBrush == nil then
-		self.selectorBrush = g_constructionBrushTypeManager:getClassObjectByTypeName("select").new(nil, self.cursor)
+		local class = g_constructionBrushTypeManager:getClassObjectByTypeName("select")
+		self.selectorBrush = class.new(nil, self.cursor)
 	end
 	self:setBrush(self.selectorBrush, true)
 	if self.destructBrush == nil then
-		self.destructBrush = g_constructionBrushTypeManager:getClassObjectByTypeName("destruct").new(nil, self.cursor)
+		local class = g_constructionBrushTypeManager:getClassObjectByTypeName("destruct")
+		self.destructBrush = class.new(nil, self.cursor)
 	end
 	self.destructMode = false
 	self.isMouseMode = g_inputBinding.lastInputMode == GS_INPUT_HELP_MODE_KEYBOARD
@@ -125,19 +116,12 @@ function ConstructionScreen:onOpen()
 		g_messageCenter:subscribe(MessageType.APP_WINDOW_FOCUS_CHANGED, self.onAppWindowFocusChanged, self)
 	end
 	if g_localPlayer ~= nil then
-		local v24_
-		if g_localPlayer:getCurrentVehicle() == nil then
-			v24_ = g_localPlayer.camera.isFirstPerson
-		else
-			v24_ = false
-		end
-		self.wasFirstPerson = v24_
+		self.wasFirstPerson = false
 		if self.wasFirstPerson then
 			g_localPlayer.graphicsComponent:setModelVisibility(true)
 		end
 	end
 end
-
 function ConstructionScreen:onClose(element)
 	if g_localPlayer ~= nil and self.wasFirstPerson then
 		g_localPlayer.graphicsComponent:setModelVisibility(false)
@@ -155,7 +139,6 @@ function ConstructionScreen:onClose(element)
 	g_inputBinding:revertContext()
 	ConstructionScreen:superClass().onClose(self)
 end
-
 function ConstructionScreen:onGuiSetupFinished()
 	ConstructionScreen:superClass().onGuiSetupFinished(self)
 	self.subCategoryDotTemplate:unlinkElement()
@@ -166,17 +149,16 @@ function ConstructionScreen:onGuiSetupFinished()
 	FocusManager:removeElement(self.configurationItemTemplateLarge)
 	self:buildCellDatabase()
 end
-
 function ConstructionScreen:update(dt)
 	ConstructionScreen:superClass().update(self, dt)
 	g_currentMission.hud:updateBlinkingWarning(dt)
 	g_currentMission.hud.sideNotifications:update(dt)
 	self.camera:setCursorLocked(self.cursor.isCatchingCursor)
 	self.camera:update(dt)
-	if self.isMouseMode and self.isMouseInMenu then
-		self.cursor:setCameraRay(nil)
-	else
+	if not self.isMouseMode or not self.isMouseInMenu then
 		self.cursor:setCameraRay(self.camera:getPickRay())
+	else
+		self.cursor:setCameraRay(nil)
 	end
 	if self.configurations == nil then
 		self.cursor:update(dt)
@@ -191,11 +173,11 @@ function ConstructionScreen:update(dt)
 	end
 	self:updateMarqueeAnimation(dt)
 end
-
--- Local values: previousBrush
 function ConstructionScreen:setBrush(brush, skipMenuUpdate)
-	if brush ~= self.brush then
-		local v32_ = self.brush
+	if brush == self.brush then
+		return
+	else
+		local previousBrush = self.brush
 		if self.brush ~= nil then
 			self.brush:deactivate()
 			if self.brush ~= self.selectorBrush and self.brush ~= self.destructBrush then
@@ -211,8 +193,10 @@ function ConstructionScreen:setBrush(brush, skipMenuUpdate)
 		self.cursor:registerActionEvents()
 		if self.brush == nil or self.brush == self.selectorBrush then
 			self:registerMenuActionEvents(true)
-		elseif self.brush ~= nil then
-			self:registerMenuActionEvents(false)
+		else
+			if self.brush ~= nil then
+				self:registerMenuActionEvents(false)
+			end
 		end
 		self.buttonPagePrev:setVisible(self.brush ~= self.destructBrush)
 		self.buttonPageNext:setVisible(self.brush ~= self.destructBrush)
@@ -223,20 +207,19 @@ function ConstructionScreen:setBrush(brush, skipMenuUpdate)
 		end
 		if brush ~= nil then
 			self.brush:activate()
-			if v32_ ~= nil and self.brush:class() == v32_:class() then
-				self.brush:copyState(v32_)
+			if previousBrush ~= nil and self.brush:class() == previousBrush:class() then
+				self.brush:copyState(previousBrush)
 			end
 			self:registerBrushActionEvents()
 		end
 		if not skipMenuUpdate then
-			self:updateMenuState(v32_)
+			self:updateMenuState(previousBrush)
 		end
 		self:updateBrushActionTexts()
 		self:updateMenuActionTexts()
 		self.camera:setMovementDisabledForGamepad(self.brush == nil)
 	end
 end
-
 function ConstructionScreen:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 	self.isMouseInMenu = GuiUtils.checkOverlayOverlap(posX, posY, self.menuBox.absPosition[1], self.menuBox.absPosition[2], self.menuBox.absSize[1], self.menuBox.absSize[2])
 	if not self.isMouseInMenu then
@@ -246,13 +229,16 @@ function ConstructionScreen:mouseEvent(posX, posY, isDown, isUp, button, eventUs
 	self.cursor.mouseDisabled = self.isMouseInMenu
 	self.camera:setMouseEdgeScrollingActive(self.brush ~= self.selectorBrush)
 	self.camera:mouseEvent(posX, posY, isDown, isUp, button)
-	if self.configurations == nil then
+	if self.configurations ~= nil then
+		return
+	else
 		self.cursor:mouseEvent(posX, posY, isDown, isUp, button)
 	end
 end
-
 function ConstructionScreen:draw()
-	if not ConstructionScreen.uiHidden then
+	if ConstructionScreen.uiHidden then
+		return
+	else
 		ConstructionScreen:superClass().draw(self)
 		g_currentMission.hud:drawInputHelp(self.helpDisplay.position[1], self.helpDisplay.position[2])
 		g_currentMission.hud.gameInfoDisplay:draw()
@@ -266,88 +252,72 @@ function ConstructionScreen:draw()
 		end
 	end
 end
-
 function ConstructionScreen:onInputModeChanged(inputMode)
 	self.isMouseMode = inputMode[1] == GS_INPUT_HELP_MODE_KEYBOARD
 	self:updateMenuState()
 	self:updateMenuActionTexts()
 end
-
 function ConstructionScreen:onAppWindowFocusChanged(hasFocus)
 	if self.camera ~= nil then
 		self.camera:setMouseEdgeScrollingActive(hasFocus)
 	end
 end
-
--- Local values: _, eventId
 function ConstructionScreen:registerMenuActionEvents(hasMenuButtons)
 	self.menuEvents = {}
-	local _, v46_ = g_inputBinding:registerActionEvent(InputAction.MENU_ACCEPT, self, self.onButtonMenuAccept, false, true, false, true)
-	g_inputBinding:setActionEventTextPriority(v46_, GS_PRIO_VERY_LOW)
-	g_inputBinding:setActionEventTextVisibility(v46_, false)
-	self.acceptButtonEvent = v46_
-	local _, v47_ = g_inputBinding:registerActionEvent(InputAction.MENU_BACK, self, self.onButtonMenuBack, false, true, false, true)
-	g_inputBinding:setActionEventTextPriority(v47_, GS_PRIO_VERY_LOW)
-	self.backButtonEvent = v47_
-	local v48_ = self.menuEvents
-	table.insert(v48_, v47_)
-	local _, v49_ = g_inputBinding:registerActionEvent(InputAction.PAUSE, g_localPlayer.inputComponent, g_localPlayer.inputComponent.onInputPause, false, true, false, true)
-	g_inputBinding:setActionEventTextVisibility(v49_, false)
-	local _, v50_ = g_inputBinding:registerActionEvent(InputAction.TOGGLE_HELP_TEXT, g_localPlayer.inputComponent, g_localPlayer.inputComponent.onInputToggleHelpText, false, true, false, true)
-	g_inputBinding:setActionEventTextVisibility(v50_, false)
+	local _ = nil
+	local eventId = nil
+	_, eventId = g_inputBinding:registerActionEvent(InputAction.MENU_ACCEPT, self, self.onButtonMenuAccept, false, true, false, true)
+	g_inputBinding:setActionEventTextPriority(eventId, GS_PRIO_VERY_LOW)
+	g_inputBinding:setActionEventTextVisibility(eventId, false)
+	self.acceptButtonEvent = eventId
+	_, eventId = g_inputBinding:registerActionEvent(InputAction.MENU_BACK, self, self.onButtonMenuBack, false, true, false, true)
+	g_inputBinding:setActionEventTextPriority(eventId, GS_PRIO_VERY_LOW)
+	self.backButtonEvent = eventId
+	table.insert(self.menuEvents, eventId)
+	_, eventId = g_inputBinding:registerActionEvent(InputAction.PAUSE, g_localPlayer.inputComponent, g_localPlayer.inputComponent.onInputPause, false, true, false, true)
+	g_inputBinding:setActionEventTextVisibility(eventId, false)
+	_, eventId = g_inputBinding:registerActionEvent(InputAction.TOGGLE_HELP_TEXT, g_localPlayer.inputComponent, g_localPlayer.inputComponent.onInputToggleHelpText, false, true, false, true)
+	g_inputBinding:setActionEventTextVisibility(eventId, false)
 	if hasMenuButtons then
-		local _, v51_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_UP_DOWN, self, self.onMenuUpDown, false, true, true, true)
-		g_inputBinding:setActionEventTextVisibility(v51_, false)
-		local v52_ = self.menuEvents
-		table.insert(v52_, v51_)
-		local _, v53_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_LEFT_RIGHT, self, self.onMenuLeftRight, false, true, true, true)
-		g_inputBinding:setActionEventTextVisibility(v53_, false)
-		local v54_ = self.menuEvents
-		table.insert(v54_, v53_)
-		local _, v55_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_UP_DOWN, self, self.onReleaseUpDown, true, false, false, true)
-		g_inputBinding:setActionEventTextVisibility(v55_, false)
-		local v56_ = self.menuEvents
-		table.insert(v56_, v55_)
-		local _, v57_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_LEFT_RIGHT, self, self.onReleaseLeftRight, true, false, false, true)
-		g_inputBinding:setActionEventTextVisibility(v57_, false)
-		local v58_ = self.menuEvents
-		table.insert(v58_, v57_)
-		local _, v59_ = g_inputBinding:registerActionEvent(InputAction.MENU_PAGE_PREV, self, self.onMenuPagePrev, false, true, false, true)
-		g_inputBinding:setActionEventTextVisibility(v59_, false)
-		local v60_ = self.menuEvents
-		table.insert(v60_, v59_)
-		local _, v61_ = g_inputBinding:registerActionEvent(InputAction.MENU_PAGE_NEXT, self, self.onMenuPageNext, false, true, false, true)
-		g_inputBinding:setActionEventTextVisibility(v61_, false)
-		local v62_ = self.menuEvents
-		table.insert(v62_, v61_)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_UP_DOWN, self, self.onMenuUpDown, false, true, true, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.menuEvents, eventId)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_LEFT_RIGHT, self, self.onMenuLeftRight, false, true, true, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.menuEvents, eventId)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_UP_DOWN, self, self.onReleaseUpDown, true, false, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.menuEvents, eventId)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_LEFT_RIGHT, self, self.onReleaseLeftRight, true, false, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.menuEvents, eventId)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.MENU_PAGE_PREV, self, self.onMenuPagePrev, false, true, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.menuEvents, eventId)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.MENU_PAGE_NEXT, self, self.onMenuPageNext, false, true, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.menuEvents, eventId)
 	end
 	self:updateMenuActionTexts()
 end
-
 function ConstructionScreen:onMenuUpDown(_, inputValue)
 	g_gui:onMenuInput(InputAction.MENU_AXIS_UP_DOWN, inputValue)
 end
-
 function ConstructionScreen:onMenuLeftRight(_, inputValue)
 	g_gui:onMenuInput(InputAction.MENU_AXIS_LEFT_RIGHT, inputValue)
 end
-
 function ConstructionScreen:onReleaseUpDown(action)
 	g_gui:onReleaseMovement(InputAction.MENU_AXIS_UP_DOWN)
 end
-
 function ConstructionScreen:onReleaseLeftRight(action)
 	g_gui:onReleaseMovement(InputAction.MENU_AXIS_LEFT_RIGHT)
 end
-
 function ConstructionScreen:onMenuPagePrev()
 	self:onCategoryChanged(nil, nil, true)
 end
-
 function ConstructionScreen:onMenuPageNext()
 	self:onCategoryChanged(nil, nil, false)
 end
-
 function ConstructionScreen:updateMenuActionTexts()
 	g_inputBinding:setActionEventTextVisibility(self.backButtonEvent, false)
 	if self.brush == self.selectorBrush then
@@ -356,215 +326,167 @@ function ConstructionScreen:updateMenuActionTexts()
 		g_inputBinding:setActionEventText(self.backButtonEvent, g_i18n:getText("input_CONSTRUCTION_CANCEL"))
 	end
 end
-
--- Local values: _, event
 function ConstructionScreen:removeMenuActionEvents()
-	for _, v69_ in ipairs(self.menuEvents) do
-		g_inputBinding:removeActionEvent(v69_)
+	for _, event in ipairs(self.menuEvents) do
+		g_inputBinding:removeActionEvent(event)
 	end
 end
-
 function ConstructionScreen:onButtonMenuAccept()
 	if self.isMouseMode or self.brush == self.selectorBrush and self.selectorBrush.lastPlaceable == nil or self.configurations ~= nil then
 		self.dragIsLocked = true
 		g_gui:notifyControls("MENU_ACCEPT")
-	else
-		self:onButtonPrimary()
+		return
 	end
+	self:onButtonPrimary()
 end
-
 function ConstructionScreen:onButtonMenuBack()
 	if self.brush:canCancel() then
 		self.brush:cancel()
-		return
 	elseif self.brush == self.destructBrush then
 		self.destructMode = false
 		self:setBrush(self.previousBrush)
-		return
-	elseif self.configurations == nil then
-		if self.brush.isSelector then
-			self:changeScreen(nil)
-		else
-			self:setBrush(self.selectorBrush)
-		end
-	else
+	elseif self.configurations ~= nil then
 		self:onShowConfigs()
-		return
+	elseif not self.brush.isSelector then
+		self:setBrush(self.selectorBrush)
+	else
+		self:changeScreen(nil)
 	end
 end
-
--- Local values: oldCategory
 function ConstructionScreen:onCategoryChanged(_, _, isLeftButton)
-	local v74_ = self.currentCategory
-	local v75_
-	if isLeftButton then
-		v75_ = v74_ - 1
-	else
-		v75_ = v74_ + 1
+	local oldCategory = self.currentCategory
+	oldCategory = isLeftButton and oldCategory - 1 or oldCategory + 1
+	if oldCategory <= 0 then
+		oldCategory = #self.categories
+	elseif #self.categories < oldCategory then
+		oldCategory = 1
 	end
-	local v76_
-	if v75_ <= 0 then
-		v76_ = #self.categories
-	else
-		v76_ = #self.categories < v75_ and 1 or v75_
-	end
-	if v76_ ~= self.currentCategory then
-		self:setCurrentCategory(v76_)
+	if oldCategory ~= self.currentCategory then
+		self:setCurrentCategory(oldCategory)
 	end
 end
-
 function ConstructionScreen:onSubCategoryChanged(index)
 	self:setCurrentTab(index)
 end
-
--- Local values: _, eventId, brush
 function ConstructionScreen:registerBrushActionEvents()
-	local v80_ = self.brush
-	if v80_ ~= nil then
+	local _ = nil
+	local eventId = nil
+	local brush = self.brush
+	if brush == nil then
+		return
+	else
 		self.brushEvents = {}
-		if v80_.supportsPrimaryButton then
-			local v81_
-			if v80_.supportsPrimaryDragging then
-				local v82_
-				v82_, v81_ = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_PRIMARY, self, self.onButtonPrimaryDrag, true, true, true, true)
-				local v83_ = self.brushEvents
-				table.insert(v83_, v81_)
-				self.primaryBrushEvent = v81_
+		if brush.supportsPrimaryButton then
+			if brush.supportsPrimaryDragging then
+				_, eventId = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_PRIMARY, self, self.onButtonPrimaryDrag, true, true, true, true)
+				table.insert(self.brushEvents, eventId)
+				self.primaryBrushEvent = eventId
 			else
-				local v84_
-				v84_, v81_ = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_PRIMARY, self, self.onButtonPrimary, false, true, false, true)
-				local v85_ = self.brushEvents
-				table.insert(v85_, v81_)
-				self.primaryBrushEvent = v81_
+				_, eventId = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_PRIMARY, self, self.onButtonPrimary, false, true, false, true)
+				table.insert(self.brushEvents, eventId)
+				self.primaryBrushEvent = eventId
 			end
-			g_inputBinding:setActionEventTextPriority(v81_, GS_PRIO_VERY_HIGH)
+			g_inputBinding:setActionEventTextPriority(eventId, GS_PRIO_VERY_HIGH)
 		end
-		if v80_.supportsSecondaryButton then
-			local v86_
-			if v80_.supportsSecondaryDragging then
-				local v87_
-				v87_, v86_ = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_SECONDARY, self, self.onButtonSecondaryDrag, true, true, true, true)
-				local v88_ = self.brushEvents
-				table.insert(v88_, v86_)
-				self.secondaryBrushEvent = v86_
+		if brush.supportsSecondaryButton then
+			if brush.supportsSecondaryDragging then
+				_, eventId = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_SECONDARY, self, self.onButtonSecondaryDrag, true, true, true, true)
+				table.insert(self.brushEvents, eventId)
+				self.secondaryBrushEvent = eventId
 			else
-				local v89_
-				v89_, v86_ = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_SECONDARY, self, self.onButtonSecondary, false, true, false, true)
-				local v90_ = self.brushEvents
-				table.insert(v90_, v86_)
-				self.secondaryBrushEvent = v86_
+				_, eventId = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_SECONDARY, self, self.onButtonSecondary, false, true, false, true)
+				table.insert(self.brushEvents, eventId)
+				self.secondaryBrushEvent = eventId
 			end
-			g_inputBinding:setActionEventTextPriority(v86_, GS_PRIO_VERY_HIGH)
+			g_inputBinding:setActionEventTextPriority(eventId, GS_PRIO_VERY_HIGH)
 		end
-		if v80_.supportsTertiaryButton then
-			local _, v91_ = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_TERTIARY, self, self.onButtonTertiary, false, true, false, true)
-			self.tertiaryBrushEvent = v91_
+		if brush.supportsTertiaryButton then
+			_, self.tertiaryBrushEvent = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_TERTIARY, self, self.onButtonTertiary, false, true, false, true)
 			g_inputBinding:setActionEventTextPriority(self.tertiaryBrushEvent, GS_PRIO_HIGH)
-			local v92_ = self.brushEvents
-			local v93_ = self.tertiaryBrushEvent
-			table.insert(v92_, v93_)
+			table.insert(self.brushEvents, self.tertiaryBrushEvent)
 		end
-		if v80_.supportsFourthButton then
-			local _, v94_ = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_FOURTH, self, self.onButtonFourth, false, true, false, true)
-			self.fourthBrushEvent = v94_
+		if brush.supportsFourthButton then
+			_, self.fourthBrushEvent = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_FOURTH, self, self.onButtonFourth, false, true, false, true)
 			g_inputBinding:setActionEventTextPriority(self.fourthBrushEvent, GS_PRIO_HIGH)
-			local v95_ = self.brushEvents
-			local v96_ = self.fourthBrushEvent
-			table.insert(v95_, v96_)
+			table.insert(self.brushEvents, self.fourthBrushEvent)
 		end
-		if v80_.placeableHasConfigs then
-			local _, v97_ = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_SHOW_CONFIGS, self, self.onShowConfigs, false, true, false, true)
-			self.showConfigsEvent = v97_
+		if brush.placeableHasConfigs then
+			_, self.showConfigsEvent = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_SHOW_CONFIGS, self, self.onShowConfigs, false, true, false, true)
 			g_inputBinding:setActionEventText(self.showConfigsEvent, g_i18n:getText("input_CONSTRUCTION_SHOW_CONFIGS"))
 			g_inputBinding:setActionEventTextPriority(self.showConfigsEvent, GS_PRIO_HIGH)
-			local v98_ = self.brushEvents
-			local v99_ = self.showConfigsEvent
-			table.insert(v98_, v99_)
+			table.insert(self.brushEvents, self.showConfigsEvent)
 		end
-		if v80_.supportsPrimaryAxis then
-			local _, v100_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_ACTION_PRIMARY, self, self.onAxisPrimary, false, not v80_.primaryAxisIsContinuous, v80_.primaryAxisIsContinuous, true)
-			self.primaryBrushAxisEvent = v100_
+		if brush.supportsPrimaryAxis then
+			_, self.primaryBrushAxisEvent = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_ACTION_PRIMARY, self, self.onAxisPrimary, false, not brush.primaryAxisIsContinuous, brush.primaryAxisIsContinuous, true)
 			g_inputBinding:setActionEventTextPriority(self.primaryBrushAxisEvent, GS_PRIO_HIGH)
-			local v101_ = self.brushEvents
-			local v102_ = self.primaryBrushAxisEvent
-			table.insert(v101_, v102_)
+			table.insert(self.brushEvents, self.primaryBrushAxisEvent)
 		end
-		if v80_.supportsSecondaryAxis then
-			local _, v103_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_ACTION_SECONDARY, self, self.onAxisSecondary, false, not v80_.secondaryAxisIsContinuous, v80_.secondaryAxisIsContinuous, true)
-			self.secondaryBrushAxisEvent = v103_
+		if brush.supportsSecondaryAxis then
+			_, self.secondaryBrushAxisEvent = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_ACTION_SECONDARY, self, self.onAxisSecondary, false, not brush.secondaryAxisIsContinuous, brush.secondaryAxisIsContinuous, true)
 			g_inputBinding:setActionEventTextPriority(self.secondaryBrushAxisEvent, GS_PRIO_HIGH)
-			local v104_ = self.brushEvents
-			local v105_ = self.secondaryBrushAxisEvent
-			table.insert(v104_, v105_)
+			table.insert(self.brushEvents, self.secondaryBrushAxisEvent)
 		end
-		if v80_.supportsSnapping then
-			local _, v106_ = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_SNAPPING, self, self.onButtonSnapping, false, true, false, true)
-			self.snappingBrushEvent = v106_
+		if brush.supportsSnapping then
+			_, self.snappingBrushEvent = g_inputBinding:registerActionEvent(InputAction.CONSTRUCTION_ACTION_SNAPPING, self, self.onButtonSnapping, false, true, false, true)
 			g_inputBinding:setActionEventTextPriority(self.snappingBrushEvent, GS_PRIO_HIGH)
-			local v107_ = self.brushEvents
-			local v108_ = self.snappingBrushEvent
-			table.insert(v107_, v108_)
+			table.insert(self.brushEvents, self.snappingBrushEvent)
 		end
 	end
 end
-
--- Local values: text, text, text, text, text, text, text
 function ConstructionScreen:updateBrushActionTexts()
 	if self.primaryBrushEvent ~= nil then
-		local v110_ = self.brush:getButtonPrimaryText()
-		if v110_ ~= nil then
-			g_inputBinding:setActionEventText(self.primaryBrushEvent, g_i18n:convertText(v110_))
+		local text = self.brush:getButtonPrimaryText()
+		if text ~= nil then
+			g_inputBinding:setActionEventText(self.primaryBrushEvent, g_i18n:convertText(text))
 		end
-		g_inputBinding:setActionEventTextVisibility(self.primaryBrushEvent, v110_ ~= nil)
+		g_inputBinding:setActionEventTextVisibility(self.primaryBrushEvent, text ~= nil)
 	end
 	if self.secondaryBrushEvent ~= nil then
-		local v111_ = self.brush:getButtonSecondaryText()
-		if v111_ ~= nil then
-			g_inputBinding:setActionEventText(self.secondaryBrushEvent, g_i18n:convertText(v111_))
+		local text = self.brush:getButtonSecondaryText()
+		if text ~= nil then
+			g_inputBinding:setActionEventText(self.secondaryBrushEvent, g_i18n:convertText(text))
 		end
-		g_inputBinding:setActionEventTextVisibility(self.secondaryBrushEvent, v111_ ~= nil)
+		g_inputBinding:setActionEventTextVisibility(self.secondaryBrushEvent, text ~= nil)
 	end
 	if self.tertiaryBrushEvent ~= nil then
-		local v112_ = self.brush:getButtonTertiaryText()
-		if v112_ ~= nil then
-			g_inputBinding:setActionEventText(self.tertiaryBrushEvent, g_i18n:convertText(v112_))
+		local text = self.brush:getButtonTertiaryText()
+		if text ~= nil then
+			g_inputBinding:setActionEventText(self.tertiaryBrushEvent, g_i18n:convertText(text))
 		end
-		g_inputBinding:setActionEventTextVisibility(self.tertiaryBrushEvent, v112_ ~= nil)
+		g_inputBinding:setActionEventTextVisibility(self.tertiaryBrushEvent, text ~= nil)
 	end
 	if self.fourthBrushEvent ~= nil then
-		local v113_ = self.brush:getButtonFourthText()
-		if v113_ ~= nil then
-			g_inputBinding:setActionEventText(self.fourthBrushEvent, g_i18n:convertText(v113_))
+		local text = self.brush:getButtonFourthText()
+		if text ~= nil then
+			g_inputBinding:setActionEventText(self.fourthBrushEvent, g_i18n:convertText(text))
 		end
-		g_inputBinding:setActionEventTextVisibility(self.fourthBrushEvent, v113_ ~= nil)
+		g_inputBinding:setActionEventTextVisibility(self.fourthBrushEvent, text ~= nil)
 	end
 	if self.primaryBrushAxisEvent ~= nil then
-		local v114_ = self.brush:getAxisPrimaryText()
-		if v114_ ~= nil then
-			g_inputBinding:setActionEventText(self.primaryBrushAxisEvent, g_i18n:convertText(v114_))
+		local text = self.brush:getAxisPrimaryText()
+		if text ~= nil then
+			g_inputBinding:setActionEventText(self.primaryBrushAxisEvent, g_i18n:convertText(text))
 		end
-		g_inputBinding:setActionEventTextVisibility(self.primaryBrushAxisEvent, v114_ ~= nil)
+		g_inputBinding:setActionEventTextVisibility(self.primaryBrushAxisEvent, text ~= nil)
 	end
 	if self.secondaryBrushAxisEvent ~= nil then
-		local v115_ = self.brush:getAxisSecondaryText()
-		if v115_ ~= nil then
-			g_inputBinding:setActionEventText(self.secondaryBrushAxisEvent, g_i18n:convertText(v115_))
+		local text = self.brush:getAxisSecondaryText()
+		if text ~= nil then
+			g_inputBinding:setActionEventText(self.secondaryBrushAxisEvent, g_i18n:convertText(text))
 		end
-		g_inputBinding:setActionEventTextVisibility(self.secondaryBrushAxisEvent, v115_ ~= nil)
+		g_inputBinding:setActionEventTextVisibility(self.secondaryBrushAxisEvent, text ~= nil)
 	end
 	if self.snappingBrushEvent ~= nil then
-		local v116_ = self.brush:getButtonSnappingText()
-		if v116_ ~= nil then
-			g_inputBinding:setActionEventText(self.snappingBrushEvent, g_i18n:convertText(v116_))
+		local text = self.brush:getButtonSnappingText()
+		if text ~= nil then
+			g_inputBinding:setActionEventText(self.snappingBrushEvent, g_i18n:convertText(text))
 		end
-		g_inputBinding:setActionEventTextVisibility(self.snappingBrushEvent, v116_ ~= nil)
+		g_inputBinding:setActionEventTextVisibility(self.snappingBrushEvent, text ~= nil)
 	end
 end
-
--- Local values: _, event
 function ConstructionScreen:removeBrushActionEvents()
-	for _, v118_ in ipairs(self.brushEvents) do
-		g_inputBinding:removeActionEvent(v118_)
+	for _, event in ipairs(self.brushEvents) do
+		g_inputBinding:removeActionEvent(event)
 	end
 	self.primaryBrushEvent = nil
 	self.secondaryBrushEvent = nil
@@ -575,89 +497,55 @@ function ConstructionScreen:removeBrushActionEvents()
 	self.snappingBrushEvent = nil
 	self.showConfigsEvent = nil
 end
-
 function ConstructionScreen:onButtonPrimary(_, inputValue, _, isAnalog, isMouse)
 	if not self.isMouseInMenu and self.configurations == nil then
 		self.brush:onButtonPrimary()
 	end
 end
-
--- Local values: isDown, isDrag, isUp
 function ConstructionScreen:onButtonPrimaryDrag(_, inputValue, _, isAnalog, isMouse)
 	if not self.isMouseInMenu then
-		local v122_
-		if inputValue == 1 then
-			v122_ = self.previousPrimaryDragValue ~= 1
-		else
-			v122_ = false
-		end
-		local v123_
-		if inputValue == 1 then
-			v123_ = self.previousPrimaryDragValue == 1
-		else
-			v123_ = false
-		end
-		local v124_ = inputValue == 0
+		local isDown = inputValue == 1 and self.previousPrimaryDragValue ~= 1
+		local isDrag = inputValue == 1 and self.previousPrimaryDragValue == 1
+		local isUp = inputValue == 0
 		self.previousPrimaryDragValue = inputValue
 		if self.dragIsLocked then
-			if v124_ then
+			if isUp then
 				self.dragIsLocked = false
-				return
 			end
 		else
-			self.brush:onButtonPrimary(v122_, v123_, v124_)
+			self.brush:onButtonPrimary(isDown, isDrag, isUp)
 		end
 	end
 end
-
 function ConstructionScreen:onButtonSecondary(_, inputValue, _, isAnalog, isMouse)
 	if not self.isMouseInMenu then
 		self.brush:onButtonSecondary()
 	end
 end
-
--- Local values: isDown, isDrag, isUp
 function ConstructionScreen:onButtonSecondaryDrag(_, inputValue, _, isAnalog, isMouse)
 	if not self.isMouseInMenu then
-		local v128_
-		if inputValue == 1 then
-			v128_ = self.previousSecondaryDragValue ~= 1
-		else
-			v128_ = false
-		end
-		local v129_
-		if inputValue == 1 then
-			v129_ = self.previousSecondaryDragValue == 1
-		else
-			v129_ = false
-		end
-		local v130_ = inputValue == 0
+		local isDown = inputValue == 1 and self.previousSecondaryDragValue ~= 1
+		local isDrag = inputValue == 1 and self.previousSecondaryDragValue == 1
+		local isUp = inputValue == 0
 		self.previousSecondaryDragValue = inputValue
-		self.brush:onButtonSecondary(v128_, v129_, v130_)
+		self.brush:onButtonSecondary(isDown, isDrag, isUp)
 	end
 end
-
 function ConstructionScreen:onButtonTertiary(_, inputValue, _, isAnalog, isMouse)
 	self.brush:onButtonTertiary(self)
 end
-
 function ConstructionScreen:onButtonFourth(_, inputValue, _, isAnalog, isMouse)
 	self.brush:onButtonFourth()
 end
-
 function ConstructionScreen:onButtonSnapping(_, inputValue, _, isAnalog, isMouse)
 	self.brush:onButtonSnapping()
 end
-
 function ConstructionScreen:onAxisPrimary(_, inputValue, _, isAnalog, isMouse)
 	self.brush:onAxisPrimary(inputValue)
 end
-
 function ConstructionScreen:onAxisSecondary(_, inputValue, _, isAnalog, isMouse)
 	self.brush:onAxisSecondary(inputValue)
 end
-
--- Local values: _, event, _, eventId, storeItem, configurations, configName, index, configName, index
 function ConstructionScreen:onShowConfigs()
 	if self.configsBox:getIsVisible() then
 		self.configsBox:setVisible(false)
@@ -665,12 +553,12 @@ function ConstructionScreen:onShowConfigs()
 		self:registerBrushActionEvents()
 		self:updateBrushActionTexts()
 		self:updateMenuActionTexts()
-		for _, v139_ in ipairs(self.configEvents) do
-			g_inputBinding:removeActionEvent(v139_)
+		for _, event in ipairs(self.configEvents) do
+			g_inputBinding:removeActionEvent(event)
 		end
 		self.cursor:setRotationEnabled(self.cursorRotationEnabled or false)
 		self.configurations = nil
-		if self.itemList:getItemCount() > 0 then
+		if 0 < self.itemList:getItemCount() then
 			FocusManager:setFocus(self.itemList)
 		else
 			FocusManager:setFocus(self.subCategorySelector)
@@ -680,45 +568,40 @@ function ConstructionScreen:onShowConfigs()
 		self.configsBox:setVisible(true)
 		self.listBox:setVisible(false)
 		self:removeBrushActionEvents()
-		local _, v140_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_UP_DOWN, self, self.onMenuUpDown, false, true, true, true)
-		g_inputBinding:setActionEventTextVisibility(v140_, false)
-		local v141_ = self.configEvents
-		table.insert(v141_, v140_)
-		local _, v142_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_LEFT_RIGHT, self, self.onMenuLeftRight, false, true, true, true)
-		g_inputBinding:setActionEventTextVisibility(v142_, false)
-		local v143_ = self.configEvents
-		table.insert(v143_, v142_)
-		local _, v144_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_UP_DOWN, self, self.onReleaseUpDown, true, false, false, true)
-		g_inputBinding:setActionEventTextVisibility(v144_, false)
-		local v145_ = self.configEvents
-		table.insert(v145_, v144_)
-		local _, v146_ = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_LEFT_RIGHT, self, self.onReleaseLeftRight, true, false, false, true)
-		g_inputBinding:setActionEventTextVisibility(v146_, false)
-		local v147_ = self.configEvents
-		table.insert(v147_, v146_)
+		local _, eventId = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_UP_DOWN, self, self.onMenuUpDown, false, true, true, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.configEvents, eventId)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_LEFT_RIGHT, self, self.onMenuLeftRight, false, true, true, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.configEvents, eventId)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_UP_DOWN, self, self.onReleaseUpDown, true, false, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.configEvents, eventId)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.AXIS_CONSTRUCTION_MENU_LEFT_RIGHT, self, self.onReleaseLeftRight, true, false, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		table.insert(self.configEvents, eventId)
 		self.cursorRotationEnabled = self.cursor.rotationEnabled
 		self.cursor:setRotationEnabled(false)
-		local v148_ = self.brush.storeItem
-		local v149_ = {}
-		if v148_.defaultConfigurationIds ~= nil then
-			for v150_, v151_ in pairs(v148_.defaultConfigurationIds) do
-				v149_[v150_] = v151_
+		local storeItem = self.brush.storeItem
+		local configurations = {}
+		if storeItem.defaultConfigurationIds ~= nil then
+			for configName, index in pairs(storeItem.defaultConfigurationIds) do
+				configurations[configName] = index
 			end
 		end
 		if self.brush.configurations ~= nil then
-			for v152_, v153_ in pairs(self.brush.configurations) do
-				v149_[v152_] = v153_
+			for configName, index in pairs(self.brush.configurations) do
+				configurations[configName] = index
 			end
 		end
 		self.needsRefocus = true
-		self.configurations = v149_
+		self.configurations = configurations
 		self.configurationData = {}
-		self:processStoreItemConfigurations(v148_)
-		self:updateConfigOptionsDisplay(v148_)
+		self:processStoreItemConfigurations(storeItem)
+		self:updateConfigOptionsDisplay(storeItem)
 		self.categorySelector:setDisabled(true)
 	end
 end
-
 function ConstructionScreen:onClickDestruct()
 	if self.destructMode then
 		self.destructMode = false
@@ -729,7 +612,6 @@ function ConstructionScreen:onClickDestruct()
 		self:setBrush(self.destructBrush)
 	end
 end
-
 function ConstructionScreen:onFocusConfigurationOption(element)
 	self.focusedColorElement = nil
 	self.focusedButtonElement = nil
@@ -745,32 +627,26 @@ function ConstructionScreen:onFocusConfigurationOption(element)
 	end
 	self:updateConfigurationButton()
 end
-
 function ConstructionScreen:onLeaveConfigurationOption(element)
 	self.focusedColorElement = nil
 	self.focusedButtonElement = nil
 	self.focusedOptionElement = nil
 	self:updateConfigurationButton()
 end
-
--- Local values: visible
 function ConstructionScreen:updateConfigurationButton()
-	local v159_ = self.focusedButtonElement ~= nil and true or self.focusedColorElement ~= nil
-	self.configButton:setVisible(v159_)
+	local visible = self.focusedButtonElement ~= nil or self.focusedColorElement ~= nil
+	self.configButton:setVisible(visible)
 	self.buttonsPanel:invalidateLayout()
 end
-
 function ConstructionScreen:onClickConfigAction()
-	if self.focusedColorElement == nil then
+	if self.focusedColorElement ~= nil then
+		self.focusedColorElement:onFocusActivate()
+	else
 		if self.focusedButtonElement ~= nil then
 			self.focusedButtonElement:onFocusActivate()
 		end
-	else
-		self.focusedColorElement:onFocusActivate()
 	end
 end
-
--- Local values: items
 function ConstructionScreen:getNumberOfItemsInSection(list, section)
 	if list == self.categorySelector then
 		return #self.categories
@@ -778,907 +654,787 @@ function ConstructionScreen:getNumberOfItemsInSection(list, section)
 	if self.currentCategory == nil or self.currentTab == nil then
 		return 0
 	end
-	local v163_ = self.items[self.currentCategory][self.currentTab]
-	return v163_ == nil and 0 or #v163_
+	local items = self.items[self.currentCategory][self.currentTab]
+	if items == nil then
+		return 0
+	else
+		return #items
+	end
 end
-
--- Local values: category, tabButton, item
 function ConstructionScreen:populateCellForItemInSection(list, section, index, cell)
 	if list == self.categorySelector then
-		local v168_ = self.categories[index]
-		local v169_ = cell:getAttribute("tabButton")
-		v169_:setImageFilename(nil, v168_.iconFilename)
-		v169_:setImageUVs(nil, v168_.iconUVs)
-		v169_:setImageSlice(nil, v168_.iconSliceId)
-		function v169_.onClickCallback()
-			-- upvalues: (copy) self, (copy) index
+		local category = self.categories[index]
+		local tabButton = cell:getAttribute("tabButton")
+		tabButton:setImageFilename(nil, category.iconFilename)
+		tabButton:setImageUVs(nil, category.iconUVs)
+		tabButton:setImageSlice(nil, category.iconSliceId)
+		function tabButton.onClickCallback()
 			self:setCurrentCategory(index)
 		end
-		return
 	else
-		local v170_ = self.items[self.currentCategory][self.currentTab][index]
-		cell:getAttribute("price"):setValue(g_i18n:formatMoney(v170_.price, 0, true, true))
-		cell:getAttribute("terrainLayer"):setVisible(v170_.terrainOverlayLayer ~= nil)
-		cell:getAttribute("icon"):setVisible(v170_.imageFilename ~= nil)
-		if v170_.imageFilename == nil then
-			if v170_.terrainOverlayLayer ~= nil then
-				cell:getAttribute("terrainLayer"):setTerrainLayer(g_terrainNode, v170_.terrainOverlayLayer)
-			end
+		local item = self.items[self.currentCategory][self.currentTab][index]
+		cell:getAttribute("price"):setValue(g_i18n:formatMoney(item.price, 0, true, true))
+		cell:getAttribute("terrainLayer"):setVisible(item.terrainOverlayLayer ~= nil)
+		cell:getAttribute("icon"):setVisible(item.imageFilename ~= nil)
+		if item.imageFilename ~= nil then
+			cell:getAttribute("icon"):setImageFilename(item.imageFilename)
 		else
-			cell:getAttribute("icon"):setImageFilename(v170_.imageFilename)
+			if item.terrainOverlayLayer ~= nil then
+				cell:getAttribute("terrainLayer"):setTerrainLayer(g_terrainNode, item.terrainOverlayLayer)
+			end
 		end
 	end
 end
-
--- Local values: selectedBrush
 function ConstructionScreen:onListSelectionChanged(list, section, index)
-	if not g_gui.currentlyReloading then
+	if g_gui.currentlyReloading then
+		return
+	else
 		if list == self.itemList then
-			local v174_ = self.items[self.currentCategory][self.currentTab][index]
-			if v174_ == nil then
+			local selectedBrush = self.items[self.currentCategory][self.currentTab][index]
+			if selectedBrush == nil then
 				self:assignItemAttributeData(nil)
 				return
 			end
 			self.lastSelectionIndex = index
-			self:assignItemAttributeData(v174_)
+			self:assignItemAttributeData(selectedBrush)
 		end
 	end
 end
-
--- Local values: selectedBrush
 function ConstructionScreen:onListHighlightChanged(list, section, index)
-	if not g_gui.currentlyReloading then
+	if g_gui.currentlyReloading then
+		return
+	else
 		if list == self.itemList then
-			local v178_ = index or self.lastSelectionIndex
-			local v179_ = self.items[self.currentCategory][self.currentTab][v178_]
-			if v179_ == nil then
+			index = index or self.lastSelectionIndex
+			local selectedBrush = self.items[self.currentCategory][self.currentTab][index]
+			if selectedBrush == nil then
 				self:assignItemAttributeData(nil)
 				return
 			end
-			self:assignItemAttributeData(v179_)
+			self:assignItemAttributeData(selectedBrush)
 		end
 	end
 end
-
--- Local values: item, brush
 function ConstructionScreen:onClickItem()
-	local v181_ = self.items[self.currentCategory][self.currentTab][self.itemList.selectedIndex]
-	local v182_ = v181_.brushClass.new(nil, self.cursor)
-	if v181_.brushParameters ~= nil then
-		v182_:setStoreItem(v181_.storeItem)
-		local v183_ = v181_.brushParameters
-		v182_:setParameters(unpack(v183_))
-		v182_.uniqueIndex = v181_.uniqueIndex
+	local item = self.items[self.currentCategory][self.currentTab][self.itemList.selectedIndex]
+	local brush = item.brushClass.new(nil, self.cursor)
+	if item.brushParameters ~= nil then
+		brush:setStoreItem(item.storeItem)
+		brush:setParameters(unpack(item.brushParameters))
+		brush.uniqueIndex = item.uniqueIndex
 	end
 	self.destructMode = false
-	self:setBrush(v182_, true)
+	self:setBrush(brush, true)
 end
-
 function ConstructionScreen:refreshDetails()
 	self:onListSelectionChanged(self.itemList, 1, self.itemList.selectedIndex)
 end
-
--- Local values: layoutsToInvalidate, k, clone, layout, _, k, _, displayItem, i, brand, modName, description
 function ConstructionScreen:assignItemAttributeData(selectedBrush)
-	local v187_ = {}
-	for v188_, v189_ in pairs(self.clonedElements) do
-		if v187_[v189_.parent] == nil then
-			v187_[v189_.parent] = true
+	local layoutsToInvalidate = {}
+	for k, clone in pairs(self.clonedElements) do
+		if layoutsToInvalidate[clone.parent] == nil then
+			layoutsToInvalidate[clone.parent] = true
 		end
-		v189_:delete()
-		self.clonedElements[v188_] = nil
+		clone:delete()
+		self.clonedElements[k] = nil
 	end
-	for v190_, _ in pairs(v187_) do
-		v190_:invalidateLayout()
+	for layout, _ in pairs(layoutsToInvalidate) do
+		layout:invalidateLayout()
 	end
-	for v191_, _ in pairs(self.marqueeBoxes) do
-		self.marqueeBoxes[v191_] = nil
+	for k, _ in pairs(self.marqueeBoxes) do
+		self.marqueeBoxes[k] = nil
 	end
-	local v192_
-	if selectedBrush == nil then
-		v192_ = nil
-	else
+	local displayItem = nil
+	if selectedBrush ~= nil then
 		self.itemDetailsName:setText(selectedBrush.name)
-		v192_ = selectedBrush.displayItem
+		displayItem = selectedBrush.displayItem
 	end
 	self.itemDetailsName:setVisible(selectedBrush ~= nil)
-	self.attributesLayout:setVisible(v192_ ~= nil)
-	if v192_ == nil then
+	self.attributesLayout:setVisible(false)
+	if displayItem == nil then
 		self.itemDetailsBrandImage:setVisible(false)
 		self.itemDetailsModName:setVisible(false)
 		self.itemDetailsDescription:setVisible(false)
 	else
-		for v193_ = #self.attributesLayout.elements, 1, -1 do
-			self:queueDetailsCell(self.attributesLayout.elements[v193_])
+		for i = #self.attributesLayout.elements, 1, -1 do
+			self:queueDetailsCell(self.attributesLayout.elements[i])
 		end
-		self:assignItemTextData(v192_)
-		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_FILL_TYPES, v192_.fillTypeIconFilenames)
-		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_FILL_TYPES, v192_.foodFillTypeIconFilenames)
-		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_INPUT, v192_.prodPointInputFillTypeIconFilenames)
-		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_OUTPUT, v192_.prodPointOutputFillTypeIconFilenames)
-		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_INPUT, v192_.sellingStationFillTypesIconFilenames)
-		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_OUTPUT, v192_.buyingStationFillTypesIconFilenames)
-		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_FILL_TYPES, v192_.objectStorageFillTypesIconFilenames)
-		local v194_ = nil
-		local v195_, v196_
-		if v192_.storeItem == nil then
-			v195_ = nil
-			v196_ = nil
-		else
-			v195_ = g_brandManager:getBrandByIndex(v192_.storeItem.brandIndex)
-			if v195_ ~= nil then
-				self.itemDetailsBrandImage:setImageFilename(v195_.image)
+		self:assignItemTextData(displayItem)
+		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_FILL_TYPES, displayItem.fillTypeIconFilenames)
+		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_FILL_TYPES, displayItem.foodFillTypeIconFilenames)
+		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_INPUT, displayItem.prodPointInputFillTypeIconFilenames)
+		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_OUTPUT, displayItem.prodPointOutputFillTypeIconFilenames)
+		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_INPUT, displayItem.sellingStationFillTypesIconFilenames)
+		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_OUTPUT, displayItem.buyingStationFillTypesIconFilenames)
+		self:assignItemFillTypesData(ShopItemsFrame.PROFILE.ICON_FILL_TYPES, displayItem.objectStorageFillTypesIconFilenames)
+		local brand = nil
+		local modName = nil
+		local description = nil
+		if displayItem.storeItem ~= nil then
+			brand = g_brandManager:getBrandByIndex(displayItem.storeItem.brandIndex)
+			if brand ~= nil then
+				self.itemDetailsBrandImage:setImageFilename(brand.image)
 			end
-			if v192_.storeItem.isMod and v192_.storeItem.dlcTitle == nil then
-				v194_ = "Mod"
-			elseif v192_.storeItem.isMod and v192_.storeItem.dlcTitle ~= nil then
-				v194_ = v192_.storeItem.dlcTitle .. " (Mod)"
-			elseif v192_.storeItem.dlcTitle ~= nil then
-				v194_ = v192_.storeItem.dlcTitle
+			if displayItem.storeItem.isMod then
+				if displayItem.storeItem.dlcTitle == nil then
+					modName = "Mod"
+				elseif displayItem.storeItem.isMod then
+					if displayItem.storeItem.dlcTitle ~= nil then
+						modName = displayItem.storeItem.dlcTitle .. " (Mod)"
+					elseif displayItem.storeItem.dlcTitle ~= nil then
+						modName = displayItem.storeItem.dlcTitle
+					end
+				end
 			end
-			self.itemDetailsModName:setText(v194_ or "")
-			v196_ = v192_.functionText
-			self.itemDetailsDescription:setText(v196_)
+			self.itemDetailsModName:setText(modName or "")
+			description = displayItem.functionText
+			self.itemDetailsDescription:setText(description)
 		end
-		self.itemDetailsBrandImage:setVisible(v195_ ~= nil)
-		self.itemDetailsModName:setVisible(v194_ ~= nil)
-		self.itemDetailsDescription:setVisible(v196_ ~= nil)
+		self.itemDetailsBrandImage:setVisible(brand ~= nil)
+		self.itemDetailsModName:setVisible(false)
+		self.itemDetailsDescription:setVisible(false)
 		self.descriptionLayout:invalidateLayout()
 		self.attributesLayout:invalidateLayout()
 	end
 end
-
--- Local values: numAttributesUsed, i, value, cell, icon, text, profile, slotCount
 function ConstructionScreen:assignItemTextData(displayItem)
-	local v199_ = 0
+	local numAttributesUsed = 0
 	if displayItem ~= nil and displayItem.attributeValues ~= nil then
-		for v200_, v206_ in pairs(displayItem.attributeValues) do
-			local v202_ = self:dequeueDetailsCell(ConstructionScreen.CELL_NAME_DETAIL)
-			local v203_ = v202_:getDescendantByName("icon")
-			local v204_ = v202_:getDescendantByName("text")
-			local v205_ = displayItem.attributeIconProfiles[v200_]
-			if v205_ ~= nil and v205_ ~= "" then
-				if type(v206_) == "string" then
-					local v206_ = v206_:gsub("%$SLOTS%$", (string.format("(%0d / %0d)", g_currentMission.slotSystem.slotUsage, g_currentMission.slotSystem.slotLimit)))
+		for i, value in pairs(displayItem.attributeValues) do
+			local cell = self:dequeueDetailsCell(ConstructionScreen.CELL_NAME_DETAIL)
+			local icon = cell:getDescendantByName("icon")
+			local text = cell:getDescendantByName("text")
+			local profile = displayItem.attributeIconProfiles[i]
+			if profile ~= nil and profile ~= "" then
+				if type(value) == "string" then
+					local slotCount = string.format("(%0d / %0d)", g_currentMission.slotSystem.slotUsage, g_currentMission.slotSystem.slotLimit)
+					local value = value:gsub("%$SLOTS%$", slotCount)
 				end
-				v204_:setText(v206_)
-				v203_:applyProfile(v205_)
-				v199_ = v199_ + 1
+				text:setText(value)
+				icon:applyProfile(profile)
+				numAttributesUsed = numAttributesUsed + 1
 			end
-			v202_:setSize(v203_.absSize[1] + v203_.margin[1] + v204_.absSize[1], nil)
+			cell:setSize(icon.absSize[1] + icon.margin[1] + text.absSize[1], nil)
 		end
 	end
 end
-
--- Local values: totalWidth, cell, cellIcon, iconsLayout, _, iconFilename, icon, maxWidth, parentSize, iconsLayoutSize
 function ConstructionScreen:assignItemFillTypesData(baseIconProfile, iconFilenames)
-	if iconFilenames ~= nil and #iconFilenames > 0 then
-		local v210_ = self:dequeueDetailsCell(ConstructionScreen.CELL_NAME_FILL_TYPES)
-		local v211_ = v210_:getDescendantByName("icon")
-		local v212_ = v210_:getDescendantByName("iconsLayout")
-		v211_:applyProfile(baseIconProfile)
-		local v213_ = 0
-		for _, v214_ in pairs(iconFilenames) do
-			local v215_ = self.fruitIconTemplate:clone(v212_)
-			v215_:setVisible(true)
-			local v216_ = self.clonedElements
-			table.insert(v216_, v215_)
-			v215_:applyProfile(ShopItemsFrame.PROFILE.ICON_FRUIT_TYPE)
-			v215_:setImageFilename(v214_)
-			v213_ = v213_ + v215_.absSize[1] + v215_.margin[1] + v215_.margin[3]
+	if iconFilenames ~= nil and 0 < #iconFilenames then
+		local totalWidth = 0
+		local cell = self:dequeueDetailsCell(ConstructionScreen.CELL_NAME_FILL_TYPES)
+		local cellIcon = cell:getDescendantByName("icon")
+		local iconsLayout = cell:getDescendantByName("iconsLayout")
+		cellIcon:applyProfile(baseIconProfile)
+		for _, iconFilename in pairs(iconFilenames) do
+			local icon = self.fruitIconTemplate:clone(iconsLayout)
+			icon:setVisible(true)
+			table.insert(self.clonedElements, icon)
+			icon:applyProfile(ShopItemsFrame.PROFILE.ICON_FRUIT_TYPE)
+			icon:setImageFilename(iconFilename)
+			totalWidth = totalWidth + icon.absSize[1] + icon.margin[1] + icon.margin[3]
 		end
-		local v217_ = self.attributesLayout.absSize[1] * 0.91
-		local v218_ = math.min(v217_, v213_)
-		local v219_ = v218_ + v211_.absSize[1] + v211_.margin[1]
-		v212_:setSize(v213_, nil)
-		v212_:setPosition(0, nil)
-		v212_.parent:setSize(v218_, nil)
-		v210_:setSize(v219_, nil)
-		v212_:invalidateLayout()
-		if v219_ < v213_ then
-			self.marqueeBoxes[v212_] = 0
+		local maxWidth = self.attributesLayout.absSize[1] * 0.91
+		local parentSize = math.min(maxWidth, totalWidth)
+		local iconsLayoutSize = parentSize + cellIcon.absSize[1] + cellIcon.margin[1]
+		iconsLayout:setSize(totalWidth, nil)
+		iconsLayout:setPosition(0, nil)
+		iconsLayout.parent:setSize(parentSize, nil)
+		cell:setSize(iconsLayoutSize, nil)
+		iconsLayout:invalidateLayout()
+		if iconsLayoutSize < totalWidth then
+			self.marqueeBoxes[iconsLayout] = 0
 			return
 		end
-		self.marqueeBoxes[v212_] = nil
+		self.marqueeBoxes[iconsLayout] = nil
 	end
 end
-
--- Local values: box, time, contentWidth, visibleWidth, scrollAmount, scrollLengthFactor, scrollDuration, alpha, offset
 function ConstructionScreen:updateMarqueeAnimation(dt)
-	for v222_, v223_ in pairs(self.marqueeBoxes) do
-		local v224_ = v222_.absSize[1]
-		local v225_ = v222_.parent.absSize[1]
-		local v226_ = v224_ - v225_
-		local v227_ = 5000 * (v224_ / v225_)
-		local v228_ = v223_ + dt
-		if v227_ <= v228_ then
-			v228_ = -v227_
+	for box, time in pairs(self.marqueeBoxes) do
+		local contentWidth = box.absSize[1]
+		local visibleWidth = box.parent.absSize[1]
+		local scrollAmount = contentWidth - visibleWidth
+		local scrollLengthFactor = contentWidth / visibleWidth
+		local scrollDuration = 5000 * scrollLengthFactor
+		local time = time + dt
+		if scrollDuration <= time then
+			time = -scrollDuration
 		end
-		v222_:setPosition(-(v226_ * MathUtil.smoothstep(0.1, 0.9, math.abs(v228_) / v227_)))
-		self.marqueeBoxes[v222_] = v228_
+		local alpha = MathUtil.smoothstep(0.1, 0.9, math.abs(time) / scrollDuration)
+		local offset = scrollAmount * alpha
+		box:setPosition(-offset)
+		self.marqueeBoxes[box] = time
 	end
 end
-
 function ConstructionScreen:onSlotUsageChanged()
 	self:refreshDetails()
 end
-
--- Local values: configSets, defaultSet, i, configSet, price, name, index, setOptions, name, index, colorPickerIndex, configurations, i, configName, configItems, isColor
 function ConstructionScreen:processStoreItemConfigurations(placeable)
-	self.configSelection = {
-		["title"] = g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.CONFIGURATION_LABEL),
-		["texts"] = {},
-		["prices"] = {},
-		["options"] = {}
-	}
+	self.configSelection = { title = g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.CONFIGURATION_LABEL), texts = {}, prices = {}, options = {} }
 	self.currentConfigSet = 1
-	local v232_ = placeable.configurationSets
-	local v233_ = (placeable.configurationSets == nil or #placeable.configurationSets == 0) and {
-		{
-			["name"] = "",
-			["configurations"] = {},
-			["isDefault"] = true
-		}
-	} or v232_
-	if placeable.configurations == nil then
-		local v234_ = self.configSelection.options
-		table.insert(v234_, {})
-		self.displayableColorCount = 0
-	else
-		for v235_, v236_ in ipairs(v233_) do
-			if v236_.isDefault then
-				self.currentConfigSet = v235_
+	local configSets = placeable.configurationSets
+	if placeable.configurationSets == nil or #placeable.configurationSets == 0 then
+		local defaultSet = { name = "", configurations = {}, isDefault = true }
+		configSets = { defaultSet }
+	end
+	if placeable.configurations ~= nil then
+		for i, configSet in ipairs(configSets) do
+			if configSet.isDefault then
+				self.currentConfigSet = i
 			end
-			if v236_.overwrittenTitle ~= nil then
-				self.configSelection.title = v236_.overwrittenTitle
+			if configSet.overwrittenTitle ~= nil then
+				self.configSelection.title = configSet.overwrittenTitle
 			end
-			local v237_ = 0
-			for v238_, v239_ in pairs(v236_.configurations) do
-				v237_ = v237_ + placeable.configurations[v238_][v239_].price
+			local price = 0
+			for name, index in pairs(configSet.configurations) do
+				price = price + placeable.configurations[name][index].price
 			end
-			local v240_ = self.configSelection.prices
-			table.insert(v240_, v237_)
-			local v241_ = self.configSelection.texts
-			local v242_ = v236_.name
-			table.insert(v241_, v242_)
-			local v243_ = self:processStoreItemConfigurationSet(placeable, v236_)
-			local v244_ = self.configSelection.options
-			table.insert(v244_, v243_)
+			table.insert(self.configSelection.prices, price)
+			table.insert(self.configSelection.texts, configSet.name)
+			local setOptions = self:processStoreItemConfigurationSet(placeable, configSet)
+			table.insert(self.configSelection.options, setOptions)
 		end
-		for v245_, v246_ in pairs(v233_[self.currentConfigSet].configurations) do
-			self.configurations[v245_] = v246_
+		for name, index in pairs(configSets[self.currentConfigSet].configurations) do
+			self.configurations[name] = index
 		end
 		self.colorPickers = {}
-		local v247_ = g_placeableConfigurationManager:getSortedConfigurationTypes()
-		local v248_ = 1
-		for v249_ = 1, #v247_ do
-			local v250_ = v247_[v249_]
-			local v251_ = placeable.configurations[v250_]
-			if placeable.configurations[v250_] ~= nil then
-				local v252_ = g_placeableConfigurationManager:getConfigurationSelectorType(v250_) == ConfigurationUtil.SELECTOR_COLOR
-				if #v251_ > 1 and v252_ then
-					self:processStoreItemColorOption(placeable, v250_, v251_, v248_)
-					v248_ = v248_ + 1
-				end
+		local colorPickerIndex = 1
+		local configurations = g_placeableConfigurationManager:getSortedConfigurationTypes()
+		for i = 1, #configurations do
+			local configName = configurations[i]
+			local configItems = placeable.configurations[configName]
+			if placeable.configurations[configName] == nil then
+				continue
+			end
+			local isColor = g_placeableConfigurationManager:getConfigurationSelectorType(configName) == ConfigurationUtil.SELECTOR_COLOR
+			if 1 < #configItems and isColor then
+				self:processStoreItemColorOption(placeable, configName, configItems, colorPickerIndex)
+				colorPickerIndex = colorPickerIndex + 1
 			end
 		end
-		self.displayableColorCount = v248_ - 1
+		self.displayableColorCount = colorPickerIndex - 1
+	else
+		table.insert(self.configSelection.options, {})
+		self.displayableColorCount = 0
 	end
 end
-
--- Local values: options, configurationTypes, _, configName, items, option
 function ConstructionScreen:processStoreItemConfigurationSet(storeItem, configSet)
-	local v256_ = g_placeableConfigurationManager:getSortedConfigurationTypes()
-	local v257_ = {}
-	for _, v258_ in ipairs(v256_) do
-		if g_placeableConfigurationManager:getConfigurationSelectorType(v258_) ~= ConfigurationUtil.SELECTOR_COLOR then
-			local v259_ = storeItem.configurations[v258_]
-			if v259_ ~= nil and (#v259_ > 1 and configSet.configurations[v258_] == nil) then
-				local v260_ = self:processStoreItemConfigurationOption(storeItem, v258_, v259_)
-				table.insert(v257_, v260_)
-			end
+	local options = {}
+	local configurationTypes = g_placeableConfigurationManager:getSortedConfigurationTypes()
+	for _, configName in ipairs(configurationTypes) do
+		if g_placeableConfigurationManager:getConfigurationSelectorType(configName) == ConfigurationUtil.SELECTOR_COLOR then
+			continue
+		end
+		local items = storeItem.configurations[configName]
+		if items == nil then
+			continue
+		end
+		if 1 < #items and configSet.configurations[configName] == nil then
+			local option = self:processStoreItemConfigurationOption(storeItem, configName, items)
+			table.insert(options, option)
 		end
 	end
-	return v257_
+	return options
 end
-
--- Local values: configOption, initialIndex, overwrittenTitle, hasValidIcons, index, _, item, isSelectable, _, otherConfigItems, _, configItem, _, dependentConfiguration, iconFilename
 function ConstructionScreen:processStoreItemConfigurationOption(storeItem, configName, configItems)
-	local v264_ = {
-		["name"] = configName,
-		["title"] = g_placeableConfigurationManager:getConfigurationAttribute(configName, "title"),
-		["texts"] = {},
-		["icons"] = {},
-		["options"] = {},
-		["defaultIndex"] = 1
-	}
-	local v265_ = 1
-	local v266_ = nil
-	local v267_ = 1
-	local v268_ = false
-	for _, v269_ in ipairs(configItems) do
-		if v269_.isDefault then
-			v264_.defaultIndex = v265_
-			v267_ = v265_
+	local configOption = { name = configName }
+	configOption.title = g_placeableConfigurationManager:getConfigurationAttribute(configName, "title")
+	configOption.texts = {}
+	configOption.icons = {}
+	configOption.options = {}
+	configOption.defaultIndex = 1
+	local initialIndex = 1
+	local overwrittenTitle = nil
+	local hasValidIcons = false
+	local index = 1
+	for _, item in ipairs(configItems) do
+		if item.isDefault then
+			initialIndex = index
+			configOption.defaultIndex = index
 		end
-		local v270_ = v269_.isSelectable
-		for _, v271_ in pairs(storeItem.configurations) do
-			for _, v272_ in pairs(v271_) do
-				if v272_.dependentConfigurations ~= nil then
-					for _, v273_ in pairs(v272_.dependentConfigurations) do
-						if v273_.name == configName then
-							return
-						end
+		local isSelectable = item.isSelectable
+		for _, otherConfigItems in pairs(storeItem.configurations) do
+			for _, configItem in pairs(otherConfigItems) do
+				if configItem.dependentConfigurations == nil then
+					continue
+				end
+				for _, dependentConfiguration in pairs(configItem.dependentConfigurations) do
+					if dependentConfiguration.name == configName then
+						return
 					end
 				end
 			end
 		end
-		v266_ = v266_ or v269_.overwrittenTitle
-		if v270_ then
-			local v274_ = v264_.texts
-			local v275_ = v269_.name
-			table.insert(v274_, v275_)
-			local v276_ = v264_.options
-			table.insert(v276_, v269_)
-			if v269_.brandIndex ~= nil then
-				local v277_ = g_brandManager:getBrandIconByIndex(v269_.brandIndex)
-				if v277_ ~= nil then
-					local v278_ = v264_.icons
-					table.insert(v278_, v277_)
-					v268_ = true
+		overwrittenTitle = overwrittenTitle or item.overwrittenTitle
+		if isSelectable then
+			table.insert(configOption.texts, item.name)
+			table.insert(configOption.options, item)
+			if item.brandIndex ~= nil then
+				local iconFilename = g_brandManager:getBrandIconByIndex(item.brandIndex)
+				if iconFilename ~= nil then
+					table.insert(configOption.icons, iconFilename)
+					hasValidIcons = true
 				end
 			end
-			if #v264_.icons ~= #v264_.texts then
-				local v279_ = v264_.icons
-				local v280_ = v269_.name
-				table.insert(v279_, v280_)
+			if #configOption.icons ~= #configOption.texts then
+				table.insert(configOption.icons, item.name)
 			end
-			v265_ = v265_ + 1
+			index = index + 1
 		end
 	end
-	v264_.defaultIndex = v267_
-	v264_.title = v266_ or v264_.title
-	if not v268_ then
-		v264_.icons = nil
+	configOption.defaultIndex = initialIndex
+	configOption.title = overwrittenTitle or configOption.title
+	if not hasValidIcons then
+		configOption.icons = nil
 	end
-	if #v264_.options > 1 then
-		return v264_
+	if #configOption.options <= 1 then
+		return
+	else
+		return configOption
 	end
 end
-
--- Local values: overwrittenTitle, _, item
 function ConstructionScreen:processStoreItemColorOption(storeItem, configName, colorItems, colorPickerIndex)
-	local v284_ = nil
-	for _, v285_ in ipairs(colorItems) do
-		v284_ = v284_ or v285_.overwrittenTitle
+	local overwrittenTitle = nil
+	for _, item in ipairs(colorItems) do
+		overwrittenTitle = overwrittenTitle or item.overwrittenTitle
 	end
-	local v286_ = self.colorPickers
-	local v287_ = {
-		["title"] = v284_ or g_placeableConfigurationManager:getConfigurationAttribute(configName, "title"),
-		["configName"] = configName,
-		["colorItems"] = colorItems
-	}
-	table.insert(v286_, v287_)
+	table.insert(self.colorPickers, { configName = configName, colorItems = colorItems, title = overwrittenTitle or g_placeableConfigurationManager:getConfigurationAttribute(configName, "title") })
 end
-
--- Local values: displayableOptionCount, count, i, item, optionData, _, option, i, option, itemsToDisplay, hasCustomColorSupport, j, listElement, colorElement, colorItems, defaultColorIndex
 function ConstructionScreen:updateConfigOptionsData(storeItem)
-	local v290_ = 0
-	local v291_ = 0
-	for v292_ = #self.configurationLayout.elements, 1, -1 do
-		local v293_ = self.configurationLayout.elements[v292_]
-		v293_:setVisible(false)
-		FocusManager:removeElement(v293_)
-		v293_:unlinkElement()
-		if v293_.isLargeConfigItem then
-			local v294_ = self.configItemCacheLarge
-			table.insert(v294_, v293_)
+	local displayableOptionCount = 0
+	local count = 0
+	for i = #self.configurationLayout.elements, 1, -1 do
+		local item = self.configurationLayout.elements[i]
+		item:setVisible(false)
+		FocusManager:removeElement(item)
+		item:unlinkElement()
+		if item.isLargeConfigItem then
+			table.insert(self.configItemCacheLarge, item)
 		else
-			local v295_ = self.configItemCache
-			table.insert(v295_, v293_)
+			table.insert(self.configItemCache, item)
 		end
 	end
 	self.focusableElementForScroll = nil
-	if #self.configSelection.options > 1 then
-		v290_ = v290_ + 1
+	if 1 < #self.configSelection.options then
+		displayableOptionCount = displayableOptionCount + 1
+		count = 1
 		self:updateConfigSetOptionElement(1, storeItem)
-		v291_ = 1
 	end
-	local v296_ = self.configSelection.options[self.currentConfigSet]
-	for _, v297_ in ipairs(v296_) do
-		v290_ = v290_ + 1
-		v291_ = v291_ + 1
-		self:updateConfigOptionElement(v291_, v297_, storeItem)
+	local optionData = self.configSelection.options[self.currentConfigSet]
+	for _, option in ipairs(optionData) do
+		displayableOptionCount = displayableOptionCount + 1
+		count = count + 1
+		self:updateConfigOptionElement(count, option, storeItem)
 	end
 	self.colorElements = {}
-	if self.displayableColorCount > 0 then
-		for v_u_298_, v_u_299_ in ipairs(self.colorPickers) do
-			local v300_ = 0
-			local v_u_301_ = false
-			for v302_ = 1, #v_u_299_.colorItems do
-				if v_u_299_.colorItems[v302_].isSelectable ~= false then
-					v300_ = v300_ + 1
+	if 0 < self.displayableColorCount then
+		for i, option in ipairs(self.colorPickers) do
+			local itemsToDisplay = 0
+			local hasCustomColorSupport = false
+			for j = 1, #option.colorItems do
+				if option.colorItems[j].isSelectable ~= false then
+					itemsToDisplay = itemsToDisplay + 1
 				end
-				if v_u_299_.colorItems[v302_].isCustomColor then
-					v_u_301_ = true
+				if option.colorItems[j].isCustomColor then
+					hasCustomColorSupport = true
 				end
 			end
-			if v300_ > 1 then
-				local v303_ = self:getOrCreateConfigItem("color")
-				local v304_ = v303_:getDescendantByName("color")
-				self.colorElements[v_u_298_] = v304_
-				local v_u_305_ = v_u_299_.colorItems
-				function v304_.onClickCallback(_)
-					-- upvalues: (copy) self, (copy) v_u_299_, (copy) v_u_305_, (copy) v_u_298_, (ref) v_u_301_
-					local v306_ = self.configurations[v_u_299_.configName]
-					local v307_ = v_u_305_[v306_]
-					local v308_ = v307_.color
-					local v309_ = v307_.materialTemplateName
-					local v310_ = self.configurationData[v_u_299_.configName]
-					if v310_ ~= nil and v310_[v306_] ~= nil then
-						v308_ = v310_[v306_].color or v308_
-						v309_ = v310_[v306_].materialTemplateName or v309_
+			if 1 < itemsToDisplay then
+				local listElement = self:getOrCreateConfigItem("color")
+				local colorElement = listElement:getDescendantByName("color")
+				self.colorElements[i] = colorElement
+				local colorItems = option.colorItems
+				function colorElement.onClickCallback(sourceElement)
+					local configIndex = self.configurations[option.configName]
+					local colorItem = colorItems[configIndex]
+					local color = colorItem.color
+					local materialTemplateName = colorItem.materialTemplateName
+					local data = self.configurationData[option.configName]
+					if data ~= nil and data[configIndex] ~= nil then
+						color = data[configIndex].color or color
+						materialTemplateName = data[configIndex].materialTemplateName or materialTemplateName
 					end
 					g_inputBinding:setShowMouseCursor(true)
-					ColorPickerDialog.show(self.onPickColor, self, {
-						["configName"] = v_u_299_.configName,
-						["colorOptionIndex"] = v_u_298_
-					}, v_u_305_, nil, v309_, v308_, v_u_301_, true, true)
+					ColorPickerDialog.show(self.onPickColor, self, { configName = option.configName, colorOptionIndex = i }, colorItems, nil, materialTemplateName, color, hasCustomColorSupport, true, true)
 				end
-				self:onPickColor(self.configurations[v_u_299_.configName] or self:getDefaultConfigurationColorIndex(v_u_299_.configName, v_u_305_), {
-					["configName"] = v_u_299_.configName,
-					["colorOptionIndex"] = v_u_298_
-				}, nil, true)
-				v303_:getDescendantByName("title"):setText(v_u_299_.title)
-				v291_ = v291_ + 1
+				local defaultColorIndex = self.configurations[option.configName] or self:getDefaultConfigurationColorIndex(option.configName, colorItems)
+				self:onPickColor(defaultColorIndex, { colorOptionIndex = i, configName = option.configName }, nil, true)
+				listElement:getDescendantByName("title"):setText(option.title)
+				count = count + 1
 			end
 		end
 	end
-	self.displayableOptionCount = v290_
-	return v291_
+	self.displayableOptionCount = displayableOptionCount
+	return count
 end
-
--- Local values: current, num
 function ConstructionScreen:updateConfigOptionsDisplay(storeItem)
-	local v313_ = FocusManager.currentGui
+	local current = FocusManager.currentGui
 	FocusManager:setGui("ConstructionScreen")
-	local v314_ = self:updateConfigOptionsData(storeItem)
-	self.startClipper:setVisible(v314_ > 0)
-	self.configSlider.parent:setVisible(v314_ > 0)
+	local num = self:updateConfigOptionsData(storeItem)
+	self.startClipper:setVisible(0 < num)
+	self.configSlider.parent:setVisible(0 < num)
 	self.configurationLayout:invalidateLayout()
-	FocusManager:setGui(v313_)
+	FocusManager:setGui(current)
 	if self.needsRefocus then
 		self:selectFirstConfig()
 		self.needsRefocus = false
 	end
 end
-
--- Local values: isYesNoOption, listElement, optionElement, price
 function ConstructionScreen:updateConfigSetOptionElement(configElementIndex, storeItem)
-	local v317_
-	if #storeItem.configurationSets > 1 then
-		v317_ = storeItem.configurationSets[1].isYesNoOption
-	else
-		v317_ = false
+	local isYesNoOption = false
+	if 1 < #storeItem.configurationSets then
+		isYesNoOption = storeItem.configurationSets[1].isYesNoOption
 	end
-	local v318_ = self:getOrCreateConfigItem(v317_ and "yesNoOption" or "option")
-	local v319_
-	if v317_ then
-		v319_ = v318_:getDescendantByName("yesNoOption")
-		v319_:setIsChecked(self.currentConfigSet ~= 1, true)
+	local listElement = self:getOrCreateConfigItem(isYesNoOption and "yesNoOption" or "option")
+	local optionElement = nil
+	if isYesNoOption then
+		optionElement = listElement:getDescendantByName("yesNoOption")
+		optionElement:setIsChecked(self.currentConfigSet ~= 1, true)
 	else
-		v319_ = v318_:getDescendantByName("option")
-		v319_:setState(self.currentConfigSet)
+		optionElement = listElement:getDescendantByName("option")
+		optionElement:setState(self.currentConfigSet)
 	end
-	v319_:setTexts(self.configSelection.texts)
-	v319_:setDisabled(false)
-	function v319_.onClickCallback(_, p320_)
-		-- upvalues: (copy) storeItem, (copy) self
-		for v321_, _ in pairs(storeItem.configurationSets[self.currentConfigSet].configurations) do
-			self.configurations[v321_] = ConfigurationUtil.getDefaultConfigIdFromItems(storeItem.configurations[v321_])
+	optionElement:setTexts(self.configSelection.texts)
+	optionElement:setDisabled(false)
+	function optionElement.onClickCallback(_, configSetIndex)
+		for name, _ in pairs(storeItem.configurationSets[self.currentConfigSet].configurations) do
+			self.configurations[name] = ConfigurationUtil.getDefaultConfigIdFromItems(storeItem.configurations[name])
 		end
-		for v322_, v323_ in pairs(storeItem.configurationSets[p320_].configurations) do
-			self.configurations[v322_] = v323_
+		for name, index in pairs(storeItem.configurationSets[configSetIndex].configurations) do
+			self.configurations[name] = index
 		end
-		self.currentConfigSet = p320_
+		self.currentConfigSet = configSetIndex
 		self:playSample(GuiSoundPlayer.SOUND_SAMPLES.CONFIG_WRENCH)
 		self:selectFirstConfig()
 	end
-	v318_:getDescendantByName("title"):setText(self.configSelection.title)
-	local v324_ = self.configSelection.prices[self.currentConfigSet]
-	v318_:getDescendantByName("price"):setText("+" .. g_i18n:formatMoney(v324_))
+	listElement:getDescendantByName("title"):setText(self.configSelection.title)
+	local price = self.configSelection.prices[self.currentConfigSet]
+	listElement:getDescendantByName("price"):setText("+" .. g_i18n:formatMoney(price))
 end
-
--- Local values: hasIcons, hasText, isYesNoOption, listElement, optionElement, priceElement, configName, configIndex, i, item
 function ConstructionScreen:updateConfigOptionElement(configElementIndex, option, storeItem)
-	local v328_ = option.icons ~= nil
-	local v329_ = not v328_
-	local v330_
-	if #option.options > 1 then
-		v330_ = option.options[1].isYesNoOption
-		if v330_ then
-			v328_ = false
-			v329_ = false
+	local hasIcons = option.icons ~= nil
+	local hasText = not hasIcons
+	local isYesNoOption = false
+	if 1 < #option.options then
+		isYesNoOption = option.options[1].isYesNoOption
+		if isYesNoOption then
+			hasIcons = false
+			hasText = false
 		end
-	else
-		v330_ = false
 	end
-	local v331_ = nil
-	if v328_ then
-		v331_ = self:getOrCreateLargeConfigItem("option")
-	elseif v329_ then
-		v331_ = self:getOrCreateConfigItem("option")
-	elseif v330_ then
-		v331_ = self:getOrCreateConfigItem("yesNoOption")
+	local listElement = nil
+	if hasIcons then
+		listElement = self:getOrCreateLargeConfigItem("option")
+	elseif hasText then
+		listElement = self:getOrCreateConfigItem("option")
+	elseif isYesNoOption then
+		listElement = self:getOrCreateConfigItem("yesNoOption")
 	end
-	local v332_ = v331_:getDescendantByName(v330_ and "yesNoOption" or "option")
-	v332_:setVisible(true)
-	v332_:setDisabled(#option.options <= 1 and true or option.isDisabled)
-	if v328_ then
-		v332_:setIcons(option.icons)
-	elseif v329_ then
-		v332_:setTexts(option.texts)
-	elseif v330_ then
-		v332_:setTexts(option.texts)
+	local optionElement = listElement:getDescendantByName(isYesNoOption and "yesNoOption" or "option")
+	optionElement:setVisible(true)
+	optionElement:setDisabled(true)
+	if hasIcons then
+		optionElement:setIcons(option.icons)
+	elseif hasText then
+		optionElement:setTexts(option.texts)
+	elseif isYesNoOption then
+		optionElement:setTexts(option.texts)
 	end
-	local v_u_333_ = v331_:getDescendantByName("price")
-	local v_u_334_ = option.name
-	local v335_ = 0
-	for v336_, v337_ in pairs(option.options) do
-		if v337_.index == self.configurations[v_u_334_] then
-			v335_ = v336_
+	local priceElement = listElement:getDescendantByName("price")
+	local configName = option.name
+	local configIndex = 0
+	for i, item in pairs(option.options) do
+		if item.index == self.configurations[configName] then
+			configIndex = i
 			break
 		end
 	end
-	if v335_ == 0 or option.options[v335_] == nil then
-		v335_ = option.defaultIndex
+	if configIndex == 0 or option.options[configIndex] == nil then
+		configIndex = option.defaultIndex
 	end
-	if v330_ then
-		v332_:setIsChecked(v335_ ~= 1, true)
+	if isYesNoOption then
+		optionElement:setIsChecked(configIndex ~= 1, true)
 	else
-		v332_:setState(v335_)
+		optionElement:setState(configIndex)
 	end
-	function v332_.onClickCallback(_, p338_)
-		-- upvalues: (copy) self, (copy) option, (copy) v_u_334_, (copy) v_u_333_, (copy) storeItem
-		if self.brush.placeable ~= nil then
-			local v339_ = option.options[p338_].index
-			self:setConfigPrice(v_u_334_, v339_, v_u_333_)
-			self.configurations[v_u_334_] = v339_
+	function optionElement.onClickCallback(_, optionIndex)
+		if self.brush.placeable == nil then
+			return
+		else
+			local selectedConfigIndex = option.options[optionIndex].index
+			self:setConfigPrice(configName, selectedConfigIndex, priceElement)
+			self.configurations[configName] = selectedConfigIndex
 			self:playSample(GuiSoundPlayer.SOUND_SAMPLES.CONFIG_WRENCH)
 			self:loadCurrentConfiguration(storeItem)
 		end
 	end
-	self.configurations[v_u_334_] = option.options[v335_].index
-	v331_:getDescendantByName("title"):setText(option.title)
-	self:setConfigPrice(v_u_334_, option.options[v335_].index, v_u_333_)
+	self.configurations[configName] = option.options[configIndex].index
+	listElement:getDescendantByName("title"):setText(option.title)
+	self:setConfigPrice(configName, option.options[configIndex].index, priceElement)
 end
-
--- Local values: item, option, color, yesNoOption, price, focusableElement
 function ConstructionScreen:getOrCreateConfigItem(type)
-	local v342_
+	local item = nil
 	if #self.configItemCache == 0 then
-		v342_ = self.configurationItemTemplate:clone(self.configurationLayout)
+		item = self.configurationItemTemplate:clone(self.configurationLayout)
 	else
-		v342_ = self.configItemCache[#self.configItemCache]
+		item = self.configItemCache[#self.configItemCache]
 		self.configItemCache[#self.configItemCache] = nil
-		self.configurationLayout:addElement(v342_)
+		self.configurationLayout:addElement(item)
 	end
-	v342_.isLargeConfigItem = false
-	v342_:setVisible(true)
-	v342_.focusId = nil
-	local v343_ = false
-	local v344_ = false
-	local v345_ = false
-	local v_u_346_ = nil
+	item.isLargeConfigItem = false
+	item:setVisible(true)
+	item.focusId = nil
+	local option = false
+	local color = false
+	local yesNoOption = false
+	local price = true
+	local focusableElement = nil
 	if type == "option" then
-		v_u_346_ = v342_:getDescendantByName("option")
-		v343_ = true
+		option = true
+		focusableElement = item:getDescendantByName("option")
 	elseif type == "color" then
-		v_u_346_ = v342_:getDescendantByName("color")
-		v344_ = true
+		color = true
+		focusableElement = item:getDescendantByName("color")
 	elseif type == "yesNoOption" then
-		v_u_346_ = v342_:getDescendantByName("yesNoOption")
-		v345_ = true
+		yesNoOption = true
+		focusableElement = item:getDescendantByName("yesNoOption")
 	end
-	v342_:getDescendantByName("option"):setVisible(v343_)
-	v342_:getDescendantByName("color"):setVisible(v344_)
-	v342_:getDescendantByName("yesNoOption"):setVisible(v345_)
-	v342_:getDescendantByName("price"):setVisible(true)
-	if v_u_346_ ~= nil then
-		v_u_346_.forceFocusScrollToTop = self.focusableElementForScroll == nil
-		self.focusableElementForScroll = v_u_346_
-		v342_:getDescendantByName("title").getIsSelected = function()
-			-- upvalues: (ref) v_u_346_
-			return v_u_346_:getIsFocused()
+	item:getDescendantByName("option"):setVisible(option)
+	item:getDescendantByName("color"):setVisible(color)
+	item:getDescendantByName("yesNoOption"):setVisible(yesNoOption)
+	item:getDescendantByName("price"):setVisible(true)
+	if focusableElement ~= nil then
+		focusableElement.forceFocusScrollToTop = self.focusableElementForScroll == nil
+		self.focusableElementForScroll = focusableElement
+		item:getDescendantByName("title").getIsSelected = function()
+			return focusableElement:getIsFocused()
 		end
 	end
-	return v342_
+	return item
 end
-
--- Local values: item, focusableElement
 function ConstructionScreen:getOrCreateLargeConfigItem(type)
-	local v348_
+	local item = nil
 	if #self.configItemCacheLarge == 0 then
-		v348_ = self.configurationItemTemplateLarge:clone(self.configurationLayout)
+		item = self.configurationItemTemplateLarge:clone(self.configurationLayout)
 	else
-		v348_ = self.configItemCacheLarge[#self.configItemCacheLarge]
+		item = self.configItemCacheLarge[#self.configItemCacheLarge]
 		self.configItemCacheLarge[#self.configItemCacheLarge] = nil
-		self.configurationLayout:addElement(v348_)
+		self.configurationLayout:addElement(item)
 	end
-	v348_.isLargeConfigItem = true
-	v348_:setVisible(true)
-	v348_.focusId = nil
-	local v_u_349_ = v348_:getDescendantByName("option")
-	v_u_349_.forceFocusScrollToTop = self.focusableElementForScroll == nil
-	self.focusableElementForScroll = v_u_349_
-	v348_:getDescendantByName("title").getIsSelected = function()
-		-- upvalues: (copy) v_u_349_
-		return v_u_349_:getIsFocused()
+	item.isLargeConfigItem = true
+	item:setVisible(true)
+	item.focusId = nil
+	local focusableElement = item:getDescendantByName("option")
+	focusableElement.forceFocusScrollToTop = self.focusableElementForScroll == nil
+	self.focusableElementForScroll = focusableElement
+	item:getDescendantByName("title").getIsSelected = function()
+		return focusableElement:getIsFocused()
 	end
-	return v348_
+	return item
 end
-
--- Local values: configItems, price
 function ConstructionScreen:setConfigPrice(configName, configIndex, priceTextElement)
-	local v354_ = self.brush.storeItem.configurations[configName][configIndex].price
-	local v355_ = self.brush.placeable ~= nil and ConfigurationUtil.hasBoughtConfiguration(self.brush.placeable, configName, configIndex) and 0 or v354_
-	priceTextElement:setText("+" .. g_i18n:formatMoney(v355_) .. "")
+	local configItems = self.brush.storeItem.configurations[configName]
+	local price = configItems[configIndex].price
+	if self.brush.placeable ~= nil and ConfigurationUtil.hasBoughtConfiguration(self.brush.placeable, configName, configIndex) then
+		price = 0
+	end
+	priceTextElement:setText("+" .. g_i18n:formatMoney(price) .. "")
 	priceTextElement:setVisible(true)
 end
-
--- Local values: configName, isValid, configItems, index, configItem, colorOptionIndex, element, config, color, materialTemplateName, data, isMetallic, isMat, r, g, b, priceElement
 function ConstructionScreen:onPickColor(colorIndex, args, customColor, noUpdate)
-	local v361_ = args.configName
+	local configName = args.configName
 	if customColor ~= nil then
-		local v362_ = self.brush.storeItem.configurations[v361_]
-		local v363_ = true
-		for v364_, v365_ in pairs(v362_) do
-			if v365_.isCustomColor then
-				colorIndex = v364_
-				v363_ = true
+		local isValid = true
+		local configItems = self.brush.storeItem.configurations[configName]
+		for index, configItem in pairs(configItems) do
+			if configItem.isCustomColor then
+				colorIndex = index
+				isValid = true
 				break
 			end
 		end
-		if v363_ then
-			if self.configurationData[v361_] == nil then
-				self.configurationData[v361_] = {}
+		if isValid then
+			if self.configurationData[configName] == nil then
+				self.configurationData[configName] = {}
 			end
-			self.configurationData[v361_][colorIndex] = {}
-			self.configurationData[v361_][colorIndex].color = { customColor.customColor[1], customColor.customColor[2], customColor.customColor[3] }
-			self.configurationData[v361_][colorIndex].materialTemplateName = customColor.templateName
+			self.configurationData[configName][colorIndex] = {}
+			self.configurationData[configName][colorIndex].color = { customColor.customColor[1], customColor.customColor[2], customColor.customColor[3] }
+			self.configurationData[configName][colorIndex].materialTemplateName = customColor.templateName
 		end
 	end
 	if colorIndex ~= nil then
-		local v366_ = args.colorOptionIndex
-		local v367_ = self.colorElements[v366_]
-		self.configurations[v361_] = colorIndex
-		local v368_ = self.brush.storeItem.configurations[v361_][colorIndex]
-		local v369_ = v368_.color
-		local v370_ = v368_.materialTemplateName
-		if self.configurationData[v361_] ~= nil then
-			local v371_ = self.configurationData[v361_][colorIndex]
-			if v371_ ~= nil then
-				v369_ = v371_.color or v369_
-				local _ = v371_.materialTemplateName or v370_
+		local colorOptionIndex = args.colorOptionIndex
+		local element = self.colorElements[colorOptionIndex]
+		self.configurations[configName] = colorIndex
+		local config = self.brush.storeItem.configurations[configName][colorIndex]
+		local color = config.color
+		local materialTemplateName = config.materialTemplateName
+		if self.configurationData[configName] ~= nil then
+			local data = self.configurationData[configName][colorIndex]
+			if data ~= nil then
+				color = data.color or color
+				materialTemplateName = data.materialTemplateName or materialTemplateName
 			end
 		end
-		local v372_ = v368_.isMetallic
-		local v373_ = v368_.isMat
-		v367_:getDescendantByName("colorImageGlossy"):setVisible(not (v372_ or v373_))
-		v367_:getDescendantByName("colorImageMetallic"):setVisible(v372_)
-		v367_:getDescendantByName("colorImageMatte"):setVisible(v373_)
-		if MathUtil.getBrightnessFromColor(unpack(v369_)) >= ColorPickButtonElement.BRIGHTNESS_THRESHOLD then
-			v367_:getDescendantByName("colorImageGlossy"):setImageColor(nil, 0, 0, 0)
-			v367_:getDescendantByName("colorImageMetallic"):setImageColor(nil, 0, 0, 0)
-			v367_:getDescendantByName("colorImageMatte"):setImageColor(nil, 0, 0, 0)
+		local isMetallic = config.isMetallic
+		local isMat = config.isMat
+		element:getDescendantByName("colorImageGlossy"):setVisible(not (isMetallic or isMat))
+		element:getDescendantByName("colorImageMetallic"):setVisible(isMetallic)
+		element:getDescendantByName("colorImageMatte"):setVisible(isMat)
+		if ColorPickButtonElement.BRIGHTNESS_THRESHOLD <= MathUtil.getBrightnessFromColor(unpack(color)) then
+			element:getDescendantByName("colorImageGlossy"):setImageColor(nil, 0, 0, 0)
+			element:getDescendantByName("colorImageMetallic"):setImageColor(nil, 0, 0, 0)
+			element:getDescendantByName("colorImageMatte"):setImageColor(nil, 0, 0, 0)
 		else
-			v367_:getDescendantByName("colorImageGlossy"):setImageColor(nil, 1, 1, 1)
-			v367_:getDescendantByName("colorImageMetallic"):setImageColor(nil, 1, 1, 1)
-			v367_:getDescendantByName("colorImageMatte"):setImageColor(nil, 1, 1, 1)
+			element:getDescendantByName("colorImageGlossy"):setImageColor(nil, 1, 1, 1)
+			element:getDescendantByName("colorImageMetallic"):setImageColor(nil, 1, 1, 1)
+			element:getDescendantByName("colorImageMatte"):setImageColor(nil, 1, 1, 1)
 		end
-		local v374_, v375_, v376_ = unpack(v369_)
-		v367_:getDescendantByName("colorImage"):setImageColor(nil, math.clamp(v374_, 0, 1), math.clamp(v375_, 0, 1), (math.clamp(v376_, 0, 1)))
-		self:setConfigPrice(v361_, colorIndex, v367_.parent:getDescendantByName("price"), self.vehicle)
+		local r, g, b = unpack(color)
+		element:getDescendantByName("colorImage"):setImageColor(nil, math.clamp(r, 0, 1), math.clamp(g, 0, 1), math.clamp(b, 0, 1))
+		local priceElement = element.parent:getDescendantByName("price")
+		self:setConfigPrice(configName, colorIndex, priceElement, self.vehicle)
 		if not noUpdate then
 			self:loadCurrentConfiguration(self.brush.storeItem)
 			self:playSample(GuiSoundPlayer.SOUND_SAMPLES.CONFIG_SPRAY)
 		end
 	end
 end
-
--- Local values: firstElement, focusElement
 function ConstructionScreen:selectFirstConfig()
-	local v378_ = self.configurationLayout.elements[1]
-	if v378_ == nil then
+	local firstElement = self.configurationLayout.elements[1]
+	if firstElement ~= nil then
+		local focusElement = firstElement:getDescendantByName("option")
+		if not focusElement:getIsVisible() then
+			focusElement = firstElement:getDescendantByName("color")
+		end
+		if not focusElement:getIsVisible() then
+			focusElement = firstElement:getDescendantByName("yesNoOption")
+		end
+		FocusManager:unsetFocus(focusElement)
+		FocusManager:setFocus(focusElement)
+	else
 		FocusManager:unsetFocus(FocusManager:getFocusedElement())
 		FocusManager.currentFocusData.focusElement = nil
-	else
-		local v379_ = v378_:getDescendantByName("option")
-		if not v379_:getIsVisible() then
-			v379_ = v378_:getDescendantByName("color")
-		end
-		if not v379_:getIsVisible() then
-			v379_ = v378_:getDescendantByName("yesNoOption")
-		end
-		FocusManager:unsetFocus(v379_)
-		FocusManager:setFocus(v379_)
 	end
 end
-
--- Local values: data
 function ConstructionScreen:loadCurrentConfiguration(storeItem)
-	local v382_ = PlaceableLoadingData.new()
-	v382_:setConfigurations(self.configurations)
-	v382_:setConfigurationData(self.configurationData)
-	v382_:setPosition(self.brush.placeable:getPosition())
+	local data = PlaceableLoadingData.new()
+	data:setConfigurations(self.configurations)
+	data:setConfigurationData(self.configurationData)
+	data:setPosition(self.brush.placeable:getPosition())
 	self.brush:unloadPlaceable(true)
 	self.brush:setStoreItem(storeItem, self.configurations, self.configurationData)
-	self.brush:loadPlaceable(v382_)
+	self.brush:loadPlaceable(data)
 end
-
--- Local values: numItems, maxTabs, c, category, t, _, storeItem, brushClass, parameters, brand, brandImage, modDlc
 function ConstructionScreen:rebuildData()
 	self.categories = g_storeManager:getConstructionCategories()
 	self.items = {}
-	local v384_ = 0
-	local v385_ = 0
-	for v386_, v387_ in ipairs(self.categories) do
-		self.items[v386_] = {}
-		for v388_ = 1, #v387_.tabs do
-			self.items[v386_][v388_] = {}
+	local numItems = 0
+	local maxTabs = 0
+	for c, category in ipairs(self.categories) do
+		self.items[c] = {}
+		for t = 1, #category.tabs do
+			self.items[c][t] = {}
 		end
-		local v389_ = #v387_.tabs
-		v384_ = math.max(v384_, v389_)
+		maxTabs = math.max(maxTabs, #category.tabs)
 	end
-	for _, v390_ in ipairs(g_storeManager:getItems()) do
-		if v390_.brush ~= nil then
-			local v391_ = g_constructionBrushTypeManager:getClassObjectByTypeName(v390_.brush.type)
-			local v392_ = v390_.brush.parameters
-			local v393_ = (v392_ == nil or #v392_ == 0) and { v390_.xmlFilename } or v392_
-			if v391_ ~= nil then
-				local v394_ = g_brandManager:getBrandByIndex(v390_.brandIndex)
-				local v395_
-				if v394_ == nil or v394_.name == "NONE" then
-					v395_ = nil
-				else
-					v395_ = v394_.image
+	for _, storeItem in ipairs(g_storeManager:getItems()) do
+		if storeItem.brush == nil then
+			continue
+		end
+		local brushClass = g_constructionBrushTypeManager:getClassObjectByTypeName(storeItem.brush.type)
+		local parameters = storeItem.brush.parameters
+		if parameters == nil or #parameters == 0 then
+			parameters = { storeItem.xmlFilename }
+		end
+		if brushClass == nil then
+			continue
+		end
+		local brand = g_brandManager:getBrandByIndex(storeItem.brandIndex)
+		local brandImage = nil
+		if brand ~= nil and brand.name ~= "NONE" then
+			brandImage = brand.image
+		end
+		local modDlc = ""
+		if storeItem.isMod then
+			if storeItem.dlcTitle == nil then
+				modDlc = "Mod"
+			elseif storeItem.isMod then
+				if storeItem.dlcTitle ~= nil then
+					modDlc = storeItem.dlcTitle .. " (Mod)"
+				elseif storeItem.dlcTitle ~= nil then
+					modDlc = storeItem.dlcTitle
 				end
-				local v396_ = ""
-				if v390_.isMod and v390_.dlcTitle == nil then
-					v396_ = "Mod"
-				elseif v390_.isMod and v390_.dlcTitle ~= nil then
-					v396_ = v390_.dlcTitle .. " (Mod)"
-				elseif v390_.dlcTitle ~= nil then
-					v396_ = v390_.dlcTitle
-				end
-				local v397_ = self.items[v390_.brush.category.index][v390_.brush.tab.index]
-				local v398_ = {
-					["name"] = v390_.name,
-					["brushClass"] = v391_,
-					["brushParameters"] = v393_,
-					["price"] = v390_.price,
-					["imageFilename"] = v390_.imageFilename,
-					["brandFilename"] = v395_,
-					["modDlc"] = v396_,
-					["storeItem"] = v390_,
-					["displayItem"] = g_shopController:makeDisplayItem(v390_),
-					["uniqueIndex"] = v385_ + 1
-				}
-				table.insert(v397_, v398_)
-				v385_ = v385_ + 1
 			end
 		end
+		table.insert(self.items[storeItem.brush.category.index][storeItem.brush.tab.index], { brushClass = brushClass, brushParameters = parameters, brandFilename = brandImage, modDlc = modDlc, storeItem = storeItem, name = storeItem.name, price = storeItem.price, imageFilename = storeItem.imageFilename, displayItem = g_shopController:makeDisplayItem(storeItem), uniqueIndex = numItems + 1 })
+		numItems = numItems + 1
 	end
-	self:buildTerrainSculptBrushes((self:buildTerrainPaintBrushes(v385_)))
+	numItems = self:buildTerrainPaintBrushes(numItems)
+	numItems = self:buildTerrainSculptBrushes(numItems)
 	self.categorySelector:reloadData()
 end
-
--- Local values: landscapingIndex, paintingIndex, paintsTab, groundTypes, typeName, layerName, knownLayers, _, typeName, layer, title
 function ConstructionScreen:buildTerrainPaintBrushes(numItems)
-	local v401_ = g_storeManager:getConstructionCategoryByName("landscaping").index
-	local v402_ = g_storeManager:getConstructionTabByName("painting", "landscaping").index
-	local v403_ = self.items[v401_][v402_]
-	local v404_ = {}
-	for v405_, _ in pairs(g_groundTypeManager.groundTypeMappings) do
-		table.insert(v404_, v405_)
+	local landscapingIndex = g_storeManager:getConstructionCategoryByName("landscaping").index
+	local paintingIndex = g_storeManager:getConstructionTabByName("painting", "landscaping").index
+	local paintsTab = self.items[landscapingIndex][paintingIndex]
+	local groundTypes = {}
+	for typeName, layerName in pairs(g_groundTypeManager.groundTypeMappings) do
+		table.insert(groundTypes, typeName)
 	end
-	table.sort(v404_)
-	local v406_ = {}
-	for _, v407_ in ipairs(v404_) do
-		local v408_ = g_groundTypeManager:getTerrainLayerByType(v407_)
-		local v409_ = g_groundTypeManager:getTerrainTitleByType(v407_)
-		if not v406_[v408_] then
-			local v410_ = {
-				["name"] = g_i18n:convertText(v409_),
-				["brushClass"] = ConstructionBrushPaint,
-				["brushParameters"] = { v407_ },
-				["price"] = 2,
-				["imageFilename"] = nil,
-				["brandFilename"] = nil,
-				["modDlc"] = "",
-				["terrainOverlayLayer"] = v408_,
-				["uniqueIndex"] = numItems + 1
-			}
-			table.insert(v403_, v410_)
-			numItems = numItems + 1
-			v406_[v408_] = true
+	table.sort(groundTypes)
+	local knownLayers = {}
+	for _, typeName in ipairs(groundTypes) do
+		local layer = g_groundTypeManager:getTerrainLayerByType(typeName)
+		local title = g_groundTypeManager:getTerrainTitleByType(typeName)
+		if knownLayers[layer] then
+			continue
 		end
+		table.insert(paintsTab, { terrainOverlayLayer = layer, name = g_i18n:convertText(title), brushClass = ConstructionBrushPaint, brushParameters = { typeName }, price = 2, imageFilename = nil, brandFilename = nil, modDlc = "", uniqueIndex = numItems + 1 })
+		numItems = numItems + 1
+		knownLayers[layer] = true
 	end
 	return numItems
 end
-
--- Local values: landscapingIndex, sculptingIndex, sculptTab
 function ConstructionScreen:buildTerrainSculptBrushes(numItems)
-	local v413_ = g_storeManager:getConstructionCategoryByName("landscaping").index
-	local v414_ = g_storeManager:getConstructionTabByName("sculpting", "landscaping").index
-	local v415_ = self.items[v413_][v414_]
-	local v416_ = {
-		["name"] = g_i18n:getText("construction_item_shift"),
-		["brushClass"] = ConstructionBrushSculpt,
-		["brushParameters"] = { ConstructionBrushSculpt.MODE.SHIFT },
-		["price"] = 10,
-		["imageFilename"] = "dataS/menu/construction/icon_shift.png",
-		["uniqueIndex"] = numItems + 1
-	}
-	table.insert(v415_, v416_)
-	local v417_ = {
-		["name"] = g_i18n:getText("construction_item_level"),
-		["brushClass"] = ConstructionBrushSculpt,
-		["brushParameters"] = { ConstructionBrushSculpt.MODE.LEVEL },
-		["price"] = 10,
-		["imageFilename"] = "dataS/menu/construction/icon_level.png",
-		["uniqueIndex"] = numItems + 2
-	}
-	table.insert(v415_, v417_)
-	local v418_ = {
-		["name"] = g_i18n:getText("construction_item_soften"),
-		["brushClass"] = ConstructionBrushSculpt,
-		["brushParameters"] = { ConstructionBrushSculpt.MODE.SOFTEN },
-		["price"] = 10,
-		["imageFilename"] = "dataS/menu/construction/icon_soften.png",
-		["uniqueIndex"] = numItems + 3
-	}
-	table.insert(v415_, v418_)
-	local v419_ = {
-		["name"] = g_i18n:getText("construction_item_slope"),
-		["brushClass"] = ConstructionBrushSculpt,
-		["brushParameters"] = { ConstructionBrushSculpt.MODE.SLOPE },
-		["price"] = 10,
-		["imageFilename"] = "dataS/menu/construction/icon_slope.png",
-		["uniqueIndex"] = numItems + 4
-	}
-	table.insert(v415_, v419_)
+	local landscapingIndex = g_storeManager:getConstructionCategoryByName("landscaping").index
+	local sculptingIndex = g_storeManager:getConstructionTabByName("sculpting", "landscaping").index
+	local sculptTab = self.items[landscapingIndex][sculptingIndex]
+	table.insert(sculptTab, { name = g_i18n:getText("construction_item_shift"), brushClass = ConstructionBrushSculpt, brushParameters = { ConstructionBrushSculpt.MODE.SHIFT }, price = 10, imageFilename = "dataS/menu/construction/icon_shift.png", uniqueIndex = numItems + 1 })
+	table.insert(sculptTab, { name = g_i18n:getText("construction_item_level"), brushClass = ConstructionBrushSculpt, brushParameters = { ConstructionBrushSculpt.MODE.LEVEL }, price = 10, imageFilename = "dataS/menu/construction/icon_level.png", uniqueIndex = numItems + 2 })
+	table.insert(sculptTab, { name = g_i18n:getText("construction_item_soften"), brushClass = ConstructionBrushSculpt, brushParameters = { ConstructionBrushSculpt.MODE.SOFTEN }, price = 10, imageFilename = "dataS/menu/construction/icon_soften.png", uniqueIndex = numItems + 3 })
+	table.insert(sculptTab, { name = g_i18n:getText("construction_item_slope"), brushClass = ConstructionBrushSculpt, brushParameters = { ConstructionBrushSculpt.MODE.SLOPE }, price = 10, imageFilename = "dataS/menu/construction/icon_slope.png", uniqueIndex = numItems + 4 })
 	return numItems + 4
 end
-
--- Local values: i, dot, subCategoryTexts, index, subCategory, dot
 function ConstructionScreen:setCurrentCategory(index, tabIndex)
-	if self.currentCategory ~= index then
+	if self.currentCategory == index then
+		return
+	else
 		self.categorySelector:setSelectedIndex(index)
 		self.currentCategory = index
 		self.subCategorySelector:setState(tabIndex or 1, true)
-		for v423_, v424_ in pairs(self.subCategoryDotBox.elements) do
-			v424_:delete()
-			self.subCategoryDotBox.elements[v423_] = nil
+		for i, dot in pairs(self.subCategoryDotBox.elements) do
+			dot:delete()
+			self.subCategoryDotBox.elements[i] = nil
 		end
-		local v425_ = {}
-		for v_u_426_, v427_ in pairs(self.categories[index].tabs) do
-			self.subCategoryDotTemplate:clone(self.subCategoryDotBox).getIsSelected = function()
-				-- upvalues: (copy) self, (copy) v_u_426_
-				return self.currentTab == v_u_426_
+		local subCategoryTexts = {}
+		for index, subCategory in pairs(self.categories[index].tabs) do
+			local dot = self.subCategoryDotTemplate:clone(self.subCategoryDotBox)
+			function dot.getIsSelected()
+				return self.currentTab == index
 			end
-			local v428_ = v427_.title
-			table.insert(v425_, v428_)
+			table.insert(subCategoryTexts, subCategory.title)
 		end
-		self.subCategorySelector:setTexts(v425_)
+		self.subCategorySelector:setTexts(subCategoryTexts)
 		self.subCategoryDotBox:invalidateLayout()
 		self:setBrush(self.selectorBrush, true)
 		self:updateMenuState()
 	end
 end
-
 function ConstructionScreen:setCurrentTab(index)
-	self.currentTab = index == nil and 1 or index
+	if index == nil then
+		index = 1
+	end
+	self.currentTab = index
 	if #self.items[self.currentCategory][self.currentTab] == 0 then
 		self:assignItemAttributeData(nil)
 	else
@@ -1687,44 +1443,38 @@ function ConstructionScreen:setCurrentTab(index)
 	self:setBrush(self.selectorBrush, true)
 	self:updateMenuState()
 end
-
 function ConstructionScreen:updateMenuState(brushChangedFrom)
 	self.itemList:reloadData()
 	self:updateMenuActionTexts()
 end
-
--- Local values: i, element, name
 function ConstructionScreen:buildCellDatabase()
 	self.detailsTemplates = {}
-	for v433_ = #self.attributesLayout.elements, 1, -1 do
-		local v434_ = self.attributesLayout.elements[v433_]
-		local v435_ = v434_.name
-		self.detailsTemplates[v435_] = v434_:clone()
-		self.detailsCache[v435_] = {}
+	for i = #self.attributesLayout.elements, 1, -1 do
+		local element = self.attributesLayout.elements[i]
+		local name = element.name
+		self.detailsTemplates[name] = element:clone()
+		self.detailsCache[name] = {}
 	end
 end
-
--- Local values: cell, cache
 function ConstructionScreen:dequeueDetailsCell(name)
 	if self.detailsTemplates[name] == nil then
 		return nil
-	end
-	local v438_ = self.detailsCache[name]
-	local v439_
-	if #v438_ > 0 then
-		v439_ = v438_[#v438_]
-		v438_[#v438_] = nil
 	else
-		v439_ = self.detailsTemplates[name]:clone(self)
+		local cell = nil
+		local cache = self.detailsCache[name]
+		if 0 < #cache then
+			cell = cache[#cache]
+			cache[#cache] = nil
+		else
+			cell = self.detailsTemplates[name]:clone(self)
+		end
+		self.attributesLayout:addElement(cell)
+		return cell
 	end
-	self.attributesLayout:addElement(v439_)
-	return v439_
 end
-
--- Local values: cache
 function ConstructionScreen:queueDetailsCell(cell)
-	local v442_ = self.detailsCache[cell.name]
-	v442_[#v442_ + 1] = cell
+	local cache = self.detailsCache[cell.name]
+	cache[#cache + 1] = cell
 	self.attributesLayout:removeElement(cell)
 	cell:unlinkElement()
 end

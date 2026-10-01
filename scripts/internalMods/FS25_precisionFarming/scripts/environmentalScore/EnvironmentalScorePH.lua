@@ -1,116 +1,89 @@
--- Local values: EnvironmentalScorePH_mt
 EnvironmentalScorePH = {}
 EnvironmentalScorePH.COMPRESSION = 1000
 local EnvironmentalScorePH_mt = Class(EnvironmentalScorePH, EnvironmentalScoreValue)
-
--- Upvalues: EnvironmentalScorePH_mt
--- Local values: self
 function EnvironmentalScorePH.new(pfModule, customMt)
-	-- upvalues: (copy) EnvironmentalScorePH_mt
-	local v4_ = EnvironmentalScoreValue.new(pfModule, customMt or EnvironmentalScorePH_mt)
-	v4_.xmlKey = "ph"
-	return v4_
+	local self = EnvironmentalScoreValue.new(pfModule, customMt or EnvironmentalScorePH_mt)
+	self.xmlKey = "ph"
+	return self
 end
-
--- Local values: i, baseKey, phOffset, score, pHMap
 function EnvironmentalScorePH:loadFromXML(xmlFile, key, baseDirectory, configFileName, mapFilename)
 	if not EnvironmentalScoreTillage:superClass().loadFromXML(self, xmlFile, key, baseDirectory, configFileName, mapFilename) then
 		return false
-	end
-	self.scoreCurve = AnimCurve.new(linearInterpolator1)
-	local v11_ = 0
-	while true do
-		local v12_ = string.format("%s.scoreMapping.scoreValue(%d)", key, v11_)
-		if not hasXMLProperty(xmlFile, v12_) then
-			break
+	else
+		self.scoreCurve = AnimCurve.new(linearInterpolator1)
+		local i = 0
+		while true do
+			local baseKey = string.format("%s.scoreMapping.scoreValue(%d)", key, i)
+			if not hasXMLProperty(xmlFile, baseKey) then
+				break
+			end
+			local phOffset = getXMLFloat(xmlFile, baseKey .. "#phOffset") or 0
+			local score = getXMLFloat(xmlFile, baseKey .. "#score") or 0
+			local pHMap = g_precisionFarming.pHMap
+			if pHMap ~= nil then
+				phOffset = phOffset / pHMap:getPhValueFromChangedStates(1)
+			end
+			self.scoreCurve:addKeyframe({ score, ["time"] = phOffset })
+			i = i + 1
 		end
-		local v13_ = getXMLFloat(xmlFile, v12_ .. "#phOffset") or 0
-		local v14_ = getXMLFloat(xmlFile, v12_ .. "#score") or 0
-		local v15_ = g_precisionFarming.pHMap
-		if v15_ ~= nil then
-			v13_ = v13_ / v15_:getPhValueFromChangedStates(1)
-		end
-		self.scoreCurve:addKeyframe({
-			v14_,
-			["time"] = v13_
-		})
-		v11_ = v11_ + 1
+		return true
 	end
-	return true
 end
-
 function EnvironmentalScorePH:update(dt) end
-
--- Local values: farmlandData, averageOffset
 function EnvironmentalScorePH:getScore(farmlandId)
-	local v18_ = self:getFarmlandData(farmlandId)
-	if v18_.clientScore ~= nil then
-		return v18_.clientScore
-	end
-	if v18_.harvestedArea <= 0 then
+	local farmlandData = self:getFarmlandData(farmlandId)
+	if farmlandData.clientScore ~= nil then
+		return farmlandData.clientScore
+	elseif 0 < farmlandData.harvestedArea then
+		local averageOffset = farmlandData.phOffsetSum / farmlandData.harvestedArea * EnvironmentalScorePH.COMPRESSION
+		return self.scoreCurve:get(averageOffset)
+	else
 		return 0.5
 	end
-	local v19_ = v18_.phOffsetSum / v18_.harvestedArea * EnvironmentalScorePH.COMPRESSION
-	return self.scoreCurve:get(v19_)
 end
-
 function EnvironmentalScorePH:initFarmlandData()
-	return {
-		["harvestedArea"] = 0,
-		["phOffsetSum"] = 0,
-		["pendingReset"] = false
-	}
+	return { harvestedArea = 0, phOffsetSum = 0, pendingReset = false }
 end
-
 function EnvironmentalScorePH:loadFarmlandData(data, xmlFile, key)
 	data.harvestedArea = xmlFile:getFloat(key .. "#harvestedArea", data.harvestedArea)
 	data.phOffsetSum = xmlFile:getFloat(key .. "#phOffsetSum", data.phOffsetSum)
 	data.pendingReset = xmlFile:getBool(key .. "#pendingReset", data.pendingReset)
 end
-
 function EnvironmentalScorePH:saveFarmlandData(data, xmlFile, key)
 	xmlFile:setFloat(key .. "#harvestedArea", data.harvestedArea)
 	xmlFile:setFloat(key .. "#phOffsetSum", data.phOffsetSum)
 	xmlFile:setBool(key .. "#pendingReset", data.pendingReset)
 end
-
--- Local values: score
 function EnvironmentalScorePH:readFarmlandDataFromStream(data, streamId, connection)
-	data.clientScore = MathUtil.round(streamReadUIntN(streamId, 8) / 255, 2)
+	local score = MathUtil.round(streamReadUIntN(streamId, 8) / 255, 2)
+	data.clientScore = score
 end
-
--- Local values: score
 function EnvironmentalScorePH:writeFarmlandDataToStream(data, streamId, connection)
-	local v31_ = self:getScore(data.farmlandId)
-	streamWriteUIntN(streamId, v31_ * 255, 8)
+	local score = self:getScore(data.farmlandId)
+	streamWriteUIntN(streamId, score * 255, 8)
 end
-
--- Local values: farmlandData
 function EnvironmentalScorePH:onHarvestScoreReset(farmlandId)
-	self:getFarmlandData(farmlandId).pendingReset = true
+	local farmlandData = self:getFarmlandData(farmlandId)
+	farmlandData.pendingReset = true
 end
-
--- Local values: farmlandData
 function EnvironmentalScorePH:addWorkedArea(farmlandId, area, nOffset)
-	local v38_ = area / EnvironmentalScorePH.COMPRESSION
-	local v39_ = nOffset / EnvironmentalScorePH.COMPRESSION
-	local v40_ = self:getFarmlandData(farmlandId)
-	if v40_.pendingReset then
-		v40_.harvestedArea = 0
-		v40_.phOffsetSum = 0
-		v40_.pendingReset = false
+	area = area / EnvironmentalScorePH.COMPRESSION
+	nOffset = nOffset / EnvironmentalScorePH.COMPRESSION
+	local farmlandData = self:getFarmlandData(farmlandId)
+	if farmlandData.pendingReset then
+		farmlandData.harvestedArea = 0
+		farmlandData.phOffsetSum = 0
+		farmlandData.pendingReset = false
 	end
-	v40_.harvestedArea = v40_.harvestedArea + v38_
-	v40_.phOffsetSum = v40_.phOffsetSum + v38_ * v39_
+	farmlandData.harvestedArea = farmlandData.harvestedArea + area
+	farmlandData.phOffsetSum = farmlandData.phOffsetSum + area * nOffset
 end
-
 function EnvironmentalScorePH:overwriteGameFunctions(pfModule)
 	if g_server ~= nil then
-		pfModule:overwriteGameFunction(HarvestExtension, "setLastScoringValues", function(p43_, p44_, p45_, p46_, p47_, p48_, p49_, p50_, p51_, p52_)
-			-- upvalues: (copy) self
-			p43_(p44_, p45_, p46_, p47_, p48_, p49_, p50_, p51_, p52_)
-			if p49_ ~= nil and (p50_ ~= nil and (p45_ > 0 and p46_ ~= nil)) then
-				self:addWorkedArea(p46_, p45_, p49_ - p50_)
+		pfModule:overwriteGameFunction(HarvestExtension, "setLastScoringValues", function(superFunc, harvestExtension, area, farmlandId, nActual, nTarget, pHActual, pHTarget, ignoreOverfertilization, fillTypeIndex)
+			superFunc(harvestExtension, area, farmlandId, nActual, nTarget, pHActual, pHTarget, ignoreOverfertilization, fillTypeIndex)
+			if pHActual ~= nil and (pHTarget ~= nil and (0 < area and farmlandId ~= nil)) then
+				self:addWorkedArea(farmlandId, area, pHActual - pHTarget)
 			end
 		end)
 	end

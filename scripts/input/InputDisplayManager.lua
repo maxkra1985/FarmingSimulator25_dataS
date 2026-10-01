@@ -1,4 +1,3 @@
--- Local values: InputDisplayManager_mt, actionBindingsBuffer
 InputDisplayManager = {}
 local InputDisplayManager_mt = Class(InputDisplayManager)
 source("dataS/scripts/input/DisplayActionBinding.lua")
@@ -24,915 +23,786 @@ InputDisplayManager.MODIFIER_BUTTON_CONCAT = " + "
 InputDisplayManager.PLUS_OVERLAY_NAME = "PLUS"
 InputDisplayManager.OR_OVERLAY_NAME = "OR"
 InputDisplayManager.NO_HELP_ELEMENT = InputHelpElement.new()
-
--- Upvalues: InputDisplayManager_mt
--- Local values: self, eventsCallback
 function InputDisplayManager.new(messageCenter, inputManager, modManager, isConsoleVersion)
-	-- upvalues: (copy) InputDisplayManager_mt
-	local v6_ = InputDisplayManager_mt
-	local v_u_7_ = setmetatable({}, v6_)
-	v_u_7_.messageCenter = messageCenter
-	v_u_7_.inputManager = inputManager
-	v_u_7_.modManager = modManager
-	v_u_7_.isConsoleVersion = isConsoleVersion
-	v_u_7_.isMobileVersion = GS_IS_MOBILE_VERSION
-	messageCenter:subscribe(MessageType.INPUT_BINDINGS_CHANGED, v_u_7_.onActionBindingsChanged, v_u_7_)
-	inputManager:setEventChangeCallback(function(p8_)
-		-- upvalues: (copy) v_u_7_
-		v_u_7_:onActionEventsChanged(p8_)
-	end)
-	v_u_7_.actionList = inputManager:getActionList()
-	v_u_7_.actionBindings = inputManager:getActionBindings()
-	v_u_7_.eventHelpElements = {
-		[GS_INPUT_HELP_MODE_GAMEPAD] = {},
-		[GS_INPUT_HELP_MODE_KEYBOARD] = {},
-		[GS_INPUT_HELP_MODE_TOUCH] = {}
-	}
-	v_u_7_.eventComboButtons = {
-		[GS_INPUT_HELP_MODE_GAMEPAD] = {},
-		[GS_INPUT_HELP_MODE_KEYBOARD] = {},
-		[GS_INPUT_HELP_MODE_TOUCH] = {}
-	}
-	v_u_7_.controllerSymbols = {}
-	v_u_7_.plusOverlay = nil
-	v_u_7_.orOverlay = nil
-	v_u_7_.keyboardKeyOverlay = nil
-	v_u_7_.axisIconOverlays = {}
-	v_u_7_.buttonIconSize = 45
-	v_u_7_.uiScale = 1
+	local self = setmetatable({}, InputDisplayManager_mt)
+	self.messageCenter = messageCenter
+	self.inputManager = inputManager
+	self.modManager = modManager
+	self.isConsoleVersion = isConsoleVersion
+	self.isMobileVersion = GS_IS_MOBILE_VERSION
+	messageCenter:subscribe(MessageType.INPUT_BINDINGS_CHANGED, self.onActionBindingsChanged, self)
+	local eventsCallback = function(displayActionEvents)
+		self:onActionEventsChanged(displayActionEvents)
+	end
+	inputManager:setEventChangeCallback(eventsCallback)
+	self.actionList = inputManager:getActionList()
+	self.actionBindings = inputManager:getActionBindings()
+	self.eventHelpElements = { [GS_INPUT_HELP_MODE_GAMEPAD] = {}, [GS_INPUT_HELP_MODE_KEYBOARD] = {}, [GS_INPUT_HELP_MODE_TOUCH] = {} }
+	self.eventComboButtons = { [GS_INPUT_HELP_MODE_GAMEPAD] = {}, [GS_INPUT_HELP_MODE_KEYBOARD] = {}, [GS_INPUT_HELP_MODE_TOUCH] = {} }
+	self.controllerSymbols = {}
+	self.plusOverlay = nil
+	self.orOverlay = nil
+	self.keyboardKeyOverlay = nil
+	self.axisIconOverlays = {}
+	self.buttonIconSize = 45
+	self.uiScale = 1
 	g_overlayManager:addTextureConfigFile(InputDisplayManager.SYMBOLS_TEXTURE_CONFIG_PATH, "controllerSymbols")
-	v_u_7_.debugControllerSymbols = false
-	return v_u_7_
+	self.debugControllerSymbols = false
+	return self
 end
-
--- Local values: axisIconsXmlFile
 function InputDisplayManager:load()
 	self.uiScale = g_gameSettings:getValue(GameSettings.SETTING.UI_SCALE)
 	self:setDevGamepadLabelMapping()
 	self:loadControllerSymbolsAndOverlays()
-	local v10_ = loadXMLFile("AxisIcons", InputDisplayManager.AXIS_ICON_DEFINITIONS_PATH)
-	if v10_ == 0 then
-		Logging.warning("Unable to load axisIcon definition file %q", InputDisplayManager.AXIS_ICON_DEFINITIONS_PATH)
+	local axisIconsXmlFile = loadXMLFile("AxisIcons", InputDisplayManager.AXIS_ICON_DEFINITIONS_PATH)
+	if axisIconsXmlFile ~= 0 then
+		self:loadAxisIcons(axisIconsXmlFile)
+		delete(axisIconsXmlFile)
 	else
-		self:loadAxisIcons(v10_)
-		delete(v10_)
+		Logging.warning("Unable to load axisIcon definition file %q", InputDisplayManager.AXIS_ICON_DEFINITIONS_PATH)
 	end
 	self:loadModAxisIcons()
 	addConsoleCommand("gsInputDebugControllerSymbols", "", "consoleCommandShowInputControllerSymbols", self)
 end
-
--- Local values: _, symbol, _, overlay
 function InputDisplayManager:delete()
 	g_messageCenter:unsubscribeAll(self)
-	for _, v12_ in pairs(self.controllerSymbols) do
-		v12_.overlay:delete()
+	for _, symbol in pairs(self.controllerSymbols) do
+		symbol.overlay:delete()
 	end
-	for _, v13_ in pairs(self.axisIconOverlays) do
-		v13_:delete()
+	for _, overlay in pairs(self.axisIconOverlays) do
+		overlay:delete()
 	end
 	self.keyboardKeyOverlay:delete()
 end
-
--- Local values: PS_BUTTON_MAPPING, PS_AXIS_MAPPING, oldGetGamepadButtonLabel, oldGetGamepadAxisLabel
 function InputDisplayManager:setDevGamepadLabelMapping()
 	if GS_PLATFORM_PLAYSTATION and g_isDevelopmentVersion then
-		local v_u_14_ = {
-			["A"] = "Cross",
-			["B"] = "Circle",
-			["X"] = "Square",
-			["Y"] = "Triangle",
-			["LB"] = "L1",
-			["RB"] = "R1",
-			["Back"] = "Options",
-			["Start"] = "Touch",
-			["LS"] = "L3",
-			["RS"] = "R3"
-		}
-		local v_u_15_ = {
-			["LT"] = "L2",
-			["RT"] = "R2"
-		}
-		local v_u_16_ = getGamepadButtonLabel
-		function getGamepadButtonLabel(p17_, p18_)
-			-- upvalues: (copy) v_u_16_, (copy) v_u_14_
-			local v19_ = v_u_16_(p17_, p18_)
-			return Utils.getNoNil(v_u_14_[v19_], v19_)
+		local PS_BUTTON_MAPPING = { ["A"] = "Cross", ["B"] = "Circle", ["X"] = "Square", ["Y"] = "Triangle", ["LB"] = "L1", ["RB"] = "R1", ["Back"] = "Options", ["Start"] = "Touch", ["LS"] = "L3", ["RS"] = "R3" }
+		local PS_AXIS_MAPPING = { ["LT"] = "L2", ["RT"] = "R2" }
+		local oldGetGamepadButtonLabel = getGamepadButtonLabel
+		function getGamepadButtonLabel(buttonId, internalId)
+			local label = oldGetGamepadButtonLabel(buttonId, internalId)
+			return Utils.getNoNil(PS_BUTTON_MAPPING[label], label)
 		end
-		local v_u_20_ = getGamepadAxisLabel
-		function getGamepadAxisLabel(p21_, p22_)
-			-- upvalues: (copy) v_u_20_, (copy) v_u_15_
-			local v23_ = v_u_20_(p21_, p22_)
-			return Utils.getNoNil(v_u_15_[v23_], v23_)
+		local oldGetGamepadAxisLabel = getGamepadAxisLabel
+		function getGamepadAxisLabel(axisId, internalId)
+			local label = oldGetGamepadAxisLabel(axisId, internalId)
+			return Utils.getNoNil(PS_AXIS_MAPPING[label], label)
 		end
 	end
 end
-
--- Local values: metadata, xmlFile, filename, i, baseName, prefix, axisName, sliceId, parts, axisSymbolName, _, part
 function InputDisplayManager:loadControllerSymbolsAndOverlays()
-	local v25_ = g_overlayManager:getConfigMetaData("controllerSymbols")
-	if v25_ == nil then
+	local metadata = g_overlayManager:getConfigMetaData("controllerSymbols")
+	if metadata == nil then
 		Logging.warning("No texture config for controller symbols found")
 	else
-		local v26_ = loadXMLFile("ControllerSymbolsBinding", InputDisplayManager.CONTROLLER_SYMBOLS_PATH)
-		local v27_ = v25_.filename
-		local v28_ = 0
+		local xmlFile = loadXMLFile("ControllerSymbolsBinding", InputDisplayManager.CONTROLLER_SYMBOLS_PATH)
+		local filename = metadata.filename
+		local i = 0
 		while true do
-			local v29_ = string.format("controllerSymbols.controllerSymbol(%d)", v28_)
-			if not hasXMLProperty(v26_, v29_) then
+			local baseName = string.format("controllerSymbols.controllerSymbol(%d)", i)
+			if not hasXMLProperty(xmlFile, baseName) then
 				break
 			end
-			local v30_ = getXMLString(v26_, v29_ .. "#prefix") or ""
-			local v31_ = getXMLString(v26_, v29_ .. "#name")
-			local v32_ = "controllerSymbols." .. getXMLString(v26_, v29_ .. "#sliceId")
-			if v31_ ~= nil then
-				local v33_ = v31_:trim():split(" ")
-				local v34_ = ""
-				for _, v35_ in pairs(v33_) do
-					if v35_ ~= "" then
-						v34_ = v34_ .. v30_ .. v35_
+			local prefix = getXMLString(xmlFile, baseName .. "#prefix") or ""
+			local axisName = getXMLString(xmlFile, baseName .. "#name")
+			local sliceId = getXMLString(xmlFile, baseName .. "#sliceId")
+			sliceId = "controllerSymbols." .. sliceId
+			if axisName ~= nil then
+				local parts = axisName:trim():split(" ")
+				local axisSymbolName = ""
+				for _, part in pairs(parts) do
+					if part == "" then
+						continue
 					end
+					axisSymbolName = axisSymbolName .. prefix .. part
 				end
-				if self.controllerSymbols[v34_] then
-					printWarning("Warning: controller symbol name \'" .. v34_ .. "\' already exists!")
+				if not self.controllerSymbols[axisSymbolName] then
+					self:createButtonOverlay(axisSymbolName, filename, sliceId)
 				else
-					self:createButtonOverlay(v34_, v27_, v32_)
+					printWarning("Warning: controller symbol name '" .. axisSymbolName .. "' already exists!")
 				end
 			end
-			v28_ = v28_ + 1
+			i = i + 1
 		end
 		self.keyboardKeyOverlay = ButtonOverlay.new()
-		delete(v26_)
+		delete(xmlFile)
 	end
 end
-
--- Local values: iconSizeX, iconSizeY, overlay, symbol
 function InputDisplayManager:createButtonOverlay(axisName, filename, sliceId)
-	local v40_, v41_ = getNormalizedScreenValues(self.buttonIconSize * self.uiScale, self.buttonIconSize * self.uiScale)
-	local v42_ = g_overlayManager:createOverlay(sliceId, 0, 0, v40_, v41_)
-	v42_:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_LEFT)
-	self.controllerSymbols[axisName] = {
-		["name"] = axisName,
-		["filename"] = filename,
-		["overlay"] = v42_
-	}
+	local iconSizeX, iconSizeY = getNormalizedScreenValues(self.buttonIconSize * self.uiScale, self.buttonIconSize * self.uiScale)
+	local overlay = g_overlayManager:createOverlay(sliceId, 0, 0, iconSizeX, iconSizeY)
+	overlay:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_LEFT)
+	local symbol = { name = axisName, filename = filename, overlay = overlay }
+	self.controllerSymbols[axisName] = symbol
 	if axisName == InputDisplayManager.PLUS_OVERLAY_NAME then
-		self.plusOverlay = v42_
-		v42_.width = v40_ * 0.5
-		v42_.defaultWidth = v40_ * 0.5
-		v42_.height = v41_ * 0.5
-		v42_.defaultHeight = v41_ * 0.5
-	elseif axisName == InputDisplayManager.OR_OVERLAY_NAME then
-		self.orOverlay = v42_
-		v42_.width = v40_ * 0.5
-		v42_.defaultWidth = v40_ * 0.5
-		v42_.height = v41_ * 0.5
-		v42_.defaultHeight = v41_ * 0.5
+		self.plusOverlay = overlay
+		overlay.width = iconSizeX * 0.5
+		overlay.defaultWidth = iconSizeX * 0.5
+		overlay.height = iconSizeY * 0.5
+		overlay.defaultHeight = iconSizeY * 0.5
+	else
+		if axisName == InputDisplayManager.OR_OVERLAY_NAME then
+			self.orOverlay = overlay
+			overlay.width = iconSizeX * 0.5
+			overlay.defaultWidth = iconSizeX * 0.5
+			overlay.height = iconSizeY * 0.5
+			overlay.defaultHeight = iconSizeY * 0.5
+		end
 	end
 end
-
--- Local values: rootPath, baseDirectory, prefix, modName, dir, i, baseName, iconName, iconPath, iconFilename, size, iconWidth, iconHeight, iconOverlay
 function InputDisplayManager:loadAxisIcons(xmlFile, modPath)
 	if xmlFile == nil or xmlFile == 0 then
 		Logging.error("InputDisplayManager:loadAxisIcons(): xmlFile nil or 0")
 		printCallstack()
-	else
-		local v46_, v47_, v48_
-		if modPath then
-			v46_, v47_ = Utils.getModNameAndBaseDirectory(modPath)
-			v48_ = "modDesc.axisIcons"
-		else
-			v48_ = "axisIcons"
-			v46_ = ""
-			v47_ = ""
+		return
+	end
+	local rootPath = "axisIcons"
+	local baseDirectory = ""
+	local prefix = ""
+	if modPath then
+		rootPath = "modDesc.axisIcons"
+		local modName, dir = Utils.getModNameAndBaseDirectory(modPath)
+		baseDirectory = dir
+		prefix = modName
+	end
+	local i = 0
+	while true do
+		local baseName = string.format("%s.icon(%d)", rootPath, i)
+		if not hasXMLProperty(xmlFile, baseName) then
+			break
 		end
-		local v49_ = 0
-		while true do
-			local v50_ = string.format("%s.icon(%d)", v48_, v49_)
-			if not hasXMLProperty(xmlFile, v50_) then
-				break
-			end
-			local v51_ = v46_ .. getXMLString(xmlFile, v50_ .. "#name") or ""
-			local v52_ = getXMLString(xmlFile, v50_ .. "#filename")
-			if v51_ and v52_ then
-				local v53_ = Utils.getFilename(v52_, v47_)
-				local v54_ = InputDisplayManager.AXIS_ICON_BASE_SIZE * self.uiScale
-				local v55_, v56_ = getNormalizedScreenValues(v54_, v54_)
-				local v57_ = Overlay.new(v53_, 0, 0, v55_, v56_)
-				v57_:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_LEFT)
-				self.axisIconOverlays[v51_] = v57_
-			end
-			v49_ = v49_ + 1
+		local iconName = prefix .. getXMLString(xmlFile, baseName .. "#name") or ""
+		local iconPath = getXMLString(xmlFile, baseName .. "#filename")
+		if iconName and iconPath then
+			local iconFilename = Utils.getFilename(iconPath, baseDirectory)
+			local size = InputDisplayManager.AXIS_ICON_BASE_SIZE * self.uiScale
+			local iconWidth, iconHeight = getNormalizedScreenValues(size, size)
+			local iconOverlay = Overlay.new(iconFilename, 0, 0, iconWidth, iconHeight)
+			iconOverlay:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_LEFT)
+			self.axisIconOverlays[iconName] = iconOverlay
 		end
+		i = i + 1
 	end
 end
-
--- Local values: _, modDesc, xmlFile
 function InputDisplayManager:loadModAxisIcons()
-	for _, v59_ in ipairs(self.modManager:getMods()) do
-		local v60_ = loadXMLFile("ModFile", v59_.modFile)
-		if v60_ == 0 then
-			Logging.error("InputDisplayManager:loadModAxisIcons(): unable to load %q", v59_.modFile)
+	for _, modDesc in ipairs(self.modManager:getMods()) do
+		local xmlFile = loadXMLFile("ModFile", modDesc.modFile)
+		if xmlFile == 0 then
+			Logging.error("InputDisplayManager:loadModAxisIcons(): unable to load %q", modDesc.modFile)
 		else
-			self:loadAxisIcons(v60_, v59_.modFile)
-			delete(v60_)
+			self:loadAxisIcons(xmlFile, modDesc.modFile)
+			delete(xmlFile)
 		end
 	end
 end
-
--- Local values: bindings, addedGamepadBinding, addedGamepadBindingIndex, _, binding, axisRepresented, _, contextBinding, isMouse, isGamepad, shouldSwapGamepadBinding, bindingIsActualGamepad, isActualGamepadCombo
 function InputDisplayManager:addContextBindings(contextBindings, action, isContextGamepad, isComboAction)
-	local v66_ = self.actionBindings[action]
-	local v67_ = -1
-	local v68_ = nil
-	for _, v69_ in pairs(v66_) do
-		if v69_.isActive then
-			local v70_ = false
+	local bindings = self.actionBindings[action]
+	local addedGamepadBinding = nil
+	local addedGamepadBindingIndex = -1
+	for _, binding in pairs(bindings) do
+		if binding.isActive then
+			local axisRepresented = false
 			if not isComboAction then
-				for _, v71_ in pairs(contextBindings) do
-					if v69_.internalDeviceId == v71_.internalDeviceId and v69_.unmodifiedAxis == v71_.unmodifiedAxis then
-						v70_ = true
+				for _, contextBinding in pairs(contextBindings) do
+					if binding.internalDeviceId == contextBinding.internalDeviceId and binding.unmodifiedAxis == contextBinding.unmodifiedAxis then
+						axisRepresented = true
 						break
 					end
 				end
 			end
-			if not v70_ then
-				local v72_ = not isContextGamepad
-				if v72_ then
-					v72_ = v69_.isMouse
-				end
-				local v73_
-				if isContextGamepad then
-					v73_ = v69_.isGamepad
-				else
-					v73_ = isContextGamepad
-				end
-				local v74_
-				if v73_ then
-					if v68_ == nil then
-						v74_ = false
-					else
-						v74_ = v69_.index < v68_.index
-					end
-				else
-					v74_ = v73_
-				end
-				if v74_ or self.inputManager:getDeviceByInternalId(v69_.internalDeviceId).category == InputDevice.CATEGORY.GAMEPAD and isComboAction then
-					table.remove(contextBindings, v67_)
-					v68_ = nil
-				end
-				if v72_ or v73_ and v68_ == nil then
-					table.insert(contextBindings, v69_)
-					if v73_ then
-						v67_ = #contextBindings
-						v68_ = v69_
-					end
+			if axisRepresented then
+				continue
+			end
+			local isMouse = not isContextGamepad and binding.isMouse
+			local isGamepad = isContextGamepad and binding.isGamepad
+			local shouldSwapGamepadBinding = isGamepad and addedGamepadBinding ~= nil and binding.index < addedGamepadBinding.index
+			local bindingIsActualGamepad = self.inputManager:getDeviceByInternalId(binding.internalDeviceId).category == InputDevice.CATEGORY.GAMEPAD
+			local isActualGamepadCombo = bindingIsActualGamepad and isComboAction
+			if shouldSwapGamepadBinding or isActualGamepadCombo then
+				table.remove(contextBindings, addedGamepadBindingIndex)
+				addedGamepadBinding = nil
+			end
+			if isMouse or isGamepad and addedGamepadBinding == nil then
+				table.insert(contextBindings, binding)
+				if isGamepad then
+					addedGamepadBinding = binding
+					addedGamepadBindingIndex = #contextBindings
 				end
 			end
 		end
 	end
 end
-
--- Local values: contextBindings
 function InputDisplayManager:getActionBindingsForContext(action1, action2, isContextGamepad, isComboAction)
-	local v80_ = {}
-	self:addContextBindings(v80_, action1, isContextGamepad, isComboAction)
+	local contextBindings = {}
+	self:addContextBindings(contextBindings, action1, isContextGamepad, isComboAction)
 	if action2 then
-		self:addContextBindings(v80_, action2, isContextGamepad)
+		self:addContextBindings(contextBindings, action2, isContextGamepad)
 	end
-	return v80_
+	return contextBindings
 end
-local v_u_81_ = {}
-
--- Upvalues: actionBindingsBuffer
--- Local values: k, bindings1, bindings2, kbBindings, _, bindings, _, binding
+local actionBindingsBuffer = {}
 function InputDisplayManager:getKeyboardBindings(action1, action2)
-	-- upvalues: (copy) v_u_81_
-	for v85_ in pairs(v_u_81_) do
-		v_u_81_[v85_] = nil
+	for k in pairs(actionBindingsBuffer) do
+		actionBindingsBuffer[k] = nil
 	end
-	local v86_ = self.actionBindings[action1]
-	if action2 then
-		action2 = self.actionBindings[action2]
+	local bindings1 = self.actionBindings[action1]
+	local bindings2 = action2 and self.actionBindings[action2]
+	table.insert(actionBindingsBuffer, bindings1)
+	if bindings2 ~= nil then
+		table.insert(actionBindingsBuffer, bindings2)
 	end
-	local v87_ = v_u_81_
-	table.insert(v87_, v86_)
-	if action2 ~= nil then
-		local v88_ = v_u_81_
-		table.insert(v88_, action2)
-	end
-	local v89_ = {}
-	for _, v90_ in ipairs(v_u_81_) do
-		for _, v91_ in ipairs(v90_) do
-			if v91_.isKeyboard then
-				table.insert(v89_, v91_)
+	local kbBindings = {}
+	for _, bindings in ipairs(actionBindingsBuffer) do
+		for _, binding in ipairs(bindings) do
+			if binding.isKeyboard then
+				table.insert(kbBindings, binding)
 			end
 		end
 	end
-	return v89_
+	return kbBindings
 end
-
--- Local values: i, comboAxis, symbolName, symbol
 function InputDisplayManager:resolveModifierSymbols(overlays, separators, isComboButtonMapping, firstContextBinding)
-	for v97_ = 1, #firstContextBinding.axisNames - 1 do
-		local v98_ = firstContextBinding.axisNames[v97_]
-		local v99_ = self:getGamepadInputSymbolName(firstContextBinding.internalDeviceId, v98_, false)
-		local v100_ = self.controllerSymbols[v99_]
-		if v100_ ~= nil then
-			local v101_ = v100_.overlay
-			table.insert(overlays, v101_)
-			table.insert(isComboButtonMapping, true)
-			local v102_ = InputHelpElement.SEPARATOR.COMBO_INPUT
-			table.insert(separators, v102_)
+	for i = 1, #firstContextBinding.axisNames - 1 do
+		local comboAxis = firstContextBinding.axisNames[i]
+		local symbolName = self:getGamepadInputSymbolName(firstContextBinding.internalDeviceId, comboAxis, false)
+		local symbol = self.controllerSymbols[symbolName]
+		if symbol == nil then
+			continue
 		end
+		table.insert(overlays, symbol.overlay)
+		table.insert(isComboButtonMapping, true)
+		table.insert(separators, InputHelpElement.SEPARATOR.COMBO_INPUT)
 	end
 end
-
--- Local values: accumSymbolName, _, name, symbol, i
 function InputDisplayManager:resolveAccumulatedSymbolPermutations(overlays, isComboButtonMapping, symbolNames, permLength)
 	if permLength == 0 then
-		local v108_ = ""
-		for _, v109_ in ipairs(symbolNames) do
-			v108_ = v108_ .. v109_
+		local accumSymbolName = ""
+		for _, name in ipairs(symbolNames) do
+			accumSymbolName = accumSymbolName .. name
 		end
-		local v110_ = self.controllerSymbols[v108_]
-		if v110_ ~= nil then
-			local v111_ = v110_.overlay
-			table.insert(overlays, v111_)
+		local symbol = self.controllerSymbols[accumSymbolName]
+		if symbol ~= nil then
+			table.insert(overlays, symbol.overlay)
 			table.insert(isComboButtonMapping, false)
-			return
 		end
 	else
-		for v112_ = 1, permLength do
-			local v113_ = symbolNames[v112_]
-			local v114_ = symbolNames[permLength]
-			symbolNames[permLength] = v113_
-			symbolNames[v112_] = v114_
+		for i = 1, permLength do
+			symbolNames[permLength] = symbolNames[i]
+			symbolNames[i] = symbolNames[permLength]
 			self:resolveAccumulatedSymbolPermutations(overlays, isComboButtonMapping, symbolNames, permLength - 1)
-			local v115_ = symbolNames[v112_]
-			local v116_ = symbolNames[permLength]
-			symbolNames[permLength] = v115_
-			symbolNames[v112_] = v116_
+			symbolNames[permLength] = symbolNames[i]
+			symbolNames[i] = symbolNames[permLength]
 		end
 	end
 end
-
--- Local values: accumSymbols, _, binding, symbolName, isAxisInput, isDuplicateName, _, knownName, symbol
 function InputDisplayManager:resolveUnmodifiedSymbols(overlays, isComboButtonMapping, contextBindings, isContextGamepad, accumulateSymbols)
-	local v123_ = nil
-	for _, v124_ in pairs(contextBindings) do
-		local v125_
+	local accumSymbols = nil
+	for _, binding in pairs(contextBindings) do
+		local symbolName = nil
 		if isContextGamepad then
-			local v126_ = v124_.isAnalog
-			v125_ = self:getGamepadInputSymbolName(v124_.internalDeviceId, v124_.unmodifiedAxis, v126_)
+			local isAxisInput = binding.isAnalog
+			symbolName = self:getGamepadInputSymbolName(binding.internalDeviceId, binding.unmodifiedAxis, isAxisInput)
 		else
-			v125_ = self:getMouseInputSymbolName(v124_.axisNames)
+			symbolName = self:getMouseInputSymbolName(binding.axisNames)
 		end
-		if accumulateSymbols and v125_ ~= nil then
-			if v123_ == nil then
-				v123_ = { v125_ }
-			else
-				local v127_ = false
-				for _, v128_ in ipairs(v123_) do
-					if v128_ == v125_ then
-						v127_ = true
+		if accumulateSymbols then
+			if symbolName == nil then
+				local symbol = self.controllerSymbols[symbolName]
+				if symbol == nil then
+					continue
+				end
+				table.insert(overlays, symbol.overlay)
+				table.insert(isComboButtonMapping, false)
+			elseif accumSymbols ~= nil then
+				local isDuplicateName = false
+				for _, knownName in ipairs(accumSymbols) do
+					if knownName == symbolName then
+						isDuplicateName = true
 						break
 					end
 				end
-				if not v127_ then
-					table.insert(v123_, v125_)
+				if isDuplicateName then
+					continue
 				end
-			end
-		else
-			local v129_ = self.controllerSymbols[v125_]
-			if v129_ ~= nil then
-				local v130_ = v129_.overlay
-				table.insert(overlays, v130_)
-				table.insert(isComboButtonMapping, false)
+				table.insert(accumSymbols, symbolName)
+			else
+				accumSymbols = { symbolName }
 			end
 		end
 	end
-	if accumulateSymbols and v123_ ~= nil then
-		self:resolveAccumulatedSymbolPermutations(overlays, isComboButtonMapping, v123_, #v123_)
+	if accumulateSymbols and accumSymbols ~= nil then
+		self:resolveAccumulatedSymbolPermutations(overlays, isComboButtonMapping, accumSymbols, #accumSymbols)
 	end
 end
-
--- Local values: prevCount, afterCount, _
 function InputDisplayManager:addRegularSymbols(overlays, separators, isComboButtonMapping, accumulateSymbols, contextBindings, isContextGamepad, ignoreComboButtons)
-	if #contextBindings > 0 then
+	if 0 < #contextBindings then
 		if not ignoreComboButtons and isContextGamepad then
 			self:resolveModifierSymbols(overlays, separators, isComboButtonMapping, contextBindings[1])
 		end
-		local v139_ = #overlays
+		local prevCount = #overlays
 		self:resolveUnmodifiedSymbols(overlays, isComboButtonMapping, contextBindings, isContextGamepad, accumulateSymbols)
-		local v140_ = #overlays
-		if v139_ ~= v140_ then
-			for _ = 1, v140_ - v139_ - 1 do
-				local v141_ = InputHelpElement.SEPARATOR.ANY_INPUT
-				table.insert(separators, v141_)
+		local afterCount = #overlays
+		if prevCount ~= afterCount then
+			for _ = 1, afterCount - prevCount - 1 do
+				table.insert(separators, InputHelpElement.SEPARATOR.ANY_INPUT)
 			end
 		end
 	end
 end
-
--- Local values: binding, _, inputAxisName, symbolName, symbol, symbolName, _
 function InputDisplayManager:addComboSymbols(overlays, separators, isComboButtonMapping, contextBindings, isContextGamepad)
-	local v148_ = #contextBindings == 1
-	assert(v148_, "Number of bindings for a combo action must always be 1, check code and configuration!")
-	local v149_ = contextBindings[1]
+	assert(#contextBindings == 1, "Number of bindings for a combo action must always be 1, check code and configuration!")
+	local binding = contextBindings[1]
 	if isContextGamepad then
-		for _, v150_ in ipairs(v149_.axisNames) do
-			local v151_ = self:getGamepadInputSymbolName(v149_.internalDeviceId, v150_, false)
-			local v152_ = self.controllerSymbols[v151_]
-			if v152_ ~= nil then
-				local v153_ = v152_.overlay
-				table.insert(overlays, v153_)
-				table.insert(isComboButtonMapping, true)
+		for _, inputAxisName in ipairs(binding.axisNames) do
+			local symbolName = self:getGamepadInputSymbolName(binding.internalDeviceId, inputAxisName, false)
+			local symbol = self.controllerSymbols[symbolName]
+			if symbol == nil then
+				continue
 			end
+			table.insert(overlays, symbol.overlay)
+			table.insert(isComboButtonMapping, true)
 		end
 	else
-		local v154_ = self:getMouseInputSymbolName(v149_.axisNames, false)
-		local v155_ = self.controllerSymbols[v154_].overlay
-		table.insert(overlays, v155_)
+		local symbolName = self:getMouseInputSymbolName(binding.axisNames, false)
+		table.insert(overlays, self.controllerSymbols[symbolName].overlay)
 		table.insert(isComboButtonMapping, true)
 	end
 	for _ = 1, #overlays - 1 do
-		local v156_ = InputHelpElement.SEPARATOR.COMBO_INPUT
-		table.insert(separators, v156_)
+		table.insert(separators, InputHelpElement.SEPARATOR.COMBO_INPUT)
 	end
 end
-
--- Local values: action1, action2, isGamepadComboAction, isMouseComboAction, isComboAction, isContextGamepad
 function InputDisplayManager:getControllerSymbolOverlays(actionName1, actionName2, text, ignoreComboButtons, customBinding)
-	local v163_ = self.inputManager:getActionByName(actionName1)
-	local v164_ = self.inputManager:getActionByName(actionName2)
-	local v165_ = InputBinding.GAMEPAD_COMBOS[actionName1] ~= nil
-	local v166_ = InputBinding.MOUSE_COMBOS[actionName1] ~= nil
-	local v167_ = v165_ or v166_
-	local v168_ = self.isConsoleVersion or (self.isMobileVersion or (self.inputManager:getInputHelpMode() == GS_INPUT_HELP_MODE_GAMEPAD and true or v165_))
+	local action1 = self.inputManager:getActionByName(actionName1)
+	local action2 = self.inputManager:getActionByName(actionName2)
+	local isGamepadComboAction = InputBinding.GAMEPAD_COMBOS[actionName1] ~= nil
+	local isMouseComboAction = InputBinding.MOUSE_COMBOS[actionName1] ~= nil
+	local isComboAction = isGamepadComboAction or isMouseComboAction
+	if not self.isConsoleVersion and not self.isMobileVersion then
+		local isContextGamepad = true
+		if self.inputManager:getInputHelpMode() ~= GS_INPUT_HELP_MODE_GAMEPAD then
+			isContextGamepad = isGamepadComboAction
+		end
+	end
 	if customBinding ~= nil then
-		return self:makeHelpElementForBinding(v163_, customBinding)
+		return self:makeHelpElementForBinding(action1, customBinding)
+	else
+		return self:makeHelpElement(action1, action2, text, isComboAction, isContextGamepad and not isMouseComboAction, ignoreComboButtons)
 	end
-	if v168_ then
-		v168_ = not v166_
-	end
-	return self:makeHelpElement(v163_, v164_, text, v167_, v168_, ignoreComboButtons)
 end
-
--- Local values: accumulateSymbols, allDpad, _, binding, allMouseWheel, _, binding
 function InputDisplayManager.requireSymbolAccumulation(action1, action2, contextBindings)
-	local v172_ = action1:isFullAxis() and not action2
-	if v172_ then
-		action2 = v172_
-	elseif action2 then
-		action2 = action2:isFullAxis()
+	if not action1:isFullAxis() or not not action2 then
+		local accumulateSymbols = action2 and action2:isFullAxis()
 	end
-	if not action2 then
-		local v173_ = true
-		for _, v174_ in pairs(contextBindings) do
-			if v173_ then
-				v173_ = InputBinding.getIsDPadInput(v174_.axisNames)
-			end
+	if not accumulateSymbols then
+		local allDpad = true
+		for _, binding in pairs(contextBindings) do
+			allDpad = allDpad and InputBinding.getIsDPadInput(binding.axisNames)
 		end
-		action2 = action2 or v173_
+		accumulateSymbols = accumulateSymbols or allDpad
 	end
-	if not action2 then
-		local v175_ = true
-		for _, v176_ in pairs(contextBindings) do
-			if v175_ then
-				v175_ = InputBinding.getIsMouseWheelInput(v176_.axisNames)
-			end
+	if not accumulateSymbols then
+		local allMouseWheel = true
+		for _, binding in pairs(contextBindings) do
+			allMouseWheel = allMouseWheel and InputBinding.getIsMouseWheelInput(binding.axisNames)
 		end
-		action2 = action2 or v175_
+		accumulateSymbols = accumulateSymbols or allMouseWheel
 	end
-	return action2
+	return accumulateSymbols
 end
-
--- Local values: contextBindings, separators, overlays, isComboButtonMapping, accumulateSymbols, keys, kbBindings, modifierHash, _, binding, _, key, isModifierKey, helpElement, action2Name
 function InputDisplayManager:makeHelpElement(action1, action2, text, isComboAction, isContextGamepad, ignoreComboButtons, customAxisIcon, priority)
-	local v186_ = self:getActionBindingsForContext(action1, action2, isContextGamepad, isComboAction)
-	local v187_ = {}
-	local v188_ = {}
-	local v189_ = {}
-	if #v186_ > 0 then
+	local contextBindings = self:getActionBindingsForContext(action1, action2, isContextGamepad, isComboAction)
+	local separators = {}
+	local overlays = {}
+	local isComboButtonMapping = {}
+	if 0 < #contextBindings then
 		if isComboAction then
-			self:addComboSymbols(v188_, v187_, v189_, v186_, isContextGamepad)
+			self:addComboSymbols(overlays, separators, isComboButtonMapping, contextBindings, isContextGamepad)
 		else
-			self:addRegularSymbols(v188_, v187_, v189_, InputDisplayManager.requireSymbolAccumulation(action1, action2, v186_), v186_, isContextGamepad, ignoreComboButtons)
+			local accumulateSymbols = InputDisplayManager.requireSymbolAccumulation(action1, action2, contextBindings)
+			self:addRegularSymbols(overlays, separators, isComboButtonMapping, accumulateSymbols, contextBindings, isContextGamepad, ignoreComboButtons)
 		end
 	end
-	local v190_ = {}
-	if #v188_ < 1 and not isContextGamepad then
-		local v191_ = self:getKeyboardBindings(action1, action2)
-		local v192_ = {}
-		for _, v193_ in ipairs(v191_) do
-			for _, v194_ in ipairs(v193_.axisNames) do
-				local v195_ = v193_.modifierAxisSet[v194_] ~= nil
-				if not (v195_ and v192_[v194_]) then
-					local v196_ = KeyboardHelper.getDisplayKeyName
-					local v197_ = Input[v194_]
-					table.insert(v190_, v196_(v197_))
-					if v195_ then
-						v192_[v194_] = true
+	local keys = {}
+	if #overlays < 1 and not isContextGamepad then
+		local kbBindings = self:getKeyboardBindings(action1, action2)
+		local modifierHash = {}
+		for _, binding in ipairs(kbBindings) do
+			for _, key in ipairs(binding.axisNames) do
+				local isModifierKey = binding.modifierAxisSet[key] ~= nil
+				if not isModifierKey or not modifierHash[key] then
+					table.insert(keys, KeyboardHelper.getDisplayKeyName(Input[key]))
+					if isModifierKey then
+						modifierHash[key] = true
 					end
 				end
 			end
 		end
 	end
-	local v198_ = InputDisplayManager.NO_HELP_ELEMENT
-	if #v188_ > 0 or #v190_ > 0 then
-		local v199_ = action2 == nil and "" or (action2.name or "")
-		v198_ = InputHelpElement.new(action1.name, v199_, v188_, v190_, v187_, v189_, text, not ignoreComboButtons, customAxisIcon, priority)
+	local helpElement = InputDisplayManager.NO_HELP_ELEMENT
+	if 0 < #overlays or 0 < #keys then
+		local action2Name = action2 ~= nil and action2.name or ""
+		helpElement = InputHelpElement.new(action1.name, action2Name, overlays, keys, separators, isComboButtonMapping, text, not ignoreComboButtons, customAxisIcon, priority)
 	end
-	return v198_
+	return helpElement
 end
-
--- Local values: contextBindings, separators, overlays, isComboButtonMapping, accumulateSymbols, keys, modifierHash, _, key, isModifierKey, helpElement
 function InputDisplayManager:makeHelpElementForBinding(action, binding)
-	local v203_ = { binding }
-	local v204_ = {}
-	local v205_ = {}
-	local v206_ = {}
+	local contextBindings = { binding }
+	local separators = {}
+	local overlays = {}
+	local isComboButtonMapping = {}
 	if not binding.isKeyboard then
-		self:addRegularSymbols(v205_, v204_, v206_, InputDisplayManager.requireSymbolAccumulation(action, nil, v203_), v203_, binding.isGamepad)
+		local accumulateSymbols = InputDisplayManager.requireSymbolAccumulation(action, nil, contextBindings)
+		self:addRegularSymbols(overlays, separators, isComboButtonMapping, accumulateSymbols, contextBindings, binding.isGamepad)
 	end
-	local v207_ = {}
-	if #v205_ < 1 then
-		local v208_ = {}
-		for _, v209_ in ipairs(binding.axisNames) do
-			local v210_ = binding.modifierAxisSet[v209_] ~= nil
-			if not (v210_ and v208_[v209_]) then
-				local v211_ = KeyboardHelper.getDisplayKeyName
-				local v212_ = Input[v209_]
-				table.insert(v207_, v211_(v212_))
-				if v210_ then
-					v208_[v209_] = true
+	local keys = {}
+	if #overlays < 1 then
+		local modifierHash = {}
+		for _, key in ipairs(binding.axisNames) do
+			local isModifierKey = binding.modifierAxisSet[key] ~= nil
+			if not isModifierKey or not modifierHash[key] then
+				table.insert(keys, KeyboardHelper.getDisplayKeyName(Input[key]))
+				if isModifierKey then
+					modifierHash[key] = true
 				end
 			end
 		end
 	end
-	local v213_ = InputDisplayManager.NO_HELP_ELEMENT
-	if #v205_ > 0 or #v207_ > 0 then
-		v213_ = InputHelpElement.new(action.name, nil, v205_, v207_, v204_, v206_)
+	local helpElement = InputDisplayManager.NO_HELP_ELEMENT
+	if 0 < #overlays or 0 < #keys then
+		helpElement = InputHelpElement.new(action.name, nil, overlays, keys, separators, isComboButtonMapping)
 	end
-	return v213_
+	return helpElement
 end
-
 function InputDisplayManager:onActionEventsChanged(displayActionEvents)
 	self:storeEventHelpElements(displayActionEvents)
 	self:storeComboHelpElements(displayActionEvents)
 end
-
--- Local values: action1, action2
 function InputDisplayManager.sortEventHelpElements(helpElem1, helpElem2)
-	if helpElem1.priority == helpElem2.priority then
-		if helpElem1.actionName == "" or helpElem2.actionName == "" then
-			return helpElem2.actionName == ""
-		else
-			local v218_ = g_inputBinding:getActionByName(helpElem1.actionName)
-			local v219_ = g_inputBinding:getActionByName(helpElem2.actionName)
-			if v218_.primaryKeyboardInput == nil then
-				return helpElem1.text < helpElem2.text
-			elseif v219_.primaryKeyboardInput == nil then
-				return false
-			else
-				return v218_.primaryKeyboardInput < v219_.primaryKeyboardInput
-			end
-		end
-	else
+	if helpElem1.priority ~= helpElem2.priority then
 		return helpElem1.priority < helpElem2.priority
 	end
+	if helpElem1.actionName ~= "" and helpElem2.actionName ~= "" then
+		local action1 = g_inputBinding:getActionByName(helpElem1.actionName)
+		local action2 = g_inputBinding:getActionByName(helpElem2.actionName)
+		if action1.primaryKeyboardInput ~= nil then
+			if action2.primaryKeyboardInput ~= nil then
+				return action1.primaryKeyboardInput < action2.primaryKeyboardInput
+			else
+				return false
+			end
+		end
+		return helpElem1.text < helpElem2.text
+	end
+	if helpElem2.actionName ~= "" then
+		return false
+	else
+		return true
+	end
 end
-function InputDisplayManager.sortEventHelpElementsGamepad()
-	-- failed to decompile
+function InputDisplayManager.sortEventHelpElementsGamepad(helpElem1, helpElem2)
+	if 0 < #helpElem1.buttons and 0 < #helpElem2.buttons then
+		for k, button in pairs(helpElem1.buttons) do
+			local helpElem2Button = helpElem2.buttons[k]
+			if helpElem2Button ~= nil then
+				if helpElem2Button.overlayId ~= button.overlayId then
+					return button.overlayId < helpElem2Button.overlayId
+				else
+					return false
+				end
+			end
+			return true
+		end
+		return true
+	end
+	if 0 < #helpElem1.buttons then
+		return true
+	else
+		return false
+	end
 end
-
--- Local values: helpMode, modeHelpElements, isContextGamepad, _, actionEvent, action, event, inlineModifierButtons, actionComboMask, maskHelpElements, axisIcon, helpElement, sortFunc, _, maskHelpElements
 function InputDisplayManager:storeEventHelpElements(displayActionEvents)
-	self.eventHelpElements = {
-		[GS_INPUT_HELP_MODE_GAMEPAD] = {},
-		[GS_INPUT_HELP_MODE_KEYBOARD] = {},
-		[GS_INPUT_HELP_MODE_TOUCH] = {}
-	}
-	for v222_, v223_ in pairs(self.eventHelpElements) do
-		local v224_ = v222_ == GS_INPUT_HELP_MODE_GAMEPAD
-		for _, v225_ in ipairs(displayActionEvents) do
-			local v226_ = v225_.action
-			local v227_ = v225_.event
-			local v228_ = v225_.inlineModifierButtons or v222_ == GS_INPUT_HELP_MODE_KEYBOARD
-			local v229_ = 0
-			if v224_ then
-				if not v228_ then
-					v229_ = v226_.comboMaskGamepad
+	self.eventHelpElements = { [GS_INPUT_HELP_MODE_GAMEPAD] = {}, [GS_INPUT_HELP_MODE_KEYBOARD] = {}, [GS_INPUT_HELP_MODE_TOUCH] = {} }
+	for helpMode, modeHelpElements in pairs(self.eventHelpElements) do
+		local isContextGamepad = helpMode == GS_INPUT_HELP_MODE_GAMEPAD
+		for _, actionEvent in ipairs(displayActionEvents) do
+			local action = actionEvent.action
+			local event = actionEvent.event
+			local inlineModifierButtons = actionEvent.inlineModifierButtons or helpMode == GS_INPUT_HELP_MODE_KEYBOARD
+			local actionComboMask = 0
+			if isContextGamepad then
+				if not inlineModifierButtons then
+					actionComboMask = action.comboMaskGamepad
 				end
 			else
-				v229_ = v226_.comboMaskMouse
+				actionComboMask = action.comboMaskMouse
 			end
-			local v230_ = v223_[v229_]
-			if not v230_ then
-				v230_ = {}
-				v223_[v229_] = v230_
+			local maskHelpElements = modeHelpElements[actionComboMask]
+			if not maskHelpElements then
+				maskHelpElements = {}
+				modeHelpElements[actionComboMask] = maskHelpElements
 			end
-			local v231_ = not v227_.contextDisplayIconName or self.axisIconOverlays[v227_.contextDisplayIconName]
-			if not v231_ then
-				printWarning("Warning: Could not resolve axis icon name \'" .. v227_.contextDisplayIconName .. "\'. Check vehicle and axis icon configurations.")
+			local axisIcon = nil
+			if event.contextDisplayIconName then
+				axisIcon = self.axisIconOverlays[event.contextDisplayIconName]
+				if not axisIcon then
+					printWarning("Warning: Could not resolve axis icon name '" .. event.contextDisplayIconName .. "'. Check vehicle and axis icon configurations.")
+				end
 			end
-			local v232_ = self:makeHelpElement(v226_, nil, v227_.contextDisplayText, false, v224_, not v228_, v231_, v227_.displayPriority)
-			if v232_ ~= InputDisplayManager.NO_HELP_ELEMENT then
-				table.insert(v230_, v232_)
+			local helpElement = self:makeHelpElement(action, nil, event.contextDisplayText, false, isContextGamepad, not inlineModifierButtons, axisIcon, event.displayPriority)
+			if helpElement == InputDisplayManager.NO_HELP_ELEMENT then
+				continue
 			end
+			table.insert(maskHelpElements, helpElement)
 		end
-		local v233_ = InputDisplayManager.sortEventHelpElements
-		if v224_ then
-			v233_ = InputDisplayManager.sortEventHelpElementsGamepad
+		local sortFunc = InputDisplayManager.sortEventHelpElements
+		if isContextGamepad then
+			sortFunc = InputDisplayManager.sortEventHelpElementsGamepad
 		end
-		for _, v234_ in pairs(v223_) do
-			table.sort(v234_, v233_)
+		for _, maskHelpElements in pairs(modeHelpElements) do
+			table.sort(maskHelpElements, sortFunc)
 		end
 	end
 end
-
--- Local values: helpMode, _, isContextGamepad, _, actionEvent, action, _, binding, isPrimaryGamepad, isMouse, comboActionName
 function InputDisplayManager:storeComboHelpElements(displayActionEvents)
-	self.eventComboButtons = {
-		[GS_INPUT_HELP_MODE_GAMEPAD] = {},
-		[GS_INPUT_HELP_MODE_KEYBOARD] = {},
-		[GS_INPUT_HELP_MODE_TOUCH] = {}
-	}
-	for v237_, _ in pairs(self.eventHelpElements) do
-		local v238_ = v237_ == GS_INPUT_HELP_MODE_GAMEPAD
-		for _, v239_ in ipairs(displayActionEvents) do
-			local v240_ = v239_.action
-			for _, v241_ in pairs(self.actionBindings[v240_]) do
-				local v242_ = v238_ and v241_.isActive
-				if v242_ then
-					v242_ = v241_.isGamepad
-				end
-				local v243_ = not v238_
-				if v243_ then
-					v243_ = v241_.isMouse
-				end
-				if v242_ and not v239_.inlineModifierButtons or v243_ then
-					local v244_ = self.inputManager:getComboActionNameForAxisSet(v241_.modifierAxisSet)
-					if v244_ then
-						self.eventComboButtons[v237_][v244_] = true
+	self.eventComboButtons = { [GS_INPUT_HELP_MODE_GAMEPAD] = {}, [GS_INPUT_HELP_MODE_KEYBOARD] = {}, [GS_INPUT_HELP_MODE_TOUCH] = {} }
+	for helpMode, _ in pairs(self.eventHelpElements) do
+		local isContextGamepad = helpMode == GS_INPUT_HELP_MODE_GAMEPAD
+		for _, actionEvent in ipairs(displayActionEvents) do
+			local action = actionEvent.action
+			for _, binding in pairs(self.actionBindings[action]) do
+				local isPrimaryGamepad = isContextGamepad and binding.isActive and binding.isGamepad
+				local isMouse = not isContextGamepad and binding.isMouse
+				if isPrimaryGamepad and (actionEvent.inlineModifierButtons and isMouse) then
+					local comboActionName = self.inputManager:getComboActionNameForAxisSet(binding.modifierAxisSet)
+					if comboActionName then
+						self.eventComboButtons[helpMode][comboActionName] = true
 					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: helpMode, comboHelpElements, eventHelpElement, _, helpElements, _, element
 function InputDisplayManager:getEventHelpElementForAction(inputActionName)
-	local v247_ = self.inputManager:getInputHelpMode()
-	local v248_ = self.eventHelpElements[v247_]
-	local v249_ = nil
-	for _, v250_ in pairs(v248_) do
-		for _, v251_ in pairs(v250_) do
-			if v251_.actionName == inputActionName then
-				v249_ = v251_
+	local helpMode = self.inputManager:getInputHelpMode()
+	local comboHelpElements = self.eventHelpElements[helpMode]
+	local eventHelpElement = nil
+	for _, helpElements in pairs(comboHelpElements) do
+		for _, element in pairs(helpElements) do
+			if element.actionName == inputActionName then
+				eventHelpElement = element
 				break
 			end
 		end
 	end
-	return v249_
+	return eventHelpElement
 end
-
--- Local values: helpMode, elements
 function InputDisplayManager:getEventHelpElements(pressedComboMask, isContextGamepad)
-	local v255_ = isContextGamepad and GS_INPUT_HELP_MODE_GAMEPAD or GS_INPUT_HELP_MODE_KEYBOARD
-	return self.eventHelpElements[v255_][pressedComboMask]
+	local helpMode = isContextGamepad and GS_INPUT_HELP_MODE_GAMEPAD or GS_INPUT_HELP_MODE_KEYBOARD
+	local elements = self.eventHelpElements[helpMode][pressedComboMask]
+	return elements
 end
-
--- Local values: helpMode
 function InputDisplayManager:getComboHelpElements(isContextGamepad)
-	local v258_ = isContextGamepad and GS_INPUT_HELP_MODE_GAMEPAD or GS_INPUT_HELP_MODE_KEYBOARD
-	return self.eventComboButtons[v258_]
+	local helpMode = isContextGamepad and GS_INPUT_HELP_MODE_GAMEPAD or GS_INPUT_HELP_MODE_KEYBOARD
+	return self.eventComboButtons[helpMode]
 end
-
--- Local values: prefix, gamepadName
 function InputDisplayManager:getPrefix(internalDeviceId)
-	local v260_ = ""
+	local prefix = ""
 	if GS_PLATFORM_XBOX then
-		return InputDisplayManager.SYMBOL_PREFIX_XBOX
-	end
-	if GS_PLATFORM_SWITCH then
-		return InputDisplayManager.SYMBOL_PREFIX_SWITCH
-	end
-	if GS_PLATFORM_SWITCH2 then
-		return InputDisplayManager.SYMBOL_PREFIX_SWITCH
-	end
-	if GS_PLATFORM_PLAYSTATION then
-		if internalDeviceId == 0 and GS_PLATFORM_ID == PlatformId.PS5 then
-			return InputDisplayManager.SYMBOL_PREFIX_PS5
-		end
+		prefix = InputDisplayManager.SYMBOL_PREFIX_XBOX
+		return prefix
+	elseif GS_PLATFORM_SWITCH then
+		prefix = InputDisplayManager.SYMBOL_PREFIX_SWITCH
+		return prefix
+	elseif GS_PLATFORM_SWITCH2 then
+		prefix = InputDisplayManager.SYMBOL_PREFIX_SWITCH
+		return prefix
 	else
-		if GS_IS_MOBILE_VERSION then
-			v260_ = InputDisplayManager.SYMBOL_PREFIX_MOBILE
+		if GS_PLATFORM_PLAYSTATION then
+			if internalDeviceId == 0 and GS_PLATFORM_ID == PlatformId.PS5 then
+				prefix = InputDisplayManager.SYMBOL_PREFIX_PS5
+				return prefix
+			end
+		else
+			if GS_IS_MOBILE_VERSION then
+				prefix = InputDisplayManager.SYMBOL_PREFIX_MOBILE
+			end
+			if internalDeviceId ~= nil then
+				local gamepadName = getGamepadName(internalDeviceId)
+				if gamepadName == InputDevice.NAMES.XBOX_GAMEPAD or gamepadName == InputDevice.NAMES.XINPUT_GAMEPAD then
+					prefix = InputDisplayManager.SYMBOL_PREFIX_XBOX
+					return prefix
+				end
+				if gamepadName == InputDevice.NAMES.PS_GAMEPAD then
+					prefix = InputDisplayManager.SYMBOL_PREFIX_PS4
+					return prefix
+				end
+				if gamepadName == InputDevice.NAMES.PS5_GAMEPAD then
+					prefix = InputDisplayManager.SYMBOL_PREFIX_PS5
+					return prefix
+				end
+				if gamepadName == InputDevice.NAMES.STADIA_GAMEPAD then
+					prefix = InputDisplayManager.SYMBOL_PREFIX_STADIA
+					return prefix
+				end
+				if gamepadName == InputDevice.NAMES.SWITCH_GAMEPAD then
+					prefix = InputDisplayManager.SYMBOL_PREFIX_SWITCH
+				end
+			end
 		end
-		if internalDeviceId ~= nil then
-			local v261_ = getGamepadName(internalDeviceId)
-			if v261_ == InputDevice.NAMES.XBOX_GAMEPAD or v261_ == InputDevice.NAMES.XINPUT_GAMEPAD then
-				return InputDisplayManager.SYMBOL_PREFIX_XBOX
-			end
-			if v261_ == InputDevice.NAMES.PS_GAMEPAD then
-				return InputDisplayManager.SYMBOL_PREFIX_PS4
-			end
-			if v261_ == InputDevice.NAMES.PS5_GAMEPAD then
-				return InputDisplayManager.SYMBOL_PREFIX_PS5
-			end
-			if v261_ == InputDevice.NAMES.STADIA_GAMEPAD then
-				return InputDisplayManager.SYMBOL_PREFIX_STADIA
-			end
-			if v261_ == InputDevice.NAMES.SWITCH_GAMEPAD then
-				v260_ = InputDisplayManager.SYMBOL_PREFIX_SWITCH
-			end
-		end
+		return prefix
 	end
-	return v260_
 end
-
 function InputDisplayManager:getPlusOverlay()
 	return self.plusOverlay
 end
-
 function InputDisplayManager:getOrOverlay()
 	return self.orOverlay
 end
-
 function InputDisplayManager:getKeyboardKeyOverlay()
 	return self.keyboardKeyOverlay
 end
-
--- Local values: action, contextBinding, internalDeviceId, bindings, lowestIndex, _, binding, fitsContext
 function InputDisplayManager:getFirstBindingAxisAndDeviceForActionName(inputActionName, axisComponent, isGamepad)
-	local v269_ = axisComponent or Binding.AXIS_COMPONENT.POSITIVE
-	local v270_ = self.inputManager:getActionByName(inputActionName)
-	local v271_ = nil
-	local v272_ = nil
-	local v273_ = self.actionBindings[v270_]
-	local v274_ = math.huge
-	if v273_ == nil then
+	axisComponent = axisComponent or Binding.AXIS_COMPONENT.POSITIVE
+	local action = self.inputManager:getActionByName(inputActionName)
+	local contextBinding = nil
+	local internalDeviceId = nil
+	local bindings = self.actionBindings[action]
+	local lowestIndex = math.huge
+	if bindings == nil then
 		return "", -1
+	end
+	for _, binding in ipairs(bindings) do
+		if not binding.isGamepad or not isGamepad then
+			local fitsContext = binding.isKeyboard and not isGamepad
+		end
+		if binding.isActive and (binding.index < lowestIndex and (fitsContext and binding.axisComponent == axisComponent)) then
+			contextBinding = binding
+			internalDeviceId = binding.internalDeviceId
+			lowestIndex = binding.index
+		end
+	end
+	if contextBinding then
+		return contextBinding.axisNames[1], internalDeviceId
 	else
-		for _, v275_ in ipairs(v273_) do
-			local v276_
-			if v275_.isGamepad and isGamepad then
-				v276_ = isGamepad
-			else
-				v276_ = v275_.isKeyboard
-				if v276_ then
-					v276_ = not isGamepad
-				end
-			end
-			if v275_.isActive and (v275_.index < v274_ and (v276_ and v275_.axisComponent == v269_)) then
-				v272_ = v275_.internalDeviceId
-				v274_ = v275_.index
-				v271_ = v275_
-			end
-		end
-		if v271_ then
-			return v271_.axisNames[1], v272_
-		else
-			return "", -1
-		end
+		return "", -1
 	end
 end
-
--- Local values: axisName, internalDeviceId, symbolName, overlay, guiOverlay
 function InputDisplayManager:getGamepadInputActionOverlay(inputActionName, axisComponent)
-	local v280_, v281_ = self:getFirstBindingAxisAndDeviceForActionName(inputActionName, axisComponent, true)
-	local v282_ = self:getGamepadInputSymbolName(v281_, v280_, false)
-	if v282_ == nil or v282_ == "" then
-		return nil
+	local axisName, internalDeviceId = self:getFirstBindingAxisAndDeviceForActionName(inputActionName, axisComponent, true)
+	local symbolName = self:getGamepadInputSymbolName(internalDeviceId, axisName, false)
+	if symbolName ~= nil and symbolName ~= "" then
+		if self.controllerSymbols[symbolName] == nil then
+			Logging.devWarning("Controller symbol name '%s' is not defined in controllerSymbols.xml", symbolName)
+			return nil
+		else
+			local overlay = self.controllerSymbols[symbolName].overlay
+			local guiOverlay = {}
+			guiOverlay.uvs = overlay.uvs
+			guiOverlay.color = { overlay.r, overlay.g, overlay.b, overlay.a }
+			guiOverlay.filename = overlay.filename
+			GuiOverlay.createOverlay(guiOverlay)
+			return guiOverlay
+		end
 	end
-	if self.controllerSymbols[v282_] == nil then
-		Logging.devWarning("Controller symbol name \'%s\' is not defined in controllerSymbols.xml", v282_)
-		return nil
-	end
-	local v283_ = self.controllerSymbols[v282_].overlay
-	local v284_ = {
-		["uvs"] = v283_.uvs,
-		["color"] = {
-			v283_.r,
-			v283_.g,
-			v283_.b,
-			v283_.a
-		},
-		["filename"] = v283_.filename
-	}
-	GuiOverlay.createOverlay(v284_)
-	return v284_
+	return nil
 end
-
--- Local values: axisName, keyId, keyName
 function InputDisplayManager:getKeyboardInputActionKey(inputActionName, axisComponent)
-	local v288_ = self:getFirstBindingAxisAndDeviceForActionName(inputActionName, axisComponent, false)
-	if v288_ == "" then
+	local axisName = self:getFirstBindingAxisAndDeviceForActionName(inputActionName, axisComponent, false)
+	if axisName ~= "" then
+		local keyId = Input[axisName]
+		local keyName = KeyboardHelper.getDisplayKeyName(keyId)
+		return keyName
+	else
 		return nil
 	end
-	local v289_ = Input[v288_]
-	return KeyboardHelper.getDisplayKeyName(v289_)
 end
-
--- Local values: symbolName, prefix, axisId, axisLabel, buttonId, buttonLabel
 function InputDisplayManager:getGamepadInputSymbolName(internalDeviceId, axisName, isAxisInput)
-	local v293_ = ""
-	if internalDeviceId ~= nil and internalDeviceId >= 0 then
-		local v294_ = InputDisplayManager:getPrefix(internalDeviceId)
+	local symbolName = ""
+	if internalDeviceId ~= nil and 0 <= internalDeviceId then
+		local prefix = InputDisplayManager:getPrefix(internalDeviceId)
 		if isAxisInput then
-			local v295_ = Input.axisIdNameToId[axisName]
-			if v295_ ~= nil then
-				return v294_ .. string.gsub(getGamepadAxisLabel(v295_, internalDeviceId), " ", "")
+			local axisId = Input.axisIdNameToId[axisName]
+			if axisId ~= nil then
+				local axisLabel = string.gsub(getGamepadAxisLabel(axisId, internalDeviceId), " ", "")
+				symbolName = prefix .. axisLabel
+				return symbolName
 			end
 		else
-			local v296_ = Input.buttonIdNameToId[axisName]
-			if v296_ ~= nil then
-				local v297_ = getGamepadButtonLabel(v296_, internalDeviceId)
-				v293_ = v294_ .. string.gsub(v297_, " ", "")
+			local buttonId = Input.buttonIdNameToId[axisName]
+			if buttonId ~= nil then
+				local buttonLabel = getGamepadButtonLabel(buttonId, internalDeviceId)
+				symbolName = prefix .. string.gsub(buttonLabel, " ", "")
 			end
 		end
 	end
-	return v293_
+	return symbolName
 end
-
--- Local values: symbolName, _, axisName
 function InputDisplayManager:getMouseInputSymbolName(axisNames)
-	local v299_ = ""
-	for _, v300_ in pairs(axisNames) do
-		if InputBinding.MOUSE_BUTTONS[v300_] then
-			v299_ = v299_ .. InputDisplayManager.SYMBOL_PREFIX_MOUSE .. v300_
-		elseif v300_:sub(1, #InputDisplayManager.AXIS_NAME_MOUSE_X) == InputDisplayManager.AXIS_NAME_MOUSE_X then
-			v299_ = v299_ .. InputDisplayManager.SYMBOL_PREFIX_MOUSE .. "AxisX"
-		elseif v300_:sub(1, #InputDisplayManager.AXIS_NAME_MOUSE_Y) == InputDisplayManager.AXIS_NAME_MOUSE_Y then
-			v299_ = v299_ .. InputDisplayManager.SYMBOL_PREFIX_MOUSE .. "AxisY"
+	local symbolName = ""
+	for _, axisName in pairs(axisNames) do
+		if InputBinding.MOUSE_BUTTONS[axisName] then
+			symbolName = symbolName .. InputDisplayManager.SYMBOL_PREFIX_MOUSE .. axisName
+		elseif axisName:sub(1, #InputDisplayManager.AXIS_NAME_MOUSE_X) == InputDisplayManager.AXIS_NAME_MOUSE_X then
+			symbolName = symbolName .. InputDisplayManager.SYMBOL_PREFIX_MOUSE .. "AxisX"
+		elseif axisName:sub(1, #InputDisplayManager.AXIS_NAME_MOUSE_Y) == InputDisplayManager.AXIS_NAME_MOUSE_Y then
+			symbolName = symbolName .. InputDisplayManager.SYMBOL_PREFIX_MOUSE .. "AxisY"
 		end
 	end
-	return v299_
+	return symbolName
 end
-
 function InputDisplayManager:onActionBindingsChanged(actionBindings)
 	self.actionBindings = actionBindings
 end
-
 function InputDisplayManager:draw()
 	if self.debugControllerSymbols then
 		self:debugRenderControllerSymbols()
 	end
 end
-
--- Local values: symbols, posX, posY, width, height, textOffsetX, _, offsetX, offsetY, textSize, maxTextWidth, maxWidth, _, data, overlay
 function InputDisplayManager:debugRenderControllerSymbols()
 	new2DLayer()
 	setOverlayColor(GuiElement.debugOverlay, 0, 0, 0, 0.99)
 	renderOverlay(GuiElement.debugOverlay, 0, 0, 1, 1)
-	local v305_ = self.controllerSymbolsSorted
-	local v306_, v307_ = getNormalizedScreenValues(30, 30)
-	local v308_, _ = getNormalizedScreenValues(5, 0)
-	local v309_, v310_ = getNormalizedScreenValues(20, -45)
-	local v311_ = getCorrectTextSize(0.007)
-	local v312_ = getNormalizedScreenValues(120, 0)
-	setTextWrapWidth(v312_, true)
+	local symbols = self.controllerSymbolsSorted
+	local posX = 0.005
+	local posY = 0.97
+	local width, height = getNormalizedScreenValues(30, 30)
+	local textOffsetX, _ = getNormalizedScreenValues(5, 0)
+	local offsetX, offsetY = getNormalizedScreenValues(20, -45)
+	local textSize = getCorrectTextSize(0.007)
+	local maxTextWidth = getNormalizedScreenValues(120, 0)
+	local maxWidth = 0
+	setTextWrapWidth(maxTextWidth, true)
 	setTextColor(1, 1, 1, 1)
 	setTextVerticalAlignment(RenderText.VERTICAL_ALIGN_MIDDLE)
-	local v313_ = 0.005
-	local v314_ = 0.97
-	local v315_ = 0
-	for _, v316_ in ipairs(v305_) do
-		local v317_ = v316_.overlay
-		v317_:setPosition(v313_, v314_)
-		v317_:setDimension(v306_, v307_)
-		v317_:render()
-		v317_:resetDimensions()
-		local v318_ = getTextWidth
-		local v319_ = v316_.name
-		v315_ = math.max(v315_, v318_(v311_, v319_))
-		renderText(v313_ + v308_ + v306_, v314_, v311_, v316_.name)
-		v314_ = v314_ + v310_
-		if v314_ < 0 then
-			v313_ = v313_ + v306_ + v309_ + v315_
-			v314_ = 0.97
-			v315_ = 0
+	for _, data in ipairs(symbols) do
+		local overlay = data.overlay
+		overlay:setPosition(posX, posY)
+		overlay:setDimension(width, height)
+		overlay:render()
+		overlay:resetDimensions()
+		maxWidth = math.max(maxWidth, getTextWidth(textSize, data.name))
+		renderText(posX + textOffsetX + width, posY, textSize, data.name)
+		posY = posY + offsetY
+		if posY < 0 then
+			posY = 0.97
+			posX = posX + width + offsetX + maxWidth
+			maxWidth = 0
 		end
 	end
 	setTextWrapWidth(0)
 	setTextVerticalAlignment(RenderText.VERTICAL_ALIGN_BASELINE)
 end
-
--- Local values: _, symbol
 function InputDisplayManager:consoleCommandShowInputControllerSymbols()
 	self.debugControllerSymbols = not self.debugControllerSymbols
 	if self.debugControllerSymbols then
 		if self.controllerSymbolsSorted == nil then
 			self.controllerSymbolsSorted = {}
-			for _, v321_ in pairs(self.controllerSymbols) do
-				local v322_ = self.controllerSymbolsSorted
-				table.insert(v322_, v321_)
+			for _, symbol in pairs(self.controllerSymbols) do
+				table.insert(self.controllerSymbolsSorted, symbol)
 			end
-			table.sort(self.controllerSymbolsSorted, function(p323_, p324_)
-				return p323_.name < p324_.name
+			table.sort(self.controllerSymbolsSorted, function(a, b)
+				return a.name < b.name
 			end)
-			return
 		end
 	else
 		self.controllerSymbolsSorted = nil

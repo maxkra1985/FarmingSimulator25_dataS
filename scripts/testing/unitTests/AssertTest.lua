@@ -42,17 +42,15 @@ function AssertTest.test_numberBounds()
 	end, "0 asserted to being less than 0!")
 	Assert.lessThanOrEqualTo(0, 1, "0 did not assert to being less than or equal to 1!")
 	Assert.lessThanOrEqualTo(0, 0, "0 did not assert to being less than or equal to 0!")
-	local v_u_1_ = -50
-	local v_u_2_ = 175
-	for v3_ = -50, 175 do
-		Assert.isBetween(v3_, -50, 175, nil, nil, "For loop went out of bounds of isBetween!")
+	local startIndex = -50
+	local endIndex = 175
+	for i = -50, 175 do
+		Assert.isBetween(i, -50, 175, nil, nil, "For loop went out of bounds of isBetween!")
 	end
 	Assert.throwsError(function()
-		-- upvalues: (copy) v_u_1_, (copy) v_u_2_
 		Assert.isBetween(-51, -50, 175)
 	end, "Out of bounds start index asserted to being in-bounds!")
 	Assert.throwsError(function()
-		-- upvalues: (copy) v_u_2_, (copy) v_u_1_
 		Assert.isBetween(176, -50, 175)
 	end, "Out of bounds end index asserted to being in-bounds!")
 end
@@ -80,12 +78,12 @@ function AssertTest.test_nilOrType()
 	end, "Number asserted to true against a table using isNilOrType!")
 end
 function AssertTest.test_type()
-	Assert.isType(nil, "nil", "Nil\'s type was invalid!")
-	Assert.isType(true, "boolean", "Boolean\'s type was invalid!")
-	Assert.isType("", "string", "String\'s type was invalid!")
-	Assert.isType(0, "number", "Number\'s type was invalid!")
-	Assert.isType(function() end, "function", "Function\'s type was invalid!")
-	Assert.isType({}, "table", "Table\'s type was invalid!")
+	Assert.isType(nil, "nil", "Nil's type was invalid!")
+	Assert.isType(true, "boolean", "Boolean's type was invalid!")
+	Assert.isType("", "string", "String's type was invalid!")
+	Assert.isType(0, "number", "Number's type was invalid!")
+	Assert.isType(function() end, "function", "Function's type was invalid!")
+	Assert.isType({}, "table", "Table's type was invalid!")
 	Assert.throwsError(function()
 		Assert.isType(0, "nil")
 	end, "Given type was incorrectly valid!")
@@ -106,30 +104,24 @@ function AssertTest.test_type()
 	end, "Given type was incorrectly valid!")
 end
 function AssertTest.test_class()
-	local v_u_4_ = BuyVehicleEvent.emptyNew()
-	Assert.isClass(v_u_4_, Event, "BuyEvent is an Event, but class assertion on it failed!")
+	local buyEvent = BuyVehicleEvent.emptyNew()
+	Assert.isClass(buyEvent, Event, "BuyEvent is an Event, but class assertion on it failed!")
 	Assert.throwsError(function()
-		-- upvalues: (copy) v_u_4_
-		Assert.isClass(v_u_4_, Mission00)
+		Assert.isClass(buyEvent, Mission00)
 	end, "BuyEvent is an Event, yet class assertion passed using Mission00!")
 end
 function AssertTest.test_table()
-	local v_u_5_ = {
-		["One"] = "TestValue"
-	}
-	Assert.hasKey(v_u_5_, "One", "Test table\'s key was missed by hasKey!")
+	local testTable = { One = "TestValue" }
+	Assert.hasKey(testTable, "One", "Test table's key was missed by hasKey!")
 	Assert.throwsError(function()
-		-- upvalues: (copy) v_u_5_
-		Assert.hasKey(v_u_5_, "Two")
+		Assert.hasKey(testTable, "Two")
 	end, "Non-existent key was found in test table using hasKey!")
-	Assert.hasNoKey(v_u_5_, "Two", "Test table\'s non-existent key was found by hasNoKey!")
+	Assert.hasNoKey(testTable, "Two", "Test table's non-existent key was found by hasNoKey!")
 	Assert.throwsError(function()
-		-- upvalues: (copy) v_u_5_
-		Assert.hasNoKey(v_u_5_, "One")
-	end, "Test table\'s existing key was not found in test table using hasNoKey!")
+		Assert.hasNoKey(testTable, "One")
+	end, "Test table's existing key was not found in test table using hasNoKey!")
 	Assert.throwsError(function()
-		-- upvalues: (copy) v_u_5_
-		Assert.hasKey(v_u_5_, "TestValue")
-	end, "Test table\'s testing value was found as a key!")
-	Assert.hasNoKey(v_u_5_, "TestValue", "Test table\'s testing value was found as a key!")
+		Assert.hasKey(testTable, "TestValue")
+	end, "Test table's testing value was found as a key!")
+	Assert.hasNoKey(testTable, "TestValue", "Test table's testing value was found as a key!")
 end

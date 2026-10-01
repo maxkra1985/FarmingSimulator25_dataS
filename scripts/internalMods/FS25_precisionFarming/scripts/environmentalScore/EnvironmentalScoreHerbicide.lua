@@ -1,129 +1,110 @@
--- Local values: EnvironmentalScoreHerbicide_mt
 EnvironmentalScoreHerbicide = {}
 EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY = 1
 EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY = 2
 EnvironmentalScoreHerbicide.TYPE_MECHANICAL = 3
 local EnvironmentalScoreHerbicide_mt = Class(EnvironmentalScoreHerbicide, EnvironmentalScoreValue)
-
--- Upvalues: EnvironmentalScoreHerbicide_mt
--- Local values: self
 function EnvironmentalScoreHerbicide.new(pfModule, customMt)
-	-- upvalues: (copy) EnvironmentalScoreHerbicide_mt
-	local v4_ = EnvironmentalScoreValue.new(pfModule, customMt or EnvironmentalScoreHerbicide_mt)
-	v4_.xmlKey = "herbicide"
-	return v4_
+	local self = EnvironmentalScoreValue.new(pfModule, customMt or EnvironmentalScoreHerbicide_mt)
+	self.xmlKey = "herbicide"
+	return self
 end
-
 function EnvironmentalScoreHerbicide:loadFromXML(xmlFile, key, baseDirectory, configFileName, mapFilename)
-	return EnvironmentalScoreTillage:superClass().loadFromXML(self, xmlFile, key, baseDirectory, configFileName, mapFilename) and true or false
+	if not EnvironmentalScoreTillage:superClass().loadFromXML(self, xmlFile, key, baseDirectory, configFileName, mapFilename) then
+		return false
+	else
+		return true
+	end
 end
-
 function EnvironmentalScoreHerbicide:update(dt) end
-
--- Local values: farmlandData, sum, score
 function EnvironmentalScoreHerbicide:getScore(farmlandId)
-	local v13_ = self:getFarmlandData(farmlandId)
-	if v13_.clientScore ~= nil then
-		return v13_.clientScore
+	local farmlandData = self:getFarmlandData(farmlandId)
+	if farmlandData.clientScore ~= nil then
+		return farmlandData.clientScore
 	end
-	local v14_ = 0 + v13_.areaByType[1] + v13_.areaByType[2] + v13_.areaByType[3]
-	if v14_ == 0 then
+	local sum = 0
+	sum = sum + farmlandData.areaByType[1]
+	sum = sum + farmlandData.areaByType[2]
+	sum = sum + farmlandData.areaByType[3]
+	if sum == 0 then
 		return 0.5
+	else
+		local score = 0
+		score = score + farmlandData.areaByType[EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY] / sum * 1
+		score = score + farmlandData.areaByType[EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY] / sum * 0.6
+		score = score + farmlandData.areaByType[EnvironmentalScoreHerbicide.TYPE_MECHANICAL] / sum * 0.75
+		return math.clamp(score, 0, 1)
 	end
-	local v15_ = 0 + v13_.areaByType[EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY] / v14_ * 1 + v13_.areaByType[EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY] / v14_ * 0.6 + v13_.areaByType[EnvironmentalScoreHerbicide.TYPE_MECHANICAL] / v14_ * 0.75
-	return math.clamp(v15_, 0, 1)
 end
-
 function EnvironmentalScoreHerbicide:initFarmlandData()
-	local v16_ = {
-		["areaByType"] = {
-			[EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY] = 0,
-			[EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY] = 0,
-			[EnvironmentalScoreHerbicide.TYPE_MECHANICAL] = 0
-		},
-		["pendingReset"] = false
-	}
-	return v16_
+	return { areaByType = { [EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY] = 0, [EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY] = 0, [EnvironmentalScoreHerbicide.TYPE_MECHANICAL] = 0 }, pendingReset = false }
 end
-
 function EnvironmentalScoreHerbicide:loadFarmlandData(data, xmlFile, key)
 	data.areaByType[EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY] = xmlFile:getFloat(key .. "#spotSpray", data.areaByType[EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY])
 	data.areaByType[EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY] = xmlFile:getFloat(key .. "#fullSpray", data.areaByType[EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY])
 	data.areaByType[EnvironmentalScoreHerbicide.TYPE_MECHANICAL] = xmlFile:getFloat(key .. "#mechanical", data.areaByType[EnvironmentalScoreHerbicide.TYPE_MECHANICAL])
 	data.pendingReset = xmlFile:getBool(key .. "#pendingReset", data.pendingReset)
 end
-
 function EnvironmentalScoreHerbicide:saveFarmlandData(data, xmlFile, key)
 	xmlFile:setFloat(key .. "#spotSpray", data.areaByType[EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY])
 	xmlFile:setFloat(key .. "#fullSpray", data.areaByType[EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY])
 	xmlFile:setFloat(key .. "#mechanical", data.areaByType[EnvironmentalScoreHerbicide.TYPE_MECHANICAL])
 	xmlFile:setBool(key .. "#pendingReset", data.pendingReset)
 end
-
--- Local values: score
 function EnvironmentalScoreHerbicide:readFarmlandDataFromStream(data, streamId, connection)
-	data.clientScore = MathUtil.round(streamReadUIntN(streamId, 8) / 255, 2)
+	local score = MathUtil.round(streamReadUIntN(streamId, 8) / 255, 2)
+	data.clientScore = score
 end
-
--- Local values: score
 function EnvironmentalScoreHerbicide:writeFarmlandDataToStream(data, streamId, connection)
-	local v28_ = self:getScore(data.farmlandId)
-	streamWriteUIntN(streamId, v28_ * 255, 8)
+	local score = self:getScore(data.farmlandId)
+	streamWriteUIntN(streamId, score * 255, 8)
 end
-
--- Local values: farmlandData
 function EnvironmentalScoreHerbicide:onHarvestScoreReset(farmlandId)
-	self:getFarmlandData(farmlandId).pendingReset = true
+	local farmlandData = self:getFarmlandData(farmlandId)
+	farmlandData.pendingReset = true
 end
-
--- Local values: farmlandData
 function EnvironmentalScoreHerbicide:addWorkedArea(farmlandId, area, type)
-	local v35_ = self:getFarmlandData(farmlandId)
-	if v35_.pendingReset then
-		v35_.areaByType[EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY] = 0
-		v35_.areaByType[EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY] = 0
-		v35_.areaByType[EnvironmentalScoreHerbicide.TYPE_MECHANICAL] = 0
-		v35_.pendingReset = false
+	local farmlandData = self:getFarmlandData(farmlandId)
+	if farmlandData.pendingReset then
+		farmlandData.areaByType[EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY] = 0
+		farmlandData.areaByType[EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY] = 0
+		farmlandData.areaByType[EnvironmentalScoreHerbicide.TYPE_MECHANICAL] = 0
+		farmlandData.pendingReset = false
 	end
-	v35_.areaByType[type] = v35_.areaByType[type] + area
+	farmlandData.areaByType[type] = farmlandData.areaByType[type] + area
 end
-
 function EnvironmentalScoreHerbicide:overwriteGameFunctions(pfModule)
 	if g_server ~= nil then
-		pfModule:overwriteGameFunction(Sprayer, "processSprayerArea", function(p38_, p39_, p40_, p41_)
-			-- upvalues: (copy) self
-			local v42_, v43_ = p38_(p39_, p40_, p41_)
-			if v42_ > 0 and p39_.spec_sprayer.workAreaParameters.sprayFillType == FillType.HERBICIDE then
-				local v44_, _, v45_ = getWorldTranslation(p39_.rootNode)
-				local v46_ = g_farmlandManager:getFarmlandIdAtWorldPosition(v44_, v45_)
-				if v46_ ~= nil then
-					local _ = p39_[WeedSpotSpray.SPEC_TABLE_NAME]
-					if p39_.getIsSpotSprayEnabled ~= nil and p39_:getIsSpotSprayEnabled() then
-						self:addWorkedArea(v46_, v42_, EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY)
-						return v42_, v43_
+		pfModule:overwriteGameFunction(Sprayer, "processSprayerArea", function(superFunc, vehicle, workArea, dt)
+			local changedArea, totalArea = superFunc(vehicle, workArea, dt)
+			if 0 < changedArea and vehicle.spec_sprayer.workAreaParameters.sprayFillType == FillType.HERBICIDE then
+				local x, _, z = getWorldTranslation(vehicle.rootNode)
+				local farmlandId = g_farmlandManager:getFarmlandIdAtWorldPosition(x, z)
+				if farmlandId ~= nil then
+					local spec = vehicle[WeedSpotSpray.SPEC_TABLE_NAME]
+					if vehicle.getIsSpotSprayEnabled ~= nil and vehicle:getIsSpotSprayEnabled() then
+						self:addWorkedArea(farmlandId, changedArea, EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY)
+						return changedArea, totalArea
 					end
-					self:addWorkedArea(v46_, v42_, EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY)
+					self:addWorkedArea(farmlandId, changedArea, EnvironmentalScoreHerbicide.TYPE_FULL_SPRAY)
 				end
 			end
-			return v42_, v43_
+			return changedArea, totalArea
 		end)
-		pfModule:overwriteGameFunction(Weeder, "processWeederArea", function(p47_, p48_, p49_, p50_)
-			-- upvalues: (copy) self
-			local v51_, v52_ = p47_(p48_, p49_, p50_)
-			if v51_ > 0 then
-				local v53_, _, v54_ = getWorldTranslation(p48_.rootNode)
-				local v55_ = g_farmlandManager:getFarmlandIdAtWorldPosition(v53_, v54_)
-				if v55_ ~= nil then
-					self:addWorkedArea(v55_, v51_, EnvironmentalScoreHerbicide.TYPE_MECHANICAL)
+		pfModule:overwriteGameFunction(Weeder, "processWeederArea", function(superFunc, vehicle, workArea, dt)
+			local changedArea, totalArea = superFunc(vehicle, workArea, dt)
+			if 0 < changedArea then
+				local x, _, z = getWorldTranslation(vehicle.rootNode)
+				local farmlandId = g_farmlandManager:getFarmlandIdAtWorldPosition(x, z)
+				if farmlandId ~= nil then
+					self:addWorkedArea(farmlandId, changedArea, EnvironmentalScoreHerbicide.TYPE_MECHANICAL)
 				end
 			end
-			return v51_, v52_
+			return changedArea, totalArea
 		end)
-		pfModule:overwriteGameFunction(HarvestExtension, "setLastScoringValues", function(p56_, p57_, p58_, p59_, p60_, p61_, p62_, p63_, p64_, p65_)
-			-- upvalues: (copy) self
-			p56_(p57_, p58_, p59_, p60_, p61_, p62_, p63_, p64_, p65_)
-			if p65_ ~= nil and (p65_ == FillType.GRASS or p65_ == FillType.GRASS_WINDROW) and (p58_ > 0 and p59_ ~= nil) then
-				self:addWorkedArea(p59_, p58_, EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY)
+		pfModule:overwriteGameFunction(HarvestExtension, "setLastScoringValues", function(superFunc, harvestExtension, area, farmlandId, nActual, nTarget, pHActual, pHTarget, ignoreOverfertilization, fillTypeIndex)
+			superFunc(harvestExtension, area, farmlandId, nActual, nTarget, pHActual, pHTarget, ignoreOverfertilization, fillTypeIndex)
+			if fillTypeIndex ~= nil and ((fillTypeIndex == FillType.GRASS or fillTypeIndex == FillType.GRASS_WINDROW) and (0 < area and farmlandId ~= nil)) then
+				self:addWorkedArea(farmlandId, area, EnvironmentalScoreHerbicide.TYPE_SPOT_SPRAY)
 			end
 		end)
 	end

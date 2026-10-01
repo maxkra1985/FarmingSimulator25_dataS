@@ -1,35 +1,29 @@
--- Local values: AIMessageErrorCouldNotPrepare_mt
 AIMessageErrorCouldNotPrepare = {}
 local AIMessageErrorCouldNotPrepare_mt = Class(AIMessageErrorCouldNotPrepare, AIMessage)
-
--- Upvalues: AIMessageErrorCouldNotPrepare_mt
--- Local values: self
 function AIMessageErrorCouldNotPrepare.new(vehicle, customMt)
-	-- upvalues: (copy) AIMessageErrorCouldNotPrepare_mt
-	local v4_ = AIMessage.new(customMt or AIMessageErrorCouldNotPrepare_mt)
-	v4_.vehicle = vehicle
-	return v4_
+	local self = AIMessage.new(customMt or AIMessageErrorCouldNotPrepare_mt)
+	self.vehicle = vehicle
+	return self
 end
-
--- Local values: i18nText, vehicleName, helperName
 function AIMessageErrorCouldNotPrepare:getMessage(job)
-	local v7_ = self:getI18NText()
-	local v8_ = self.vehicle == nil and "" or self.vehicle:getName()
-	local v9_ = "Unknown"
-	if job ~= nil then
-		v9_ = job:getHelperName() or v9_
+	local i18nText = self:getI18NText()
+	local vehicleName = ""
+	if self.vehicle ~= nil then
+		vehicleName = self.vehicle:getName()
 	end
-	return string.format(v7_, v9_, v8_)
+	local helperName = "Unknown"
+	if job ~= nil then
+		helperName = job:getHelperName() or helperName
+	else
+	end
+	return string.format(i18nText, helperName, vehicleName)
 end
-
 function AIMessageErrorCouldNotPrepare:getI18NText()
 	return g_i18n:getText("ai_messageErrorCouldNotPrepare")
 end
-
 function AIMessageErrorCouldNotPrepare:readStream(streamId, connection)
 	self.vehicle = NetworkUtil.readNodeObject(streamId)
 end
-
 function AIMessageErrorCouldNotPrepare:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.vehicle)
 end

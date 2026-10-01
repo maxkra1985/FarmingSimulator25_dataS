@@ -1,25 +1,21 @@
--- Local values: ConnectionRequestEvent_mt
 ConnectionRequestEvent = {}
 local ConnectionRequestEvent_mt = Class(ConnectionRequestEvent, Event)
 InitStaticEventClass(ConnectionRequestEvent, "ConnectionRequestEvent")
 function ConnectionRequestEvent.emptyNew()
-	-- upvalues: (copy) ConnectionRequestEvent_mt
-	return Event.new(ConnectionRequestEvent_mt)
+	local self = Event.new(ConnectionRequestEvent_mt)
+	return self
 end
-
--- Local values: self
 function ConnectionRequestEvent.new(language, password, uniqueUserId, platformUserId, platformId, playerName, platformSessionId)
-	local v9_ = ConnectionRequestEvent.emptyNew()
-	v9_.language = language
-	v9_.password = password
-	v9_.uniqueUserId = uniqueUserId
-	v9_.platformUserId = platformUserId
-	v9_.platformId = platformId
-	v9_.playerName = playerName
-	v9_.platformSessionId = platformSessionId
-	return v9_
+	local self = ConnectionRequestEvent.emptyNew()
+	self.language = language
+	self.password = password
+	self.uniqueUserId = uniqueUserId
+	self.platformUserId = platformUserId
+	self.platformId = platformId
+	self.playerName = playerName
+	self.platformSessionId = platformSessionId
+	return self
 end
-
 function ConnectionRequestEvent:readStream(streamId, connection)
 	self.language = streamReadUInt8(streamId)
 	self.password = streamReadString(streamId)
@@ -30,7 +26,6 @@ function ConnectionRequestEvent:readStream(streamId, connection)
 	self.platformSessionId = streamReadString(streamId)
 	self:run(connection)
 end
-
 function ConnectionRequestEvent:writeStream(streamId, connection)
 	streamWriteUInt8(streamId, self.language)
 	streamWriteString(streamId, self.password)
@@ -40,7 +35,6 @@ function ConnectionRequestEvent:writeStream(streamId, connection)
 	streamWriteString(streamId, self.playerName)
 	streamWriteString(streamId, self.platformSessionId)
 end
-
 function ConnectionRequestEvent:run(connection)
 	g_currentMission:onConnectionRequest(connection, self.language, self.password, self.uniqueUserId, self.platformUserId, self.platformId, self.playerName, self.platformSessionId)
 end

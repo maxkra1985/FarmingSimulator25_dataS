@@ -1,62 +1,50 @@
--- Local values: PlayerLocalNetworkComponent_mt
 PlayerLocalNetworkComponent = {}
 local PlayerLocalNetworkComponent_mt = Class(PlayerLocalNetworkComponent, PlayerNetworkComponent)
 PlayerLocalNetworkComponent.NETWORK_HISTORY_MAX_LENGTH = 100
-
--- Upvalues: PlayerLocalNetworkComponent_mt
--- Local values: self
 function PlayerLocalNetworkComponent.new(player)
-	-- upvalues: (copy) PlayerLocalNetworkComponent_mt
-	local v3_ = PlayerNetworkComponent.new(player, PlayerLocalNetworkComponent_mt)
-	v3_.player = player
-	v3_.tickHistory = {}
-	v3_.currentTickIndex = 0
-	v3_.movementX = 0
-	v3_.movementY = 0
-	v3_.movementZ = 0
-	v3_.movementYaw = 0
-	return v3_
+	local self = PlayerNetworkComponent.new(player, PlayerLocalNetworkComponent_mt)
+	self.player = player
+	self.tickHistory = {}
+	self.currentTickIndex = 0
+	self.movementX = 0
+	self.movementY = 0
+	self.movementZ = 0
+	self.movementYaw = 0
+	return self
 end
-
 function PlayerLocalNetworkComponent:reset()
 	if self.tickHistory ~= nil then
 		table.clear(self.tickHistory)
 	end
 end
-
--- Local values: history, currentTickHistory
 function PlayerLocalNetworkComponent:update(dt)
 	if self.needNewTick then
 		self.currentTickIndex = self.currentTickIndex + 1
-		while #self.tickHistory > PlayerLocalNetworkComponent.NETWORK_HISTORY_MAX_LENGTH do
+		while PlayerLocalNetworkComponent.NETWORK_HISTORY_MAX_LENGTH < #self.tickHistory do
 			table.remove(self.tickHistory, 1)
 		end
-		local v6_ = {
-			["tickIndex"] = self.currentTickIndex,
-			["movementX"] = 0,
-			["movementY"] = 0,
-			["movementZ"] = 0
-		}
-		local v7_ = self.tickHistory
-		table.insert(v7_, v6_)
+		local history = {}
+		history.tickIndex = self.currentTickIndex
+		history.movementX = 0
+		history.movementY = 0
+		history.movementZ = 0
+		table.insert(self.tickHistory, history)
 		self.needNewTick = false
 	end
 	self.movementX = self.movementX + self.player.mover.positionDeltaX
 	self.movementY = self.movementY + self.player.mover.positionDeltaY
 	self.movementZ = self.movementZ + self.player.mover.positionDeltaZ
 	self.movementYaw = self.player.mover:getMovementYaw()
-	local v8_ = self.tickHistory[#self.tickHistory]
-	if v8_ ~= nil then
-		v8_.movementX = v8_.movementX + self.player.mover.positionDeltaX
-		v8_.movementY = v8_.movementY + self.player.mover.positionDeltaY
-		v8_.movementZ = v8_.movementZ + self.player.mover.positionDeltaZ
+	local currentTickHistory = self.tickHistory[#self.tickHistory]
+	if currentTickHistory ~= nil then
+		currentTickHistory.movementX = currentTickHistory.movementX + self.player.mover.positionDeltaX
+		currentTickHistory.movementY = currentTickHistory.movementY + self.player.mover.positionDeltaY
+		currentTickHistory.movementZ = currentTickHistory.movementZ + self.player.mover.positionDeltaZ
 	end
 end
-
 function PlayerLocalNetworkComponent:updateTick(dt)
 	self.needNewTick = true
 end
-
 function PlayerLocalNetworkComponent:writeUpdateStream(streamId, connection, dirtyMask)
 	PlayerLocalNetworkComponent:superClass().writeUpdateStream(self, streamId, connection, dirtyMask)
 	streamWriteUInt32(streamId, self.currentTickIndex)
@@ -71,47 +59,47 @@ function PlayerLocalNetworkComponent:writeUpdateStream(streamId, connection, dir
 	self.movementZ = 0
 	self.movementYaw = 0
 end
-
--- Local values: tickIndex, isControlled, skipModel, skipMover, receivedPositionX, receivedPositionY, receivedPositionZ, historyToDelete, numHistoryEntries, numAggregationTicks, totalMovementX, totalMovementY, totalMovementZ, numSteps, _, history
 function PlayerLocalNetworkComponent:readUpdateStream(streamId, connection, timestamp)
 	PlayerLocalNetworkComponent:superClass().readUpdateStream(self, streamId, connection, timestamp)
-	local v18_ = streamReadUInt32(streamId)
-	local v19_ = streamReadBool(streamId)
-	local v20_ = streamReadBool(streamId)
-	local v21_ = streamReadBool(streamId)
-	self.player:updateControlledState(v19_, v20_, v21_)
-	local v22_ = streamReadFloat32(streamId)
-	local v23_ = streamReadFloat32(streamId)
-	local v24_ = streamReadFloat32(streamId)
-	self.player.mover:setPosition(v22_, v23_, v24_)
-	local v25_ = self.tickHistory[1]
-	while v25_ ~= nil and v25_.tickIndex <= v18_ do
-		table.remove(self.tickHistory, 1)
-		v25_ = self.tickHistory[1]
-	end
-	local v26_ = #self.tickHistory / 5
-	local v27_ = math.ceil(v26_)
-	local v28_ = nil
-	local v29_ = nil
-	local v30_ = nil
-	local v31_ = 0
-	for _, v32_ in ipairs(self.tickHistory) do
-		if v28_ == nil then
-			v28_ = 0
-			v29_ = 0
-			v30_ = 0
-		end
-		v28_ = v28_ + v32_.movementX
-		v29_ = v29_ + v32_.movementY
-		v30_ = v30_ + v32_.movementZ
-		v31_ = v31_ + 1
-		if v27_ <= v31_ then
-			self.player.capsuleController:move(v28_, v29_, v30_)
-			v28_ = nil
-			v31_ = 0
+	local tickIndex = streamReadUInt32(streamId)
+	local isControlled = streamReadBool(streamId)
+	local skipModel = streamReadBool(streamId)
+	local skipMover = streamReadBool(streamId)
+	self.player:updateControlledState(isControlled, skipModel, skipMover)
+	local receivedPositionX = streamReadFloat32(streamId)
+	local receivedPositionY = streamReadFloat32(streamId)
+	local receivedPositionZ = streamReadFloat32(streamId)
+	self.player.mover:setPosition(receivedPositionX, receivedPositionY, receivedPositionZ)
+	local historyToDelete = self.tickHistory[1]
+	while historyToDelete ~= nil do
+		if historyToDelete.tickIndex <= tickIndex then
+			table.remove(self.tickHistory, 1)
+			historyToDelete = self.tickHistory[1]
 		end
 	end
-	if v31_ > 0 then
-		self.player.capsuleController:move(v28_, v29_, v30_)
+	local numHistoryEntries = #self.tickHistory
+	local numAggregationTicks = math.ceil(numHistoryEntries / 5)
+	local totalMovementX = nil
+	local totalMovementY = nil
+	local totalMovementZ = nil
+	local numSteps = 0
+	for _, history in ipairs(self.tickHistory) do
+		if totalMovementX == nil then
+			totalMovementX = 0
+			totalMovementY = 0
+			totalMovementZ = 0
+		end
+		totalMovementX = totalMovementX + history.movementX
+		totalMovementY = totalMovementY + history.movementY
+		totalMovementZ = totalMovementZ + history.movementZ
+		numSteps = numSteps + 1
+		if numAggregationTicks <= numSteps then
+			self.player.capsuleController:move(totalMovementX, totalMovementY, totalMovementZ)
+			totalMovementX = nil
+			numSteps = 0
+		end
+	end
+	if 0 < numSteps then
+		self.player.capsuleController:move(totalMovementX, totalMovementY, totalMovementZ)
 	end
 end

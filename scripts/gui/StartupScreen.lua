@@ -1,22 +1,14 @@
--- Local values: StartupScreen_mt
-StartupScreen = {
-	["EVENTTYPE_VIDEO"] = 1,
-	["EVENTTYPE_PICTURE"] = 2
-}
+StartupScreen = { EVENTTYPE_VIDEO = 1, EVENTTYPE_PICTURE = 2 }
 local StartupScreen_mt = Class(StartupScreen, ScreenElement)
 function StartupScreen.register()
-	local v2_ = StartupScreen.new()
-	g_gui:loadGui("dataS/gui/StartupScreen.xml", "StartupScreen", v2_)
-	return v2_
+	local startupScreen = StartupScreen.new()
+	g_gui:loadGui("dataS/gui/StartupScreen.xml", "StartupScreen", startupScreen)
+	return startupScreen
 end
-
--- Upvalues: StartupScreen_mt
--- Local values: self
 function StartupScreen.new(target)
-	-- upvalues: (copy) StartupScreen_mt
-	return FrameElement.new(target, StartupScreen_mt)
+	local self = FrameElement.new(target, StartupScreen_mt)
+	return self
 end
-
 function StartupScreen:onClose()
 	self.videoElement:disposeVideo()
 	self.pictureElement:setImageFilename(nil)
@@ -25,10 +17,9 @@ function StartupScreen:onClose()
 	self.currentEventId = nil
 	g_gameStateManager:setGameState(GameState.MENU_MAIN)
 end
-
 function StartupScreen:onOpen()
 	self.eventList = {}
-	if not (StartParams.getIsSet("skipStartVideos") or g_isDevelopmentVersion and Platform.isPC) then
+	if not StartParams.getIsSet("skipStartVideos") and (not g_isDevelopmentVersion or not Platform.isPC) then
 		if Platform.showVideoGIANTS then
 			self:addStartupVideo("de en cz pl fr es jp ru hu it cs ct nl pt br tr ro kr ea da fi no sv fc", "dataS/videos/GIANTSLogo.ogv", 1, false, { 1, 0.5625 })
 		end
@@ -39,40 +30,27 @@ function StartupScreen:onOpen()
 	self.currentEventId = 0
 	self:showNextEvent()
 end
-
--- Local values: videoEvent
 function StartupScreen:addStartupVideo(languagesString, filename, volume, isFullscreen, size)
 	if self:shouldAddEvent(languagesString) then
-		local v12_ = {
-			["filename"] = filename,
-			["volume"] = volume,
-			["fullscreen"] = isFullscreen,
-			["size"] = size,
-			["eventType"] = StartupScreen.EVENTTYPE_VIDEO
-		}
-		local v13_ = self.eventList
-		table.insert(v13_, v12_)
+		local videoEvent = { filename = filename, volume = volume, fullscreen = isFullscreen, size = size }
+		videoEvent.eventType = StartupScreen.EVENTTYPE_VIDEO
+		table.insert(self.eventList, videoEvent)
 	end
 end
-
--- Local values: pictureEvent
 function StartupScreen:addStartupPicture(languagesString, filename, duration)
 	if self:shouldAddEvent(languagesString) then
-		local v18_ = {
-			["filename"] = filename,
-			["duration"] = duration,
-			["eventType"] = StartupScreen.EVENTTYPE_PICTURE
-		}
-		local v19_ = self.eventList
-		table.insert(v19_, v18_)
+		local pictureEvent = { filename = filename, duration = duration }
+		pictureEvent.eventType = StartupScreen.EVENTTYPE_PICTURE
+		table.insert(self.eventList, pictureEvent)
 	end
 end
-
--- Local values: languages
 function StartupScreen:shouldAddEvent(languagesString)
-	return (Platform.isConsole or not languagesString) and true or table.toSet(languagesString:split(" "))[g_languageShort] ~= nil
+	if Platform.isConsole or not languagesString then
+		return true
+	end
+	local languages = table.toSet(languagesString:split(" "))
+	return languages[g_languageShort] ~= nil
 end
-
 function StartupScreen:onVideoElementCreated(videoElement)
 	self.videoElement = videoElement
 	function self.videoElement.mouseEvent() end
@@ -81,117 +59,107 @@ function StartupScreen:onVideoElementCreated(videoElement)
 	self.videoElementCallback = videoElement.onEndVideoCallback
 	self.videoElement:setVisible(false)
 end
-
 function StartupScreen:onPictureElementCreated(pictureElement)
 	self.pictureElement = pictureElement
 	self.pictureElement:setVisible(false)
 end
-
--- Local values: nextEvent
 function StartupScreen:showNextEvent()
 	self.currentEventId = self.currentEventId + 1
-	local v26_ = self.eventList[self.currentEventId]
-	if v26_ then
-		if v26_.eventType == StartupScreen.EVENTTYPE_VIDEO then
-			self.videoElement:setVisible(true)
-			self.videoElement.onEndVideoCallback = self.videoElementCallback
-			self.pictureElement:setVisible(false)
-			self:playVideo(v26_)
-		else
-			self.pictureElement:setVisible(true)
-			self.videoElement:setVisible(false)
-			self.videoElement.onEndVideoCallback = nil
-			self:showPicture(v26_)
-		end
-	else
+	local nextEvent = self.eventList[self.currentEventId]
+	if not nextEvent then
 		self:onStartupEnd()
-		return
+	elseif nextEvent.eventType == StartupScreen.EVENTTYPE_VIDEO then
+		self.videoElement:setVisible(true)
+		self.videoElement.onEndVideoCallback = self.videoElementCallback
+		self.pictureElement:setVisible(false)
+		self:playVideo(nextEvent)
+	else
+		self.pictureElement:setVisible(true)
+		self.videoElement:setVisible(false)
+		self.videoElement.onEndVideoCallback = nil
+		self:showPicture(nextEvent)
 	end
 end
-
--- Local values: adjustedVideoSizeX, adjustedVideoSizeY, adjustedVideoPositionX, adjustedVideoPositionY, x, y, aspectRatio
 function StartupScreen:playVideo(videoEvent)
 	self.videoElement:changeVideo(videoEvent.filename, videoEvent.volume)
-	local v29_, v30_, v31_, v32_
+	local adjustedVideoSizeX = nil
+	local adjustedVideoSizeY = nil
+	local adjustedVideoPositionX = nil
+	local adjustedVideoPositionY = nil
 	if videoEvent.fullscreen then
-		v29_ = 1
-		v30_ = 1
-		v31_ = 0
-		v32_ = 0
+		adjustedVideoSizeX = 1
+		adjustedVideoSizeY = 1
+		adjustedVideoPositionX = 0
+		adjustedVideoPositionY = 0
 	else
-		local v33_, v34_ = getScreenModeInfo(getScreenMode())
-		local v35_ = v33_ / v34_
-		v29_ = videoEvent.size[1]
-		v30_ = videoEvent.size[2] * v35_
-		v31_ = 0.5 * (1 - v29_)
-		v32_ = 0.5 * (1 - v30_)
+		local x, y = getScreenModeInfo(getScreenMode())
+		local aspectRatio = x / y
+		adjustedVideoSizeX = videoEvent.size[1]
+		adjustedVideoSizeY = videoEvent.size[2] * aspectRatio
+		adjustedVideoPositionX = 0.5 * (1 - adjustedVideoSizeX)
+		adjustedVideoPositionY = 0.5 * (1 - adjustedVideoSizeY)
 	end
-	self.videoElement:setSize(v29_, v30_)
-	self.videoElement:setPosition(v31_, v32_)
+	self.videoElement:setSize(adjustedVideoSizeX, adjustedVideoSizeY)
+	self.videoElement:setPosition(adjustedVideoPositionX, adjustedVideoPositionY)
 	self.videoElement:playVideo()
 	return true
 end
-
 function StartupScreen:showPicture(pictureEvent)
 	self.pictureElement:setImageFilename(pictureEvent.filename)
 	self.pictureTimer = addTimer(pictureEvent.duration, "onStartupEndEvent", self)
 end
-
--- Local values: anyButtonPressed, d, i, isDown
 function StartupScreen:update(dt)
 	StartupScreen:superClass().update(self, dt)
 	if not isGameFullyInstalled() then
 		return
-	end
-	local v40_ = false
-	for v41_ = 1, getNumOfGamepads() do
-		for v42_ = 1, Input.MAX_NUM_BUTTONS do
-			if getInputButton(v42_ - 1, v41_ - 1) > 0 then
-				v40_ = true
-				break
+	else
+		local anyButtonPressed = false
+		for d = 1, getNumOfGamepads() do
+			for i = 1, Input.MAX_NUM_BUTTONS do
+				local isDown = 0 < getInputButton(i - 1, d - 1)
+				if isDown then
+					anyButtonPressed = true
+					break
+				end
 			end
 		end
+		if not anyButtonPressed then
+			self.handledButtonPress = false
+		end
+		if not self.handledButtonPress and anyButtonPressed then
+			self.handledButtonPress = true
+			self:cancelCurrentEvent()
+		end
 	end
-	if not v40_ then
-		self.handledButtonPress = false
-	end
-	if not self.handledButtonPress and v40_ then
-		self.handledButtonPress = true
+end
+function StartupScreen:mouseEvent(posX, posY, isDown, isUp, button)
+	if isDown then
 		self:cancelCurrentEvent()
 	end
 end
-function StartupScreen.mouseEvent(p43_, _, _, p44_, _, _)
-	if p44_ then
-		p43_:cancelCurrentEvent()
-	end
-end
-
 function StartupScreen:touchEvent(posX, posY, isDown, isUp, touchId)
 	if isDown then
 		self:cancelCurrentEvent()
 	end
 end
-function StartupScreen.keyEvent(p47_, _, _, _, p48_)
-	if p48_ then
-		p47_:cancelCurrentEvent()
+function StartupScreen:keyEvent(unicode, sym, modifier, isDown)
+	if isDown then
+		self:cancelCurrentEvent()
 	end
 end
-
--- Local values: currentEvent
 function StartupScreen:cancelCurrentEvent()
-	if self.eventList[self.currentEventId].eventType == StartupScreen.EVENTTYPE_VIDEO then
+	local currentEvent = self.eventList[self.currentEventId]
+	if currentEvent.eventType == StartupScreen.EVENTTYPE_VIDEO then
 		self.videoElement:stopVideo()
 	else
 		removeTimer(self.pictureTimer)
 	end
 	self:onStartupEndEvent()
 end
-
 function StartupScreen:onStartupEndEvent()
 	self.pictureTimer = nil
 	self:showNextEvent()
 end
-
 function StartupScreen:onStartupEnd()
 	if Platform.needsSignIn then
 		g_gui:showGui("GamepadSigninScreen")
@@ -199,5 +167,4 @@ function StartupScreen:onStartupEnd()
 		g_gui:showGui("MainScreen")
 	end
 end
-
 function StartupScreen:exposeControlsAsFields() end

@@ -1,4 +1,3 @@
--- Local values: getAttacherJointCompatibility
 AttacherJoints = {}
 AttacherJoints.DEFAULT_MAX_UPDATE_DISTANCE = 50
 AttacherJoints.MAX_ATTACH_DISTANCE_SQ = 0.48999999999999994
@@ -19,175 +18,169 @@ AttacherJoints.LOWER_LINK_BALL_SIZE_BY_CATEGORY[2] = 0.056
 AttacherJoints.LOWER_LINK_BALL_SIZE_BY_CATEGORY[3] = 0.064
 AttacherJoints.LOWER_LINK_BALL_SIZE_BY_CATEGORY[4] = 0.085
 source("dataS/scripts/vehicles/specializations/components/AttacherJointTopArm.lua")
-
--- Local values: minDistance, index, categoryIndex, categoryWidth, distance
 function AttacherJoints.getClosestLowerLinkCategoryIndex(width)
-	local v2_ = math.huge
-	local v3_ = 1
-	for v4_, v5_ in pairs(AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY) do
-		local v6_ = width - v5_
-		local v7_ = math.abs(v6_)
-		if v7_ < v2_ then
-			v3_ = v4_
-			v2_ = v7_
+	local minDistance = math.huge
+	local index = 1
+	for categoryIndex, categoryWidth in pairs(AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY) do
+		local distance = math.abs(width - categoryWidth)
+		if distance < minDistance then
+			minDistance = distance
+			index = categoryIndex
 		end
 	end
-	return v3_
+	return index
 end
 function AttacherJoints.initSpecialization()
 	g_vehicleConfigurationManager:addConfigurationType("attacherJoint", g_i18n:getText("configuration_attacherJoint"), "attacherJoints", VehicleConfigurationItem)
-	local v8_ = Vehicle.xmlSchema
-	v8_:setXMLSpecializationType("AttacherJoints")
-	AttacherJoints.registerAttacherJointXMLPaths(v8_, "vehicle.attacherJoints")
-	SoundManager.registerSampleXMLPaths(v8_, "vehicle.attacherJoints.sounds", "hydraulic")
-	SoundManager.registerSampleXMLPaths(v8_, "vehicle.attacherJoints.sounds", "attach")
-	SoundManager.registerSampleXMLPaths(v8_, "vehicle.attacherJoints.sounds", "detach")
-	v8_:register(XMLValueType.FLOAT, "vehicle.attacherJoints#comboDuration", "Combo duration", 2)
-	v8_:register(XMLValueType.INT, "vehicle.attacherJoints#connectionHoseConfigId", "Connection hose configuration index to use")
-	v8_:register(XMLValueType.INT, "vehicle.attacherJoints#powerTakeOffConfigId", "Power take off configuration index to use")
-	v8_:register(XMLValueType.INT, "vehicle.attacherJoints.attacherJointConfigurations.attacherJointConfiguration(?)#connectionHoseConfigId", "Connection hose configuration index to use")
-	v8_:register(XMLValueType.INT, "vehicle.attacherJoints.attacherJointConfigurations.attacherJointConfiguration(?)#powerTakeOffConfigId", "Power take off configuration index to use")
-	v8_:register(XMLValueType.FLOAT, "vehicle.attacherJoints#maxUpdateDistance", "Max. distance to vehicle root to update attacher joint graphics", AttacherJoints.DEFAULT_MAX_UPDATE_DISTANCE)
-	v8_:register(XMLValueType.VECTOR_N, Dashboard.GROUP_XML_KEY .. "#attacherJointIndices", "Group is only active if something is attached to those joints (List if indices of the attacher joint in xml)")
-	v8_:register(XMLValueType.NODE_INDICES, Dashboard.GROUP_XML_KEY .. "#attacherJointNodes", "Group is only active if something is attached to those joints (List of attacherJoint nodes)")
-	v8_:register(XMLValueType.VECTOR_N, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. ".heightNode(?)#disablingAttacherJointIndices", "Attacher joint indices that disable height node if something is attached")
-	v8_:register(XMLValueType.VECTOR_N, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. ".heightNode(?)#disablingAttacherJointIndices", "Attacher joint indices that disable height node if something is attached")
-	v8_:register(XMLValueType.NODE_INDICES, "vehicle.trailer.trailerConfigurations.trailerConfiguration(?).trailer.tipSide(?)#disablingAttacherJointNodes", "Attacher joint nodes that disable the tip side if something is attached")
-	v8_:register(XMLValueType.NODE_INDICES, FillUnit.FILL_UNIT_XML_KEY .. "#disablingAttacherJointNodes", "Attacher joint nodes that disable the filling if something is attached")
-	v8_:addDelayedRegistrationFunc("ConnectionHoses:targetNode", function(p9_, p10_)
-		p9_:register(XMLValueType.NODE_INDICES, p10_ .. "#blockedByAttacherJointNodes", "List of attacher joints that block the usage of this hose target node")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("AttacherJoints")
+	AttacherJoints.registerAttacherJointXMLPaths(schema, "vehicle.attacherJoints")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.attacherJoints.sounds", "hydraulic")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.attacherJoints.sounds", "attach")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.attacherJoints.sounds", "detach")
+	schema:register(XMLValueType.FLOAT, "vehicle.attacherJoints#comboDuration", "Combo duration", 2)
+	schema:register(XMLValueType.INT, "vehicle.attacherJoints#connectionHoseConfigId", "Connection hose configuration index to use")
+	schema:register(XMLValueType.INT, "vehicle.attacherJoints#powerTakeOffConfigId", "Power take off configuration index to use")
+	schema:register(XMLValueType.INT, "vehicle.attacherJoints.attacherJointConfigurations.attacherJointConfiguration(?)#connectionHoseConfigId", "Connection hose configuration index to use")
+	schema:register(XMLValueType.INT, "vehicle.attacherJoints.attacherJointConfigurations.attacherJointConfiguration(?)#powerTakeOffConfigId", "Power take off configuration index to use")
+	schema:register(XMLValueType.FLOAT, "vehicle.attacherJoints#maxUpdateDistance", "Max. distance to vehicle root to update attacher joint graphics", AttacherJoints.DEFAULT_MAX_UPDATE_DISTANCE)
+	schema:register(XMLValueType.VECTOR_N, Dashboard.GROUP_XML_KEY .. "#attacherJointIndices", "Group is only active if something is attached to those joints (List if indices of the attacher joint in xml)")
+	schema:register(XMLValueType.NODE_INDICES, Dashboard.GROUP_XML_KEY .. "#attacherJointNodes", "Group is only active if something is attached to those joints (List of attacherJoint nodes)")
+	schema:register(XMLValueType.VECTOR_N, Attachable.INPUT_ATTACHERJOINT_XML_KEY .. ".heightNode(?)#disablingAttacherJointIndices", "Attacher joint indices that disable height node if something is attached")
+	schema:register(XMLValueType.VECTOR_N, Attachable.INPUT_ATTACHERJOINT_CONFIG_XML_KEY .. ".heightNode(?)#disablingAttacherJointIndices", "Attacher joint indices that disable height node if something is attached")
+	schema:register(XMLValueType.NODE_INDICES, "vehicle.trailer.trailerConfigurations.trailerConfiguration(?).trailer.tipSide(?)#disablingAttacherJointNodes", "Attacher joint nodes that disable the tip side if something is attached")
+	schema:register(XMLValueType.NODE_INDICES, FillUnit.FILL_UNIT_XML_KEY .. "#disablingAttacherJointNodes", "Attacher joint nodes that disable the filling if something is attached")
+	schema:addDelayedRegistrationFunc("ConnectionHoses:targetNode", function(cSchema, cKey)
+		cSchema:register(XMLValueType.NODE_INDICES, cKey .. "#blockedByAttacherJointNodes", "List of attacher joints that block the usage of this hose target node")
 	end)
-	Dashboard.addDelayedRegistrationFunc(v8_, function(p11_, p12_)
-		p11_:register(XMLValueType.NODE_INDEX, p12_ .. "#attacherJointNode", "Node of the attacher joint to use")
-		p11_:register(XMLValueType.NODE_INDICES, p12_ .. "#attacherJointNodes", "List of attacher joint indices to use (first active one is used)")
+	Dashboard.addDelayedRegistrationFunc(schema, function(cSchema, cKey)
+		cSchema:register(XMLValueType.NODE_INDEX, cKey .. "#attacherJointNode", "Node of the attacher joint to use")
+		cSchema:register(XMLValueType.NODE_INDICES, cKey .. "#attacherJointNodes", "List of attacher joint indices to use (first active one is used)")
 	end)
-	Dashboard.registerDashboardXMLPaths(v8_, "vehicle.attacherJoints.dashboards", { "bottomArmPosition", "bottomArmPositionMin", "bottomArmPositionMax" })
-	v8_:setXMLSpecializationType()
-	local v13_ = Vehicle.xmlSchemaSavegame
-	v13_:register(XMLValueType.INT, "vehicles.vehicle(?).attacherJoints#comboDirection", "Current combo direction")
-	v13_:register(XMLValueType.INT, "vehicles.vehicle(?).attacherJoints.attachedImplement(?)#jointIndex", "Index of attacherJoint")
-	v13_:register(XMLValueType.BOOL, "vehicles.vehicle(?).attacherJoints.attachedImplement(?)#moveDown", "Attacher joint is lowered or not")
-	v13_:register(XMLValueType.STRING, "vehicles.vehicle(?).attacherJoints.attachedImplement(?)#attachedVehicleUniqueId", "Unique id of attached vehicle")
-	v13_:register(XMLValueType.INT, "vehicles.vehicle(?).attacherJoints.attachedImplement(?)#inputJointIndex", "Index of input attacher joint on the attached vehicle")
-	v13_:register(XMLValueType.INT, "vehicles.vehicle(?).attacherJoints.attacherJoint(?)#jointIndex", "Index of attacherJoint")
-	v13_:register(XMLValueType.BOOL, "vehicles.vehicle(?).attacherJoints.attacherJoint(?)#isBlocked", "Attacher joint is blocked or not")
-	v13_:register(XMLValueType.INT, "vehicles.attachments(?)#rootVehicleId", "Root vehicle id")
-	v13_:register(XMLValueType.INT, "vehicles.attachments(?).attachment(?)#attachmentId", "Attachment vehicle id")
-	v13_:register(XMLValueType.INT, "vehicles.attachments(?).attachment(?)#inputJointDescIndex", "Index of input attacher joint", 1)
-	v13_:register(XMLValueType.INT, "vehicles.attachments(?).attachment(?)#jointIndex", "Index of attacher joint")
-	v13_:register(XMLValueType.BOOL, "vehicles.attachments(?).attachment(?)#moveDown", "Attachment lowered or lifted")
+	Dashboard.registerDashboardXMLPaths(schema, "vehicle.attacherJoints.dashboards", { "bottomArmPosition", "bottomArmPositionMin", "bottomArmPositionMax" })
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).attacherJoints#comboDirection", "Current combo direction")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).attacherJoints.attachedImplement(?)#jointIndex", "Index of attacherJoint")
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).attacherJoints.attachedImplement(?)#moveDown", "Attacher joint is lowered or not")
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).attacherJoints.attachedImplement(?)#attachedVehicleUniqueId", "Unique id of attached vehicle")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).attacherJoints.attachedImplement(?)#inputJointIndex", "Index of input attacher joint on the attached vehicle")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.vehicle(?).attacherJoints.attacherJoint(?)#jointIndex", "Index of attacherJoint")
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).attacherJoints.attacherJoint(?)#isBlocked", "Attacher joint is blocked or not")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.attachments(?)#rootVehicleId", "Root vehicle id")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.attachments(?).attachment(?)#attachmentId", "Attachment vehicle id")
+	schemaSavegame:register(XMLValueType.INT, "vehicles.attachments(?).attachment(?)#inputJointDescIndex", "Index of input attacher joint", 1)
+	schemaSavegame:register(XMLValueType.INT, "vehicles.attachments(?).attachment(?)#jointIndex", "Index of attacher joint")
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.attachments(?).attachment(?)#moveDown", "Attachment lowered or lifted")
 end
-
 function AttacherJoints.registerAttacherJointXMLPaths(schema, baseName)
 	schema:setXMLSharedRegistration("AttacherJoint", baseName)
-	local v16_ = baseName .. ".attacherJoint(?)"
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. "#node", "Node")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. "#nodeVisual", "Visual node")
-	schema:register(XMLValueType.BOOL, v16_ .. "#supportsHardAttach", "Supports hard attach")
-	schema:register(XMLValueType.STRING, v16_ .. "#jointType", "Joint type", "implement")
-	schema:register(XMLValueType.STRING, v16_ .. ".subType#name", "If defined this type needs to match with the sub type in the tool")
-	schema:register(XMLValueType.STRING, v16_ .. ".subType#brandRestriction", "If defined it\'s only possible to attach tools from these brands (can be multiple separated by \' \')")
-	schema:register(XMLValueType.STRING, v16_ .. ".subType#vehicleRestriction", "If defined it\'s only possible to attach tools containing these strings in there xml path (can be multiple separated by \' \')")
-	schema:register(XMLValueType.BOOL, v16_ .. ".subType#subTypeShowWarning", "Show warning if sub type does not match", true)
-	schema:register(XMLValueType.BOOL, v16_ .. "#allowsJointLimitMovement", "Allows joint limit movement", true)
-	schema:register(XMLValueType.BOOL, v16_ .. "#allowsLowering", "Allows lowering", true)
-	schema:register(XMLValueType.BOOL, v16_ .. "#isDefaultLowered", "Default lowered state", false)
-	schema:register(XMLValueType.BOOL, v16_ .. "#allowDetachingWhileLifted", "Allow detach while lifted", true)
-	schema:register(XMLValueType.BOOL, v16_ .. "#allowFoldingWhileAttached", "Allow folding while attached", true)
-	schema:register(XMLValueType.BOOL, v16_ .. "#canTurnOnImplement", "Can turn on implement", true)
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".rotationNode#node", "Rotation node")
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. ".rotationNode#lowerRotation", "Lower rotation", "0 0 0")
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. ".rotationNode#upperRotation", "Upper rotation", "rotation in i3d")
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. ".rotationNode#startRotation", "Start rotation", "rotation in i3d")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".rotationNode2#node", "Rotation node")
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. ".rotationNode2#lowerRotation", "Lower rotation", "0 0 0")
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. ".rotationNode2#upperRotation", "Upper rotation", "rotation in i3d")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".transNode#node", "Translation node")
-	schema:register(XMLValueType.FLOAT, v16_ .. ".transNode#height", "Height of visual translation node", 0.12)
-	schema:register(XMLValueType.FLOAT, v16_ .. ".transNode#minY", "Min Y translation")
-	schema:register(XMLValueType.FLOAT, v16_ .. ".transNode#maxY", "Max Y translation")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".transNode.dependentBottomArm#node", "Dependent bottom arm node")
-	schema:register(XMLValueType.FLOAT, v16_ .. ".transNode.dependentBottomArm#threshold", "If the trans node Y translation is below this threshold the rotation will be set", "unlimited, so rotation is always set")
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. ".transNode.dependentBottomArm#rotation", "Rotation to be set when the translation node is below the threshold", "0 0 0")
-	schema:register(XMLValueType.FLOAT, v16_ .. ".distanceToGround#lower", "Lower distance to ground", 0.7)
-	schema:register(XMLValueType.FLOAT, v16_ .. ".distanceToGround#upper", "Upper distance to ground", 1)
-	schema:register(XMLValueType.ANGLE, v16_ .. "#lowerRotationOffset", "Upper rotation offset", 0)
-	schema:register(XMLValueType.ANGLE, v16_ .. "#upperRotationOffset", "Lower rotation offset", 0)
-	schema:register(XMLValueType.BOOL, v16_ .. "#dynamicLowerRotLimit", "Set the lower rot limit dynamically based on the lowered state (so the attacher can freely rotate between it\'s upper and lower rotation value. E.g. for combines)", false)
-	schema:register(XMLValueType.BOOL, v16_ .. "#lockDownRotLimit", "Lock down rotation limit", false)
-	schema:register(XMLValueType.BOOL, v16_ .. "#lockUpRotLimit", "Lock up rotation limit", false)
-	schema:register(XMLValueType.BOOL, v16_ .. "#lockDownTransLimit", "Lock down translation limit", true)
-	schema:register(XMLValueType.BOOL, v16_ .. "#lockUpTransLimit", "Lock up translation limit", false)
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. "#lowerRotLimit", "Lower rotation limit", "(20 20 20) for implement type, otherwise (0 0 0)")
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. "#upperRotLimit", "Upper rotation limit", "Lower rot limit")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#lowerTransLimit", "Lower translation limit", "(0.5 0.5 0.5) for implement type, otherwise (0 0 0)")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#upperTransLimit", "Upper translation limit", "Lower trans limit")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#jointPositionOffset", "Joint position offset", "0 0 0")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#rotLimitSpring", "Rotation limit spring", "0 0 0")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#rotLimitDamping", "Rotation limit damping", "1 1 1")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#rotLimitForceLimit", "Rotation limit force limit", "-1 -1 -1")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#transLimitSpring", "Translation limit spring", "0 0 0")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#transLimitDamping", "Translation limit damping", "1 1 1")
-	schema:register(XMLValueType.VECTOR_3, v16_ .. "#transLimitForceLimit", "Translation limit force limit", "-1 -1 -1")
-	schema:register(XMLValueType.FLOAT, v16_ .. "#moveTime", "Move time", 0.5)
-	schema:register(XMLValueType.VECTOR_N, v16_ .. "#disabledByAttacherJoints", "This attacher becomes unavailable after attaching something to these attacher joint indices")
-	schema:register(XMLValueType.BOOL, v16_ .. "#enableCollision", "Collision between vehicle is enabled", false)
-	AttacherJointTopArm.registerVehicleXMLPaths(schema, v16_ .. ".topArm")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm#rotationNode", "Rotation node of bottom arm")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm#translationNode", "Translation node of bottom arm")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm#referenceNode", "Reference node of bottom arm")
-	schema:register(XMLValueType.VECTOR_ROT, v16_ .. ".bottomArm#startRotation", "Start rotation", "values set in i3d")
-	schema:register(XMLValueType.INT, v16_ .. ".bottomArm#zScale", "Inverts bottom arm direction", 1)
-	schema:register(XMLValueType.BOOL, v16_ .. ".bottomArm#lockDirection", "Lock direction", true)
-	schema:register(XMLValueType.ANGLE, v16_ .. ".bottomArm#resetSpeed", "Speed of bottom arm to return to idle position (deg/sec)", 45)
-	schema:register(XMLValueType.BOOL, v16_ .. ".bottomArm#updateReferenceDistance", "If \'true\', the reference distance will be updated dynamically. So it\'s possible to adjust the bottom arm length.", false)
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm#jointPositionNode", "Node that will be equalized with the current attacher joint position of the attached implement")
-	schema:register(XMLValueType.BOOL, v16_ .. ".bottomArm#toggleVisibility", "Bottom arm will be hidden on detach", false)
-	schema:register(XMLValueType.VECTOR_N, v16_ .. ".bottomArm#categoryRange", "Defines the min. and max. category that can be used separated by a whitespace. (if only one value is given it will be used as min. and max. value.)", "1 4")
-	schema:register(XMLValueType.VECTOR_N, v16_ .. ".bottomArm#widthRange", "Defines the min. and max. bottom arm width that can be used separated by a whitespace. Overwrites the categoryRange attribute. (if only one value is given it will be used as min. and max. value.)")
-	schema:register(XMLValueType.FLOAT, v16_ .. ".bottomArm#defaultWidth", "Defines the default bottom arm width while nothing is attached", "Width inside i3d file")
-	schema:register(XMLValueType.INT, v16_ .. ".bottomArm#defaultCategory", "Defines the default width category which is used when nothing is attached", "Width inside i3d file")
-	schema:register(XMLValueType.BOOL, v16_ .. ".bottomArm#ballVisibility", "Defines if the balls of the tool are visible while the tool is attached to us", true)
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm.armLeft#node", "Left bottom arm")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm.armLeft#referenceNode", "Left bottom arm reference node (placed at the attaching point at the end of the bottom arm. If not defined the arm will be translated on the X axis to the target width.)")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm.armRight#node", "Right bottom arm")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm.armRight#referenceNode", "Right bottom arm reference node (placed at the attaching point at the end of the bottom arm. If not defined the arm will be translated on the X axis to the target width.)")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm#leftNode", "Node of moving tool that will be aligned to \'bottomArmLeftNode\', if defined in the tool")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".bottomArm#rightNode", "Node of moving tool that will be aligned to \'bottomArmRightNode\', if defined in the tool")
-	schema:register(XMLValueType.STRING, v16_ .. ".toolbar#filename", "Filename to toolbars i3d containing 5 meshes for category 0-4", "$data/shared/assets/toolbars/toolbars.i3d")
-	SoundManager.registerSampleXMLPaths(schema, v16_, "attachSound")
-	SoundManager.registerSampleXMLPaths(schema, v16_, "detachSound")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".steeringBars#leftNode", "Steering bar left node")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".steeringBars#rightNode", "Steering bar right node")
-	schema:register(XMLValueType.BOOL, v16_ .. ".steeringBars#forceUsage", "Forces usage of tools steering axle even if no steering bars are defined", true)
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. ".visualAlignNode(?)#node", "Node of movingPart that should point towards the inputAttacherJoint node of the implement")
-	schema:register(XMLValueType.BOOL, v16_ .. ".visualAlignNode(?)#delayedOnAttach", "Node is updated after the smooth attach is finished", true)
-	schema:register(XMLValueType.NODE_INDICES, v16_ .. ".visuals#nodes", "Visual nodes of attacher joint that will be visible when the joint is active")
-	schema:register(XMLValueType.NODE_INDICES, v16_ .. ".visuals#hide", "Visual nodes that will be hidden while attacher joint is active if there attacher is inactive")
-	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, v16_)
-	schema:register(XMLValueType.BOOL, v16_ .. "#delayedObjectChanges", "Defines if object change is deactivated after the bottomArm has moved (if available)", true)
-	schema:register(XMLValueType.BOOL, v16_ .. "#delayedObjectChangesOnAttach", "Defines if object change is activated on attach or post attach", false)
-	schema:register(XMLValueType.INT, v16_ .. "#direction", "Direction of attacher joint (1 = front, -1 = back). Used for additional attachments on mobile and top light control in basegame.")
-	schema:register(XMLValueType.BOOL, v16_ .. "#useTopLights", "Defines if the attacher joint enables the top lights if something is attached. Flag needs to be set on the implement as well.", "\'true\' if the attacher joint is on the front")
-	schema:register(XMLValueType.NODE_INDEX, v16_ .. "#rootNode", "Root node", "Parent component of attacher joint node")
-	schema:register(XMLValueType.FLOAT, v16_ .. "#comboTime", "Combo time")
-	schema:register(XMLValueType.VECTOR_2, v16_ .. ".schema#position", "Schema position")
-	schema:register(XMLValueType.VECTOR_2, v16_ .. ".schema#liftedOffset", "Offset if lifted", "0 5")
-	schema:register(XMLValueType.ANGLE, v16_ .. ".schema#rotation", "Schema rotation", 0)
-	schema:register(XMLValueType.BOOL, v16_ .. ".schema#invertX", "Invert X", false)
-	schema:addDelayedRegistrationPath(v16_, "AttacherJoint")
-	schema:resetXMLSharedRegistration("AttacherJoint", v16_)
+	baseName = baseName .. ".attacherJoint(?)"
+	schema:register(XMLValueType.NODE_INDEX, baseName .. "#node", "Node")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. "#nodeVisual", "Visual node")
+	schema:register(XMLValueType.BOOL, baseName .. "#supportsHardAttach", "Supports hard attach")
+	schema:register(XMLValueType.STRING, baseName .. "#jointType", "Joint type", "implement")
+	schema:register(XMLValueType.STRING, baseName .. ".subType#name", "If defined this type needs to match with the sub type in the tool")
+	schema:register(XMLValueType.STRING, baseName .. ".subType#brandRestriction", "If defined it's only possible to attach tools from these brands (can be multiple separated by ' ')")
+	schema:register(XMLValueType.STRING, baseName .. ".subType#vehicleRestriction", "If defined it's only possible to attach tools containing these strings in there xml path (can be multiple separated by ' ')")
+	schema:register(XMLValueType.BOOL, baseName .. ".subType#subTypeShowWarning", "Show warning if sub type does not match", true)
+	schema:register(XMLValueType.BOOL, baseName .. "#allowsJointLimitMovement", "Allows joint limit movement", true)
+	schema:register(XMLValueType.BOOL, baseName .. "#allowsLowering", "Allows lowering", true)
+	schema:register(XMLValueType.BOOL, baseName .. "#isDefaultLowered", "Default lowered state", false)
+	schema:register(XMLValueType.BOOL, baseName .. "#allowDetachingWhileLifted", "Allow detach while lifted", true)
+	schema:register(XMLValueType.BOOL, baseName .. "#allowFoldingWhileAttached", "Allow folding while attached", true)
+	schema:register(XMLValueType.BOOL, baseName .. "#canTurnOnImplement", "Can turn on implement", true)
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".rotationNode#node", "Rotation node")
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. ".rotationNode#lowerRotation", "Lower rotation", "0 0 0")
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. ".rotationNode#upperRotation", "Upper rotation", "rotation in i3d")
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. ".rotationNode#startRotation", "Start rotation", "rotation in i3d")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".rotationNode2#node", "Rotation node")
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. ".rotationNode2#lowerRotation", "Lower rotation", "0 0 0")
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. ".rotationNode2#upperRotation", "Upper rotation", "rotation in i3d")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".transNode#node", "Translation node")
+	schema:register(XMLValueType.FLOAT, baseName .. ".transNode#height", "Height of visual translation node", 0.12)
+	schema:register(XMLValueType.FLOAT, baseName .. ".transNode#minY", "Min Y translation")
+	schema:register(XMLValueType.FLOAT, baseName .. ".transNode#maxY", "Max Y translation")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".transNode.dependentBottomArm#node", "Dependent bottom arm node")
+	schema:register(XMLValueType.FLOAT, baseName .. ".transNode.dependentBottomArm#threshold", "If the trans node Y translation is below this threshold the rotation will be set", "unlimited, so rotation is always set")
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. ".transNode.dependentBottomArm#rotation", "Rotation to be set when the translation node is below the threshold", "0 0 0")
+	schema:register(XMLValueType.FLOAT, baseName .. ".distanceToGround#lower", "Lower distance to ground", 0.7)
+	schema:register(XMLValueType.FLOAT, baseName .. ".distanceToGround#upper", "Upper distance to ground", 1)
+	schema:register(XMLValueType.ANGLE, baseName .. "#lowerRotationOffset", "Upper rotation offset", 0)
+	schema:register(XMLValueType.ANGLE, baseName .. "#upperRotationOffset", "Lower rotation offset", 0)
+	schema:register(XMLValueType.BOOL, baseName .. "#dynamicLowerRotLimit", "Set the lower rot limit dynamically based on the lowered state (so the attacher can freely rotate between it's upper and lower rotation value. E.g. for combines)", false)
+	schema:register(XMLValueType.BOOL, baseName .. "#lockDownRotLimit", "Lock down rotation limit", false)
+	schema:register(XMLValueType.BOOL, baseName .. "#lockUpRotLimit", "Lock up rotation limit", false)
+	schema:register(XMLValueType.BOOL, baseName .. "#lockDownTransLimit", "Lock down translation limit", true)
+	schema:register(XMLValueType.BOOL, baseName .. "#lockUpTransLimit", "Lock up translation limit", false)
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. "#lowerRotLimit", "Lower rotation limit", "(20 20 20) for implement type, otherwise (0 0 0)")
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. "#upperRotLimit", "Upper rotation limit", "Lower rot limit")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#lowerTransLimit", "Lower translation limit", "(0.5 0.5 0.5) for implement type, otherwise (0 0 0)")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#upperTransLimit", "Upper translation limit", "Lower trans limit")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#jointPositionOffset", "Joint position offset", "0 0 0")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#rotLimitSpring", "Rotation limit spring", "0 0 0")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#rotLimitDamping", "Rotation limit damping", "1 1 1")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#rotLimitForceLimit", "Rotation limit force limit", "-1 -1 -1")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#transLimitSpring", "Translation limit spring", "0 0 0")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#transLimitDamping", "Translation limit damping", "1 1 1")
+	schema:register(XMLValueType.VECTOR_3, baseName .. "#transLimitForceLimit", "Translation limit force limit", "-1 -1 -1")
+	schema:register(XMLValueType.FLOAT, baseName .. "#moveTime", "Move time", 0.5)
+	schema:register(XMLValueType.VECTOR_N, baseName .. "#disabledByAttacherJoints", "This attacher becomes unavailable after attaching something to these attacher joint indices")
+	schema:register(XMLValueType.BOOL, baseName .. "#enableCollision", "Collision between vehicle is enabled", false)
+	AttacherJointTopArm.registerVehicleXMLPaths(schema, baseName .. ".topArm")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm#rotationNode", "Rotation node of bottom arm")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm#translationNode", "Translation node of bottom arm")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm#referenceNode", "Reference node of bottom arm")
+	schema:register(XMLValueType.VECTOR_ROT, baseName .. ".bottomArm#startRotation", "Start rotation", "values set in i3d")
+	schema:register(XMLValueType.INT, baseName .. ".bottomArm#zScale", "Inverts bottom arm direction", 1)
+	schema:register(XMLValueType.BOOL, baseName .. ".bottomArm#lockDirection", "Lock direction", true)
+	schema:register(XMLValueType.ANGLE, baseName .. ".bottomArm#resetSpeed", "Speed of bottom arm to return to idle position (deg/sec)", 45)
+	schema:register(XMLValueType.BOOL, baseName .. ".bottomArm#updateReferenceDistance", "If 'true', the reference distance will be updated dynamically. So it's possible to adjust the bottom arm length.", false)
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm#jointPositionNode", "Node that will be equalized with the current attacher joint position of the attached implement")
+	schema:register(XMLValueType.BOOL, baseName .. ".bottomArm#toggleVisibility", "Bottom arm will be hidden on detach", false)
+	schema:register(XMLValueType.VECTOR_N, baseName .. ".bottomArm#categoryRange", "Defines the min. and max. category that can be used separated by a whitespace. (if only one value is given it will be used as min. and max. value.)", "1 4")
+	schema:register(XMLValueType.VECTOR_N, baseName .. ".bottomArm#widthRange", "Defines the min. and max. bottom arm width that can be used separated by a whitespace. Overwrites the categoryRange attribute. (if only one value is given it will be used as min. and max. value.)")
+	schema:register(XMLValueType.FLOAT, baseName .. ".bottomArm#defaultWidth", "Defines the default bottom arm width while nothing is attached", "Width inside i3d file")
+	schema:register(XMLValueType.INT, baseName .. ".bottomArm#defaultCategory", "Defines the default width category which is used when nothing is attached", "Width inside i3d file")
+	schema:register(XMLValueType.BOOL, baseName .. ".bottomArm#ballVisibility", "Defines if the balls of the tool are visible while the tool is attached to us", true)
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm.armLeft#node", "Left bottom arm")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm.armLeft#referenceNode", "Left bottom arm reference node (placed at the attaching point at the end of the bottom arm. If not defined the arm will be translated on the X axis to the target width.)")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm.armRight#node", "Right bottom arm")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm.armRight#referenceNode", "Right bottom arm reference node (placed at the attaching point at the end of the bottom arm. If not defined the arm will be translated on the X axis to the target width.)")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm#leftNode", "Node of moving tool that will be aligned to 'bottomArmLeftNode', if defined in the tool")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".bottomArm#rightNode", "Node of moving tool that will be aligned to 'bottomArmRightNode', if defined in the tool")
+	schema:register(XMLValueType.STRING, baseName .. ".toolbar#filename", "Filename to toolbars i3d containing 5 meshes for category 0-4", "$data/shared/assets/toolbars/toolbars.i3d")
+	SoundManager.registerSampleXMLPaths(schema, baseName, "attachSound")
+	SoundManager.registerSampleXMLPaths(schema, baseName, "detachSound")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".steeringBars#leftNode", "Steering bar left node")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".steeringBars#rightNode", "Steering bar right node")
+	schema:register(XMLValueType.BOOL, baseName .. ".steeringBars#forceUsage", "Forces usage of tools steering axle even if no steering bars are defined", true)
+	schema:register(XMLValueType.NODE_INDEX, baseName .. ".visualAlignNode(?)#node", "Node of movingPart that should point towards the inputAttacherJoint node of the implement")
+	schema:register(XMLValueType.BOOL, baseName .. ".visualAlignNode(?)#delayedOnAttach", "Node is updated after the smooth attach is finished", true)
+	schema:register(XMLValueType.NODE_INDICES, baseName .. ".visuals#nodes", "Visual nodes of attacher joint that will be visible when the joint is active")
+	schema:register(XMLValueType.NODE_INDICES, baseName .. ".visuals#hide", "Visual nodes that will be hidden while attacher joint is active if there attacher is inactive")
+	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, baseName)
+	schema:register(XMLValueType.BOOL, baseName .. "#delayedObjectChanges", "Defines if object change is deactivated after the bottomArm has moved (if available)", true)
+	schema:register(XMLValueType.BOOL, baseName .. "#delayedObjectChangesOnAttach", "Defines if object change is activated on attach or post attach", false)
+	schema:register(XMLValueType.INT, baseName .. "#direction", "Direction of attacher joint (1 = front, -1 = back). Used for additional attachments on mobile and top light control in basegame.")
+	schema:register(XMLValueType.BOOL, baseName .. "#useTopLights", "Defines if the attacher joint enables the top lights if something is attached. Flag needs to be set on the implement as well.", "'true' if the attacher joint is on the front")
+	schema:register(XMLValueType.NODE_INDEX, baseName .. "#rootNode", "Root node", "Parent component of attacher joint node")
+	schema:register(XMLValueType.FLOAT, baseName .. "#comboTime", "Combo time")
+	schema:register(XMLValueType.VECTOR_2, baseName .. ".schema#position", "Schema position")
+	schema:register(XMLValueType.VECTOR_2, baseName .. ".schema#liftedOffset", "Offset if lifted", "0 5")
+	schema:register(XMLValueType.ANGLE, baseName .. ".schema#rotation", "Schema rotation", 0)
+	schema:register(XMLValueType.BOOL, baseName .. ".schema#invertX", "Invert X", false)
+	schema:addDelayedRegistrationPath(baseName, "AttacherJoint")
+	schema:resetXMLSharedRegistration("AttacherJoint", baseName)
 end
-
--- Local values: key
 function AttacherJoints.registerJointType(name)
-	local v18_ = "JOINTTYPE_" .. string.upper(name)
-	if AttacherJoints[v18_] == nil then
+	local key = "JOINTTYPE_" .. string.upper(name)
+	if AttacherJoints[key] == nil then
 		AttacherJoints.NUM_JOINTTYPES = AttacherJoints.NUM_JOINTTYPES + 1
-		AttacherJoints[v18_] = AttacherJoints.NUM_JOINTTYPES
+		AttacherJoints[key] = AttacherJoints.NUM_JOINTTYPES
 		AttacherJoints.jointTypeNameToInt[name] = AttacherJoints.NUM_JOINTTYPES
 	end
-	return AttacherJoints[v18_]
+	return AttacherJoints[key]
 end
 AttacherJoints.JOINTTYPE_IMPLEMENT = AttacherJoints.registerJointType("implement")
 AttacherJoints.JOINTTYPE_TRAILER = AttacherJoints.registerJointType("trailer")
@@ -211,11 +204,9 @@ AttacherJoints.JOINTTYPE_CONVEYOR = AttacherJoints.registerJointType("conveyor")
 AttacherJoints.JOINTTYPE_HOOKLIFT = AttacherJoints.registerJointType("hookLift")
 AttacherJoints.JOINTTYPE_BIGBAG = AttacherJoints.registerJointType("bigBag")
 AttacherJoints.JOINTTYPE_TRAIN = AttacherJoints.registerJointType("train")
-
-function AttacherJoints.prerequisitesPresent(self)
+function AttacherJoints.prerequisitesPresent(specializations)
 	return true
 end
-
 function AttacherJoints.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onPreAttachImplement")
 	SpecializationUtil.registerEvent(vehicleType, "onPostAttachImplement")
@@ -223,7 +214,6 @@ function AttacherJoints.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onPostDetachImplement")
 	SpecializationUtil.registerEvent(vehicleType, "onRequiresTopLightsChanged")
 end
-
 function AttacherJoints.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "loadAttachmentsFinished", AttacherJoints.loadAttachmentsFinished)
 	SpecializationUtil.registerFunction(vehicleType, "handleLowerImplementEvent", AttacherJoints.handleLowerImplementEvent)
@@ -289,7 +279,6 @@ function AttacherJoints.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getAttachableInfo", AttacherJoints.getAttachableInfo)
 	SpecializationUtil.registerFunction(vehicleType, "setAttacherJointBlocked", AttacherJoints.setAttacherJointBlocked)
 end
-
 function AttacherJoints.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "raiseActive", AttacherJoints.raiseActive)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "registerActionEvents", AttacherJoints.registerActionEvents)
@@ -329,7 +318,6 @@ function AttacherJoints.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "loadHoseTargetNode", AttacherJoints.loadHoseTargetNode)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getIsConnectionTargetUsed", AttacherJoints.getIsConnectionTargetUsed)
 end
-
 function AttacherJoints.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreLoad", AttacherJoints)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AttacherJoints)
@@ -359,214 +347,162 @@ function AttacherJoints.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onDeactivate", AttacherJoints)
 	SpecializationUtil.registerEventListener(vehicleType, "onReverseDirectionChanged", AttacherJoints)
 end
-
--- Local values: spec
 function AttacherJoints:onPreLoad(savegame)
-	local v24_ = self.spec_attacherJoints
-	v24_.attachedImplements = {}
-	v24_.selectedImplement = nil
-	v24_.lastInputAttacherCheckIndex = 0
+	local spec = self.spec_attacherJoints
+	spec.attachedImplements = {}
+	spec.selectedImplement = nil
+	spec.lastInputAttacherCheckIndex = 0
 end
-
--- Local values: spec, i, baseName, attacherJoint, k, attacherJoint
 function AttacherJoints:onLoad(savegame)
-	local v26_ = self.spec_attacherJoints
-	v26_.attacherJointCombos = {}
-	v26_.attacherJointCombos.duration = self.xmlFile:getValue("vehicle.attacherJoints#comboDuration", 2) * 1000
-	v26_.attacherJointCombos.currentTime = 0
-	v26_.attacherJointCombos.direction = -1
-	v26_.attacherJointCombos.isRunning = false
-	v26_.attacherJointCombos.joints = {}
-	v26_.maxUpdateDistance = self.xmlFile:getValue("vehicle.attacherJoints#maxUpdateDistance", AttacherJoints.DEFAULT_MAX_UPDATE_DISTANCE)
-	v26_.visualNodeToAttacherJoints = {}
-	v26_.hideVisualNodeToAttacherJoints = {}
-	v26_.attacherJoints = {}
-	local v27_ = 0
+	local spec = self.spec_attacherJoints
+	spec.attacherJointCombos = {}
+	spec.attacherJointCombos.duration = self.xmlFile:getValue("vehicle.attacherJoints#comboDuration", 2) * 1000
+	spec.attacherJointCombos.currentTime = 0
+	spec.attacherJointCombos.direction = -1
+	spec.attacherJointCombos.isRunning = false
+	spec.attacherJointCombos.joints = {}
+	spec.maxUpdateDistance = self.xmlFile:getValue("vehicle.attacherJoints#maxUpdateDistance", AttacherJoints.DEFAULT_MAX_UPDATE_DISTANCE)
+	spec.visualNodeToAttacherJoints = {}
+	spec.hideVisualNodeToAttacherJoints = {}
+	spec.attacherJoints = {}
+	local i = 0
 	while true do
-		local v28_ = string.format("vehicle.attacherJoints.attacherJoint(%d)", v27_)
-		if not self.xmlFile:hasProperty(v28_) then
+		local baseName = string.format("vehicle.attacherJoints.attacherJoint(%d)", i)
+		if not self.xmlFile:hasProperty(baseName) then
 			break
 		end
-		local v29_ = {}
-		if self:loadAttacherJointFromXML(v29_, self.xmlFile, v28_, v27_) then
-			local v30_ = v26_.attacherJoints
-			table.insert(v30_, v29_)
-			v29_.index = #v26_.attacherJoints
+		local attacherJoint = {}
+		if self:loadAttacherJointFromXML(attacherJoint, self.xmlFile, baseName, i) then
+			table.insert(spec.attacherJoints, attacherJoint)
+			attacherJoint.index = #spec.attacherJoints
 		end
-		v27_ = v27_ + 1
+		i = i + 1
 	end
-	v26_.attachableInfo = {}
-	v26_.attachableInfo.attacherVehicle = nil
-	v26_.attachableInfo.attacherVehicleJointDescIndex = nil
-	v26_.attachableInfo.attachable = nil
-	v26_.attachableInfo.attachableJointDescIndex = nil
-	v26_.pendingAttachableInfo = {}
-	v26_.pendingAttachableInfo.minDistance = math.huge
-	v26_.pendingAttachableInfo.minDistanceY = math.huge
-	v26_.pendingAttachableInfo.attacherVehicle = nil
-	v26_.pendingAttachableInfo.attacherVehicleJointDescIndex = nil
-	v26_.pendingAttachableInfo.attachable = nil
-	v26_.pendingAttachableInfo.attachableJointDescIndex = nil
-	v26_.pendingAttachableInfo.warning = nil
+	spec.attachableInfo = {}
+	spec.attachableInfo.attacherVehicle = nil
+	spec.attachableInfo.attacherVehicleJointDescIndex = nil
+	spec.attachableInfo.attachable = nil
+	spec.attachableInfo.attachableJointDescIndex = nil
+	spec.pendingAttachableInfo = {}
+	spec.pendingAttachableInfo.minDistance = math.huge
+	spec.pendingAttachableInfo.minDistanceY = math.huge
+	spec.pendingAttachableInfo.attacherVehicle = nil
+	spec.pendingAttachableInfo.attacherVehicleJointDescIndex = nil
+	spec.pendingAttachableInfo.attachable = nil
+	spec.pendingAttachableInfo.attachableJointDescIndex = nil
+	spec.pendingAttachableInfo.warning = nil
 	if self.isClient then
-		v26_.samples = {}
-		v26_.isHydraulicSamplePlaying = false
-		v26_.samples.hydraulic = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.attacherJoints.sounds", "hydraulic", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v26_.samples.attach = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.attacherJoints.sounds", "attach", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v26_.samples.detach = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.attacherJoints.sounds", "detach", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples = {}
+		spec.isHydraulicSamplePlaying = false
+		spec.samples.hydraulic = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.attacherJoints.sounds", "hydraulic", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.attach = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.attacherJoints.sounds", "attach", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.detach = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.attacherJoints.sounds", "detach", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
 	end
 	if self.isClient and g_isDevelopmentVersion then
-		for v31_, v32_ in ipairs(v26_.attacherJoints) do
-			if v26_.samples.attach == nil and v32_.sampleAttach == nil then
-				Logging.xmlDevWarning(self.xmlFile, "Missing attach sound for attacherjoint \'%d\'", v31_)
+		for k, attacherJoint in ipairs(spec.attacherJoints) do
+			if spec.samples.attach == nil and attacherJoint.sampleAttach == nil then
+				Logging.xmlDevWarning(self.xmlFile, "Missing attach sound for attacherjoint '%d'", k)
 			end
-			if v32_.rotationNode ~= nil and v26_.samples.hydraulic == nil then
-				Logging.xmlDevWarning(self.xmlFile, "Missing hydraulic sound for attacherjoint \'%d\'", v31_)
+			if attacherJoint.rotationNode == nil then
+				continue
+			end
+			if spec.samples.hydraulic == nil then
+				Logging.xmlDevWarning(self.xmlFile, "Missing hydraulic sound for attacherjoint '%d'", k)
 			end
 		end
 	end
-	v26_.showAttachNotAllowedText = 0
-	v26_.wasInAttachRange = false
-	v26_.texts = {}
-	v26_.texts.warningToolNotCompatible = g_i18n:getText("warning_toolNotCompatible")
-	v26_.texts.warningToolBrandNotCompatible = g_i18n:getText("warning_toolBrandNotCompatible")
-	v26_.texts.infoAttachNotAllowed = g_i18n:getText("info_attach_not_allowed")
-	v26_.texts.lowerImplementFirst = g_i18n:getText("warning_lowerImplementFirst")
-	v26_.texts.detachNotAllowed = g_i18n:getText("warning_detachNotAllowed")
-	v26_.texts.actionAttach = g_i18n:getText("action_attach")
-	v26_.texts.actionDetach = g_i18n:getText("action_detach")
-	v26_.texts.warningFoldingAttacherJoint = g_i18n:getText("warning_foldingNotWhileAttachedToAttacherJoint")
-	v26_.groundHeightNodeCheckData = {
-		["isDirty"] = false,
-		["minDistance"] = math.huge,
-		["hit"] = false,
-		["raycastDistance"] = 1,
-		["currentRaycastDistance"] = 1,
-		["heightNodes"] = {},
-		["jointDesc"] = {},
-		["index"] = -1,
-		["lowerDistanceToGround"] = 0,
-		["upperDistanceToGround"] = 0,
-		["currentRaycastWorldPos"] = { 0, 0, 0 },
-		["currentRaycastWorldDir"] = { 0, 0, 0 },
-		["currentJointTransformPos"] = { 0, 0, 0 },
-		["raycastWorldPos"] = { 0, 0, 0 },
-		["raycastWorldDir"] = { 0, 0, 0 },
-		["jointTransformPos"] = { 0, 0, 0 },
-		["upperAlpha"] = 0,
-		["lowerAlpha"] = 0
-	}
-	v26_.dirtyFlag = self:getNextDirtyFlag()
+	spec.showAttachNotAllowedText = 0
+	spec.wasInAttachRange = false
+	spec.texts = {}
+	spec.texts.warningToolNotCompatible = g_i18n:getText("warning_toolNotCompatible")
+	spec.texts.warningToolBrandNotCompatible = g_i18n:getText("warning_toolBrandNotCompatible")
+	spec.texts.infoAttachNotAllowed = g_i18n:getText("info_attach_not_allowed")
+	spec.texts.lowerImplementFirst = g_i18n:getText("warning_lowerImplementFirst")
+	spec.texts.detachNotAllowed = g_i18n:getText("warning_detachNotAllowed")
+	spec.texts.actionAttach = g_i18n:getText("action_attach")
+	spec.texts.actionDetach = g_i18n:getText("action_detach")
+	spec.texts.warningFoldingAttacherJoint = g_i18n:getText("warning_foldingNotWhileAttachedToAttacherJoint")
+	spec.groundHeightNodeCheckData = { isDirty = false, minDistance = math.huge, hit = false, raycastDistance = 1, currentRaycastDistance = 1, heightNodes = {}, jointDesc = {}, index = -1, lowerDistanceToGround = 0, upperDistanceToGround = 0, currentRaycastWorldPos = { 0, 0, 0 }, currentRaycastWorldDir = { 0, 0, 0 }, currentJointTransformPos = { 0, 0, 0 }, raycastWorldPos = { 0, 0, 0 }, raycastWorldDir = { 0, 0, 0 }, jointTransformPos = { 0, 0, 0 }, upperAlpha = 0, lowerAlpha = 0 }
+	spec.dirtyFlag = self:getNextDirtyFlag()
 end
-
--- Local values: spec, attacherJointIndex, attacherJoint, _, _, attacherJoint2, _, visualAlignNode, _, inputAttacherJoint, xDir, yDir, zDir, xUp, yUp, zUp, xNorm, yNorm, zNorm, xOffset, yOffset, zOffset, aiRootNode, xDir, yDir, zDir, xUp, yUp, zUp, xNorm, yNorm, zNorm, xOffset, yOffset, zOffset, comboData, comboDirection
 function AttacherJoints:onPostLoad(savegame)
-	local v35_ = self.spec_attacherJoints
-	for v36_, v37_ in pairs(v35_.attacherJoints) do
-		v37_.jointOrigRot = { getRotation(v37_.jointTransform) }
-		v37_.jointOrigTrans = { getTranslation(v37_.jointTransform) }
-		if v37_.transNode ~= nil then
-			v37_.transNodeMinY = Utils.getNoNil(v37_.transNodeMinY, v37_.jointOrigTrans[2])
-			v37_.transNodeMaxY = Utils.getNoNil(v37_.transNodeMaxY, v37_.jointOrigTrans[2])
-			local _, v38_, _ = localToLocal(v37_.jointTransform, v37_.transNode, 0, 0, 0)
-			v37_.transNodeOffsetY = v38_
-			local _, v39_, _ = localToLocal(getParent(v37_.transNode), v37_.rootNode, 0, v37_.transNodeMinY, 0)
-			v37_.transNodeMinY = v39_
-			local _, v40_, _ = localToLocal(getParent(v37_.transNode), v37_.rootNode, 0, v37_.transNodeMaxY, 0)
-			v37_.transNodeMaxY = v40_
+	local spec = self.spec_attacherJoints
+	for attacherJointIndex, attacherJoint in pairs(spec.attacherJoints) do
+		attacherJoint.jointOrigRot = { getRotation(attacherJoint.jointTransform) }
+		attacherJoint.jointOrigTrans = { getTranslation(attacherJoint.jointTransform) }
+		if attacherJoint.transNode ~= nil then
+			local _ = nil
+			attacherJoint.transNodeMinY = Utils.getNoNil(attacherJoint.transNodeMinY, attacherJoint.jointOrigTrans[2])
+			attacherJoint.transNodeMaxY = Utils.getNoNil(attacherJoint.transNodeMaxY, attacherJoint.jointOrigTrans[2])
+			_, attacherJoint.transNodeOffsetY, _ = localToLocal(attacherJoint.jointTransform, attacherJoint.transNode, 0, 0, 0)
+			_, attacherJoint.transNodeMinY, _ = localToLocal(getParent(attacherJoint.transNode), attacherJoint.rootNode, 0, attacherJoint.transNodeMinY, 0)
+			_, attacherJoint.transNodeMaxY, _ = localToLocal(getParent(attacherJoint.transNode), attacherJoint.rootNode, 0, attacherJoint.transNodeMaxY, 0)
 		end
-		if v37_.transNodeDependentBottomArm ~= nil then
-			for _, v41_ in pairs(v35_.attacherJoints) do
-				if v41_.bottomArm ~= nil and v41_.bottomArm.rotationNode == v37_.transNodeDependentBottomArm then
-					v37_.transNodeDependentBottomArmAttacherJoint = v41_
+		if attacherJoint.transNodeDependentBottomArm ~= nil then
+			for _, attacherJoint2 in pairs(spec.attacherJoints) do
+				if attacherJoint2.bottomArm == nil then
+					continue
+				end
+				if attacherJoint2.bottomArm.rotationNode == attacherJoint.transNodeDependentBottomArm then
+					attacherJoint.transNodeDependentBottomArmAttacherJoint = attacherJoint2
 				end
 			end
-			if v37_.transNodeDependentBottomArmAttacherJoint == nil then
-				Logging.xmlWarning(self.xmlFile, "Unable to find dependent bottom arm \'%s\' in any attacher joint.", getName(v37_.transNodeDependentBottomArm))
-				v37_.transNodeDependentBottomArm = nil
+			if attacherJoint.transNodeDependentBottomArmAttacherJoint == nil then
+				Logging.xmlWarning(self.xmlFile, "Unable to find dependent bottom arm '%s' in any attacher joint.", getName(attacherJoint.transNodeDependentBottomArm))
+				attacherJoint.transNodeDependentBottomArm = nil
 			end
 		end
-		if v37_.bottomArm ~= nil then
-			setRotation(v37_.bottomArm.rotationNode, v37_.bottomArm.rotX, v37_.bottomArm.rotY, v37_.bottomArm.rotZ)
+		if attacherJoint.bottomArm ~= nil then
+			setRotation(attacherJoint.bottomArm.rotationNode, attacherJoint.bottomArm.rotX, attacherJoint.bottomArm.rotY, attacherJoint.bottomArm.rotZ)
 			if self.setMovingToolDirty ~= nil then
-				self:setMovingToolDirty(v37_.bottomArm.rotationNode)
+				self:setMovingToolDirty(attacherJoint.bottomArm.rotationNode)
 			end
 		end
-		if v37_.rotationNode ~= nil then
-			setRotation(v37_.rotationNode, v37_.rotX, v37_.rotY, v37_.rotZ)
+		if attacherJoint.rotationNode ~= nil then
+			setRotation(attacherJoint.rotationNode, attacherJoint.rotX, attacherJoint.rotY, attacherJoint.rotZ)
 		end
-		if v37_.visualAlignNodes ~= nil then
-			for _, v42_ in ipairs(v37_.visualAlignNodes) do
-				self:setMovingPartReferenceNode(v42_.node, v37_.jointTransform, false)
+		if attacherJoint.visualAlignNodes ~= nil then
+			for _, visualAlignNode in ipairs(attacherJoint.visualAlignNodes) do
+				self:setMovingPartReferenceNode(visualAlignNode.node, attacherJoint.jointTransform, false)
 			end
 		end
 		if self.getInputAttacherJoints ~= nil then
-			v37_.inputAttacherJointOffsets = {}
-			for _, v43_ in ipairs(self:getInputAttacherJoints()) do
-				local v44_, v45_, v46_ = localDirectionToLocal(v37_.jointTransform, v43_.node, 0, 0, 1)
-				local v47_, v48_, v49_ = localDirectionToLocal(v37_.jointTransform, v43_.node, 0, 1, 0)
-				local v50_, v51_, v52_ = localDirectionToLocal(v37_.jointTransform, v43_.node, 1, 0, 0)
-				local v53_, v54_, v55_ = localToLocal(v37_.jointTransform, v43_.node, 0, 0, 0)
-				local v56_ = v37_.inputAttacherJointOffsets
-				table.insert(v56_, {
-					v53_,
-					v54_,
-					v55_,
-					v44_,
-					v45_,
-					v46_,
-					v47_,
-					v48_,
-					v49_,
-					v50_,
-					v51_,
-					v52_
-				})
+			attacherJoint.inputAttacherJointOffsets = {}
+			for _, inputAttacherJoint in ipairs(self:getInputAttacherJoints()) do
+				local xDir, yDir, zDir = localDirectionToLocal(attacherJoint.jointTransform, inputAttacherJoint.node, 0, 0, 1)
+				local xUp, yUp, zUp = localDirectionToLocal(attacherJoint.jointTransform, inputAttacherJoint.node, 0, 1, 0)
+				local xNorm, yNorm, zNorm = localDirectionToLocal(attacherJoint.jointTransform, inputAttacherJoint.node, 1, 0, 0)
+				local xOffset, yOffset, zOffset = localToLocal(attacherJoint.jointTransform, inputAttacherJoint.node, 0, 0, 0)
+				table.insert(attacherJoint.inputAttacherJointOffsets, { xOffset, yOffset, zOffset, xDir, yDir, zDir, xUp, yUp, zUp, xNorm, yNorm, zNorm })
 			end
 		end
 		if self.getAIRootNode ~= nil then
-			local v57_ = self:getAIRootNode()
-			local v58_, v59_, v60_ = localDirectionToLocal(v37_.jointTransform, v57_, 0, 0, 1)
-			local v61_, v62_, v63_ = localDirectionToLocal(v37_.jointTransform, v57_, 0, 1, 0)
-			local v64_, v65_, v66_ = localDirectionToLocal(v37_.jointTransform, v57_, 1, 0, 0)
-			local v67_, v68_, v69_ = localToLocal(v37_.jointTransform, v57_, 0, 0, 0)
-			v37_.aiRootNodeOffset = {
-				v67_,
-				v68_,
-				v69_,
-				v58_,
-				v59_,
-				v60_,
-				v61_,
-				v62_,
-				v63_,
-				v64_,
-				v65_,
-				v66_
-			}
+			local aiRootNode = self:getAIRootNode()
+			local xDir, yDir, zDir = localDirectionToLocal(attacherJoint.jointTransform, aiRootNode, 0, 0, 1)
+			local xUp, yUp, zUp = localDirectionToLocal(attacherJoint.jointTransform, aiRootNode, 0, 1, 0)
+			local xNorm, yNorm, zNorm = localDirectionToLocal(attacherJoint.jointTransform, aiRootNode, 1, 0, 0)
+			local xOffset, yOffset, zOffset = localToLocal(attacherJoint.jointTransform, aiRootNode, 0, 0, 0)
+			attacherJoint.aiRootNodeOffset = { xOffset, yOffset, zOffset, xDir, yDir, zDir, xUp, yUp, zUp, xNorm, yNorm, zNorm }
 		end
-		if v37_.comboTime ~= nil then
-			local v70_ = {
-				["jointIndex"] = v36_
-			}
-			local v71_ = v37_.comboTime
-			v70_.time = math.clamp(v71_, 0, 1) * v35_.attacherJointCombos.duration
-			v70_.initialTime = v70_.time
-			local v72_ = v35_.attacherJointCombos.joints
-			table.insert(v72_, v70_)
+		if attacherJoint.comboTime ~= nil then
+			local comboData = {}
+			comboData.jointIndex = attacherJointIndex
+			comboData.time = math.clamp(attacherJoint.comboTime, 0, 1) * spec.attacherJointCombos.duration
+			comboData.initialTime = comboData.time
+			table.insert(spec.attacherJointCombos.joints, comboData)
 		end
-		self:setAttacherJointBottomArmWidth(v36_, nil)
+		self:setAttacherJointBottomArmWidth(attacherJointIndex, nil)
 	end
-	if savegame ~= nil and (not savegame.resetVehicles and v35_.attacherJointCombos ~= nil) then
-		local v73_ = savegame.xmlFile:getValue(savegame.key .. ".attacherJoints#comboDirection")
-		if v73_ ~= nil then
-			v35_.attacherJointCombos.direction = v73_
-			if v73_ == 1 then
-				v35_.attacherJointCombos.currentTime = v35_.attacherJointCombos.duration
+	if savegame ~= nil and (not savegame.resetVehicles and spec.attacherJointCombos ~= nil) then
+		local comboDirection = savegame.xmlFile:getValue(savegame.key .. ".attacherJoints#comboDirection")
+		if comboDirection ~= nil then
+			spec.attacherJointCombos.direction = comboDirection
+			if comboDirection == 1 then
+				spec.attacherJointCombos.currentTime = spec.attacherJointCombos.duration
 			end
 		end
 	end
-	if #v35_.attacherJoints == 0 then
+	if #spec.attacherJoints == 0 then
 		SpecializationUtil.removeEventListener(self, "onReadStream", AttacherJoints)
 		SpecializationUtil.removeEventListener(self, "onWriteStream", AttacherJoints)
 		SpecializationUtil.removeEventListener(self, "onUpdateInterpolation", AttacherJoints)
@@ -587,927 +523,869 @@ function AttacherJoints:onPostLoad(savegame)
 		SpecializationUtil.removeEventListener(self, "onReverseDirectionChanged", AttacherJoints)
 	end
 end
-
--- Local values: spec, xmlFile, index, attachedImplementKey, jointIndex, attachmentData, vehicle, index, attacherJointKey, jointIndex, isBlocked, attacherJoint
 function AttacherJoints:onLoadFinished(savegame)
-	local v76_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	if savegame ~= nil and (not savegame.resetVehicles or savegame.keepPosition) then
-		v76_.attachmentDataToLoad = {}
-		local v77_ = savegame.xmlFile
-		for _, v78_ in v77_:iterator(savegame.key .. ".attacherJoints.attachedImplement") do
-			local v79_ = {
-				["jointIndex"] = v77_:getValue(v78_ .. "#jointIndex"),
-				["attachedVehicleUniqueId"] = v77_:getValue(v78_ .. "#attachedVehicleUniqueId"),
-				["inputIndex"] = v77_:getValue(v78_ .. "#inputJointIndex"),
-				["moveDown"] = v77_:getValue(v78_ .. "#moveDown", false)
-			}
-			if v79_.jointIndex ~= nil and (v79_.attachedVehicleUniqueId ~= nil and v79_.inputIndex ~= nil) then
-				local v80_ = g_currentMission.vehicleSystem:getVehicleByUniqueId(v79_.attachedVehicleUniqueId)
-				if v80_ == nil then
-					local v81_ = v76_.attachmentDataToLoad
-					table.insert(v81_, v79_)
-				else
-					self:attachImplement(v80_, v79_.inputIndex, v79_.jointIndex, true, nil, v79_.moveDown, true, true)
-					self:setJointMoveDown(v79_.jointIndex, v79_.moveDown, true)
-				end
+		spec.attachmentDataToLoad = {}
+		local xmlFile = savegame.xmlFile
+		for index, attachedImplementKey in xmlFile:iterator(savegame.key .. ".attacherJoints.attachedImplement") do
+			local jointIndex = xmlFile:getValue(attachedImplementKey .. "#jointIndex")
+			local attachmentData = {}
+			attachmentData.jointIndex = jointIndex
+			attachmentData.attachedVehicleUniqueId = xmlFile:getValue(attachedImplementKey .. "#attachedVehicleUniqueId")
+			attachmentData.inputIndex = xmlFile:getValue(attachedImplementKey .. "#inputJointIndex")
+			attachmentData.moveDown = xmlFile:getValue(attachedImplementKey .. "#moveDown", false)
+			if attachmentData.jointIndex == nil or attachmentData.attachedVehicleUniqueId == nil or attachmentData.inputIndex == nil then
+				continue
+			end
+			local vehicle = g_currentMission.vehicleSystem:getVehicleByUniqueId(attachmentData.attachedVehicleUniqueId)
+			if vehicle ~= nil then
+				self:attachImplement(vehicle, attachmentData.inputIndex, attachmentData.jointIndex, true, nil, attachmentData.moveDown, true, true)
+				self:setJointMoveDown(attachmentData.jointIndex, attachmentData.moveDown, true)
+			else
+				table.insert(spec.attachmentDataToLoad, attachmentData)
 			end
 		end
-		for _, v82_ in v77_:iterator(savegame.key .. ".attacherJoints.attacherJoint") do
-			local v83_ = v77_:getValue(v82_ .. "#jointIndex")
-			local v84_ = v77_:getValue(v82_ .. "#isBlocked")
-			if v84_ then
-				v76_.attacherJoints[v83_].isBlocked = v84_
+		for index, attacherJointKey in xmlFile:iterator(savegame.key .. ".attacherJoints.attacherJoint") do
+			local jointIndex = xmlFile:getValue(attacherJointKey .. "#jointIndex")
+			local isBlocked = xmlFile:getValue(attacherJointKey .. "#isBlocked")
+			if isBlocked then
+				local attacherJoint = spec.attacherJoints[jointIndex]
+				attacherJoint.isBlocked = isBlocked
 			end
 		end
-		if #v76_.attachmentDataToLoad > 0 then
+		if 0 < #spec.attachmentDataToLoad then
 			g_messageCenter:subscribe(MessageType.VEHICLE_LOADED, self.onAttacherJointsVehicleLoaded, self)
 		end
 	end
 end
-
--- Local values: spec, loadAttacherJointNodeFunc, setAttacherJointFromNodes, bottomArmPosition, bottomArmPositionMin, bottomArmPositionMax
 function AttacherJoints:onRegisterDashboardValueTypes()
-	local v86_ = self.spec_attacherJoints
-	local function v90_(_, p87_, p88_, p89_, _)
-		-- upvalues: (copy) self
-		p89_.attacherJointNode = p87_:getValue(p88_ .. "#attacherJointNode", nil, self.components, self.i3dMappings)
-		if p89_.attacherJointNode ~= nil then
+	local spec = self.spec_attacherJoints
+	local loadAttacherJointNodeFunc = function(_, xmlFile, key, dashboard, isActive)
+		dashboard.attacherJointNode = xmlFile:getValue(key .. "#attacherJointNode", nil, self.components, self.i3dMappings)
+		if dashboard.attacherJointNode == nil then
+			dashboard.attacherJointNodes = xmlFile:getValue(key .. "#attacherJointNodes", nil, self.components, self.i3dMappings, true)
+			return #dashboard.attacherJointNodes ~= 0
+		else
 			return true
 		end
-		p89_.attacherJointNodes = p87_:getValue(p88_ .. "#attacherJointNodes", nil, self.components, self.i3dMappings, true)
-		return #p89_.attacherJointNodes ~= 0
 	end
-	local function v_u_95_(p91_)
-		-- upvalues: (copy) self
-		if p91_.attacherJointNode ~= nil then
-			local v92_ = self:getAttacherJointByNode(p91_.attacherJointNode)
-			if v92_ == nil or v92_.bottomArm == nil then
-				p91_.attacherJointNode = nil
-			else
-				p91_.attacherJoint = v92_
+	local setAttacherJointFromNodes = function(dashboard)
+		if dashboard.attacherJointNode ~= nil then
+			local attacherJoint = self:getAttacherJointByNode(dashboard.attacherJointNode)
+			if attacherJoint ~= nil and attacherJoint.bottomArm ~= nil then
+				dashboard.attacherJoint = attacherJoint
+				return
 			end
-		end
-		if p91_.attacherJointNodes ~= nil then
-			for _, v93_ in ipairs(p91_.attacherJointNodes) do
-				local v94_ = self:getAttacherJointByNode(v93_)
-				if v94_ ~= nil and v94_.bottomArm ~= nil then
-					p91_.attacherJoint = v94_
-					break
+			dashboard.attacherJointNode = nil
+		else
+			if dashboard.attacherJointNodes ~= nil then
+				for _, attacherJointNode in ipairs(dashboard.attacherJointNodes) do
+					local attacherJoint = self:getAttacherJointByNode(attacherJointNode)
+					if attacherJoint == nil then
+						continue
+					end
+					if attacherJoint.bottomArm ~= nil then
+						dashboard.attacherJoint = attacherJoint
+						break
+					end
+				end
+				if dashboard.attacherJoint == nil then
+					dashboard.attacherJointNodes = nil
 				end
 			end
-			if p91_.attacherJoint == nil then
-				p91_.attacherJointNodes = nil
-			end
 		end
 	end
-	local v96_ = DashboardValueType.new("attacherJoints", "bottomArmPosition")
-	v96_:setValue(v86_, function(_, p97_)
-		-- upvalues: (copy) v_u_95_
-		if p97_.attacherJoint == nil then
-			v_u_95_(p97_)
-			if p97_.attacherJoint == nil then
+	local bottomArmPosition = DashboardValueType.new("attacherJoints", "bottomArmPosition")
+	bottomArmPosition:setValue(spec, function(_, dashboard)
+		if dashboard.attacherJoint == nil then
+			setAttacherJointFromNodes(dashboard)
+			if dashboard.attacherJoint == nil then
 				return 0
 			end
 		end
-		return 1 - (p97_.attacherJoint.moveAlpha or 0)
+		return 1 - (dashboard.attacherJoint.moveAlpha or 0)
 	end)
-	v96_:setAdditionalFunctions(v90_)
-	v96_:setValueFactor(100)
-	v96_:setRange(0, 100)
-	v96_:setPollUpdate(false)
-	self:registerDashboardValueType(v96_)
-	local v98_ = DashboardValueType.new("attacherJoints", "bottomArmPositionMin")
-	v98_:setValue(v86_, function(_, p99_)
-		-- upvalues: (copy) v_u_95_
-		if p99_.attacherJoint == nil then
-			v_u_95_(p99_)
-			if p99_.attacherJoint == nil then
+	bottomArmPosition:setAdditionalFunctions(loadAttacherJointNodeFunc)
+	bottomArmPosition:setValueFactor(100)
+	bottomArmPosition:setRange(0, 100)
+	bottomArmPosition:setPollUpdate(false)
+	self:registerDashboardValueType(bottomArmPosition)
+	local bottomArmPositionMin = DashboardValueType.new("attacherJoints", "bottomArmPositionMin")
+	bottomArmPositionMin:setValue(spec, function(_, dashboard)
+		if dashboard.attacherJoint == nil then
+			setAttacherJointFromNodes(dashboard)
+			if dashboard.attacherJoint == nil then
 				return 0
 			end
 		end
-		return 1 - (p99_.attacherJoint.lowerAlpha or 1)
+		return 1 - (dashboard.attacherJoint.lowerAlpha or 1)
 	end)
-	v98_:setAdditionalFunctions(v90_)
-	v98_:setValueFactor(100)
-	v98_:setRange(0, 100)
-	v98_:setPollUpdate(false)
-	self:registerDashboardValueType(v98_)
-	local v100_ = DashboardValueType.new("attacherJoints", "bottomArmPositionMax")
-	v100_:setValue(v86_, function(_, p101_)
-		-- upvalues: (copy) v_u_95_
-		if p101_.attacherJoint == nil then
-			v_u_95_(p101_)
-			if p101_.attacherJoint == nil then
+	bottomArmPositionMin:setAdditionalFunctions(loadAttacherJointNodeFunc)
+	bottomArmPositionMin:setValueFactor(100)
+	bottomArmPositionMin:setRange(0, 100)
+	bottomArmPositionMin:setPollUpdate(false)
+	self:registerDashboardValueType(bottomArmPositionMin)
+	local bottomArmPositionMax = DashboardValueType.new("attacherJoints", "bottomArmPositionMax")
+	bottomArmPositionMax:setValue(spec, function(_, dashboard)
+		if dashboard.attacherJoint == nil then
+			setAttacherJointFromNodes(dashboard)
+			if dashboard.attacherJoint == nil then
 				return 0
 			end
 		end
-		return 1 - (p101_.attacherJoint.upperAlpha or 0)
+		return 1 - (dashboard.attacherJoint.upperAlpha or 0)
 	end)
-	v100_:setAdditionalFunctions(v90_)
-	v100_:setValueFactor(100)
-	v100_:setRange(0, 100)
-	v100_:setPollUpdate(false)
-	self:registerDashboardValueType(v100_)
+	bottomArmPositionMax:setAdditionalFunctions(loadAttacherJointNodeFunc)
+	bottomArmPositionMax:setValueFactor(100)
+	bottomArmPositionMax:setRange(0, 100)
+	bottomArmPositionMax:setPollUpdate(false)
+	self:registerDashboardValueType(bottomArmPositionMax)
 end
-
--- Local values: spec, i, implement
 function AttacherJoints:onPreDelete()
-	local v103_ = self.spec_attacherJoints
-	if v103_.attachedImplements ~= nil then
-		for v104_ = #v103_.attachedImplements, 1, -1 do
-			local v105_ = v103_.attachedImplements[v104_]
-			if not v105_.object:getIsAdditionalAttachment() then
-				self:detachImplementByObject(v105_.object, true)
+	local spec = self.spec_attacherJoints
+	if spec.attachedImplements ~= nil then
+		for i = #spec.attachedImplements, 1, -1 do
+			local implement = spec.attachedImplements[i]
+			if implement.object:getIsAdditionalAttachment() then
+				continue
 			end
+			self:detachImplementByObject(implement.object, true)
 		end
 	end
 end
-
--- Local values: spec, _, jointDesc, bottomArm
 function AttacherJoints:onDelete()
-	local v107_ = self.spec_attacherJoints
-	if v107_.attacherJoints ~= nil then
-		for _, v108_ in pairs(v107_.attacherJoints) do
-			g_soundManager:deleteSample(v108_.sampleAttach)
-			g_soundManager:deleteSample(v108_.sampleDetach)
-			if v108_.topArm ~= nil then
-				v108_.topArm:delete()
-				v108_.topArm = nil
+	local spec = self.spec_attacherJoints
+	if spec.attacherJoints ~= nil then
+		for _, jointDesc in pairs(spec.attacherJoints) do
+			g_soundManager:deleteSample(jointDesc.sampleAttach)
+			g_soundManager:deleteSample(jointDesc.sampleDetach)
+			if jointDesc.topArm ~= nil then
+				jointDesc.topArm:delete()
+				jointDesc.topArm = nil
 			end
-			local v109_ = v108_.bottomArm
-			if v109_ ~= nil and v109_.sharedLoadRequestIdToolbar ~= nil then
-				g_i3DManager:releaseSharedI3DFile(v109_.sharedLoadRequestIdToolbar)
-				v109_.sharedLoadRequestIdToolbar = nil
+			local bottomArm = jointDesc.bottomArm
+			if bottomArm == nil or bottomArm.sharedLoadRequestIdToolbar == nil then
+				continue
 			end
+			g_i3DManager:releaseSharedI3DFile(bottomArm.sharedLoadRequestIdToolbar)
+			bottomArm.sharedLoadRequestIdToolbar = nil
 		end
-		g_soundManager:deleteSamples(v107_.samples)
+		g_soundManager:deleteSamples(spec.samples)
 	end
 end
-
--- Local values: spec, index, implement, attacherJointKey, jointDesc, index, jointIndex, jointDesc, attacherJointKey
 function AttacherJoints:saveToXMLFile(xmlFile, key, usedModNames)
-	local v113_ = self.spec_attacherJoints
-	if v113_.attacherJointCombos ~= nil then
-		xmlFile:setValue(key .. "#comboDirection", v113_.attacherJointCombos.direction)
+	local spec = self.spec_attacherJoints
+	if spec.attacherJointCombos ~= nil then
+		xmlFile:setValue(key .. "#comboDirection", spec.attacherJointCombos.direction)
 	end
-	if v113_.attacherJoints ~= nil then
-		for v114_, v115_ in ipairs(v113_.attachedImplements) do
-			if v115_.object ~= nil then
-				local v116_ = string.format("%s.attachedImplement(%d)", key, v114_ - 1)
-				local v117_ = self:getAttacherJointByJointDescIndex(v115_.jointDescIndex)
-				xmlFile:setValue(v116_ .. "#jointIndex", v115_.jointDescIndex)
-				xmlFile:setValue(v116_ .. "#moveDown", v117_.moveDown)
-				xmlFile:setValue(v116_ .. "#attachedVehicleUniqueId", v115_.object:getUniqueId())
-				xmlFile:setValue(v116_ .. "#inputJointIndex", v115_.inputJointDescIndex)
+	if spec.attacherJoints ~= nil then
+		for index, implement in ipairs(spec.attachedImplements) do
+			if implement.object == nil then
+				continue
 			end
+			local attacherJointKey = string.format("%s.attachedImplement(%d)", key, index - 1)
+			local jointDesc = self:getAttacherJointByJointDescIndex(implement.jointDescIndex)
+			xmlFile:setValue(attacherJointKey .. "#jointIndex", implement.jointDescIndex)
+			xmlFile:setValue(attacherJointKey .. "#moveDown", jointDesc.moveDown)
+			xmlFile:setValue(attacherJointKey .. "#attachedVehicleUniqueId", implement.object:getUniqueId())
+			xmlFile:setValue(attacherJointKey .. "#inputJointIndex", implement.inputJointDescIndex)
 		end
-		local v118_ = 0
-		for v119_, v120_ in pairs(v113_.attacherJoints) do
-			if v120_.isBlocked then
-				local v121_ = string.format("%s.attacherJoint(%d)", key, v118_)
-				xmlFile:setValue(v121_ .. "#jointIndex", v119_)
-				xmlFile:setValue(v121_ .. "#isBlocked", v120_.isBlocked)
-				v118_ = v118_ + 1
+		local index = 0
+		for jointIndex, jointDesc in pairs(spec.attacherJoints) do
+			if jointDesc.isBlocked then
+				local attacherJointKey = string.format("%s.attacherJoint(%d)", key, index)
+				xmlFile:setValue(attacherJointKey .. "#jointIndex", jointIndex)
+				xmlFile:setValue(attacherJointKey .. "#isBlocked", jointDesc.isBlocked)
+				index = index + 1
 			end
 		end
 	end
 end
-
--- Local values: numImplements, i, object, inputJointDescIndex, jointDescIndex, moveDown
 function AttacherJoints:onReadStream(streamId, connection)
-	for v124_ = 1, streamReadInt8(streamId) do
-		local v125_ = NetworkUtil.readNodeObject(streamId)
-		local v126_ = streamReadInt8(streamId)
-		local v127_ = streamReadInt8(streamId)
-		local v128_ = streamReadBool(streamId)
-		if v125_ ~= nil and v125_:getIsSynchronized() then
-			self:attachImplement(v125_, v126_, v127_, true, v124_, v128_, true, true)
-			self:setJointMoveDown(v127_, v128_, true)
+	local numImplements = streamReadInt8(streamId)
+	for i = 1, numImplements do
+		local object = NetworkUtil.readNodeObject(streamId)
+		local inputJointDescIndex = streamReadInt8(streamId)
+		local jointDescIndex = streamReadInt8(streamId)
+		local moveDown = streamReadBool(streamId)
+		if object == nil then
+			continue
+		end
+		if object:getIsSynchronized() then
+			self:attachImplement(object, inputJointDescIndex, jointDescIndex, true, i, moveDown, true, true)
+			self:setJointMoveDown(jointDescIndex, moveDown, true)
 		end
 	end
 end
-
--- Local values: spec, i, implement, inputJointDescIndex, jointDescIndex, jointDesc, moveDown
 function AttacherJoints:onWriteStream(streamId, connection)
-	local v131_ = self.spec_attacherJoints
-	streamWriteInt8(streamId, #v131_.attachedImplements)
-	for v132_ = 1, #v131_.attachedImplements do
-		local v133_ = v131_.attachedImplements[v132_]
-		local v134_ = v133_.object.spec_attachable.inputAttacherJointDescIndex
-		local v135_ = v133_.jointDescIndex
-		local v136_ = v131_.attacherJoints[v135_].moveDown
-		NetworkUtil.writeNodeObject(streamId, v133_.object)
-		streamWriteInt8(streamId, v134_)
-		streamWriteInt8(streamId, v135_)
-		streamWriteBool(streamId, v136_)
+	local spec = self.spec_attacherJoints
+	streamWriteInt8(streamId, #spec.attachedImplements)
+	for i = 1, #spec.attachedImplements do
+		local implement = spec.attachedImplements[i]
+		local inputJointDescIndex = implement.object.spec_attachable.inputAttacherJointDescIndex
+		local jointDescIndex = implement.jointDescIndex
+		local jointDesc = spec.attacherJoints[jointDescIndex]
+		local moveDown = jointDesc.moveDown
+		NetworkUtil.writeNodeObject(streamId, implement.object)
+		streamWriteInt8(streamId, inputJointDescIndex)
+		streamWriteInt8(streamId, jointDescIndex)
+		streamWriteBool(streamId, moveDown)
 	end
 end
-
--- Local values: spec, _, implement, _, implement
 function AttacherJoints:onUpdateInterpolation(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v142_ = self.spec_attacherJoints
-	if self.currentUpdateDistance < v142_.maxUpdateDistance then
-		for _, v143_ in pairs(v142_.attachedImplements) do
-			if v143_.object ~= nil and self.updateLoopIndex == v143_.object.updateLoopIndex then
-				self:updateAttacherJointGraphics(v143_, dt, true)
-				v143_.object:updateInputAttacherJointGraphics(v143_, dt)
+	local spec = self.spec_attacherJoints
+	if self.currentUpdateDistance < spec.maxUpdateDistance then
+		for _, implement in pairs(spec.attachedImplements) do
+			if implement.object == nil then
+				continue
+			end
+			if self.updateLoopIndex == implement.object.updateLoopIndex then
+				self:updateAttacherJointGraphics(implement, dt, true)
+				implement.object:updateInputAttacherJointGraphics(implement, dt)
 			end
 		end
 	end
-	for _, v144_ in pairs(v142_.attachedImplements) do
-		if v144_.object ~= nil and v144_.object.spec_attachable.isHardAttached then
-			SpecializationUtil.raiseEvent(v144_.object, "onUpdateInterpolation", dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
+	for _, implement in pairs(spec.attachedImplements) do
+		if implement.object == nil then
+			continue
+		end
+		if implement.object.spec_attachable.isHardAttached then
+			SpecializationUtil.raiseEvent(implement.object, "onUpdateInterpolation", dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 		end
 	end
 end
-
--- Local values: spec, info
 function AttacherJoints:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v147_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	if self.isClient then
-		local v148_ = v147_.showAttachNotAllowedText - dt
-		v147_.showAttachNotAllowedText = math.max(v148_, 0)
-		if v147_.showAttachNotAllowedText > 0 then
-			g_currentMission:addExtraPrintText(v147_.texts.infoAttachNotAllowed)
+		spec.showAttachNotAllowedText = math.max(spec.showAttachNotAllowedText - dt, 0)
+		if 0 < spec.showAttachNotAllowedText then
+			g_currentMission:addExtraPrintText(spec.texts.infoAttachNotAllowed)
 		end
 	end
-	local v149_ = v147_.attachableInfo
-	if Platform.gameplay.automaticAttach and self.isServer or self.isClient and (v147_.actionEvents ~= nil and v147_.actionEvents[InputAction.ATTACH] ~= nil) then
+	local info = spec.attachableInfo
+	if (not Platform.gameplay.automaticAttach or not self.isServer) and (self.isClient and (spec.actionEvents ~= nil and spec.actionEvents[InputAction.ATTACH] ~= nil)) then
 		if self:getCanToggleAttach() then
 			AttacherJoints.updateVehiclesInAttachRange(self, AttacherJoints.MAX_ATTACH_DISTANCE_SQ, AttacherJoints.MAX_ATTACH_ANGLE, true)
 			return
 		end
-		v149_.attacherVehicle = nil
-		v149_.attacherVehicleJointDescIndex = nil
-		v149_.attachable = nil
-		v149_.attachableJointDescIndex = nil
+		info.attacherVehicle = nil
+		info.attacherVehicleJointDescIndex = nil
+		info.attachable = nil
+		info.attachableJointDescIndex = nil
 	end
 end
-
--- Local values: spec, _, implement
 function AttacherJoints:onUpdateEnd(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v152_ = self.spec_attacherJoints
-	for _, v153_ in pairs(v152_.attachedImplements) do
-		if v153_.object ~= nil and self.updateLoopIndex == v153_.object.updateLoopIndex then
-			self:updateAttacherJointGraphics(v153_, dt, true)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		if implement.object == nil then
+			continue
+		end
+		if self.updateLoopIndex == implement.object.updateLoopIndex then
+			self:updateAttacherJointGraphics(implement, dt, true)
 		end
 	end
 end
-
--- Local values: spec, playHydraulicSound, _, implement, jointDesc, done, i, lastRotLimit, lastTransLimit, jointFrameInvalid, upperAlpha, lowerAlpha, moveAlpha, force, alpha, i, alpha, i, i, jointDesc, combos, _, joint, doLowering, implement, info, attachAllowed, warning
 function AttacherJoints:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v156_ = self.spec_attacherJoints
-	local v157_ = false
-	for _, v158_ in pairs(v156_.attachedImplements) do
-		if v158_.object ~= nil then
-			local v159_ = v156_.attacherJoints[v158_.jointDescIndex]
-			if not v158_.object.spec_attachable.isHardAttached then
-				if self.isServer and (v158_.attachingIsInProgress and self:getIsSmoothAttachUpdateAllowed(v158_)) then
-					local v160_ = true
-					for v161_ = 1, 3 do
-						local v162_ = v158_.attachingRotLimit[v161_]
-						local v163_ = v158_.attachingTransLimit[v161_]
-						local v164_ = v158_.attachingRotLimit
-						local v165_ = v158_.attachingRotLimit[v161_] - v158_.attachingRotLimitSpeed[v161_] * dt
-						v164_[v161_] = math.max(0, v165_)
-						local v166_ = v158_.attachingTransLimit
-						local v167_ = v158_.attachingTransLimit[v161_] - v158_.attachingTransLimitSpeed[v161_] * dt
-						v166_[v161_] = math.max(0, v167_)
-						if v158_.attachingRotLimit[v161_] > 0 or (v158_.attachingTransLimit[v161_] > 0 or (v162_ > 0 or v163_ > 0)) then
-							v160_ = false
+	local spec = self.spec_attacherJoints
+	local playHydraulicSound = false
+	for _, implement in pairs(spec.attachedImplements) do
+		if implement.object == nil then
+			continue
+		end
+		local jointDesc = spec.attacherJoints[implement.jointDescIndex]
+		if implement.object.spec_attachable.isHardAttached then
+			continue
+		end
+		if self.isServer and (implement.attachingIsInProgress and self:getIsSmoothAttachUpdateAllowed(implement)) then
+			local done = true
+			for i = 1, 3 do
+				local lastRotLimit = implement.attachingRotLimit[i]
+				local lastTransLimit = implement.attachingTransLimit[i]
+				implement.attachingRotLimit[i] = math.max(0, implement.attachingRotLimit[i] - implement.attachingRotLimitSpeed[i] * dt)
+				implement.attachingTransLimit[i] = math.max(0, implement.attachingTransLimit[i] - implement.attachingTransLimitSpeed[i] * dt)
+				if 0 < implement.attachingRotLimit[i] or 0 < implement.attachingTransLimit[i] or 0 < lastRotLimit or 0 < lastTransLimit then
+					done = false
+				end
+			end
+			implement.attachingIsInProgress = not done
+			if done then
+				if implement.object.spec_attachable.attacherJoint.hardAttach and self:getIsHardAttachAllowed(implement.jointDescIndex) then
+					self:hardAttachImplement(implement)
+				end
+				self:postAttachImplement(implement)
+			end
+		end
+		if not implement.attachingIsInProgress then
+			local jointFrameInvalid = false
+			if jointDesc.allowsLowering and self:getIsActive() then
+				local upperAlpha = jointDesc.upperAlpha
+				local lowerAlpha = jointDesc.lowerAlpha
+				if jointDesc.moveDown then
+					upperAlpha, lowerAlpha = self:calculateAttacherJointMoveUpperLowerAlpha(jointDesc, implement.object)
+					jointDesc.moveTime = jointDesc.moveDefaultTime * math.abs(upperAlpha - lowerAlpha)
+				end
+				local moveAlpha = Utils.getMovedLimitedValue(jointDesc.moveAlpha, lowerAlpha, upperAlpha, jointDesc.moveTime, dt, not jointDesc.moveDown)
+				if moveAlpha ~= jointDesc.moveAlpha or upperAlpha ~= jointDesc.upperAlpha or lowerAlpha ~= jointDesc.lowerAlpha then
+					jointDesc.upperAlpha = upperAlpha
+					jointDesc.lowerAlpha = lowerAlpha
+					if jointDesc.moveDown then
+						if math.abs(jointDesc.moveAlpha - jointDesc.lowerAlpha) < 0.05 then
+							jointDesc.isMoving = false
 						end
+					elseif math.abs(jointDesc.moveAlpha - jointDesc.upperAlpha) < 0.05 then
+						jointDesc.isMoving = false
 					end
-					v158_.attachingIsInProgress = not v160_
-					if v160_ then
-						if v158_.object.spec_attachable.attacherJoint.hardAttach and self:getIsHardAttachAllowed(v158_.jointDescIndex) then
-							self:hardAttachImplement(v158_)
-						end
-						self:postAttachImplement(v158_)
+					playHydraulicSound = jointDesc.isMoving
+					jointDesc.moveAlpha = moveAlpha
+					if jointDesc.upperAlpha - jointDesc.lowerAlpha ~= 0 then
+						jointDesc.moveLimitAlpha = 1 - (moveAlpha - jointDesc.lowerAlpha) / (jointDesc.upperAlpha - jointDesc.lowerAlpha)
+					else
+						jointDesc.moveLimitAlpha = 1
+					end
+					jointFrameInvalid = true
+					self:updateAttacherJointRotationNodes(jointDesc, jointDesc.moveAlpha)
+					self:updateAttacherJointRotation(jointDesc, implement.object)
+					if self.isClient and self.updateDashboardValueType ~= nil then
+						self:updateDashboardValueType("attacherJoints.bottomArmPosition")
 					end
 				end
-				if not v158_.attachingIsInProgress then
-					local v168_ = false
-					if v159_.allowsLowering and self:getIsActive() then
-						local v169_ = v159_.upperAlpha
-						local v170_ = v159_.lowerAlpha
-						if v159_.moveDown then
-							v169_, v170_ = self:calculateAttacherJointMoveUpperLowerAlpha(v159_, v158_.object)
-							local v171_ = v159_.moveDefaultTime
-							local v172_ = v169_ - v170_
-							v159_.moveTime = v171_ * math.abs(v172_)
-						end
-						local v173_ = Utils.getMovedLimitedValue(v159_.moveAlpha, v170_, v169_, v159_.moveTime, dt, not v159_.moveDown)
-						if v173_ ~= v159_.moveAlpha or (v169_ ~= v159_.upperAlpha or v170_ ~= v159_.lowerAlpha) then
-							v159_.upperAlpha = v169_
-							v159_.lowerAlpha = v170_
-							if v159_.moveDown then
-								local v174_ = v159_.moveAlpha - v159_.lowerAlpha
-								if math.abs(v174_) < 0.05 then
-									v159_.isMoving = false
-								end
-							else
-								local v175_ = v159_.moveAlpha - v159_.upperAlpha
-								if math.abs(v175_) < 0.05 then
-									v159_.isMoving = false
-								end
-							end
-							v157_ = v159_.isMoving
-							v159_.moveAlpha = v173_
-							if v159_.upperAlpha - v159_.lowerAlpha == 0 then
-								v159_.moveLimitAlpha = 1
-							else
-								v159_.moveLimitAlpha = 1 - (v173_ - v159_.lowerAlpha) / (v159_.upperAlpha - v159_.lowerAlpha)
-							end
-							v168_ = true
-							self:updateAttacherJointRotationNodes(v159_, v159_.moveAlpha)
-							self:updateAttacherJointRotation(v159_, v158_.object)
-							if self.isClient and self.updateDashboardValueType ~= nil then
-								self:updateDashboardValueType("attacherJoints.bottomArmPosition")
-							end
-						end
-					end
-					if v168_ or v159_.jointFrameInvalid then
-						v159_.jointFrameInvalid = false
-						if self.isServer then
-							setJointFrame(v159_.jointIndex, 0, v159_.jointTransform)
-						end
-					end
-				end
+			end
+			jointFrameInvalid = jointFrameInvalid or jointDesc.jointFrameInvalid
+			if jointFrameInvalid then
+				jointDesc.jointFrameInvalid = false
 				if self.isServer then
-					local v176_ = v158_.attachingIsInProgress
-					if (v176_ or v159_.allowsLowering and v159_.allowsJointLimitMovement) and (v159_.jointIndex ~= nil and v159_.jointIndex ~= 0) then
-						if v176_ or v158_.object.spec_attachable.attacherJoint.allowsJointRotLimitMovement then
-							local v177_ = v159_.moveLimitAlpha - v158_.rotLimitThreshold
-							local v178_ = math.max(v177_, 0) / (1 - v158_.rotLimitThreshold)
-							for v179_ = 1, 3 do
-								AttacherJoints.updateAttacherJointRotationLimit(v158_, v159_, v179_, v176_, v178_)
-							end
-						end
-						if v176_ or v158_.object.spec_attachable.attacherJoint.allowsJointTransLimitMovement then
-							local v180_ = v159_.moveLimitAlpha - v158_.transLimitThreshold
-							local v181_ = math.max(v180_, 0) / (1 - v158_.transLimitThreshold)
-							for v182_ = 1, 3 do
-								AttacherJoints.updateAttacherJointTranslationLimit(v158_, v159_, v182_, v176_, v181_)
-							end
-						end
+					setJointFrame(jointDesc.jointIndex, 0, jointDesc.jointTransform)
+				end
+			end
+		end
+		if self.isServer then
+			local force = implement.attachingIsInProgress
+			if force or jointDesc.allowsLowering and jointDesc.allowsJointLimitMovement then
+				if jointDesc.jointIndex == nil or jointDesc.jointIndex == 0 then
+					continue
+				end
+				if force or implement.object.spec_attachable.attacherJoint.allowsJointRotLimitMovement then
+					local alpha = math.max(jointDesc.moveLimitAlpha - implement.rotLimitThreshold, 0) / (1 - implement.rotLimitThreshold)
+					for i = 1, 3 do
+						AttacherJoints.updateAttacherJointRotationLimit(implement, jointDesc, i, force, alpha)
+					end
+				end
+				if force or implement.object.spec_attachable.attacherJoint.allowsJointTransLimitMovement then
+					local alpha = math.max(jointDesc.moveLimitAlpha - implement.transLimitThreshold, 0) / (1 - implement.transLimitThreshold)
+					for i = 1, 3 do
+						AttacherJoints.updateAttacherJointTranslationLimit(implement, jointDesc, i, force, alpha)
 					end
 				end
 			end
 		end
 	end
-	if self.isClient and v156_.samples.hydraulic ~= nil then
-		for v183_ = 1, #v156_.attacherJoints do
-			local v184_ = v156_.attacherJoints[v183_]
-			if v184_.bottomArm ~= nil and v184_.bottomArm.bottomArmInterpolating then
-				v157_ = true
+	if self.isClient and spec.samples.hydraulic ~= nil then
+		for i = 1, #spec.attacherJoints do
+			local jointDesc = spec.attacherJoints[i]
+			if jointDesc.bottomArm == nil then
+				continue
+			end
+			if jointDesc.bottomArm.bottomArmInterpolating then
+				playHydraulicSound = true
 			end
 		end
-		if v157_ then
-			if not v156_.isHydraulicSamplePlaying then
-				g_soundManager:playSample(v156_.samples.hydraulic)
-				v156_.isHydraulicSamplePlaying = true
+		if playHydraulicSound then
+			if not spec.isHydraulicSamplePlaying then
+				g_soundManager:playSample(spec.samples.hydraulic)
+				spec.isHydraulicSamplePlaying = true
 			end
-		elseif v156_.isHydraulicSamplePlaying then
-			g_soundManager:stopSample(v156_.samples.hydraulic)
-			v156_.isHydraulicSamplePlaying = false
+		elseif spec.isHydraulicSamplePlaying then
+			g_soundManager:stopSample(spec.samples.hydraulic)
+			spec.isHydraulicSamplePlaying = false
 		end
 	end
-	local v185_ = v156_.attacherJointCombos
-	if v185_ ~= nil and v185_.isRunning then
-		for _, v186_ in pairs(v185_.joints) do
-			local v187_ = nil
-			if v185_.direction == 1 and v185_.currentTime >= v186_.time then
-				v187_ = true
-			elseif v185_.direction == -1 and v185_.currentTime <= v185_.duration - v186_.time then
-				v187_ = false
-			end
-			if v187_ ~= nil then
-				local v188_ = self:getImplementFromAttacherJointIndex(v186_.jointIndex)
-				if v188_ ~= nil and v188_.object.setLoweredAll ~= nil then
-					v188_.object:setLoweredAll(v187_, v186_.jointIndex)
+	local combos = spec.attacherJointCombos
+	if combos ~= nil and combos.isRunning then
+		for _, joint in pairs(combos.joints) do
+			local doLowering = nil
+			if combos.direction == 1 then
+				if joint.time <= combos.currentTime then
+					doLowering = true
+				elseif combos.direction == -1 then
+					if combos.currentTime <= combos.duration - joint.time then
+						doLowering = false
+					end
 				end
 			end
+			if doLowering == nil then
+				continue
+			end
+			local implement = self:getImplementFromAttacherJointIndex(joint.jointIndex)
+			if implement == nil or implement.object.setLoweredAll == nil then
+				continue
+			end
+			implement.object:setLoweredAll(doLowering, joint.jointIndex)
 		end
-		if v185_.direction == -1 and v185_.currentTime == 0 or v185_.direction == 1 and v185_.currentTime == v185_.duration then
-			v185_.isRunning = false
+		if combos.direction == -1 and (combos.currentTime == 0 or combos.direction == 1 and combos.currentTime == combos.duration) then
+			combos.isRunning = false
 		end
-		local v189_ = v185_.currentTime + dt * v185_.direction
-		local v190_ = v185_.duration
-		v185_.currentTime = math.clamp(v189_, 0, v190_)
+		combos.currentTime = math.clamp(combos.currentTime + dt * combos.direction, 0, combos.duration)
 	end
 	AttacherJoints.updateActionEvents(self)
 	if Platform.gameplay.automaticAttach and (self.isServer and self:getCanToggleAttach()) then
-		local v191_ = v156_.attachableInfo
-		if v191_.attachable == nil or (v156_.wasInAttachRange or v191_.attacherVehicle ~= self) then
-			if v191_.attachable == nil and v156_.wasInAttachRange then
-				v156_.wasInAttachRange = false
-			end
-		elseif not (self.isReconfigurating or v191_.attachable.isReconfigurating) then
-			local v192_, v193_ = v191_.attachable:isAttachAllowed(self:getActiveFarm(), v191_.attacherVehicle)
-			if v192_ then
-				if v156_.wasInAttachRange == nil then
-					v156_.wasInAttachRange = true
-				else
-					self:attachImplementFromInfo(v191_)
+		local info = spec.attachableInfo
+		if info.attachable ~= nil and (not spec.wasInAttachRange and info.attacherVehicle == self) then
+			if not self.isReconfigurating and not info.attachable.isReconfigurating then
+				local attachAllowed, warning = info.attachable:isAttachAllowed(self:getActiveFarm(), info.attacherVehicle)
+				if attachAllowed then
+					if spec.wasInAttachRange == nil then
+						spec.wasInAttachRange = true
+						return
+					else
+						self:attachImplementFromInfo(info)
+						return
+					end
+				end
+				if warning ~= nil then
+					g_currentMission:showBlinkingWarning(warning, 2000)
 				end
 			end
-			if v193_ ~= nil then
-				g_currentMission:showBlinkingWarning(v193_, 2000)
-				return
-			end
+			return
+		end
+		if info.attachable == nil and spec.wasInAttachRange then
+			spec.wasInAttachRange = false
 		end
 	end
 end
-
--- Local values: object
 function AttacherJoints:loadAttachmentsFinished()
 	if self.rootVehicle == self and self.loadedSelectedObjectIndex ~= nil then
-		local v195_ = self.selectableObjects[self.loadedSelectedObjectIndex]
-		if v195_ ~= nil then
-			self:setSelectedObject(v195_, self.loadedSubSelectedObjectIndex or 1)
+		local object = self.selectableObjects[self.loadedSelectedObjectIndex]
+		if object ~= nil then
+			self:setSelectedObject(object, self.loadedSubSelectedObjectIndex or 1)
 		end
 		self.loadedSelectedObjectIndex = nil
 		self.loadedSubSelectedObjectIndex = nil
 	end
 end
-
--- Local values: selectedVehicle, spec, implement, object, attacherVehicle, attacherJointIndex
 function AttacherJoints:handleLowerImplementEvent(vehicle, direction)
-	local v199_ = self:getSelectedVehicle()
-	if vehicle == nil and v199_ == self then
-		local v200_ = self.spec_attacherJoints
-		if #v200_.attachedImplements == 1 then
-			vehicle = v200_.attachedImplements[1].object
+	local selectedVehicle = self:getSelectedVehicle()
+	if vehicle == nil and selectedVehicle == self then
+		local spec = self.spec_attacherJoints
+		if #spec.attachedImplements == 1 then
+			vehicle = spec.attachedImplements[1].object
 		end
 	end
-	local v201_ = self:getImplementByObject(vehicle or v199_)
-	if v201_ ~= nil then
-		local v202_ = v201_.object
-		if v202_ ~= nil and v202_.getAttacherVehicle ~= nil then
-			local v203_ = v202_:getAttacherVehicle()
-			if v203_ ~= nil then
-				v203_:handleLowerImplementByAttacherJointIndex(v203_:getAttacherJointIndexFromObject(v202_), direction)
+	local implement = self:getImplementByObject(vehicle or selectedVehicle)
+	if implement ~= nil then
+		local object = implement.object
+		if object ~= nil and object.getAttacherVehicle ~= nil then
+			local attacherVehicle = object:getAttacherVehicle()
+			if attacherVehicle ~= nil then
+				local attacherJointIndex = attacherVehicle:getAttacherJointIndexFromObject(object)
+				attacherVehicle:handleLowerImplementByAttacherJointIndex(attacherJointIndex, direction)
 			end
 		end
 	end
 end
-
--- Local values: implement, object, attacherJoints, attacherJoint, allowsLowering, warning
 function AttacherJoints:handleLowerImplementByAttacherJointIndex(attacherJointIndex, direction)
 	if attacherJointIndex ~= nil then
-		local v207_ = self:getImplementByJointDescIndex(attacherJointIndex)
-		if v207_ ~= nil then
-			local v208_ = v207_.object
-			local v209_ = self:getAttacherJoints()[attacherJointIndex]
-			local v210_, v211_ = v208_:getAllowsLowering()
-			if v210_ and v209_.allowsLowering then
+		local implement = self:getImplementByJointDescIndex(attacherJointIndex)
+		if implement ~= nil then
+			local object = implement.object
+			local attacherJoints = self:getAttacherJoints()
+			local attacherJoint = attacherJoints[attacherJointIndex]
+			local allowsLowering, warning = object:getAllowsLowering()
+			if allowsLowering and attacherJoint.allowsLowering then
 				if direction == nil then
-					direction = not v209_.moveDown
+					direction = not attacherJoint.moveDown
 				end
-				self:setJointMoveDown(v207_.jointDescIndex, direction, false)
+				self:setJointMoveDown(implement.jointDescIndex, direction, false)
 				return
 			end
-			if not v210_ and v211_ ~= nil then
-				g_currentMission:showBlinkingWarning(v211_, 2000)
+			if not allowsLowering and warning ~= nil then
+				g_currentMission:showBlinkingWarning(warning, 2000)
 			end
 		end
 	end
 end
-
 function AttacherJoints:getAttachedImplements()
 	return self.spec_attacherJoints.attachedImplements
 end
-
 function AttacherJoints:getAttacherJoints()
 	return self.spec_attacherJoints.attacherJoints
 end
-
 function AttacherJoints:getAttacherJointByJointDescIndex(jointDescIndex)
 	return self.spec_attacherJoints.attacherJoints[jointDescIndex]
 end
-
--- Local values: spec, i, attacherJoint
 function AttacherJoints:getAttacherJointIndexByNode(node)
-	local v218_ = self.spec_attacherJoints
-	for v219_ = 1, #v218_.attacherJoints do
-		if v218_.attacherJoints[v219_].jointTransform == node then
-			return v219_
+	local spec = self.spec_attacherJoints
+	for i = 1, #spec.attacherJoints do
+		local attacherJoint = spec.attacherJoints[i]
+		if attacherJoint.jointTransform == node then
+			return i
 		end
 	end
 	return nil
 end
-
--- Local values: spec, i, attacherJoint
 function AttacherJoints:getAttacherJointByNode(node)
-	local v222_ = self.spec_attacherJoints
-	for v223_ = 1, #v222_.attacherJoints do
-		local v224_ = v222_.attacherJoints[v223_]
-		if v224_.jointTransform == node then
-			return v224_
+	local spec = self.spec_attacherJoints
+	for i = 1, #spec.attacherJoints do
+		local attacherJoint = spec.attacherJoints[i]
+		if attacherJoint.jointTransform == node then
+			return attacherJoint
 		end
 	end
 	return nil
 end
-
--- Local values: spec, _, attachedImplement
 function AttacherJoints:getImplementFromAttacherJointIndex(attacherJointIndex)
-	local v227_ = self.spec_attacherJoints
-	for _, v228_ in pairs(v227_.attachedImplements) do
-		if v228_.jointDescIndex == attacherJointIndex then
-			return v228_
+	local spec = self.spec_attacherJoints
+	for _, attachedImplement in pairs(spec.attachedImplements) do
+		if attachedImplement.jointDescIndex == attacherJointIndex then
+			return attachedImplement
 		end
 	end
 	return nil
 end
-
--- Local values: spec, _, attachedImplement
 function AttacherJoints:getAttacherJointIndexFromObject(object)
-	local v231_ = self.spec_attacherJoints
-	for _, v232_ in pairs(v231_.attachedImplements) do
-		if v232_.object == object then
-			return v232_.jointDescIndex
+	local spec = self.spec_attacherJoints
+	for _, attachedImplement in pairs(spec.attachedImplements) do
+		if attachedImplement.object == object then
+			return attachedImplement.jointDescIndex
 		end
 	end
 	return nil
 end
-
--- Local values: spec, _, attachedImplement
 function AttacherJoints:getAttacherJointDescFromObject(object)
-	local v235_ = self.spec_attacherJoints
-	for _, v236_ in pairs(v235_.attachedImplements) do
-		if v236_.object == object then
-			return v235_.attacherJoints[v236_.jointDescIndex]
+	local spec = self.spec_attacherJoints
+	for _, attachedImplement in pairs(spec.attachedImplements) do
+		if attachedImplement.object == object then
+			return spec.attacherJoints[attachedImplement.jointDescIndex]
 		end
 	end
 	return nil
 end
-
--- Local values: spec, attachedImplement
 function AttacherJoints:getAttacherJointIndexFromImplementIndex(implementIndex)
-	local v239_ = self.spec_attacherJoints.attachedImplements[implementIndex]
-	if v239_ == nil then
-		return nil
+	local spec = self.spec_attacherJoints
+	local attachedImplement = spec.attachedImplements[implementIndex]
+	if attachedImplement ~= nil then
+		return attachedImplement.jointDescIndex
 	else
-		return v239_.jointDescIndex
+		return nil
 	end
 end
-
--- Local values: spec, attachedImplement
 function AttacherJoints:getObjectFromImplementIndex(implementIndex)
-	local v242_ = self.spec_attacherJoints.attachedImplements[implementIndex]
-	if v242_ == nil then
+	local spec = self.spec_attacherJoints
+	local attachedImplement = spec.attachedImplements[implementIndex]
+	if attachedImplement ~= nil then
+		return attachedImplement.object
+	else
 		return nil
-	else
-		return v242_.object
 	end
 end
-
--- Local values: spec, jointDesc, attacherJoint, ax, ay, az, bx, by, bz, x, y, z, distance, upX, upY, upZ, dirX, dirY, dirZ, changed, interpolator, rx, ry, rz, target, parent, xDir, yDir, zDir, xUp, yUp, zUp, _, visualAlignNode
 function AttacherJoints:updateAttacherJointGraphics(implement, dt, forceUpdate)
-	local v247_ = self.spec_attacherJoints
-	if implement.object == nil then
-		::l2::
-		return
-	end
-	local v248_ = v247_.attacherJoints[implement.jointDescIndex]
-	local v249_ = implement.object:getInputAttacherJointByJointDescIndex(implement.inputJointDescIndex)
-	if v248_.bottomArm == nil then
-		::l4::
-		if v248_.topArm ~= nil and (not implement.attachingIsInProgress and v249_.topReferenceNode ~= nil) then
-			v248_.topArm:update(dt, v249_.topReferenceNode)
-		end
-		if v248_.visualAlignNodes ~= nil then
-			for _, v250_ in ipairs(v248_.visualAlignNodes) do
-				self:updateMovingPartByNode(v250_.node, dt)
+	local spec = self.spec_attacherJoints
+	if implement.object ~= nil then
+		local jointDesc = spec.attacherJoints[implement.jointDescIndex]
+		local attacherJoint = implement.object:getInputAttacherJointByJointDescIndex(implement.inputJointDescIndex)
+		if jointDesc.bottomArm ~= nil then
+			local ax, ay, az = getWorldTranslation(jointDesc.bottomArm.rotationNode)
+			local bx, by, bz = getWorldTranslation(attacherJoint.node)
+			local x, y, z = worldDirectionToLocal(getParent(jointDesc.bottomArm.rotationNode), bx - ax, by - ay, bz - az)
+			local distance = MathUtil.vector3Length(x, y, z)
+			local upX = 0
+			local upY = 1
+			local upZ = 0
+			if 0.99 * distance < math.abs(y) then
+				upY = 0
+				upZ = 0 < y and 1 or -1
 			end
-		end
-		goto l2
-	end
-	local v251_, v252_, v253_ = getWorldTranslation(v248_.bottomArm.rotationNode)
-	local v254_, v255_, v256_ = getWorldTranslation(v249_.node)
-	local v257_, v258_, v259_ = worldDirectionToLocal(getParent(v248_.bottomArm.rotationNode), v254_ - v251_, v255_ - v252_, v256_ - v253_)
-	local v260_ = MathUtil.vector3Length(v257_, v258_, v259_)
-	local v261_, v262_
-	if math.abs(v258_) > 0.99 * v260_ then
-		v261_ = 0
-		if v258_ > 0 then
-			v262_ = 1
-		else
-			v262_ = -1
-		end
-	else
-		v261_ = 1
-		v262_ = 0
-	end
-	local v263_ = v258_ * v248_.bottomArm.zScale
-	local v264_ = v259_ * v248_.bottomArm.zScale
-	local v265_ = v248_.bottomArm.lockDirection and 0 or v257_ * v248_.bottomArm.zScale
-	local v266_ = false
-	local v267_ = v248_.bottomArm.lastDirection[1] - v265_
-	if math.abs(v267_) <= 0.001 then
-		local v268_ = v248_.bottomArm.lastDirection[2] - v263_
-		if math.abs(v268_) <= 0.001 then
-			local v269_ = v248_.bottomArm.lastDirection[3] - v264_
-			if math.abs(v269_) <= 0.001 then
-				::l14::
+			local dirX = 0
+			local dirY = y * jointDesc.bottomArm.zScale
+			local dirZ = z * jointDesc.bottomArm.zScale
+			if not jointDesc.bottomArm.lockDirection then
+				dirX = x * jointDesc.bottomArm.zScale
+			end
+			local changed = false
+			if 0.001 < math.abs(jointDesc.bottomArm.lastDirection[1] - dirX) or 0.001 < math.abs(jointDesc.bottomArm.lastDirection[2] - dirY) or 0.001 < math.abs(jointDesc.bottomArm.lastDirection[3] - dirZ) then
 				if implement.attachingIsInProgress then
-					if v266_ then
-						if implement.bottomArmInterpolating then
-							local v270_, v271_, v272_ = getRotation(v248_.bottomArm.rotationNodeDir)
-							local v273_ = implement.bottomArmInterpolator:getTarget()
-							v273_[1] = v270_
-							v273_[2] = v271_
-							v273_[3] = v272_
-							implement.bottomArmInterpolator:updateSpeed()
-						else
-							local v274_ = ValueInterpolator.new(v248_.bottomArm.interpolatorKey, v248_.bottomArm.interpolatorGet, v248_.bottomArm.interpolatorSet, { getRotation(v248_.bottomArm.rotationNodeDir) }, AttacherJoints.SMOOTH_ATTACH_TIME)
-							if v274_ ~= nil then
-								v274_:setDeleteListenerObject(self)
-								v274_:setFinishedFunc(v248_.bottomArm.interpolatorFinished, v248_.bottomArm)
-								v248_.bottomArm.bottomArmInterpolating = true
-								implement.bottomArmInterpolating = true
-								implement.bottomArmInterpolator = v274_
-							end
+					setDirection(jointDesc.bottomArm.rotationNodeDir, dirX, dirY, dirZ, 0, upY, upZ)
+				else
+					setDirection(jointDesc.bottomArm.rotationNode, dirX, dirY, dirZ, 0, upY, upZ)
+				end
+				jointDesc.bottomArm.lastDirection[1] = dirX
+				jointDesc.bottomArm.lastDirection[2] = dirY
+				jointDesc.bottomArm.lastDirection[3] = dirZ
+				changed = true
+			end
+			if implement.attachingIsInProgress then
+				if changed then
+					if not implement.bottomArmInterpolating then
+						local interpolator = ValueInterpolator.new(jointDesc.bottomArm.interpolatorKey, jointDesc.bottomArm.interpolatorGet, jointDesc.bottomArm.interpolatorSet, { getRotation(jointDesc.bottomArm.rotationNodeDir) }, AttacherJoints.SMOOTH_ATTACH_TIME)
+						if interpolator ~= nil then
+							interpolator:setDeleteListenerObject(self)
+							interpolator:setFinishedFunc(jointDesc.bottomArm.interpolatorFinished, jointDesc.bottomArm)
+							jointDesc.bottomArm.bottomArmInterpolating = true
+							implement.bottomArmInterpolating = true
+							implement.bottomArmInterpolator = interpolator
 						end
-					end
-				elseif implement.bottomArmInterpolator ~= nil then
-					ValueInterpolator.removeInterpolator(v248_.bottomArm.interpolatorKey)
-					v248_.bottomArm.bottomArmInterpolating = false
-					implement.bottomArmInterpolating = false
-					implement.bottomArmInterpolator = nil
-				end
-				if v248_.bottomArm.translationNode ~= nil and not implement.attachingIsInProgress then
-					if v248_.bottomArm.updateReferenceDistance then
-						v248_.bottomArm.referenceDistance = calcDistanceFrom(v248_.bottomArm.referenceNode, v248_.bottomArm.translationNode)
-					end
-					setTranslation(v248_.bottomArm.translationNode, 0, 0, (v260_ - v248_.bottomArm.referenceDistance) * v248_.bottomArm.zScale)
-				end
-				if v248_.bottomArm.jointPositionNode ~= nil and not implement.attachingIsInProgress then
-					setWorldTranslation(v248_.bottomArm.jointPositionNode, v254_, v255_, v256_)
-					if self.setMovingToolDirty ~= nil then
-						self:setMovingToolDirty(v248_.bottomArm.jointPositionNode, forceUpdate, dt)
+					else
+						local rx, ry, rz = getRotation(jointDesc.bottomArm.rotationNodeDir)
+						local target = implement.bottomArmInterpolator:getTarget()
+						target[1] = rx
+						target[2] = ry
+						target[3] = rz
+						implement.bottomArmInterpolator:updateSpeed()
 					end
 				end
+			elseif implement.bottomArmInterpolator ~= nil then
+				ValueInterpolator.removeInterpolator(jointDesc.bottomArm.interpolatorKey)
+				jointDesc.bottomArm.bottomArmInterpolating = false
+				implement.bottomArmInterpolating = false
+				implement.bottomArmInterpolator = nil
+			end
+			if jointDesc.bottomArm.translationNode ~= nil and not implement.attachingIsInProgress then
+				if jointDesc.bottomArm.updateReferenceDistance then
+					jointDesc.bottomArm.referenceDistance = calcDistanceFrom(jointDesc.bottomArm.referenceNode, jointDesc.bottomArm.translationNode)
+				end
+				setTranslation(jointDesc.bottomArm.translationNode, 0, 0, (distance - jointDesc.bottomArm.referenceDistance) * jointDesc.bottomArm.zScale)
+			end
+			if jointDesc.bottomArm.jointPositionNode ~= nil and not implement.attachingIsInProgress then
+				setWorldTranslation(jointDesc.bottomArm.jointPositionNode, bx, by, bz)
 				if self.setMovingToolDirty ~= nil then
-					self:setMovingToolDirty(v248_.bottomArm.rotationNode, forceUpdate, dt)
+					self:setMovingToolDirty(jointDesc.bottomArm.jointPositionNode, forceUpdate, dt)
 				end
-				if v249_.needsToolbar and v248_.bottomArm.toolbarNode ~= nil then
-					local v275_ = getParent(v248_.bottomArm.toolbarNode)
-					local _, v276_, v277_ = localDirectionToLocal(v249_.node, v248_.rootNode, 1, 0, 0)
-					local v278_, v279_, v280_ = localDirectionToLocal(v248_.rootNode, v275_, 0, v276_, v277_)
-					local _, v281_, v282_ = localDirectionToLocal(v249_.node, v248_.rootNode, 0, 1, 0)
-					local v283_, v284_, v285_ = localDirectionToLocal(v248_.rootNode, v275_, 0, v281_, v282_)
-					setDirection(v248_.bottomArm.toolbarNode, v278_, v279_, v280_, v283_, v284_, v285_)
+			end
+			if self.setMovingToolDirty ~= nil then
+				self:setMovingToolDirty(jointDesc.bottomArm.rotationNode, forceUpdate, dt)
+			end
+			if attacherJoint.needsToolbar and jointDesc.bottomArm.toolbarNode ~= nil then
+				local parent = getParent(jointDesc.bottomArm.toolbarNode)
+				local xDir, yDir, zDir = localDirectionToLocal(attacherJoint.node, jointDesc.rootNode, 1, 0, 0)
+				xDir, yDir, zDir = localDirectionToLocal(jointDesc.rootNode, parent, 0, yDir, zDir)
+				local xUp, yUp, zUp = localDirectionToLocal(attacherJoint.node, jointDesc.rootNode, 0, 1, 0)
+				xUp, yUp, zUp = localDirectionToLocal(jointDesc.rootNode, parent, 0, yUp, zUp)
+				setDirection(jointDesc.bottomArm.toolbarNode, xDir, yDir, zDir, xUp, yUp, zUp)
+			end
+			if self.updateMovingPartByNode ~= nil then
+				if jointDesc.bottomArm.leftNode ~= nil then
+					self:updateMovingPartByNode(jointDesc.bottomArm.leftNode, forceUpdate, dt)
 				end
-				if self.updateMovingPartByNode ~= nil then
-					if v248_.bottomArm.leftNode ~= nil then
-						self:updateMovingPartByNode(v248_.bottomArm.leftNode, forceUpdate, dt)
-					end
-					if v248_.bottomArm.rightNode ~= nil then
-						self:updateMovingPartByNode(v248_.bottomArm.rightNode, forceUpdate, dt)
-					end
+				if jointDesc.bottomArm.rightNode ~= nil then
+					self:updateMovingPartByNode(jointDesc.bottomArm.rightNode, forceUpdate, dt)
 				end
-				goto l4
+			end
+		end
+		if jointDesc.topArm ~= nil and (not implement.attachingIsInProgress and attacherJoint.topReferenceNode ~= nil) then
+			jointDesc.topArm:update(dt, attacherJoint.topReferenceNode)
+		end
+		if jointDesc.visualAlignNodes ~= nil then
+			for _, visualAlignNode in ipairs(jointDesc.visualAlignNodes) do
+				self:updateMovingPartByNode(visualAlignNode.node, dt)
 			end
 		end
 	end
-	if implement.attachingIsInProgress then
-		setDirection(v248_.bottomArm.rotationNodeDir, v265_, v263_, v264_, 0, v261_, v262_)
-	else
-		setDirection(v248_.bottomArm.rotationNode, v265_, v263_, v264_, 0, v261_, v262_)
-	end
-	v248_.bottomArm.lastDirection[1] = v265_
-	v248_.bottomArm.lastDirection[2] = v263_
-	v248_.bottomArm.lastDirection[3] = v264_
-	v266_ = true
-	goto l14
 end
-
--- Local values: objectAttacherJoint, lowerDistanceToGround, upperDistanceToGround, upperAlpha, lowerAlpha, checkData, i, heightNode, offX, offY, offZ, _, y, _, delta, _, hy, _, checkData
 function AttacherJoints:calculateAttacherJointMoveUpperLowerAlpha(jointDesc, object, initial)
-	local v290_ = object.spec_attachable.attacherJoint
+	local objectAttacherJoint = object.spec_attachable.attacherJoint
 	if jointDesc.allowsLowering then
-		local v291_ = jointDesc.lowerDistanceToGround
-		local v292_ = jointDesc.upperDistanceToGround
-		local v293_ = nil
-		local v294_ = nil
-		if #v290_.heightNodes > 0 and jointDesc.rotationNode ~= nil then
-			local v295_ = self.spec_attacherJoints.groundHeightNodeCheckData
+		local lowerDistanceToGround = jointDesc.lowerDistanceToGround
+		local upperDistanceToGround = jointDesc.upperDistanceToGround
+		local upperAlpha = nil
+		local lowerAlpha = nil
+		if 0 < #objectAttacherJoint.heightNodes and jointDesc.rotationNode ~= nil then
+			local checkData = self.spec_attacherJoints.groundHeightNodeCheckData
 			if initial then
-				v295_.heightNodes = v290_.heightNodes
-				v295_.jointDesc = jointDesc
-				v295_.objectAttacherJoint = v290_
-				v295_.object = object
-				v295_.index = -1
-				v291_ = jointDesc.lowerDistanceToGround
-				v292_ = jointDesc.upperDistanceToGround
-				for v296_ = 1, #v290_.heightNodes do
-					local v297_ = v290_.heightNodes[v296_]
-					local v298_, v299_, v300_ = localToLocal(v297_.node, v297_.attacherJointNode, 0, 0, 0)
+				checkData.heightNodes = objectAttacherJoint.heightNodes
+				checkData.jointDesc = jointDesc
+				checkData.objectAttacherJoint = objectAttacherJoint
+				checkData.object = object
+				checkData.index = -1
+				lowerDistanceToGround = jointDesc.lowerDistanceToGround
+				upperDistanceToGround = jointDesc.upperDistanceToGround
+				for i = 1, #objectAttacherJoint.heightNodes do
+					local heightNode = objectAttacherJoint.heightNodes[i]
+					local offX, offY, offZ = localToLocal(heightNode.node, heightNode.attacherJointNode, 0, 0, 0)
 					self:updateAttacherJointRotationNodes(jointDesc, 1)
-					local v301_ = setRotation
-					local v302_ = jointDesc.jointTransform
-					local v303_ = jointDesc.jointOrigRot
-					v301_(v302_, unpack(v303_))
-					local _, v304_, _ = localToLocal(jointDesc.jointTransform, jointDesc.rootNode, 0, 0, 0)
-					local v305_ = jointDesc.lowerDistanceToGround - v304_
-					local _, v306_, _ = localToLocal(jointDesc.jointTransform, jointDesc.rootNode, v298_, v299_, v300_)
-					v291_ = v306_ + v305_
+					setRotation(jointDesc.jointTransform, unpack(jointDesc.jointOrigRot))
+					local _, y, _ = localToLocal(jointDesc.jointTransform, jointDesc.rootNode, 0, 0, 0)
+					local delta = jointDesc.lowerDistanceToGround - y
+					local _, hy, _ = localToLocal(jointDesc.jointTransform, jointDesc.rootNode, offX, offY, offZ)
+					lowerDistanceToGround = hy + delta
 					self:updateAttacherJointRotationNodes(jointDesc, 0)
-					local _, v307_, _ = localToLocal(jointDesc.jointTransform, jointDesc.rootNode, 0, 0, 0)
-					local v308_ = jointDesc.upperDistanceToGround - v307_
-					local _, v309_, _ = localToLocal(jointDesc.jointTransform, jointDesc.rootNode, v298_, v299_, v300_)
-					v292_ = v309_ + v308_
+					_, y, _ = localToLocal(jointDesc.jointTransform, jointDesc.rootNode, 0, 0, 0)
+					delta = jointDesc.upperDistanceToGround - y
+					_, hy, _ = localToLocal(jointDesc.jointTransform, jointDesc.rootNode, offX, offY, offZ)
+					upperDistanceToGround = hy + delta
 				end
-			elseif (jointDesc.moveAlpha or 0) > 0 then
-				if v295_.index == -1 then
-					v295_.index = 1
-					v295_.minDistance = math.huge
-					v295_.hit = false
+			elseif 0 < (jointDesc.moveAlpha or 0) then
+				if checkData.index == -1 then
+					checkData.index = 1
+					checkData.minDistance = math.huge
+					checkData.hit = false
 					self:doGroundHeightNodeCheck()
 				end
-				if v295_.isDirty then
-					v295_.isDirty = false
+				if checkData.isDirty then
+					checkData.isDirty = false
 					self:doGroundHeightNodeCheck()
 				end
-				if jointDesc.upperAlpha == nil or v295_.upperAlpha == nil then
-					v293_ = v295_.upperAlpha
-					v294_ = v295_.lowerAlpha
-				else
-					v293_ = jointDesc.upperAlpha * 0.9 + v295_.upperAlpha * 0.1
-					v294_ = jointDesc.lowerAlpha * 0.9 + v295_.lowerAlpha * 0.1
+				if jointDesc.upperAlpha ~= nil then
+					if checkData.upperAlpha ~= nil then
+						upperAlpha = jointDesc.upperAlpha * 0.9 + checkData.upperAlpha * 0.1
+						lowerAlpha = jointDesc.lowerAlpha * 0.9 + checkData.lowerAlpha * 0.1
+					else
+						upperAlpha = checkData.upperAlpha
+						lowerAlpha = checkData.lowerAlpha
+					end
 				end
 			else
-				v293_ = jointDesc.upperAlpha
-				v294_ = jointDesc.lowerAlpha
+				upperAlpha = jointDesc.upperAlpha
+				lowerAlpha = jointDesc.lowerAlpha
 			end
 		end
-		if v292_ == v291_ then
-			v293_ = v293_ or 1
-			v294_ = v294_ or 1
+		if upperDistanceToGround == lowerDistanceToGround then
+			upperAlpha = upperAlpha or 1
+			lowerAlpha = lowerAlpha or 1
 		else
-			if not v293_ then
-				local v310_ = (v290_.upperDistanceToGround - v292_) / (v291_ - v292_)
-				v293_ = math.clamp(v310_, 0, 1)
-			end
-			if not v294_ then
-				local v311_ = (v290_.lowerDistanceToGround - v292_) / (v291_ - v292_)
-				v294_ = math.clamp(v311_, 0, 1)
-			end
+			upperAlpha = upperAlpha or math.clamp((objectAttacherJoint.upperDistanceToGround - upperDistanceToGround) / (lowerDistanceToGround - upperDistanceToGround), 0, 1)
+			lowerAlpha = lowerAlpha or math.clamp((objectAttacherJoint.lowerDistanceToGround - upperDistanceToGround) / (lowerDistanceToGround - upperDistanceToGround), 0, 1)
 		end
 		if initial then
-			local v312_ = self.spec_attacherJoints.groundHeightNodeCheckData
-			v312_.upperAlpha = v293_
-			v312_.lowerAlpha = v294_
+			local checkData = self.spec_attacherJoints.groundHeightNodeCheckData
+			checkData.upperAlpha = upperAlpha
+			checkData.lowerAlpha = lowerAlpha
 		end
-		if v290_.allowsLowering and jointDesc.allowsLowering then
-			return v293_, v294_
-		elseif v290_.isDefaultLowered then
-			return v294_, v294_
+		if objectAttacherJoint.allowsLowering and jointDesc.allowsLowering then
+			return upperAlpha, lowerAlpha
+		end
+		if objectAttacherJoint.isDefaultLowered then
+			return lowerAlpha, lowerAlpha
 		else
-			return v293_, v293_
+			return upperAlpha, upperAlpha
 		end
-	elseif v290_.isDefaultLowered then
+	elseif objectAttacherJoint.isDefaultLowered then
 		return 1, 1
 	else
 		return 0, 0
 	end
 end
-
--- Local values: checkData, heightNode, offX, offY, offZ, lWx, lWy, lWz, uWx, uWy, uWz, dirX, dirY, dirZ, distance
 function AttacherJoints:doGroundHeightNodeCheck()
-	local v314_ = self.spec_attacherJoints.groundHeightNodeCheckData
-	local v315_ = v314_.heightNodes[v314_.index]
-	if v315_ == nil or not v314_.object:getIsAttacherJointHeightNodeActive(v315_) then
-		v314_.index = v314_.index + 1
-		if v314_.index > #v314_.heightNodes then
-			self:finishGroundHeightNodeCheck()
-		else
-			v314_.isDirty = true
-		end
-	else
-		local v316_, v317_, v318_ = localToLocal(v315_.node, v315_.attacherJointNode, 0, 0, 0)
-		self:updateAttacherJointRotationNodes(v314_.jointDesc, 1)
-		local v319_, v320_, v321_ = localToWorld(v314_.jointDesc.jointTransformOrig, v316_, v317_, v318_)
-		self:updateAttacherJointRotationNodes(v314_.jointDesc, 0)
-		local v322_, v323_, v324_ = localToWorld(v314_.jointDesc.jointTransformOrig, v316_, v317_, v318_)
-		local v325_ = v319_ - v322_
-		local v326_ = v320_ - v323_
-		local v327_ = v321_ - v324_
-		local v328_ = MathUtil.vector3Length(v325_, v326_, v327_)
-		local v329_, v330_, v331_ = MathUtil.vector3Normalize(v325_, v326_, v327_)
-		v314_.currentRaycastDistance = v328_
-		v314_.currentRaycastWorldPos[1] = v322_
-		v314_.currentRaycastWorldPos[2] = v323_
-		v314_.currentRaycastWorldPos[3] = v324_
-		v314_.currentRaycastWorldDir[1] = v329_
-		v314_.currentRaycastWorldDir[2] = v330_
-		v314_.currentRaycastWorldDir[3] = v331_
-		local v332_ = v314_.currentJointTransformPos
-		local v333_ = v314_.currentJointTransformPos
-		local v334_ = v314_.currentJointTransformPos
-		local v335_, v336_, v337_ = getWorldTranslation(v314_.jointDesc.jointTransform)
-		v332_[1] = v335_
-		v333_[2] = v336_
-		v334_[3] = v337_
-		local v338_ = v328_ + v314_.objectAttacherJoint.lowerDistanceToGround
-		local v339_ = v314_.minDistance
-		v314_.minDistance = math.min(v339_, v338_)
-		raycastAllAsync(v322_, v323_, v324_, v329_, v330_, v331_, v338_, "groundHeightNodeCheckCallback", self, CollisionFlag.TERRAIN)
-		self:updateAttacherJointRotationNodes(v314_.jointDesc, v314_.jointDesc.moveAlpha or 0)
+	local checkData = self.spec_attacherJoints.groundHeightNodeCheckData
+	local heightNode = checkData.heightNodes[checkData.index]
+	if heightNode ~= nil and checkData.object:getIsAttacherJointHeightNodeActive(heightNode) then
+		local offX, offY, offZ = localToLocal(heightNode.node, heightNode.attacherJointNode, 0, 0, 0)
+		self:updateAttacherJointRotationNodes(checkData.jointDesc, 1)
+		local lWx, lWy, lWz = localToWorld(checkData.jointDesc.jointTransformOrig, offX, offY, offZ)
+		self:updateAttacherJointRotationNodes(checkData.jointDesc, 0)
+		local uWx, uWy, uWz = localToWorld(checkData.jointDesc.jointTransformOrig, offX, offY, offZ)
+		local dirX = lWx - uWx
+		local dirY = lWy - uWy
+		local dirZ = lWz - uWz
+		local distance = MathUtil.vector3Length(dirX, dirY, dirZ)
+		dirX, dirY, dirZ = MathUtil.vector3Normalize(dirX, dirY, dirZ)
+		checkData.currentRaycastDistance = distance
+		checkData.currentRaycastWorldPos[1] = uWx
+		checkData.currentRaycastWorldPos[2] = uWy
+		checkData.currentRaycastWorldPos[3] = uWz
+		checkData.currentRaycastWorldDir[1] = dirX
+		checkData.currentRaycastWorldDir[2] = dirY
+		checkData.currentRaycastWorldDir[3] = dirZ
+		checkData.currentJointTransformPos[1], checkData.currentJointTransformPos[2], checkData.currentJointTransformPos[3] = getWorldTranslation(checkData.jointDesc.jointTransform)
+		distance = distance + checkData.objectAttacherJoint.lowerDistanceToGround
+		checkData.minDistance = math.min(checkData.minDistance, distance)
+		raycastAllAsync(uWx, uWy, uWz, dirX, dirY, dirZ, distance, "groundHeightNodeCheckCallback", self, CollisionFlag.TERRAIN)
+		self:updateAttacherJointRotationNodes(checkData.jointDesc, checkData.jointDesc.moveAlpha or 0)
 		return
 	end
-end
-
--- Local values: checkData, upperAlpha, lowerAlpha, uWx, uWy, uWz, dirX, dirY, dirZ, x1, y1, z1, x3, y3, z3, straightToCenter, circleToCenter, straightOffset, _, h1, h2, angle, offset
-function AttacherJoints:finishGroundHeightNodeCheck()
-	local v341_ = self.spec_attacherJoints.groundHeightNodeCheckData
-	if v341_.minDistance ~= math.huge then
-		if not v341_.hit then
-			v341_.raycastDistance = v341_.currentRaycastDistance
-			v341_.raycastWorldPos[1] = v341_.currentRaycastWorldPos[1]
-			v341_.raycastWorldPos[2] = v341_.currentRaycastWorldPos[2]
-			v341_.raycastWorldPos[3] = v341_.currentRaycastWorldPos[3]
-			v341_.raycastWorldDir[1] = v341_.currentRaycastWorldDir[1]
-			v341_.raycastWorldDir[2] = v341_.currentRaycastWorldDir[2]
-			v341_.raycastWorldDir[3] = v341_.currentRaycastWorldDir[3]
-			v341_.jointTransformPos[1] = v341_.currentJointTransformPos[1]
-			v341_.jointTransformPos[2] = v341_.currentJointTransformPos[2]
-			v341_.jointTransformPos[3] = v341_.currentJointTransformPos[3]
-		end
-		local v342_ = (v341_.minDistance - v341_.objectAttacherJoint.upperDistanceToGround) / v341_.raycastDistance
-		local v343_ = (v341_.minDistance - v341_.objectAttacherJoint.lowerDistanceToGround) / v341_.raycastDistance
-		local v344_ = v341_.raycastWorldPos[1]
-		local v345_ = v341_.raycastWorldPos[2]
-		local v346_ = v341_.raycastWorldPos[3]
-		local v347_ = v341_.raycastWorldDir[1]
-		local v348_ = v341_.raycastWorldDir[2]
-		local v349_ = v341_.raycastWorldDir[3]
-		local v350_ = v344_ + v347_ * v341_.raycastDistance * v343_
-		local v351_ = v345_ + v348_ * v341_.raycastDistance * v343_
-		local v352_ = v346_ + v349_ * v341_.raycastDistance * v343_
-		local v353_ = v341_.jointTransformPos[1]
-		local v354_ = v341_.jointTransformPos[2]
-		local v355_ = v341_.jointTransformPos[3]
-		local v356_ = MathUtil.vector3Length(v350_ - v353_, v351_ - v354_, v352_ - v355_)
-		local v357_ = MathUtil.vector3Length(v344_ - v353_, v345_ - v354_, v346_ - v355_) - v356_
-		local _, v358_, _ = worldToLocal(self.rootNode, v350_, v351_, v352_)
-		local _, v359_, _ = worldToLocal(self.rootNode, v344_, v345_, v346_)
-		local v360_ = v357_ / (v359_ - v358_)
-		local v361_ = math.atan(v360_)
-		local v362_ = v357_ * math.sin(v361_)
-		local v363_ = (v341_.minDistance - v341_.objectAttacherJoint.lowerDistanceToGround - v362_) / v341_.raycastDistance
-		v341_.lowerAlpha = math.clamp(v363_, 0, 1)
-		v341_.upperAlpha = math.clamp(v342_, 0, 1)
+	checkData.index = checkData.index + 1
+	if #checkData.heightNodes < checkData.index then
+		self:finishGroundHeightNodeCheck()
+	else
+		checkData.isDirty = true
 	end
-	v341_.index = -1
 end
-
--- Local values: checkData
+function AttacherJoints:finishGroundHeightNodeCheck()
+	local checkData = self.spec_attacherJoints.groundHeightNodeCheckData
+	if checkData.minDistance ~= math.huge then
+		if not checkData.hit then
+			checkData.raycastDistance = checkData.currentRaycastDistance
+			checkData.raycastWorldPos[1] = checkData.currentRaycastWorldPos[1]
+			checkData.raycastWorldPos[2] = checkData.currentRaycastWorldPos[2]
+			checkData.raycastWorldPos[3] = checkData.currentRaycastWorldPos[3]
+			checkData.raycastWorldDir[1] = checkData.currentRaycastWorldDir[1]
+			checkData.raycastWorldDir[2] = checkData.currentRaycastWorldDir[2]
+			checkData.raycastWorldDir[3] = checkData.currentRaycastWorldDir[3]
+			checkData.jointTransformPos[1] = checkData.currentJointTransformPos[1]
+			checkData.jointTransformPos[2] = checkData.currentJointTransformPos[2]
+			checkData.jointTransformPos[3] = checkData.currentJointTransformPos[3]
+		end
+		local upperAlpha = (checkData.minDistance - checkData.objectAttacherJoint.upperDistanceToGround) / checkData.raycastDistance
+		local lowerAlpha = (checkData.minDistance - checkData.objectAttacherJoint.lowerDistanceToGround) / checkData.raycastDistance
+		local uWx = checkData.raycastWorldPos[1]
+		local uWy = checkData.raycastWorldPos[2]
+		local uWz = checkData.raycastWorldPos[3]
+		local dirX = checkData.raycastWorldDir[1]
+		local dirY = checkData.raycastWorldDir[2]
+		local dirZ = checkData.raycastWorldDir[3]
+		local x1 = uWx + dirX * checkData.raycastDistance * lowerAlpha
+		local y1 = uWy + dirY * checkData.raycastDistance * lowerAlpha
+		local z1 = uWz + dirZ * checkData.raycastDistance * lowerAlpha
+		local x3 = checkData.jointTransformPos[1]
+		local y3 = checkData.jointTransformPos[2]
+		local z3 = checkData.jointTransformPos[3]
+		local straightToCenter = MathUtil.vector3Length(x1 - x3, y1 - y3, z1 - z3)
+		local circleToCenter = MathUtil.vector3Length(uWx - x3, uWy - y3, uWz - z3)
+		local straightOffset = circleToCenter - straightToCenter
+		local _ = nil
+		local h1 = nil
+		local h2 = nil
+		_, h1, _ = worldToLocal(self.rootNode, x1, y1, z1)
+		_, h2, _ = worldToLocal(self.rootNode, uWx, uWy, uWz)
+		local angle = math.atan(straightOffset / (h2 - h1))
+		local offset = straightOffset * math.sin(angle)
+		lowerAlpha = (checkData.minDistance - checkData.objectAttacherJoint.lowerDistanceToGround - offset) / checkData.raycastDistance
+		checkData.lowerAlpha = math.clamp(lowerAlpha, 0, 1)
+		checkData.upperAlpha = math.clamp(upperAlpha, 0, 1)
+	end
+	checkData.index = -1
+end
 function AttacherJoints:groundHeightNodeCheckCallback(hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
-	if not self.isDeleted then
-		local v368_ = self.spec_attacherJoints.groundHeightNodeCheckData
+	if self.isDeleted then
+		return
+	else
+		local checkData = self.spec_attacherJoints.groundHeightNodeCheckData
 		if hitObjectId ~= 0 then
 			if getRigidBodyType(hitObjectId) == RigidBodyType.STATIC then
-				if distance < v368_.minDistance then
-					v368_.raycastDistance = v368_.currentRaycastDistance
-					v368_.minDistance = distance
-					v368_.hit = true
-					v368_.raycastWorldPos[1] = v368_.currentRaycastWorldPos[1]
-					v368_.raycastWorldPos[2] = v368_.currentRaycastWorldPos[2]
-					v368_.raycastWorldPos[3] = v368_.currentRaycastWorldPos[3]
-					v368_.raycastWorldDir[1] = v368_.currentRaycastWorldDir[1]
-					v368_.raycastWorldDir[2] = v368_.currentRaycastWorldDir[2]
-					v368_.raycastWorldDir[3] = v368_.currentRaycastWorldDir[3]
-					v368_.jointTransformPos[1] = v368_.currentJointTransformPos[1]
-					v368_.jointTransformPos[2] = v368_.currentJointTransformPos[2]
-					v368_.jointTransformPos[3] = v368_.currentJointTransformPos[3]
+				if distance < checkData.minDistance then
+					checkData.raycastDistance = checkData.currentRaycastDistance
+					checkData.minDistance = distance
+					checkData.hit = true
+					checkData.raycastWorldPos[1] = checkData.currentRaycastWorldPos[1]
+					checkData.raycastWorldPos[2] = checkData.currentRaycastWorldPos[2]
+					checkData.raycastWorldPos[3] = checkData.currentRaycastWorldPos[3]
+					checkData.raycastWorldDir[1] = checkData.currentRaycastWorldDir[1]
+					checkData.raycastWorldDir[2] = checkData.currentRaycastWorldDir[2]
+					checkData.raycastWorldDir[3] = checkData.currentRaycastWorldDir[3]
+					checkData.jointTransformPos[1] = checkData.currentJointTransformPos[1]
+					checkData.jointTransformPos[2] = checkData.currentJointTransformPos[2]
+					checkData.jointTransformPos[3] = checkData.currentJointTransformPos[3]
 				end
 			elseif not isLast then
 				return true
 			end
 		end
-		v368_.index = v368_.index + 1
-		if v368_.index > #v368_.heightNodes then
+		checkData.index = checkData.index + 1
+		if #checkData.heightNodes < checkData.index then
 			self:finishGroundHeightNodeCheck()
 		else
-			v368_.isDirty = true
+			checkData.isDirty = true
 		end
 		return false
 	end
 end
-
--- Local values: objectAttacherJoint, targetRot, curRot, rotDiff
 function AttacherJoints:updateAttacherJointRotation(jointDesc, object)
-	local v371_ = object.spec_attachable.attacherJoint
-	local v372_ = MathUtil.lerp(v371_.upperRotationOffset, v371_.lowerRotationOffset, jointDesc.moveAlpha) - MathUtil.lerp(jointDesc.upperRotationOffset, jointDesc.lowerRotationOffset, jointDesc.moveAlpha)
-	local v373_ = setRotation
-	local v374_ = jointDesc.jointTransform
-	local v375_ = jointDesc.jointOrigRot
-	v373_(v374_, unpack(v375_))
-	rotateAboutLocalAxis(jointDesc.jointTransform, v372_, 0, 0, 1)
+	local objectAttacherJoint = object.spec_attachable.attacherJoint
+	local targetRot = MathUtil.lerp(objectAttacherJoint.upperRotationOffset, objectAttacherJoint.lowerRotationOffset, jointDesc.moveAlpha)
+	local curRot = MathUtil.lerp(jointDesc.upperRotationOffset, jointDesc.lowerRotationOffset, jointDesc.moveAlpha)
+	local rotDiff = targetRot - curRot
+	setRotation(jointDesc.jointTransform, unpack(jointDesc.jointOrigRot))
+	rotateAboutLocalAxis(jointDesc.jointTransform, rotDiff, 0, 0, 1)
 end
-
 function AttacherJoints:updateAttacherJointRotationNodes(jointDesc, alpha)
 	if jointDesc.rotationNode ~= nil then
 		setRotation(jointDesc.rotationNode, MathUtil.vector3ArrayLerp(jointDesc.upperRotation, jointDesc.lowerRotation, alpha))
@@ -1516,33 +1394,29 @@ function AttacherJoints:updateAttacherJointRotationNodes(jointDesc, alpha)
 		setRotation(jointDesc.rotationNode2, MathUtil.vector3ArrayLerp(jointDesc.upperRotation2, jointDesc.lowerRotation2, alpha))
 	end
 end
-
--- Local values: jointDesc, implement, objectAttacherJoint, i, upperAlpha, lowerAlpha
 function AttacherJoints:updateAttacherJointSettingsByObject(vehicle, updateLimit, updateRotationOffset, updateDistanceToGround)
-	local v383_ = self:getAttacherJointDescFromObject(vehicle)
-	local v384_ = self:getImplementByObject(vehicle)
-	local v385_ = vehicle:getActiveInputAttacherJoint()
-	if v383_ ~= nil and v384_ ~= nil then
+	local jointDesc = self:getAttacherJointDescFromObject(vehicle)
+	local implement = self:getImplementByObject(vehicle)
+	local objectAttacherJoint = vehicle:getActiveInputAttacherJoint()
+	if jointDesc ~= nil and implement ~= nil then
 		if updateLimit then
-			for v386_ = 1, 3 do
-				AttacherJoints.updateAttacherJointLimits(v384_, v383_, v385_, v386_)
-				AttacherJoints.updateAttacherJointRotationLimit(v384_, v383_, v386_, false, v383_.moveLimitAlpha)
-				AttacherJoints.updateAttacherJointTranslationLimit(v384_, v383_, v386_, false, v383_.moveLimitAlpha)
+			for i = 1, 3 do
+				AttacherJoints.updateAttacherJointLimits(implement, jointDesc, objectAttacherJoint, i)
+				AttacherJoints.updateAttacherJointRotationLimit(implement, jointDesc, i, false, jointDesc.moveLimitAlpha)
+				AttacherJoints.updateAttacherJointTranslationLimit(implement, jointDesc, i, false, jointDesc.moveLimitAlpha)
 			end
 		end
 		if updateRotationOffset then
-			self:updateAttacherJointRotation(v383_, vehicle)
+			self:updateAttacherJointRotation(jointDesc, vehicle)
 			if self.isServer then
-				setJointFrame(v383_.jointIndex, 0, v383_.jointTransform)
+				setJointFrame(jointDesc.jointIndex, 0, jointDesc.jointTransform)
 			end
 		end
 		if updateDistanceToGround then
-			local v387_, v388_ = self:calculateAttacherJointMoveUpperLowerAlpha(v383_, vehicle)
-			local v389_ = v383_.moveDefaultTime
-			local v390_ = v387_ - v388_
-			v383_.moveTime = v389_ * math.abs(v390_)
-			v383_.upperAlpha = v387_
-			v383_.lowerAlpha = v388_
+			local upperAlpha, lowerAlpha = self:calculateAttacherJointMoveUpperLowerAlpha(jointDesc, vehicle)
+			jointDesc.moveTime = jointDesc.moveDefaultTime * math.abs(upperAlpha - lowerAlpha)
+			jointDesc.upperAlpha = upperAlpha
+			jointDesc.lowerAlpha = lowerAlpha
 			if self.isClient and self.updateDashboardValueType ~= nil then
 				self:updateDashboardValueType("attacherJoints.bottomArmPositionMin")
 				self:updateDashboardValueType("attacherJoints.bottomArmPositionMax")
@@ -1550,62 +1424,63 @@ function AttacherJoints:updateAttacherJointSettingsByObject(vehicle, updateLimit
 		end
 	end
 end
-
--- Local values: spec, jointDesc, bottomArm, upX, upY, upZ, wx, wy, wz, ax, ay, az, dx, dy, dz, _, _, zOffsetLeft, _, _, zOffsetRight, _, y, z, activeIndex, index, node
 function AttacherJoints:setAttacherJointBottomArmWidth(jointDescIndex, width)
-	local v394_ = self.spec_attacherJoints.attacherJoints[jointDescIndex]
-	local v395_ = v394_.bottomArm
-	if v395_ ~= nil and v395_.variableWidthAvailable ~= nil then
-		width = width or v395_.defaultWidth
-		if v395_.armLeftReferenceNode == nil or v395_.armRightReferenceNode == nil then
-			local _, v396_, v397_ = getTranslation(v395_.armLeft)
-			setTranslation(v395_.armLeft, width * 0.5, v396_, v397_)
-			local _, v398_, v399_ = getTranslation(v395_.armRight)
-			setTranslation(v395_.armRight, -width * 0.5, v398_, v399_)
-		else
-			local v400_, v401_, v402_ = localDirectionToWorld(v395_.rotationNode, 0, 1, 0)
-			local v403_, v404_, v405_ = localToWorld(v395_.referenceNode, width * 0.5, 0, 0)
-			local v406_, v407_, v408_ = getWorldTranslation(v395_.armLeft)
-			local v409_, v410_, v411_ = MathUtil.vector3Normalize(v403_ - v406_, v404_ - v407_, v405_ - v408_)
-			I3DUtil.setWorldDirection(v395_.armLeft, v409_, v410_, v411_, v400_, v401_, v402_, nil, nil, nil)
-			local v412_, v413_, v414_ = localToWorld(v395_.referenceNode, -width * 0.5, 0, 0)
-			local v415_, v416_, v417_ = getWorldTranslation(v395_.armRight)
-			local v418_, v419_, v420_ = MathUtil.vector3Normalize(v412_ - v415_, v413_ - v416_, v414_ - v417_)
-			I3DUtil.setWorldDirection(v395_.armRight, v418_, v419_, v420_, v400_, v401_, v402_, nil, nil, nil)
-			local _, _, v421_ = localToLocal(v395_.armLeftReferenceNode, v395_.rotationNode, 0, 0, 0)
-			local _, _, v422_ = localToLocal(v395_.armRightReferenceNode, v395_.rotationNode, 0, 0, 0)
-			v395_.referenceDistance = (math.abs(v421_) + math.abs(v422_)) * 0.5
-			setTranslation(v395_.referenceNode, 0, 0, -v395_.referenceDistance)
+	local spec = self.spec_attacherJoints
+	local jointDesc = spec.attacherJoints[jointDescIndex]
+	local bottomArm = jointDesc.bottomArm
+	if bottomArm ~= nil and bottomArm.variableWidthAvailable ~= nil then
+		width = width or bottomArm.defaultWidth
+		if bottomArm.armLeftReferenceNode ~= nil then
+			if bottomArm.armRightReferenceNode ~= nil then
+				local upX, upY, upZ = localDirectionToWorld(bottomArm.rotationNode, 0, 1, 0)
+				local wx, wy, wz = localToWorld(bottomArm.referenceNode, width * 0.5, 0, 0)
+				local ax, ay, az = getWorldTranslation(bottomArm.armLeft)
+				local dx, dy, dz = MathUtil.vector3Normalize(wx - ax, wy - ay, wz - az)
+				I3DUtil.setWorldDirection(bottomArm.armLeft, dx, dy, dz, upX, upY, upZ, nil, nil, nil)
+				wx, wy, wz = localToWorld(bottomArm.referenceNode, -width * 0.5, 0, 0)
+				ax, ay, az = getWorldTranslation(bottomArm.armRight)
+				dx, dy, dz = MathUtil.vector3Normalize(wx - ax, wy - ay, wz - az)
+				I3DUtil.setWorldDirection(bottomArm.armRight, dx, dy, dz, upX, upY, upZ, nil, nil, nil)
+				local _, _, zOffsetLeft = localToLocal(bottomArm.armLeftReferenceNode, bottomArm.rotationNode, 0, 0, 0)
+				local _, _, zOffsetRight = localToLocal(bottomArm.armRightReferenceNode, bottomArm.rotationNode, 0, 0, 0)
+				bottomArm.referenceDistance = (math.abs(zOffsetLeft) + math.abs(zOffsetRight)) * 0.5
+				setTranslation(bottomArm.referenceNode, 0, 0, -bottomArm.referenceDistance)
+			else
+				local _, y, z = getTranslation(bottomArm.armLeft)
+				setTranslation(bottomArm.armLeft, width * 0.5, y, z)
+				_, y, z = getTranslation(bottomArm.armRight)
+				setTranslation(bottomArm.armRight, -width * 0.5, y, z)
+			end
 		end
 		if self.setMovingToolDirty ~= nil then
-			self:setMovingToolDirty(v395_.rotationNode)
+			self:setMovingToolDirty(bottomArm.rotationNode)
 		end
 	end
-	if v395_ ~= nil and v395_.toolbars ~= nil then
-		local v423_ = AttacherJoints.getClosestLowerLinkCategoryIndex(width or v395_.defaultWidth)
-		for v424_, v425_ in ipairs(v394_.bottomArm.toolbars) do
-			setVisibility(v425_, v423_ == v424_ - 1)
+	if bottomArm ~= nil and bottomArm.toolbars ~= nil then
+		local activeIndex = AttacherJoints.getClosestLowerLinkCategoryIndex(width or bottomArm.defaultWidth)
+		for index, node in ipairs(jointDesc.bottomArm.toolbars) do
+			setVisibility(node, activeIndex == index - 1)
 		end
 	end
 end
-
--- Local values: attacherJoints, attacherJointDirection, attachedImplements, i, jointDesc
 function AttacherJoints:attachImplementFromInfo(info)
 	if info.attachable ~= nil then
-		local v427_ = info.attacherVehicle.spec_attacherJoints.attacherJoints
-		if v427_[info.attacherVehicleJointDescIndex].jointIndex == 0 then
+		local attacherJoints = info.attacherVehicle.spec_attacherJoints.attacherJoints
+		if attacherJoints[info.attacherVehicleJointDescIndex].jointIndex == 0 then
 			if info.attachable:getActiveInputAttacherJointDescIndex() ~= nil then
-				if not info.attachable:getAllowMultipleAttachments() then
+				if info.attachable:getAllowMultipleAttachments() then
+					info.attachable:resolveMultipleAttachments()
+				else
 					return false
 				end
-				info.attachable:resolveMultipleAttachments()
 			end
 			if GS_IS_MOBILE_VERSION then
-				local v428_ = v427_[info.attacherVehicleJointDescIndex].attacherJointDirection
-				if v428_ ~= nil then
-					local v429_ = info.attacherVehicle:getAttachedImplements()
-					for v430_ = 1, #v429_ do
-						if v428_ == v427_[v429_[v430_].jointDescIndex].attacherJointDirection then
+				local attacherJointDirection = attacherJoints[info.attacherVehicleJointDescIndex].attacherJointDirection
+				if attacherJointDirection ~= nil then
+					local attachedImplements = info.attacherVehicle:getAttachedImplements()
+					for i = 1, #attachedImplements do
+						local jointDesc = attacherJoints[attachedImplements[i].jointDescIndex]
+						if attacherJointDirection == jointDesc.attacherJointDirection then
 							return false
 						end
 					end
@@ -1617,525 +1492,473 @@ function AttacherJoints:attachImplementFromInfo(info)
 	end
 	return false
 end
-
--- Local values: spec, objectAttacherJoint, jointDesc, attacherJointIndex, _, visualAlignNode, i, node, i, node, allowedToHide, attacherJoints, j, widthIndexToUse, widthToUse, i, width, i, width, upperAlpha, lowerAlpha, distanceSqUpper, distanceSqLower, minYHeight, maxYHeight, lowerDistanceToGround, upperDistanceToGround, attacherHeight, ptoOutputs, ptoOutput, ptoInput, _, y, _, ptoYFactor, ptoRealHeight, ptoSize, max, min, totalDistance, factor, y, x, _, z, bottomArmJointDesc, rx, ry, rz, interpolator, isTrailerAttacher, implement, moveDown, inputAttacherJoint, selectedVehicle
 function AttacherJoints:attachImplement(object, inputJointDescIndex, jointDescIndex, noEventSend, index, startLowered, noSmoothAttach, loadFromSavegame)
-	local v440_ = self.spec_attacherJoints
-	local v441_ = object.spec_attachable.inputAttacherJoints[inputJointDescIndex]
-	local v442_ = v440_.attacherJoints[jointDescIndex]
-	if v442_ == nil or v441_ == nil then
-		Logging.warning("Cannot attach object \'%s\' to vehicle \'%s\'. Attacher joint \'%s\' or input attachher joint \'%s\' not found", object.configFileName, self.configFileName, jointDescIndex, inputJointDescIndex)
+	local spec = self.spec_attacherJoints
+	local objectAttacherJoint = object.spec_attachable.inputAttacherJoints[inputJointDescIndex]
+	local jointDesc = spec.attacherJoints[jointDescIndex]
+	if jointDesc == nil or objectAttacherJoint == nil then
+		Logging.warning("Cannot attach object '%s' to vehicle '%s'. Attacher joint '%s' or input attachher joint '%s' not found", object.configFileName, self.configFileName, jointDescIndex, inputJointDescIndex)
 		return false
 	end
-	if self:getAttacherJointIndexFromObject(object) ~= nil then
-		Logging.warning("Cannot attach object \'%s\' to vehicle \'%s\' between joints \'%d\' and \'%d\'. Joint already in use!", object.configFileName, self.configFileName, jointDescIndex, inputJointDescIndex)
+	local attacherJointIndex = self:getAttacherJointIndexFromObject(object)
+	if attacherJointIndex ~= nil then
+		Logging.warning("Cannot attach object '%s' to vehicle '%s' between joints '%d' and '%d'. Joint already in use!", object.configFileName, self.configFileName, jointDescIndex, inputJointDescIndex)
 		return
-	end
-	SpecializationUtil.raiseEvent(self, "onPreAttachImplement", object, inputJointDescIndex, jointDescIndex, loadFromSavegame)
-	object:preAttach(self, inputJointDescIndex, jointDescIndex, loadFromSavegame)
-	if v442_.visualAlignNodes ~= nil then
-		for _, v443_ in ipairs(v442_.visualAlignNodes) do
-			if not v443_.delayedOnAttach then
-				self:setMovingPartReferenceNode(v443_.node, v441_.node, false)
-			end
-		end
-	end
-	if not v442_.delayedObjectChangesOnAttach then
-		ObjectChangeUtil.setObjectChanges(v442_.changeObjects, true, self, self.setMovingToolDirty)
-	end
-	for v444_ = 1, #v442_.visualNodes do
-		local v445_ = v442_.visualNodes[v444_]
-		setVisibility(v445_, true)
-	end
-	for v446_ = 1, #v442_.hideVisuals do
-		local v447_ = v442_.hideVisuals[v446_]
-		local v448_ = true
-		local v449_ = v440_.visualNodeToAttacherJoints[v447_]
-		if v449_ ~= nil then
-			for v450_ = 1, #v449_ do
-				if v449_[v450_].jointIndex ~= 0 then
-					v448_ = false
-				end
-			end
-		end
-		if v448_ then
-			setVisibility(v447_, false)
-		end
-	end
-	if v441_.bottomArm ~= nil and (v442_.bottomArm ~= nil and v442_.bottomArm.variableWidthAvailable) then
-		local v451_ = nil
-		local v452_ = nil
-		for v453_ = #v441_.bottomArm.widths, 1, -1 do
-			local v454_ = v441_.bottomArm.widths[v453_]
-			if v442_.bottomArm.minWidth <= v454_ and v454_ <= v442_.bottomArm.maxWidth then
-				v452_ = v453_
-				v451_ = v454_
-				break
-			end
-		end
-		if v451_ == nil then
-			for v455_ = 1, #v441_.bottomArm.widths do
-				local v456_ = v441_.bottomArm.widths[v455_]
-				if v456_ < v442_.bottomArm.minWidth then
-					v451_ = v442_.bottomArm.minWidth
-				elseif v442_.bottomArm.maxWidth < v456_ then
-					v451_ = v442_.bottomArm.maxWidth
-				end
-			end
-			v451_ = v451_ or v442_.bottomArm.maxWidth
-		end
-		if v452_ ~= nil then
-			object:setToolBottomArmWidthByIndex(inputJointDescIndex, v452_)
-		end
-		self:setAttacherJointBottomArmWidth(jointDescIndex, v451_)
-	end
-	local v457_, v458_ = self:calculateAttacherJointMoveUpperLowerAlpha(v442_, object, true)
-	local v459_ = v442_.moveDefaultTime
-	local v460_ = v457_ - v458_
-	v442_.moveTime = v459_ * math.abs(v460_)
-	if startLowered == nil then
-		startLowered = true
-		if v441_.allowsLowering and v442_.allowsLowering then
-			self:updateAttacherJointRotationNodes(v442_, v457_)
-			local v461_ = calcDistanceSquaredFrom(v442_.jointTransform, v441_.node)
-			self:updateAttacherJointRotationNodes(v442_, v458_)
-			if v461_ < calcDistanceSquaredFrom(v442_.jointTransform, v441_.node) * 1.1 then
-				startLowered = false
-			end
-			if v441_.useFoldingLoweredState then
-				startLowered = object:getIsLowered()
-			end
-		elseif not v441_.isDefaultLowered then
-			startLowered = false
-		end
-	end
-	if noEventSend == nil or noEventSend == false then
-		if g_server == nil then
-			g_client:getServerConnection():sendEvent(VehicleAttachEvent.new(self, object, inputJointDescIndex, jointDescIndex, startLowered))
-		else
-			g_server:broadcastEvent(VehicleAttachEvent.new(self, object, inputJointDescIndex, jointDescIndex, startLowered), nil, nil, self)
-		end
-	end
-	if v442_.transNode == nil or v441_.attacherHeight == nil then
-		if v442_.transNode == nil then
-			local v462_ = (v442_.jointType == AttacherJoints.JOINTTYPE_TRAILER or v442_.jointType == AttacherJoints.JOINTTYPE_TRAILERLOW) and true or v442_.jointType == AttacherJoints.JOINTTYPE_TRAILERCAR
-			if self.checkPowerTakeOffCollision ~= nil then
-				self:checkPowerTakeOffCollision(v442_.jointTransform, jointDescIndex, v462_)
-			end
-		end
 	else
-		local v463_ = v442_.transNodeMinY
-		local v464_ = v442_.transNodeMaxY
-		local v465_ = v442_.lowerDistanceToGround
-		local v466_ = v442_.upperDistanceToGround
-		local v467_ = v441_.attacherHeight
-		if self.getOutputPowerTakeOffsByJointDescIndex ~= nil and v463_ ~= v464_ then
-			local v468_ = self:getOutputPowerTakeOffsByJointDescIndex(jointDescIndex)
-			if v468_ ~= nil and #v468_ > 0 then
-				local v469_ = v468_[1]
-				local v470_ = v469_.connectedInput
-				if v470_ ~= nil then
-					local _, v471_, _ = localToLocal(v469_.outputNode, v442_.rootNode, 0, 0, 0)
-					local v472_ = (v471_ - v463_) / (v464_ - v463_)
-					local v473_ = MathUtil.lerp(v465_, v466_, v472_)
-					local v474_ = (v470_.size + v442_.transNodeHeight) * 0.5
-					if v470_.aboveAttacher then
-						local v475_ = v473_ - v474_
-						local v476_ = math.min(v465_, v475_)
-						v467_ = math.clamp(v467_, v476_, v475_)
-					else
-						local v477_ = v473_ + v474_
-						local v478_ = math.max(v466_, v477_)
-						v467_ = math.clamp(v467_, v477_, v478_)
+		SpecializationUtil.raiseEvent(self, "onPreAttachImplement", object, inputJointDescIndex, jointDescIndex, loadFromSavegame)
+		object:preAttach(self, inputJointDescIndex, jointDescIndex, loadFromSavegame)
+		if jointDesc.visualAlignNodes ~= nil then
+			for _, visualAlignNode in ipairs(jointDesc.visualAlignNodes) do
+				if visualAlignNode.delayedOnAttach then
+					continue
+				end
+				self:setMovingPartReferenceNode(visualAlignNode.node, objectAttacherJoint.node, false)
+			end
+		end
+		if not jointDesc.delayedObjectChangesOnAttach then
+			ObjectChangeUtil.setObjectChanges(jointDesc.changeObjects, true, self, self.setMovingToolDirty)
+		end
+		for i = 1, #jointDesc.visualNodes do
+			local node = jointDesc.visualNodes[i]
+			setVisibility(node, true)
+		end
+		for i = 1, #jointDesc.hideVisuals do
+			local node = jointDesc.hideVisuals[i]
+			local allowedToHide = true
+			local attacherJoints = spec.visualNodeToAttacherJoints[node]
+			if attacherJoints ~= nil then
+				for j = 1, #attacherJoints do
+					if attacherJoints[j].jointIndex == 0 then
+						continue
+					end
+					allowedToHide = false
+				end
+			end
+			if allowedToHide then
+				setVisibility(node, false)
+			end
+		end
+		if objectAttacherJoint.bottomArm ~= nil and jointDesc.bottomArm ~= nil then
+			local widthIndexToUse = nil
+			local widthToUse = nil
+			for i = #objectAttacherJoint.bottomArm.widths, 1, -1 do
+				local width = objectAttacherJoint.bottomArm.widths[i]
+				if jointDesc.bottomArm.minWidth <= width and width <= jointDesc.bottomArm.maxWidth then
+					widthIndexToUse = i
+					widthToUse = width
+					break
+				end
+			end
+			if widthToUse == nil then
+				for i = 1, #objectAttacherJoint.bottomArm.widths do
+					local width = objectAttacherJoint.bottomArm.widths[i]
+					if width < jointDesc.bottomArm.minWidth then
+						widthToUse = jointDesc.bottomArm.minWidth
+					elseif jointDesc.bottomArm.maxWidth < width then
+						widthToUse = jointDesc.bottomArm.maxWidth
 					end
 				end
+				widthToUse = widthToUse or jointDesc.bottomArm.maxWidth
+			end
+			if widthIndexToUse ~= nil then
+				object:setToolBottomArmWidthByIndex(inputJointDescIndex, widthIndexToUse)
+			end
+			self:setAttacherJointBottomArmWidth(jointDescIndex, widthToUse)
+		end
+		local upperAlpha, lowerAlpha = self:calculateAttacherJointMoveUpperLowerAlpha(jointDesc, object, true)
+		jointDesc.moveTime = jointDesc.moveDefaultTime * math.abs(upperAlpha - lowerAlpha)
+		if startLowered == nil then
+			startLowered = true
+			if objectAttacherJoint.allowsLowering then
+				if jointDesc.allowsLowering then
+					self:updateAttacherJointRotationNodes(jointDesc, upperAlpha)
+					local distanceSqUpper = calcDistanceSquaredFrom(jointDesc.jointTransform, objectAttacherJoint.node)
+					self:updateAttacherJointRotationNodes(jointDesc, lowerAlpha)
+					local distanceSqLower = calcDistanceSquaredFrom(jointDesc.jointTransform, objectAttacherJoint.node)
+					if distanceSqUpper < distanceSqLower * 1.1 then
+						startLowered = false
+					end
+					if objectAttacherJoint.useFoldingLoweredState then
+						startLowered = object:getIsLowered()
+					end
+				elseif not objectAttacherJoint.isDefaultLowered then
+					startLowered = false
+				end
 			end
 		end
-		local v479_ = v467_ - v442_.transNodeOffsetY
-		local v480_ = math.clamp(v479_, v465_, v466_)
-		local v481_ = v466_ - v465_
-		local v482_
-		if v481_ > 0 then
-			local v483_ = (v480_ - v465_) / v481_
-			v482_ = math.clamp(v483_, 0, 1)
-		else
-			v482_ = 0
-		end
-		local v484_ = MathUtil.lerp(v463_, v464_, v482_)
-		local v485_, _, v486_ = getTranslation(v442_.transNode)
-		local _, v487_, _ = localToLocal(v442_.rootNode, getParent(v442_.transNode), 0, v484_, 0)
-		setTranslation(v442_.transNode, v485_, v487_, v486_)
-		if v442_.transNodeDependentBottomArm ~= nil and v487_ <= v442_.transNodeDependentBottomArmThreshold then
-			local v488_ = v442_.transNodeDependentBottomArmAttacherJoint
-			local v489_ = v442_.transNodeDependentBottomArmRotation[1]
-			local v490_ = v442_.transNodeDependentBottomArmRotation[2]
-			local v491_ = v442_.transNodeDependentBottomArmRotation[3]
-			if loadFromSavegame then
-				setRotation(v488_.bottomArm.rotationNode, v489_, v490_, v491_)
-				if self.setMovingToolDirty ~= nil then
-					self:setMovingToolDirty(v488_.bottomArm.rotationNode)
-				end
+		if noEventSend == nil or noEventSend == false then
+			if g_server ~= nil then
+				g_server:broadcastEvent(VehicleAttachEvent.new(self, object, inputJointDescIndex, jointDescIndex, startLowered), nil, nil, self)
 			else
-				local v492_ = ValueInterpolator.new(v488_.bottomArm.interpolatorKey, v488_.bottomArm.interpolatorGet, v488_.bottomArm.interpolatorSet, { v489_, v490_, v491_ }, AttacherJoints.SMOOTH_ATTACH_TIME * 2)
-				if v492_ ~= nil then
-					v492_:setDeleteListenerObject(self)
-					v492_:setFinishedFunc(v488_.bottomArm.interpolatorFinished, v488_.bottomArm)
-					v488_.bottomArm.bottomArmInterpolating = true
+				g_client:getServerConnection():sendEvent(VehicleAttachEvent.new(self, object, inputJointDescIndex, jointDescIndex, startLowered))
+			end
+		end
+		if jointDesc.transNode ~= nil then
+			if objectAttacherJoint.attacherHeight ~= nil then
+				local minYHeight = jointDesc.transNodeMinY
+				local maxYHeight = jointDesc.transNodeMaxY
+				local lowerDistanceToGround = jointDesc.lowerDistanceToGround
+				local upperDistanceToGround = jointDesc.upperDistanceToGround
+				local attacherHeight = objectAttacherJoint.attacherHeight
+				if self.getOutputPowerTakeOffsByJointDescIndex ~= nil and minYHeight ~= maxYHeight then
+					local ptoOutputs = self:getOutputPowerTakeOffsByJointDescIndex(jointDescIndex)
+					if ptoOutputs ~= nil and 0 < #ptoOutputs then
+						local ptoOutput = ptoOutputs[1]
+						local ptoInput = ptoOutput.connectedInput
+						if ptoInput ~= nil then
+							local _, y, _ = localToLocal(ptoOutput.outputNode, jointDesc.rootNode, 0, 0, 0)
+							local ptoYFactor = (y - minYHeight) / (maxYHeight - minYHeight)
+							local ptoRealHeight = MathUtil.lerp(lowerDistanceToGround, upperDistanceToGround, ptoYFactor)
+							local ptoSize = (ptoInput.size + jointDesc.transNodeHeight) * 0.5
+							if ptoInput.aboveAttacher then
+								local max = ptoRealHeight - ptoSize
+								attacherHeight = math.clamp(attacherHeight, math.min(lowerDistanceToGround, max), max)
+							else
+								local min = ptoRealHeight + ptoSize
+								attacherHeight = math.clamp(attacherHeight, min, math.max(upperDistanceToGround, min))
+							end
+						end
+					end
+				end
+				attacherHeight = math.clamp(attacherHeight - jointDesc.transNodeOffsetY, lowerDistanceToGround, upperDistanceToGround)
+				local totalDistance = upperDistanceToGround - lowerDistanceToGround
+				local factor = 0
+				if 0 < totalDistance then
+					factor = math.clamp((attacherHeight - lowerDistanceToGround) / totalDistance, 0, 1)
+				end
+				local y = MathUtil.lerp(minYHeight, maxYHeight, factor)
+				local x, _, z = getTranslation(jointDesc.transNode)
+				_, y, _ = localToLocal(jointDesc.rootNode, getParent(jointDesc.transNode), 0, y, 0)
+				setTranslation(jointDesc.transNode, x, y, z)
+				if jointDesc.transNodeDependentBottomArm ~= nil and y <= jointDesc.transNodeDependentBottomArmThreshold then
+					local bottomArmJointDesc = jointDesc.transNodeDependentBottomArmAttacherJoint
+					local rx = jointDesc.transNodeDependentBottomArmRotation[1]
+					local ry = jointDesc.transNodeDependentBottomArmRotation[2]
+					local rz = jointDesc.transNodeDependentBottomArmRotation[3]
+					if loadFromSavegame then
+						setRotation(bottomArmJointDesc.bottomArm.rotationNode, rx, ry, rz)
+						if self.setMovingToolDirty ~= nil then
+							self:setMovingToolDirty(bottomArmJointDesc.bottomArm.rotationNode)
+						end
+					else
+						local interpolator = ValueInterpolator.new(bottomArmJointDesc.bottomArm.interpolatorKey, bottomArmJointDesc.bottomArm.interpolatorGet, bottomArmJointDesc.bottomArm.interpolatorSet, { rx, ry, rz }, AttacherJoints.SMOOTH_ATTACH_TIME * 2)
+						if interpolator ~= nil then
+							interpolator:setDeleteListenerObject(self)
+							interpolator:setFinishedFunc(bottomArmJointDesc.bottomArm.interpolatorFinished, bottomArmJointDesc.bottomArm)
+							bottomArmJointDesc.bottomArm.bottomArmInterpolating = true
+						end
+					end
+				end
+			elseif jointDesc.transNode == nil then
+				local isTrailerAttacher = true
+				if jointDesc.jointType ~= AttacherJoints.JOINTTYPE_TRAILER then
+					isTrailerAttacher = true
+					if jointDesc.jointType ~= AttacherJoints.JOINTTYPE_TRAILERLOW then
+						isTrailerAttacher = jointDesc.jointType == AttacherJoints.JOINTTYPE_TRAILERCAR
+					end
+				end
+				if self.checkPowerTakeOffCollision ~= nil then
+					self:checkPowerTakeOffCollision(jointDesc.jointTransform, jointDescIndex, isTrailerAttacher)
 				end
 			end
 		end
-	end
-	local v493_ = {
-		["object"] = object,
-		["jointDescIndex"] = jointDescIndex,
-		["inputJointDescIndex"] = inputJointDescIndex,
-		["loadFromSavegame"] = loadFromSavegame,
-		["isDetaching"] = false
-	}
-	v442_.upperAlpha = v457_
-	v442_.lowerAlpha = v458_
-	v442_.moveAlpha = v457_
-	v442_.moveLimitAlpha = 0
-	if startLowered then
-		v442_.moveAlpha = v458_
-		v442_.moveLimitAlpha = 1
-	end
-	self:updateAttacherJointRotationNodes(v442_, v442_.moveAlpha)
-	self:updateAttacherJointRotation(v442_, object)
-	self:createAttachmentJoint(v493_, noSmoothAttach)
-	local v494_ = v441_.isDefaultLowered or v442_.isDefaultLowered
-	if v441_.useFoldingLoweredState or loadFromSavegame then
-		v494_ = startLowered
-	end
-	v442_.moveDown = v494_
-	v442_.isMoving = true
-	object:setLowered(v442_.moveDown)
-	if index == nil then
-		local v495_ = v440_.attachedImplements
-		table.insert(v495_, v493_)
-	else
-		v440_.attachedImplements[index] = v493_
-	end
-	self:updateAttacherJointGraphics(v493_, 0)
-	self:attachAdditionalAttachment(v442_, v441_, object)
-	self.rootVehicle:updateSelectableObjects()
-	self:updateVehicleChain()
-	local v496_
-	if v493_.object:getActiveInputAttacherJoint().forceSelection then
-		v496_ = v493_.object
-	else
-		v496_ = nil
-	end
-	self.rootVehicle:setSelectedVehicle(v496_)
-	if not v493_.attachingIsInProgress then
-		if v493_.object.spec_attachable.attacherJoint.hardAttach and self:getIsHardAttachAllowed(v493_.jointDescIndex) then
-			self:hardAttachImplement(v493_)
+		local implement = {}
+		implement.object = object
+		implement.jointDescIndex = jointDescIndex
+		implement.inputJointDescIndex = inputJointDescIndex
+		implement.loadFromSavegame = loadFromSavegame
+		implement.isDetaching = false
+		jointDesc.upperAlpha = upperAlpha
+		jointDesc.lowerAlpha = lowerAlpha
+		jointDesc.moveAlpha = upperAlpha
+		jointDesc.moveLimitAlpha = 0
+		if startLowered then
+			jointDesc.moveAlpha = lowerAlpha
+			jointDesc.moveLimitAlpha = 1
 		end
-		self:postAttachImplement(v493_)
+		self:updateAttacherJointRotationNodes(jointDesc, jointDesc.moveAlpha)
+		self:updateAttacherJointRotation(jointDesc, object)
+		self:createAttachmentJoint(implement, noSmoothAttach)
+		local moveDown = objectAttacherJoint.isDefaultLowered or jointDesc.isDefaultLowered
+		if objectAttacherJoint.useFoldingLoweredState or loadFromSavegame then
+			moveDown = startLowered
+		end
+		jointDesc.moveDown = moveDown
+		jointDesc.isMoving = true
+		object:setLowered(jointDesc.moveDown)
+		if index == nil then
+			table.insert(spec.attachedImplements, implement)
+		else
+			spec.attachedImplements[index] = implement
+		end
+		self:updateAttacherJointGraphics(implement, 0)
+		self:attachAdditionalAttachment(jointDesc, objectAttacherJoint, object)
+		self.rootVehicle:updateSelectableObjects()
+		self:updateVehicleChain()
+		local inputAttacherJoint = implement.object:getActiveInputAttacherJoint()
+		local selectedVehicle = nil
+		if inputAttacherJoint.forceSelection then
+			selectedVehicle = implement.object
+		end
+		self.rootVehicle:setSelectedVehicle(selectedVehicle)
+		if not implement.attachingIsInProgress then
+			if implement.object.spec_attachable.attacherJoint.hardAttach and self:getIsHardAttachAllowed(implement.jointDescIndex) then
+				self:hardAttachImplement(implement)
+			end
+			self:postAttachImplement(implement)
+		end
+		AttacherJoints.updateRequiredTopLightsState(self)
+		if self.setTipSideUpdateDirty ~= nil then
+			self:setTipSideUpdateDirty()
+		end
+		if self.isClient and self.updateDashboardValueType ~= nil then
+			self:updateDashboardValueType("attacherJoints.bottomArmPositionMin")
+			self:updateDashboardValueType("attacherJoints.bottomArmPositionMax")
+		end
+		return true
 	end
-	AttacherJoints.updateRequiredTopLightsState(self)
-	if self.setTipSideUpdateDirty ~= nil then
-		self:setTipSideUpdateDirty()
-	end
-	if self.isClient and self.updateDashboardValueType ~= nil then
-		self:updateDashboardValueType("attacherJoints.bottomArmPositionMin")
-		self:updateDashboardValueType("attacherJoints.bottomArmPositionMax")
-	end
-	return true
 end
-
--- Local values: spec, object, inputJointDescIndex, jointDescIndex, objectAttacherJoint, jointDesc, _, visualAlignNode, data, rootVehicle
 function AttacherJoints:postAttachImplement(implement)
-	local v499_ = self.spec_attacherJoints
-	local v500_ = implement.object
-	local v501_ = implement.inputJointDescIndex
-	local v502_ = implement.jointDescIndex
-	local v503_ = v500_.spec_attachable.inputAttacherJoints[v501_]
-	local v504_ = v499_.attacherJoints[v502_]
-	if v503_.topReferenceNode ~= nil and v504_.topArm ~= nil then
-		v504_.topArm:setIsActive(true)
+	local spec = self.spec_attacherJoints
+	local object = implement.object
+	local inputJointDescIndex = implement.inputJointDescIndex
+	local jointDescIndex = implement.jointDescIndex
+	local objectAttacherJoint = object.spec_attachable.inputAttacherJoints[inputJointDescIndex]
+	local jointDesc = spec.attacherJoints[jointDescIndex]
+	if objectAttacherJoint.topReferenceNode ~= nil and jointDesc.topArm ~= nil then
+		jointDesc.topArm:setIsActive(true)
 	end
-	if v504_.bottomArm ~= nil then
-		if v504_.bottomArm.toggleVisibility then
-			setVisibility(v504_.bottomArm.rotationNode, true)
+	if jointDesc.bottomArm ~= nil then
+		if jointDesc.bottomArm.toggleVisibility then
+			setVisibility(jointDesc.bottomArm.rotationNode, true)
 		end
-		if v503_.needsToolbar and v504_.bottomArm.toolbarNode ~= nil then
-			setVisibility(v504_.bottomArm.toolbarNode, true)
+		if objectAttacherJoint.needsToolbar and jointDesc.bottomArm.toolbarNode ~= nil then
+			setVisibility(jointDesc.bottomArm.toolbarNode, true)
 		end
-		if v504_.bottomArm.leftNode ~= nil and v503_.bottomArmLeftNode ~= nil then
-			self:setMovingPartReferenceNode(v504_.bottomArm.leftNode, v503_.bottomArmLeftNode, false)
+		if jointDesc.bottomArm.leftNode ~= nil and objectAttacherJoint.bottomArmLeftNode ~= nil then
+			self:setMovingPartReferenceNode(jointDesc.bottomArm.leftNode, objectAttacherJoint.bottomArmLeftNode, false)
 		end
-		if v504_.bottomArm.rightNode ~= nil and v503_.bottomArmRightNode ~= nil then
-			self:setMovingPartReferenceNode(v504_.bottomArm.rightNode, v503_.bottomArmRightNode, false)
+		if jointDesc.bottomArm.rightNode ~= nil and objectAttacherJoint.bottomArmRightNode ~= nil then
+			self:setMovingPartReferenceNode(jointDesc.bottomArm.rightNode, objectAttacherJoint.bottomArmRightNode, false)
 		end
 	end
-	if v504_.visualAlignNodes ~= nil then
-		for _, v505_ in ipairs(v504_.visualAlignNodes) do
-			if v505_.delayedOnAttach then
-				self:setMovingPartReferenceNode(v505_.node, v503_.node, false)
+	if jointDesc.visualAlignNodes ~= nil then
+		for _, visualAlignNode in ipairs(jointDesc.visualAlignNodes) do
+			if visualAlignNode.delayedOnAttach then
+				self:setMovingPartReferenceNode(visualAlignNode.node, objectAttacherJoint.node, false)
 			end
 		end
 	end
-	if v504_.delayedObjectChangesOnAttach then
-		ObjectChangeUtil.setObjectChanges(v504_.changeObjects, true, self, self.setMovingToolDirty)
+	if jointDesc.delayedObjectChangesOnAttach then
+		ObjectChangeUtil.setObjectChanges(jointDesc.changeObjects, true, self, self.setMovingToolDirty)
 	end
 	if not implement.loadFromSavegame then
-		self:playAttachSound(v504_)
+		self:playAttachSound(jointDesc)
 	end
 	self:updateAttacherJointGraphics(implement, 0)
-	SpecializationUtil.raiseEvent(self, "onPostAttachImplement", v500_, v501_, v502_, implement.loadFromSavegame)
-	v500_:postAttach(self, v501_, v502_, implement.loadFromSavegame)
-	local v506_ = {
-		["attacherVehicle"] = self,
-		["attachedVehicle"] = implement.object,
-		["loadFromSavegame"] = implement.loadFromSavegame
-	}
-	self.rootVehicle:raiseStateChange(VehicleStateChange.ATTACH, v506_)
+	SpecializationUtil.raiseEvent(self, "onPostAttachImplement", object, inputJointDescIndex, jointDescIndex, implement.loadFromSavegame)
+	object:postAttach(self, inputJointDescIndex, jointDescIndex, implement.loadFromSavegame)
+	local data = { attacherVehicle = self }
+	data.attachedVehicle = implement.object
+	data.loadFromSavegame = implement.loadFromSavegame
+	local rootVehicle = self.rootVehicle
+	rootVehicle:raiseStateChange(VehicleStateChange.ATTACH, data)
 end
-
--- Local values: spec, jointDesc, objectAttacherJoint, rootVehicle, xNew, yNew, zNew, rx, ry, rz, x, y, z, x1, y1, z1, x2, y2, z2, constr, _, dx, dy, dz, dirX, dirY, dirZ, rX, rY, rZ, smoothAttachTime, i, i, rotLimit, transLimit, limitRot, limitTrans, rotLimitDown, rotLimitUp, transLimitDown, transLimitUp, _, component, springX, springY, springZ, dampingX, dampingY, dampingZ, forceLimitX, forceLimitY, forceLimitZ
 function AttacherJoints:createAttachmentJoint(implement, noSmoothAttach)
-	local v510_ = self.spec_attacherJoints.attacherJoints[implement.jointDescIndex]
-	local v511_ = implement.object.spec_attachable.inputAttacherJoints[implement.inputJointDescIndex]
-	if self.isServer and v511_ ~= nil then
-		if (getRigidBodyType(v510_.rootNode) == RigidBodyType.DYNAMIC or getRigidBodyType(v510_.rootNode) == RigidBodyType.KINEMATIC) and (getRigidBodyType(v511_.rootNode) == RigidBodyType.DYNAMIC or getRigidBodyType(v511_.rootNode) == RigidBodyType.KINEMATIC) then
-			if (g_currentMission:getNodeObject(v510_.rootNode) or self).isAddedToPhysics and implement.object.isAddedToPhysics then
-				local v512_ = v510_.jointOrigTrans[1] + v510_.jointPositionOffset[1]
-				local v513_ = v510_.jointOrigTrans[2] + v510_.jointPositionOffset[2]
-				local v514_ = v510_.jointOrigTrans[3] + v510_.jointPositionOffset[3]
-				local v515_, v516_, v517_ = getRotation(v510_.jointTransform)
-				setTranslation(v510_.jointTransform, v510_.jointOrigTrans[1], v510_.jointOrigTrans[2], v510_.jointOrigTrans[3])
-				setRotation(v510_.jointTransform, v510_.jointOrigRot[1], v510_.jointOrigRot[2], v510_.jointOrigRot[3])
-				local v518_, v519_, v520_ = localToWorld(getParent(v510_.jointTransform), v512_, v513_, v514_)
-				local v521_, v522_, v523_ = worldToLocal(v510_.jointTransform, v518_, v519_, v520_)
-				setTranslation(v510_.jointTransform, v512_, v513_, v514_)
-				setRotation(v510_.jointTransform, v515_, v516_, v517_)
-				local v524_, v525_, v526_ = localToWorld(v511_.node, v521_, v522_, v523_)
-				local v527_, v528_, v529_ = worldToLocal(getParent(v511_.node), v524_, v525_, v526_)
-				setTranslation(v511_.node, v527_, v528_, v529_)
-				local v530_ = JointConstructor.new()
-				v530_:setActors(v510_.rootNode, v511_.rootNode)
-				v530_:setJointTransforms(v510_.jointTransform, v511_.node)
-				implement.jointRotLimit = {}
-				implement.jointTransLimit = {}
-				implement.lowerRotLimit = {}
-				implement.lowerTransLimit = {}
-				implement.upperRotLimit = {}
-				implement.upperTransLimit = {}
-				if noSmoothAttach == nil or not noSmoothAttach then
-					local v531_, v532_, v533_ = localToLocal(v511_.node, v510_.jointTransform, 0, 0, 0)
-					local _, v534_, v535_ = localDirectionToLocal(v511_.node, v510_.jointTransform, 0, 1, 0)
-					local v536_ = math.atan2(v535_, v534_)
-					local v537_, _, v538_ = localDirectionToLocal(v511_.node, v510_.jointTransform, 0, 0, 1)
-					local v539_ = math.atan2(v537_, v538_)
-					local v540_, v541_, _ = localDirectionToLocal(v511_.node, v510_.jointTransform, 1, 0, 0)
-					local v542_ = math.atan2(v541_, v540_)
-					local v543_ = v511_.smoothAttachTime or AttacherJoints.SMOOTH_ATTACH_TIME
-					implement.attachingTransLimit = { math.abs(v531_), math.abs(v532_), (math.abs(v533_)) }
-					implement.attachingRotLimit = { math.abs(v536_), math.abs(v539_), (math.abs(v542_)) }
-					implement.attachingTransLimitSpeed = {}
-					implement.attachingRotLimitSpeed = {}
-					for v544_ = 1, 3 do
-						implement.attachingTransLimitSpeed[v544_] = implement.attachingTransLimit[v544_] / v543_
-						implement.attachingRotLimitSpeed[v544_] = implement.attachingRotLimit[v544_] / v543_
-					end
-					implement.attachingIsInProgress = true
-				else
-					implement.attachingTransLimit = { 0, 0, 0 }
-					implement.attachingRotLimit = { 0, 0, 0 }
-				end
-				implement.rotLimitThreshold = v511_.rotLimitThreshold or 0
-				implement.transLimitThreshold = v511_.transLimitThreshold or 0
-				for v545_ = 1, 3 do
-					local v546_, v547_ = AttacherJoints.updateAttacherJointLimits(implement, v510_, v511_, v545_)
-					if noSmoothAttach == nil or not noSmoothAttach then
-						local v548_ = implement.attachingRotLimit[v545_]
-						v546_ = math.max(v546_, v548_)
-						local v549_ = implement.attachingTransLimit[v545_]
-						v547_ = math.max(v547_, v549_)
-					end
-					local v550_ = -v546_
-					local v551_
-					if v545_ == 3 then
-						if v510_.lockDownRotLimit then
-							local v552_ = -implement.attachingRotLimit[v545_]
-							v550_ = math.min(v552_, 0)
-						end
-						if v510_.lockUpRotLimit then
-							local v553_ = implement.attachingRotLimit[v545_]
-							v551_ = math.max(v553_, 0)
-						else
-							v551_ = v546_
-						end
-					else
-						v551_ = v546_
-					end
-					v530_:setRotationLimit(v545_ - 1, v550_, v551_)
-					implement.jointRotLimit[v545_] = v546_
-					local v554_ = -v547_
-					local v555_
-					if v545_ == 2 then
-						if v510_.lockDownTransLimit then
-							local v556_ = -implement.attachingTransLimit[v545_]
-							v554_ = math.min(v556_, 0)
-						end
-						if v510_.lockUpTransLimit then
-							local v557_ = implement.attachingTransLimit[v545_]
-							v555_ = math.max(v557_, 0)
-						else
-							v555_ = v547_
-						end
-					else
-						v555_ = v547_
-					end
-					v530_:setTranslationLimit(v545_ - 1, true, v554_, v555_)
-					implement.jointTransLimit[v545_] = v547_
-				end
-				if v510_.enableCollision then
-					v530_:setEnableCollision(true)
-				else
-					for _, v558_ in pairs(self.components) do
-						if v558_.node ~= v510_.rootNodeBackup and not v558_.collideWithAttachables then
-							setPairCollision(v558_.node, v511_.rootNode, false)
-						end
-					end
-				end
-				local v559_ = v510_.rotLimitSpring[1]
-				local v560_ = v511_.rotLimitSpring[1]
-				local v561_ = math.max(v559_, v560_)
-				local v562_ = v510_.rotLimitSpring[2]
-				local v563_ = v511_.rotLimitSpring[2]
-				local v564_ = math.max(v562_, v563_)
-				local v565_ = v510_.rotLimitSpring[3]
-				local v566_ = v511_.rotLimitSpring[3]
-				local v567_ = math.max(v565_, v566_)
-				local v568_ = v510_.rotLimitDamping[1]
-				local v569_ = v511_.rotLimitDamping[1]
-				local v570_ = math.max(v568_, v569_)
-				local v571_ = v510_.rotLimitDamping[2]
-				local v572_ = v511_.rotLimitDamping[2]
-				local v573_ = math.max(v571_, v572_)
-				local v574_ = v510_.rotLimitDamping[3]
-				local v575_ = v511_.rotLimitDamping[3]
-				local v576_ = math.max(v574_, v575_)
-				local v577_ = Utils.getMaxJointForceLimit(v510_.rotLimitForceLimit[1], v511_.rotLimitForceLimit[1])
-				local v578_ = Utils.getMaxJointForceLimit(v510_.rotLimitForceLimit[2], v511_.rotLimitForceLimit[2])
-				local v579_ = Utils.getMaxJointForceLimit(v510_.rotLimitForceLimit[3], v511_.rotLimitForceLimit[3])
-				v530_:setRotationLimitSpring(v561_, v570_, v564_, v573_, v567_, v576_)
-				v530_:setRotationLimitForceLimit(v577_, v578_, v579_)
-				local v580_ = v510_.transLimitSpring[1]
-				local v581_ = v511_.transLimitSpring[1]
-				local v582_ = math.max(v580_, v581_)
-				local v583_ = v510_.transLimitSpring[2]
-				local v584_ = v511_.transLimitSpring[2]
-				local v585_ = math.max(v583_, v584_)
-				local v586_ = v510_.transLimitSpring[3]
-				local v587_ = v511_.transLimitSpring[3]
-				local v588_ = math.max(v586_, v587_)
-				local v589_ = v510_.transLimitDamping[1]
-				local v590_ = v511_.transLimitDamping[1]
-				local v591_ = math.max(v589_, v590_)
-				local v592_ = v510_.transLimitDamping[2]
-				local v593_ = v511_.transLimitDamping[2]
-				local v594_ = math.max(v592_, v593_)
-				local v595_ = v510_.transLimitDamping[3]
-				local v596_ = v511_.transLimitDamping[3]
-				local v597_ = math.max(v595_, v596_)
-				local v598_ = Utils.getMaxJointForceLimit(v510_.transLimitForceLimit[1], v511_.transLimitForceLimit[1])
-				local v599_ = Utils.getMaxJointForceLimit(v510_.transLimitForceLimit[2], v511_.transLimitForceLimit[2])
-				local v600_ = Utils.getMaxJointForceLimit(v510_.transLimitForceLimit[3], v511_.transLimitForceLimit[3])
-				v530_:setTranslationLimitSpring(v582_, v591_, v585_, v594_, v588_, v597_)
-				v530_:setTranslationLimitForceLimit(v598_, v599_, v600_)
-				v510_.jointIndex = v530_:finalize()
-				local v601_ = setTranslation
-				local v602_ = v511_.node
-				local v603_ = v511_.jointOrigTrans
-				v601_(v602_, unpack(v603_))
-			end
-		else
+	local spec = self.spec_attacherJoints
+	local jointDesc = spec.attacherJoints[implement.jointDescIndex]
+	local objectAttacherJoint = implement.object.spec_attachable.inputAttacherJoints[implement.inputJointDescIndex]
+	if self.isServer and (objectAttacherJoint ~= nil and (getRigidBodyType(jointDesc.rootNode) == RigidBodyType.DYNAMIC or getRigidBodyType(jointDesc.rootNode) == RigidBodyType.KINEMATIC)) then
+		if getRigidBodyType(objectAttacherJoint.rootNode) ~= RigidBodyType.DYNAMIC and getRigidBodyType(objectAttacherJoint.rootNode) ~= RigidBodyType.KINEMATIC then
 			return
 		end
-	else
-		v510_.jointIndex = 1
+		local rootVehicle = g_currentMission:getNodeObject(jointDesc.rootNode) or self
+		if not rootVehicle.isAddedToPhysics or not implement.object.isAddedToPhysics then
+			return
+		end
+		local xNew = jointDesc.jointOrigTrans[1] + jointDesc.jointPositionOffset[1]
+		local yNew = jointDesc.jointOrigTrans[2] + jointDesc.jointPositionOffset[2]
+		local zNew = jointDesc.jointOrigTrans[3] + jointDesc.jointPositionOffset[3]
+		local rx, ry, rz = getRotation(jointDesc.jointTransform)
+		setTranslation(jointDesc.jointTransform, jointDesc.jointOrigTrans[1], jointDesc.jointOrigTrans[2], jointDesc.jointOrigTrans[3])
+		setRotation(jointDesc.jointTransform, jointDesc.jointOrigRot[1], jointDesc.jointOrigRot[2], jointDesc.jointOrigRot[3])
+		local x, y, z = localToWorld(getParent(jointDesc.jointTransform), xNew, yNew, zNew)
+		local x1, y1, z1 = worldToLocal(jointDesc.jointTransform, x, y, z)
+		setTranslation(jointDesc.jointTransform, xNew, yNew, zNew)
+		setRotation(jointDesc.jointTransform, rx, ry, rz)
+		x, y, z = localToWorld(objectAttacherJoint.node, x1, y1, z1)
+		local x2, y2, z2 = worldToLocal(getParent(objectAttacherJoint.node), x, y, z)
+		setTranslation(objectAttacherJoint.node, x2, y2, z2)
+		local constr = JointConstructor.new()
+		constr:setActors(jointDesc.rootNode, objectAttacherJoint.rootNode)
+		constr:setJointTransforms(jointDesc.jointTransform, objectAttacherJoint.node)
+		implement.jointRotLimit = {}
+		implement.jointTransLimit = {}
+		implement.lowerRotLimit = {}
+		implement.lowerTransLimit = {}
+		implement.upperRotLimit = {}
+		implement.upperTransLimit = {}
+		if noSmoothAttach == nil or not noSmoothAttach then
+			local _ = nil
+			local dx, dy, dz = localToLocal(objectAttacherJoint.node, jointDesc.jointTransform, 0, 0, 0)
+			local dirX, dirY, dirZ = localDirectionToLocal(objectAttacherJoint.node, jointDesc.jointTransform, 0, 1, 0)
+			local rX = math.atan2(dirZ, dirY)
+			dirX, _, dirZ = localDirectionToLocal(objectAttacherJoint.node, jointDesc.jointTransform, 0, 0, 1)
+			local rY = math.atan2(dirX, dirZ)
+			dirX, dirY, _ = localDirectionToLocal(objectAttacherJoint.node, jointDesc.jointTransform, 1, 0, 0)
+			local rZ = math.atan2(dirY, dirX)
+			local smoothAttachTime = objectAttacherJoint.smoothAttachTime or AttacherJoints.SMOOTH_ATTACH_TIME
+			implement.attachingTransLimit = { math.abs(dx), math.abs(dy), math.abs(dz) }
+			implement.attachingRotLimit = { math.abs(rX), math.abs(rY), math.abs(rZ) }
+			implement.attachingTransLimitSpeed = {}
+			implement.attachingRotLimitSpeed = {}
+			for i = 1, 3 do
+				implement.attachingTransLimitSpeed[i] = implement.attachingTransLimit[i] / smoothAttachTime
+				implement.attachingRotLimitSpeed[i] = implement.attachingRotLimit[i] / smoothAttachTime
+			end
+			implement.attachingIsInProgress = true
+		else
+			implement.attachingTransLimit = { 0, 0, 0 }
+			implement.attachingRotLimit = { 0, 0, 0 }
+		end
+		implement.rotLimitThreshold = objectAttacherJoint.rotLimitThreshold or 0
+		implement.transLimitThreshold = objectAttacherJoint.transLimitThreshold or 0
+		for i = 1, 3 do
+			local rotLimit, transLimit = AttacherJoints.updateAttacherJointLimits(implement, jointDesc, objectAttacherJoint, i)
+			local limitRot = rotLimit
+			local limitTrans = transLimit
+			if noSmoothAttach == nil or not noSmoothAttach then
+				limitRot = math.max(rotLimit, implement.attachingRotLimit[i])
+				limitTrans = math.max(transLimit, implement.attachingTransLimit[i])
+			end
+			local rotLimitDown = -limitRot
+			local rotLimitUp = limitRot
+			if i == 3 then
+				if jointDesc.lockDownRotLimit then
+					rotLimitDown = math.min(-implement.attachingRotLimit[i], 0)
+				end
+				if jointDesc.lockUpRotLimit then
+					rotLimitUp = math.max(implement.attachingRotLimit[i], 0)
+				end
+			end
+			constr:setRotationLimit(i - 1, rotLimitDown, rotLimitUp)
+			implement.jointRotLimit[i] = limitRot
+			local transLimitDown = -limitTrans
+			local transLimitUp = limitTrans
+			if i == 2 then
+				if jointDesc.lockDownTransLimit then
+					transLimitDown = math.min(-implement.attachingTransLimit[i], 0)
+				end
+				if jointDesc.lockUpTransLimit then
+					transLimitUp = math.max(implement.attachingTransLimit[i], 0)
+				end
+			end
+			constr:setTranslationLimit(i - 1, true, transLimitDown, transLimitUp)
+			implement.jointTransLimit[i] = limitTrans
+		end
+		if jointDesc.enableCollision then
+			constr:setEnableCollision(true)
+		else
+			for _, component in pairs(self.components) do
+				if component.node == jointDesc.rootNodeBackup or component.collideWithAttachables then
+					continue
+				end
+				setPairCollision(component.node, objectAttacherJoint.rootNode, false)
+			end
+		end
+		local springX = math.max(jointDesc.rotLimitSpring[1], objectAttacherJoint.rotLimitSpring[1])
+		local springY = math.max(jointDesc.rotLimitSpring[2], objectAttacherJoint.rotLimitSpring[2])
+		local springZ = math.max(jointDesc.rotLimitSpring[3], objectAttacherJoint.rotLimitSpring[3])
+		local dampingX = math.max(jointDesc.rotLimitDamping[1], objectAttacherJoint.rotLimitDamping[1])
+		local dampingY = math.max(jointDesc.rotLimitDamping[2], objectAttacherJoint.rotLimitDamping[2])
+		local dampingZ = math.max(jointDesc.rotLimitDamping[3], objectAttacherJoint.rotLimitDamping[3])
+		local forceLimitX = Utils.getMaxJointForceLimit(jointDesc.rotLimitForceLimit[1], objectAttacherJoint.rotLimitForceLimit[1])
+		local forceLimitY = Utils.getMaxJointForceLimit(jointDesc.rotLimitForceLimit[2], objectAttacherJoint.rotLimitForceLimit[2])
+		local forceLimitZ = Utils.getMaxJointForceLimit(jointDesc.rotLimitForceLimit[3], objectAttacherJoint.rotLimitForceLimit[3])
+		constr:setRotationLimitSpring(springX, dampingX, springY, dampingY, springZ, dampingZ)
+		constr:setRotationLimitForceLimit(forceLimitX, forceLimitY, forceLimitZ)
+		springX = math.max(jointDesc.transLimitSpring[1], objectAttacherJoint.transLimitSpring[1])
+		springY = math.max(jointDesc.transLimitSpring[2], objectAttacherJoint.transLimitSpring[2])
+		springZ = math.max(jointDesc.transLimitSpring[3], objectAttacherJoint.transLimitSpring[3])
+		dampingX = math.max(jointDesc.transLimitDamping[1], objectAttacherJoint.transLimitDamping[1])
+		dampingY = math.max(jointDesc.transLimitDamping[2], objectAttacherJoint.transLimitDamping[2])
+		dampingZ = math.max(jointDesc.transLimitDamping[3], objectAttacherJoint.transLimitDamping[3])
+		forceLimitX = Utils.getMaxJointForceLimit(jointDesc.transLimitForceLimit[1], objectAttacherJoint.transLimitForceLimit[1])
+		forceLimitY = Utils.getMaxJointForceLimit(jointDesc.transLimitForceLimit[2], objectAttacherJoint.transLimitForceLimit[2])
+		forceLimitZ = Utils.getMaxJointForceLimit(jointDesc.transLimitForceLimit[3], objectAttacherJoint.transLimitForceLimit[3])
+		constr:setTranslationLimitSpring(springX, dampingX, springY, dampingY, springZ, dampingZ)
+		constr:setTranslationLimitForceLimit(forceLimitX, forceLimitY, forceLimitZ)
+		jointDesc.jointIndex = constr:finalize()
+		setTranslation(objectAttacherJoint.node, unpack(objectAttacherJoint.jointOrigTrans))
 		return
 	end
+	jointDesc.jointIndex = 1
 end
-
--- Local values: spec, implements, attachedImplements, i, impl, object, jointDescIndex, jointDesc, inputJointDescIndex, moveDown, i, attacherJoint, implementJoint, baseVehicleComponentNode, attachedVehicleComponentNode, wasAddedToPhysics, currentVehicle, dirX, dirY, dirZ, upX, upY, upZ, x, y, z, currentVehicle, _, attacherJointToUpdate, _, impl
 function AttacherJoints:hardAttachImplement(implement)
-	local v606_ = self.spec_attacherJoints
-	local v607_ = {}
-	local v608_
-	if implement.object.getAttachedImplements == nil then
-		v608_ = nil
-	else
-		v608_ = implement.object:getAttachedImplements()
+	local spec = self.spec_attacherJoints
+	local implements = {}
+	local attachedImplements = nil
+	if implement.object.getAttachedImplements ~= nil then
+		attachedImplements = implement.object:getAttachedImplements()
 	end
-	if v608_ ~= nil then
-		for v609_ = 1, #v608_ do
-			local v610_ = v608_[v609_]
-			local v611_ = v610_.object
-			local v612_ = v610_.jointDescIndex
-			local v613_ = implement.object.spec_attacherJoints.attacherJoints[v612_]
-			local v614_ = {
-				["object"] = v611_,
-				["implementIndex"] = v609_,
-				["jointDescIndex"] = v612_,
-				["inputJointDescIndex"] = v611_.spec_attachable.inputAttacherJointDescIndex,
-				["moveDown"] = v613_.moveDown
-			}
-			table.insert(v607_, v614_)
+	if attachedImplements ~= nil then
+		for i = 1, #attachedImplements do
+			local impl = attachedImplements[i]
+			local object = impl.object
+			local jointDescIndex = impl.jointDescIndex
+			local jointDesc = implement.object.spec_attacherJoints.attacherJoints[jointDescIndex]
+			local inputJointDescIndex = object.spec_attachable.inputAttacherJointDescIndex
+			local moveDown = jointDesc.moveDown
+			table.insert(implements, { object = object, implementIndex = i, jointDescIndex = jointDescIndex, inputJointDescIndex = inputJointDescIndex, moveDown = moveDown })
 		end
-		for _ = 1, #v608_ do
+		for i = 1, #attachedImplements do
 			implement.object:detachImplement(1, true)
 		end
 	end
-	local v615_ = v606_.attacherJoints[implement.jointDescIndex]
-	local v616_ = implement.object.spec_attachable.attacherJoint
-	local v617_ = self:getParentComponent(v615_.jointTransform)
-	local v618_ = implement.object:getParentComponent(implement.object.spec_attachable.attacherJoint.node)
-	local v619_ = self.isAddedToPhysics
-	if v619_ then
-		local v620_ = self
-		while self ~= nil do
-			self:removeFromPhysics()
-			self = self.attacherVehicle
+	local attacherJoint = spec.attacherJoints[implement.jointDescIndex]
+	local implementJoint = implement.object.spec_attachable.attacherJoint
+	local baseVehicleComponentNode = self:getParentComponent(attacherJoint.jointTransform)
+	local attachedVehicleComponentNode = implement.object:getParentComponent(implement.object.spec_attachable.attacherJoint.node)
+	local wasAddedToPhysics = self.isAddedToPhysics
+	if wasAddedToPhysics then
+		local currentVehicle = self
+		while currentVehicle ~= nil do
+			currentVehicle:removeFromPhysics()
+			currentVehicle = currentVehicle.attacherVehicle
 		end
 		implement.object:removeFromPhysics()
-		self = v620_
 	end
-	if v606_.attacherVehicle == nil then
-		setIsCompound(v617_, true)
+	if spec.attacherVehicle == nil then
+		setIsCompound(baseVehicleComponentNode, true)
 	end
-	setIsCompoundChild(v618_, true)
-	local v621_, v622_, v623_ = localDirectionToLocal(v618_, v616_.node, 0, 0, 1)
-	local v624_, v625_, v626_ = localDirectionToLocal(v618_, v616_.node, 0, 1, 0)
-	setDirection(v618_, v621_, v622_, v623_, v624_, v625_, v626_)
-	local v627_, v628_, v629_ = localToLocal(v618_, v616_.node, 0, 0, 0)
-	setTranslation(v618_, v627_, v628_, v629_)
-	link(v615_.jointTransform, v618_)
-	if v616_.visualNode ~= nil and v615_.jointTransformVisual ~= nil then
-		local v630_, v631_, v632_ = localDirectionToLocal(v616_.visualNode, v616_.node, 0, 0, 1)
-		local v633_, v634_, v635_ = localDirectionToLocal(v616_.visualNode, v616_.node, 0, 1, 0)
-		setDirection(v616_.visualNode, v630_, v631_, v632_, v633_, v634_, v635_)
-		local v636_, v637_, v638_ = localToLocal(v616_.visualNode, v616_.node, 0, 0, 0)
-		setTranslation(v616_.visualNode, v636_, v637_, v638_)
-		link(v615_.jointTransformVisual, v616_.visualNode)
+	setIsCompoundChild(attachedVehicleComponentNode, true)
+	local dirX, dirY, dirZ = localDirectionToLocal(attachedVehicleComponentNode, implementJoint.node, 0, 0, 1)
+	local upX, upY, upZ = localDirectionToLocal(attachedVehicleComponentNode, implementJoint.node, 0, 1, 0)
+	setDirection(attachedVehicleComponentNode, dirX, dirY, dirZ, upX, upY, upZ)
+	local x, y, z = localToLocal(attachedVehicleComponentNode, implementJoint.node, 0, 0, 0)
+	setTranslation(attachedVehicleComponentNode, x, y, z)
+	link(attacherJoint.jointTransform, attachedVehicleComponentNode)
+	if implementJoint.visualNode ~= nil and attacherJoint.jointTransformVisual ~= nil then
+		dirX, dirY, dirZ = localDirectionToLocal(implementJoint.visualNode, implementJoint.node, 0, 0, 1)
+		upX, upY, upZ = localDirectionToLocal(implementJoint.visualNode, implementJoint.node, 0, 1, 0)
+		setDirection(implementJoint.visualNode, dirX, dirY, dirZ, upX, upY, upZ)
+		x, y, z = localToLocal(implementJoint.visualNode, implementJoint.node, 0, 0, 0)
+		setTranslation(implementJoint.visualNode, x, y, z)
+		link(attacherJoint.jointTransformVisual, implementJoint.visualNode)
 	end
 	implement.object.spec_attachable.isHardAttached = true
-	if v619_ then
-		local v639_ = self
-		while self ~= nil do
-			self:addToPhysics()
-			self = self.attacherVehicle
+	if wasAddedToPhysics then
+		local currentVehicle = self
+		while currentVehicle ~= nil do
+			currentVehicle:addToPhysics()
+			currentVehicle = currentVehicle.attacherVehicle
 		end
-		self = v639_
 	end
-	for _, v640_ in pairs(implement.object.spec_attacherJoints.attacherJoints) do
-		v640_.rootNode = v617_
+	for _, attacherJointToUpdate in pairs(implement.object.spec_attacherJoints.attacherJoints) do
+		attacherJointToUpdate.rootNode = baseVehicleComponentNode
 	end
-	for _, v641_ in pairs(v607_) do
-		implement.object:attachImplement(v641_.object, v641_.inputJointDescIndex, v641_.jointDescIndex, true, v641_.implementIndex, v641_.moveDown, true)
+	for _, impl in pairs(implements) do
+		implement.object:attachImplement(impl.object, impl.inputJointDescIndex, impl.jointDescIndex, true, impl.implementIndex, impl.moveDown, true)
 	end
 	if self.isServer then
 		self:setMassDirty()
@@ -2143,43 +1966,39 @@ function AttacherJoints:hardAttachImplement(implement)
 	end
 	return true
 end
-
--- Local values: _, attacherJoint, implementJoint, attachedVehicleComponentNode, wasAddedToPhysics, currentVehicle, x, y, z, dirX, dirY, dirZ, upX, upY, upZ, currentVehicle
 function AttacherJoints:hardDetachImplement(implement)
-	for _, v644_ in pairs(implement.object.spec_attacherJoints.attacherJoints) do
-		v644_.rootNode = v644_.rootNodeBackup
+	for _, attacherJoint in pairs(implement.object.spec_attacherJoints.attacherJoints) do
+		attacherJoint.rootNode = attacherJoint.rootNodeBackup
 	end
-	local v645_ = implement.object.spec_attachable.attacherJoint
-	local v646_ = implement.object:getParentComponent(v645_.node)
-	local v647_ = self.isAddedToPhysics
-	if v647_ then
-		local v648_ = self
-		while self ~= nil do
-			self:removeFromPhysics()
-			self = self.attacherVehicle
+	local implementJoint = implement.object.spec_attachable.attacherJoint
+	local attachedVehicleComponentNode = implement.object:getParentComponent(implementJoint.node)
+	local wasAddedToPhysics = self.isAddedToPhysics
+	if wasAddedToPhysics then
+		local currentVehicle = self
+		while currentVehicle ~= nil do
+			currentVehicle:removeFromPhysics()
+			currentVehicle = currentVehicle.attacherVehicle
 		end
-		self = v648_
 	end
-	setIsCompound(v646_, true)
-	local v649_, v650_, v651_ = getWorldTranslation(v646_)
-	setTranslation(v646_, v649_, v650_, v651_)
-	local v652_, v653_, v654_ = localDirectionToWorld(implement.object.rootNode, 0, 0, 1)
-	local v655_, v656_, v657_ = localDirectionToWorld(implement.object.rootNode, 0, 1, 0)
-	setDirection(v646_, v652_, v653_, v654_, v655_, v656_, v657_)
-	link(getRootNode(), v646_)
-	if v645_.visualNode ~= nil and getParent(v645_.visualNode) ~= v645_.visualNodeData.parent then
-		link(v645_.visualNodeData.parent, v645_.visualNode, v645_.visualNodeData.index)
-		setRotation(v645_.visualNode, v645_.visualNodeData.rotation[1], v645_.visualNodeData.rotation[2], v645_.visualNodeData.rotation[3])
-		setTranslation(v645_.visualNode, v645_.visualNodeData.translation[1], v645_.visualNodeData.translation[2], v645_.visualNodeData.translation[3])
+	setIsCompound(attachedVehicleComponentNode, true)
+	local x, y, z = getWorldTranslation(attachedVehicleComponentNode)
+	setTranslation(attachedVehicleComponentNode, x, y, z)
+	local dirX, dirY, dirZ = localDirectionToWorld(implement.object.rootNode, 0, 0, 1)
+	local upX, upY, upZ = localDirectionToWorld(implement.object.rootNode, 0, 1, 0)
+	setDirection(attachedVehicleComponentNode, dirX, dirY, dirZ, upX, upY, upZ)
+	link(getRootNode(), attachedVehicleComponentNode)
+	if implementJoint.visualNode ~= nil and getParent(implementJoint.visualNode) ~= implementJoint.visualNodeData.parent then
+		link(implementJoint.visualNodeData.parent, implementJoint.visualNode, implementJoint.visualNodeData.index)
+		setRotation(implementJoint.visualNode, implementJoint.visualNodeData.rotation[1], implementJoint.visualNodeData.rotation[2], implementJoint.visualNodeData.rotation[3])
+		setTranslation(implementJoint.visualNode, implementJoint.visualNodeData.translation[1], implementJoint.visualNodeData.translation[2], implementJoint.visualNodeData.translation[3])
 	end
-	if v647_ then
-		local v658_ = self
-		while self ~= nil do
-			self:addToPhysics()
-			self = self.attacherVehicle
+	if wasAddedToPhysics then
+		local currentVehicle = self
+		while currentVehicle ~= nil do
+			currentVehicle:addToPhysics()
+			currentVehicle = currentVehicle.attacherVehicle
 		end
 		implement.object:addToPhysics()
-		self = v658_
 	end
 	implement.object.spec_attachable.isHardAttached = false
 	if self.isServer then
@@ -2188,554 +2007,496 @@ function AttacherJoints:hardDetachImplement(implement)
 	end
 	return true
 end
-
--- Local values: spec, implement, implement, jointDesc, bottomArmJointDesc, interpolator, _, component, attacherJoint, i, node, allowedToShow, attacherJoints, j, i, node, hideNode, attacherJoints, j, object, interpolator, attacherJoint, _, visualAlignNode, data, rootVehicle, nextImplement
 function AttacherJoints:detachImplement(implementIndex, noEventSend)
-	local v662_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	if noEventSend == nil or noEventSend == false then
-		if g_server == nil then
-			local v663_ = v662_.attachedImplements[implementIndex]
-			if v663_.object ~= nil then
-				g_client:getServerConnection():sendEvent(VehicleDetachEvent.new(self, v663_.object))
+		if g_server ~= nil then
+			g_server:broadcastEvent(VehicleDetachEvent.new(self, spec.attachedImplements[implementIndex].object), nil, nil, self)
+		else
+			local implement = spec.attachedImplements[implementIndex]
+			if implement.object ~= nil then
+				g_client:getServerConnection():sendEvent(VehicleDetachEvent.new(self, implement.object))
 			end
 			return
 		end
-		g_server:broadcastEvent(VehicleDetachEvent.new(self, v662_.attachedImplements[implementIndex].object), nil, nil, self)
 	end
-	local v664_ = v662_.attachedImplements[implementIndex]
-	v664_.isDetaching = true
-	SpecializationUtil.raiseEvent(self, "onPreDetachImplement", v664_)
-	v664_.object:preDetach(self, v664_)
-	local v_u_665_
-	if v664_.object == nil then
-		v_u_665_ = nil
-	else
-		v_u_665_ = v662_.attacherJoints[v664_.jointDescIndex]
-		if v_u_665_.transNode ~= nil then
-			local v666_ = setTranslation
-			local v667_ = v_u_665_.transNode
-			local v668_ = v_u_665_.transNodeOrgTrans
-			v666_(v667_, unpack(v668_))
-			if v_u_665_.transNodeDependentBottomArm ~= nil then
-				local v669_ = v_u_665_.transNodeDependentBottomArmAttacherJoint
-				local v670_ = ValueInterpolator.new(v669_.bottomArm.interpolatorKey, v669_.bottomArm.interpolatorGet, v669_.bottomArm.interpolatorSet, { v669_.bottomArm.rotX, v669_.bottomArm.rotY, v669_.bottomArm.rotZ }, AttacherJoints.SMOOTH_ATTACH_TIME * 2)
-				if v670_ ~= nil then
-					v670_:setDeleteListenerObject(self)
-					v670_:setFinishedFunc(v669_.bottomArm.interpolatorFinished, v669_.bottomArm)
-					v669_.bottomArm.bottomArmInterpolating = true
+	local implement = spec.attachedImplements[implementIndex]
+	implement.isDetaching = true
+	SpecializationUtil.raiseEvent(self, "onPreDetachImplement", implement)
+	implement.object:preDetach(self, implement)
+	local jointDesc = nil
+	if implement.object ~= nil then
+		jointDesc = spec.attacherJoints[implement.jointDescIndex]
+		if jointDesc.transNode ~= nil then
+			setTranslation(jointDesc.transNode, unpack(jointDesc.transNodeOrgTrans))
+			if jointDesc.transNodeDependentBottomArm ~= nil then
+				local bottomArmJointDesc = jointDesc.transNodeDependentBottomArmAttacherJoint
+				local interpolator = ValueInterpolator.new(bottomArmJointDesc.bottomArm.interpolatorKey, bottomArmJointDesc.bottomArm.interpolatorGet, bottomArmJointDesc.bottomArm.interpolatorSet, { bottomArmJointDesc.bottomArm.rotX, bottomArmJointDesc.bottomArm.rotY, bottomArmJointDesc.bottomArm.rotZ }, AttacherJoints.SMOOTH_ATTACH_TIME * 2)
+				if interpolator ~= nil then
+					interpolator:setDeleteListenerObject(self)
+					interpolator:setFinishedFunc(bottomArmJointDesc.bottomArm.interpolatorFinished, bottomArmJointDesc.bottomArm)
+					bottomArmJointDesc.bottomArm.bottomArmInterpolating = true
 				end
 			end
 		end
-		if not v664_.object.spec_attachable.isHardAttached and self.isServer then
-			if v_u_665_.jointIndex ~= 0 then
-				removeJoint(v_u_665_.jointIndex)
+		if not implement.object.spec_attachable.isHardAttached and self.isServer then
+			if jointDesc.jointIndex ~= 0 then
+				removeJoint(jointDesc.jointIndex)
 			end
-			if not v_u_665_.enableCollision then
-				for _, v671_ in pairs(self.components) do
-					if v671_.node ~= v_u_665_.rootNodeBackup and not v671_.collideWithAttachables then
-						local v672_ = v664_.object:getActiveInputAttacherJoint()
-						setPairCollision(v671_.node, v672_.rootNode, true)
+			if not jointDesc.enableCollision then
+				for _, component in pairs(self.components) do
+					if component.node == jointDesc.rootNodeBackup or component.collideWithAttachables then
+						continue
 					end
+					local attacherJoint = implement.object:getActiveInputAttacherJoint()
+					setPairCollision(component.node, attacherJoint.rootNode, true)
 				end
 			end
 		end
-		v_u_665_.jointIndex = 0
-		self:setAttacherJointBottomArmWidth(v664_.jointDescIndex, nil)
+		jointDesc.jointIndex = 0
+		self:setAttacherJointBottomArmWidth(implement.jointDescIndex, nil)
 	end
-	if not v_u_665_.delayedObjectChanges or v_u_665_.bottomArm == nil then
-		ObjectChangeUtil.setObjectChanges(v_u_665_.changeObjects, false, self, self.setMovingToolDirty)
+	if not jointDesc.delayedObjectChanges or jointDesc.bottomArm == nil then
+		ObjectChangeUtil.setObjectChanges(jointDesc.changeObjects, false, self, self.setMovingToolDirty)
 	end
-	for v673_ = 1, #v_u_665_.hideVisuals do
-		local v674_ = v_u_665_.hideVisuals[v673_]
-		local v675_ = true
-		local v676_ = v662_.hideVisualNodeToAttacherJoints[v674_]
-		if v676_ ~= nil then
-			for v677_ = 1, #v676_ do
-				if v676_[v677_].jointIndex ~= 0 then
-					v675_ = false
+	for i = 1, #jointDesc.hideVisuals do
+		local node = jointDesc.hideVisuals[i]
+		local allowedToShow = true
+		local attacherJoints = spec.hideVisualNodeToAttacherJoints[node]
+		if attacherJoints ~= nil then
+			for j = 1, #attacherJoints do
+				if attacherJoints[j].jointIndex == 0 then
+					continue
 				end
+				allowedToShow = false
 			end
 		end
-		if v675_ then
-			setVisibility(v674_, true)
+		if allowedToShow then
+			setVisibility(node, true)
 		end
 	end
-	for v678_ = 1, #v_u_665_.visualNodes do
-		local v679_ = v_u_665_.visualNodes[v678_]
-		local v680_ = false
-		local v681_ = v662_.hideVisualNodeToAttacherJoints[v679_]
-		if v681_ ~= nil then
-			for v682_ = 1, #v681_ do
-				if v681_[v682_].jointIndex ~= 0 then
-					v680_ = true
+	for i = 1, #jointDesc.visualNodes do
+		local node = jointDesc.visualNodes[i]
+		local hideNode = false
+		local attacherJoints = spec.hideVisualNodeToAttacherJoints[node]
+		if attacherJoints ~= nil then
+			for j = 1, #attacherJoints do
+				if attacherJoints[j].jointIndex == 0 then
+					continue
 				end
+				hideNode = true
 			end
 		end
-		if v680_ then
-			setVisibility(v679_, false)
+		if hideNode then
+			setVisibility(node, false)
 		end
 	end
-	if v664_.object ~= nil then
-		local v683_ = v664_.object
-		if v683_.spec_attachable.isHardAttached then
-			self:hardDetachImplement(v664_)
+	if implement.object ~= nil then
+		local object = implement.object
+		if object.spec_attachable.isHardAttached then
+			self:hardDetachImplement(implement)
 		end
 		if self.isClient then
-			if v_u_665_.topArm ~= nil then
-				v_u_665_.topArm:setIsActive(false)
+			if jointDesc.topArm ~= nil then
+				jointDesc.topArm:setIsActive(false)
 			end
-			if v_u_665_.bottomArm ~= nil then
-				local v684_ = ValueInterpolator.new(v_u_665_.bottomArm.interpolatorKey, v_u_665_.bottomArm.interpolatorGet, v_u_665_.bottomArm.interpolatorSet, { v_u_665_.bottomArm.rotX, v_u_665_.bottomArm.rotY, v_u_665_.bottomArm.rotZ }, nil, v_u_665_.bottomArm.resetSpeed)
-				if v684_ ~= nil then
-					v684_:setDeleteListenerObject(self)
-					v684_:setFinishedFunc(v_u_665_.bottomArm.interpolatorFinished, v_u_665_.bottomArm)
-					v_u_665_.bottomArm.bottomArmInterpolating = true
-					if v_u_665_.delayedObjectChanges then
-						v684_:setFinishedFunc(function()
-							-- upvalues: (ref) v_u_665_, (copy) self
-							v_u_665_.bottomArm.interpolatorFinished(v_u_665_.bottomArm)
-							if v_u_665_.jointIndex == 0 then
-								ObjectChangeUtil.setObjectChanges(v_u_665_.changeObjects, false, self, self.setMovingToolDirty)
+			if jointDesc.bottomArm ~= nil then
+				local interpolator = ValueInterpolator.new(jointDesc.bottomArm.interpolatorKey, jointDesc.bottomArm.interpolatorGet, jointDesc.bottomArm.interpolatorSet, { jointDesc.bottomArm.rotX, jointDesc.bottomArm.rotY, jointDesc.bottomArm.rotZ }, nil, jointDesc.bottomArm.resetSpeed)
+				if interpolator ~= nil then
+					interpolator:setDeleteListenerObject(self)
+					interpolator:setFinishedFunc(jointDesc.bottomArm.interpolatorFinished, jointDesc.bottomArm)
+					jointDesc.bottomArm.bottomArmInterpolating = true
+					if jointDesc.delayedObjectChanges then
+						interpolator:setFinishedFunc(function()
+							jointDesc.bottomArm.interpolatorFinished(jointDesc.bottomArm)
+							if jointDesc.jointIndex == 0 then
+								ObjectChangeUtil.setObjectChanges(jointDesc.changeObjects, false, self, self.setMovingToolDirty)
 							end
 						end)
 					end
 				end
-				local v685_ = v_u_665_.bottomArm.lastDirection
-				local v686_ = v_u_665_.bottomArm.lastDirection
-				local v687_ = v_u_665_.bottomArm.lastDirection
-				v685_[1] = 0
-				v686_[2] = 0
-				v687_[3] = 0
-				if v_u_665_.bottomArm.translationNode ~= nil then
-					setTranslation(v_u_665_.bottomArm.translationNode, 0, 0, 0)
+				jointDesc.bottomArm.lastDirection[1] = 0
+				jointDesc.bottomArm.lastDirection[2] = 0
+				jointDesc.bottomArm.lastDirection[3] = 0
+				if jointDesc.bottomArm.translationNode ~= nil then
+					setTranslation(jointDesc.bottomArm.translationNode, 0, 0, 0)
 				end
-				if v_u_665_.bottomArm.toolbarNode ~= nil then
-					setVisibility(v_u_665_.bottomArm.toolbarNode, false)
+				if jointDesc.bottomArm.toolbarNode ~= nil then
+					setVisibility(jointDesc.bottomArm.toolbarNode, false)
 				end
-				if v_u_665_.bottomArm.toggleVisibility then
-					setVisibility(v_u_665_.bottomArm.rotationNode, false)
+				if jointDesc.bottomArm.toggleVisibility then
+					setVisibility(jointDesc.bottomArm.rotationNode, false)
 				end
-				if v_u_665_.bottomArm.leftNode ~= nil then
-					self:setMovingPartReferenceNode(v_u_665_.bottomArm.leftNode, nil, false)
+				if jointDesc.bottomArm.leftNode ~= nil then
+					self:setMovingPartReferenceNode(jointDesc.bottomArm.leftNode, nil, false)
 				end
-				if v_u_665_.bottomArm.rightNode ~= nil then
-					self:setMovingPartReferenceNode(v_u_665_.bottomArm.rightNode, nil, false)
+				if jointDesc.bottomArm.rightNode ~= nil then
+					self:setMovingPartReferenceNode(jointDesc.bottomArm.rightNode, nil, false)
 				end
 			end
 		end
-		local v688_ = setTranslation
-		local v689_ = v_u_665_.jointTransform
-		local v690_ = v_u_665_.jointOrigTrans
-		v688_(v689_, unpack(v690_))
-		local v691_ = v683_:getActiveInputAttacherJoint()
-		local v692_ = setTranslation
-		local v693_ = v691_.node
-		local v694_ = v691_.jointOrigTrans
-		v692_(v693_, unpack(v694_))
-		if v_u_665_.rotationNode ~= nil then
-			setRotation(v_u_665_.rotationNode, v_u_665_.rotX, v_u_665_.rotY, v_u_665_.rotZ)
+		setTranslation(jointDesc.jointTransform, unpack(jointDesc.jointOrigTrans))
+		local attacherJoint = object:getActiveInputAttacherJoint()
+		setTranslation(attacherJoint.node, unpack(attacherJoint.jointOrigTrans))
+		if jointDesc.rotationNode ~= nil then
+			setRotation(jointDesc.rotationNode, jointDesc.rotX, jointDesc.rotY, jointDesc.rotZ)
 		end
-		if v_u_665_.rotationNode2 ~= nil then
-			setRotation(v_u_665_.rotationNode2, -v_u_665_.rotX, -v_u_665_.rotY, -v_u_665_.rotZ)
+		if jointDesc.rotationNode2 ~= nil then
+			setRotation(jointDesc.rotationNode2, -jointDesc.rotX, -jointDesc.rotY, -jointDesc.rotZ)
 		end
-		if v_u_665_.visualAlignNodes ~= nil then
-			for _, v695_ in ipairs(v_u_665_.visualAlignNodes) do
-				self:setMovingPartReferenceNode(v695_.node, v_u_665_.jointTransform, false)
+		if jointDesc.visualAlignNodes ~= nil then
+			for _, visualAlignNode in ipairs(jointDesc.visualAlignNodes) do
+				self:setMovingPartReferenceNode(visualAlignNode.node, jointDesc.jointTransform, false)
 			end
 		end
 		SpecializationUtil.raiseEvent(self, "onPostDetachImplement", implementIndex)
-		v683_:postDetach(implementIndex)
-		self:detachAdditionalAttachment(v_u_665_, v691_)
+		object:postDetach(implementIndex)
+		self:detachAdditionalAttachment(jointDesc, attacherJoint)
 	end
-	table.remove(v662_.attachedImplements, implementIndex)
-	self:playDetachSound(v_u_665_)
-	v662_.wasInAttachRange = nil
+	table.remove(spec.attachedImplements, implementIndex)
+	self:playDetachSound(jointDesc)
+	spec.wasInAttachRange = nil
 	self:updateVehicleChain()
-	v664_.object:updateVehicleChain()
-	local v696_ = {
-		["attacherVehicle"] = self,
-		["attachedVehicle"] = v664_.object
-	}
-	v664_.object:raiseStateChange(VehicleStateChange.DETACH, v696_)
-	self.rootVehicle:raiseStateChange(VehicleStateChange.DETACH, v696_)
+	implement.object:updateVehicleChain()
+	local data = { attacherVehicle = self }
+	data.attachedVehicle = implement.object
+	implement.object:raiseStateChange(VehicleStateChange.DETACH, data)
+	local rootVehicle = self.rootVehicle
+	rootVehicle:raiseStateChange(VehicleStateChange.DETACH, data)
 	self.rootVehicle:updateSelectableObjects()
 	if GS_IS_MOBILE_VERSION then
-		local v697_ = next(v662_.attachedImplements)
-		if v662_.attachedImplements[v697_] == nil then
-			self.rootVehicle:setSelectedVehicle(self, nil, true)
+		local nextImplement = next(spec.attachedImplements)
+		if spec.attachedImplements[nextImplement] ~= nil then
+			self.rootVehicle:setSelectedVehicle(spec.attachedImplements[nextImplement].object, nil, true)
 		else
-			self.rootVehicle:setSelectedVehicle(v662_.attachedImplements[v697_].object, nil, true)
+			self.rootVehicle:setSelectedVehicle(self, nil, true)
 		end
 	else
 		self.rootVehicle:setSelectedVehicle(self, nil, true)
 	end
 	self.rootVehicle:requestActionEventUpdate()
-	v664_.object:updateSelectableObjects()
-	v664_.object:setSelectedVehicle(v664_.object, nil, true)
-	v664_.object:requestActionEventUpdate()
+	implement.object:updateSelectableObjects()
+	implement.object:setSelectedVehicle(implement.object, nil, true)
+	implement.object:requestActionEventUpdate()
 	AttacherJoints.updateRequiredTopLightsState(self)
 	return true
 end
-
--- Local values: spec, i, implement
 function AttacherJoints:detachImplementByObject(object, noEventSend)
-	local v701_ = self.spec_attacherJoints
-	for v702_, v703_ in ipairs(v701_.attachedImplements) do
-		if v703_.object == object then
-			self:detachImplement(v702_, noEventSend)
+	local spec = self.spec_attacherJoints
+	for i, implement in ipairs(spec.attachedImplements) do
+		if implement.object == object then
+			self:detachImplement(i, noEventSend)
 			break
 		end
 	end
 	return true
 end
-
 function AttacherJoints:setSelectedImplementByObject(object)
 	self.spec_attacherJoints.selectedImplement = self:getImplementByObject(object)
 end
-
--- Local values: spec
 function AttacherJoints:getSelectedImplement()
-	local v707_ = self.spec_attacherJoints
-	if v707_.selectedImplement == nil or v707_.selectedImplement.object:getAttacherVehicle() == self then
-		return v707_.selectedImplement
-	else
+	local spec = self.spec_attacherJoints
+	if spec.selectedImplement ~= nil and spec.selectedImplement.object:getAttacherVehicle() ~= self then
 		return nil
 	end
+	return spec.selectedImplement
 end
-
-function AttacherJoints.getCanToggleAttach(self)
+function AttacherJoints:getCanToggleAttach()
 	return true
 end
-
 function AttacherJoints:getAttachControlBarActionAccessible()
 	return true
 end
-
--- Local values: spec, info, selectedVehicle
 function AttacherJoints:getShowAttachControlBarAction()
 	if self:getIsAIActive() then
 		return false
-	end
-	local v709_ = self.spec_attacherJoints.attachableInfo
-	local v710_ = self:getSelectedVehicle()
-	if v709_.attacherVehicle == nil then
-		if v710_ ~= nil and (not v710_.isDeleted and (v710_.getAttacherVehicle ~= nil and v710_:getAttacherVehicle() ~= nil)) then
+	else
+		local spec = self.spec_attacherJoints
+		local info = spec.attachableInfo
+		local selectedVehicle = self:getSelectedVehicle()
+		if info.attacherVehicle == nil then
+			if selectedVehicle ~= nil and (not selectedVehicle.isDeleted and (selectedVehicle.getAttacherVehicle ~= nil and selectedVehicle:getAttacherVehicle() ~= nil)) then
+				return true
+			end
+		elseif selectedVehicle == nil then
 			return true
 		end
-	elseif v710_ == nil then
-		return true
+		if info.attachable ~= nil and info.attacherVehicle == self then
+			return true
+		end
+		return false
 	end
-	return v709_.attachable ~= nil and v709_.attacherVehicle == self
 end
-
 function AttacherJoints:detachAttachedImplement()
 	if self:getCanToggleAttach() then
 		AttacherJoints.actionEventAttach(self)
 	end
 end
-
--- Local values: spec
 function AttacherJoints:startAttacherJointCombo(force)
-	local v714_ = self.spec_attacherJoints
-	if not v714_.attacherJointCombos.isRunning or force then
-		v714_.attacherJointCombos.direction = -v714_.attacherJointCombos.direction
-		v714_.attacherJointCombos.isRunning = true
+	local spec = self.spec_attacherJoints
+	if not spec.attacherJointCombos.isRunning or force then
+		spec.attacherJointCombos.direction = -spec.attacherJointCombos.direction
+		spec.attacherJointCombos.isRunning = true
 	end
 end
-
--- Local values: spec, attacherJoint
 function AttacherJoints:setAttacherJointBlocked(attacherJointIndex, isBlocked)
-	local v718_ = self.spec_attacherJoints.attacherJoints[attacherJointIndex]
-	if v718_ ~= nil then
-		v718_.isBlocked = isBlocked
+	local spec = self.spec_attacherJoints
+	local attacherJoint = spec.attacherJoints[attacherJointIndex]
+	if attacherJoint ~= nil then
+		attacherJoint.isBlocked = isBlocked
 	end
 end
-
--- Local values: i, jointIndex
 function AttacherJoints:getIsAttachingAllowed(attacherJoint)
 	if attacherJoint.jointIndex ~= 0 then
 		return false
-	end
-	if attacherJoint.isBlocked then
+	elseif attacherJoint.isBlocked then
 		return false
-	end
-	if attacherJoint.disabledByAttacherJoints ~= nil and #attacherJoint.disabledByAttacherJoints > 0 then
-		for v721_ = 1, #attacherJoint.disabledByAttacherJoints do
-			if self:getImplementByJointDescIndex(attacherJoint.disabledByAttacherJoints[v721_]) ~= nil then
+	else
+		if attacherJoint.disabledByAttacherJoints ~= nil and 0 < #attacherJoint.disabledByAttacherJoints then
+			for i = 1, #attacherJoint.disabledByAttacherJoints do
+				local jointIndex = attacherJoint.disabledByAttacherJoints[i]
+				if self:getImplementByJointDescIndex(jointIndex) == nil then
+					continue
+				end
 				return false
 			end
 		end
+		return true
 	end
-	return true
 end
-
 function AttacherJoints:getIsAttacherJointCompatible(vehicle, attacherJoint, inputAttacherVehicle, inputAttacherJoint)
 	return true
 end
-
--- Local values: jointDesc
 function AttacherJoints:getCanSteerAttachable(attachable)
-	local v724_ = self:getAttacherJointDescFromObject(attachable)
-	return v724_ ~= nil and (v724_.steeringBarLeftNode ~= nil or (v724_.steeringBarRightNode ~= nil or v724_.steeringBarForceUsage)) and true or false
+	local jointDesc = self:getAttacherJointDescFromObject(attachable)
+	if jointDesc ~= nil and (jointDesc.steeringBarLeftNode ~= nil or jointDesc.steeringBarRightNode ~= nil or jointDesc.steeringBarForceUsage) then
+		return true
+	end
+	return false
 end
-
--- Local values: spec, i, attachmentData
 function AttacherJoints:onAttacherJointsVehicleLoaded(vehicle)
-	local v727_ = self.spec_attacherJoints
-	if v727_.attachmentDataToLoad == nil then
-		g_messageCenter:unsubscribe(MessageType.VEHICLE_LOADED, self)
-	else
-		for v728_ = #v727_.attachmentDataToLoad, 1, -1 do
-			local v729_ = v727_.attachmentDataToLoad[v728_]
-			if v729_.attachedVehicleUniqueId == vehicle:getUniqueId() then
-				self:attachImplement(vehicle, v729_.inputIndex, v729_.jointIndex, true, nil, v729_.moveDown, true, true)
-				self:setJointMoveDown(v729_.jointIndex, v729_.moveDown, true)
-				table.remove(v727_.attachmentDataToLoad, v728_)
+	local spec = self.spec_attacherJoints
+	if spec.attachmentDataToLoad ~= nil then
+		for i = #spec.attachmentDataToLoad, 1, -1 do
+			local attachmentData = spec.attachmentDataToLoad[i]
+			if attachmentData.attachedVehicleUniqueId == vehicle:getUniqueId() then
+				self:attachImplement(vehicle, attachmentData.inputIndex, attachmentData.jointIndex, true, nil, attachmentData.moveDown, true, true)
+				self:setJointMoveDown(attachmentData.jointIndex, attachmentData.moveDown, true)
+				table.remove(spec.attachmentDataToLoad, i)
 			end
 		end
-		if #v727_.attachmentDataToLoad == 0 then
+		if #spec.attachmentDataToLoad == 0 then
 			self:loadAttachmentsFinished()
-			v727_.attachmentDataToLoad = nil
+			spec.attachmentDataToLoad = nil
 			g_messageCenter:unsubscribe(MessageType.VEHICLE_LOADED, self)
-			return
 		end
+	else
+		g_messageCenter:unsubscribe(MessageType.VEHICLE_LOADED, self)
 	end
 end
-
 function AttacherJoints:registerSelfLoweringActionEvent(actionEventsTable, inputAction, target, callback, triggerUp, triggerDown, triggerAlways, startActive, callbackState, customIconName, ignoreCollisions) end
-
--- Local values: spec
 function AttacherJoints:playAttachSound(jointDesc)
-	local v732_ = self.spec_attacherJoints
-	if self.isClient then
-		if jointDesc == nil or jointDesc.sampleAttach == nil then
-			g_soundManager:playSample(v732_.samples.attach)
-		else
+	local spec = self.spec_attacherJoints
+	if self.isClient and jointDesc ~= nil then
+		if jointDesc.sampleAttach ~= nil then
 			g_soundManager:playSample(jointDesc.sampleAttach)
-		end
-	end
-	return true
-end
-
--- Local values: spec
-function AttacherJoints:playDetachSound(jointDesc)
-	local v735_ = self.spec_attacherJoints
-	if self.isClient then
-		if jointDesc == nil or jointDesc.sampleDetach == nil then
-			if v735_.samples.detach == nil then
-				if jointDesc == nil or jointDesc.sampleAttach == nil then
-					g_soundManager:playSample(v735_.samples.attach)
-				else
-					g_soundManager:playSample(jointDesc.sampleAttach)
-				end
-			else
-				g_soundManager:playSample(v735_.samples.detach)
-			end
 		else
-			g_soundManager:playSample(jointDesc.sampleDetach)
+			g_soundManager:playSample(spec.samples.attach)
 		end
 	end
 	return true
 end
-
--- Local values: implement, object, implementIndex
+function AttacherJoints:playDetachSound(jointDesc)
+	local spec = self.spec_attacherJoints
+	if self.isClient and jointDesc ~= nil then
+		if jointDesc.sampleDetach ~= nil then
+			g_soundManager:playSample(jointDesc.sampleDetach)
+		elseif spec.samples.detach ~= nil then
+			g_soundManager:playSample(spec.samples.detach)
+		elseif jointDesc ~= nil then
+			if jointDesc.sampleAttach ~= nil then
+				g_soundManager:playSample(jointDesc.sampleAttach)
+			else
+				g_soundManager:playSample(spec.samples.attach)
+			end
+		end
+	end
+	return true
+end
 function AttacherJoints:detachingIsPossible()
-	local v737_ = self:getImplementByObject(self:getSelectedVehicle())
-	if v737_ ~= nil then
-		local v738_ = v737_.object
-		if v738_ ~= nil and (v738_.attacherVehicle ~= nil and (v738_:isDetachAllowed() and v738_.attacherVehicle:getImplementIndexByObject(v738_) ~= nil)) then
-			return true
+	local implement = self:getImplementByObject(self:getSelectedVehicle())
+	if implement ~= nil then
+		local object = implement.object
+		if object ~= nil and (object.attacherVehicle ~= nil and object:isDetachAllowed()) then
+			local implementIndex = object.attacherVehicle:getImplementIndexByObject(object)
+			if implementIndex ~= nil then
+				return true
+			end
 		end
 	end
 	return false
 end
-
--- Local values: storeItem, targetDirection, attacherJoint, attacherJointIndex, index, attacherJointToCheck, x, y, z, dirX, _, dirZ, yRot, asyncCallbackArguments, data
 function AttacherJoints:attachAdditionalAttachment(jointDesc, inputJointDesc, object)
 	if jointDesc.attacherJointDirection ~= nil and inputJointDesc.additionalAttachment.filename ~= nil then
-		local v743_ = g_storeManager:getItemByXMLFilename(inputJointDesc.additionalAttachment.filename)
-		if v743_ ~= nil then
-			local v744_ = -jointDesc.attacherJointDirection
-			local v745_ = nil
-			local v746_ = nil
-			for v747_, v748_ in ipairs(self:getAttacherJoints()) do
-				if v748_.attacherJointDirection == v744_ then
-					if v748_.jointIndex ~= 0 then
-						v746_ = nil
+		local storeItem = g_storeManager:getItemByXMLFilename(inputJointDesc.additionalAttachment.filename)
+		if storeItem ~= nil then
+			local targetDirection = -jointDesc.attacherJointDirection
+			local attacherJoint = nil
+			local attacherJointIndex = nil
+			for index, attacherJointToCheck in ipairs(self:getAttacherJoints()) do
+				if attacherJointToCheck.attacherJointDirection == targetDirection then
+					if attacherJointToCheck.jointIndex ~= 0 then
+						attacherJoint = nil
 						break
 					end
-					if v748_.jointType == inputJointDesc.additionalAttachment.jointType then
-						v746_ = v748_
-						v745_ = v747_
+					if attacherJointToCheck.jointType == inputJointDesc.additionalAttachment.jointType then
+						attacherJoint = attacherJointToCheck
+						attacherJointIndex = index
 					end
 				end
 			end
-			if v746_ ~= nil then
-				local v749_, v750_, v751_ = localToWorld(v746_.jointTransform, 0, 0, 0)
-				local v752_, _, v753_ = localDirectionToWorld(v746_.jointTransform, 1, 0, 0)
-				local v754_ = MathUtil.getYRotationFromDirection(v752_, v753_)
-				jointDesc.additionalAttachment.currentAttacherJointIndex = v745_
-				local v755_ = {
-					v745_,
-					inputJointDesc.additionalAttachment.inputAttacherJointIndex,
-					v746_.jointTransform,
-					inputJointDesc.additionalAttachment.needsLowering,
-					object,
-					v743_.xmlFilename
-				}
-				local v756_ = VehicleLoadingData.new()
-				v756_:setStoreItem(v743_)
-				v756_:setPosition(v749_, v750_, v751_)
-				v756_:setRotation(0, v754_, 0)
-				v756_:setPropertyState(VehiclePropertyState.NONE)
-				v756_:setOwnerFarmId(self:getActiveFarm())
-				v756_:load(AttacherJoints.additionalAttachmentLoaded, self, v755_)
+			if attacherJoint ~= nil then
+				local x, y, z = localToWorld(attacherJoint.jointTransform, 0, 0, 0)
+				local dirX, _, dirZ = localDirectionToWorld(attacherJoint.jointTransform, 1, 0, 0)
+				local yRot = MathUtil.getYRotationFromDirection(dirX, dirZ)
+				jointDesc.additionalAttachment.currentAttacherJointIndex = attacherJointIndex
+				local asyncCallbackArguments = { attacherJointIndex, inputJointDesc.additionalAttachment.inputAttacherJointIndex, attacherJoint.jointTransform, inputJointDesc.additionalAttachment.needsLowering, object, storeItem.xmlFilename }
+				local data = VehicleLoadingData.new()
+				data:setStoreItem(storeItem)
+				data:setPosition(x, y, z)
+				data:setRotation(0, yRot, 0)
+				data:setPropertyState(VehiclePropertyState.NONE)
+				data:setOwnerFarmId(self:getActiveFarm())
+				data:load(AttacherJoints.additionalAttachmentLoaded, self, asyncCallbackArguments)
 			end
 		end
 	end
 end
-
--- Local values: implement
 function AttacherJoints:detachAdditionalAttachment(jointDesc, inputJointDesc)
 	if jointDesc.additionalAttachment.currentAttacherJointIndex ~= nil and inputJointDesc.additionalAttachment.filename ~= nil then
-		local v760_ = self:getImplementByJointDescIndex(jointDesc.additionalAttachment.currentAttacherJointIndex)
-		if v760_ ~= nil and v760_.object:getIsAdditionalAttachment() then
-			self:detachImplementByObject(v760_.object)
+		local implement = self:getImplementByJointDescIndex(jointDesc.additionalAttachment.currentAttacherJointIndex)
+		if implement ~= nil and implement.object:getIsAdditionalAttachment() then
+			self:detachImplementByObject(implement.object)
 			if not g_currentMission.isExitingGame then
-				v760_.object:delete()
+				implement.object:delete()
 			end
 		end
 	end
 end
-
--- Local values: vehicle, offset, inputAttacherJoints, x, y, z, dirX, _, dirZ, yRot, terrainY
 function AttacherJoints:additionalAttachmentLoaded(vehicles, vehicleLoadState, asyncCallbackArguments)
-	if vehicleLoadState == VehicleLoadingState.OK then
-		local v765_ = vehicles[1]
-		if v765_ == nil or v765_.setIsAdditionalAttachment == nil then
-			Logging.warning("Invalid additional attachment \'%s\'.", asyncCallbackArguments[6].xmlFilename)
-		else
-			local v766_ = { 0, 0, 0 }
-			if v765_.getInputAttacherJoints ~= nil then
-				local v767_ = v765_:getInputAttacherJoints()
-				if v767_[asyncCallbackArguments[2]] ~= nil then
-					v766_ = v767_[asyncCallbackArguments[2]].jointOrigOffsetComponent
-				end
-			end
-			local v768_, v769_, v770_ = localToWorld(asyncCallbackArguments[3], unpack(v766_))
-			local v771_, _, v772_ = localDirectionToWorld(asyncCallbackArguments[3], 1, 0, 0)
-			local v773_ = MathUtil.getYRotationFromDirection(v771_, v772_)
-			local v774_ = getTerrainHeightAtWorldPos(g_terrainNode, v768_, 0, v770_) + 0.05
-			v765_:setAbsolutePosition(v768_, math.max(v769_, v774_), v770_, 0, v773_, 0)
-			self:attachImplement(v765_, asyncCallbackArguments[2], asyncCallbackArguments[1], true, nil, nil, true, true)
-			v765_:setIsAdditionalAttachment(asyncCallbackArguments[4], true)
-			if v765_.addDirtAmount ~= nil and (asyncCallbackArguments[5] ~= nil and asyncCallbackArguments[5].getDirtAmount ~= nil) then
-				v765_:addDirtAmount(asyncCallbackArguments[5]:getDirtAmount())
-			end
-			self.rootVehicle:updateSelectableObjects()
-			self.rootVehicle:setSelectedVehicle(asyncCallbackArguments[5] or self)
-		end
+	if vehicleLoadState ~= VehicleLoadingState.OK then
+		Logging.warning("Failed to load additional attachment '%s'.", asyncCallbackArguments[6].xmlFilename)
 	else
-		Logging.warning("Failed to load additional attachment \'%s\'.", asyncCallbackArguments[6].xmlFilename)
-		return
+		local vehicle = vehicles[1]
+		if vehicle == nil or vehicle.setIsAdditionalAttachment == nil then
+			Logging.warning("Invalid additional attachment '%s'.", asyncCallbackArguments[6].xmlFilename)
+			return
+		end
+		local offset = { 0, 0, 0 }
+		if vehicle.getInputAttacherJoints ~= nil then
+			local inputAttacherJoints = vehicle:getInputAttacherJoints()
+			if inputAttacherJoints[asyncCallbackArguments[2]] ~= nil then
+				offset = inputAttacherJoints[asyncCallbackArguments[2]].jointOrigOffsetComponent
+			end
+		end
+		local x, y, z = localToWorld(asyncCallbackArguments[3], unpack(offset))
+		local dirX, _, dirZ = localDirectionToWorld(asyncCallbackArguments[3], 1, 0, 0)
+		local yRot = MathUtil.getYRotationFromDirection(dirX, dirZ)
+		local terrainY = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+		vehicle:setAbsolutePosition(x, math.max(y, terrainY + 0.05), z, 0, yRot, 0)
+		self:attachImplement(vehicle, asyncCallbackArguments[2], asyncCallbackArguments[1], true, nil, nil, true, true)
+		vehicle:setIsAdditionalAttachment(asyncCallbackArguments[4], true)
+		if vehicle.addDirtAmount ~= nil and (asyncCallbackArguments[5] ~= nil and asyncCallbackArguments[5].getDirtAmount ~= nil) then
+			vehicle:addDirtAmount(asyncCallbackArguments[5]:getDirtAmount())
+		end
+		self.rootVehicle:updateSelectableObjects()
+		self.rootVehicle:setSelectedVehicle(asyncCallbackArguments[5] or self)
 	end
 end
-
--- Local values: spec, i, implement
 function AttacherJoints:getImplementIndexByJointDescIndex(jointDescIndex)
-	local v777_ = self.spec_attacherJoints
-	for v778_, v779_ in pairs(v777_.attachedImplements) do
-		if v779_.jointDescIndex == jointDescIndex then
-			return v778_
+	local spec = self.spec_attacherJoints
+	for i, implement in pairs(spec.attachedImplements) do
+		if implement.jointDescIndex == jointDescIndex then
+			return i
 		end
 	end
 	return nil
 end
-
--- Local values: spec, i, implement
 function AttacherJoints:getImplementByJointDescIndex(jointDescIndex)
-	local v782_ = self.spec_attacherJoints
-	for _, v783_ in pairs(v782_.attachedImplements) do
-		if v783_.jointDescIndex == jointDescIndex then
-			return v783_
+	local spec = self.spec_attacherJoints
+	for i, implement in pairs(spec.attachedImplements) do
+		if implement.jointDescIndex == jointDescIndex then
+			return implement
 		end
 	end
 	return nil
 end
-
--- Local values: spec, i, implement
 function AttacherJoints:getImplementIndexByObject(object)
-	local v786_ = self.spec_attacherJoints
-	for v787_, v788_ in pairs(v786_.attachedImplements) do
-		if v788_.object == object then
-			return v787_
+	local spec = self.spec_attacherJoints
+	for i, implement in pairs(spec.attachedImplements) do
+		if implement.object == object then
+			return i
 		end
 	end
 	return nil
 end
-
--- Local values: spec, i, implement
 function AttacherJoints:getImplementByObject(object)
-	local v791_ = self.spec_attacherJoints
-	for _, v792_ in pairs(v791_.attachedImplements) do
-		if v792_.object == object then
-			return v792_
+	local spec = self.spec_attacherJoints
+	for i, implement in pairs(spec.attachedImplements) do
+		if implement.object == object then
+			return implement
 		end
 	end
 	return nil
 end
-function AttacherJoints.callFunctionOnAllImplements(p793_, p794_, ...)
-	for _, v795_ in pairs(p793_:getAttachedImplements()) do
-		local v796_ = v795_.object
-		if v796_ ~= nil and v796_[p794_] ~= nil then
-			v796_[p794_](v796_, ...)
+function AttacherJoints:callFunctionOnAllImplements(functionName, ...)
+	for _, implement in pairs(self:getAttachedImplements()) do
+		local vehicle = implement.object
+		if vehicle == nil or vehicle[functionName] == nil then
+			continue
 		end
+		vehicle[functionName](vehicle, ...)
 	end
 end
-
--- Local values: spec, _, v
 function AttacherJoints:activateAttachments()
-	local v798_ = self.spec_attacherJoints
-	for _, v799_ in pairs(v798_.attachedImplements) do
-		if v799_.object ~= nil then
-			v799_.object:activate()
+	local spec = self.spec_attacherJoints
+	for _, v in pairs(spec.attachedImplements) do
+		if v.object == nil then
+			continue
 		end
+		v.object:activate()
 	end
 end
-
--- Local values: spec, _, v
 function AttacherJoints:deactivateAttachments()
-	local v801_ = self.spec_attacherJoints
-	for _, v802_ in pairs(v801_.attachedImplements) do
-		if v802_.object ~= nil then
-			v802_.object:deactivate()
+	local spec = self.spec_attacherJoints
+	for _, v in pairs(spec.attachedImplements) do
+		if v.object == nil then
+			continue
 		end
+		v.object:deactivate()
 	end
 end
-
--- Local values: spec, _, v
 function AttacherJoints:deactivateAttachmentsLights()
-	local v804_ = self.spec_attacherJoints
-	for _, v805_ in pairs(v804_.attachedImplements) do
-		if v805_.object ~= nil and v805_.object.deactivateLights ~= nil then
-			v805_.object:deactivateLights()
+	local spec = self.spec_attacherJoints
+	for _, v in pairs(spec.attachedImplements) do
+		if v.object == nil or v.object.deactivateLights == nil then
+			continue
 		end
+		v.object:deactivateLights()
 	end
 end
-
--- Local values: spec, jointDesc, implementIndex, implement
 function AttacherJoints:setJointMoveDown(jointDescIndex, moveDown, noEventSend)
-	local v810_ = self.spec_attacherJoints
-	local v811_ = v810_.attacherJoints[jointDescIndex]
-	if v811_ ~= nil and moveDown ~= v811_.moveDown then
-		if v811_.allowsLowering then
-			v811_.moveDown = moveDown
-			v811_.isMoving = true
-			local v812_ = self:getImplementIndexByJointDescIndex(jointDescIndex)
-			if v812_ ~= nil then
-				local v813_ = v810_.attachedImplements[v812_]
-				if v813_.object ~= nil then
-					v813_.object:setLowered(moveDown)
+	local spec = self.spec_attacherJoints
+	local jointDesc = spec.attacherJoints[jointDescIndex]
+	if jointDesc ~= nil and moveDown ~= jointDesc.moveDown then
+		if jointDesc.allowsLowering then
+			jointDesc.moveDown = moveDown
+			jointDesc.isMoving = true
+			local implementIndex = self:getImplementIndexByJointDescIndex(jointDescIndex)
+			if implementIndex ~= nil then
+				local implement = spec.attachedImplements[implementIndex]
+				if implement.object ~= nil then
+					implement.object:setLowered(moveDown)
 				end
 			end
 		end
@@ -2743,29 +2504,23 @@ function AttacherJoints:setJointMoveDown(jointDescIndex, moveDown, noEventSend)
 	end
 	return true
 end
-
--- Local values: jointDesc
 function AttacherJoints:getJointMoveDown(jointDescIndex)
-	local v816_ = self.spec_attacherJoints.attacherJoints[jointDescIndex]
-	if v816_.allowsLowering then
-		return v816_.moveDown
+	local jointDesc = self.spec_attacherJoints.attacherJoints[jointDescIndex]
+	if jointDesc.allowsLowering then
+		return jointDesc.moveDown
 	else
 		return false
 	end
 end
-
--- Local values: spec
 function AttacherJoints:getIsHardAttachAllowed(jointDescIndex)
-	return self.spec_attacherJoints.attacherJoints[jointDescIndex].supportsHardAttach
+	local spec = self.spec_attacherJoints
+	return spec.attacherJoints[jointDescIndex].supportsHardAttach
 end
-
 function AttacherJoints:getIsSmoothAttachUpdateAllowed(implement)
 	return true
 end
-
--- Local values: spec, node, jointTypeStr, jointType, subTypeStr, brandRestrictionStr, i, brand, vehicleRestrictionStr, rotationNode, lowerValues, upperValues, l, u, l, u, l, u, rotationNode2, copy, lowerRotLimitStr, lx, ly, lz, ux, uy, uz, lowerTransLimitStr, bottomArmRotationNode, translationNode, referenceNode, bottomArm, x, y, z, toolbarI3dFilename, arguments, categoryRange, widthRange, defaultWidth, defaultCategory, xOffset, _, _, _, key, node, visualAlignNode, i, visualNode, i, hideNode, _, _, zOffset, schemaKey, x, y, liftedOffsetX, liftedOffsetY
 function AttacherJoints:loadAttacherJointFromXML(attacherJoint, xmlFile, baseName, index)
-	local v823_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, baseName .. "#index", baseName .. "#node")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, baseName .. "#indexVisual", baseName .. "#nodeVisual")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, baseName .. "#ptoOutputNode", "vehicle.powerTakeOffs.output")
@@ -2783,703 +2538,660 @@ function AttacherJoints:loadAttacherJointFromXML(attacherJoint, xmlFile, baseNam
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, baseName .. "#transNodeMaxY", baseName .. ".transNode#maxY")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, baseName .. "#transNodeHeight", baseName .. ".transNode#height")
 	XMLUtil.checkDeprecatedXMLElements(xmlFile, baseName .. ".additionalAttachment#attacherJointDirection", baseName .. "#direction")
-	local v824_ = xmlFile:getValue(baseName .. "#node", nil, self.components, self.i3dMappings)
-	if v824_ == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing node for attacherJoint \'%s\'", baseName)
+	local node = xmlFile:getValue(baseName .. "#node", nil, self.components, self.i3dMappings)
+	if node == nil then
+		Logging.xmlWarning(self.xmlFile, "Missing node for attacherJoint '%s'", baseName)
 		return false
-	end
-	attacherJoint.jointTransform = v824_
-	attacherJoint.jointComponent = self:getParentComponent(attacherJoint.jointTransform)
-	attacherJoint.jointTransformVisual = xmlFile:getValue(baseName .. "#nodeVisual", nil, self.components, self.i3dMappings)
-	attacherJoint.supportsHardAttach = xmlFile:getValue(baseName .. "#supportsHardAttach", true)
-	attacherJoint.jointOrigOffsetComponent = { localToLocal(attacherJoint.jointComponent, attacherJoint.jointTransform, 0, 0, 0) }
-	attacherJoint.jointOrigRotOffsetComponent = { localRotationToLocal(attacherJoint.jointComponent, attacherJoint.jointTransform, 0, 0, 0) }
-	attacherJoint.jointTransformOrig = createTransformGroup(getName(v824_) .. "_jointTransformOrig")
-	link(getParent(v824_), attacherJoint.jointTransformOrig)
-	setTranslation(attacherJoint.jointTransformOrig, getTranslation(v824_))
-	setRotation(attacherJoint.jointTransformOrig, getRotation(v824_))
-	local v825_ = xmlFile:getValue(baseName .. "#jointType")
-	local v826_
-	if v825_ == nil then
-		v826_ = nil
 	else
-		v826_ = AttacherJoints.jointTypeNameToInt[v825_]
-		if v826_ == nil then
-			Logging.xmlWarning(self.xmlFile, "Invalid jointType \'%s\' for attacherJoint \'%s\'!", tostring(v825_), baseName)
-		end
-	end
-	if v826_ == nil then
-		v826_ = AttacherJoints.JOINTTYPE_IMPLEMENT
-	end
-	attacherJoint.jointType = v826_
-	local v827_ = xmlFile:getValue(baseName .. ".subType#name")
-	if not string.isNilOrWhitespace(v827_) then
-		attacherJoint.subTypes = string.split(v827_, " ")
-	end
-	local v828_ = xmlFile:getValue(baseName .. ".subType#brandRestriction")
-	if v828_ ~= nil and string.trim(v828_) ~= "" then
-		attacherJoint.brandRestrictions = string.split(v828_, " ")
-		for v829_ = 1, #attacherJoint.brandRestrictions do
-			local v830_ = g_brandManager:getBrandByName(attacherJoint.brandRestrictions[v829_])
-			if v830_ == nil then
-				Logging.xmlError(xmlFile, "Unknown brand \'%s\' in \'%s\'", attacherJoint.brandRestrictions[v829_], baseName .. ".subType#brandRestriction")
-				attacherJoint.brandRestrictions = nil
-				break
-			end
-			attacherJoint.brandRestrictions[v829_] = v830_
-		end
-	end
-	local v831_ = xmlFile:getValue(baseName .. ".subType#vehicleRestriction")
-	if v831_ ~= nil and string.trim(v831_) ~= "" then
-		attacherJoint.vehicleRestrictions = string.split(v831_, " ")
-	end
-	attacherJoint.subTypeShowWarning = xmlFile:getValue(baseName .. ".subType#subTypeShowWarning", true)
-	attacherJoint.allowsJointLimitMovement = xmlFile:getValue(baseName .. "#allowsJointLimitMovement", true)
-	attacherJoint.allowsLowering = xmlFile:getValue(baseName .. "#allowsLowering", true)
-	attacherJoint.isDefaultLowered = xmlFile:getValue(baseName .. "#isDefaultLowered", false)
-	attacherJoint.allowDetachingWhileLifted = xmlFile:getValue(baseName .. "#allowDetachingWhileLifted", true)
-	attacherJoint.allowFoldingWhileAttached = xmlFile:getValue(baseName .. "#allowFoldingWhileAttached", true)
-	if v826_ == AttacherJoints.JOINTTYPE_TRAILER or (v826_ == AttacherJoints.JOINTTYPE_TRAILERLOW or v826_ == AttacherJoints.JOINTTYPE_TRAILERCAR) then
-		attacherJoint.allowsLowering = false
-	end
-	attacherJoint.canTurnOnImplement = xmlFile:getValue(baseName .. "#canTurnOnImplement", true)
-	local v832_ = xmlFile:getValue(baseName .. ".rotationNode#node", nil, self.components, self.i3dMappings)
-	if v832_ ~= nil then
-		attacherJoint.rotationNode = v832_
-		attacherJoint.lowerRotation = xmlFile:getValue(baseName .. ".rotationNode#lowerRotation", "0 0 0", true)
-		attacherJoint.upperRotation = xmlFile:getValue(baseName .. ".rotationNode#upperRotation", nil, true) or { getRotation(v832_) }
-		local v833_, v834_, v835_ = xmlFile:getValue(baseName .. ".rotationNode#startRotation", nil)
-		attacherJoint.rotX = v833_
-		attacherJoint.rotY = v834_
-		attacherJoint.rotZ = v835_
-		if attacherJoint.rotX == nil then
-			local v836_, v837_, v838_ = getRotation(v832_)
-			attacherJoint.rotX = v836_
-			attacherJoint.rotY = v837_
-			attacherJoint.rotZ = v838_
-		end
-		local v839_ = { attacherJoint.lowerRotation[1], attacherJoint.lowerRotation[2], attacherJoint.lowerRotation[3] }
-		local v840_ = { attacherJoint.upperRotation[1], attacherJoint.upperRotation[2], attacherJoint.upperRotation[3] }
-		local v841_ = v839_[1]
-		local v842_ = v840_[1]
-		if v842_ < v841_ then
-			v840_[1] = v841_
-			v839_[1] = v842_
-		end
-		local v843_ = v839_[2]
-		local v844_ = v840_[2]
-		if v844_ < v843_ then
-			v840_[2] = v843_
-			v839_[2] = v844_
-		end
-		local v845_ = v839_[3]
-		local v846_ = v840_[3]
-		if v846_ < v845_ then
-			v840_[3] = v845_
-			v839_[3] = v846_
-		end
-		local v847_ = attacherJoint.rotX
-		local v848_ = v839_[1]
-		local v849_ = v840_[1]
-		attacherJoint.rotX = math.clamp(v847_, v848_, v849_)
-		local v850_ = attacherJoint.rotY
-		local v851_ = v839_[2]
-		local v852_ = v840_[2]
-		attacherJoint.rotY = math.clamp(v850_, v851_, v852_)
-		local v853_ = attacherJoint.rotZ
-		local v854_ = v839_[3]
-		local v855_ = v840_[3]
-		attacherJoint.rotZ = math.clamp(v853_, v854_, v855_)
-	end
-	local v856_ = xmlFile:getValue(baseName .. ".rotationNode2#node", nil, self.components, self.i3dMappings)
-	if v856_ ~= nil then
-		attacherJoint.rotationNode2 = v856_
-		attacherJoint.lowerRotation2 = xmlFile:getValue(baseName .. ".rotationNode2#lowerRotation", nil, true) or { -attacherJoint.lowerRotation[1], -attacherJoint.lowerRotation[2], -attacherJoint.lowerRotation[3] }
-		attacherJoint.upperRotation2 = xmlFile:getValue(baseName .. ".rotationNode2#upperRotation", nil, true) or { -attacherJoint.upperRotation[1], -attacherJoint.upperRotation[2], -attacherJoint.upperRotation[3] }
-	end
-	attacherJoint.transNode = xmlFile:getValue(baseName .. ".transNode#node", nil, self.components, self.i3dMappings)
-	if attacherJoint.transNode ~= nil then
-		attacherJoint.transNodeOrgTrans = { getTranslation(attacherJoint.transNode) }
-		attacherJoint.transNodeHeight = xmlFile:getValue(baseName .. ".transNode#height", 0.12)
-		attacherJoint.transNodeMinY = xmlFile:getValue(baseName .. ".transNode#minY")
-		attacherJoint.transNodeMaxY = xmlFile:getValue(baseName .. ".transNode#maxY")
-		attacherJoint.transNodeDependentBottomArm = xmlFile:getValue(baseName .. ".transNode.dependentBottomArm#node", nil, self.components, self.i3dMappings)
-		attacherJoint.transNodeDependentBottomArmThreshold = xmlFile:getValue(baseName .. ".transNode.dependentBottomArm#threshold", math.huge)
-		attacherJoint.transNodeDependentBottomArmRotation = xmlFile:getValue(baseName .. ".transNode.dependentBottomArm#rotation", "0 0 0", true)
-	end
-	if (attacherJoint.rotationNode ~= nil or attacherJoint.transNode ~= nil) and xmlFile:getValue(baseName .. ".distanceToGround#lower") == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing \'.distanceToGround#lower\' for attacherJoint \'%s\'. Use console command \'gsVehicleAnalyze\' to get correct values!", baseName)
-	end
-	attacherJoint.lowerDistanceToGround = xmlFile:getValue(baseName .. ".distanceToGround#lower", 0.7)
-	if (attacherJoint.rotationNode ~= nil or attacherJoint.transNode ~= nil) and xmlFile:getValue(baseName .. ".distanceToGround#upper") == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing \'.distanceToGround#upper\' for attacherJoint \'%s\'. Use console command \'gsVehicleAnalyze\' to get correct values!", baseName)
-	end
-	attacherJoint.upperDistanceToGround = xmlFile:getValue(baseName .. ".distanceToGround#upper", 1)
-	if attacherJoint.lowerDistanceToGround > attacherJoint.upperDistanceToGround then
-		Logging.xmlWarning(self.xmlFile, "distanceToGround#lower may not be larger than distanceToGround#upper for attacherJoint \'%s\'. Switching values!", baseName)
-		local v857_ = attacherJoint.lowerDistanceToGround
-		attacherJoint.lowerDistanceToGround = attacherJoint.upperDistanceToGround
-		attacherJoint.upperDistanceToGround = v857_
-	end
-	attacherJoint.lowerRotationOffset = xmlFile:getValue(baseName .. "#lowerRotationOffset", 0)
-	attacherJoint.upperRotationOffset = xmlFile:getValue(baseName .. "#upperRotationOffset", 0)
-	attacherJoint.dynamicLowerRotLimit = xmlFile:getValue(baseName .. "#dynamicLowerRotLimit", false)
-	attacherJoint.lockDownRotLimit = xmlFile:getValue(baseName .. "#lockDownRotLimit", false)
-	attacherJoint.lockUpRotLimit = xmlFile:getValue(baseName .. "#lockUpRotLimit", false)
-	attacherJoint.lockDownTransLimit = xmlFile:getValue(baseName .. "#lockDownTransLimit", true)
-	attacherJoint.lockUpTransLimit = xmlFile:getValue(baseName .. "#lockUpTransLimit", false)
-	local v858_ = v826_ == AttacherJoints.JOINTTYPE_IMPLEMENT and "20 20 20" or "0 0 0"
-	local v859_, v860_, v861_ = xmlFile:getValue(baseName .. "#lowerRotLimit", v858_)
-	attacherJoint.lowerRotLimit = { math.abs(v859_ or 20), math.abs(v860_ or 20), (math.abs(v861_ or 20)) }
-	local v862_, v863_, v864_ = xmlFile:getValue(baseName .. "#upperRotLimit")
-	attacherJoint.upperRotLimit = { math.abs(v862_ or (v859_ or 20)), math.abs(v863_ or (v860_ or 20)), (math.abs(v864_ or (v861_ or 20))) }
-	local v865_ = v826_ == AttacherJoints.JOINTTYPE_IMPLEMENT and "0.5 0.5 0.5" or "0 0 0"
-	local v866_, v867_, v868_ = xmlFile:getValue(baseName .. "#lowerTransLimit", v865_)
-	attacherJoint.lowerTransLimit = { math.abs(v866_ or 0), math.abs(v867_ or 0), (math.abs(v868_ or 0)) }
-	local v869_, v870_, v871_ = xmlFile:getValue(baseName .. "#upperTransLimit")
-	attacherJoint.upperTransLimit = { math.abs(v869_ or (v866_ or 0)), math.abs(v870_ or (v867_ or 0)), (math.abs(v871_ or (v868_ or 0))) }
-	attacherJoint.jointPositionOffset = xmlFile:getValue(baseName .. "#jointPositionOffset", "0 0 0", true)
-	attacherJoint.rotLimitSpring = xmlFile:getValue(baseName .. "#rotLimitSpring", "0 0 0", true)
-	attacherJoint.rotLimitDamping = xmlFile:getValue(baseName .. "#rotLimitDamping", "1 1 1", true)
-	attacherJoint.rotLimitForceLimit = xmlFile:getValue(baseName .. "#rotLimitForceLimit", "-1 -1 -1", true)
-	attacherJoint.transLimitSpring = xmlFile:getValue(baseName .. "#transLimitSpring", "0 0 0", true)
-	attacherJoint.transLimitDamping = xmlFile:getValue(baseName .. "#transLimitDamping", "1 1 1", true)
-	attacherJoint.transLimitForceLimit = xmlFile:getValue(baseName .. "#transLimitForceLimit", "-1 -1 -1", true)
-	attacherJoint.moveDefaultTime = xmlFile:getValue(baseName .. "#moveTime", 0.5) * 1000
-	attacherJoint.moveTime = attacherJoint.moveDefaultTime
-	attacherJoint.disabledByAttacherJoints = xmlFile:getValue(baseName .. "#disabledByAttacherJoints", nil, true)
-	attacherJoint.enableCollision = xmlFile:getValue(baseName .. "#enableCollision", false)
-	attacherJoint.topArm = AttacherJointTopArm.loadFromVehicleXML(self, baseName .. ".topArm")
-	local v872_ = xmlFile:getValue(baseName .. ".bottomArm#rotationNode", nil, self.components, self.i3dMappings)
-	local v873_ = xmlFile:getValue(baseName .. ".bottomArm#translationNode", nil, self.components, self.i3dMappings)
-	local v874_ = xmlFile:getValue(baseName .. ".bottomArm#referenceNode", nil, self.components, self.i3dMappings)
-	if v872_ ~= nil then
-		local v_u_875_ = {
-			["rotationNode"] = v872_,
-			["rotationNodeDir"] = createTransformGroup("rotationNodeDirTemp")
-		}
-		link(getParent(v872_), v_u_875_.rotationNodeDir)
-		setTranslation(v_u_875_.rotationNodeDir, getTranslation(v872_))
-		setRotation(v_u_875_.rotationNodeDir, getRotation(v872_))
-		v_u_875_.lastDirection = { 0, 0, 0 }
-		local v876_, v877_, v878_ = xmlFile:getValue(baseName .. ".bottomArm#startRotation", nil)
-		v_u_875_.rotX = v876_
-		v_u_875_.rotY = v877_
-		v_u_875_.rotZ = v878_
-		if v_u_875_.rotX == nil then
-			local v879_, v880_, v881_ = getRotation(v872_)
-			v_u_875_.rotX = v879_
-			v_u_875_.rotY = v880_
-			v_u_875_.rotZ = v881_
-		end
-		function v_u_875_.interpolatorGet()
-			-- upvalues: (copy) v_u_875_
-			return getRotation(v_u_875_.rotationNode)
-		end
-		function v_u_875_.interpolatorSet(p882_, p883_, p884_)
-			-- upvalues: (copy) v_u_875_, (copy) self
-			setRotation(v_u_875_.rotationNode, p882_, p883_, p884_)
-			if self.setMovingToolDirty ~= nil then
-				self:setMovingToolDirty(v_u_875_.rotationNode)
+		attacherJoint.jointTransform = node
+		attacherJoint.jointComponent = self:getParentComponent(attacherJoint.jointTransform)
+		attacherJoint.jointTransformVisual = xmlFile:getValue(baseName .. "#nodeVisual", nil, self.components, self.i3dMappings)
+		attacherJoint.supportsHardAttach = xmlFile:getValue(baseName .. "#supportsHardAttach", true)
+		attacherJoint.jointOrigOffsetComponent = { localToLocal(attacherJoint.jointComponent, attacherJoint.jointTransform, 0, 0, 0) }
+		attacherJoint.jointOrigRotOffsetComponent = { localRotationToLocal(attacherJoint.jointComponent, attacherJoint.jointTransform, 0, 0, 0) }
+		attacherJoint.jointTransformOrig = createTransformGroup(getName(node) .. "_jointTransformOrig")
+		link(getParent(node), attacherJoint.jointTransformOrig)
+		setTranslation(attacherJoint.jointTransformOrig, getTranslation(node))
+		setRotation(attacherJoint.jointTransformOrig, getRotation(node))
+		local jointTypeStr = xmlFile:getValue(baseName .. "#jointType")
+		local jointType = nil
+		if jointTypeStr ~= nil then
+			jointType = AttacherJoints.jointTypeNameToInt[jointTypeStr]
+			if jointType == nil then
+				Logging.xmlWarning(self.xmlFile, "Invalid jointType '%s' for attacherJoint '%s'!", tostring(jointTypeStr), baseName)
 			end
 		end
-		function v_u_875_.interpolatorFinished(self)
-			-- upvalues: (copy) v_u_875_
-			v_u_875_.bottomArmInterpolating = false
+		if jointType == nil then
+			jointType = AttacherJoints.JOINTTYPE_IMPLEMENT
 		end
-		v_u_875_.interpolatorKey = v872_ .. "rotation"
-		v_u_875_.bottomArmInterpolating = false
-		if v873_ ~= nil and v874_ ~= nil then
-			v_u_875_.translationNode = v873_
-			v_u_875_.referenceNode = v874_
-			local v885_, v886_, v887_ = getTranslation(v873_)
-			if math.abs(v885_) >= 0.0001 or (math.abs(v886_) >= 0.0001 or math.abs(v887_) >= 0.0001) then
-				Logging.xmlWarning(self.xmlFile, "BottomArm translation of attacherJoint \'%s\' is not 0/0/0!", baseName)
+		attacherJoint.jointType = jointType
+		local subTypeStr = xmlFile:getValue(baseName .. ".subType#name")
+		if not string.isNilOrWhitespace(subTypeStr) then
+			attacherJoint.subTypes = string.split(subTypeStr, " ")
+		end
+		local brandRestrictionStr = xmlFile:getValue(baseName .. ".subType#brandRestriction")
+		if brandRestrictionStr ~= nil and string.trim(brandRestrictionStr) ~= "" then
+			attacherJoint.brandRestrictions = string.split(brandRestrictionStr, " ")
+			for i = 1, #attacherJoint.brandRestrictions do
+				local brand = g_brandManager:getBrandByName(attacherJoint.brandRestrictions[i])
+				if brand ~= nil then
+					attacherJoint.brandRestrictions[i] = brand
+				else
+					Logging.xmlError(xmlFile, "Unknown brand '%s' in '%s'", attacherJoint.brandRestrictions[i], baseName .. ".subType#brandRestriction")
+					attacherJoint.brandRestrictions = nil
+					break
+				end
 			end
-			v_u_875_.referenceDistance = calcDistanceFrom(v874_, v873_)
 		end
-		local v888_ = xmlFile:getValue(baseName .. ".bottomArm#zScale", 1)
-		v_u_875_.zScale = math.sign(v888_)
-		v_u_875_.lockDirection = xmlFile:getValue(baseName .. ".bottomArm#lockDirection", true)
-		v_u_875_.resetSpeed = xmlFile:getValue(baseName .. ".bottomArm#resetSpeed", 45)
-		v_u_875_.updateReferenceDistance = xmlFile:getValue(baseName .. ".bottomArm#updateReferenceDistance", false)
-		v_u_875_.jointPositionNode = xmlFile:getValue(baseName .. ".bottomArm#jointPositionNode", nil, self.components, self.i3dMappings)
-		v_u_875_.toggleVisibility = xmlFile:getValue(baseName .. ".bottomArm#toggleVisibility", false)
-		if v_u_875_.toggleVisibility then
-			setVisibility(v_u_875_.rotationNode, false)
+		local vehicleRestrictionStr = xmlFile:getValue(baseName .. ".subType#vehicleRestriction")
+		if vehicleRestrictionStr ~= nil and string.trim(vehicleRestrictionStr) ~= "" then
+			attacherJoint.vehicleRestrictions = string.split(vehicleRestrictionStr, " ")
 		end
-		if v826_ == AttacherJoints.JOINTTYPE_IMPLEMENT then
-			v_u_875_.sharedLoadRequestIdToolbar = self:loadSubSharedI3DFile(Utils.getFilename(xmlFile:getValue(baseName .. ".toolbar#filename", "$data/shared/assets/toolbars/toolbars.i3d"), self.baseDirectory), false, false, self.onBottomArmToolbarI3DLoaded, self, {
-				["bottomArm"] = v_u_875_,
-				["referenceNode"] = v874_
-			})
+		attacherJoint.subTypeShowWarning = xmlFile:getValue(baseName .. ".subType#subTypeShowWarning", true)
+		attacherJoint.allowsJointLimitMovement = xmlFile:getValue(baseName .. "#allowsJointLimitMovement", true)
+		attacherJoint.allowsLowering = xmlFile:getValue(baseName .. "#allowsLowering", true)
+		attacherJoint.isDefaultLowered = xmlFile:getValue(baseName .. "#isDefaultLowered", false)
+		attacherJoint.allowDetachingWhileLifted = xmlFile:getValue(baseName .. "#allowDetachingWhileLifted", true)
+		attacherJoint.allowFoldingWhileAttached = xmlFile:getValue(baseName .. "#allowFoldingWhileAttached", true)
+		if jointType == AttacherJoints.JOINTTYPE_TRAILER or jointType == AttacherJoints.JOINTTYPE_TRAILERLOW or jointType == AttacherJoints.JOINTTYPE_TRAILERCAR then
+			attacherJoint.allowsLowering = false
 		end
-		local v889_ = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[2]
-		local v890_ = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[2]
-		v_u_875_.minWidth = v889_
-		v_u_875_.maxWidth = v890_
-		local v891_ = xmlFile:getValue(baseName .. ".bottomArm#categoryRange", "1 4", true)
-		if v891_ ~= nil and #v891_ >= 1 then
-			v_u_875_.minWidth = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[v891_[1]] or v_u_875_.minWidth
-			v_u_875_.maxWidth = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[v891_[2] or v891_[1]] or v_u_875_.maxWidth
-		end
-		local v892_ = xmlFile:getValue(baseName .. ".bottomArm#widthRange", nil, true)
-		if v892_ ~= nil and #v892_ >= 1 then
-			v_u_875_.minWidth = v892_[1] or v_u_875_.minWidth
-			v_u_875_.maxWidth = v892_[2] or (v892_[1] or v_u_875_.maxWidth)
-		end
-		if v826_ == AttacherJoints.JOINTTYPE_IMPLEMENT and not (xmlFile:hasProperty(baseName .. ".bottomArm#categoryRange") or xmlFile:hasProperty(baseName .. ".bottomArm#widthRange")) then
-			Logging.xmlWarning(xmlFile, "Missing categoryRange or widthRange attribute for bottom arm in \'%s\'", baseName)
-		end
-		v_u_875_.armLeft = xmlFile:getValue(baseName .. ".bottomArm.armLeft#node", nil, self.components, self.i3dMappings)
-		v_u_875_.armLeftReferenceNode = xmlFile:getValue(baseName .. ".bottomArm.armLeft#referenceNode", nil, self.components, self.i3dMappings)
-		if v_u_875_.armLeft ~= nil and v_u_875_.armLeftReferenceNode ~= nil then
-			v_u_875_.armLeftLength = calcDistanceFrom(v_u_875_.armLeft, v_u_875_.armLeftReferenceNode)
-		end
-		v_u_875_.armRight = xmlFile:getValue(baseName .. ".bottomArm.armRight#node", nil, self.components, self.i3dMappings)
-		v_u_875_.armRightReferenceNode = xmlFile:getValue(baseName .. ".bottomArm.armRight#referenceNode", nil, self.components, self.i3dMappings)
-		if v_u_875_.armRight ~= nil and v_u_875_.armRightReferenceNode ~= nil then
-			v_u_875_.armRightLength = calcDistanceFrom(v_u_875_.armRight, v_u_875_.armRightReferenceNode)
-		end
-		v_u_875_.ballVisibility = xmlFile:getValue(baseName .. ".bottomArm#ballVisibility", true)
-		if v_u_875_.armLeft == nil or (v_u_875_.armRight == nil or v_u_875_.referenceNode == nil) then
-			v_u_875_.defaultWidth = (v_u_875_.minWidth + v_u_875_.maxWidth) * 0.5
-		else
-			v_u_875_.variableWidthAvailable = true
-			local v893_ = xmlFile:getValue(baseName .. ".bottomArm#defaultCategory")
-			local v894_
-			if v893_ == nil or (v893_ < 0 or v893_ > 4) then
-				v894_ = nil
-			else
-				v894_ = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[v893_]
+		attacherJoint.canTurnOnImplement = xmlFile:getValue(baseName .. "#canTurnOnImplement", true)
+		local rotationNode = xmlFile:getValue(baseName .. ".rotationNode#node", nil, self.components, self.i3dMappings)
+		if rotationNode ~= nil then
+			attacherJoint.rotationNode = rotationNode
+			attacherJoint.lowerRotation = xmlFile:getValue(baseName .. ".rotationNode#lowerRotation", "0 0 0", true)
+			attacherJoint.upperRotation = xmlFile:getValue(baseName .. ".rotationNode#upperRotation", nil, true) or { getRotation(rotationNode) }
+			attacherJoint.rotX, attacherJoint.rotY, attacherJoint.rotZ = xmlFile:getValue(baseName .. ".rotationNode#startRotation", nil)
+			if attacherJoint.rotX == nil then
+				attacherJoint.rotX, attacherJoint.rotY, attacherJoint.rotZ = getRotation(rotationNode)
 			end
-			if v894_ == nil then
-				v894_ = xmlFile:getValue(baseName .. ".bottomArm#defaultWidth")
+			local lowerValues = { attacherJoint.lowerRotation[1], attacherJoint.lowerRotation[2], attacherJoint.lowerRotation[3] }
+			local upperValues = { attacherJoint.upperRotation[1], attacherJoint.upperRotation[2], attacherJoint.upperRotation[3] }
+			local l = lowerValues[1]
+			local u = upperValues[1]
+			if u < l then
+				upperValues[1] = l
+				lowerValues[1] = u
 			end
-			if v894_ == nil then
-				local v895_, _, _ = localToLocal(v_u_875_.armLeftReferenceNode or v_u_875_.armLeft, v_u_875_.referenceNode, 0, 0, 0)
-				v894_ = math.abs(v895_) * 2
+			local l = lowerValues[2]
+			local u = upperValues[2]
+			if u < l then
+				upperValues[2] = l
+				lowerValues[2] = u
 			end
-			v_u_875_.defaultWidth = v894_
+			local l = lowerValues[3]
+			local u = upperValues[3]
+			if u < l then
+				upperValues[3] = l
+				lowerValues[3] = u
+			end
+			attacherJoint.rotX = math.clamp(attacherJoint.rotX, lowerValues[1], upperValues[1])
+			attacherJoint.rotY = math.clamp(attacherJoint.rotY, lowerValues[2], upperValues[2])
+			attacherJoint.rotZ = math.clamp(attacherJoint.rotZ, lowerValues[3], upperValues[3])
 		end
+		local rotationNode2 = xmlFile:getValue(baseName .. ".rotationNode2#node", nil, self.components, self.i3dMappings)
+		if rotationNode2 ~= nil then
+			attacherJoint.rotationNode2 = rotationNode2
+			attacherJoint.lowerRotation2 = xmlFile:getValue(baseName .. ".rotationNode2#lowerRotation", nil, true)
+			attacherJoint.upperRotation2 = xmlFile:getValue(baseName .. ".rotationNode2#upperRotation", nil, true)
+		end
+		attacherJoint.transNode = xmlFile:getValue(baseName .. ".transNode#node", nil, self.components, self.i3dMappings)
+		if attacherJoint.transNode ~= nil then
+			attacherJoint.transNodeOrgTrans = { getTranslation(attacherJoint.transNode) }
+			attacherJoint.transNodeHeight = xmlFile:getValue(baseName .. ".transNode#height", 0.12)
+			attacherJoint.transNodeMinY = xmlFile:getValue(baseName .. ".transNode#minY")
+			attacherJoint.transNodeMaxY = xmlFile:getValue(baseName .. ".transNode#maxY")
+			attacherJoint.transNodeDependentBottomArm = xmlFile:getValue(baseName .. ".transNode.dependentBottomArm#node", nil, self.components, self.i3dMappings)
+			attacherJoint.transNodeDependentBottomArmThreshold = xmlFile:getValue(baseName .. ".transNode.dependentBottomArm#threshold", math.huge)
+			attacherJoint.transNodeDependentBottomArmRotation = xmlFile:getValue(baseName .. ".transNode.dependentBottomArm#rotation", "0 0 0", true)
+		end
+		if (attacherJoint.rotationNode ~= nil or attacherJoint.transNode ~= nil) and xmlFile:getValue(baseName .. ".distanceToGround#lower") == nil then
+			Logging.xmlWarning(self.xmlFile, "Missing '.distanceToGround#lower' for attacherJoint '%s'. Use console command 'gsVehicleAnalyze' to get correct values!", baseName)
+		end
+		attacherJoint.lowerDistanceToGround = xmlFile:getValue(baseName .. ".distanceToGround#lower", 0.7)
+		if (attacherJoint.rotationNode ~= nil or attacherJoint.transNode ~= nil) and xmlFile:getValue(baseName .. ".distanceToGround#upper") == nil then
+			Logging.xmlWarning(self.xmlFile, "Missing '.distanceToGround#upper' for attacherJoint '%s'. Use console command 'gsVehicleAnalyze' to get correct values!", baseName)
+		end
+		attacherJoint.upperDistanceToGround = xmlFile:getValue(baseName .. ".distanceToGround#upper", 1)
+		if attacherJoint.upperDistanceToGround < attacherJoint.lowerDistanceToGround then
+			Logging.xmlWarning(self.xmlFile, "distanceToGround#lower may not be larger than distanceToGround#upper for attacherJoint '%s'. Switching values!", baseName)
+			local copy = attacherJoint.lowerDistanceToGround
+			attacherJoint.lowerDistanceToGround = attacherJoint.upperDistanceToGround
+			attacherJoint.upperDistanceToGround = copy
+		end
+		attacherJoint.lowerRotationOffset = xmlFile:getValue(baseName .. "#lowerRotationOffset", 0)
+		attacherJoint.upperRotationOffset = xmlFile:getValue(baseName .. "#upperRotationOffset", 0)
+		attacherJoint.dynamicLowerRotLimit = xmlFile:getValue(baseName .. "#dynamicLowerRotLimit", false)
+		attacherJoint.lockDownRotLimit = xmlFile:getValue(baseName .. "#lockDownRotLimit", false)
+		attacherJoint.lockUpRotLimit = xmlFile:getValue(baseName .. "#lockUpRotLimit", false)
+		attacherJoint.lockDownTransLimit = xmlFile:getValue(baseName .. "#lockDownTransLimit", true)
+		attacherJoint.lockUpTransLimit = xmlFile:getValue(baseName .. "#lockUpTransLimit", false)
+		local lowerRotLimitStr = "20 20 20"
+		if jointType ~= AttacherJoints.JOINTTYPE_IMPLEMENT then
+			lowerRotLimitStr = "0 0 0"
+		end
+		local lx, ly, lz = xmlFile:getValue(baseName .. "#lowerRotLimit", lowerRotLimitStr)
+		attacherJoint.lowerRotLimit = { math.abs(lx or 20), math.abs(ly or 20), math.abs(lz or 20) }
+		local ux, uy, uz = xmlFile:getValue(baseName .. "#upperRotLimit")
+		attacherJoint.upperRotLimit = { math.abs(ux or lx or 20), math.abs(uy or ly or 20), math.abs(uz or lz or 20) }
+		local lowerTransLimitStr = "0.5 0.5 0.5"
+		if jointType ~= AttacherJoints.JOINTTYPE_IMPLEMENT then
+			lowerTransLimitStr = "0 0 0"
+		end
+		lx, ly, lz = xmlFile:getValue(baseName .. "#lowerTransLimit", lowerTransLimitStr)
+		attacherJoint.lowerTransLimit = { math.abs(lx or 0), math.abs(ly or 0), math.abs(lz or 0) }
+		ux, uy, uz = xmlFile:getValue(baseName .. "#upperTransLimit")
+		attacherJoint.upperTransLimit = { math.abs(ux or lx or 0), math.abs(uy or ly or 0), math.abs(uz or lz or 0) }
+		attacherJoint.jointPositionOffset = xmlFile:getValue(baseName .. "#jointPositionOffset", "0 0 0", true)
+		attacherJoint.rotLimitSpring = xmlFile:getValue(baseName .. "#rotLimitSpring", "0 0 0", true)
+		attacherJoint.rotLimitDamping = xmlFile:getValue(baseName .. "#rotLimitDamping", "1 1 1", true)
+		attacherJoint.rotLimitForceLimit = xmlFile:getValue(baseName .. "#rotLimitForceLimit", "-1 -1 -1", true)
+		attacherJoint.transLimitSpring = xmlFile:getValue(baseName .. "#transLimitSpring", "0 0 0", true)
+		attacherJoint.transLimitDamping = xmlFile:getValue(baseName .. "#transLimitDamping", "1 1 1", true)
+		attacherJoint.transLimitForceLimit = xmlFile:getValue(baseName .. "#transLimitForceLimit", "-1 -1 -1", true)
+		attacherJoint.moveDefaultTime = xmlFile:getValue(baseName .. "#moveTime", 0.5) * 1000
+		attacherJoint.moveTime = attacherJoint.moveDefaultTime
+		attacherJoint.disabledByAttacherJoints = xmlFile:getValue(baseName .. "#disabledByAttacherJoints", nil, true)
+		attacherJoint.enableCollision = xmlFile:getValue(baseName .. "#enableCollision", false)
+		attacherJoint.topArm = AttacherJointTopArm.loadFromVehicleXML(self, baseName .. ".topArm")
+		local bottomArmRotationNode = xmlFile:getValue(baseName .. ".bottomArm#rotationNode", nil, self.components, self.i3dMappings)
+		local translationNode = xmlFile:getValue(baseName .. ".bottomArm#translationNode", nil, self.components, self.i3dMappings)
+		local referenceNode = xmlFile:getValue(baseName .. ".bottomArm#referenceNode", nil, self.components, self.i3dMappings)
+		if bottomArmRotationNode ~= nil then
+			local bottomArm = {}
+			bottomArm.rotationNode = bottomArmRotationNode
+			bottomArm.rotationNodeDir = createTransformGroup("rotationNodeDirTemp")
+			link(getParent(bottomArmRotationNode), bottomArm.rotationNodeDir)
+			setTranslation(bottomArm.rotationNodeDir, getTranslation(bottomArmRotationNode))
+			setRotation(bottomArm.rotationNodeDir, getRotation(bottomArmRotationNode))
+			bottomArm.lastDirection = { 0, 0, 0 }
+			bottomArm.rotX, bottomArm.rotY, bottomArm.rotZ = xmlFile:getValue(baseName .. ".bottomArm#startRotation", nil)
+			if bottomArm.rotX == nil then
+				bottomArm.rotX, bottomArm.rotY, bottomArm.rotZ = getRotation(bottomArmRotationNode)
+			end
+			function bottomArm.interpolatorGet()
+				return getRotation(bottomArm.rotationNode)
+			end
+			function bottomArm.interpolatorSet(x, y, z)
+				setRotation(bottomArm.rotationNode, x, y, z)
+				if self.setMovingToolDirty ~= nil then
+					self:setMovingToolDirty(bottomArm.rotationNode)
+				end
+			end
+			function bottomArm.interpolatorFinished(_)
+				bottomArm.bottomArmInterpolating = false
+			end
+			bottomArm.interpolatorKey = bottomArmRotationNode .. "rotation"
+			bottomArm.bottomArmInterpolating = false
+			if translationNode ~= nil and referenceNode ~= nil then
+				bottomArm.translationNode = translationNode
+				bottomArm.referenceNode = referenceNode
+				local x, y, z = getTranslation(translationNode)
+				if 0.0001 <= math.abs(x) or 0.0001 <= math.abs(y) or 0.0001 <= math.abs(z) then
+					Logging.xmlWarning(self.xmlFile, "BottomArm translation of attacherJoint '%s' is not 0/0/0!", baseName)
+				end
+				bottomArm.referenceDistance = calcDistanceFrom(referenceNode, translationNode)
+			end
+			bottomArm.zScale = math.sign(xmlFile:getValue(baseName .. ".bottomArm#zScale", 1))
+			bottomArm.lockDirection = xmlFile:getValue(baseName .. ".bottomArm#lockDirection", true)
+			bottomArm.resetSpeed = xmlFile:getValue(baseName .. ".bottomArm#resetSpeed", 45)
+			bottomArm.updateReferenceDistance = xmlFile:getValue(baseName .. ".bottomArm#updateReferenceDistance", false)
+			bottomArm.jointPositionNode = xmlFile:getValue(baseName .. ".bottomArm#jointPositionNode", nil, self.components, self.i3dMappings)
+			bottomArm.toggleVisibility = xmlFile:getValue(baseName .. ".bottomArm#toggleVisibility", false)
+			if bottomArm.toggleVisibility then
+				setVisibility(bottomArm.rotationNode, false)
+			end
+			if jointType == AttacherJoints.JOINTTYPE_IMPLEMENT then
+				local toolbarI3dFilename = Utils.getFilename(xmlFile:getValue(baseName .. ".toolbar#filename", "$data/shared/assets/toolbars/toolbars.i3d"), self.baseDirectory)
+				local arguments = { bottomArm = bottomArm, referenceNode = referenceNode }
+				bottomArm.sharedLoadRequestIdToolbar = self:loadSubSharedI3DFile(toolbarI3dFilename, false, false, self.onBottomArmToolbarI3DLoaded, self, arguments)
+			end
+			bottomArm.minWidth = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[2]
+			bottomArm.maxWidth = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[2]
+			local categoryRange = xmlFile:getValue(baseName .. ".bottomArm#categoryRange", "1 4", true)
+			if categoryRange ~= nil and 1 <= #categoryRange then
+				bottomArm.minWidth = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[categoryRange[1]] or bottomArm.minWidth
+				bottomArm.maxWidth = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[categoryRange[2] or categoryRange[1]] or bottomArm.maxWidth
+			end
+			local widthRange = xmlFile:getValue(baseName .. ".bottomArm#widthRange", nil, true)
+			if widthRange ~= nil and 1 <= #widthRange then
+				bottomArm.minWidth = widthRange[1] or bottomArm.minWidth
+				bottomArm.maxWidth = widthRange[2] or widthRange[1] or bottomArm.maxWidth
+			end
+			if jointType == AttacherJoints.JOINTTYPE_IMPLEMENT and (not xmlFile:hasProperty(baseName .. ".bottomArm#categoryRange") and not xmlFile:hasProperty(baseName .. ".bottomArm#widthRange")) then
+				Logging.xmlWarning(xmlFile, "Missing categoryRange or widthRange attribute for bottom arm in '%s'", baseName)
+			end
+			bottomArm.armLeft = xmlFile:getValue(baseName .. ".bottomArm.armLeft#node", nil, self.components, self.i3dMappings)
+			bottomArm.armLeftReferenceNode = xmlFile:getValue(baseName .. ".bottomArm.armLeft#referenceNode", nil, self.components, self.i3dMappings)
+			if bottomArm.armLeft ~= nil and bottomArm.armLeftReferenceNode ~= nil then
+				bottomArm.armLeftLength = calcDistanceFrom(bottomArm.armLeft, bottomArm.armLeftReferenceNode)
+			end
+			bottomArm.armRight = xmlFile:getValue(baseName .. ".bottomArm.armRight#node", nil, self.components, self.i3dMappings)
+			bottomArm.armRightReferenceNode = xmlFile:getValue(baseName .. ".bottomArm.armRight#referenceNode", nil, self.components, self.i3dMappings)
+			if bottomArm.armRight ~= nil and bottomArm.armRightReferenceNode ~= nil then
+				bottomArm.armRightLength = calcDistanceFrom(bottomArm.armRight, bottomArm.armRightReferenceNode)
+			end
+			bottomArm.ballVisibility = xmlFile:getValue(baseName .. ".bottomArm#ballVisibility", true)
+			if bottomArm.armLeft ~= nil and bottomArm.armRight ~= nil then
+				if bottomArm.referenceNode ~= nil then
+					bottomArm.variableWidthAvailable = true
+					local defaultWidth = nil
+					local defaultCategory = xmlFile:getValue(baseName .. ".bottomArm#defaultCategory")
+					if defaultCategory ~= nil and (0 <= defaultCategory and defaultCategory <= 4) then
+						defaultWidth = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[defaultCategory]
+					end
+					if defaultWidth == nil then
+						defaultWidth = xmlFile:getValue(baseName .. ".bottomArm#defaultWidth")
+					end
+					if defaultWidth == nil then
+						local xOffset, _, _ = localToLocal(bottomArm.armLeftReferenceNode or bottomArm.armLeft, bottomArm.referenceNode, 0, 0, 0)
+						defaultWidth = math.abs(xOffset) * 2
+					end
+					bottomArm.defaultWidth = defaultWidth
+				else
+					bottomArm.defaultWidth = (bottomArm.minWidth + bottomArm.maxWidth) * 0.5
+				end
+			end
+			if self.setMovingPartReferenceNode ~= nil then
+				bottomArm.leftNode = xmlFile:getValue(baseName .. ".bottomArm#leftNode", nil, self.components, self.i3dMappings)
+				bottomArm.rightNode = xmlFile:getValue(baseName .. ".bottomArm#rightNode", nil, self.components, self.i3dMappings)
+			end
+			attacherJoint.bottomArm = bottomArm
+		end
+		if self.isClient then
+			attacherJoint.sampleAttach = g_soundManager:loadSampleFromXML(xmlFile, baseName, "attachSound", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+			attacherJoint.sampleDetach = g_soundManager:loadSampleFromXML(xmlFile, baseName, "detachSound", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		end
+		attacherJoint.steeringBarLeftNode = xmlFile:getValue(baseName .. ".steeringBars#leftNode", nil, self.components, self.i3dMappings)
+		attacherJoint.steeringBarRightNode = xmlFile:getValue(baseName .. ".steeringBars#rightNode", nil, self.components, self.i3dMappings)
+		attacherJoint.steeringBarForceUsage = xmlFile:getValue(baseName .. ".steeringBars#forceUsage", true)
 		if self.setMovingPartReferenceNode ~= nil then
-			v_u_875_.leftNode = xmlFile:getValue(baseName .. ".bottomArm#leftNode", nil, self.components, self.i3dMappings)
-			v_u_875_.rightNode = xmlFile:getValue(baseName .. ".bottomArm#rightNode", nil, self.components, self.i3dMappings)
-		end
-		attacherJoint.bottomArm = v_u_875_
-	end
-	if self.isClient then
-		attacherJoint.sampleAttach = g_soundManager:loadSampleFromXML(xmlFile, baseName, "attachSound", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		attacherJoint.sampleDetach = g_soundManager:loadSampleFromXML(xmlFile, baseName, "detachSound", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-	end
-	attacherJoint.steeringBarLeftNode = xmlFile:getValue(baseName .. ".steeringBars#leftNode", nil, self.components, self.i3dMappings)
-	attacherJoint.steeringBarRightNode = xmlFile:getValue(baseName .. ".steeringBars#rightNode", nil, self.components, self.i3dMappings)
-	attacherJoint.steeringBarForceUsage = xmlFile:getValue(baseName .. ".steeringBars#forceUsage", true)
-	if self.setMovingPartReferenceNode ~= nil then
-		for _, v896_ in self.xmlFile:iterator(baseName .. ".visualAlignNode") do
-			local v897_ = xmlFile:getValue(v896_ .. "#node", nil, self.components, self.i3dMappings)
-			if v897_ ~= nil then
+			for _, key in self.xmlFile:iterator(baseName .. ".visualAlignNode") do
+				local node = xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
+				if node == nil then
+					continue
+				end
 				if attacherJoint.visualAlignNodes == nil then
 					attacherJoint.visualAlignNodes = {}
 				end
-				local v898_ = {
-					["node"] = v897_,
-					["delayedOnAttach"] = xmlFile:getValue(v896_ .. "#delayedOnAttach", true)
-				}
-				local v899_ = attacherJoint.visualAlignNodes
-				table.insert(v899_, v898_)
+				local visualAlignNode = {}
+				visualAlignNode.node = node
+				visualAlignNode.delayedOnAttach = xmlFile:getValue(key .. "#delayedOnAttach", true)
+				table.insert(attacherJoint.visualAlignNodes, visualAlignNode)
 			end
 		end
-	end
-	attacherJoint.visualNodes = xmlFile:getValue(baseName .. ".visuals#nodes", nil, self.components, self.i3dMappings, true)
-	for v900_ = 1, #attacherJoint.visualNodes do
-		local v901_ = attacherJoint.visualNodes[v900_]
-		if v823_.visualNodeToAttacherJoints[v901_] == nil then
-			v823_.visualNodeToAttacherJoints[v901_] = {}
+		attacherJoint.visualNodes = xmlFile:getValue(baseName .. ".visuals#nodes", nil, self.components, self.i3dMappings, true)
+		for i = 1, #attacherJoint.visualNodes do
+			local visualNode = attacherJoint.visualNodes[i]
+			if spec.visualNodeToAttacherJoints[visualNode] == nil then
+				spec.visualNodeToAttacherJoints[visualNode] = {}
+			end
+			table.insert(spec.visualNodeToAttacherJoints[visualNode], attacherJoint)
 		end
-		local v902_ = v823_.visualNodeToAttacherJoints[v901_]
-		table.insert(v902_, attacherJoint)
-	end
-	attacherJoint.hideVisuals = xmlFile:getValue(baseName .. ".visuals#hide", nil, self.components, self.i3dMappings, true)
-	for v903_ = 1, #attacherJoint.hideVisuals do
-		local v904_ = attacherJoint.hideVisuals[v903_]
-		if v823_.hideVisualNodeToAttacherJoints[v904_] == nil then
-			v823_.hideVisualNodeToAttacherJoints[v904_] = {}
+		attacherJoint.hideVisuals = xmlFile:getValue(baseName .. ".visuals#hide", nil, self.components, self.i3dMappings, true)
+		for i = 1, #attacherJoint.hideVisuals do
+			local hideNode = attacherJoint.hideVisuals[i]
+			if spec.hideVisualNodeToAttacherJoints[hideNode] == nil then
+				spec.hideVisualNodeToAttacherJoints[hideNode] = {}
+			end
+			table.insert(spec.hideVisualNodeToAttacherJoints[hideNode], attacherJoint)
 		end
-		local v905_ = v823_.hideVisualNodeToAttacherJoints[v904_]
-		table.insert(v905_, attacherJoint)
-	end
-	attacherJoint.changeObjects = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, baseName, attacherJoint.changeObjects, self.components, self)
-	ObjectChangeUtil.setObjectChanges(attacherJoint.changeObjects, false, self, self.setMovingToolDirty, true)
-	attacherJoint.delayedObjectChanges = xmlFile:getValue(baseName .. "#delayedObjectChanges", true)
-	attacherJoint.delayedObjectChangesOnAttach = xmlFile:getValue(baseName .. "#delayedObjectChangesOnAttach", false)
-	attacherJoint.additionalAttachment = {}
-	local _, _, v906_ = localToLocal(attacherJoint.jointTransform, self.rootNode, 0, 0, 0)
-	attacherJoint.attacherJointDirection = xmlFile:getValue(baseName .. "#direction", (math.sign(v906_)))
-	attacherJoint.useTopLights = xmlFile:getValue(baseName .. "#useTopLights", attacherJoint.attacherJointDirection == 1)
-	attacherJoint.rootNode = xmlFile:getValue(baseName .. "#rootNode", self:getParentComponent(attacherJoint.jointTransform), self.components, self.i3dMappings)
-	attacherJoint.rootNodeBackup = attacherJoint.rootNode
-	attacherJoint.jointIndex = 0
-	attacherJoint.isBlocked = false
-	attacherJoint.comboTime = xmlFile:getValue(baseName .. "#comboTime")
-	local v907_ = baseName .. ".schema"
-	if xmlFile:hasProperty(v907_) then
-		local v908_, v909_ = xmlFile:getValue(v907_ .. "#position")
-		if v908_ == nil then
-			Logging.xmlWarning(self.xmlFile, "Missing values for \'%s\'", v907_ .. "#position")
+		attacherJoint.changeObjects = {}
+		ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, baseName, attacherJoint.changeObjects, self.components, self)
+		ObjectChangeUtil.setObjectChanges(attacherJoint.changeObjects, false, self, self.setMovingToolDirty, true)
+		attacherJoint.delayedObjectChanges = xmlFile:getValue(baseName .. "#delayedObjectChanges", true)
+		attacherJoint.delayedObjectChangesOnAttach = xmlFile:getValue(baseName .. "#delayedObjectChangesOnAttach", false)
+		attacherJoint.additionalAttachment = {}
+		local _, _, zOffset = localToLocal(attacherJoint.jointTransform, self.rootNode, 0, 0, 0)
+		attacherJoint.attacherJointDirection = xmlFile:getValue(baseName .. "#direction", math.sign(zOffset))
+		attacherJoint.useTopLights = xmlFile:getValue(baseName .. "#useTopLights", attacherJoint.attacherJointDirection == 1)
+		attacherJoint.rootNode = xmlFile:getValue(baseName .. "#rootNode", self:getParentComponent(attacherJoint.jointTransform), self.components, self.i3dMappings)
+		attacherJoint.rootNodeBackup = attacherJoint.rootNode
+		attacherJoint.jointIndex = 0
+		attacherJoint.isBlocked = false
+		attacherJoint.comboTime = xmlFile:getValue(baseName .. "#comboTime")
+		local schemaKey = baseName .. ".schema"
+		if xmlFile:hasProperty(schemaKey) then
+			local x, y = xmlFile:getValue(schemaKey .. "#position")
+			if x == nil then
+				Logging.xmlWarning(self.xmlFile, "Missing values for '%s'", schemaKey .. "#position")
+			else
+				local liftedOffsetX, liftedOffsetY = xmlFile:getValue(schemaKey .. "#liftedOffset", "0 5")
+				self.schemaOverlay:addAttacherJoint(x, y, xmlFile:getValue(schemaKey .. "#rotation", 0), xmlFile:getValue(schemaKey .. "#invertX", false), liftedOffsetX, liftedOffsetY)
+			end
 		else
-			local v910_, v911_ = xmlFile:getValue(v907_ .. "#liftedOffset", "0 5")
-			self.schemaOverlay:addAttacherJoint(v908_, v909_, xmlFile:getValue(v907_ .. "#rotation", 0), xmlFile:getValue(v907_ .. "#invertX", false), v910_, v911_)
+			Logging.xmlWarning(self.xmlFile, "Missing schema overlay attacherJoint '%s'!", baseName)
 		end
-	else
-		Logging.xmlWarning(self.xmlFile, "Missing schema overlay attacherJoint \'%s\'!", baseName)
+		return true
 	end
-	return true
 end
-
--- Local values: bottomArm, referenceNode, rootNode, activeIndex, index, toolbar
 function AttacherJoints:onBottomArmToolbarI3DLoaded(i3dNode, failedReason, args)
-	local v914_ = args.bottomArm
-	local v915_ = args.referenceNode
+	local bottomArm = args.bottomArm
+	local referenceNode = args.referenceNode
 	if i3dNode ~= 0 then
-		local v916_ = getChildAt(i3dNode, 0)
-		link(v915_, v916_)
-		setTranslation(v916_, 0, 0, 0)
-		setVisibility(v916_, false)
-		local v917_ = AttacherJoints.getClosestLowerLinkCategoryIndex(v914_.defaultWidth or AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[2])
-		v914_.toolbarNode = v916_
-		v914_.toolbars = {}
-		for v918_ = 1, getNumOfChildren(v916_) do
-			local v919_ = getChildAt(v916_, v918_ - 1)
-			setTranslation(v919_, 0, 0, 0)
-			setVisibility(v919_, v917_ == v918_ - 1)
-			local v920_ = v914_.toolbars
-			table.insert(v920_, v919_)
+		local rootNode = getChildAt(i3dNode, 0)
+		link(referenceNode, rootNode)
+		setTranslation(rootNode, 0, 0, 0)
+		setVisibility(rootNode, false)
+		local activeIndex = AttacherJoints.getClosestLowerLinkCategoryIndex(bottomArm.defaultWidth or AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[2])
+		bottomArm.toolbarNode = rootNode
+		bottomArm.toolbars = {}
+		for index = 1, getNumOfChildren(rootNode) do
+			local toolbar = getChildAt(rootNode, index - 1)
+			setTranslation(toolbar, 0, 0, 0)
+			setVisibility(toolbar, activeIndex == index - 1)
+			table.insert(bottomArm.toolbars, toolbar)
 		end
 		delete(i3dNode)
 	end
 end
-
--- Local values: spec, _, implement
 function AttacherJoints:raiseActive(superFunc)
-	local v923_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	superFunc(self)
-	for _, v924_ in pairs(v923_.attachedImplements) do
-		if v924_.object ~= nil then
-			v924_.object:raiseActive()
+	for _, implement in pairs(spec.attachedImplements) do
+		if implement.object == nil then
+			continue
 		end
+		implement.object:raiseActive()
 	end
 end
-
--- Local values: spec, selectedObject, _, implement
 function AttacherJoints:registerActionEvents(superFunc, excludedVehicle)
-	local v928_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	superFunc(self, excludedVehicle)
 	if self ~= excludedVehicle then
-		local v929_ = self:getSelectedObject()
-		if v929_ ~= nil and (self ~= v929_.vehicle and excludedVehicle ~= v929_.vehicle) then
-			v929_.vehicle:registerActionEvents()
+		local selectedObject = self:getSelectedObject()
+		if selectedObject ~= nil and (self ~= selectedObject.vehicle and excludedVehicle ~= selectedObject.vehicle) then
+			selectedObject.vehicle:registerActionEvents()
 		end
-		for _, v930_ in pairs(v928_.attachedImplements) do
-			if v930_.object ~= nil then
-				if v929_ == nil then
-					printCallstack()
-				end
-				v930_.object:registerActionEvents(v929_.vehicle)
+		for _, implement in pairs(spec.attachedImplements) do
+			if implement.object == nil then
+				continue
 			end
+			if selectedObject == nil then
+				printCallstack()
+			end
+			implement.object:registerActionEvents(selectedObject.vehicle)
 		end
 	end
 end
-
--- Local values: spec, _, implement
 function AttacherJoints:removeActionEvents(superFunc)
-	local v933_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	superFunc(self)
-	for _, v934_ in pairs(v933_.attachedImplements) do
-		if v934_.object ~= nil then
-			v934_.object:removeActionEvents()
+	for _, implement in pairs(spec.attachedImplements) do
+		if implement.object == nil then
+			continue
 		end
+		implement.object:removeActionEvents()
 	end
 end
-
--- Local values: spec, _, implement
 function AttacherJoints:addToPhysics(superFunc)
 	if not superFunc(self) then
 		return false
-	end
-	local v937_ = self.spec_attacherJoints
-	for _, v938_ in pairs(v937_.attachedImplements) do
-		if v938_.object.spec_attachable.isHardAttached then
-			v938_.object:addToPhysics()
-		else
-			self:createAttachmentJoint(v938_, true)
+	else
+		local spec = self.spec_attacherJoints
+		for _, implement in pairs(spec.attachedImplements) do
+			if not implement.object.spec_attachable.isHardAttached then
+				self:createAttachmentJoint(implement, true)
+			else
+				implement.object:addToPhysics()
+			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: spec, _, implement, jointDesc
 function AttacherJoints:removeFromPhysics(superFunc)
-	local v941_ = self.spec_attacherJoints
-	for _, v942_ in pairs(v941_.attachedImplements) do
-		if v942_.object.spec_attachable.isHardAttached then
-			v942_.object:removeFromPhysics()
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		if not implement.object.spec_attachable.isHardAttached then
+			local jointDesc = spec.attacherJoints[implement.jointDescIndex]
+			if jointDesc.jointIndex == 0 then
+				continue
+			end
+			jointDesc.jointIndex = 0
 		else
-			local v943_ = v941_.attacherJoints[v942_.jointDescIndex]
-			if v943_.jointIndex ~= 0 then
-				v943_.jointIndex = 0
-			end
+			implement.object:removeFromPhysics()
 		end
 	end
-	return superFunc(self) and true or false
+	if not superFunc(self) then
+		return false
+	else
+		return true
+	end
 end
-
--- Local values: spec, mass, _, implement, object
 function AttacherJoints:getTotalMass(superFunc, onlyGivenVehicle)
-	local v947_ = self.spec_attacherJoints
-	local v948_ = superFunc(self)
+	local spec = self.spec_attacherJoints
+	local mass = superFunc(self)
 	if onlyGivenVehicle == nil or not onlyGivenVehicle then
-		for _, v949_ in pairs(v947_.attachedImplements) do
-			local v950_ = v949_.object
-			if v950_ ~= nil then
-				v948_ = v948_ + v950_:getTotalMass(onlyGivenVehicle)
+		for _, implement in pairs(spec.attachedImplements) do
+			local object = implement.object
+			if object == nil then
+				continue
 			end
+			mass = mass + object:getTotalMass(onlyGivenVehicle)
 		end
 	end
-	return v948_
+	return mass
 end
-
--- Local values: additionalMass, spec, _, implement, object
 function AttacherJoints:getAdditionalComponentMass(superFunc, component)
-	local v954_ = superFunc(self, component)
+	local additionalMass = superFunc(self, component)
 	if component.node == self.rootNode then
-		local v955_ = self.spec_attacherJoints
-		for _, v956_ in pairs(v955_.attachedImplements) do
-			local v957_ = v956_.object
-			if v957_ ~= nil and v957_.spec_attachable.isHardAttached then
-				v954_ = v954_ + v957_:getTotalMass(true)
+		local spec = self.spec_attacherJoints
+		for _, implement in pairs(spec.attachedImplements) do
+			local object = implement.object
+			if object == nil then
+				continue
+			end
+			if object.spec_attachable.isHardAttached then
+				additionalMass = additionalMass + object:getTotalMass(true)
 			end
 		end
 	end
-	return v954_
+	return additionalMass
 end
-
--- Local values: spec, _, implement, object
 function AttacherJoints:addChildVehicles(superFunc, vehicles, rootVehicle)
-	local v962_ = self.spec_attacherJoints
-	for _, v963_ in pairs(v962_.attachedImplements) do
-		local v964_ = v963_.object
-		if v964_ ~= nil and v964_.addChildVehicles ~= nil then
-			v964_:addChildVehicles(vehicles, rootVehicle)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local object = implement.object
+		if object == nil or object.addChildVehicles == nil then
+			continue
 		end
+		object:addChildVehicles(vehicles, rootVehicle)
 	end
 	return superFunc(self, vehicles, rootVehicle)
 end
-
--- Local values: spec, usage, _, implement, object
 function AttacherJoints:getAirConsumerUsage(superFunc)
-	local v967_ = self.spec_attacherJoints
-	local v968_ = superFunc(self)
-	for _, v969_ in pairs(v967_.attachedImplements) do
-		local v970_ = v969_.object
-		if v970_ ~= nil and v970_.getAttachbleAirConsumerUsage ~= nil then
-			v968_ = v968_ + v970_:getAttachbleAirConsumerUsage()
+	local spec = self.spec_attacherJoints
+	local usage = superFunc(self)
+	for _, implement in pairs(spec.attachedImplements) do
+		local object = implement.object
+		if object == nil or object.getAttachbleAirConsumerUsage == nil then
+			continue
 		end
+		usage = usage + object:getAttachbleAirConsumerUsage()
 	end
-	return v968_
+	return usage
 end
-
--- Local values: spec, _, implement
 function AttacherJoints:getRequiresPower(superFunc)
-	local v973_ = self.spec_attacherJoints
-	for _, v974_ in pairs(v973_.attachedImplements) do
-		if v974_.object ~= nil and v974_.object:getRequiresPower() then
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		if implement.object == nil then
+			continue
+		end
+		if implement.object:getRequiresPower() then
 			return true
 		end
 	end
 	return superFunc(self)
 end
-
--- Local values: _, implement, object
 function AttacherJoints:addVehicleToAIImplementList(superFunc, list)
 	superFunc(self, list)
-	for _, v978_ in pairs(self:getAttachedImplements()) do
-		local v979_ = v978_.object
-		if v979_ ~= nil and v979_.addVehicleToAIImplementList ~= nil then
-			v979_:addVehicleToAIImplementList(list)
+	for _, implement in pairs(self:getAttachedImplements()) do
+		local object = implement.object
+		if object == nil or object.addVehicleToAIImplementList == nil then
+			continue
 		end
+		object:addVehicleToAIImplementList(list)
 	end
 end
-
--- Local values: _, implement, object
 function AttacherJoints:collectAIAgentAttachments(superFunc, aiDrivableVehicle)
 	superFunc(self, aiDrivableVehicle)
-	for _, v983_ in pairs(self:getAttachedImplements()) do
-		local v984_ = v983_.object
-		if v984_ ~= nil and v984_.collectAIAgentAttachments ~= nil then
-			v984_:collectAIAgentAttachments(aiDrivableVehicle)
-			aiDrivableVehicle:startNewAIAgentAttachmentChain()
+	for _, implement in pairs(self:getAttachedImplements()) do
+		local object = implement.object
+		if object == nil or object.collectAIAgentAttachments == nil then
+			continue
 		end
+		object:collectAIAgentAttachments(aiDrivableVehicle)
+		aiDrivableVehicle:startNewAIAgentAttachmentChain()
 	end
 end
-
--- Local values: _, implement, object
 function AttacherJoints:setAIVehicleObstacleStateDirty(superFunc)
 	superFunc(self)
-	for _, v987_ in pairs(self:getAttachedImplements()) do
-		local v988_ = v987_.object
-		if v988_ ~= nil and v988_.setAIVehicleObstacleStateDirty ~= nil then
-			v988_:setAIVehicleObstacleStateDirty()
+	for _, implement in pairs(self:getAttachedImplements()) do
+		local object = implement.object
+		if object == nil or object.setAIVehicleObstacleStateDirty == nil then
+			continue
 		end
+		object:setAIVehicleObstacleStateDirty()
 	end
 end
-
--- Local values: spec, maxAngle, _, implement, object
 function AttacherJoints:getDirectionSnapAngle(superFunc)
-	local v991_ = self.spec_attacherJoints
-	local v992_ = superFunc(self)
-	for _, v993_ in pairs(v991_.attachedImplements) do
-		local v994_ = v993_.object
-		if v994_ ~= nil and v994_.getDirectionSnapAngle ~= nil then
-			local v995_ = v992_ + v994_:getDirectionSnapAngle()
-			v992_ = math.max(v995_)
+	local spec = self.spec_attacherJoints
+	local maxAngle = superFunc(self)
+	for _, implement in pairs(spec.attachedImplements) do
+		local object = implement.object
+		if object == nil or object.getDirectionSnapAngle == nil then
+			continue
 		end
+		maxAngle = math.max(maxAngle + object:getDirectionSnapAngle())
 	end
-	return v992_
+	return maxAngle
 end
-
--- Local values: spec, _, implement, object
 function AttacherJoints:getFillLevelInformation(superFunc, display)
-	local v999_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	superFunc(self, display)
-	for _, v1000_ in pairs(v999_.attachedImplements) do
-		local v1001_ = v1000_.object
-		if v1001_ ~= nil and v1001_.getFillLevelInformation ~= nil then
-			v1001_:getFillLevelInformation(display)
+	for _, implement in pairs(spec.attachedImplements) do
+		local object = implement.object
+		if object == nil or object.getFillLevelInformation == nil then
+			continue
 		end
+		object:getFillLevelInformation(display)
 	end
 end
-
--- Local values: spec, _, implement
 function AttacherJoints:getHasObjectMounted(superFunc, object)
 	if superFunc(self, object) then
 		return true
-	end
-	local v1005_ = self.spec_attacherJoints
-	for _, v1006_ in pairs(v1005_.attachedImplements) do
-		if v1006_.object ~= nil and v1006_.object:getHasObjectMounted(object) then
-			return true
+	else
+		local spec = self.spec_attacherJoints
+		for _, implement in pairs(spec.attachedImplements) do
+			if implement.object == nil then
+				continue
+			end
+			if implement.object:getHasObjectMounted(object) then
+				return true
+			end
 		end
+		return false
 	end
-	return false
 end
-
--- Local values: spec, _, implement, object
 function AttacherJoints:attachableAddToolCameras(superFunc)
-	local v1009_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	superFunc(self)
-	for _, v1010_ in pairs(v1009_.attachedImplements) do
-		local v1011_ = v1010_.object
-		if v1011_ ~= nil and v1011_.attachableAddToolCameras ~= nil then
-			v1011_:attachableAddToolCameras()
+	for _, implement in pairs(spec.attachedImplements) do
+		local object = implement.object
+		if object == nil or object.attachableAddToolCameras == nil then
+			continue
 		end
+		object:attachableAddToolCameras()
 	end
 end
-
--- Local values: spec, _, implement, object
 function AttacherJoints:attachableRemoveToolCameras(superFunc)
-	local v1014_ = self.spec_attacherJoints
+	local spec = self.spec_attacherJoints
 	superFunc(self)
-	for _, v1015_ in pairs(v1014_.attachedImplements) do
-		local v1016_ = v1015_.object
-		if v1016_ ~= nil and v1016_.attachableRemoveToolCameras ~= nil then
-			v1016_:attachableRemoveToolCameras()
+	for _, implement in pairs(spec.attachedImplements) do
+		local object = implement.object
+		if object == nil or object.attachableRemoveToolCameras == nil then
+			continue
 		end
+		object:attachableRemoveToolCameras()
 	end
 end
-
--- Local values: spec, _, implement, object
 function AttacherJoints:registerSelectableObjects(superFunc, selectableObjects)
 	superFunc(self, selectableObjects)
-	local v1020_ = self.spec_attacherJoints
-	for _, v1021_ in pairs(v1020_.attachedImplements) do
-		local v1022_ = v1021_.object
-		if v1022_ ~= nil and v1022_.registerSelectableObjects ~= nil then
-			v1022_:registerSelectableObjects(selectableObjects)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local object = implement.object
+		if object == nil or object.registerSelectableObjects == nil then
+			continue
 		end
+		object:registerSelectableObjects(selectableObjects)
 	end
 end
-
--- Local values: spec, _, implement, object
 function AttacherJoints:getIsReadyForAutomatedTrainTravel(superFunc)
-	local v1025_ = self.spec_attacherJoints
-	for _, v1026_ in pairs(v1025_.attachedImplements) do
-		local v1027_ = v1026_.object
-		if v1027_ ~= nil and (v1027_.getIsReadyForAutomatedTrainTravel ~= nil and not v1027_:getIsReadyForAutomatedTrainTravel()) then
-			return false
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local object = implement.object
+		if object == nil or object.getIsReadyForAutomatedTrainTravel == nil or object:getIsReadyForAutomatedTrainTravel() then
+			continue
 		end
+		return false
 	end
 	return superFunc(self)
 end
-
--- Local values: spec, lastSpeed, _, implement, jointDescIndex, jointDesc, object
 function AttacherJoints:getIsAutomaticShiftingAllowed(superFunc)
-	local v1030_ = self.spec_attacherJoints
-	local v1031_ = self:getLastSpeed()
-	for _, v1032_ in pairs(v1030_.attachedImplements) do
-		if v1031_ < 2 then
-			if v1032_.attachingIsInProgress then
+	local spec = self.spec_attacherJoints
+	local lastSpeed = self:getLastSpeed()
+	for _, implement in pairs(spec.attachedImplements) do
+		if lastSpeed < 2 then
+			if implement.attachingIsInProgress then
 				return false
 			end
-			local v1033_ = v1032_.jointDescIndex
-			if v1030_.attacherJoints[v1033_].isMoving then
+			local jointDescIndex = implement.jointDescIndex
+			local jointDesc = spec.attacherJoints[jointDescIndex]
+			if jointDesc.isMoving then
 				return false
 			end
 		end
-		local v1034_ = v1032_.object
-		if v1034_ ~= nil and (v1034_.getIsAutomaticShiftingAllowed ~= nil and not v1034_:getIsAutomaticShiftingAllowed()) then
-			return false
+		local object = implement.object
+		if object == nil or object.getIsAutomaticShiftingAllowed == nil or object:getIsAutomaticShiftingAllowed() then
+			continue
 		end
+		return false
 	end
 	return superFunc(self)
 end
-
--- Local values: attacherJointIndices, _, attacherJointIndex
 function AttacherJoints:loadDashboardGroupFromXML(superFunc, xmlFile, key, group)
 	if not superFunc(self, xmlFile, key, group) then
 		return false
-	end
-	group.attacherJointIndices = {}
-	local v1040_ = xmlFile:getValue(key .. "#attacherJointIndices", nil, true)
-	if v1040_ ~= nil then
-		for _, v1041_ in ipairs(v1040_) do
-			local v1042_ = group.attacherJointIndices
-			table.insert(v1042_, v1041_)
+	else
+		group.attacherJointIndices = {}
+		local attacherJointIndices = xmlFile:getValue(key .. "#attacherJointIndices", nil, true)
+		if attacherJointIndices ~= nil then
+			for _, attacherJointIndex in ipairs(attacherJointIndices) do
+				table.insert(group.attacherJointIndices, attacherJointIndex)
+			end
 		end
+		if #group.attacherJointIndices == 0 then
+			group.attacherJointIndices = nil
+		end
+		group.attacherJointNodes = xmlFile:getValue(key .. "#attacherJointNodes", nil, self.components, self.i3dMappings, true)
+		if #group.attacherJointNodes == 0 then
+			group.attacherJointNodes = nil
+		end
+		return true
 	end
-	if #group.attacherJointIndices == 0 then
-		group.attacherJointIndices = nil
-	end
-	group.attacherJointNodes = xmlFile:getValue(key .. "#attacherJointNodes", nil, self.components, self.i3dMappings, true)
-	if #group.attacherJointNodes == 0 then
-		group.attacherJointNodes = nil
-	end
-	return true
 end
-
--- Local values: _, node, attacherJointIndex, hasAttachment, _, jointIndex
 function AttacherJoints:getIsDashboardGroupActive(superFunc, group)
 	if group.attacherJointNodes ~= nil and self.finishedLoading then
 		if group.attacherJointIndices == nil then
 			group.attacherJointIndices = {}
 		end
-		for _, v1046_ in ipairs(group.attacherJointNodes) do
-			local v1047_ = self:getAttacherJointIndexByNode(v1046_)
-			if v1047_ ~= nil then
-				local v1048_ = group.attacherJointIndices
-				table.insert(v1048_, v1047_)
+		for _, node in ipairs(group.attacherJointNodes) do
+			local attacherJointIndex = self:getAttacherJointIndexByNode(node)
+			if attacherJointIndex == nil then
+				continue
 			end
+			table.insert(group.attacherJointIndices, attacherJointIndex)
 		end
 		if #group.attacherJointIndices == 0 then
 			group.attacherJointIndices = nil
@@ -3487,433 +3199,411 @@ function AttacherJoints:getIsDashboardGroupActive(superFunc, group)
 		group.attacherJointNodes = nil
 	end
 	if group.attacherJointIndices ~= nil then
-		local v1049_ = false
-		for _, v1050_ in ipairs(group.attacherJointIndices) do
-			if self:getImplementFromAttacherJointIndex(v1050_) ~= nil then
-				v1049_ = true
+		local hasAttachment = false
+		for _, jointIndex in ipairs(group.attacherJointIndices) do
+			if self:getImplementFromAttacherJointIndex(jointIndex) == nil then
+				continue
 			end
+			hasAttachment = true
 		end
-		if not v1049_ then
+		if not hasAttachment then
 			return false
 		end
 	end
 	return superFunc(self, group)
 end
-
 function AttacherJoints:loadAttacherJointHeightNode(superFunc, xmlFile, key, heightNode, attacherJointNode)
 	heightNode.disablingAttacherJointIndices = xmlFile:getValue(key .. "#disablingAttacherJointIndices", "", true)
 	return superFunc(self, xmlFile, key, heightNode, attacherJointNode)
 end
-
--- Local values: _, jointIndex
 function AttacherJoints:getIsAttacherJointHeightNodeActive(superFunc, heightNode)
-	for _, v1060_ in ipairs(heightNode.disablingAttacherJointIndices) do
-		if self:getImplementFromAttacherJointIndex(v1060_) ~= nil then
-			return false
+	for _, jointIndex in ipairs(heightNode.disablingAttacherJointIndices) do
+		if self:getImplementFromAttacherJointIndex(jointIndex) == nil then
+			continue
 		end
+		return false
 	end
 	return superFunc(self, heightNode)
 end
-
--- Local values: disablingAttacherJointNodes
 function AttacherJoints:loadTipSide(superFunc, xmlFile, key, entry)
 	if not superFunc(self, xmlFile, key, entry) then
 		return false
+	else
+		local disablingAttacherJointNodes = xmlFile:getValue(key .. "#disablingAttacherJointNodes", nil, self.components, self.i3dMappings, true)
+		if 0 < #disablingAttacherJointNodes then
+			entry.disablingAttacherJointNodes = disablingAttacherJointNodes
+		end
+		return true
 	end
-	local v1066_ = xmlFile:getValue(key .. "#disablingAttacherJointNodes", nil, self.components, self.i3dMappings, true)
-	if #v1066_ > 0 then
-		entry.disablingAttacherJointNodes = v1066_
-	end
-	return true
 end
-
--- Local values: spec, tipSide, _, jointNode, jointIndex, _, jointIndex
 function AttacherJoints:getIsTipSideAvailable(superFunc, sideIndex)
 	if not superFunc(self, sideIndex) then
 		return false
-	end
-	local v1070_ = self.spec_trailer.tipSides[sideIndex]
-	if v1070_ ~= nil then
-		if v1070_.disablingAttacherJointNodes ~= nil then
-			v1070_.disablingAttacherJointIndices = {}
-			for _, v1071_ in ipairs(v1070_.disablingAttacherJointNodes) do
-				local v1072_ = self:getAttacherJointIndexByNode(v1071_)
-				if v1072_ ~= nil then
-					local v1073_ = v1070_.disablingAttacherJointIndices
-					table.insert(v1073_, v1072_)
+	else
+		local spec = self.spec_trailer
+		local tipSide = spec.tipSides[sideIndex]
+		if tipSide ~= nil then
+			if tipSide.disablingAttacherJointNodes ~= nil then
+				tipSide.disablingAttacherJointIndices = {}
+				for _, jointNode in ipairs(tipSide.disablingAttacherJointNodes) do
+					local jointIndex = self:getAttacherJointIndexByNode(jointNode)
+					if jointIndex == nil then
+						continue
+					end
+					table.insert(tipSide.disablingAttacherJointIndices, jointIndex)
+				end
+				if #tipSide.disablingAttacherJointIndices == 0 then
+					tipSide.disablingAttacherJointIndices = nil
 				end
 			end
-			if #v1070_.disablingAttacherJointIndices == 0 then
-				v1070_.disablingAttacherJointIndices = nil
-			end
-		end
-		if v1070_.disablingAttacherJointIndices ~= nil then
-			for _, v1074_ in ipairs(v1070_.disablingAttacherJointIndices) do
-				if self:getImplementFromAttacherJointIndex(v1074_) ~= nil then
+			if tipSide.disablingAttacherJointIndices ~= nil then
+				for _, jointIndex in ipairs(tipSide.disablingAttacherJointIndices) do
+					if self:getImplementFromAttacherJointIndex(jointIndex) == nil then
+						continue
+					end
 					return false
 				end
 			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: disablingAttacherJointNodes
 function AttacherJoints:loadFillUnitFromXML(superFunc, xmlFile, key, entry, index)
 	if not superFunc(self, xmlFile, key, entry, index) then
 		return false
+	else
+		local disablingAttacherJointNodes = xmlFile:getValue(key .. "#disablingAttacherJointNodes", nil, self.components, self.i3dMappings, true)
+		if 0 < #disablingAttacherJointNodes then
+			entry.disablingAttacherJointNodes = disablingAttacherJointNodes
+		end
+		return true
 	end
-	local v1081_ = xmlFile:getValue(key .. "#disablingAttacherJointNodes", nil, self.components, self.i3dMappings, true)
-	if #v1081_ > 0 then
-		entry.disablingAttacherJointNodes = v1081_
-	end
-	return true
 end
-
--- Local values: spec, fillUnit, _, jointNode, jointIndex, _, jointIndex
 function AttacherJoints:getFillUnitSupportsToolType(superFunc, fillUnitIndex, toolType)
 	if not superFunc(self, fillUnitIndex, toolType) then
 		return false
-	end
-	local v1086_ = self.spec_fillUnit.fillUnits[fillUnitIndex]
-	if v1086_ ~= nil then
-		if v1086_.disablingAttacherJointNodes ~= nil then
-			v1086_.disablingAttacherJointIndices = {}
-			for _, v1087_ in ipairs(v1086_.disablingAttacherJointNodes) do
-				local v1088_ = self:getAttacherJointIndexByNode(v1087_)
-				if v1088_ ~= nil then
-					local v1089_ = v1086_.disablingAttacherJointIndices
-					table.insert(v1089_, v1088_)
+	else
+		local spec = self.spec_fillUnit
+		local fillUnit = spec.fillUnits[fillUnitIndex]
+		if fillUnit ~= nil then
+			if fillUnit.disablingAttacherJointNodes ~= nil then
+				fillUnit.disablingAttacherJointIndices = {}
+				for _, jointNode in ipairs(fillUnit.disablingAttacherJointNodes) do
+					local jointIndex = self:getAttacherJointIndexByNode(jointNode)
+					if jointIndex == nil then
+						continue
+					end
+					table.insert(fillUnit.disablingAttacherJointIndices, jointIndex)
+				end
+				if #fillUnit.disablingAttacherJointIndices == 0 then
+					fillUnit.disablingAttacherJointIndices = nil
 				end
 			end
-			if #v1086_.disablingAttacherJointIndices == 0 then
-				v1086_.disablingAttacherJointIndices = nil
-			end
-		end
-		if v1086_.disablingAttacherJointIndices ~= nil then
-			for _, v1090_ in ipairs(v1086_.disablingAttacherJointIndices) do
-				if self:getImplementFromAttacherJointIndex(v1090_) ~= nil then
+			if fillUnit.disablingAttacherJointIndices ~= nil then
+				for _, jointIndex in ipairs(fillUnit.disablingAttacherJointIndices) do
+					if self:getImplementFromAttacherJointIndex(jointIndex) == nil then
+						continue
+					end
 					return false
 				end
 			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: detachAllowed, warning, showWarning, spec, attacherJointIndex, attacherJoint, implement, inputAttacherJoint
 function AttacherJoints:isDetachAllowed(superFunc)
-	local v1093_, v1094_, v1095_ = superFunc(self)
-	if not v1093_ then
-		return v1093_, v1094_, v1095_
-	end
-	local v1096_ = self.spec_attacherJoints
-	for v1097_, v1098_ in ipairs(v1096_.attacherJoints) do
-		if not (v1098_.allowDetachingWhileLifted or v1098_.moveDown) then
-			local v1099_ = self:getImplementByJointDescIndex(v1097_)
-			if v1099_ ~= nil then
-				local v1100_ = v1099_.object:getInputAttacherJointByJointDescIndex(v1099_.inputJointDescIndex)
-				if v1100_ ~= nil and not v1100_.forceAllowDetachWhileLifted then
-					return false, string.format(v1096_.texts.lowerImplementFirst, v1099_.object.typeDesc)
-				end
+	local detachAllowed, warning, showWarning = superFunc(self)
+	if not detachAllowed then
+		return detachAllowed, warning, showWarning
+	else
+		local spec = self.spec_attacherJoints
+		for attacherJointIndex, attacherJoint in ipairs(spec.attacherJoints) do
+			if attacherJoint.allowDetachingWhileLifted or attacherJoint.moveDown then
+				continue
 			end
+			local implement = self:getImplementByJointDescIndex(attacherJointIndex)
+			if implement == nil then
+				continue
+			end
+			local inputAttacherJoint = implement.object:getInputAttacherJointByJointDescIndex(implement.inputJointDescIndex)
+			if inputAttacherJoint == nil or inputAttacherJoint.forceAllowDetachWhileLifted then
+				continue
+			end
+			return false, string.format(spec.texts.lowerImplementFirst, implement.object.typeDesc)
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: spec, attacherJointIndex, attacherJoint
 function AttacherJoints:getIsFoldAllowed(superFunc, direction, onAiTurnOn)
-	local v1105_ = self.spec_attacherJoints
-	for _, v1106_ in ipairs(v1105_.attacherJoints) do
-		if not v1106_.allowFoldingWhileAttached and v1106_.jointIndex ~= 0 then
-			return false, v1105_.texts.warningFoldingAttacherJoint
+	local spec = self.spec_attacherJoints
+	for attacherJointIndex, attacherJoint in ipairs(spec.attacherJoints) do
+		if attacherJoint.allowFoldingWhileAttached or attacherJoint.jointIndex == 0 then
+			continue
 		end
+		return false, spec.texts.warningFoldingAttacherJoint
 	end
 	return superFunc(self, direction, onAiTurnOn)
 end
-
--- Local values: spec, _, implement, object
 function AttacherJoints:getIsWheelFoliageDestructionAllowed(superFunc, wheel)
 	if not superFunc(self, wheel) then
 		return false
-	end
-	local v1110_ = self.spec_attacherJoints
-	for _, v1111_ in pairs(v1110_.attachedImplements) do
-		local v1112_ = v1111_.object
-		if v1112_ ~= nil and (v1112_.getBlockFoliageDestruction ~= nil and v1112_:getBlockFoliageDestruction()) then
-			return false
-		end
-	end
-	return true
-end
-
--- Local values: allowed, warning, spec, _, implement, object
-function AttacherJoints:getAreControlledActionsAllowed(superFunc)
-	local v1115_, v1116_ = superFunc(self)
-	if not v1115_ then
-		return false, v1116_
-	end
-	local v1117_ = self.spec_attacherJoints
-	for _, v1118_ in pairs(v1117_.attachedImplements) do
-		local v1119_ = v1118_.object
-		if v1119_ ~= nil and v1119_.getAreControlledActionsAllowed ~= nil then
-			local v1120_
-			v1120_, v1116_ = v1119_:getAreControlledActionsAllowed()
-			if not v1120_ then
-				return false, v1116_
+	else
+		local spec = self.spec_attacherJoints
+		for _, implement in pairs(spec.attachedImplements) do
+			local object = implement.object
+			if object == nil or object.getBlockFoliageDestruction == nil then
+				continue
+			end
+			if object:getBlockFoliageDestruction() then
+				return false
 			end
 		end
-		if v1118_.attachingIsInProgress then
-			return false
+		return true
+	end
+end
+function AttacherJoints:getAreControlledActionsAllowed(superFunc)
+	local allowed, warning = superFunc(self)
+	if not allowed then
+		return false, warning
+	else
+		local spec = self.spec_attacherJoints
+		for _, implement in pairs(spec.attachedImplements) do
+			local object = implement.object
+			if object ~= nil and object.getAreControlledActionsAllowed ~= nil then
+				allowed, warning = object:getAreControlledActionsAllowed()
+				if not allowed then
+					return false, warning
+				end
+			end
+			if implement.attachingIsInProgress then
+				return false
+			end
 		end
+		return true, warning
 	end
-	return true, v1116_
 end
-
--- Local values: index, configKey
 function AttacherJoints:getConnectionHoseConfigIndex(superFunc)
-	local v1123_ = superFunc(self)
-	local v1124_ = self.xmlFile:getValue("vehicle.attacherJoints#connectionHoseConfigId", v1123_)
+	local index = superFunc(self)
+	index = self.xmlFile:getValue("vehicle.attacherJoints#connectionHoseConfigId", index)
 	if self.configurations.attacherJoint ~= nil then
-		local v1125_ = string.format("vehicle.attacherJoints.attacherJointConfigurations.attacherJointConfiguration(%d)", self.configurations.attacherJoint - 1)
-		v1124_ = self.xmlFile:getValue(v1125_ .. "#connectionHoseConfigId", v1124_)
+		local configKey = string.format("vehicle.attacherJoints.attacherJointConfigurations.attacherJointConfiguration(%d)", self.configurations.attacherJoint - 1)
+		index = self.xmlFile:getValue(configKey .. "#connectionHoseConfigId", index)
 	end
-	return v1124_
+	return index
 end
-
--- Local values: index, configKey
 function AttacherJoints:getPowerTakeOffConfigIndex(superFunc)
-	local v1128_ = superFunc(self)
-	local v1129_ = self.xmlFile:getValue("vehicle.attacherJoints#powerTakeOffConfigId", v1128_)
+	local index = superFunc(self)
+	index = self.xmlFile:getValue("vehicle.attacherJoints#powerTakeOffConfigId", index)
 	if self.configurations.attacherJoint ~= nil then
-		local v1130_ = string.format("vehicle.attacherJoints.attacherJointConfigurations.attacherJointConfiguration(%d)", self.configurations.attacherJoint - 1)
-		v1129_ = self.xmlFile:getValue(v1130_ .. "#powerTakeOffConfigId", v1129_)
+		local configKey = string.format("vehicle.attacherJoints.attacherJointConfigurations.attacherJointConfiguration(%d)", self.configurations.attacherJoint - 1)
+		index = self.xmlFile:getValue(configKey .. "#powerTakeOffConfigId", index)
 	end
-	return v1129_
+	return index
 end
-
--- Local values: attacherJointNodes
 function AttacherJoints:loadHoseTargetNode(superFunc, xmlFile, targetKey, entry)
 	if not superFunc(self, xmlFile, targetKey, entry) then
 		return false
+	else
+		local attacherJointNodes = xmlFile:getValue(targetKey .. "#blockedByAttacherJointNodes", nil, self.components, self.i3dMappings, true)
+		if attacherJointNodes ~= nil then
+			entry.blockedByAttacherJointIndices = attacherJointNodes
+		end
+		return true
 	end
-	local v1136_ = xmlFile:getValue(targetKey .. "#blockedByAttacherJointNodes", nil, self.components, self.i3dMappings, true)
-	if v1136_ ~= nil then
-		entry.blockedByAttacherJointIndices = v1136_
-	end
-	return true
 end
-
--- Local values: _, jointNode, jointIndex, implement
 function AttacherJoints:getIsConnectionTargetUsed(superFunc, desc)
 	if superFunc(self, desc) then
 		return true
-	end
-	if desc.blockedByAttacherJointIndices ~= nil then
-		for _, v1140_ in ipairs(desc.blockedByAttacherJointIndices) do
-			local v1141_ = self:getAttacherJointIndexByNode(v1140_)
-			if v1141_ ~= nil and self:getImplementFromAttacherJointIndex(v1141_) ~= nil then
+	else
+		if desc.blockedByAttacherJointIndices ~= nil then
+			for _, jointNode in ipairs(desc.blockedByAttacherJointIndices) do
+				local jointIndex = self:getAttacherJointIndexByNode(jointNode)
+				if jointIndex == nil then
+					continue
+				end
+				local implement = self:getImplementFromAttacherJointIndex(jointIndex)
+				if implement == nil then
+					continue
+				end
 				return true
 			end
 		end
+		return false
 	end
-	return false
 end
-
--- Local values: spec, selectedImplement, _, attachedImplement, _, actionEventId, state, _, firstImplement, _, actionEventId
 function AttacherJoints:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v1144_ = self.spec_attacherJoints
-		self:clearActionEventsTable(v1144_.actionEvents)
+		local spec = self.spec_attacherJoints
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			if #v1144_.attacherJoints > 0 then
-				local v1145_ = self:getSelectedImplement()
-				if v1145_ ~= nil and v1145_.object ~= self then
-					for _, v1146_ in pairs(v1144_.attachedImplements) do
-						if v1146_ == v1145_ then
-							v1145_.object:registerLoweringActionEvent(v1144_.actionEvents, InputAction.LOWER_IMPLEMENT, v1145_.object, AttacherJoints.actionEventLowerImplement, false, true, false, true, nil, nil, true)
+			if 0 < #spec.attacherJoints then
+				local selectedImplement = self:getSelectedImplement()
+				if selectedImplement ~= nil and selectedImplement.object ~= self then
+					for _, attachedImplement in pairs(spec.attachedImplements) do
+						if attachedImplement == selectedImplement then
+							selectedImplement.object:registerLoweringActionEvent(spec.actionEvents, InputAction.LOWER_IMPLEMENT, selectedImplement.object, AttacherJoints.actionEventLowerImplement, false, true, false, true, nil, nil, true)
 						end
 					end
 				end
-				local _, v1147_ = self:addPoweredActionEvent(v1144_.actionEvents, InputAction.LOWER_ALL_IMPLEMENTS, self, AttacherJoints.actionEventLowerAllImplements, false, true, false, true, nil, nil, true)
-				g_inputBinding:setActionEventTextVisibility(v1147_, false)
+				local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.LOWER_ALL_IMPLEMENTS, self, AttacherJoints.actionEventLowerAllImplements, false, true, false, true, nil, nil, true)
+				g_inputBinding:setActionEventTextVisibility(actionEventId, false)
 			end
 			if self:getSelectedVehicle() == self then
-				local v1148_, _ = self:registerSelfLoweringActionEvent(v1144_.actionEvents, InputAction.LOWER_IMPLEMENT, self, AttacherJoints.actionEventLowerImplement, false, true, false, true, nil, nil, true)
-				if (v1148_ == nil or not v1148_) and #v1144_.attachedImplements == 1 then
-					local v1149_ = v1144_.attachedImplements[1]
-					if v1149_ ~= nil then
-						v1149_.object:registerLoweringActionEvent(v1144_.actionEvents, InputAction.LOWER_IMPLEMENT, v1149_.object, AttacherJoints.actionEventLowerImplement, false, true, false, true, nil, nil, true)
+				local state, _ = self:registerSelfLoweringActionEvent(spec.actionEvents, InputAction.LOWER_IMPLEMENT, self, AttacherJoints.actionEventLowerImplement, false, true, false, true, nil, nil, true)
+				if (state == nil or not state) and #spec.attachedImplements == 1 then
+					local firstImplement = spec.attachedImplements[1]
+					if firstImplement ~= nil then
+						firstImplement.object:registerLoweringActionEvent(spec.actionEvents, InputAction.LOWER_IMPLEMENT, firstImplement.object, AttacherJoints.actionEventLowerImplement, false, true, false, true, nil, nil, true)
 					end
 				end
 			end
-			local _, v1150_ = self:addActionEvent(v1144_.actionEvents, InputAction.ATTACH, self, AttacherJoints.actionEventAttach, false, true, false, true, nil, nil, true)
-			g_inputBinding:setActionEventTextPriority(v1150_, GS_PRIO_VERY_HIGH)
-			local _, v1151_ = self:addActionEvent(v1144_.actionEvents, InputAction.DETACH, self, AttacherJoints.actionEventDetach, false, true, false, true, nil, nil, true)
-			g_inputBinding:setActionEventTextVisibility(v1151_, false)
+			local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.ATTACH, self, AttacherJoints.actionEventAttach, false, true, false, true, nil, nil, true)
+			g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_VERY_HIGH)
+			_, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.DETACH, self, AttacherJoints.actionEventDetach, false, true, false, true, nil, nil, true)
+			g_inputBinding:setActionEventTextVisibility(actionEventId, false)
 			AttacherJoints.updateActionEvents(self)
 		end
 	end
 end
-
 function AttacherJoints:onActivate()
 	self:activateAttachments()
 end
-
--- Local values: spec
 function AttacherJoints:onDeactivate()
 	self:deactivateAttachments()
 	if self.isClient then
-		local v1154_ = self.spec_attacherJoints
-		g_soundManager:stopSample(v1154_.samples.hydraulic)
-		v1154_.isHydraulicSamplePlaying = false
+		local spec = self.spec_attacherJoints
+		g_soundManager:stopSample(spec.samples.hydraulic)
+		spec.isHydraulicSamplePlaying = false
 	end
 end
-
--- Local values: spec, reverserDirection, _, joint
 function AttacherJoints:onReverseDirectionChanged(direction)
-	local v1156_ = self.spec_attacherJoints
-	local v1157_ = self:getReverserDirection()
-	if v1156_.attacherJointCombos ~= nil then
-		for _, v1158_ in pairs(v1156_.attacherJointCombos.joints) do
-			if v1157_ < 0 then
-				local v1159_ = v1158_.initialTime - v1156_.attacherJointCombos.duration
-				v1158_.time = math.abs(v1159_)
+	local spec = self.spec_attacherJoints
+	local reverserDirection = self:getReverserDirection()
+	if spec.attacherJointCombos ~= nil then
+		for _, joint in pairs(spec.attacherJointCombos.joints) do
+			if reverserDirection < 0 then
+				joint.time = math.abs(joint.initialTime - spec.attacherJointCombos.duration)
 			else
-				v1158_.time = v1158_.initialTime
+				joint.time = joint.initialTime
 			end
 		end
 	end
 end
-
--- Local values: spec, _, implement
 function AttacherJoints:onStateChange(state, data)
-	local v1163_ = self.spec_attacherJoints
-	for _, v1164_ in pairs(v1163_.attachedImplements) do
-		if v1164_.object ~= nil then
-			v1164_.object:raiseStateChange(state, data)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		if implement.object == nil then
+			continue
 		end
+		implement.object:raiseStateChange(state, data)
 	end
-	if state == VehicleStateChange.LOWER_ALL_IMPLEMENTS and #v1163_.attacherJoints > 0 then
+	if state == VehicleStateChange.LOWER_ALL_IMPLEMENTS and 0 < #spec.attacherJoints then
 		self:startAttacherJointCombo()
 	end
 end
-
--- Local values: spec, _, implement, vehicle
 function AttacherJoints:onLightsTypesMaskChanged(lightsTypesMask)
 	if self.isServer then
-		local v1167_ = self.spec_attacherJoints
-		for _, v1168_ in pairs(v1167_.attachedImplements) do
-			local v1169_ = v1168_.object
-			if v1169_ ~= nil and v1169_.setLightsTypesMask ~= nil then
-				v1169_:setLightsTypesMask(lightsTypesMask, true)
+		local spec = self.spec_attacherJoints
+		for _, implement in pairs(spec.attachedImplements) do
+			local vehicle = implement.object
+			if vehicle == nil or vehicle.setLightsTypesMask == nil then
+				continue
 			end
+			vehicle:setLightsTypesMask(lightsTypesMask, true)
 		end
 	end
 end
-
--- Local values: spec, _, implement, vehicle
 function AttacherJoints:onTurnLightStateChanged(state)
-	local v1172_ = self.spec_attacherJoints
-	for _, v1173_ in pairs(v1172_.attachedImplements) do
-		local v1174_ = v1173_.object
-		if v1174_ ~= nil and v1174_.setTurnLightState ~= nil then
-			v1174_:setTurnLightState(state, true, true)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local vehicle = implement.object
+		if vehicle == nil or vehicle.setTurnLightState == nil then
+			continue
 		end
+		vehicle:setTurnLightState(state, true, true)
 	end
 end
-
--- Local values: spec, _, implement, vehicle
 function AttacherJoints:onBrakeLightsVisibilityChanged(visibility)
-	local v1177_ = self.spec_attacherJoints
-	for _, v1178_ in pairs(v1177_.attachedImplements) do
-		local v1179_ = v1178_.object
-		if v1179_ ~= nil and v1179_.setBrakeLightsVisibility ~= nil then
-			v1179_:setBrakeLightsVisibility(visibility)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local vehicle = implement.object
+		if vehicle == nil or vehicle.setBrakeLightsVisibility == nil then
+			continue
 		end
+		vehicle:setBrakeLightsVisibility(visibility)
 	end
 end
-
--- Local values: spec, _, implement, vehicle
 function AttacherJoints:onReverseLightsVisibilityChanged(visibility)
-	local v1182_ = self.spec_attacherJoints
-	for _, v1183_ in pairs(v1182_.attachedImplements) do
-		local v1184_ = v1183_.object
-		if v1184_ ~= nil and v1184_.setReverseLightsVisibility ~= nil then
-			v1184_:setReverseLightsVisibility(visibility)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local vehicle = implement.object
+		if vehicle == nil or vehicle.setReverseLightsVisibility == nil then
+			continue
 		end
+		vehicle:setReverseLightsVisibility(visibility)
 	end
 end
-
--- Local values: spec, _, implement, vehicle
 function AttacherJoints:onBeaconLightsVisibilityChanged(visibility)
-	local v1187_ = self.spec_attacherJoints
-	for _, v1188_ in pairs(v1187_.attachedImplements) do
-		local v1189_ = v1188_.object
-		if v1189_ ~= nil and v1189_.setBeaconLightsVisibility ~= nil then
-			v1189_:setBeaconLightsVisibility(visibility, true, true)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local vehicle = implement.object
+		if vehicle == nil or vehicle.setBeaconLightsVisibility == nil then
+			continue
 		end
+		vehicle:setBeaconLightsVisibility(visibility, true, true)
 	end
 end
-
--- Local values: spec, _, implement, vehicle
 function AttacherJoints:onBrake(brakePedal)
-	local v1192_ = self.spec_attacherJoints
-	for _, v1193_ in pairs(v1192_.attachedImplements) do
-		local v1194_ = v1193_.object
-		if v1194_ ~= nil and v1194_.brake ~= nil then
-			v1194_:brake(brakePedal)
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local vehicle = implement.object
+		if vehicle == nil or vehicle.brake == nil then
+			continue
 		end
+		vehicle:brake(brakePedal)
 	end
 end
-
--- Local values: spec, _, implement, vehicle, turnedOnVehicleSpec
 function AttacherJoints:onTurnedOn()
-	local v1196_ = self.spec_attacherJoints
-	for _, v1197_ in pairs(v1196_.attachedImplements) do
-		local v1198_ = v1197_.object
-		if v1198_ ~= nil then
-			local v1199_ = v1198_.spec_turnOnVehicle
-			if v1199_ and v1199_.turnedOnByAttacherVehicle then
-				v1198_:setIsTurnedOn(true, true)
-			end
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local vehicle = implement.object
+		if vehicle == nil then
+			continue
+		end
+		local turnedOnVehicleSpec = vehicle.spec_turnOnVehicle
+		if turnedOnVehicleSpec and turnedOnVehicleSpec.turnedOnByAttacherVehicle then
+			vehicle:setIsTurnedOn(true, true)
 		end
 	end
 end
-
--- Local values: spec, _, implement, vehicle, turnedOnVehicleSpec
 function AttacherJoints:onTurnedOff()
-	local v1201_ = self.spec_attacherJoints
-	for _, v1202_ in pairs(v1201_.attachedImplements) do
-		local v1203_ = v1202_.object
-		if v1203_ ~= nil then
-			local v1204_ = v1203_.spec_turnOnVehicle
-			if v1204_ and v1204_.turnedOnByAttacherVehicle then
-				v1203_:setIsTurnedOn(false, true)
-			end
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local vehicle = implement.object
+		if vehicle == nil then
+			continue
+		end
+		local turnedOnVehicleSpec = vehicle.spec_turnOnVehicle
+		if turnedOnVehicleSpec and turnedOnVehicleSpec.turnedOnByAttacherVehicle then
+			vehicle:setIsTurnedOn(false, true)
 		end
 	end
 end
-
--- Local values: spec, _, implement, vehicle
 function AttacherJoints:onLeaveVehicle()
-	local v1206_ = self.spec_attacherJoints
-	for _, v1207_ in pairs(v1206_.attachedImplements) do
-		local v1208_ = v1207_.object
-		if v1208_ ~= nil then
-			SpecializationUtil.raiseEvent(v1208_, "onLeaveRootVehicle")
+	local spec = self.spec_attacherJoints
+	for _, implement in pairs(spec.attachedImplements) do
+		local vehicle = implement.object
+		if vehicle == nil then
+			continue
 		end
+		SpecializationUtil.raiseEvent(vehicle, "onLeaveRootVehicle")
 	end
 end
-
--- Local values: spec, info
 function AttacherJoints:getAttachableInfo()
-	local v1210_ = self.spec_attacherJoints.attachableInfo
-	return v1210_.attacherVehicle, v1210_.attacherVehicleJointDescIndex, v1210_.attachable, v1210_.attachableJointDescIndex
+	local spec = self.spec_attacherJoints
+	local info = spec.attachableInfo
+	return info.attacherVehicle, info.attacherVehicleJointDescIndex, info.attachable, info.attachableJointDescIndex
 end
-
--- Local values: found, i, j, found, i, brandString, i, found, i, compatibility, warning
 function AttacherJoints.getAttacherJointCompatibility(vehicle, attacherJoint, inputAttacherVehicle, inputAttacherJoint)
 	if inputAttacherJoint.forcedAttachingDirection ~= 0 and (attacherJoint.attacherJointDirection ~= nil and inputAttacherJoint.forcedAttachingDirection ~= attacherJoint.attacherJointDirection) then
 		return false
@@ -3921,436 +3611,373 @@ function AttacherJoints.getAttacherJointCompatibility(vehicle, attacherJoint, in
 	if attacherJoint.isBlocked then
 		return false
 	end
-	if attacherJoint.subTypes == nil then
-		if inputAttacherJoint.subTypes ~= nil then
-			if inputAttacherJoint.subTypeShowWarning and attacherJoint.subTypeShowWarning then
-				return false, vehicle.spec_attacherJoints.texts.warningToolNotCompatible
-			else
-				return false
-			end
-		end
-	else
+	if attacherJoint.subTypes ~= nil then
 		if inputAttacherJoint.subTypes == nil then
 			if attacherJoint.subTypeShowWarning and inputAttacherJoint.subTypeShowWarning then
 				return false, vehicle.spec_attacherJoints.texts.warningToolNotCompatible
-			else
-				return false
 			end
+			return false
 		end
-		local v1215_ = false
-		for v1216_ = 1, #attacherJoint.subTypes do
-			for v1217_ = 1, #inputAttacherJoint.subTypes do
-				if attacherJoint.subTypes[v1216_] == inputAttacherJoint.subTypes[v1217_] then
-					v1215_ = true
+		local found = false
+		for i = 1, #attacherJoint.subTypes do
+			for j = 1, #inputAttacherJoint.subTypes do
+				if attacherJoint.subTypes[i] == inputAttacherJoint.subTypes[j] then
+					found = true
 					break
 				end
 			end
 		end
-		if not v1215_ then
+		if not found then
 			if attacherJoint.subTypeShowWarning and inputAttacherJoint.subTypeShowWarning then
 				return false, vehicle.spec_attacherJoints.texts.warningToolNotCompatible
-			else
-				return false
 			end
+			return false
 		end
+	elseif inputAttacherJoint.subTypes ~= nil then
+		if inputAttacherJoint.subTypeShowWarning and attacherJoint.subTypeShowWarning then
+			return false, vehicle.spec_attacherJoints.texts.warningToolNotCompatible
+		end
+		return false
 	end
 	if attacherJoint.brandRestrictions ~= nil then
-		local v1218_ = false
-		for v1219_ = 1, #attacherJoint.brandRestrictions do
-			if inputAttacherVehicle.brand ~= nil and inputAttacherVehicle.brand == attacherJoint.brandRestrictions[v1219_] then
-				v1218_ = true
+		local found = false
+		for i = 1, #attacherJoint.brandRestrictions do
+			if inputAttacherVehicle.brand ~= nil and inputAttacherVehicle.brand == attacherJoint.brandRestrictions[i] then
+				found = true
 				break
 			end
 		end
-		if not v1218_ then
-			local v1220_ = ""
-			for v1221_ = 1, #attacherJoint.brandRestrictions do
-				if v1221_ > 1 then
-					v1220_ = v1220_ .. ", "
+		if not found then
+			local brandString = ""
+			for i = 1, #attacherJoint.brandRestrictions do
+				if 1 < i then
+					brandString = brandString .. ", "
 				end
-				v1220_ = v1220_ .. attacherJoint.brandRestrictions[v1221_].title
+				brandString = brandString .. attacherJoint.brandRestrictions[i].title
 			end
-			return false, string.format(vehicle.spec_attacherJoints.texts.warningToolBrandNotCompatible, v1220_)
+			return false, string.format(vehicle.spec_attacherJoints.texts.warningToolBrandNotCompatible, brandString)
 		end
 	end
 	if attacherJoint.vehicleRestrictions ~= nil then
-		local v1222_ = false
-		for v1223_ = 1, #attacherJoint.vehicleRestrictions do
-			if inputAttacherVehicle.configFileName:find(attacherJoint.vehicleRestrictions[v1223_]) ~= nil then
-				v1222_ = true
+		local found = false
+		for i = 1, #attacherJoint.vehicleRestrictions do
+			if inputAttacherVehicle.configFileName:find(attacherJoint.vehicleRestrictions[i]) ~= nil then
+				found = true
 				break
 			end
 		end
-		if not v1222_ then
+		if not found then
 			return false, vehicle.spec_attacherJoints.texts.warningToolNotCompatible
 		end
 	end
-	local v1224_, v1225_ = vehicle:getIsAttacherJointCompatible(vehicle, attacherJoint, inputAttacherVehicle, inputAttacherJoint)
-	if v1224_ then
-		return true
+	local compatibility, warning = vehicle:getIsAttacherJointCompatible(vehicle, attacherJoint, inputAttacherVehicle, inputAttacherJoint)
+	if not compatibility then
+		return false, warning
 	else
-		return false, v1225_
+		return true
 	end
 end
-local v_u_1226_ = AttacherJoints.getAttacherJointCompatibility
+local getAttacherJointCompatibility = AttacherJoints.getAttacherJointCompatibility
 function AttacherJoints.findVehicleInAttachRange()
-	log("function \'AttacherJoints.findVehicleInAttachRange\' is deprecated. Use \'AttacherJoints.updateVehiclesInAttachRange\' instead. Valid output of this function is now up to 5 frames delayed, if parameter 4 is not \'true\'.")
+	log("function 'AttacherJoints.findVehicleInAttachRange' is deprecated. Use 'AttacherJoints.updateVehiclesInAttachRange' instead. Valid output of this function is now up to 5 frames delayed, if parameter 4 is not 'true'.")
 end
-
--- Upvalues: getAttacherJointCompatibility
--- Local values: spec, attachableInfo, pendingInfo, implements, _, implement, attacherVehicle, attacherVehicleJointDescIndex, attachable, attachableJointDescIndex, warning, numJoints, minUpdateJoints, firstJoint, lastJoint, attacherJointIndex, attacherJoint, x, y, z, i, jointInfo, distSq, distY, distSqY, compatibility, notAllowedWarning, angleInRange, attachAngleLimitAxis, dx, _, _, _, dy, _, _, _, dz
 function AttacherJoints.updateVehiclesInAttachRange(vehicle, maxDistanceSq, maxAngle, fullUpdate)
-	-- upvalues: (copy) v_u_1226_
-	local v1231_ = vehicle.spec_attacherJoints
-	if v1231_ == nil then
-		return nil, nil, nil, nil
-	end
-	local v1232_ = v1231_.attachableInfo
-	local v1233_ = v1231_.pendingAttachableInfo
-	if vehicle.getAttachedImplements ~= nil then
-		local v1234_ = vehicle:getAttachedImplements()
-		for _, v1235_ in pairs(v1234_) do
-			if v1235_.object ~= nil then
-				local v1236_, v1237_, v1238_, v1239_, v1240_ = AttacherJoints.updateVehiclesInAttachRange(v1235_.object, maxDistanceSq, maxAngle, fullUpdate)
-				if v1236_ ~= nil then
-					v1232_.attacherVehicle = v1236_
-					v1232_.attacherVehicleJointDescIndex = v1237_
-					v1232_.attachable = v1238_
-					v1232_.attachableJointDescIndex = v1239_
-					v1232_.warning = v1240_
-					return v1236_, v1237_, v1238_, v1239_, v1240_
+	local spec = vehicle.spec_attacherJoints
+	if spec ~= nil then
+		local attachableInfo = spec.attachableInfo
+		local pendingInfo = spec.pendingAttachableInfo
+		if vehicle.getAttachedImplements ~= nil then
+			local implements = vehicle:getAttachedImplements()
+			for _, implement in pairs(implements) do
+				if implement.object == nil then
+					continue
 				end
+				local attacherVehicle, attacherVehicleJointDescIndex, attachable, attachableJointDescIndex, warning = AttacherJoints.updateVehiclesInAttachRange(implement.object, maxDistanceSq, maxAngle, fullUpdate)
+				if attacherVehicle == nil then
+					continue
+				end
+				attachableInfo.attacherVehicle = attacherVehicle
+				attachableInfo.attacherVehicleJointDescIndex = attacherVehicleJointDescIndex
+				attachableInfo.attachable = attachable
+				attachableInfo.attachableJointDescIndex = attachableJointDescIndex
+				attachableInfo.warning = warning
+				return attacherVehicle, attacherVehicleJointDescIndex, attachable, attachableJointDescIndex, warning
 			end
 		end
-	end
-	local v1241_ = #g_currentMission.vehicleSystem.inputAttacherJoints
-	local v1242_ = v1241_ / 5
-	local v1243_ = math.floor(v1242_)
-	local v1244_ = math.max(v1243_, 1)
-	local v1245_ = v1231_.lastInputAttacherCheckIndex % v1241_ + 1
-	local v1246_ = v1245_ + v1244_
-	local v1247_ = math.min(v1246_, v1241_)
-	if fullUpdate then
-		v1247_ = v1241_
-		v1245_ = 1
-	end
-	v1231_.lastInputAttacherCheckIndex = v1247_ % v1241_
-	for v1248_ = 1, #v1231_.attacherJoints do
-		local v1249_ = v1231_.attacherJoints[v1248_]
-		if v1249_.jointIndex == 0 and vehicle:getIsAttachingAllowed(v1249_) then
-			local v1250_, v1251_, v1252_ = getWorldTranslation(v1249_.jointTransform)
-			for v1253_ = v1245_, v1247_ do
-				local v1254_ = g_currentMission.vehicleSystem.inputAttacherJoints[v1253_]
-				if v1254_.jointType == v1249_.jointType and v1254_.vehicle:getIsInputAttacherActive(v1254_.inputAttacherJoint) then
-					local v1255_ = MathUtil.vector2LengthSq(v1250_ - v1254_.translation[1], v1252_ - v1254_.translation[3])
-					if v1255_ < maxDistanceSq and v1255_ < v1233_.minDistance then
-						local v1256_ = v1251_ - v1254_.translation[2]
-						local v1257_ = v1256_ * v1256_
-						if v1257_ < maxDistanceSq * 4 and (v1257_ < v1233_.minDistanceY and (v1254_.vehicle:getActiveInputAttacherJointDescIndex() == nil or v1254_.vehicle:getAllowMultipleAttachments())) then
-							local v1258_, v1259_ = v_u_1226_(vehicle, v1249_, v1254_.vehicle, v1254_.inputAttacherJoint)
-							if v1258_ then
-								local v1260_ = v1254_.inputAttacherJoint.attachAngleLimitAxis
-								local v1261_
-								if v1260_ == 1 then
-									local v1262_, _, _ = localDirectionToLocal(v1254_.node, v1249_.jointTransform, 1, 0, 0)
-									v1261_ = maxAngle < v1262_
-								elseif v1260_ == 2 then
-									local _, v1263_, _ = localDirectionToLocal(v1254_.node, v1249_.jointTransform, 0, 1, 0)
-									v1261_ = maxAngle < v1263_
+		local numJoints = #g_currentMission.vehicleSystem.inputAttacherJoints
+		local minUpdateJoints = math.max(math.floor(numJoints / 5), 1)
+		local firstJoint = spec.lastInputAttacherCheckIndex % numJoints + 1
+		local lastJoint = math.min(firstJoint + minUpdateJoints, numJoints)
+		if fullUpdate then
+			firstJoint = 1
+			lastJoint = numJoints
+		end
+		spec.lastInputAttacherCheckIndex = lastJoint % numJoints
+		for attacherJointIndex = 1, #spec.attacherJoints do
+			local attacherJoint = spec.attacherJoints[attacherJointIndex]
+			if attacherJoint.jointIndex == 0 and vehicle:getIsAttachingAllowed(attacherJoint) then
+				local x, y, z = getWorldTranslation(attacherJoint.jointTransform)
+				for i = firstJoint, lastJoint do
+					local jointInfo = g_currentMission.vehicleSystem.inputAttacherJoints[i]
+					if jointInfo.jointType == attacherJoint.jointType and jointInfo.vehicle:getIsInputAttacherActive(jointInfo.inputAttacherJoint) then
+						local distSq = MathUtil.vector2LengthSq(x - jointInfo.translation[1], z - jointInfo.translation[3])
+						if distSq < maxDistanceSq and distSq < pendingInfo.minDistance then
+							local distY = y - jointInfo.translation[2]
+							local distSqY = distY * distY
+							if distSqY < maxDistanceSq * 4 and (distSqY < pendingInfo.minDistanceY and (jointInfo.vehicle:getActiveInputAttacherJointDescIndex() == nil or jointInfo.vehicle:getAllowMultipleAttachments())) then
+								local compatibility, notAllowedWarning = getAttacherJointCompatibility(vehicle, attacherJoint, jointInfo.vehicle, jointInfo.inputAttacherJoint)
+								if compatibility then
+									local angleInRange = nil
+									local attachAngleLimitAxis = jointInfo.inputAttacherJoint.attachAngleLimitAxis
+									if attachAngleLimitAxis == 1 then
+										local dx, _, _ = localDirectionToLocal(jointInfo.node, attacherJoint.jointTransform, 1, 0, 0)
+										angleInRange = maxAngle < dx
+									elseif attachAngleLimitAxis == 2 then
+										local _, dy, _ = localDirectionToLocal(jointInfo.node, attacherJoint.jointTransform, 0, 1, 0)
+										angleInRange = maxAngle < dy
+									else
+										local _, _, dz = localDirectionToLocal(jointInfo.node, attacherJoint.jointTransform, 0, 0, 1)
+										angleInRange = maxAngle < dz
+									end
+									if angleInRange then
+										pendingInfo.minDistance = distSq
+										pendingInfo.minDistanceY = distSqY
+										pendingInfo.attacherVehicle = vehicle
+										pendingInfo.attacherVehicleJointDescIndex = attacherJointIndex
+										pendingInfo.attachable = jointInfo.vehicle
+										pendingInfo.attachableJointDescIndex = jointInfo.jointIndex
+									end
 								else
-									local _, _, v1264_ = localDirectionToLocal(v1254_.node, v1249_.jointTransform, 0, 0, 1)
-									v1261_ = maxAngle < v1264_
+									pendingInfo.warning = pendingInfo.warning or notAllowedWarning
 								end
-								if v1261_ then
-									v1233_.minDistance = v1255_
-									v1233_.minDistanceY = v1257_
-									v1233_.attacherVehicle = vehicle
-									v1233_.attacherVehicleJointDescIndex = v1248_
-									v1233_.attachable = v1254_.vehicle
-									v1233_.attachableJointDescIndex = v1254_.jointIndex
-								end
-							else
-								v1233_.warning = v1233_.warning or v1259_
 							end
 						end
 					end
 				end
 			end
 		end
+		if spec.lastInputAttacherCheckIndex == 0 or numJoints == 0 then
+			attachableInfo.attacherVehicle = pendingInfo.attacherVehicle
+			attachableInfo.attacherVehicleJointDescIndex = pendingInfo.attacherVehicleJointDescIndex
+			attachableInfo.attachable = pendingInfo.attachable
+			attachableInfo.attachableJointDescIndex = pendingInfo.attachableJointDescIndex
+			attachableInfo.warning = pendingInfo.warning
+			pendingInfo.minDistance = math.huge
+			pendingInfo.minDistanceY = math.huge
+			pendingInfo.attacherVehicle = nil
+			pendingInfo.attacherVehicleJointDescIndex = nil
+			pendingInfo.attachable = nil
+			pendingInfo.attachableJointDescIndex = nil
+			pendingInfo.warning = nil
+		end
+		return attachableInfo.attacherVehicle, attachableInfo.attacherVehicleJointDescIndex, attachableInfo.attachable, attachableInfo.attachableJointDescIndex, attachableInfo.warning
+	else
+		return nil, nil, nil, nil
 	end
-	if v1231_.lastInputAttacherCheckIndex == 0 or v1241_ == 0 then
-		v1232_.attacherVehicle = v1233_.attacherVehicle
-		v1232_.attacherVehicleJointDescIndex = v1233_.attacherVehicleJointDescIndex
-		v1232_.attachable = v1233_.attachable
-		v1232_.attachableJointDescIndex = v1233_.attachableJointDescIndex
-		v1232_.warning = v1233_.warning
-		v1233_.minDistance = math.huge
-		v1233_.minDistanceY = math.huge
-		v1233_.attacherVehicle = nil
-		v1233_.attacherVehicleJointDescIndex = nil
-		v1233_.attachable = nil
-		v1233_.attachableJointDescIndex = nil
-		v1233_.warning = nil
-	end
-	return v1232_.attacherVehicle, v1232_.attacherVehicleJointDescIndex, v1232_.attachable, v1232_.attachableJointDescIndex, v1232_.warning
 end
-
--- Local values: info, attachAllowed, warning, object, detachAllowed, warning, showWarning
 function AttacherJoints:actionEventAttach(actionName, inputValue, callbackState, isAnalog)
-	local v1266_ = self.spec_attacherJoints.attachableInfo
-	if v1266_.attachable == nil then
-		local v1267_ = self:getSelectedVehicle()
-		if v1267_ ~= nil and (v1267_ ~= self and v1267_.isDetachAllowed ~= nil) then
-			local v1268_, v1269_, v1270_ = v1267_:isDetachAllowed()
-			if v1268_ then
-				v1267_:startDetachProcess()
+	local info = self.spec_attacherJoints.attachableInfo
+	if info.attachable ~= nil then
+		local attachAllowed, warning = info.attachable:isAttachAllowed(self:getActiveFarm(), info.attacherVehicle)
+		if attachAllowed then
+			if self.isServer then
+				self:attachImplementFromInfo(info)
+				return
+			else
+				g_client:getServerConnection():sendEvent(VehicleAttachRequestEvent.new(info))
 				return
 			end
-			if v1270_ == nil or v1270_ then
-				g_currentMission:showBlinkingWarning(v1269_ or self.spec_attacherJoints.texts.detachNotAllowed, 2000)
-			end
+		end
+		if warning ~= nil then
+			g_currentMission:showBlinkingWarning(warning, 2000)
 		end
 	else
-		local v1271_, v1272_ = v1266_.attachable:isAttachAllowed(self:getActiveFarm(), v1266_.attacherVehicle)
-		if v1271_ then
-			if self.isServer then
-				self:attachImplementFromInfo(v1266_)
-			else
-				g_client:getServerConnection():sendEvent(VehicleAttachRequestEvent.new(v1266_))
+		local object = self:getSelectedVehicle()
+		if object ~= nil and (object ~= self and object.isDetachAllowed ~= nil) then
+			local detachAllowed, warning, showWarning = object:isDetachAllowed()
+			if detachAllowed then
+				object:startDetachProcess()
+				return
+			end
+			if showWarning == nil or showWarning then
+				g_currentMission:showBlinkingWarning(warning or self.spec_attacherJoints.texts.detachNotAllowed, 2000)
 			end
 		end
-		if v1272_ ~= nil then
-			g_currentMission:showBlinkingWarning(v1272_, 2000)
-			return
-		end
 	end
 end
-
--- Local values: object, detachAllowed, warning, showWarning
 function AttacherJoints:actionEventDetach(actionName, inputValue, callbackState, isAnalog)
-	local v1274_ = self:getSelectedVehicle()
-	if v1274_ ~= nil and (v1274_ ~= self and v1274_.isDetachAllowed ~= nil) then
-		local v1275_, v1276_, v1277_ = v1274_:isDetachAllowed()
-		if v1275_ then
-			v1274_:startDetachProcess()
+	local object = self:getSelectedVehicle()
+	if object ~= nil and (object ~= self and object.isDetachAllowed ~= nil) then
+		local detachAllowed, warning, showWarning = object:isDetachAllowed()
+		if detachAllowed then
+			object:startDetachProcess()
 			return
 		end
-		if v1277_ == nil or v1277_ then
-			g_currentMission:showBlinkingWarning(v1276_ or self.spec_attacherJoints.texts.detachNotAllowed, 2000)
+		if showWarning == nil or showWarning then
+			g_currentMission:showBlinkingWarning(warning or self.spec_attacherJoints.texts.detachNotAllowed, 2000)
 		end
 	end
 end
-
 function AttacherJoints:actionEventLowerImplement(actionName, inputValue, callbackState, isAnalog)
 	if self.getAttacherVehicle ~= nil then
 		self:getAttacherVehicle():handleLowerImplementEvent()
 	end
 end
-
 function AttacherJoints:actionEventLowerAllImplements(actionName, inputValue, callbackState, isAnalog)
 	self:startAttacherJointCombo(true)
 	self.rootVehicle:raiseStateChange(VehicleStateChange.LOWER_ALL_IMPLEMENTS)
 end
-
--- Local values: spec, info, attachActionEvent, visible, text, prio, selectedVehicle, lowerActionEvent, showLower, text, selectedImplement, _, attachedImplement, attachedImplement
 function AttacherJoints:updateActionEvents()
-	local v1281_ = self.spec_attacherJoints
-	local v1282_ = v1281_.attachableInfo
-	if self.isClient and v1281_.actionEvents ~= nil then
-		local v1283_ = v1281_.actionEvents[InputAction.ATTACH]
-		if v1283_ ~= nil then
-			local v1284_ = false
+	local spec = self.spec_attacherJoints
+	local info = spec.attachableInfo
+	if self.isClient and spec.actionEvents ~= nil then
+		local attachActionEvent = spec.actionEvents[InputAction.ATTACH]
+		if attachActionEvent ~= nil then
+			local visible = false
 			if self:getCanToggleAttach() then
-				if v1282_.warning ~= nil then
-					g_currentMission:showBlinkingWarning(v1282_.warning, 500)
+				if info.warning ~= nil then
+					g_currentMission:showBlinkingWarning(info.warning, 500)
 				end
-				local v1285_ = GS_PRIO_VERY_LOW
-				local v1286_ = self:getSelectedVehicle()
-				local v1287_
-				if v1286_ == nil or (v1286_.isDeleted or (v1286_.isDetachAllowed == nil or (not v1286_:isDetachAllowed() or v1286_:getAttacherVehicle() == nil))) then
-					v1287_ = ""
-				else
-					v1287_ = v1281_.texts.actionDetach
-					v1284_ = true
+				local text = ""
+				local prio = GS_PRIO_VERY_LOW
+				local selectedVehicle = self:getSelectedVehicle()
+				if selectedVehicle ~= nil and (not selectedVehicle.isDeleted and (selectedVehicle.isDetachAllowed ~= nil and (selectedVehicle:isDetachAllowed() and selectedVehicle:getAttacherVehicle() ~= nil))) then
+					visible = true
+					text = spec.texts.actionDetach
 				end
-				if v1282_.attacherVehicle ~= nil then
-					if g_currentMission.accessHandler:canFarmAccess(self:getActiveFarm(), v1282_.attachable) then
-						v1287_ = v1281_.texts.actionAttach
-						g_currentMission:showAttachContext(v1282_.attachable)
-						v1285_ = GS_PRIO_VERY_HIGH
-						v1284_ = true
+				if info.attacherVehicle ~= nil then
+					if g_currentMission.accessHandler:canFarmAccess(self:getActiveFarm(), info.attachable) then
+						visible = true
+						text = spec.texts.actionAttach
+						g_currentMission:showAttachContext(info.attachable)
+						prio = GS_PRIO_VERY_HIGH
 					else
-						v1281_.showAttachNotAllowedText = 100
+						spec.showAttachNotAllowedText = 100
 					end
 				end
-				g_inputBinding:setActionEventText(v1283_.actionEventId, v1287_)
-				g_inputBinding:setActionEventTextPriority(v1283_.actionEventId, v1285_)
+				g_inputBinding:setActionEventText(attachActionEvent.actionEventId, text)
+				g_inputBinding:setActionEventTextPriority(attachActionEvent.actionEventId, prio)
 			end
-			g_inputBinding:setActionEventTextVisibility(v1283_.actionEventId, v1284_)
+			g_inputBinding:setActionEventTextVisibility(attachActionEvent.actionEventId, visible)
 		end
-		local v1288_ = v1281_.actionEvents[InputAction.LOWER_IMPLEMENT]
-		if v1288_ ~= nil then
-			local v1289_ = false
-			local v1290_ = ""
-			local v1291_ = self:getSelectedImplement()
-			if v1291_ == nil then
-				if #v1281_.attachedImplements == 1 then
-					v1289_, v1290_ = v1281_.attachedImplements[1].object:getLoweringActionEventState()
-				end
-			else
-				for _, v1292_ in pairs(v1281_.attachedImplements) do
-					if v1292_ == v1291_ then
-						v1289_, v1290_ = v1292_.object:getLoweringActionEventState()
-						break
+		local lowerActionEvent = spec.actionEvents[InputAction.LOWER_IMPLEMENT]
+		if lowerActionEvent ~= nil then
+			local showLower = false
+			local text = ""
+			local selectedImplement = self:getSelectedImplement()
+			if selectedImplement ~= nil then
+				for _, attachedImplement in pairs(spec.attachedImplements) do
+					if attachedImplement == selectedImplement then
+						showLower, text = attachedImplement.object:getLoweringActionEventState()
+						g_inputBinding:setActionEventActive(lowerActionEvent.actionEventId, showLower)
+						g_inputBinding:setActionEventText(lowerActionEvent.actionEventId, text)
+						g_inputBinding:setActionEventTextPriority(lowerActionEvent.actionEventId, GS_PRIO_NORMAL)
+						return
 					end
 				end
+			elseif #spec.attachedImplements == 1 then
+				local attachedImplement = spec.attachedImplements[1]
+				showLower, text = attachedImplement.object:getLoweringActionEventState()
 			end
-			g_inputBinding:setActionEventActive(v1288_.actionEventId, v1289_)
-			g_inputBinding:setActionEventText(v1288_.actionEventId, v1290_)
-			g_inputBinding:setActionEventTextPriority(v1288_.actionEventId, GS_PRIO_NORMAL)
 		end
 	end
 end
-
--- Local values: lowerRotLimit, upperRotLimit, upperTransLimit, lowerTransLimit, rotLimit, transLimit
 function AttacherJoints.updateAttacherJointLimits(implement, attacherJointDesc, inputAttacherJointDesc, axis)
-	local v1297_ = attacherJointDesc.lowerRotLimit[axis] * inputAttacherJointDesc.lowerRotLimitScale[axis]
-	local v1298_ = attacherJointDesc.upperRotLimit[axis] * inputAttacherJointDesc.upperRotLimitScale[axis]
+	local lowerRotLimit = attacherJointDesc.lowerRotLimit[axis] * inputAttacherJointDesc.lowerRotLimitScale[axis]
+	local upperRotLimit = attacherJointDesc.upperRotLimit[axis] * inputAttacherJointDesc.upperRotLimitScale[axis]
 	if inputAttacherJointDesc.fixedRotation then
-		v1297_ = 0
-		v1298_ = 0
+		lowerRotLimit = 0
+		upperRotLimit = 0
 	end
-	local v1299_ = attacherJointDesc.lowerTransLimit[axis] * inputAttacherJointDesc.lowerTransLimitScale[axis]
-	local v1300_ = attacherJointDesc.upperTransLimit[axis] * inputAttacherJointDesc.upperTransLimitScale[axis]
-	implement.lowerRotLimit[axis] = v1297_
-	implement.upperRotLimit[axis] = v1298_
-	implement.lowerTransLimit[axis] = v1299_
-	implement.upperTransLimit[axis] = v1300_
+	local upperTransLimit = attacherJointDesc.lowerTransLimit[axis] * inputAttacherJointDesc.lowerTransLimitScale[axis]
+	local lowerTransLimit = attacherJointDesc.upperTransLimit[axis] * inputAttacherJointDesc.upperTransLimitScale[axis]
+	implement.lowerRotLimit[axis] = lowerRotLimit
+	implement.upperRotLimit[axis] = upperRotLimit
+	implement.lowerTransLimit[axis] = upperTransLimit
+	implement.upperTransLimit[axis] = lowerTransLimit
 	if not attacherJointDesc.allowsLowering then
-		implement.upperRotLimit[axis] = v1297_
-		implement.upperTransLimit[axis] = v1299_
+		implement.upperRotLimit[axis] = lowerRotLimit
+		implement.upperTransLimit[axis] = upperTransLimit
 	end
+	local rotLimit = lowerRotLimit
+	local transLimit = upperTransLimit
 	if attacherJointDesc.allowsLowering and attacherJointDesc.allowsJointLimitMovement then
 		if inputAttacherJointDesc.allowsJointRotLimitMovement then
-			v1297_ = MathUtil.lerp(v1298_, v1297_, attacherJointDesc.moveAlpha)
+			rotLimit = MathUtil.lerp(upperRotLimit, lowerRotLimit, attacherJointDesc.moveAlpha)
 		end
 		if inputAttacherJointDesc.allowsJointTransLimitMovement then
-			v1299_ = MathUtil.lerp(v1300_, v1299_, attacherJointDesc.moveAlpha)
+			transLimit = MathUtil.lerp(lowerTransLimit, upperTransLimit, attacherJointDesc.moveAlpha)
 		end
 	end
-	return v1297_, v1299_
+	return rotLimit, transLimit
 end
-
--- Local values: newRotLimit, rotLimitDown, rotLimitUp, rotLimit
 function AttacherJoints.updateAttacherJointRotationLimit(implement, attacherJointDesc, axis, force, alpha)
-	local v1306_ = MathUtil.lerp
-	local v1307_ = implement.attachingRotLimit[axis]
-	local v1308_ = implement.upperRotLimit[axis]
-	local v1309_ = math.max(v1307_, v1308_)
-	local v1310_ = implement.attachingRotLimit[axis]
-	local v1311_ = implement.lowerRotLimit[axis]
-	local v1312_ = v1306_(v1309_, math.max(v1310_, v1311_), alpha)
-	if not force then
-		local v1313_ = v1312_ - implement.jointRotLimit[axis]
-		if math.abs(v1313_) <= 0.0005 then
-			::l3::
-			return
+	local newRotLimit = MathUtil.lerp(math.max(implement.attachingRotLimit[axis], implement.upperRotLimit[axis]), math.max(implement.attachingRotLimit[axis], implement.lowerRotLimit[axis]), alpha)
+	if force or 0.0005 < math.abs(newRotLimit - implement.jointRotLimit[axis]) then
+		local rotLimitDown = -newRotLimit
+		local rotLimitUp = newRotLimit
+		if axis == 3 then
+			if attacherJointDesc.lockDownRotLimit then
+				rotLimitDown = math.min(-implement.attachingRotLimit[axis], 0)
+			end
+			if attacherJointDesc.lockUpRotLimit then
+				rotLimitUp = math.max(implement.attachingRotLimit[axis], 0)
+			end
+			if attacherJointDesc.dynamicLowerRotLimit and attacherJointDesc.rotationNode ~= nil then
+				local rotLimit = math.abs(attacherJointDesc.upperRotation[1] - attacherJointDesc.lowerRotation[1]) * alpha
+				rotLimitUp = rotLimit
+				rotLimitDown = 0
+			end
 		end
+		setJointRotationLimit(attacherJointDesc.jointIndex, axis - 1, true, rotLimitDown, rotLimitUp)
+		implement.jointRotLimit[axis] = newRotLimit
 	end
-	local v1314_ = -v1312_
-	local v1315_
-	if axis == 3 then
-		if attacherJointDesc.lockDownRotLimit then
-			local v1316_ = -implement.attachingRotLimit[axis]
-			v1314_ = math.min(v1316_, 0)
-		end
-		if attacherJointDesc.lockUpRotLimit then
-			local v1317_ = implement.attachingRotLimit[axis]
-			v1315_ = math.max(v1317_, 0)
-		else
-			v1315_ = v1312_
-		end
-		if attacherJointDesc.dynamicLowerRotLimit and attacherJointDesc.rotationNode ~= nil then
-			local v1318_ = attacherJointDesc.upperRotation[1] - attacherJointDesc.lowerRotation[1]
-			v1315_ = math.abs(v1318_) * alpha
-			v1314_ = 0
-		end
-	else
-		v1315_ = v1312_
-	end
-	setJointRotationLimit(attacherJointDesc.jointIndex, axis - 1, true, v1314_, v1315_)
-	implement.jointRotLimit[axis] = v1312_
-	goto l3
 end
-
--- Local values: newTransLimit, transLimitDown, transLimitUp
 function AttacherJoints.updateAttacherJointTranslationLimit(implement, attacherJointDesc, axis, force, alpha)
-	local v1324_ = MathUtil.lerp
-	local v1325_ = implement.attachingTransLimit[axis]
-	local v1326_ = implement.upperTransLimit[axis]
-	local v1327_ = math.max(v1325_, v1326_)
-	local v1328_ = implement.attachingTransLimit[axis]
-	local v1329_ = implement.lowerTransLimit[axis]
-	local v1330_ = v1324_(v1327_, math.max(v1328_, v1329_), alpha)
-	if force then
-		::l2::
-		local v1331_ = -v1330_
-		local v1332_
+	local newTransLimit = MathUtil.lerp(math.max(implement.attachingTransLimit[axis], implement.upperTransLimit[axis]), math.max(implement.attachingTransLimit[axis], implement.lowerTransLimit[axis]), alpha)
+	if force or 0.0005 < math.abs(newTransLimit - implement.jointTransLimit[axis]) then
+		local transLimitDown = -newTransLimit
+		local transLimitUp = newTransLimit
 		if axis == 2 then
 			if attacherJointDesc.lockDownTransLimit then
-				local v1333_ = -implement.attachingTransLimit[axis]
-				v1331_ = math.min(v1333_, 0)
+				transLimitDown = math.min(-implement.attachingTransLimit[axis], 0)
 			end
 			if attacherJointDesc.lockUpTransLimit then
-				local v1334_ = implement.attachingTransLimit[axis]
-				v1332_ = math.max(v1334_, 0)
-			else
-				v1332_ = v1330_
+				transLimitUp = math.max(implement.attachingTransLimit[axis], 0)
 			end
-		else
-			v1332_ = v1330_
 		end
-		setJointTranslationLimit(attacherJointDesc.jointIndex, axis - 1, true, v1331_, v1332_)
-		implement.jointTransLimit[axis] = v1330_
-	else
-		local v1335_ = v1330_ - implement.jointTransLimit[axis]
-		if math.abs(v1335_) > 0.0005 then
-			goto l2
-		end
+		setJointTranslationLimit(attacherJointDesc.jointIndex, axis - 1, true, transLimitDown, transLimitUp)
+		implement.jointTransLimit[axis] = newTransLimit
 	end
 end
-
--- Local values: spec, requiresTopLights, i, implement, attacherJoint, implementJoint
 function AttacherJoints:updateRequiredTopLightsState()
-	local v1337_ = self.spec_attacherJoints
-	local v1338_ = false
-	for _, v1339_ in ipairs(v1337_.attachedImplements) do
-		local v1340_ = v1337_.attacherJoints[v1339_.jointDescIndex]
-		local v1341_ = v1339_.object:getActiveInputAttacherJoint()
-		if v1340_.useTopLights and v1341_.useTopLights then
-			v1338_ = true
+	local spec = self.spec_attacherJoints
+	local requiresTopLights = false
+	for i, implement in ipairs(spec.attachedImplements) do
+		local attacherJoint = spec.attacherJoints[implement.jointDescIndex]
+		local implementJoint = implement.object:getActiveInputAttacherJoint()
+		if attacherJoint.useTopLights and implementJoint.useTopLights then
+			requiresTopLights = true
 			break
 		end
 	end
-	SpecializationUtil.raiseEvent(self, "onRequiresTopLightsChanged", v1338_)
+	SpecializationUtil.raiseEvent(self, "onRequiresTopLightsChanged", requiresTopLights)
 end
-
--- Local values: i, vehicle, spec, jointDescIndex, _
 function AttacherJoints.consoleCommandBottomArmWidth(_, category, width)
-	local v1344_
-	if width == nil then
-		v1344_ = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[tonumber(category) or 2]
+	if width ~= nil then
+		width = tonumber(width) or AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[2]
 	else
-		v1344_ = tonumber(width) or AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[2]
+		width = AttacherJoints.LOWER_LINK_WIDTH_BY_CATEGORY[tonumber(category) or 2]
 	end
-	Logging.info("Set bottom arm width to %.3f m. (Category %d)", v1344_, AttacherJoints.getClosestLowerLinkCategoryIndex(v1344_))
+	Logging.info("Set bottom arm width to %.3f m. (Category %d)", width, AttacherJoints.getClosestLowerLinkCategoryIndex(width))
 	if g_currentMission ~= nil and g_localPlayer:getCurrentVehicle() ~= nil then
-		for _, v1345_ in ipairs(g_localPlayer:getCurrentVehicle().childVehicles) do
-			local v1346_ = v1345_.spec_attacherJoints
-			if v1346_ ~= nil then
-				for v1347_, _ in ipairs(v1346_.attacherJoints) do
-					v1345_:setAttacherJointBottomArmWidth(v1347_, v1344_)
-				end
+		for i, vehicle in ipairs(g_localPlayer:getCurrentVehicle().childVehicles) do
+			local spec = vehicle.spec_attacherJoints
+			if spec == nil then
+				continue
+			end
+			for jointDescIndex, _ in ipairs(spec.attacherJoints) do
+				vehicle:setAttacherJointBottomArmWidth(jointDescIndex, width)
 			end
 		end
 	end

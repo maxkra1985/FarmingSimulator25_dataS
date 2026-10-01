@@ -1,96 +1,80 @@
--- Local values: ModHubDownloadDialog_mt
 ModHubDownloadDialog = {}
 local ModHubDownloadDialog_mt = Class(ModHubDownloadDialog, MessageDialog)
 function ModHubDownloadDialog.register()
-	local v2_ = ModHubDownloadDialog.new()
-	g_gui:loadGui("dataS/gui/dialogs/ModHubDownloadDialog.xml", "ModHubDownloadDialog", v2_)
-	ModHubDownloadDialog.INSTANCE = v2_
+	local modHubDownloadDialog = ModHubDownloadDialog.new()
+	g_gui:loadGui("dataS/gui/dialogs/ModHubDownloadDialog.xml", "ModHubDownloadDialog", modHubDownloadDialog)
+	ModHubDownloadDialog.INSTANCE = modHubDownloadDialog
 end
-
--- Local values: dialog
 function ModHubDownloadDialog.show(downloads)
 	if ModHubDownloadDialog.INSTANCE ~= nil then
-		local _ = ModHubDownloadDialog.INSTANCE
+		local dialog = ModHubDownloadDialog.INSTANCE
 		g_gui:showDialog("ModHubDownloadDialog")
 	end
 end
-
--- Upvalues: ModHubDownloadDialog_mt
--- Local values: self
 function ModHubDownloadDialog.new(target, custom_mt)
-	-- upvalues: (copy) ModHubDownloadDialog_mt
-	local v5_ = MessageDialog.new(target, custom_mt or ModHubDownloadDialog_mt)
-	v5_.activeDownloads = nil
-	v5_.updateTime = 200
-	v5_.disableOpenSound = true
-	return v5_
+	local self = MessageDialog.new(target, custom_mt or ModHubDownloadDialog_mt)
+	self.activeDownloads = nil
+	self.updateTime = 200
+	self.disableOpenSound = true
+	return self
 end
-
 function ModHubDownloadDialog.createFromExistingGui(gui, guiName)
 	ModHubDownloadDialog.register()
 	ModHubDownloadDialog.show()
 end
-
 function ModHubDownloadDialog:onOpen()
 	ModHubDownloadDialog:superClass().onOpen(self)
 	self:updateActiveDownloads()
 end
-
--- Local values: category, categoryId
 function ModHubDownloadDialog:updateActiveDownloads()
-	local v8_ = g_modHubController:getCategory("download")
+	local category = g_modHubController:getCategory("download")
 	self.activeDownloads = {}
-	if v8_ ~= nil then
-		local v9_ = v8_.id
-		self.activeDownloads = g_modHubController:getModsByCategory(v9_, true)
+	if category ~= nil then
+		local categoryId = category.id
+		self.activeDownloads = g_modHubController:getModsByCategory(categoryId, true)
 	end
 	self.downloadList:reloadData()
 end
-
--- Local values: isDownloading, isInstalled, isDownload, isFailed, percent, downloadedKBText, downloaded, fileSize, fileSizeKB, fileSizeMB, downloadedKB, downloadedMB, fileSizeText, downloadedText, statusBar, minSize
 function ModHubDownloadDialog:updateDownloadCell(cell, modInfo)
-	local v12_ = modInfo:getIsDownloading()
-	local v13_ = modInfo:getIsInstalled()
-	local v14_ = modInfo:getIsDownload()
-	local v15_ = modInfo:getIsFailed()
-	local v16_ = 0
-	local v17_ = ""
-	if v12_ or v14_ then
-		local v18_ = modInfo:getDownloadedBytes()
-		local v19_ = modInfo:getFilesize()
-		local v20_ = v19_ / 1024
-		local v21_ = v20_ / 1024
-		local v22_ = v18_ / 1024
-		local v23_ = v22_ / 1024
-		local v24_
-		if v21_ < 1 then
-			v24_ = string.format("%d KB", v20_)
+	local isDownloading = modInfo:getIsDownloading()
+	local isInstalled = modInfo:getIsInstalled()
+	local isDownload = modInfo:getIsDownload()
+	local isFailed = modInfo:getIsFailed()
+	local percent = 0
+	local downloadedKBText = ""
+	if isDownloading or isDownload then
+		local downloaded = modInfo:getDownloadedBytes()
+		local fileSize = modInfo:getFilesize()
+		local fileSizeKB = fileSize / 1024
+		local fileSizeMB = fileSizeKB / 1024
+		local downloadedKB = downloaded / 1024
+		local downloadedMB = downloadedKB / 1024
+		local fileSizeText = nil
+		if fileSizeMB < 1 then
+			fileSizeText = string.format("%d KB", fileSizeKB)
 		else
-			v24_ = string.format("%d MB", v21_)
+			fileSizeText = string.format("%d MB", fileSizeMB)
 		end
-		local v25_
-		if v23_ < 1 then
-			v25_ = string.format("%d KB", v22_)
+		local downloadedText = nil
+		if downloadedMB < 1 then
+			downloadedText = string.format("%d KB", downloadedKB)
 		else
-			v25_ = string.format("%d MB", v23_)
+			downloadedText = string.format("%d MB", downloadedMB)
 		end
-		v17_ = string.format("( %s / %s )", v25_, v24_)
-		if v19_ ~= 0 then
-			local v26_ = v18_ / v19_
-			v16_ = math.clamp(v26_, 0, 1) or v16_
+		downloadedKBText = string.format("( %s / %s )", downloadedText, fileSizeText)
+		percent = fileSize ~= 0 and math.clamp(downloaded / fileSize, 0, 1) or percent
+	else
+		if isInstalled then
+			percent = 1
 		end
-	elseif v13_ then
-		v16_ = 1
 	end
-	local v27_ = cell:getAttribute("statusBar")
-	local v28_ = v27_.startSize[1] + v27_.endSize[1]
-	local v29_ = v27_.parent.size[1] * v16_ + g_pixelSizeX
-	v27_:setSize(math.max(v29_, v28_), nil)
-	cell:getAttribute("percentage"):setText(v17_ .. " " .. g_i18n:formatNumber(v16_ * 100, 0) .. "%")
-	v27_.parent:setVisible(not v15_)
-	cell:getAttribute("failed"):setVisible(v15_)
+	local statusBar = cell:getAttribute("statusBar")
+	local minSize = statusBar.startSize[1] + statusBar.endSize[1]
+	statusBar:setSize(math.max(statusBar.parent.size[1] * percent + g_pixelSizeX, minSize), nil)
+	cell:getAttribute("percentage"):setText(downloadedKBText .. " " .. g_i18n:formatNumber(percent * 100, 0) .. "%")
+	statusBar.parent:setVisible(not isFailed)
+	cell:getAttribute("failed"):setVisible(isFailed)
 end
-
 function ModHubDownloadDialog:update(dt)
 	ModHubDownloadDialog:superClass().update(self, dt)
 	self.updateTime = self.updateTime - dt
@@ -99,17 +83,14 @@ function ModHubDownloadDialog:update(dt)
 		self.updateTime = 200
 	end
 end
-
 function ModHubDownloadDialog:getNumberOfItemsInSection(list, section)
 	return #self.activeDownloads
 end
-
--- Local values: modInfo, iconElement
 function ModHubDownloadDialog:populateCellForItemInSection(list, section, index, cell)
-	local v36_ = self.activeDownloads[index]
-	local v37_ = cell:getAttribute("icon")
-	v37_:setIsWebOverlay(not v36_:getIsIconLocal())
-	v37_:setImageFilename(v36_:getIconFilename())
-	cell:getAttribute("name"):setText(v36_:getName())
-	self:updateDownloadCell(cell, v36_)
+	local modInfo = self.activeDownloads[index]
+	local iconElement = cell:getAttribute("icon")
+	iconElement:setIsWebOverlay(not modInfo:getIsIconLocal())
+	iconElement:setImageFilename(modInfo:getIconFilename())
+	cell:getAttribute("name"):setText(modInfo:getName())
+	self:updateDownloadCell(cell, modInfo)
 end

@@ -1,5 +1,4 @@
 Utils = {}
-
 function Utils.getNoNil(value, setTo)
 	if value == nil then
 		return setTo
@@ -7,7 +6,6 @@ function Utils.getNoNil(value, setTo)
 		return value
 	end
 end
-
 function Utils.getNoNilRad(valueDeg, defaultRad)
 	if valueDeg == nil then
 		return defaultRad
@@ -15,419 +13,462 @@ function Utils.getNoNilRad(valueDeg, defaultRad)
 		return math.rad(valueDeg)
 	end
 end
-
--- Local values: replaceTextWidth, indexOfFirstCharacter, indexOfLastCharacter, totalWidth
 function Utils.limitTextToWidth(text, textSize, width, trimFront, trimReplaceText)
-	local v10_ = getTextWidth(textSize, trimReplaceText)
-	local v11_ = 1
-	local v12_ = utf8Strlen(text)
-	if width >= 0 then
-		local v13_ = getTextWidth(textSize, text)
-		if width < v13_ then
+	local replaceTextWidth = getTextWidth(textSize, trimReplaceText)
+	local indexOfFirstCharacter = 1
+	local indexOfLastCharacter = utf8Strlen(text)
+	if 0 <= width then
+		local totalWidth = getTextWidth(textSize, text)
+		if width < totalWidth then
 			if trimFront then
-				v11_ = getTextLineLength(textSize, text, v13_ - width + v10_)
-				text = trimReplaceText .. utf8Substr(text, v11_)
+				indexOfFirstCharacter = getTextLineLength(textSize, text, totalWidth - width + replaceTextWidth)
+				text = trimReplaceText .. utf8Substr(text, indexOfFirstCharacter)
 			else
-				v12_ = getTextLineLength(textSize, text, width - v10_)
-				text = utf8Substr(text, 0, v12_) .. trimReplaceText
+				indexOfLastCharacter = getTextLineLength(textSize, text, width - replaceTextWidth)
+				text = utf8Substr(text, 0, indexOfLastCharacter) .. trimReplaceText
 			end
 		end
 	end
-	return text, v11_, v12_
+	return text, indexOfFirstCharacter, indexOfLastCharacter
 end
-
--- Local values: limitF, limitF2
 function Utils.getMovedLimitedValue(curVal, maxVal, minVal, speed, dt, inverted)
-	local v20_ = math.min
-	local v21_ = math.max
+	local limitF = math.min
+	local limitF2 = math.max
 	if inverted then
-		local v22_ = minVal
 		minVal = maxVal
-		maxVal = v22_
+		maxVal = minVal
 	end
 	if maxVal < minVal then
-		v20_ = math.max
-		v21_ = math.min
+		limitF = math.max
+		limitF2 = math.min
 	elseif maxVal == minVal then
 		return minVal
 	end
-	return v21_(v20_(curVal + (maxVal - minVal) / speed * dt, maxVal), minVal)
+	return limitF2(limitF(curVal + (maxVal - minVal) / speed * dt, maxVal), minVal)
 end
-
--- Local values: ret, i
 function Utils.getMovedLimitedValues(currentValues, maxValues, minValues, numValues, speed, dt, inverted)
-	local v30_ = table.create(numValues)
-	for v31_ = 1, numValues do
-		v30_[v31_] = Utils.getMovedLimitedValue(currentValues[v31_], maxValues[v31_], minValues[v31_], speed, dt, inverted)
+	local ret = table.create(numValues)
+	for i = 1, numValues do
+		ret[i] = Utils.getMovedLimitedValue(currentValues[i], maxValues[i], minValues[i], speed, dt, inverted)
 	end
-	return v30_
+	return ret
 end
-
--- Local values: changed, i, newValue
 function Utils.setMovedLimitedValues(values, maxValues, minValues, numValues, speed, dt, inverted)
-	local v39_ = false
-	for v40_ = 1, numValues do
-		local v41_ = Utils.getMovedLimitedValue(values[v40_], maxValues[v40_], minValues[v40_], speed, dt, inverted)
-		if v41_ ~= values[v40_] then
-			values[v40_] = v41_
-			v39_ = true
+	local changed = false
+	for i = 1, numValues do
+		local newValue = Utils.getMovedLimitedValue(values[i], maxValues[i], minValues[i], speed, dt, inverted)
+		if newValue == values[i] then
+			continue
 		end
+		changed = true
+		values[i] = newValue
 	end
-	return v39_
+	return changed
 end
-
--- Local values: isMod, isDlc, dlcsDirectoryIndex, filenameLower, modsDirLen, modsDirLower, internalModsDirLen, i, dlcDirectory, dlcsDir, dlcsDirLen
 function Utils.removeModDirectory(filename)
-	local v43_ = false
-	local v44_ = false
-	local v45_ = 0
+	local isMod = false
+	local isDlc = false
+	local dlcsDirectoryIndex = 0
 	if filename == nil then
 		printCallstack()
 	end
-	local v46_ = string.lower(filename)
+	local filenameLower = string.lower(filename)
 	if g_modsDirectory then
-		local v47_ = g_modsDirectory:len()
-		if string.lower(g_modsDirectory) == v46_:sub(1, v47_) then
-			filename = filename:sub(v47_ + 1)
-			v43_ = true
+		local modsDirLen = g_modsDirectory:len()
+		local modsDirLower = string.lower(g_modsDirectory)
+		if filenameLower:sub(1, modsDirLen) == modsDirLower then
+			filename = filename:sub(modsDirLen + 1)
+			isMod = true
 		end
-		if not (v43_ or string.isNilOrWhitespace(g_internalModsDirectory)) then
-			local v48_ = g_internalModsDirectory:len()
-			if v46_:sub(1, v48_) == string.lower(g_internalModsDirectory) then
-				filename = filename:sub(v48_ + 1)
-				v43_ = true
+		if not isMod and not string.isNilOrWhitespace(g_internalModsDirectory) then
+			local internalModsDirLen = g_internalModsDirectory:len()
+			if filenameLower:sub(1, internalModsDirLen) == string.lower(g_internalModsDirectory) then
+				filename = filename:sub(internalModsDirLen + 1)
+				isMod = true
 			end
 		end
 	end
-	if not v43_ and g_dlcsDirectories ~= nil then
-		for v49_, v50_ in ipairs(g_dlcsDirectories) do
-			local v51_ = string.lower(v50_.path)
-			local v52_ = v51_:len()
-			if v46_:sub(1, v52_) == v51_ then
-				return filename:sub(v52_ + 1), v43_, true, v49_
+	if not isMod and g_dlcsDirectories ~= nil then
+		for i, dlcDirectory in ipairs(g_dlcsDirectories) do
+			local dlcsDir = string.lower(dlcDirectory.path)
+			local dlcsDirLen = dlcsDir:len()
+			if filenameLower:sub(1, dlcsDirLen) == dlcsDir then
+				filename = filename:sub(dlcsDirLen + 1)
+				dlcsDirectoryIndex = i
+				isDlc = true
+				return filename, isMod, isDlc, dlcsDirectoryIndex
 			end
 		end
 	end
-	return filename, v43_, v44_, v45_
+	return filename, isMod, isDlc, dlcsDirectoryIndex
 end
-
--- Local values: uniqueId, i, md5
 function Utils.getUniqueId(value, mappingTable, prefix, md5Length)
-	if type(md5Length) ~= "number" or (md5Length <= 0 or md5Length >= 32) then
+	if type(md5Length) ~= "number" or md5Length <= 0 or 32 <= md5Length then
 		md5Length = nil
 	end
-	local v57_ = 0
-	local v58_ = prefix or ""
+	prefix = prefix or ""
+	local uniqueId = nil
+	local i = 0
 	while true do
-		local v59_ = getMD5
-		local v60_ = tostring(value)
-		local v61_ = getTime
-		local v62_ = v59_(v60_ .. tostring(v61_()) .. tostring(v57_))
-		local v63_
+		local md5 = getMD5(tostring(value) .. tostring(getTime()) .. tostring(i))
 		if md5Length == nil then
-			v63_ = v58_ .. v62_
-		else
-			v63_ = v58_ .. string.sub(v62_, 1, md5Length)
+			break
 		end
-		v57_ = v57_ + 1
-		if mappingTable == nil or mappingTable[v63_] == nil then
-			return v63_
+		uniqueId = prefix .. string.sub(md5, 1, md5Length)
+		i = i + 1
+		if mappingTable ~= nil and mappingTable[uniqueId] ~= nil then
+			continue
 		end
+		return uniqueId
 	end
+	uniqueId = prefix .. md5
 end
-
--- Local values: modName, baseDirectory, modFilename, isMod, isDlc, dlcsDirectoryIndex, f, l
 function Utils.getModNameAndBaseDirectory(filename)
-	local v65_ = nil
-	local v66_ = ""
-	local v67_, v68_, v69_, v70_ = Utils.removeModDirectory(filename)
-	if v68_ or v69_ then
-		local v71_, v72_ = v67_:find("/")
-		if v71_ ~= nil and (v72_ ~= nil and v71_ > 1) then
-			v65_ = v67_:sub(1, v71_ - 1)
-			if v69_ then
-				v66_ = g_dlcsDirectories[v70_].path .. v65_ .. "/"
-				if g_dlcModNameHasPrefix[v65_] then
-					return g_uniqueDlcNamePrefix .. v65_, v66_
+	local modName = nil
+	local baseDirectory = ""
+	local modFilename, isMod, isDlc, dlcsDirectoryIndex = Utils.removeModDirectory(filename)
+	if isMod or isDlc then
+		local f, l = modFilename:find("/")
+		if f ~= nil and (l ~= nil and 1 < f) then
+			modName = modFilename:sub(1, f - 1)
+			if isDlc then
+				baseDirectory = g_dlcsDirectories[dlcsDirectoryIndex].path .. modName .. "/"
+				if g_dlcModNameHasPrefix[modName] then
+					modName = g_uniqueDlcNamePrefix .. modName
+					return modName, baseDirectory
 				end
 			else
-				v66_ = g_modNameToDirectory[v65_] or g_modsDirectory .. v65_ .. "/"
+				baseDirectory = g_modNameToDirectory[modName] or g_modsDirectory .. modName .. "/"
 			end
 		end
 	end
-	return v65_, v66_
+	return modName, baseDirectory
 end
-
--- Local values: vx, vy, vz, x, _, z, length, steeringAngle
 function Utils.getVersatileRotation(repr, componentNode, dt, posX, posY, posZ, currentAngle, minAngle, maxAngle)
-	local v82_, v83_, v84_ = getVelocityAtLocalPos(componentNode, posX, posY, posZ)
-	local v85_, _, v86_ = worldDirectionToLocal(getParent(repr), v82_, v83_, v84_)
-	local v87_ = MathUtil.vector2Length(v85_, v86_)
-	local v88_
-	if v87_ > 0.15 then
-		local v89_ = v85_ / v87_
-		local v90_ = v86_ / v87_
-		v88_ = math.atan2(v89_, v90_)
-		if v88_ < -1.5707963267948966 then
-			v88_ = v88_ + 6.283185307179586
+	local vx, vy, vz = getVelocityAtLocalPos(componentNode, posX, posY, posZ)
+	local x, _, z = worldDirectionToLocal(getParent(repr), vx, vy, vz)
+	local length = MathUtil.vector2Length(x, z)
+	local steeringAngle = currentAngle
+	if 0.15 < length then
+		steeringAngle = math.atan2(x / length, z / length)
+		if steeringAngle < -1.5707963267948966 then
+			steeringAngle = steeringAngle + 6.283185307179586
 		end
-	else
-		v88_ = currentAngle
 	end
-	if minAngle == nil or (minAngle == 0 or (maxAngle == nil or maxAngle == 0)) then
-		minAngle = v88_
-	elseif maxAngle < v88_ then
-		minAngle = maxAngle
-	elseif v88_ >= minAngle then
-		minAngle = v88_
+	if minAngle ~= nil and (minAngle ~= 0 and (maxAngle ~= nil and maxAngle ~= 0)) then
+		if maxAngle < steeringAngle then
+			steeringAngle = maxAngle
+		elseif steeringAngle < minAngle then
+			steeringAngle = minAngle
+		end
 	end
-	local v91_ = MathUtil.normalizeRotationForShortestPath(minAngle, currentAngle)
-	if currentAngle < v91_ then
-		local v92_ = currentAngle + 0.003 * dt
-		return math.min(v92_, v91_)
+	steeringAngle = MathUtil.normalizeRotationForShortestPath(steeringAngle, currentAngle)
+	if currentAngle < steeringAngle then
+		steeringAngle = math.min(currentAngle + 0.003 * dt, steeringAngle)
+		return steeringAngle
 	else
-		local v93_ = currentAngle - 0.003 * dt
-		return math.max(v93_, v91_)
+		steeringAngle = math.max(currentAngle - 0.003 * dt, steeringAngle)
+		return steeringAngle
 	end
 end
-
--- Local values: dirX1, dirZ1, dirX2, dirZ2, wDirX1, _, wDirZ1, wDirX2, _, wDirZ2, dir, angle
 function Utils.getYRotationBetweenNodes(node1, node2, offset1, offset2, wrapRotation)
-	local v99_ = 0
-	local v100_ = 1
-	local v101_, v102_
-	if offset1 == nil or offset1 == 0 then
-		v101_ = 0
-		v102_ = 1
-	else
-		v101_, v102_ = MathUtil.getDirectionFromYRotation(offset1)
+	local dirX1 = 0
+	local dirZ1 = 1
+	local dirX2 = 0
+	local dirZ2 = 1
+	if offset1 ~= nil and offset1 ~= 0 then
+		dirX1, dirZ1 = MathUtil.getDirectionFromYRotation(offset1)
 	end
 	if offset2 ~= nil and offset2 ~= 0 then
-		v99_, v100_ = MathUtil.getDirectionFromYRotation(offset2)
+		dirX2, dirZ2 = MathUtil.getDirectionFromYRotation(offset2)
 	end
-	local v103_, _, v104_ = localDirectionToWorld(node1, v101_, 0, v102_)
-	local v105_, _, v106_ = localDirectionToWorld(node2, v99_, 0, v100_)
-	local v107_, _, v108_ = worldDirectionToLocal(node1, v103_, 0, v104_)
-	local v109_, _, v110_ = worldDirectionToLocal(node1, v105_, 0, v106_)
-	local v111_ = 1
-	if v107_ - v109_ > 0 then
-		v111_ = -v111_
+	local wDirX1, _, wDirZ1 = localDirectionToWorld(node1, dirX1, 0, dirZ1)
+	local wDirX2, _, wDirZ2 = localDirectionToWorld(node2, dirX2, 0, dirZ2)
+	wDirX1, _, wDirZ1 = worldDirectionToLocal(node1, wDirX1, 0, wDirZ1)
+	wDirX2, _, wDirZ2 = worldDirectionToLocal(node1, wDirX2, 0, wDirZ2)
+	local dir = 1
+	if 0 < wDirX1 - wDirX2 then
+		dir = -dir
 	end
-	local v112_ = MathUtil.getVectorAngleDifference(v107_, 0, v108_, v109_, 0, v110_)
-	if wrapRotation ~= false and math.abs(v112_) > 1.5707963267948966 then
-		v112_ = -(3.141592653589793 - v112_)
+	local angle = MathUtil.getVectorAngleDifference(wDirX1, 0, wDirZ1, wDirX2, 0, wDirZ2)
+	if wrapRotation ~= false and 1.5707963267948966 < math.abs(angle) then
+		angle = -(3.141592653589793 - angle)
 	end
-	return v112_ * v111_
+	return angle * dir
 end
-
--- Local values: currentProfileIndex
 function Utils.getPerformanceClassIndex(profileClass)
-	local v114_ = string.lower(profileClass)
-	local v115_ = GS_PROFILE_LOW
-	if v114_ == "very low" then
-		return GS_PROFILE_VERY_LOW
+	profileClass = string.lower(profileClass)
+	local currentProfileIndex = GS_PROFILE_LOW
+	if profileClass == "very low" then
+		currentProfileIndex = GS_PROFILE_VERY_LOW
+		return currentProfileIndex
+	elseif profileClass == "low" then
+		currentProfileIndex = GS_PROFILE_LOW
+		return currentProfileIndex
+	elseif profileClass == "medium" then
+		currentProfileIndex = GS_PROFILE_MEDIUM
+		return currentProfileIndex
+	elseif profileClass == "high" then
+		currentProfileIndex = GS_PROFILE_HIGH
+		return currentProfileIndex
+	elseif profileClass == "very high" then
+		currentProfileIndex = GS_PROFILE_VERY_HIGH
+		return currentProfileIndex
+	elseif profileClass == "ultra" then
+		currentProfileIndex = GS_PROFILE_ULTRA
+		return currentProfileIndex
+	else
+		print("ERROR: performanceClass '" .. profileClass .. "' not recognized; using LOW")
+		return currentProfileIndex
 	end
-	if v114_ == "low" then
-		return GS_PROFILE_LOW
-	end
-	if v114_ == "medium" then
-		return GS_PROFILE_MEDIUM
-	end
-	if v114_ == "high" then
-		return GS_PROFILE_HIGH
-	end
-	if v114_ == "very high" then
-		return GS_PROFILE_VERY_HIGH
-	end
-	if v114_ == "ultra" then
-		return GS_PROFILE_ULTRA
-	end
-	print("ERROR: performanceClass \'" .. v114_ .. "\' not recognized; using LOW")
-	return v115_
 end
-
--- Local values: currentProfileClass
 function Utils.getPerformanceClassFromIndex(profileClassIndex)
-	return profileClassIndex == GS_PROFILE_VERY_LOW and "Very Low" or (profileClassIndex == GS_PROFILE_MEDIUM and "Medium" or (profileClassIndex == GS_PROFILE_HIGH and "High" or (profileClassIndex == GS_PROFILE_VERY_HIGH and "Very High" or (profileClassIndex == GS_PROFILE_ULTRA and "Ultra" or "Low"))))
+	local currentProfileClass = "Low"
+	if profileClassIndex == GS_PROFILE_VERY_LOW then
+		currentProfileClass = "Very Low"
+		return currentProfileClass
+	elseif profileClassIndex == GS_PROFILE_MEDIUM then
+		currentProfileClass = "Medium"
+		return currentProfileClass
+	elseif profileClassIndex == GS_PROFILE_HIGH then
+		currentProfileClass = "High"
+		return currentProfileClass
+	elseif profileClassIndex == GS_PROFILE_VERY_HIGH then
+		currentProfileClass = "Very High"
+		return currentProfileClass
+	else
+		if profileClassIndex == GS_PROFILE_ULTRA then
+			currentProfileClass = "Ultra"
+		end
+		return currentProfileClass
+	end
 end
 function Utils.getPerformanceClassId()
 	return Utils.getPerformanceClassIndex(getPerformanceClass())
 end
-
--- Local values: state, i
 function Utils.getStateFromValues(values, steps, value)
-	local v120_ = #values
-	for v121_ = 1, #values do
-		if value <= values[v121_] + steps * 0.5 then
-			return v121_
+	local state = #values
+	for i = 1, #values do
+		if value <= values[i] + steps * 0.5 then
+			state = i
+			return state
 		end
 	end
-	return v120_
+	return state
 end
-
--- Local values: index, threshold, k, val
 function Utils.getValueIndex(targetValue, values)
-	local v124_ = 1
-	for v125_, v126_ in pairs(values) do
-		if targetValue < v126_ - 0.0001 then
+	local index = 1
+	local threshold = 0.0001
+	for k, val in pairs(values) do
+		if targetValue < val - 0.0001 then
 			break
 		end
-		v124_ = v125_
+		index = k
 	end
-	return v124_
+	return index
 end
 function Utils.getNumTimeScales()
-	local v127_ = #Platform.gameplay.timeScaleSettings
+	local timeScaleSettings = Platform.gameplay.timeScaleSettings
+	local numSettings = #timeScaleSettings
 	if g_addTestCommands then
-		v127_ = v127_ + #Platform.gameplay.timeScaleDevSettings
+		local timeScaleDevSettings = Platform.gameplay.timeScaleDevSettings
+		numSettings = numSettings + #timeScaleDevSettings
 	end
-	return v127_
+	return numSettings
 end
-
--- Local values: timeScaleSettings, speed
 function Utils.getTimeScaleString(timeScaleIndex)
-	local v129_ = Platform.gameplay.timeScaleSettings
-	local v130_ = Utils.getTimeScaleFromIndex(timeScaleIndex)
-	if v130_ == 1 then
+	local timeScaleSettings = Platform.gameplay.timeScaleSettings
+	local speed = Utils.getTimeScaleFromIndex(timeScaleIndex)
+	if speed == 1 then
 		return g_i18n:getText("ui_realTime")
-	elseif #v129_ < timeScaleIndex then
-		return string.format("%dx (dev only)", v130_)
-	elseif v130_ < 1 then
-		return string.format("%0.2fx", v130_)
+	elseif #timeScaleSettings < timeScaleIndex then
+		return string.format("%dx (dev only)", speed)
+	elseif speed < 1 then
+		return string.format("%0.2fx", speed)
 	else
-		return string.format("%dx", v130_)
+		return string.format("%dx", speed)
 	end
 end
-
--- Local values: timeScaleSettings, timeScaleDevSettings, i, i
 function Utils.getTimeScaleIndex(timeScale)
-	local v132_ = Platform.gameplay.timeScaleSettings
+	local timeScaleSettings = Platform.gameplay.timeScaleSettings
 	if g_addTestCommands then
-		local v133_ = Platform.gameplay.timeScaleDevSettings
-		for v134_ = #v133_, 1, -1 do
-			if v133_[v134_] <= timeScale then
-				return v134_ + #v132_
+		local timeScaleDevSettings = Platform.gameplay.timeScaleDevSettings
+		for i = #timeScaleDevSettings, 1, -1 do
+			if timeScaleDevSettings[i] <= timeScale then
+				return i + #timeScaleSettings
 			end
 		end
 	end
-	for v135_ = #v132_, 1, -1 do
-		if v132_[v135_] <= timeScale then
-			return v135_
+	for i = #timeScaleSettings, 1, -1 do
+		if timeScaleSettings[i] <= timeScale then
+			return i
 		end
 	end
 	return 3
 end
-
--- Local values: timeScaleSettings, timeScaleDevSettings
 function Utils.getTimeScaleFromIndex(timeScaleIndex)
-	local v137_ = Platform.gameplay.timeScaleSettings
-	local v138_ = math.max(timeScaleIndex, 1)
-	if g_addTestCommands and #v137_ < v138_ then
-		return Platform.gameplay.timeScaleDevSettings[v138_ - #v137_]
-	else
-		return v137_[v138_]
+	local timeScaleSettings = Platform.gameplay.timeScaleSettings
+	timeScaleIndex = math.max(timeScaleIndex, 1)
+	if g_addTestCommands and #timeScaleSettings < timeScaleIndex then
+		local timeScaleDevSettings = Platform.gameplay.timeScaleDevSettings
+		return timeScaleDevSettings[timeScaleIndex - #timeScaleSettings]
 	end
+	return timeScaleSettings[timeScaleIndex]
 end
-
--- Local values: masterVolumeIndex
 function Utils.getMasterVolumeIndex(masterVolume)
-	local v140_ = masterVolume + 0.01
-	return v140_ >= 1 and 11 or (v140_ >= 0.9 and 10 or (v140_ >= 0.8 and 9 or (v140_ >= 0.7 and 8 or (v140_ >= 0.6 and 7 or (v140_ >= 0.5 and 6 or (v140_ >= 0.4 and 5 or (v140_ >= 0.3 and 4 or (v140_ >= 0.2 and 3 or (v140_ >= 0.1 and 2 or 1)))))))))
-end
-
-function Utils.getMasterVolumeFromIndex(masterVolumeIndex)
-	return (masterVolumeIndex < 1 or masterVolumeIndex > 10) and 1 or (masterVolumeIndex - 1) * 0.1
-end
-
--- Local values: uiScaleIndex, currentScale
-function Utils.getUIScaleIndex(uiScale)
-	local v143_ = uiScale + 0.01
-	local v144_ = 0.55
-	local v145_ = 1
-	while v144_ < v143_ do
-		v145_ = v145_ + 1
-		v144_ = v144_ + 0.05
+	masterVolume = masterVolume + 0.01
+	local masterVolumeIndex = 1
+	if 1 <= masterVolume then
+		masterVolumeIndex = 11
+		return masterVolumeIndex
+	elseif 0.9 <= masterVolume then
+		masterVolumeIndex = 10
+		return masterVolumeIndex
+	elseif 0.8 <= masterVolume then
+		masterVolumeIndex = 9
+		return masterVolumeIndex
+	elseif 0.7 <= masterVolume then
+		masterVolumeIndex = 8
+		return masterVolumeIndex
+	elseif 0.6 <= masterVolume then
+		masterVolumeIndex = 7
+		return masterVolumeIndex
+	elseif 0.5 <= masterVolume then
+		masterVolumeIndex = 6
+		return masterVolumeIndex
+	elseif 0.4 <= masterVolume then
+		masterVolumeIndex = 5
+		return masterVolumeIndex
+	elseif 0.3 <= masterVolume then
+		masterVolumeIndex = 4
+		return masterVolumeIndex
+	elseif 0.2 <= masterVolume then
+		masterVolumeIndex = 3
+		return masterVolumeIndex
+	else
+		if 0.1 <= masterVolume then
+			masterVolumeIndex = 2
+		end
+		return masterVolumeIndex
 	end
-	return v145_
 end
-
+function Utils.getMasterVolumeFromIndex(masterVolumeIndex)
+	if 1 <= masterVolumeIndex and masterVolumeIndex <= 10 then
+		return (masterVolumeIndex - 1) * 0.1
+	end
+	return 1
+end
+function Utils.getUIScaleIndex(uiScale)
+	uiScale = uiScale + 0.01
+	local uiScaleIndex = 1
+	local currentScale = 0.55
+	while currentScale < uiScale do
+		uiScaleIndex = uiScaleIndex + 1
+		currentScale = currentScale + 0.05
+	end
+	return uiScaleIndex
+end
 function Utils.getUIScaleFromIndex(uiScaleIndex)
-	return uiScaleIndex < 1 and 1 or (uiScaleIndex - 1) * 0.05 + 0.5
+	if 1 <= uiScaleIndex then
+		return (uiScaleIndex - 1) * 0.05 + 0.5
+	else
+		return 1
+	end
 end
-
 function Utils.getRecordingVolumeIndex(volume)
-	local v148_ = volume + 0.01
-	return v148_ >= 1.5 and 12 or (v148_ >= 1.4 and 11 or (v148_ >= 1.3 and 10 or (v148_ >= 1.2 and 9 or (v148_ >= 1.1 and 8 or (v148_ >= 1 and 7 or (v148_ >= 0.9 and 6 or (v148_ >= 0.8 and 5 or (v148_ >= 0.7 and 4 or (v148_ >= 0.6 and 3 or (v148_ > 0 and 2 or 1))))))))))
+	volume = volume + 0.01
+	if 1.5 <= volume then
+		return 12
+	elseif 1.4 <= volume then
+		return 11
+	elseif 1.3 <= volume then
+		return 10
+	elseif 1.2 <= volume then
+		return 9
+	elseif 1.1 <= volume then
+		return 8
+	elseif 1 <= volume then
+		return 7
+	elseif 0.9 <= volume then
+		return 6
+	elseif 0.8 <= volume then
+		return 5
+	elseif 0.7 <= volume then
+		return 4
+	elseif 0.6 <= volume then
+		return 3
+	elseif 0 < volume then
+		return 2
+	else
+		return 1
+	end
 end
-
 function Utils.getRecordingVolumeFromIndex(index)
-	return index == 1 and -1 or (index - 2) * 0.1 + 0.5
+	if index == 1 then
+		return -1
+	else
+		return (index - 2) * 0.1 + 0.5
+	end
 end
-
 function Utils.getFilename(filename, baseDir)
 	if filename == nil then
 		return nil
-	elseif type(filename) == "string" then
-		if string.find(filename, "\\", nil, true) then
-			Logging.warning("backslash in filepath %q. This is not compatible with consoles", filename)
-			printCallstack()
-			filename = string.gsub(filename, "\\", "/")
-		end
-		if filename:sub(1, 1) == "$" then
-			return g_gameBasePath .. filename:sub(2), false
-		elseif baseDir == nil or baseDir == "" then
-			return filename, false
-		elseif filename == "" then
-			return filename, true
-		else
-			return baseDir .. filename, true
-		end
-	else
+	end
+	if type(filename) ~= "string" then
 		Logging.warning("Invalid type for filename in Utils.getFilename")
 		printCallstack()
 		return nil
 	end
-end
-
--- Local values: elems
-function Utils.getFilenameFromPath(path)
-	local v153_ = path:gsub("\\", "/"):split("/")
-	return v153_[#v153_]
-end
-
--- Local values: elems
-function Utils.getDirectory(filePath)
-	local v155_ = filePath:gsub("\\", "/")
-	local v156_ = v155_:split("/")
-	if #v156_ > 0 then
-		return table.concat(v156_, "/", 1, #v156_ - 1) .. "/"
+	if string.find(filename, "\\", nil, true) then
+		Logging.warning("backslash in filepath %q. This is not compatible with consoles", filename)
+		printCallstack()
+		filename = string.gsub(filename, "\\", "/")
+	end
+	if filename:sub(1, 1) == "$" then
+		return g_gameBasePath .. filename:sub(2), false
+	end
+	if baseDir == nil or baseDir == "" then
+		return filename, false
+	end
+	if filename == "" then
+		return filename, true
 	else
-		return v155_
+		return baseDir .. filename, true
 	end
 end
-
--- Local values: elems
-function Utils.getDirectoryName(directoryPath)
-	local v158_ = directoryPath:gsub("\\", "/")
-	if not string.endsWith(v158_, "/") then
-		v158_ = v158_ .. "/"
+function Utils.getFilenameFromPath(path)
+	path = path:gsub("\\", "/")
+	local elems = path:split("/")
+	return elems[#elems]
+end
+function Utils.getDirectory(filePath)
+	filePath = filePath:gsub("\\", "/")
+	local elems = filePath:split("/")
+	if 0 < #elems then
+		return table.concat(elems, "/", 1, #elems - 1) .. "/"
+	else
+		return filePath
 	end
-	local v159_ = v158_:split("/")
-	if #v159_ > 1 then
-		return v159_[#v159_ - 1]
+end
+function Utils.getDirectoryName(directoryPath)
+	directoryPath = directoryPath:gsub("\\", "/")
+	if not string.endsWith(directoryPath, "/") then
+		directoryPath = directoryPath .. "/"
+	end
+	local elems = directoryPath:split("/")
+	if 1 < #elems then
+		return elems[#elems - 1]
 	else
 		return nil
 	end
 end
-
--- Local values: formatIdentifier
 function Utils.resolveRelativePath(path)
 	while true do
-		local v161_ = string.match(path, "/[%a%d_]+/%.%./")
-		if v161_ == nil then
+		local formatIdentifier = string.match(path, "/[%a%d_]+/%.%./")
+		if formatIdentifier == nil then
 			break
 		end
-		path = string.gsub(path, v161_, "/")
+		path = string.gsub(path, formatIdentifier, "/")
 	end
 	if string.contains(path, "%.%./") then
 		return nil
@@ -435,401 +476,348 @@ function Utils.resolveRelativePath(path)
 		return path
 	end
 end
-
 function Utils.getPathIsValid(path)
 	if string.contains(path, "\\") and not string.startsWith(path, "\\\\?/GLOBALROOT/") then
 		return false, "backslashes"
-	else
-		return true
 	end
+	return true
 end
-
 function Utils.getMaxJointForceLimit(forceLimit1, forceLimit2)
-	return (forceLimit1 < 0 or forceLimit2 < 0) and -1 or math.max(forceLimit1, forceLimit2)
+	if forceLimit1 < 0 or forceLimit2 < 0 then
+		return -1
+	end
+	return math.max(forceLimit1, forceLimit2)
 end
-
 function Utils.appendedFunction(oldFunc, newFunc)
-	return oldFunc ~= nil and function(...)
-		-- upvalues: (copy) oldFunc, (copy) newFunc
-		oldFunc(...)
-		newFunc(...)
-	end or newFunc
-end
-
-function Utils.prependedFunction(oldFunc, newFunc)
-	return oldFunc ~= nil and function(...)
-		-- upvalues: (copy) newFunc, (copy) oldFunc
-		newFunc(...)
-		oldFunc(...)
-	end or newFunc
-end
-
-function Utils.overwrittenFunction(oldFunc, newFunc)
-	return oldFunc == nil and function(p171_, ...)
-		-- upvalues: (copy) newFunc
-		return newFunc(p171_, nil, ...)
-	end or function(p172_, ...)
-		-- upvalues: (copy) newFunc, (copy) oldFunc
-		return newFunc(p172_, oldFunc, ...)
-	end
-end
-
--- Local values: n, k
-function Utils.shuffle(t)
-	local v174_ = #t
-	while v174_ > 2 do
-		local v175_ = math.random(v174_)
-		local v176_ = t[v175_]
-		local v177_ = t[v174_]
-		t[v174_] = v176_
-		t[v175_] = v177_
-		v174_ = v174_ - 1
-	end
-end
-
--- Local values: cleanFilename, pos, _, extension, lastSlash
-function Utils.getFilenameInfo(filename, excludePath)
-	local v180_, _, v181_ = string.find(filename, "([^.]*)$")
-	if v180_ == 1 then
-		v181_ = nil
+	if oldFunc ~= nil then
+		return function(...)
+			oldFunc(...)
+			newFunc(...)
+		end
 	else
-		local v182_ = v180_ - 2
-		filename = string.sub(filename, 1, v182_)
+		return newFunc
+	end
+end
+function Utils.prependedFunction(oldFunc, newFunc)
+	if oldFunc ~= nil then
+		return function(...)
+			newFunc(...)
+			oldFunc(...)
+		end
+	else
+		return newFunc
+	end
+end
+function Utils.overwrittenFunction(oldFunc, newFunc)
+	if oldFunc ~= nil then
+		return function(...)
+			return newFunc(self, oldFunc, ...)
+		end
+	else
+		return function(...)
+			return newFunc(self, nil, ...)
+		end
+	end
+end
+function Utils.shuffle(t)
+	local n = #t
+	while 2 < n do
+		local k = math.random(n)
+		t[n] = t[k]
+		t[k] = t[n]
+		n = n - 1
+	end
+end
+function Utils.getFilenameInfo(filename, excludePath)
+	local cleanFilename = filename
+	local pos, _, extension = string.find(filename, "([^.]*)$")
+	if pos == 1 then
+		extension = nil
+	else
+		cleanFilename = string.sub(filename, 1, pos - 2)
 		if excludePath ~= nil and excludePath then
-			local v183_ = filename:find("/[^/]*$")
-			if v183_ ~= nil then
-				local v184_ = v183_ + 1
-				filename = string.sub(filename, v184_)
+			local lastSlash = cleanFilename:find("/[^/]*$")
+			if lastSlash ~= nil then
+				cleanFilename = string.sub(cleanFilename, lastSlash + 1)
 			end
 		end
 	end
-	return filename, v181_
+	return cleanFilename, extension
 end
-
--- Local values: boolValue
 function Utils.stringToBoolean(booleanString)
-	local v186_
-	if booleanString == nil then
-		v186_ = false
-	else
-		v186_ = string.lower(booleanString) == "true"
-	end
-	return v186_
+	local boolValue = booleanString ~= nil and string.lower(booleanString) == "true"
+	return boolValue
 end
-
 function Utils.parseConsoleParameter(str)
 	if str == nil then
 		return nil
-	elseif str == "nil" then
-		return nil
-	else
+	elseif str ~= "nil" then
 		return str
+	else
+		return nil
 	end
 end
-
--- Local values: sepPos, hours, minutes
 function Utils.getMinuteOfDayFromTime(value)
 	if value ~= nil then
-		local v189_ = string.find(value, ":")
-		if v189_ ~= nil then
-			local v190_ = v189_ - 1
-			local v191_ = string.sub(value, 0, v190_)
-			local v192_ = tonumber(v191_)
-			local v193_ = v189_ + 1
-			local v194_ = string.sub(value, v193_)
-			local v195_ = tonumber(v194_)
-			if v192_ ~= nil and (v195_ ~= nil and (v192_ <= 24 and v195_ < 60)) then
-				return v192_ * 60 + v195_
+		local sepPos = string.find(value, ":")
+		if sepPos ~= nil then
+			local hours = tonumber(string.sub(value, 0, sepPos - 1))
+			local minutes = tonumber(string.sub(value, sepPos + 1))
+			if hours ~= nil and (minutes ~= nil and (hours <= 24 and minutes < 60)) then
+				return hours * 60 + minutes
 			end
 		end
 	end
 	return nil
 end
-
--- Local values: timeHoursF, timeHours, timeMinutes
 function Utils.formatTime(timeInMinutes)
-	local v197_ = timeInMinutes / 60 + 0.0001
-	local v198_ = math.floor(v197_)
-	local v199_ = (v197_ - v198_) * 60
-	local v200_ = math.floor(v199_)
-	return string.format("%02d:%02d", v198_, v200_)
+	local timeHoursF = timeInMinutes / 60 + 0.0001
+	local timeHours = math.floor(timeHoursF)
+	local timeMinutes = math.floor((timeHoursF - timeHours) * 60)
+	return string.format("%02d:%02d", timeHours, timeMinutes)
 end
-
--- Local values: i, text, align, w
 function Utils.renderMultiColumnText(x, y, textSize, texts, spacingX, aligns)
-	for v207_, v208_ in ipairs(texts) do
-		local v209_ = aligns ~= nil and aligns[v207_] or RenderText.ALIGN_LEFT
-		setTextAlignment(v209_)
-		local v210_ = getTextWidth(textSize, v208_)
-		if v209_ == RenderText.ALIGN_RIGHT then
-			renderText(x + v210_, y, textSize, v208_)
-		elseif v209_ == RenderText.ALIGN_CENTER then
-			renderText(x + v210_ * 0.5, y, textSize, v208_)
+	for i, text in ipairs(texts) do
+		local align = aligns ~= nil and aligns[i] or RenderText.ALIGN_LEFT
+		setTextAlignment(align)
+		local w = getTextWidth(textSize, text)
+		if align == RenderText.ALIGN_RIGHT then
+			renderText(x + w, y, textSize, text)
+		elseif align == RenderText.ALIGN_CENTER then
+			renderText(x + w * 0.5, y, textSize, text)
 		else
-			renderText(x, y, textSize, v208_)
+			renderText(x, y, textSize, text)
 		end
-		x = x + v210_ + spacingX
+		x = x + w + spacingX
 	end
 	setTextAlignment(RenderText.ALIGN_LEFT)
 end
 function Utils.getCoinToss()
-	return math.random() >= 0.5
+	return 0.5 <= math.random()
 end
-
--- Local values: u, v, q, p, x1, x2, sigma
 function Utils.getNormallyDistributedRandomVariables(mean, sigmaSq)
-	local v213_ = -1
-	local v214_ = nil
-	local v215_ = nil
-	while v213_ >= 1 or v213_ <= 0 do
-		v214_ = -1 + 2 * math.random()
-		v215_ = -1 + 2 * math.random()
-		v213_ = v214_ ^ 2 + v215_ ^ 2
+	local u = nil
+	local v = nil
+	local q = -1
+	while not (1 <= q) do
+		if q <= 0 then
+			break
+		end
+		local p = math.sqrt(-2 * math.log(q) / 1 / q)
+		local x1 = u * p
+		local x2 = v * p
+		local sigma = math.sqrt(sigmaSq)
+		return mean + sigma * x1, mean + sigma * x2
 	end
-	local v216_ = -2 * math.log(v213_) / 1 / v213_
-	local v217_ = math.sqrt(v216_)
-	local v218_ = v214_ * v217_
-	local v219_ = v215_ * v217_
-	local v220_ = math.sqrt(sigmaSq)
-	return mean + v220_ * v218_, mean + v220_ * v219_
+	u = -1 + 2 * math.random()
+	v = -1 + 2 * math.random()
+	q = u ^ 2 + v ^ 2
 end
-
--- Local values: cx, cy, cz, x0, y0, z0, dx, dy, dz, vx, vy, vz, stepT, maxT, t, x, z, y, h
 function Utils.getIntersectionOfLinearMovementAndTerrain(node, speed)
-	local v223_, v224_, v225_ = getWorldTranslation(node)
-	local v226_, v227_, v228_ = localDirectionToWorld(node, 0, -1, 0)
-	local v229_ = v226_ * speed
-	local v230_ = v227_ * speed
-	local v231_ = v228_ * speed
-	local v232_ = 1 / speed
-	local v233_ = 50 / speed
-	local v234_ = nil
-	local v235_ = nil
-	local v236_ = nil
-	for v237_ = 2 * v232_, v233_, v232_ do
-		local v238_ = v223_ + v229_ * v237_
-		local v239_ = v225_ + v231_ * v237_
-		local v240_ = v224_ + v230_ * v237_ - 4.905 * v237_ * v237_
-		local v241_ = getTerrainHeightAtWorldPos(g_terrainNode, v238_, 0, v239_)
-		if v240_ <= v241_ then
-			return v238_, v241_, v239_
+	local cx = nil
+	local cy = nil
+	local cz = nil
+	local x0, y0, z0 = getWorldTranslation(node)
+	local dx, dy, dz = localDirectionToWorld(node, 0, -1, 0)
+	local vx = dx * speed
+	local vy = dy * speed
+	local vz = dz * speed
+	local stepT = 1 / speed
+	local maxT = 50 / speed
+	for t = 2 * stepT, maxT, stepT do
+		local x = x0 + vx * t
+		local z = z0 + vz * t
+		local y = y0 + vy * t - 4.905 * t * t
+		local h = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+		if y <= h then
+			cx = x
+			cy = h
+			cz = z
+			return cx, cy, cz
 		end
 		if VehicleDebug.state == VehicleDebug.DEBUG then
-			drawDebugPoint(v238_, v240_, v239_, 0, 0, 1, 1)
+			drawDebugPoint(x, y, z, 0, 0, 1, 1)
 		end
 	end
-	return v234_, v235_, v236_
+	return cx, cy, cz
 end
-
--- Local values: bitFlag
 function Utils.clearBit(bitMask, bit)
-	local v244_ = 2 ^ bit
-	local v245_ = bit32.bnot(v244_)
-	return bit32.band(bitMask, v245_)
+	local bitFlag = 2 ^ bit
+	return bit32.band(bitMask, bit32.bnot(bitFlag))
 end
-
--- Local values: bitFlag
 function Utils.setBit(bitMask, bit)
-	local v248_ = 2 ^ bit
-	return bit32.bor(bitMask, v248_)
+	local bitFlag = 2 ^ bit
+	return bit32.bor(bitMask, bitFlag)
 end
-
--- Local values: bitFlag
 function Utils.isBitSet(bitMask, bit)
-	local v251_ = 2 ^ bit
-	return bit32.band(bitMask, v251_) ~= 0
+	local bitFlag = 2 ^ bit
+	return bit32.band(bitMask, bitFlag) ~= 0
 end
-function Utils.clearFlags(p252_, ...)
-	local v253_ = bit32.bor(...)
-	local v254_ = bit32.bnot(v253_)
-	return bit32.band(p252_, v254_)
+function Utils.clearFlags(bitMask, ...)
+	return bit32.band(bitMask, bit32.bnot(bit32.bor(...)))
 end
-
--- Local values: sx, sy, sz, textWidth, textHeight
 function Utils.renderTextAtWorldPosition(x, y, z, text, textSize, textOffset, r, g, b, a)
-	local v265_, v266_, v267_ = project(x, y, z)
-	if v265_ > -1 and (v265_ < 2 and (v266_ > -1 and (v266_ < 2 and v267_ <= 1))) then
-		local v268_ = textSize or 0.02
-		local v269_ = getTextWidth(v268_, text)
-		local v270_ = getTextHeight(v268_, text)
-		if v265_ + v269_ < 0 or (v265_ - v269_ > 1 or (v266_ + v270_ < 0 or v266_ - v270_ > 1)) then
+	local sx, sy, sz = project(x, y, z)
+	if -1 < sx and (sx < 2 and (-1 < sy and (sy < 2 and sz <= 1))) then
+		textSize = textSize or 0.02
+		local textWidth = getTextWidth(textSize, text)
+		local textHeight = getTextHeight(textSize, text)
+		if sx + textWidth < 0 or 1 < sx - textWidth or sy + textHeight < 0 or 1 < sy - textHeight then
 			return
 		end
 		if type(r) == "table" then
 			r, g, b, a = unpack(r)
 		end
-		local v271_ = textOffset or 0
-		local v272_ = v266_ + v270_ - v268_
+		textOffset = textOffset or 0
+		sy = sy + textHeight - textSize
+		r = r or 0.5
+		g = g or 1
+		b = b or 0.5
+		a = a or 1
 		setTextAlignment(RenderText.ALIGN_CENTER)
 		setTextBold(false)
 		setTextColor(0, 0, 0, 0.75)
-		renderText(v265_, v272_ - 0.0015 + v271_, v268_, text)
-		setTextColor(r or 0.5, g or 1, b or 0.5, a or 1)
-		renderText(v265_, v272_ + v271_, v268_, text)
+		renderText(sx, sy - 0.0015 + textOffset, textSize, text)
+		setTextColor(r, g, b, a)
+		renderText(sx, sy + textOffset, textSize, text)
 		setTextAlignment(RenderText.ALIGN_LEFT)
 		setTextColor(1, 1, 1, 1)
 	end
 end
-
--- Local values: r, g
 function Utils.getGreenRedBlendedColor(factor)
-	local v274_ = 2 * factor
-	local v275_ = math.min(v274_, 1)
-	local v276_ = 2 * (1 - factor)
-	return v275_, math.min(v276_, 1), 0, 1
+	local r = math.min(2 * factor, 1)
+	local g = math.min(2 * (1 - factor), 1)
+	return r, g, 0, 1
 end
-
--- Local values: textFormatStr, textFormatPrecision, isLeadingNumber, numDigits, i
 function Utils.maskToFormat(textMask)
-	local v278_ = textMask:gsub("%%", "=")
-	local v279_ = 0
-	local v280_ = ""
-	local v281_ = true
-	local v282_ = 0
-	for v283_ = 1, v278_:len() do
-		if v278_:sub(v283_, v283_) == "0" then
-			v279_ = v279_ + 1
+	textMask = textMask:gsub("%%", "=")
+	local textFormatStr = ""
+	local textFormatPrecision = 0
+	local isLeadingNumber = true
+	local numDigits = 0
+	for i = 1, textMask:len() do
+		if textMask:sub(i, i) == "0" then
+			numDigits = numDigits + 1
 		else
-			local v284_
-			if v279_ > 0 then
-				v280_ = v280_ .. string.format(v281_ and "%%%dd" or "%%0%dd", v279_)
-				v284_ = 0
-				v281_ = false
-			else
-				v284_ = v279_
-				v279_ = v282_
+			if 0 < numDigits then
+				textFormatStr = textFormatStr .. string.format(isLeadingNumber and "%%%dd" or "%%0%dd", numDigits)
+				textFormatPrecision = numDigits
+				numDigits = 0
+				isLeadingNumber = false
 			end
-			v280_ = v280_ .. v278_:sub(v283_, v283_)
-			v282_ = v279_
-			v279_ = v284_
+			textFormatStr = textFormatStr .. textMask:sub(i, i)
 		end
 	end
-	if v279_ > 0 then
-		v280_ = v280_ .. string.format(v281_ and "%%%dd" or "%%0%dd", v279_)
-	else
-		v279_ = v282_
+	if 0 < numDigits then
+		textFormatStr = textFormatStr .. string.format(isLeadingNumber and "%%%dd" or "%%0%dd", numDigits)
+		textFormatPrecision = numDigits
 	end
-	return v280_:gsub("=", "%%%%"), v281_ and 0 or v279_
+	textFormatStr = textFormatStr:gsub("=", "%%%%")
+	if isLeadingNumber then
+		textFormatPrecision = 0
+	end
+	return textFormatStr, textFormatPrecision
 end
-
--- Local values: bestMatch, bestMatchLevenshteinDistance, _, str2, levenshteinDistance
 function Utils.getClosestMatchingString(str, listOfStrings, maxDistance, caseSensitive)
-	local v289_ = maxDistance or math.huge
+	maxDistance = maxDistance or math.huge
 	if not caseSensitive then
 		str = utf8ToUpper(str)
 	end
-	local v290_ = math.huge
-	local v291_ = nil
-	for _, v292_ in ipairs(listOfStrings) do
-		local v293_ = getLevenshteinDistance(str, caseSensitive and v292_ and v292_ or utf8ToUpper(v292_))
-		if v293_ < v289_ and v293_ < v290_ then
-			if v293_ == 0 then
-				v290_ = v293_
-				v291_ = v292_
-				break
+	local bestMatch = nil
+	local bestMatchLevenshteinDistance = math.huge
+	for _, str2 in ipairs(listOfStrings) do
+		local levenshteinDistance = getLevenshteinDistance(str, caseSensitive and str2 or utf8ToUpper(str2))
+		if levenshteinDistance < maxDistance and levenshteinDistance < bestMatchLevenshteinDistance then
+			bestMatch = str2
+			bestMatchLevenshteinDistance = levenshteinDistance
+			if levenshteinDistance ~= 0 then
+				continue
 			end
-			v291_ = v292_
-			v290_ = v293_
+			return bestMatch, bestMatchLevenshteinDistance
 		end
 	end
-	return v291_, v290_
 end
-
--- Local values: _, count
 function Utils.getNumOfWords(str)
-	local _, v295_ = string.gsub(str, "(%w+)", "")
-	return v295_
+	local _, count = string.gsub(str, "(%w+)", "")
+	return count
 end
-
--- Local values: k, numberV1
+function Utils.getVersionParts(versionStr)
+	local versionParts = string.split(versionStr, ".")
+	for i, part in ipairs(versionParts) do
+		versionParts[i] = tonumber(string.match(part, "%d+")) or 0
+	end
+	return versionParts
+end
 function Utils.compareVersions(version1, version2)
-	for v298_, v299_ in ipairs(version1) do
-		if #version2 < v298_ then
+	for k, numberV1 in ipairs(version1) do
+		if #version2 < k then
 			break
 		end
-		if version2[v298_] < v299_ then
+		if version2[k] < numberV1 then
 			return 1
 		end
-		if v299_ < version2[v298_] then
+		if numberV1 < version2[k] then
 			return -1
 		end
 	end
 	return 0
 end
-
--- Local values: v1, v2, i, part, i, part
 function Utils.compareVersionStrings(version1, version2)
-	local v302_ = string.split(version1, ".")
-	local v303_ = string.split(version2, ".")
-	for v304_, v305_ in ipairs(v302_) do
-		local v306_ = string.match
-		v302_[v304_] = tonumber(v306_(v305_, "%d+")) or 0
-	end
-	for v307_, v308_ in ipairs(v303_) do
-		local v309_ = string.match
-		v303_[v307_] = tonumber(v309_(v308_, "%d+")) or 0
-	end
-	return Utils.compareVersions(v302_, v303_)
+	local versionParts1 = Utils.getVersionParts(version1)
+	local versionParts2 = Utils.getVersionParts(version2)
+	return Utils.compareVersions(versionParts1, versionParts2)
 end
-
--- Local values: getNaturalSortKey, decorated, i, v, i, entry
 function Utils.naturalSort(tbl, keyFn)
-	local function v320_(p312_)
-		local v313_ = type(p312_) == "string" and true or type(p312_) == "number"
-		local v314_ = "Utils.naturalSort key must be a string or number, got " .. type(p312_)
-		assert(v313_, v314_)
-		local v315_ = string.lower((tostring(p312_)))
-		local v316_ = 1
-		local v317_ = {}
-		while v316_ <= #v315_ do
-			local v318_ = string.match(v315_, "^%d+", v316_)
-			if v318_ == nil then
-				local v319_ = string.match(v315_, "^%D+", v316_)
-				if v319_ == nil then
+	local getNaturalSortKey = function(value)
+		assert(type(value) == "string" or type(value) == "number", "Utils.naturalSort key must be a string or number, got " .. type(value))
+		local s = string.lower(tostring(value))
+		local key = {}
+		local i = 1
+		while i <= #s do
+			local chunk = string.match(s, "^%d+", i)
+			if chunk ~= nil then
+				key[#key + 1] = tonumber(chunk)
+				i = i + #chunk
+			else
+				chunk = string.match(s, "^%D+", i)
+				if chunk == nil then
 					break
 				end
-				v317_[#v317_ + 1] = v319_
-				v316_ = v316_ + #v319_
+				key[#key + 1] = chunk
+				i = i + #chunk
+			end
+		end
+		return key
+	end
+	local decorated = {}
+	for i, v in ipairs(tbl) do
+		decorated[i] = { index = i, value = v, key = getNaturalSortKey(keyFn(v)) }
+	end
+	table.sort(decorated, function(a, b)
+		local keyA = a.key
+		local keyB = b.key
+		for i = 1, math.min(#keyA, #keyB) do
+			local va = keyA[i]
+			local vb = keyB[i]
+			if va == vb then
+				continue
+			end
+			local ta = type(va)
+			local tb = type(vb)
+			if ta ~= tb then
+				return ta == "number"
 			else
-				v317_[#v317_ + 1] = tonumber(v318_)
-				v316_ = v316_ + #v318_
+				return va < vb
 			end
 		end
-		return v317_
-	end
-	local v321_ = {}
-	for v322_, v323_ in ipairs(tbl) do
-		v321_[v322_] = {
-			["key"] = v320_(keyFn(v323_)),
-			["index"] = v322_,
-			["value"] = v323_
-		}
-	end
-	table.sort(v321_, function(p324_, p325_)
-		local v326_ = p324_.key
-		local v327_ = p325_.key
-		local v328_ = #v326_
-		local v329_ = #v327_
-		for v330_ = 1, math.min(v328_, v329_) do
-			local v331_ = v326_[v330_]
-			local v332_ = v327_[v330_]
-			if v331_ ~= v332_ then
-				local v333_ = type(v331_)
-				if v333_ == type(v332_) then
-					return v331_ < v332_
-				else
-					return v333_ == "number"
-				end
-			end
-		end
-		if #v326_ == #v327_ then
-			return p324_.index < p325_.index
+		if #keyA ~= #keyB then
+			return #keyA < #keyB
 		else
-			return #v326_ < #v327_
+			return a.index < b.index
 		end
 	end)
-	for v334_, v335_ in ipairs(v321_) do
-		tbl[v334_] = v335_.value
+	for i, entry in ipairs(decorated) do
+		tbl[i] = entry.value
 	end
 	return tbl
 end

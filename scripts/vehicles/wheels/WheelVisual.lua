@@ -1,65 +1,32 @@
--- Local values: WheelVisual_mt
 WheelVisual = {}
 source("dataS/scripts/vehicles/wheels/WheelVisualPart.lua")
 source("dataS/scripts/vehicles/wheels/WheelVisualPartConnector.lua")
 source("dataS/scripts/vehicles/wheels/WheelVisualPartTire.lua")
-local v1_ = WheelVisual
-local v2_ = {
-	["tire"] = {
-		["class"] = WheelVisualPartTire,
-		["name"] = "Tire"
-	},
-	["outerRim"] = {
-		["class"] = WheelVisualPart,
-		["name"] = "Outer Rim"
-	},
-	["innerRim"] = {
-		["class"] = WheelVisualPart,
-		["name"] = "Inner Rim"
-	},
-	["additional"] = {
-		["class"] = WheelVisualPart,
-		["name"] = "Additional"
-	},
-	["connector"] = {
-		["class"] = WheelVisualPartConnector,
-		["name"] = "Connector"
-	}
-}
-v1_.PARTS = v2_
+WheelVisual.PARTS = { ["tire"] = { class = WheelVisualPartTire, name = "Tire" }, ["outerRim"] = { class = WheelVisualPart, name = "Outer Rim" }, ["innerRim"] = { class = WheelVisualPart, name = "Inner Rim" }, ["additional"] = { class = WheelVisualPart, name = "Additional" }, ["connector"] = { class = WheelVisualPartConnector, name = "Connector" } }
 local WheelVisual_mt = Class(WheelVisual)
-
--- Upvalues: WheelVisual_mt
--- Local values: self
 function WheelVisual.new(vehicle, wheel, linkNode, isLeft, rimOffset, baseDirectory, customMt)
-	-- upvalues: (copy) WheelVisual_mt
-	local v11_ = customMt or WheelVisual_mt
-	local v12_ = setmetatable({}, v11_)
-	v12_.vehicle = vehicle
-	v12_.wheel = wheel
-	v12_.isLeft = isLeft
-	v12_.rimOffset = rimOffset
-	v12_.baseDirectory = baseDirectory
-	v12_.width = 0.5
-	v12_.radius = 0.5
-	v12_.mass = 0
-	v12_.linkNode = linkNode
-	v12_.node = createTransformGroup("visualWheel")
-	link(linkNode, v12_.node)
-	v12_.visualParts = {}
-	return v12_
+	local self = setmetatable({}, customMt or WheelVisual_mt)
+	self.vehicle = vehicle
+	self.wheel = wheel
+	self.isLeft = isLeft
+	self.rimOffset = rimOffset
+	self.baseDirectory = baseDirectory
+	self.width = 0.5
+	self.radius = 0.5
+	self.mass = 0
+	self.linkNode = linkNode
+	self.node = createTransformGroup("visualWheel")
+	link(linkNode, self.node)
+	self.visualParts = {}
+	return self
 end
-
--- Local values: _, visualPart
 function WheelVisual:delete()
-	for _, v14_ in ipairs(self.visualParts) do
-		v14_:delete()
+	for _, visualPart in ipairs(self.visualParts) do
+		visualPart:delete()
 	end
 	self:removeShallowWaterObstacle()
 	delete(self.node)
 end
-
--- Local values: widthAndDiam, rimMaterialTemplateName, rimMaterial, xmlName, data, i, key, xmlFile, _, visualPart
 function WheelVisual:loadFromXML(xmlObject)
 	if xmlObject.externalXMLFile ~= nil then
 		self.externalXMLFilename = xmlObject.externalXMLFile.filename
@@ -67,168 +34,150 @@ function WheelVisual:loadFromXML(xmlObject)
 	self.externalConfigId = xmlObject.externalConfigId
 	self.width = xmlObject:getValue(".physics#width", self.width)
 	self.radius = xmlObject:getValue(".physics#radius", self.radius)
-	local v17_ = xmlObject:getValue(".outerRim(0)#widthAndDiam", nil, true)
-	if v17_ ~= nil then
-		self.rimDiameter = v17_[2]
+	local widthAndDiam = xmlObject:getValue(".outerRim(0)#widthAndDiam", nil, true)
+	if widthAndDiam ~= nil then
+		self.rimDiameter = widthAndDiam[2]
 	end
-	local v18_ = xmlObject:getValue("#rimMaterialTemplateName")
-	if v18_ ~= nil then
-		local v19_ = VehicleMaterial.new()
-		if v19_:setTemplateName(v18_, nil, self.vehicle.customEnvironment) then
-			self.rimMaterial = v19_
+	local rimMaterialTemplateName = xmlObject:getValue("#rimMaterialTemplateName")
+	if rimMaterialTemplateName ~= nil then
+		local rimMaterial = VehicleMaterial.new()
+		if rimMaterial:setTemplateName(rimMaterialTemplateName, nil, self.vehicle.customEnvironment) then
+			self.rimMaterial = rimMaterial
 		end
 	end
-	for v20_, v21_ in pairs(WheelVisual.PARTS) do
-		local v22_ = 0
+	for xmlName, data in pairs(WheelVisual.PARTS) do
+		local i = 0
 		while true do
-			local v23_ = string.format(".%s(%d)", v20_, v22_)
-			local v24_, _ = xmlObject:getXMLFileAndPropertyKey(v23_)
-			if v24_ == nil then
+			local key = string.format(".%s(%d)", xmlName, i)
+			local xmlFile, _ = xmlObject:getXMLFileAndPropertyKey(key)
+			if xmlFile == nil then
 				break
 			end
-			local v25_ = v21_.class.new(v20_, self, self.node)
-			if v25_:loadFromXML(xmlObject, v23_) then
-				if v20_ ~= "innerRim" and v20_ ~= "additional" then
-					v25_.offset = v25_.offset + self.rimOffset
+			local visualPart = data.class.new(xmlName, self, self.node)
+			if visualPart:loadFromXML(xmlObject, key) then
+				if xmlName ~= "innerRim" and xmlName ~= "additional" then
+					visualPart.offset = visualPart.offset + self.rimOffset
 				end
-				local v26_ = self.visualParts
-				table.insert(v26_, v25_)
+				table.insert(self.visualParts, visualPart)
 			end
-			v22_ = v22_ + 1
+			i = i + 1
 		end
 	end
-	return #self.visualParts > 0
+	return 0 < #self.visualParts
 end
-
--- Local values: _, visualPart
 function WheelVisual:postLoad()
-	for _, v28_ in ipairs(self.visualParts) do
-		if self.rimMaterial ~= nil and (v28_.name == "innerRim" or v28_.name == "outerRim") then
-			self.rimMaterial:apply(v28_.node, v28_:getDefaultMaterialSlotName())
+	for _, visualPart in ipairs(self.visualParts) do
+		if self.rimMaterial ~= nil and (visualPart.name == "innerRim" or visualPart.name == "outerRim") then
+			self.rimMaterial:apply(visualPart.node, visualPart:getDefaultMaterialSlotName())
 		end
-		v28_:postLoad()
+		visualPart:postLoad()
 	end
 end
-
--- Local values: otherX, _, _, invertOffset
 function WheelVisual:setConnectedWheel(connectedVisualWheel, offset)
 	self.connectedVisualWheel = connectedVisualWheel
 	self.connectedVisualWheelOffset = offset
-	local v32_, _, _ = getTranslation(connectedVisualWheel.node)
-	local v33_ = offset < 0
-	local v34_ = offset + self.width * 0.5 + connectedVisualWheel.width * 0.5
+	local otherX, _, _ = getTranslation(connectedVisualWheel.node)
+	local invertOffset = offset < 0
+	offset = offset + self.width * 0.5 + connectedVisualWheel.width * 0.5
 	if not self.isLeft then
-		v34_ = -v34_
+		offset = -offset
 	end
-	if v33_ then
-		v34_ = -v34_
+	if invertOffset then
+		offset = -offset
 	end
-	self.connectedVisualWheelOffsetDirection = math.sign(v34_)
-	setTranslation(self.node, v32_ + v34_, 0, 0)
+	self.connectedVisualWheelOffsetDirection = math.sign(offset)
+	setTranslation(self.node, otherX + offset, 0, 0)
 end
-
--- Local values: offsetX, _, _, _, visualPart
 function WheelVisual:getWidthAndOffset()
-	local v36_, _, _ = getTranslation(self.node)
-	for _, v37_ in ipairs(self.visualParts) do
-		if v37_:isa(WheelVisualPartTire) then
-			return self.width, v36_ + (self.isLeft and v37_.offset or -v37_.offset)
+	local offsetX, _, _ = getTranslation(self.node)
+	for _, visualPart in ipairs(self.visualParts) do
+		if visualPart:isa(WheelVisualPartTire) then
+			return self.width, offsetX + (self.isLeft and visualPart.offset or -visualPart.offset)
 		end
 	end
-	return self.width, v36_
+	return self.width, offsetX
 end
-
--- Local values: _, visualPart
 function WheelVisual:getIsTireInverted()
-	for _, v39_ in ipairs(self.visualParts) do
-		if v39_:isa(WheelVisualPartTire) then
+	for _, visualPart in ipairs(self.visualParts) do
+		if visualPart:isa(WheelVisualPartTire) then
 			return self.isInverted
 		end
 	end
 	return false
 end
-
--- Local values: _, visualPart
 function WheelVisual:getTireNode()
-	for _, v41_ in ipairs(self.visualParts) do
-		if v41_:isa(WheelVisualPartTire) then
-			return v41_.node
+	for _, visualPart in ipairs(self.visualParts) do
+		if visualPart:isa(WheelVisualPartTire) then
+			return visualPart.node
 		end
 	end
 	return nil
 end
-
--- Local values: additionalMass, _, visualPart
 function WheelVisual:getAdditionalMass()
-	local v43_ = 0
-	for _, v44_ in ipairs(self.visualParts) do
-		v43_ = v43_ + v44_:getMass()
+	local additionalMass = 0
+	for _, visualPart in ipairs(self.visualParts) do
+		additionalMass = additionalMass + visualPart:getMass()
 	end
-	return v43_
+	return additionalMass
 end
-
--- Local values: _, visualPart
 function WheelVisual:update(x, y, z, xDrive, suspensionLength, steeringAngle, changed)
-	for _, v53_ in ipairs(self.visualParts) do
-		if v53_.update ~= nil then
-			changed, suspensionLength = v53_:update(x, y, z, xDrive, suspensionLength, steeringAngle, changed)
+	for _, visualPart in ipairs(self.visualParts) do
+		if visualPart.update == nil then
+			continue
 		end
+		changed, suspensionLength = visualPart:update(x, y, z, xDrive, suspensionLength, steeringAngle, changed)
 	end
 	return changed, suspensionLength
 end
-
 function WheelVisual:addShallowWaterObstacle()
 	if g_currentMission.shallowWaterSimulation == nil then
 		return
-	elseif self.vehicle.propertyState ~= VehiclePropertyState.SHOP_CONFIG then
-		if self.wheel == nil then
-			self.shallowWaterRotationNode = createTransformGroup("shallowWaterRotationNode")
-			link(getParent(self.linkNode), self.shallowWaterRotationNode)
-			setWorldTranslation(self.shallowWaterRotationNode, getWorldTranslation(self.node))
-			setWorldRotation(self.shallowWaterRotationNode, getWorldRotation(self.node))
-		else
-			self.shallowWaterRotationNode = self.wheel.driveNodeDirectionNode
-		end
-		self.shallowWaterObstacle = g_currentMission.shallowWaterSimulation:addObstacle(self.node, self.width, self.radius * 2, self.radius * 1.75, self.getShallowWaterParameters, self)
 	end
+	if self.vehicle.propertyState == VehiclePropertyState.SHOP_CONFIG then
+		return
+	end
+	if self.wheel ~= nil then
+		self.shallowWaterRotationNode = self.wheel.driveNodeDirectionNode
+	else
+		self.shallowWaterRotationNode = createTransformGroup("shallowWaterRotationNode")
+		link(getParent(self.linkNode), self.shallowWaterRotationNode)
+		setWorldTranslation(self.shallowWaterRotationNode, getWorldTranslation(self.node))
+		setWorldRotation(self.shallowWaterRotationNode, getWorldRotation(self.node))
+	end
+	self.shallowWaterObstacle = g_currentMission.shallowWaterSimulation:addObstacle(self.node, self.width, self.radius * 2, self.radius * 1.75, self.getShallowWaterParameters, self)
 end
-
 function WheelVisual:removeShallowWaterObstacle()
 	if self.shallowWaterObstacle ~= nil then
 		g_currentMission.shallowWaterSimulation:removeObstacle(self.shallowWaterObstacle)
 		self.shallowWaterObstacle = nil
 	end
 end
-
--- Local values: velocity, ox, oz, slip, dx, _, dz, yRot
 function WheelVisual:getShallowWaterParameters()
-	local v57_ = self.vehicle.lastSignedSpeed * 1000
-	local v58_ = 0
-	local v59_ = 0
+	local velocity = self.vehicle.lastSignedSpeed * 1000
+	local ox = 0
+	local oz = 0
 	if self.wheel.physics ~= nil then
-		local v60_ = self.wheel.physics.netInfo.slip
-		if v60_ > 0.1 then
-			v58_ = math.random() * 2 - 1 * v60_
-			v59_ = math.random() * 2 - 1 * v60_
+		local slip = self.wheel.physics.netInfo.slip
+		if 0.1 < slip then
+			ox = math.random() * 2 - 1 * slip
+			oz = math.random() * 2 - 1 * slip
 		end
 	end
-	if v58_ == 0 and math.abs(v57_) > 0.27 then
-		v58_ = math.random() * 2 - 1
-		v59_ = math.random() * 2 - 1
+	if ox == 0 and 0.27 < math.abs(velocity) then
+		ox = math.random() * 2 - 1
+		oz = math.random() * 2 - 1
 	end
-	local v61_, _, v62_ = localDirectionToWorld(self.shallowWaterRotationNode, 0, 0, 1)
-	local v63_ = MathUtil.getYRotationFromDirection(v61_, v62_)
-	local v64_ = v61_ * v57_
-	local v65_ = v62_ * v57_
-	return v64_ + v58_, v65_ + v59_, v63_
+	local dx, _, dz = localDirectionToWorld(self.shallowWaterRotationNode, 0, 0, 1)
+	local yRot = MathUtil.getYRotationFromDirection(dx, dz)
+	dx = dx * velocity
+	dz = dz * velocity
+	return dx + ox, dz + oz, yRot
 end
-
--- Local values: xmlName, data
 function WheelVisual.registerXMLPaths(schema, key)
 	schema:register(XMLValueType.FLOAT, key .. ".physics#radius", "Wheel radius", 0.5)
 	schema:register(XMLValueType.FLOAT, key .. ".physics#width", "Wheel width", 0.6)
 	schema:register(XMLValueType.STRING, key .. "#rimMaterialTemplateName", "Material template to apply to the inner and outer rim")
-	for v68_, v69_ in pairs(WheelVisual.PARTS) do
-		v69_.class.registerXMLPaths(schema, key .. "." .. v68_ .. "(?)", v69_.name)
+	for xmlName, data in pairs(WheelVisual.PARTS) do
+		data.class.registerXMLPaths(schema, key .. "." .. xmlName .. "(?)", data.name)
 	end
 end

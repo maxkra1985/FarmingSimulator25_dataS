@@ -1,7 +1,5 @@
--- Local values: FieldUpdateTask_mt
 FieldUpdateTask = {}
 local FieldUpdateTask_mt = Class(FieldUpdateTask, DensityMapUpdateTask)
-
 function FieldUpdateTask.registerXMLPaths(schema, basePath)
 	DensityMapUpdateTask.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. "#fieldId", "Id of the field", nil, false)
@@ -20,32 +18,26 @@ function FieldUpdateTask.registerXMLPaths(schema, basePath)
 	FieldType.registerXMLPath(schema, basePath .. "#fieldType", "Name of the field type", nil, false)
 	schema:register(XMLValueType.BOOL, basePath .. "#clearHeight", "Clear tip anything", nil, false)
 end
-
--- Upvalues: FieldUpdateTask_mt
--- Local values: self
 function FieldUpdateTask.new(customMt)
-	-- upvalues: (copy) FieldUpdateTask_mt
-	local v5_ = FieldUpdateTask:superClass().new(customMt or FieldUpdateTask_mt)
-	v5_.fieldId = nil
-	v5_.multiModifier = DensityMapMultiModifier.new()
-	v5_.filter1 = nil
-	v5_.filter2 = nil
-	v5_.filter3 = nil
-	return v5_
+	local self = FieldUpdateTask:superClass().new(customMt or FieldUpdateTask_mt)
+	self.fieldId = nil
+	self.multiModifier = DensityMapMultiModifier.new()
+	self.filter1 = nil
+	self.filter2 = nil
+	self.filter3 = nil
+	return self
 end
-
--- Local values: fruitTypeDesc, growthStateName
 function FieldUpdateTask:saveToXMLFile(xmlFile, key)
 	FieldUpdateTask:superClass().saveToXMLFile(self, xmlFile, key)
 	if self.fieldId ~= nil then
 		xmlFile:setValue(key .. "#fieldId", self.fieldId)
 	end
 	if self.fruitTypeIndex ~= nil then
-		local v9_ = g_fruitTypeManager:getFruitTypeByIndex(self.fruitTypeIndex)
-		xmlFile:setValue(key .. ".fruit#type", v9_ == nil and "UNKNOWN" or (v9_.name or "UNKNOWN"))
-		if v9_ ~= nil then
-			local v10_ = v9_:getGrowthStateName(self.growthState) or self.growthState
-			xmlFile:setValue(key .. ".fruit#growthState", (tostring(v10_)))
+		local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(self.fruitTypeIndex)
+		xmlFile:setValue(key .. ".fruit#type", fruitTypeDesc ~= nil and fruitTypeDesc.name or "UNKNOWN")
+		if fruitTypeDesc ~= nil then
+			local growthStateName = fruitTypeDesc:getGrowthStateName(self.growthState) or self.growthState
+			xmlFile:setValue(key .. ".fruit#growthState", tostring(growthStateName))
 		end
 	end
 	if self.groundType ~= nil then
@@ -85,81 +77,78 @@ function FieldUpdateTask:saveToXMLFile(xmlFile, key)
 		xmlFile:setValue(key .. "#clearHeight", self.doClearHeight)
 	end
 end
-
--- Local values: fieldId, fruitTypeName, fruitType, growthState, growthStateNumber, weedState, stoneLevel, groundType, groundAngle, fieldSprayType, sprayLevel, limeLevel, rollerLevel, plowLevel, fieldType, stubbleShredLevel, doClearHeight
 function FieldUpdateTask:loadFromXMLFile(xmlFile, key)
-	local v14_ = xmlFile:getValue(key .. "#fieldId")
-	if v14_ ~= nil then
-		self.fieldId = v14_
+	local fieldId = xmlFile:getValue(key .. "#fieldId")
+	if fieldId ~= nil then
+		self.fieldId = fieldId
 	end
 	FieldUpdateTask:superClass().loadFromXMLFile(self, xmlFile, key)
-	local v15_ = xmlFile:getValue(key .. ".fruit#type")
-	if v15_ ~= nil then
-		local v16_ = g_fruitTypeManager:getFruitTypeByName(v15_)
-		if v16_ == nil then
-			if string.upper(v15_) == "UNKNOWN" then
-				self:setFruit(FruitType.UNKNOWN, 0)
-			end
-		else
-			local v17_ = xmlFile:getValue(key .. ".fruit#growthState") or 0
-			local v18_ = tonumber(v17_)
-			if v18_ == nil then
-				if not string.isNilOrWhitespace(v17_) then
-					v18_ = v16_:getGrowthStateByName(v17_)
+	local fruitTypeName = xmlFile:getValue(key .. ".fruit#type")
+	if fruitTypeName ~= nil then
+		local fruitType = g_fruitTypeManager:getFruitTypeByName(fruitTypeName)
+		if fruitType ~= nil then
+			local growthState = xmlFile:getValue(key .. ".fruit#growthState") or 0
+			local growthStateNumber = tonumber(growthState)
+			if growthStateNumber == nil then
+				if not string.isNilOrWhitespace(growthState) then
+					growthStateNumber = fruitType:getGrowthStateByName(growthState)
 				end
-				if v18_ == nil then
-					Logging.xmlWarning(xmlFile, "FieldUpdateTask: Invalid fruitTypeName \'%s\' growthstate \'%s\' for \'%s\'", v15_, v17_, key)
+				if growthStateNumber == nil then
+					Logging.xmlWarning(xmlFile, "FieldUpdateTask: Invalid fruitTypeName '%s' growthstate '%s' for '%s'", fruitTypeName, growthState, key)
 					return false
 				end
 			end
-			self:setFruit(v16_.index, v18_)
+			self:setFruit(fruitType.index, growthStateNumber)
+		elseif string.upper(fruitTypeName) == "UNKNOWN" then
+			self:setFruit(FruitType.UNKNOWN, 0)
 		end
 	end
-	local v19_ = xmlFile:getValue(key .. "#weedState")
-	if v19_ ~= nil then
-		self:setWeedState(v19_)
+	local weedState = xmlFile:getValue(key .. "#weedState")
+	if weedState ~= nil then
+		self:setWeedState(weedState)
 	end
-	local v20_ = xmlFile:getValue(key .. "#stoneLevel")
-	if v20_ ~= nil then
-		self:setStoneLevel(v20_)
+	local stoneLevel = xmlFile:getValue(key .. "#stoneLevel")
+	if stoneLevel ~= nil then
+		self:setStoneLevel(stoneLevel)
 	end
-	local v21_ = FieldGroundType.loadFromXMLFile(xmlFile, key .. ".ground#type")
-	if v21_ ~= nil then
-		self:setGroundType(v21_)
+	local groundType = FieldGroundType.loadFromXMLFile(xmlFile, key .. ".ground#type")
+	if groundType ~= nil then
+		self:setGroundType(groundType)
 	end
-	local v22_ = xmlFile:getValue(key .. ".ground#angle")
-	if v22_ ~= nil then
-		self:setGroundAngle(v22_)
+	local groundAngle = xmlFile:getValue(key .. ".ground#angle")
+	if groundAngle ~= nil then
+		self:setGroundAngle(groundAngle)
 	end
-	local v23_ = FieldSprayType.loadFromXMLFile(xmlFile, key .. ".spray#type")
-	if v23_ ~= nil then
-		self:setSprayType(v23_)
+	local fieldSprayType = FieldSprayType.loadFromXMLFile(xmlFile, key .. ".spray#type")
+	if fieldSprayType ~= nil then
+		self:setSprayType(fieldSprayType)
 	end
-	local v24_ = xmlFile:getValue(key .. ".spray#level")
-	if v24_ ~= nil then
-		self:setSprayLevel(v24_)
+	local sprayLevel = xmlFile:getValue(key .. ".spray#level")
+	if sprayLevel ~= nil then
+		self:setSprayLevel(sprayLevel)
 	end
-	local v25_ = xmlFile:getValue(key .. "#limeLevel")
-	if v25_ ~= nil then
-		self:setLimeLevel(v25_)
+	local limeLevel = xmlFile:getValue(key .. "#limeLevel")
+	if limeLevel ~= nil then
+		self:setLimeLevel(limeLevel)
 	end
-	local v26_ = xmlFile:getValue(key .. "#rollerLevel")
-	if v26_ ~= nil then
-		self:setRollerLevel(v26_)
+	local rollerLevel = xmlFile:getValue(key .. "#rollerLevel")
+	if rollerLevel ~= nil then
+		self:setRollerLevel(rollerLevel)
 	end
-	local v27_ = xmlFile:getValue(key .. "#plowLevel")
-	if v27_ ~= nil then
-		self:setPlowLevel(v27_)
+	local plowLevel = xmlFile:getValue(key .. "#plowLevel")
+	if plowLevel ~= nil then
+		self:setPlowLevel(plowLevel)
 	end
-	local v28_ = FieldType.loadFromXMLFile(xmlFile, key .. "#fieldType")
-	if v28_ ~= nil then
-		self:setFieldType(v28_)
+	local fieldType = FieldType.loadFromXMLFile(xmlFile, key .. "#fieldType")
+	if fieldType ~= nil then
+		self:setFieldType(fieldType)
 	end
-	local v29_ = xmlFile:getValue(key .. "#stubbleShredLevel")
-	if v29_ ~= nil then
-		self:setStubbleShredLevel(v29_)
+	local stubbleShredLevel = xmlFile:getValue(key .. "#stubbleShredLevel")
+	if stubbleShredLevel ~= nil then
+		self:setStubbleShredLevel(stubbleShredLevel)
 	end
-	if xmlFile:getValue(key .. "#clearHeight") then
+	local doClearHeight = xmlFile:getValue(key .. "#clearHeight")
+	if doClearHeight then
 		self:clearHeight()
 	end
 	if self.state == DensityMapUpdateTaskState.RUNNING then
@@ -167,16 +156,13 @@ function FieldUpdateTask:loadFromXMLFile(xmlFile, key)
 	end
 	return true
 end
-
 function FieldUpdateTask:setField(field)
 	self.fieldId = field:getId()
 end
-
--- Local values: field
 function FieldUpdateTask:getField()
-	return g_fieldManager:getFieldById(self.fieldId)
+	local field = g_fieldManager:getFieldById(self.fieldId)
+	return field
 end
-
 function FieldUpdateTask:addFilter(filter)
 	if self.filter1 == nil then
 		self.filter1 = filter
@@ -192,18 +178,18 @@ function FieldUpdateTask:addFilter(filter)
 		return false
 	end
 end
-
--- Local values: fruitTypeDesc
 function FieldUpdateTask:setFruit(fruitTypeIndex, growthState)
-	if fruitTypeIndex ~= nil then
+	if fruitTypeIndex == nil then
+		return
+	else
 		if fruitTypeIndex ~= FruitType.UNKNOWN then
-			local v38_ = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
-			if v38_ == nil then
+			local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
+			if fruitTypeDesc == nil then
 				Logging.error("No fruit type for index %q", fruitTypeIndex)
 				return
 			end
-			if v38_.terrainDataPlaneId == nil then
-				Logging.error("No terrain data layer for fruitType %q", v38_.name)
+			if fruitTypeDesc.terrainDataPlaneId == nil then
+				Logging.error("No terrain data layer for fruitType %q", fruitTypeDesc.name)
 				return
 			end
 		end
@@ -211,250 +197,231 @@ function FieldUpdateTask:setFruit(fruitTypeIndex, growthState)
 		self.growthState = growthState
 	end
 end
-
--- Local values: weedSystem
 function FieldUpdateTask:setWeedState(weedState)
-	local v41_ = g_currentMission.weedSystem
-	if v41_ ~= nil and v41_:getMapHasWeed() then
+	local weedSystem = g_currentMission.weedSystem
+	if weedSystem ~= nil and weedSystem:getMapHasWeed() then
 		self.weedState = weedState
 	end
 end
-
--- Local values: stoneSystem
 function FieldUpdateTask:setStoneLevel(stoneLevel)
-	local v44_ = g_currentMission.stoneSystem
-	if v44_ ~= nil and v44_:getMapHasStones() then
+	local stoneSystem = g_currentMission.stoneSystem
+	if stoneSystem ~= nil and stoneSystem:getMapHasStones() then
 		self.stoneLevel = stoneLevel
 	end
 end
-
 function FieldUpdateTask:setGroundType(groundType)
 	self.groundType = groundType
 end
-
 function FieldUpdateTask:setGroundAngle(groundAngle)
 	self.groundAngle = groundAngle
 end
-
 function FieldUpdateTask:setSprayType(fieldSprayType)
 	self.fieldSprayType = fieldSprayType
 end
-
 function FieldUpdateTask:setSprayLevel(sprayLevel)
 	self.sprayLevel = sprayLevel
 end
-
 function FieldUpdateTask:setPlowLevel(plowLevel)
-	if Platform.gameplay.usePlowCounter then
+	if not Platform.gameplay.usePlowCounter then
+		return
+	else
 		self.plowLevel = plowLevel
 	end
 end
-
--- Local values: fieldGroundSystem, densityMapId, _, _
 function FieldUpdateTask:setFieldType(fieldType)
-	local v57_, _, _ = g_currentMission.fieldGroundSystem:getDensityMapData(FieldDensityMap.FIELD_TYPE)
-	if v57_ == nil then
+	local fieldGroundSystem = g_currentMission.fieldGroundSystem
+	local densityMapId, _, _ = fieldGroundSystem:getDensityMapData(FieldDensityMap.FIELD_TYPE)
+	if densityMapId == nil then
 		Logging.warning("Current map does not support field types")
 	else
 		self.fieldType = fieldType
 	end
 end
-
 function FieldUpdateTask:setLimeLevel(limeLevel)
-	if Platform.gameplay.useLimeCounter then
+	if not Platform.gameplay.useLimeCounter then
+		return
+	else
 		self.limeLevel = limeLevel
 	end
 end
-
 function FieldUpdateTask:setRollerLevel(rollerLevel)
-	if Platform.gameplay.useRolling then
+	if not Platform.gameplay.useRolling then
+		return
+	else
 		self.rollerLevel = rollerLevel
 	end
 end
-
 function FieldUpdateTask:setStubbleShredLevel(stubbleShredLevel)
-	if Platform.gameplay.useStubbleShred then
+	if not Platform.gameplay.useStubbleShred then
+		return
+	else
 		self.stubbleShredLevel = stubbleShredLevel
 	end
 end
-
 function FieldUpdateTask:setWaterLevel(waterLevel)
 	self.waterLevel = waterLevel
 end
-
 function FieldUpdateTask:resetDisplacement()
 	self.doResetDisplacement = true
 end
-
 function FieldUpdateTask:clearTireTracks()
 	if g_currentMission.tireTrackSystem ~= nil then
 		self.doClearTireTracks = true
 	end
 end
-
--- Local values: fruitTypeDesc, perlinFilter
 function FieldUpdateTask:setPerlinFilter(fruitTypeIndex, percentage, minOctave, numOctave, persistence)
-	local v74_ = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
-	local v75_ = PerlinNoiseFilter.new(v74_.terrainDataPlaneId, minOctave or 13, numOctave or 1, persistence or 0.5)
-	v75_:setValueCompareParams(DensityValueCompareType.GREATER, (percentage or 0.5) * 10000)
-	self.filter = v75_
+	percentage = percentage or 0.5
+	minOctave = minOctave or 13
+	numOctave = numOctave or 1
+	persistence = persistence or 0.5
+	local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
+	local perlinFilter = PerlinNoiseFilter.new(fruitTypeDesc.terrainDataPlaneId, minOctave, numOctave, persistence)
+	perlinFilter:setValueCompareParams(DensityValueCompareType.GREATER, percentage * 10000)
+	self.filter = perlinFilter
 end
-
 function FieldUpdateTask:clearHeight()
 	self.doClearHeight = true
 end
-
--- Local values: modifier
 function FieldUpdateTask:setValue(densityMapId, firstChannel, numChannels, value, filter1, filter2, filter3)
-	local v85_ = DensityMapModifier.new(densityMapId, firstChannel, numChannels, g_terrainNode)
-	self.multiModifier:addExecuteSet(value, v85_, filter1, filter2, filter3)
+	local modifier = DensityMapModifier.new(densityMapId, firstChannel, numChannels, g_terrainNode)
+	self.multiModifier:addExecuteSet(value, modifier, filter1, filter2, filter3)
 end
-
--- Local values: fieldGroundSystem, densityMapId, firstChannel, numChannels, modifier
 function FieldUpdateTask:setFieldGroundValue(map, value, filter1, filter2, filter3)
-	local v92_, v93_, v94_ = g_currentMission.fieldGroundSystem:getDensityMapData(map)
-	local v95_ = DensityMapModifier.new(v92_, v93_, v94_, g_terrainNode)
-	self.multiModifier:addExecuteSet(value, v95_, filter1, filter2, filter3)
+	local fieldGroundSystem = g_currentMission.fieldGroundSystem
+	local densityMapId, firstChannel, numChannels = fieldGroundSystem:getDensityMapData(map)
+	local modifier = DensityMapModifier.new(densityMapId, firstChannel, numChannels, g_terrainNode)
+	self.multiModifier:addExecuteSet(value, modifier, filter1, filter2, filter3)
 end
-
--- Local values: filter1, filter2, filter3, fieldGroundSystem, haulmFruitTypeDesc, fruitTypeDesc, modifier, fruitTypeDesc, weedSystem, densityMapId, firstChannel, numChannels, stoneSystem, densityMapId, firstChannel, numChannels, stoneFilter, min, _, value, value, value, value, value, terrainDetailHeightId, displacementMapId, displacementFirstChannel, displacementNumChannels, resetValue
 function FieldUpdateTask:prepare()
-	local v97_ = self.filter1
-	local v98_ = self.filter2
-	local v99_ = self.filter3
-	local v100_ = g_currentMission.fieldGroundSystem
+	local filter1 = self.filter1
+	local filter2 = self.filter2
+	local filter3 = self.filter3
+	local fieldGroundSystem = g_currentMission.fieldGroundSystem
 	if self.fruitTypeIndex ~= nil then
-		local v101_ = g_fruitTypeManager:getFirstHaulmFruitType()
-		if v101_ ~= nil then
-			self:setValue(v101_.terrainDataPlaneIdHaulm, v101_.startStateChannelHaulm, v101_.numStateChannelsHaulm, 0, v97_, v98_, v99_)
+		local haulmFruitTypeDesc = g_fruitTypeManager:getFirstHaulmFruitType()
+		if haulmFruitTypeDesc ~= nil then
+			self:setValue(haulmFruitTypeDesc.terrainDataPlaneIdHaulm, haulmFruitTypeDesc.startStateChannelHaulm, haulmFruitTypeDesc.numStateChannelsHaulm, 0, filter1, filter2, filter3)
 		end
 		if self.fruitTypeIndex == FruitType.UNKNOWN then
-			local v102_ = g_fruitTypeManager:getFruitTypeByIndex(FruitType.WHEAT)
-			local v103_ = DensityMapModifier.new(v102_.terrainDataPlaneId, v102_.startStateChannel, v102_.numStateChannels, g_terrainNode)
-			v103_:setNewTypeIndexMode(DensityIndexCompareMode.ZERO)
-			self.multiModifier:addExecuteSet(0, v103_, v97_, v98_, v99_)
+			local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(FruitType.WHEAT)
+			local modifier = DensityMapModifier.new(fruitTypeDesc.terrainDataPlaneId, fruitTypeDesc.startStateChannel, fruitTypeDesc.numStateChannels, g_terrainNode)
+			modifier:setNewTypeIndexMode(DensityIndexCompareMode.ZERO)
+			self.multiModifier:addExecuteSet(0, modifier, filter1, filter2, filter3)
 		else
-			local v104_ = g_fruitTypeManager:getFruitTypeByIndex(self.fruitTypeIndex)
-			self:setValue(v104_.terrainDataPlaneId, v104_.startStateChannel, v104_.numStateChannels, self.growthState, v97_, v98_, v99_)
+			local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(self.fruitTypeIndex)
+			self:setValue(fruitTypeDesc.terrainDataPlaneId, fruitTypeDesc.startStateChannel, fruitTypeDesc.numStateChannels, self.growthState, filter1, filter2, filter3)
 		end
 	end
 	if self.weedState ~= nil then
-		local v105_, v106_, v107_ = g_currentMission.weedSystem:getDensityMapData()
-		self:setValue(v105_, v106_, v107_, self.weedState, v97_, v98_, v99_)
+		local weedSystem = g_currentMission.weedSystem
+		local densityMapId, firstChannel, numChannels = weedSystem:getDensityMapData()
+		self:setValue(densityMapId, firstChannel, numChannels, self.weedState, filter1, filter2, filter3)
 	end
 	if self.stoneLevel ~= nil then
-		local v108_ = g_currentMission.stoneSystem
-		local v109_, v110_, v111_ = v108_:getDensityMapData()
-		local v112_ = DensityMapFilter.new(v109_, v110_, v111_)
-		local v113_, _ = v108_:getMinMaxValues()
-		v112_:setValueCompareParams(DensityValueCompareType.GREATER, 0)
-		local _ = self.stoneLevel
-		local v114_
+		local stoneSystem = g_currentMission.stoneSystem
+		local densityMapId, firstChannel, numChannels = stoneSystem:getDensityMapData()
+		local stoneFilter = DensityMapFilter.new(densityMapId, firstChannel, numChannels)
+		local min, _ = stoneSystem:getMinMaxValues()
+		stoneFilter:setValueCompareParams(DensityValueCompareType.GREATER, 0)
+		local value = self.stoneLevel
 		if self.stoneLevel == 0 then
-			v114_ = v108_:getMaskValue()
+			value = stoneSystem:getMaskValue()
 		else
-			v114_ = self.stoneLevel - 1 + v113_
+			value = self.stoneLevel - 1 + min
 		end
-		self:setValue(v109_, v110_, v111_, v114_, v112_, v97_, v98_)
+		self:setValue(densityMapId, firstChannel, numChannels, value, stoneFilter, filter1, filter2)
 	end
 	if self.groundType ~= nil then
-		local v115_ = FieldGroundType.getValueByType(self.groundType)
-		self:setFieldGroundValue(FieldDensityMap.GROUND_TYPE, v115_, v97_, v98_, v99_)
+		local value = FieldGroundType.getValueByType(self.groundType)
+		self:setFieldGroundValue(FieldDensityMap.GROUND_TYPE, value, filter1, filter2, filter3)
 	end
 	if self.groundAngle ~= nil then
-		local v116_ = FSDensityMapUtil.convertToDensityMapAngle(self.groundAngle, v100_:getGroundAngleMaxValue())
-		self:setFieldGroundValue(FieldDensityMap.GROUND_ANGLE, v116_, v97_, v98_, v99_)
+		local value = FSDensityMapUtil.convertToDensityMapAngle(self.groundAngle, fieldGroundSystem:getGroundAngleMaxValue())
+		self:setFieldGroundValue(FieldDensityMap.GROUND_ANGLE, value, filter1, filter2, filter3)
 	end
 	if self.fieldSprayType ~= nil then
-		local v117_ = FieldSprayType.getValueByType(self.fieldSprayType)
-		self:setFieldGroundValue(FieldDensityMap.SPRAY_TYPE, v117_, v97_, v98_, v99_)
+		local value = FieldSprayType.getValueByType(self.fieldSprayType)
+		self:setFieldGroundValue(FieldDensityMap.SPRAY_TYPE, value, filter1, filter2, filter3)
 	end
 	if self.fieldType ~= nil then
-		local v118_ = FieldType.getValueByType(self.fieldType)
-		self:setFieldGroundValue(FieldDensityMap.FIELD_TYPE, v118_, v97_, v98_, v99_)
+		local value = FieldType.getValueByType(self.fieldType)
+		self:setFieldGroundValue(FieldDensityMap.FIELD_TYPE, value, filter1, filter2, filter3)
 	end
 	if self.sprayLevel ~= nil then
-		self:setFieldGroundValue(FieldDensityMap.SPRAY_LEVEL, self.sprayLevel, v97_, v98_, v99_)
+		self:setFieldGroundValue(FieldDensityMap.SPRAY_LEVEL, self.sprayLevel, filter1, filter2, filter3)
 	end
 	if self.plowLevel ~= nil then
-		self:setFieldGroundValue(FieldDensityMap.PLOW_LEVEL, self.plowLevel, v97_, v98_, v99_)
+		self:setFieldGroundValue(FieldDensityMap.PLOW_LEVEL, self.plowLevel, filter1, filter2, filter3)
 	end
 	if self.limeLevel ~= nil then
-		self:setFieldGroundValue(FieldDensityMap.LIME_LEVEL, self.limeLevel, v97_, v98_, v99_)
+		self:setFieldGroundValue(FieldDensityMap.LIME_LEVEL, self.limeLevel, filter1, filter2, filter3)
 	end
 	if self.rollerLevel ~= nil then
-		self:setFieldGroundValue(FieldDensityMap.ROLLER_LEVEL, self.rollerLevel, v97_, v98_, v99_)
+		self:setFieldGroundValue(FieldDensityMap.ROLLER_LEVEL, self.rollerLevel, filter1, filter2, filter3)
 	end
 	if self.stubbleShredLevel ~= nil then
-		self:setFieldGroundValue(FieldDensityMap.STUBBLE_SHRED_LEVEL, self.stubbleShredLevel, v97_, v98_, v99_)
+		self:setFieldGroundValue(FieldDensityMap.STUBBLE_SHRED_LEVEL, self.stubbleShredLevel, filter1, filter2, filter3)
 	end
 	if self.waterLevel ~= nil then
-		self:setFieldGroundValue(FieldDensityMap.WATER_LEVEL, self.waterLevel, v97_, v98_, v99_)
+		self:setFieldGroundValue(FieldDensityMap.WATER_LEVEL, self.waterLevel, filter1, filter2, filter3)
 	end
 	if self.doClearHeight then
-		local v119_ = g_currentMission.terrainDetailHeightId
-		self:setValue(v119_, getDensityMapHeightFirstChannel(v119_), getDensityMapHeightNumChannels(v119_), 0, v97_, v98_, v99_)
-		self:setValue(v119_, g_densityMapHeightManager.heightTypeFirstChannel, g_densityMapHeightManager.heightTypeNumChannels, 0, v97_, v98_, v99_)
+		local terrainDetailHeightId = g_currentMission.terrainDetailHeightId
+		self:setValue(terrainDetailHeightId, getDensityMapHeightFirstChannel(terrainDetailHeightId), getDensityMapHeightNumChannels(terrainDetailHeightId), 0, filter1, filter2, filter3)
+		self:setValue(terrainDetailHeightId, g_densityMapHeightManager.heightTypeFirstChannel, g_densityMapHeightManager.heightTypeNumChannels, 0, filter1, filter2, filter3)
 	end
 	if self.doResetDisplacement then
-		local v120_, v121_, v122_ = v100_:getDisplacementData()
-		self:setValue(v120_, v121_, v122_, v100_:getDisplacementResetValue(), v97_, v98_, v99_)
+		local displacementMapId, displacementFirstChannel, displacementNumChannels = fieldGroundSystem:getDisplacementData()
+		local resetValue = fieldGroundSystem:getDisplacementResetValue()
+		self:setValue(displacementMapId, displacementFirstChannel, displacementNumChannels, resetValue, filter1, filter2, filter3)
 	end
 end
-
 function FieldUpdateTask:enqueue(immediate)
 	g_fieldManager:addFieldUpdateTask(self, immediate)
 end
-
--- Local values: field, multiModifier
 function FieldUpdateTask:start(immediate)
 	if self.state == DensityMapUpdateTaskState.RUNNING or self.state == DensityMapUpdateTaskState.FINISHED then
 		return false
 	end
 	if self.area == nil and self.fieldId ~= nil then
-		local v127_ = g_fieldManager:getFieldById(self.fieldId)
-		if v127_ ~= nil then
-			self.area = v127_:getDensityMapPolygon()
+		local field = g_fieldManager:getFieldById(self.fieldId)
+		if field ~= nil then
+			self.area = field:getDensityMapPolygon()
 		end
 	end
 	if self.area == nil then
 		self.state = DensityMapUpdateTaskState.FINISHED
 		Logging.warning("Missing area for FieldUpdateTask")
 		return false
-	end
-	self.state = DensityMapUpdateTaskState.RUNNING
-	local v128_ = self.multiModifier
-	self:prepare()
-	self.area:applyToModifier(v128_)
-	local v129_, v130_ = v128_:getPolygonMinMaxZ()
-	self.minY = v129_
-	self.maxY = v130_
-	if self.minY ~= nil then
-		if self.currentMinY == nil then
-			self.currentMinY = self.minY
-			self.currentMaxY = self.minY + self.maxRegionPerFrame
+	else
+		self.state = DensityMapUpdateTaskState.RUNNING
+		local multiModifier = self.multiModifier
+		self:prepare()
+		self.area:applyToModifier(multiModifier)
+		self.minY, self.maxY = multiModifier:getPolygonMinMaxZ()
+		if self.minY ~= nil then
+			if self.currentMinY == nil then
+				self.currentMinY = self.minY
+				self.currentMaxY = self.minY + self.maxRegionPerFrame
+			end
+			if immediate then
+				self.currentMinY = self.minY
+				self.currentMaxY = self.maxY
+			end
 		end
-		if immediate then
-			self.currentMinY = self.minY
-			self.currentMaxY = self.maxY
-		end
+		return true
 	end
-	return true
 end
-
--- Local values: multiModifier
 function FieldUpdateTask:update(dt)
 	if self.state == DensityMapUpdateTaskState.RUNNING then
-		local v132_ = self.multiModifier
+		local multiModifier = self.multiModifier
 		if self.currentMinY ~= nil then
-			v132_:setPolygonClipRegion(self.currentMinY, self.currentMaxY)
+			multiModifier:setPolygonClipRegion(self.currentMinY, self.currentMaxY)
 		end
-		v132_:execute()
+		multiModifier:execute()
 		if self.minY ~= nil then
 			self.currentMinY = self.currentMaxY
-			local v133_ = self.currentMinY + self.maxRegionPerFrame
-			local v134_ = self.maxY
-			self.currentMaxY = math.min(v133_, v134_)
+			self.currentMaxY = math.min(self.currentMinY + self.maxRegionPerFrame, self.maxY)
 			if self.currentMinY ~= self.maxY then
 				return
 			end
@@ -466,15 +433,12 @@ function FieldUpdateTask:update(dt)
 		self:setFinished()
 	end
 end
-
 function FieldUpdateTask:getName()
-	if self.customName == nil then
-		if self.fieldId == nil then
-			return FieldUpdateTask:superClass().getName(self)
-		else
-			return string.format("field \'%s\'", self.fieldId)
-		end
-	else
+	if self.customName ~= nil then
 		return self.customName
+	elseif self.fieldId ~= nil then
+		return string.format("field '%s'", self.fieldId)
+	else
+		return FieldUpdateTask:superClass().getName(self)
 	end
 end

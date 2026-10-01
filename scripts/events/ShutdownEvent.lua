@@ -1,21 +1,18 @@
--- Local values: ShutdownEvent_mt
 ShutdownEvent = {}
 local ShutdownEvent_mt = Class(ShutdownEvent, Event)
 InitStaticEventClass(ShutdownEvent, "ShutdownEvent")
 function ShutdownEvent.emptyNew()
-	-- upvalues: (copy) ShutdownEvent_mt
-	return Event.new(ShutdownEvent_mt)
+	local self = Event.new(ShutdownEvent_mt)
+	return self
 end
 function ShutdownEvent.new()
-	return ShutdownEvent.emptyNew()
+	local self = ShutdownEvent.emptyNew()
+	return self
 end
-
 function ShutdownEvent:readStream(streamId, connection)
 	self:run(connection)
 end
-
 function ShutdownEvent:writeStream(streamId, connection) end
-
 function ShutdownEvent:run(connection)
 	g_currentMission:onShutdownEvent(connection)
 end

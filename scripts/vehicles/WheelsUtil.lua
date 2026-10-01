@@ -1,4 +1,3 @@
--- Local values: mudTireCoeffs, mudTireCoeffsWet, mudTireCoeffsSnow, offRoadTireCoeffs, offRoadTireCoeffsWet, offRoadTireCoeffsSnow, streetTireCoeffs, streetTireCoeffsWet, streetTireCoeffsSnow, crawlerCoeffs, crawlerCoeffsWet, crawlerCoeffsSnow, chainsCoeffs, chainsCoeffsWet, chainsCoeffsSnow, metalCoeffs, metalCoeffsWet, metalCoeffsSnow, SMOOTHING_SPEED_SCALE
 WheelsUtil = {}
 WheelsUtil.GROUND_ROAD = 1
 WheelsUtil.GROUND_HARD_TERRAIN = 2
@@ -6,258 +5,226 @@ WheelsUtil.GROUND_SOFT_TERRAIN = 3
 WheelsUtil.GROUND_FIELD = 4
 WheelsUtil.NUM_GROUNDS = 4
 WheelsUtil.tireTypes = {}
-
--- Local values: getNoNilCoeffs, tireType
 function WheelsUtil.registerTireType(name, frictionCoeffs, frictionCoeffsWet, frictionCoeffsSnow)
-	local v5_ = string.upper(name)
-	if WheelsUtil.getTireType(v5_) == nil then
-		local function v10_(p6_)
-			local v7_ = {}
-			if p6_[1] == nil then
-				v7_[1] = 1.15
-				for v8_ = 2, WheelsUtil.NUM_GROUNDS do
-					if p6_[v8_] ~= nil then
-						v7_[1] = p6_[v8_]
+	name = string.upper(name)
+	if WheelsUtil.getTireType(name) ~= nil then
+		printWarning("Warning: Tire type '" .. name .. "' already registered, ignoring this definition")
+	else
+		local getNoNilCoeffs = function(frictionCoeffs)
+			local localCoeffs = {}
+			if frictionCoeffs[1] == nil then
+				localCoeffs[1] = 1.15
+				for i = 2, WheelsUtil.NUM_GROUNDS do
+					if frictionCoeffs[i] ~= nil then
+						localCoeffs[1] = frictionCoeffs[i]
 						break
 					end
 				end
 			else
-				v7_[1] = p6_[1]
+				localCoeffs[1] = frictionCoeffs[1]
 			end
-			for v9_ = 2, WheelsUtil.NUM_GROUNDS do
-				v7_[v9_] = p6_[v9_] or p6_[v9_ - 1]
+			for i = 2, WheelsUtil.NUM_GROUNDS do
+				localCoeffs[i] = frictionCoeffs[i] or frictionCoeffs[i - 1]
 			end
-			return v7_
+			return localCoeffs
 		end
-		local v11_ = {
-			["name"] = v5_,
-			["frictionCoeffs"] = v10_(frictionCoeffs),
-			["frictionCoeffsWet"] = v10_(frictionCoeffsWet or frictionCoeffs)
-		}
-		v11_.frictionCoeffsSnow = v10_(frictionCoeffsSnow or v11_.frictionCoeffsWet)
-		local v12_ = WheelsUtil.tireTypes
-		table.insert(v12_, v11_)
-	else
-		printWarning("Warning: Tire type \'" .. v5_ .. "\' already registered, ignoring this definition")
+		local tireType = {}
+		tireType.name = name
+		tireType.frictionCoeffs = getNoNilCoeffs(frictionCoeffs)
+		tireType.frictionCoeffsWet = getNoNilCoeffs(frictionCoeffsWet or frictionCoeffs)
+		tireType.frictionCoeffsSnow = getNoNilCoeffs(frictionCoeffsSnow or tireType.frictionCoeffsWet)
+		table.insert(WheelsUtil.tireTypes, tireType)
 	end
 end
-
--- Local values: i, tireType
 function WheelsUtil.unregisterTireType(name)
-	local v14_ = string.upper(name)
-	for v15_, v16_ in ipairs(WheelsUtil.tireTypes) do
-		if v16_.name == v14_ then
-			table.remove(WheelsUtil.tireTypes, v15_)
+	name = string.upper(name)
+	for i, tireType in ipairs(WheelsUtil.tireTypes) do
+		if tireType.name == name then
+			table.remove(WheelsUtil.tireTypes, i)
 			return
 		end
 	end
 end
-
--- Local values: i, t
 function WheelsUtil.getTireType(name)
-	local v18_ = string.upper(name)
-	for v19_, v20_ in pairs(WheelsUtil.tireTypes) do
-		if v20_.name == v18_ then
-			return v19_
+	name = string.upper(name)
+	for i, t in pairs(WheelsUtil.tireTypes) do
+		if t.name == name then
+			return i
 		end
 	end
 	return nil
 end
-
 function WheelsUtil.getTireTypeName(index)
-	return WheelsUtil.tireTypes[index] == nil and "unknown" or WheelsUtil.tireTypes[index].name
+	if WheelsUtil.tireTypes[index] ~= nil then
+		return WheelsUtil.tireTypes[index].name
+	else
+		return "unknown"
+	end
 end
-local v22_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.15,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.1,
-	[WheelsUtil.GROUND_FIELD] = 0.95
-}
-local v23_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.05,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.05,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1,
-	[WheelsUtil.GROUND_FIELD] = 0.7
-}
-local v24_ = {
-	[WheelsUtil.GROUND_ROAD] = 0.45,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 0.45,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.4,
-	[WheelsUtil.GROUND_FIELD] = 0.35
-}
-WheelsUtil.registerTireType("mud", v22_, v23_, v24_)
-local v25_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.2,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.05,
-	[WheelsUtil.GROUND_FIELD] = 1
-}
-local v26_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.05,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.95,
-	[WheelsUtil.GROUND_FIELD] = 0.6
-}
-local v27_ = {
-	[WheelsUtil.GROUND_ROAD] = 0.45,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 0.4,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.35,
-	[WheelsUtil.GROUND_FIELD] = 0.3
-}
-WheelsUtil.registerTireType("offRoad", v25_, v26_, v27_)
-local v28_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.25,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1,
-	[WheelsUtil.GROUND_FIELD] = 0.9
-}
-local v29_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.15,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.85,
-	[WheelsUtil.GROUND_FIELD] = 0.45
-}
-local v30_ = {
-	[WheelsUtil.GROUND_ROAD] = 0.55,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 0.4,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.3,
-	[WheelsUtil.GROUND_FIELD] = 0.35
-}
-WheelsUtil.registerTireType("street", v28_, v29_, v30_)
-local v31_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.15,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_FIELD] = 1.15
-}
-local v32_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.05,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.05,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.05,
-	[WheelsUtil.GROUND_FIELD] = 0.85
-}
-local v33_ = {
-	[WheelsUtil.GROUND_ROAD] = 0.65,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 0.65,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.65,
-	[WheelsUtil.GROUND_FIELD] = 0.65
-}
-WheelsUtil.registerTireType("crawler", v31_, v32_, v33_)
-local v34_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.15,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_FIELD] = 1.15
-}
-local v35_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.05,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.05,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.05,
-	[WheelsUtil.GROUND_FIELD] = 0.95
-}
-local v36_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.05,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.05,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.05,
-	[WheelsUtil.GROUND_FIELD] = 1.05
-}
-WheelsUtil.registerTireType("chains", v34_, v35_, v36_)
-local v37_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.15,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_FIELD] = 1.15
-}
-local v38_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.15,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_FIELD] = 1.15
-}
-local v39_ = {
-	[WheelsUtil.GROUND_ROAD] = 1.15,
-	[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15,
-	[WheelsUtil.GROUND_FIELD] = 1.15
-}
-WheelsUtil.registerTireType("metalSpikes", v37_, v38_, v39_)
-local v_u_40_ = 0.002
-
--- Upvalues: SMOOTHING_SPEED_SCALE
--- Local values: appliedAcc, decSpeed, appliedBrake, decSpeed
+local mudTireCoeffs = {}
+mudTireCoeffs[WheelsUtil.GROUND_ROAD] = 1.15
+mudTireCoeffs[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15
+mudTireCoeffs[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.1
+mudTireCoeffs[WheelsUtil.GROUND_FIELD] = 0.95
+local mudTireCoeffsWet = {}
+mudTireCoeffsWet[WheelsUtil.GROUND_ROAD] = 1.05
+mudTireCoeffsWet[WheelsUtil.GROUND_HARD_TERRAIN] = 1.05
+mudTireCoeffsWet[WheelsUtil.GROUND_SOFT_TERRAIN] = 1
+mudTireCoeffsWet[WheelsUtil.GROUND_FIELD] = 0.7
+local mudTireCoeffsSnow = {}
+mudTireCoeffsSnow[WheelsUtil.GROUND_ROAD] = 0.45
+mudTireCoeffsSnow[WheelsUtil.GROUND_HARD_TERRAIN] = 0.45
+mudTireCoeffsSnow[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.4
+mudTireCoeffsSnow[WheelsUtil.GROUND_FIELD] = 0.35
+WheelsUtil.registerTireType("mud", mudTireCoeffs, mudTireCoeffsWet, mudTireCoeffsSnow)
+local offRoadTireCoeffs = {}
+offRoadTireCoeffs[WheelsUtil.GROUND_ROAD] = 1.2
+offRoadTireCoeffs[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15
+offRoadTireCoeffs[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.05
+offRoadTireCoeffs[WheelsUtil.GROUND_FIELD] = 1
+local offRoadTireCoeffsWet = {}
+offRoadTireCoeffsWet[WheelsUtil.GROUND_ROAD] = 1.05
+offRoadTireCoeffsWet[WheelsUtil.GROUND_HARD_TERRAIN] = 1
+offRoadTireCoeffsWet[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.95
+offRoadTireCoeffsWet[WheelsUtil.GROUND_FIELD] = 0.6
+local offRoadTireCoeffsSnow = {}
+offRoadTireCoeffsSnow[WheelsUtil.GROUND_ROAD] = 0.45
+offRoadTireCoeffsSnow[WheelsUtil.GROUND_HARD_TERRAIN] = 0.4
+offRoadTireCoeffsSnow[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.35
+offRoadTireCoeffsSnow[WheelsUtil.GROUND_FIELD] = 0.3
+WheelsUtil.registerTireType("offRoad", offRoadTireCoeffs, offRoadTireCoeffsWet, offRoadTireCoeffsSnow)
+local streetTireCoeffs = {}
+streetTireCoeffs[WheelsUtil.GROUND_ROAD] = 1.25
+streetTireCoeffs[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15
+streetTireCoeffs[WheelsUtil.GROUND_SOFT_TERRAIN] = 1
+streetTireCoeffs[WheelsUtil.GROUND_FIELD] = 0.9
+local streetTireCoeffsWet = {}
+streetTireCoeffsWet[WheelsUtil.GROUND_ROAD] = 1.15
+streetTireCoeffsWet[WheelsUtil.GROUND_HARD_TERRAIN] = 1
+streetTireCoeffsWet[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.85
+streetTireCoeffsWet[WheelsUtil.GROUND_FIELD] = 0.45
+local streetTireCoeffsSnow = {}
+streetTireCoeffsSnow[WheelsUtil.GROUND_ROAD] = 0.55
+streetTireCoeffsSnow[WheelsUtil.GROUND_HARD_TERRAIN] = 0.4
+streetTireCoeffsSnow[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.3
+streetTireCoeffsSnow[WheelsUtil.GROUND_FIELD] = 0.35
+WheelsUtil.registerTireType("street", streetTireCoeffs, streetTireCoeffsWet, streetTireCoeffsSnow)
+local crawlerCoeffs = {}
+crawlerCoeffs[WheelsUtil.GROUND_ROAD] = 1.15
+crawlerCoeffs[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15
+crawlerCoeffs[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15
+crawlerCoeffs[WheelsUtil.GROUND_FIELD] = 1.15
+local crawlerCoeffsWet = {}
+crawlerCoeffsWet[WheelsUtil.GROUND_ROAD] = 1.05
+crawlerCoeffsWet[WheelsUtil.GROUND_HARD_TERRAIN] = 1.05
+crawlerCoeffsWet[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.05
+crawlerCoeffsWet[WheelsUtil.GROUND_FIELD] = 0.85
+local crawlerCoeffsSnow = {}
+crawlerCoeffsSnow[WheelsUtil.GROUND_ROAD] = 0.65
+crawlerCoeffsSnow[WheelsUtil.GROUND_HARD_TERRAIN] = 0.65
+crawlerCoeffsSnow[WheelsUtil.GROUND_SOFT_TERRAIN] = 0.65
+crawlerCoeffsSnow[WheelsUtil.GROUND_FIELD] = 0.65
+WheelsUtil.registerTireType("crawler", crawlerCoeffs, crawlerCoeffsWet, crawlerCoeffsSnow)
+local chainsCoeffs = {}
+chainsCoeffs[WheelsUtil.GROUND_ROAD] = 1.15
+chainsCoeffs[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15
+chainsCoeffs[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15
+chainsCoeffs[WheelsUtil.GROUND_FIELD] = 1.15
+local chainsCoeffsWet = {}
+chainsCoeffsWet[WheelsUtil.GROUND_ROAD] = 1.05
+chainsCoeffsWet[WheelsUtil.GROUND_HARD_TERRAIN] = 1.05
+chainsCoeffsWet[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.05
+chainsCoeffsWet[WheelsUtil.GROUND_FIELD] = 0.95
+local chainsCoeffsSnow = {}
+chainsCoeffsSnow[WheelsUtil.GROUND_ROAD] = 1.05
+chainsCoeffsSnow[WheelsUtil.GROUND_HARD_TERRAIN] = 1.05
+chainsCoeffsSnow[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.05
+chainsCoeffsSnow[WheelsUtil.GROUND_FIELD] = 1.05
+WheelsUtil.registerTireType("chains", chainsCoeffs, chainsCoeffsWet, chainsCoeffsSnow)
+local metalCoeffs = {}
+metalCoeffs[WheelsUtil.GROUND_ROAD] = 1.15
+metalCoeffs[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15
+metalCoeffs[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15
+metalCoeffs[WheelsUtil.GROUND_FIELD] = 1.15
+local metalCoeffsWet = {}
+metalCoeffsWet[WheelsUtil.GROUND_ROAD] = 1.15
+metalCoeffsWet[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15
+metalCoeffsWet[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15
+metalCoeffsWet[WheelsUtil.GROUND_FIELD] = 1.15
+local metalCoeffsSnow = {}
+metalCoeffsSnow[WheelsUtil.GROUND_ROAD] = 1.15
+metalCoeffsSnow[WheelsUtil.GROUND_HARD_TERRAIN] = 1.15
+metalCoeffsSnow[WheelsUtil.GROUND_SOFT_TERRAIN] = 1.15
+metalCoeffsSnow[WheelsUtil.GROUND_FIELD] = 1.15
+WheelsUtil.registerTireType("metalSpikes", metalCoeffs, metalCoeffsWet, metalCoeffsSnow)
+local SMOOTHING_SPEED_SCALE = 0.002
 function WheelsUtil:getSmoothedAcceleratorAndBrakePedals(acceleratorPedal, brakePedal, dt)
-	-- upvalues: (copy) v_u_40_
 	if self.wheelsUtilSmoothedAcceleratorPedal == nil then
 		self.wheelsUtilSmoothedAcceleratorPedal = 0
 	end
-	local v45_ = 0
-	if acceleratorPedal > 0 then
+	local appliedAcc = 0
+	if 0 < acceleratorPedal then
 		if self.wheelsUtilSmoothedAcceleratorPedal < acceleratorPedal then
-			local v46_ = self.wheelsUtilSmoothedAcceleratorPedal + 0.002 * dt
-			local v47_ = math.max(v46_, 0.002)
-			v45_ = math.min(v47_, acceleratorPedal)
+			appliedAcc = math.min(math.max(self.wheelsUtilSmoothedAcceleratorPedal + 0.002 * dt, 0.002), acceleratorPedal)
 		else
-			v45_ = acceleratorPedal
+			appliedAcc = acceleratorPedal
 		end
-		self.wheelsUtilSmoothedAcceleratorPedal = v45_
+		self.wheelsUtilSmoothedAcceleratorPedal = appliedAcc
 	elseif acceleratorPedal < 0 then
 		if acceleratorPedal < self.wheelsUtilSmoothedAcceleratorPedal then
-			local v48_ = self.wheelsUtilSmoothedAcceleratorPedal - 0.002 * dt
-			local v49_ = math.min(v48_, -0.002)
-			v45_ = math.max(v49_, acceleratorPedal)
+			appliedAcc = math.max(math.min(self.wheelsUtilSmoothedAcceleratorPedal - 0.002 * dt, -0.002), acceleratorPedal)
 		else
-			v45_ = acceleratorPedal
+			appliedAcc = acceleratorPedal
 		end
-		self.wheelsUtilSmoothedAcceleratorPedal = v45_
+		self.wheelsUtilSmoothedAcceleratorPedal = appliedAcc
 	else
-		local v50_ = 0.0005 + 0.001 * brakePedal
-		if self.wheelsUtilSmoothedAcceleratorPedal > 0 then
-			local v51_ = self.wheelsUtilSmoothedAcceleratorPedal - v50_ * dt
-			self.wheelsUtilSmoothedAcceleratorPedal = math.max(v51_, 0)
+		local decSpeed = 0.0005 + 0.001 * brakePedal
+		if 0 < self.wheelsUtilSmoothedAcceleratorPedal then
+			self.wheelsUtilSmoothedAcceleratorPedal = math.max(self.wheelsUtilSmoothedAcceleratorPedal - decSpeed * dt, 0)
 		else
-			local v52_ = self.wheelsUtilSmoothedAcceleratorPedal + v50_ * dt
-			self.wheelsUtilSmoothedAcceleratorPedal = math.min(v52_, 0)
+			self.wheelsUtilSmoothedAcceleratorPedal = math.min(self.wheelsUtilSmoothedAcceleratorPedal + decSpeed * dt, 0)
 		end
 	end
 	if self.wheelsUtilSmoothedBrakePedal == nil then
 		self.wheelsUtilSmoothedBrakePedal = 0
 	end
-	local v53_ = 0
-	if brakePedal > 0 then
+	local appliedBrake = 0
+	if 0 < brakePedal then
 		if self.wheelsUtilSmoothedBrakePedal < brakePedal then
-			local v54_ = self.wheelsUtilSmoothedBrakePedal + 0.0025 * dt
-			brakePedal = math.min(v54_, brakePedal)
+			appliedBrake = math.min(self.wheelsUtilSmoothedBrakePedal + 0.0025 * dt, brakePedal)
+		else
+			appliedBrake = brakePedal
 		end
-		self.wheelsUtilSmoothedBrakePedal = brakePedal
-		return v45_, brakePedal
-	end
-	local v55_ = 0.0005 + 0.001 * acceleratorPedal
-	local v56_ = self.wheelsUtilSmoothedBrakePedal - v55_ * dt
-	self.wheelsUtilSmoothedBrakePedal = math.max(v56_, 0)
-	return v45_, v53_
-end
-
--- Local values: acceleratorPedal, brakePedal, reverserDirection, motor, isManualTransmission, useManualDirectionChange, absCurrentSpeed, accSign, automaticBrake, isSlow, isArticulatedSteering, factor, maxSpeed, overSpeedLimit, factor, absAcceleratorPedal, minGearRatio, maxGearRatio, acceleratorPedalControlsSpeed, maxAcceleration, maxMotorRotAcceleration, minMotorRpm, maxMotorRpm, neededPtoTorque, ptoTorqueVirtualMultiplicator, neutralActive
-function WheelsUtil:updateWheelsPhysics(dt, currentSpeed, acceleration, doHandbrake, stopAndGoBraking)
-	local v63_ = 0
-	local v64_ = 0
-	local v65_ = self.spec_drivable == nil and 1 or self.spec_drivable.reverserDirection
-	local v66_ = self.spec_motorized.motor
-	local v67_ = v66_.backwardGears ~= nil and true or v66_.forwardGears ~= nil
-	local v68_ = self:getIsManualDirectionChangeActive()
-	local v69_
-	if v68_ then
-		v69_ = acceleration * v66_.currentDirection
+		self.wheelsUtilSmoothedBrakePedal = appliedBrake
+		return appliedAcc, appliedBrake
 	else
-		v69_ = acceleration * v65_
+		local decSpeed = 0.0005 + 0.001 * acceleratorPedal
+		self.wheelsUtilSmoothedBrakePedal = math.max(self.wheelsUtilSmoothedBrakePedal - decSpeed * dt, 0)
+		return appliedAcc, appliedBrake
 	end
-	local v70_ = math.abs(currentSpeed)
-	local v71_ = math.sign(v69_)
+end
+function WheelsUtil:updateWheelsPhysics(dt, currentSpeed, acceleration, doHandbrake, stopAndGoBraking)
+	local acceleratorPedal = 0
+	local brakePedal = 0
+	local reverserDirection = 1
+	if self.spec_drivable ~= nil then
+		reverserDirection = self.spec_drivable.reverserDirection
+	end
+	local motor = self.spec_motorized.motor
+	local isManualTransmission = motor.backwardGears ~= nil or motor.forwardGears ~= nil
+	local useManualDirectionChange = self:getIsManualDirectionChangeActive()
+	if useManualDirectionChange then
+		acceleration = acceleration * motor.currentDirection
+	else
+		acceleration = acceleration * reverserDirection
+	end
+	local absCurrentSpeed = math.abs(currentSpeed)
+	local accSign = math.sign(acceleration)
 	self.nextMovingDirection = self.nextMovingDirection or 0
 	self.nextMovingDirectionTimer = self.nextMovingDirectionTimer or 0
-	local v72_ = false
-	if math.abs(v69_) < 0.001 then
-		v72_ = true
+	local automaticBrake = false
+	if math.abs(acceleration) < 0.001 then
+		automaticBrake = true
 		if stopAndGoBraking or currentSpeed * self.nextMovingDirection < 0.0003 then
 			self.nextMovingDirection = 0
 		end
@@ -265,149 +232,150 @@ function WheelsUtil:updateWheelsPhysics(dt, currentSpeed, acceleration, doHandbr
 		if self.nextMovingDirection * currentSpeed < -0.0014 then
 			self.nextMovingDirection = 0
 		end
-		if v71_ == self.nextMovingDirection or currentSpeed * v71_ > -0.0003 and (stopAndGoBraking or self.nextMovingDirection == 0) then
-			local v73_ = self.nextMovingDirectionTimer - dt
-			self.nextMovingDirectionTimer = math.max(v73_, 0)
-			if self.nextMovingDirectionTimer == 0 then
-				self.nextMovingDirection = v71_
-				v63_ = v69_
-				v64_ = 0
+		if accSign ~= self.nextMovingDirection and (-0.0003 < currentSpeed * accSign and not stopAndGoBraking) then
+			if self.nextMovingDirection == 0 then
+				self.nextMovingDirectionTimer = math.max(self.nextMovingDirectionTimer - dt, 0)
+				if self.nextMovingDirectionTimer == 0 then
+					acceleratorPedal = acceleration
+					brakePedal = 0
+					self.nextMovingDirection = accSign
+				else
+					acceleratorPedal = 0
+					brakePedal = math.abs(acceleration)
+				end
 			else
-				v64_ = math.abs(v69_)
-				v63_ = 0
-			end
-		else
-			v63_ = 0
-			v64_ = math.abs(v69_)
-			if stopAndGoBraking then
-				self.nextMovingDirectionTimer = 100
+				acceleratorPedal = 0
+				brakePedal = math.abs(acceleration)
+				if stopAndGoBraking then
+					self.nextMovingDirectionTimer = 100
+				end
 			end
 		end
 	end
-	if v68_ and (v63_ ~= 0 and math.sign(v63_) ~= v66_.currentDirection) then
-		v64_ = math.abs(v63_)
-		v63_ = 0
+	if useManualDirectionChange and (acceleratorPedal ~= 0 and math.sign(acceleratorPedal) ~= motor.currentDirection) then
+		brakePedal = math.abs(acceleratorPedal)
+		acceleratorPedal = 0
 	end
-	local v74_, v75_ = v66_:updateGear(v72_ and 0 or v63_, v64_, dt)
-	if v66_.gear == 0 and v66_.targetGear ~= 0 then
-		local v76_ = v66_.targetGear
-		v72_ = currentSpeed * math.sign(v76_) < 0 and v70_ < v66_.lowBrakeForceSpeedLimit and true or v72_
+	if automaticBrake then
+		acceleratorPedal = 0
 	end
-	if v66_.gearShiftMode == VehicleMotor.SHIFT_MODE_MANUAL_CLUTCH and v67_ then
-		v72_ = false
+	acceleratorPedal, brakePedal = motor:updateGear(acceleratorPedal, brakePedal, dt)
+	if motor.gear == 0 and (motor.targetGear ~= 0 and (currentSpeed * math.sign(motor.targetGear) < 0 and absCurrentSpeed < motor.lowBrakeForceSpeedLimit)) then
+		automaticBrake = true
 	end
-	if v71_ ~= 0 and v66_.lowBrakeForceLocked then
-		v66_.lowBrakeForceLocked = false
+	if motor.gearShiftMode == VehicleMotor.SHIFT_MODE_MANUAL_CLUTCH and isManualTransmission then
+		automaticBrake = false
 	end
-	if v72_ then
-		local v77_ = v70_ < v66_.lowBrakeForceSpeedLimit
-		local v78_
-		if self.spec_articulatedAxis == nil or self.spec_articulatedAxis.componentJoint == nil then
-			v78_ = false
-		else
-			local v79_ = self.rotatedTime
-			v78_ = math.abs(v79_) > 0.01
-		end
-		if (v77_ or doHandbrake) and not v78_ or v66_.lowBrakeForceLocked then
-			v75_ = 1
-			if not v66_.lowBrakeForceLocked and v71_ == 0 then
-				v66_.lowBrakeForceLocked = true
+	if accSign ~= 0 and motor.lowBrakeForceLocked then
+		motor.lowBrakeForceLocked = false
+	end
+	if automaticBrake then
+		local isSlow = absCurrentSpeed < motor.lowBrakeForceSpeedLimit
+		local _v141 = math.abs(self.rotatedTime)
+		local isArticulatedSteering = self.spec_articulatedAxis ~= nil and self.spec_articulatedAxis.componentJoint ~= nil and 0.01 < _v141
+		if not isSlow and (doHandbrake and isArticulatedSteering) then
+			brakePedal = 1
+			local factor = math.min(absCurrentSpeed / 0.001, 1)
+			brakePedal = MathUtil.lerp(1, motor.lowBrakeForceScale, factor)
+			factor = motor.lowBrakeForceLocked and motor.lowBrakeForceLocked or _v141
+			if _v141 then
+				brakePedal = 1
+				if accSign == 0 then
+					motor.lowBrakeForceLocked = true
+				end
+			else
+				local factor = math.min(absCurrentSpeed / 0.001, 1)
+				brakePedal = MathUtil.lerp(1, motor.lowBrakeForceScale, factor)
 			end
-		else
-			local v80_ = v70_ / 0.001
-			local v81_ = math.min(v80_, 1)
-			v75_ = MathUtil.lerp(1, v66_.lowBrakeForceScale, v81_)
 		end
 	end
-	SpecializationUtil.raiseEvent(self, "onVehiclePhysicsUpdate", v74_, v75_, v72_, currentSpeed)
-	local v82_, v83_ = WheelsUtil.getSmoothedAcceleratorAndBrakePedals(self, v74_, v75_, dt)
-	local v84_ = v66_:getMaximumForwardSpeed() * 3.6
+	SpecializationUtil.raiseEvent(self, "onVehiclePhysicsUpdate", acceleratorPedal, brakePedal, automaticBrake, currentSpeed)
+	acceleratorPedal, brakePedal = WheelsUtil.getSmoothedAcceleratorAndBrakePedals(self, acceleratorPedal, brakePedal, dt)
+	local maxSpeed = motor:getMaximumForwardSpeed() * 3.6
 	if self.movingDirection < 0 then
-		v84_ = v66_:getMaximumBackwardSpeed() * 3.6
+		maxSpeed = motor:getMaximumBackwardSpeed() * 3.6
 	end
-	local v85_ = self:getLastSpeed()
-	local v86_ = v66_:getSpeedLimit()
-	local v87_ = v85_ - math.min(v86_, v84_)
-	local v88_
-	if v87_ > 0 then
-		if v87_ > 0.3 then
-			local v89_ = v66_.overSpeedTimer + dt
-			v66_.overSpeedTimer = math.min(v89_, 2000)
+	local overSpeedLimit = self:getLastSpeed() - math.min(motor:getSpeedLimit(), maxSpeed)
+	if 0 < overSpeedLimit then
+		if 0.3 < overSpeedLimit then
+			motor.overSpeedTimer = math.min(motor.overSpeedTimer + dt, 2000)
 		else
-			local v90_ = v66_.overSpeedTimer - dt
-			v66_.overSpeedTimer = math.max(v90_, 0)
+			motor.overSpeedTimer = math.max(motor.overSpeedTimer - dt, 0)
 		end
-		local v91_ = v87_ * (0.5 + v66_.overSpeedTimer / 2000 * 1)
-		local v92_ = math.pow(v91_, 2)
-		local v93_ = math.min(v92_, 1)
-		v83_ = math.max(v93_, v83_)
-		local v94_ = 1 - v87_ / 0.2
-		v88_ = 0.2 * math.max(v94_, 0) * v82_
+		local factor = 0.5 + motor.overSpeedTimer / 2000 * 1
+		brakePedal = math.max(math.min(math.pow(overSpeedLimit * factor, 2), 1), brakePedal)
+		acceleratorPedal = 0.2 * math.max(1 - overSpeedLimit / 0.2, 0) * acceleratorPedal
 	else
-		local v95_ = math.abs(v87_) / 0.3 + 0.2
-		v88_ = v82_ * math.min(v95_, 1)
-		v66_.overSpeedTimer = 0
+		acceleratorPedal = acceleratorPedal * math.min(math.abs(overSpeedLimit) / 0.3 + 0.2, 1)
+		motor.overSpeedTimer = 0
 	end
 	if next(self.spec_motorized.differentials) ~= nil and self.spec_motorized.motorizedNode ~= nil then
-		local v96_ = math.abs(v88_)
-		local v97_, v98_ = v66_:getMinMaxGearRatio()
-		local v99_
-		if v98_ >= 0 then
-			v99_ = v66_:getMaximumForwardSpeed()
+		local absAcceleratorPedal = math.abs(acceleratorPedal)
+		local minGearRatio, maxGearRatio = motor:getMinMaxGearRatio()
+		if 0 <= maxGearRatio then
+			maxSpeed = motor:getMaximumForwardSpeed()
 		else
-			v99_ = v66_:getMaximumBackwardSpeed()
+			maxSpeed = motor:getMaximumBackwardSpeed()
 		end
-		local v100_ = v66_:getSpeedLimit() / 3.6
-		local v101_ = math.min(v99_, v100_)
-		local v102_ = v66_:getAccelerationLimit()
-		local v103_ = v66_:getMotorRotationAccelerationLimit()
-		local v104_, v105_ = v66_:getRequiredMotorRpmRange()
-		local v106_, v107_ = PowerConsumer.getTotalConsumedPtoTorque(self)
-		local v108_ = v106_ / v66_:getPtoMotorRpmRatio()
-		local v109_ = v97_ == 0 and v98_ == 0 and true or v66_:getManualClutchPedal() > 0.9
-		v66_:setExternalTorqueVirtualMultiplicator(v107_)
-		if v109_ then
+		local acceleratorPedalControlsSpeed = false
+		maxSpeed = math.min(maxSpeed, motor:getSpeedLimit() / 3.6)
+		local maxAcceleration = motor:getAccelerationLimit()
+		local maxMotorRotAcceleration = motor:getMotorRotationAccelerationLimit()
+		local minMotorRpm, maxMotorRpm = motor:getRequiredMotorRpmRange()
+		local neededPtoTorque, ptoTorqueVirtualMultiplicator = PowerConsumer.getTotalConsumedPtoTorque(self)
+		neededPtoTorque = neededPtoTorque / motor:getPtoMotorRpmRatio()
+		if minGearRatio == 0 then
+			local neutralActive = maxGearRatio == 0 or 0.9 < motor:getManualClutchPedal()
+			local _v110 = true
+		end
+		local _v17 = motor:getManualClutchPedal()
+		local _v193 = 0.9
+		motor:setExternalTorqueVirtualMultiplicator(ptoTorqueVirtualMultiplicator)
+		if not neutralActive then
+			self:controlVehicle(absAcceleratorPedal, maxSpeed, maxAcceleration, minMotorRpm * 3.141592653589793 / 30, maxMotorRpm * 3.141592653589793 / 30, maxMotorRotAcceleration, minGearRatio, maxGearRatio, motor:getMaxClutchTorque(), neededPtoTorque)
+		else
 			self:controlVehicle(0, 0, 0, 0, math.huge, 0, 0, 0, 0, 0)
-			v83_ = math.max(v83_, 0.03)
-		else
-			self:controlVehicle(v96_, v101_, v102_, v104_ * 3.141592653589793 / 30, v105_ * 3.141592653589793 / 30, v103_, v97_, v98_, v66_:getMaxClutchTorque(), v108_)
+			brakePedal = math.max(brakePedal, 0.03)
 		end
 	end
-	self:brake(v83_)
+	self:brake(brakePedal)
 end
-
--- Local values: wheelSpeed, numWheels, _, wheel, axleSpeed
 function WheelsUtil:computeDifferentialRotSpeedNonMotor()
-	if not self.isServer or (self.spec_wheels == nil or #self.spec_wheels.wheels == 0) then
-		return self.lastSpeedReal * 1000
-	end
-	local v111_ = 0
-	local v112_ = 0
-	for _, v113_ in pairs(self.spec_wheels.wheels) do
-		local v114_ = getWheelShapeAxleSpeed(v113_.node, v113_.physics.wheelShape)
-		if v113_.physics.hasGroundContact then
-			v111_ = v111_ + v114_ * v113_.physics.radius
-			v112_ = v112_ + 1
+	if self.isServer and (self.spec_wheels ~= nil and #self.spec_wheels.wheels ~= 0) then
+		local wheelSpeed = 0
+		local numWheels = 0
+		for _, wheel in pairs(self.spec_wheels.wheels) do
+			local axleSpeed = getWheelShapeAxleSpeed(wheel.node, wheel.physics.wheelShape)
+			if wheel.physics.hasGroundContact then
+				wheelSpeed = wheelSpeed + axleSpeed * wheel.physics.radius
+				numWheels = numWheels + 1
+			end
+		end
+		if 0 < numWheels then
+			return wheelSpeed / numWheels
+		else
+			return 0
 		end
 	end
-	return v112_ <= 0 and 0 or v111_ / v112_
+	return self.lastSpeedReal * 1000
 end
-
--- Local values: coeff, coeffWet, coeffSnow
 function WheelsUtil.getTireFriction(tireType, groundType, wetScale, snowScale)
-	local v119_ = wetScale == nil and 0 or wetScale
-	local v120_ = WheelsUtil.tireTypes[tireType].frictionCoeffs[groundType]
-	local v121_ = WheelsUtil.tireTypes[tireType].frictionCoeffsWet[groundType]
-	local v122_ = WheelsUtil.tireTypes[tireType].frictionCoeffsSnow[groundType]
-	return v120_ + (v121_ - v120_) * v119_ + (v122_ - v120_) * snowScale
+	if wetScale == nil then
+		wetScale = 0
+	end
+	local coeff = WheelsUtil.tireTypes[tireType].frictionCoeffs[groundType]
+	local coeffWet = WheelsUtil.tireTypes[tireType].frictionCoeffsWet[groundType]
+	local coeffSnow = WheelsUtil.tireTypes[tireType].frictionCoeffsSnow[groundType]
+	return coeff + (coeffWet - coeff) * wetScale + (coeffSnow - coeff) * snowScale
 end
-
 function WheelsUtil.getGroundType(isField, isRoad, depth)
 	if isField then
 		return WheelsUtil.GROUND_FIELD
-	elseif isRoad or depth < 0.1 then
+	end
+	if isRoad or depth < 0.1 then
 		return WheelsUtil.GROUND_ROAD
-	elseif depth > 0.8 then
+	end
+	if 0.8 < depth then
 		return WheelsUtil.GROUND_SOFT_TERRAIN
 	else
 		return WheelsUtil.GROUND_HARD_TERRAIN

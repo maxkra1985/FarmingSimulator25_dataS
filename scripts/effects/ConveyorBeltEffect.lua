@@ -1,22 +1,17 @@
--- Local values: ConveyorBeltEffect_mt
 ConveyorBeltEffect = {}
 local ConveyorBeltEffect_mt = Class(ConveyorBeltEffect, MorphPositionEffect)
-
--- Upvalues: ConveyorBeltEffect_mt
--- Local values: self
 function ConveyorBeltEffect.new(customMt)
-	-- upvalues: (copy) ConveyorBeltEffect_mt
-	return MorphPositionEffect.new(customMt or ConveyorBeltEffect_mt)
+	local self = MorphPositionEffect.new(customMt or ConveyorBeltEffect_mt)
+	return self
 end
-
 function ConveyorBeltEffect:loadEffectAttributes(xmlFile, key, node, i3dNode, i3dMapping)
 	if not ConveyorBeltEffect:superClass().loadEffectAttributes(self, xmlFile, key, node, i3dNode, i3dMapping) then
 		return false
+	else
+		self.scrollUpdate = true
+		return true
 	end
-	self.scrollUpdate = true
-	return true
 end
-
 function ConveyorBeltEffect:update(dt)
 	if self.scrollUpdate then
 		self.scrollPosition = (self.scrollPosition + dt * self.scrollSpeed) % self.scrollLength
@@ -24,7 +19,6 @@ function ConveyorBeltEffect:update(dt)
 	end
 	setVisibility(self.node, true)
 end
-
 function ConveyorBeltEffect:setScrollUpdate(state)
 	if state == nil then
 		self.scrollUpdate = not self.scrollUpdate
@@ -32,7 +26,6 @@ function ConveyorBeltEffect:setScrollUpdate(state)
 		self.scrollUpdate = state
 	end
 end
-
 function ConveyorBeltEffect:setMorphPosition(fade1, fade2)
 	self.fadeCur[1] = fade1
 	self.fadeCur[2] = fade2

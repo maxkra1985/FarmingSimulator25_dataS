@@ -1,31 +1,24 @@
--- Local values: ForestryRope_mt
 ForestryRope = {}
 local ForestryRope_mt = Class(ForestryRope)
-
--- Upvalues: ForestryRope_mt
--- Local values: self
 function ForestryRope.new(vehicle, linkNode, customMt)
-	-- upvalues: (copy) ForestryRope_mt
-	local v5_ = customMt or ForestryRope_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.vehicle = vehicle
-	v6_.linkNode = linkNode
-	v6_.x = 0
-	v6_.y = 0
-	v6_.z = 0
-	v6_.rx = 0
-	v6_.ry = 0
-	v6_.rz = 0
-	v6_.visibility = true
-	v6_.targetNode = nil
-	v6_.tx = 0
-	v6_.ty = 0
-	v6_.tz = 0
-	v6_.validTarget = false
-	v6_.boundingRadius = 1
-	return v6_
+	local self = setmetatable({}, customMt or ForestryRope_mt)
+	self.vehicle = vehicle
+	self.linkNode = linkNode
+	self.x = 0
+	self.y = 0
+	self.z = 0
+	self.rx = 0
+	self.ry = 0
+	self.rz = 0
+	self.visibility = true
+	self.targetNode = nil
+	self.tx = 0
+	self.ty = 0
+	self.tz = 0
+	self.validTarget = false
+	self.boundingRadius = 1
+	return self
 end
-
 function ForestryRope.registerXMLPaths(schema, baseKey)
 	schema:register(XMLValueType.STRING, baseKey .. "#filename", "Path to rope i3d file", "$data/shared/forestry/ropes.i3d")
 	schema:register(XMLValueType.STRING, baseKey .. "#ropeNode", "Path to rope i3d file", "0")
@@ -34,7 +27,6 @@ function ForestryRope.registerXMLPaths(schema, baseKey)
 	schema:register(XMLValueType.VECTOR_4, baseKey .. "#emissiveColor", "Emissive color", "0 0 0")
 	schema:register(XMLValueType.VECTOR_4, baseKey .. "#invalidEmissiveColor", "Emissive color", "0 0 0")
 end
-
 function ForestryRope:loadFromXML(xmlFile, key, baseDirectory)
 	self.i3dFilename = xmlFile:getValue(key .. "#filename", "$data/shared/forestry/ropes.i3d")
 	self.i3dRopePath = xmlFile:getValue(key .. "#ropeNode", "0")
@@ -51,26 +43,24 @@ function ForestryRope:loadFromXML(xmlFile, key, baseDirectory)
 		self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(self.i3dFilename, false, false, self.onI3DLoaded, self, self)
 	end
 end
-
 function ForestryRope:loadFromConfigXML(xmlFile) end
-
--- Local values: ropeClone, i3dNode, sharedLoadRequestId, failedReason
 function ForestryRope:clone(linkNode)
-	local v15_ = ForestryRope.new(self.vehicle, linkNode or self.linkNode)
-	v15_.i3dFilename = self.i3dFilename
-	v15_.i3dRopePath = self.i3dRopePath
-	v15_.diameter = self.diameter
-	v15_.uvScale = self.uvScale
-	v15_.emissiveColor = self.emissiveColor
-	v15_.invalidEmissiveColor = self.invalidEmissiveColor
-	if v15_.i3dFilename ~= nil then
-		local v16_, v17_, v18_ = g_i3DManager:loadSharedI3DFile(v15_.i3dFilename, false, false)
-		v15_.sharedLoadRequestId = v17_
-		v15_:onI3DLoaded(v16_, v18_)
-		return v15_
+	local ropeClone = ForestryRope.new(self.vehicle, linkNode or self.linkNode)
+	ropeClone.i3dFilename = self.i3dFilename
+	ropeClone.i3dRopePath = self.i3dRopePath
+	ropeClone.diameter = self.diameter
+	ropeClone.uvScale = self.uvScale
+	ropeClone.emissiveColor = self.emissiveColor
+	ropeClone.invalidEmissiveColor = self.invalidEmissiveColor
+	if ropeClone.i3dFilename ~= nil then
+		local i3dNode, sharedLoadRequestId, failedReason = g_i3DManager:loadSharedI3DFile(ropeClone.i3dFilename, false, false)
+		ropeClone.sharedLoadRequestId = sharedLoadRequestId
+		ropeClone:onI3DLoaded(i3dNode, failedReason)
+		return ropeClone
+	else
+		return
 	end
 end
-
 function ForestryRope:delete()
 	g_currentMission:removeUpdateable(self)
 	if self.referenceFrame ~= nil then
@@ -80,43 +70,31 @@ function ForestryRope:delete()
 		g_i3DManager:releaseSharedI3DFile(self.sharedLoadRequestId)
 	end
 end
-
--- Local values: dx, dy, dz, length
 function ForestryRope:update(dt)
 	if self.validTarget then
 		if self.targetNode ~= nil then
-			local v21_, v22_, v23_ = getWorldTranslation(self.targetNode)
-			self.tx = v21_
-			self.ty = v22_
-			self.tz = v23_
+			self.tx, self.ty, self.tz = getWorldTranslation(self.targetNode)
 		end
-		local v24_, v25_, v26_ = worldToLocal(self.referenceFrame, self.tx, self.ty, self.tz)
-		local v27_ = MathUtil.vector3Length(v24_, v25_, v26_)
-		local v28_, v29_, v30_ = MathUtil.vector3Normalize(v24_, v25_, v26_)
-		setDirection(self.ropeId, v28_, v29_, v30_, 0, 1, 0)
-		self:setLength(v27_)
+		local dx, dy, dz = worldToLocal(self.referenceFrame, self.tx, self.ty, self.tz)
+		local length = MathUtil.vector3Length(dx, dy, dz)
+		dx, dy, dz = MathUtil.vector3Normalize(dx, dy, dz)
+		setDirection(self.ropeId, dx, dy, dz, 0, 1, 0)
+		self:setLength(length)
 	end
 end
-
--- Local values: boundingRadius
 function ForestryRope:setLength(length)
 	if self.referenceFrame ~= nil then
 		g_animationManager:setPrevShaderParameter(self.ropeId, "ropeLengthBendSizeUv", length, 0, self.diameter, self.uvScale, false, "prevRopeLengthBendSizeUv")
-		local v33_ = math.ceil(length)
-		local v34_ = math.max(v33_, 1) * 0.5
-		if math.ceil(v34_) ~= self.boundingRadius then
-			setShapeBoundingSphere(self.ropeId, 0, 0, v34_, v34_)
-			self.boundingRadius = v34_
+		local boundingRadius = math.max(math.ceil(length), 1) * 0.5
+		if math.ceil(boundingRadius) ~= self.boundingRadius then
+			setShapeBoundingSphere(self.ropeId, 0, 0, boundingRadius, boundingRadius)
+			self.boundingRadius = boundingRadius
 		end
 	end
 end
-
 function ForestryRope:setTargetNode(nodeId, isActiveDirty)
 	self.targetNode = nodeId
-	local v38_, v39_, v40_ = getWorldTranslation(self.targetNode)
-	self.tx = v38_
-	self.ty = v39_
-	self.tz = v40_
+	self.tx, self.ty, self.tz = getWorldTranslation(self.targetNode)
 	if isActiveDirty then
 		g_currentMission:removeUpdateable(self)
 		g_currentMission:addUpdateable(self)
@@ -126,7 +104,6 @@ function ForestryRope:setTargetNode(nodeId, isActiveDirty)
 	self.validTarget = true
 	self:update(9999)
 end
-
 function ForestryRope:setTargetPosition(x, y, z)
 	self.tx = x
 	self.ty = y
@@ -134,21 +111,14 @@ function ForestryRope:setTargetPosition(x, y, z)
 	self.validTarget = true
 	self:update(9999)
 end
-
 function ForestryRope:link(node, x, y, z, rx, ry, rz)
 	self.linkNode = node
-	local v53_ = x or self.x
-	local v54_ = y or self.y
-	local v55_ = z or self.z
-	self.x = v53_
-	self.y = v54_
-	self.z = v55_
-	local v56_ = rx or self.rx
-	local v57_ = ry or self.ry
-	local v58_ = rz or self.rz
-	self.rx = v56_
-	self.ry = v57_
-	self.rz = v58_
+	self.x = x or self.x
+	self.y = y or self.y
+	self.z = z or self.z
+	self.rx = rx or self.rx
+	self.ry = ry or self.ry
+	self.rz = rz or self.rz
 	if self.referenceFrame ~= nil then
 		link(self.linkNode, self.referenceFrame)
 		setVisibility(self.referenceFrame, self.visibility)
@@ -156,17 +126,10 @@ function ForestryRope:link(node, x, y, z, rx, ry, rz)
 		setRotation(self.referenceFrame, self.rx, self.ry, self.rz)
 	end
 end
-
 function ForestryRope:setPositionAndDirection(x, y, z, dx, dz)
-	local v65_, v66_, v67_ = worldToLocal(self.linkNode, x, y, z)
-	self.x = v65_
-	self.y = v66_
-	self.z = v67_
+	self.x, self.y, self.z = worldToLocal(self.linkNode, x, y, z)
 	if dx ~= nil and dz ~= nil then
-		local v68_, v69_, v70_ = worldRotationToLocal(self.linkNode, 0, MathUtil.getYRotationFromDirection(dx, dz), 0)
-		self.rx = v68_
-		self.ry = v69_
-		self.rz = v70_
+		self.rx, self.ry, self.rz = worldRotationToLocal(self.linkNode, 0, MathUtil.getYRotationFromDirection(dx, dz), 0)
 	end
 	if self.referenceFrame ~= nil then
 		link(self.linkNode, self.referenceFrame)
@@ -175,22 +138,18 @@ function ForestryRope:setPositionAndDirection(x, y, z, dx, dz)
 		setRotation(self.referenceFrame, self.rx, self.ry, self.rz)
 	end
 end
-
 function ForestryRope:setVisibility(visibility)
 	self.visibility = visibility
 	if self.referenceFrame ~= nil then
 		setVisibility(self.referenceFrame, self.visibility)
 	end
 end
-
--- Local values: color
 function ForestryRope:setEmissiveColor(valid)
 	if self.ropeId ~= nil then
-		local v75_ = valid and self.emissiveColor or self.invalidEmissiveColor
-		setShaderParameter(self.ropeId, "ropeEmissiveColor", v75_[1], v75_[2], v75_[3], v75_[4], false)
+		local color = valid and self.emissiveColor or self.invalidEmissiveColor
+		setShaderParameter(self.ropeId, "ropeEmissiveColor", color[1], color[2], color[3], color[4], false)
 	end
 end
-
 function ForestryRope:onI3DLoaded(i3dNode, failedReason)
 	if i3dNode ~= 0 then
 		self.ropeId = I3DUtil.indexToObject(i3dNode, self.i3dRopePath)

@@ -1,18 +1,16 @@
 AIDischargeable = {}
-
 function AIDischargeable.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(Dischargeable, specializations)
 end
 function AIDischargeable.initSpecialization()
-	local v2_ = Vehicle.xmlSchema
-	v2_:setXMLSpecializationType("Dischargeable")
-	v2_:register(XMLValueType.BOOL, "vehicle.dischargeable.dischargeNode(?)#allowAIDischarge", "Allows ai discharge", false)
-	v2_:register(XMLValueType.BOOL, "vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(?).dischargeNode(?)#allowAIDischarge", "Allows ai discharge", false)
-	v2_:register(XMLValueType.VECTOR_3, "vehicle.dischargeable.dischargeNode(?)#aiRootNodeCustomOffsets", "An additional custom offset between the ai root node and the discharge node", false)
-	v2_:register(XMLValueType.VECTOR_3, "vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(?).dischargeNode(?)#aiRootNodeCustomOffsets", "An additional custom offset between the ai root node and the discharge node", false)
-	v2_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Dischargeable")
+	schema:register(XMLValueType.BOOL, "vehicle.dischargeable.dischargeNode(?)#allowAIDischarge", "Allows ai discharge", false)
+	schema:register(XMLValueType.BOOL, "vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(?).dischargeNode(?)#allowAIDischarge", "Allows ai discharge", false)
+	schema:register(XMLValueType.VECTOR_3, "vehicle.dischargeable.dischargeNode(?)#aiRootNodeCustomOffsets", "An additional custom offset between the ai root node and the discharge node", false)
+	schema:register(XMLValueType.VECTOR_3, "vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(?).dischargeNode(?)#aiRootNodeCustomOffsets", "An additional custom offset between the ai root node and the discharge node", false)
+	schema:setXMLSpecializationType()
 end
-
 function AIDischargeable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getAIDischargeNodes", AIDischargeable.getAIDischargeNodes)
 	SpecializationUtil.registerFunction(vehicleType, "getAIDischargeNodeZAlignedOffset", AIDischargeable.getAIDischargeNodeZAlignedOffset)
@@ -22,12 +20,10 @@ function AIDischargeable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "finishedAIDischarge", AIDischargeable.finishedAIDischarge)
 	SpecializationUtil.registerFunction(vehicleType, "getAIHasFinishedDischarge", AIDischargeable.getAIHasFinishedDischarge)
 end
-
 function AIDischargeable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "loadDischargeNode", AIDischargeable.loadDischargeNode)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getDischargeNodeAutomaticDischarge", AIDischargeable.getDischargeNodeAutomaticDischarge)
 end
-
 function AIDischargeable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreLoad", AIDischargeable)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AIDischargeable)
@@ -35,161 +31,143 @@ function AIDischargeable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", AIDischargeable)
 	SpecializationUtil.registerEventListener(vehicleType, "onDischargeStateChanged", AIDischargeable)
 end
-
--- Local values: spec
 function AIDischargeable:onPreLoad()
-	self.spec_aiDischargeable.aiDischargeNodes = {}
+	local spec = self.spec_aiDischargeable
+	spec.aiDischargeNodes = {}
 end
-
--- Local values: spec
 function AIDischargeable:onLoad()
-	self.spec_aiDischargeable.currentDischargeNode = nil
+	local spec = self.spec_aiDischargeable
+	spec.currentDischargeNode = nil
 end
-
--- Local values: spec, _, dischargeNode, _, inputAttacherJoint, x, y, z, aiRootNode, offsetX, offsetY, offsetZ
 function AIDischargeable:onPostLoad()
-	local v9_ = self.spec_aiDischargeable
-	if v9_.aiDischargeNodes ~= nil then
-		for _, v10_ in ipairs(v9_.aiDischargeNodes) do
-			v10_.inputAttacherJointOffsets = {}
+	local spec = self.spec_aiDischargeable
+	if spec.aiDischargeNodes ~= nil then
+		for _, dischargeNode in ipairs(spec.aiDischargeNodes) do
+			dischargeNode.inputAttacherJointOffsets = {}
 			if self.getInputAttacherJoints ~= nil then
-				for _, v11_ in ipairs(self:getInputAttacherJoints()) do
-					local v12_, v13_, v14_ = localToLocal(v10_.node, v11_.node, 0, 0, 0)
-					local v15_ = v10_.inputAttacherJointOffsets
-					table.insert(v15_, { v12_, v13_, v14_ })
+				for _, inputAttacherJoint in ipairs(self:getInputAttacherJoints()) do
+					local x, y, z = localToLocal(dischargeNode.node, inputAttacherJoint.node, 0, 0, 0)
+					table.insert(dischargeNode.inputAttacherJointOffsets, { x, y, z })
 				end
 			end
-			if self.getAIRootNode ~= nil then
-				local v16_ = self:getAIRootNode()
-				local v17_, v18_, v19_
-				if v10_.aiRootNodeCustomOffsets == nil then
-					v17_ = 0
-					v18_ = 0
-					v19_ = 0
-				else
-					v17_ = v10_.aiRootNodeCustomOffsets[1]
-					v18_ = v10_.aiRootNodeCustomOffsets[2]
-					v19_ = v10_.aiRootNodeCustomOffsets[3]
-				end
-				v10_.aiRootNodeOffsets = { localToLocal(v10_.node, v16_, v17_, v18_, v19_) }
+			if self.getAIRootNode == nil then
+				continue
 			end
+			local aiRootNode = self:getAIRootNode()
+			local offsetX = 0
+			local offsetY = 0
+			local offsetZ = 0
+			if dischargeNode.aiRootNodeCustomOffsets ~= nil then
+				offsetX = dischargeNode.aiRootNodeCustomOffsets[1]
+				offsetY = dischargeNode.aiRootNodeCustomOffsets[2]
+				offsetZ = dischargeNode.aiRootNodeCustomOffsets[3]
+			end
+			dischargeNode.aiRootNodeOffsets = { localToLocal(dischargeNode.node, aiRootNode, offsetX, offsetY, offsetZ) }
 		end
 	end
 end
-
--- Local values: spec
 function AIDischargeable:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v21_ = self.spec_aiDischargeable
-	if v21_.currentDischargeNode ~= nil and (not v21_.isAIDischargeRunning and self:getAIHasFinishedDischarge(v21_.currentDischargeNode)) then
+	local spec = self.spec_aiDischargeable
+	if spec.currentDischargeNode ~= nil and (not spec.isAIDischargeRunning and self:getAIHasFinishedDischarge(spec.currentDischargeNode)) then
 		self:finishedAIDischarge()
 	end
 end
-
--- Local values: spec, fillUnitAlreadyUsed, _, dischargeNode
 function AIDischargeable:loadDischargeNode(superFunc, xmlFile, key, entry)
 	if not superFunc(self, xmlFile, key, entry) then
 		return false
-	end
-	entry.allowAIDischarge = xmlFile:getValue(key .. "#allowAIDischarge", false)
-	entry.aiRootNodeCustomOffsets = xmlFile:getValue(key .. "#aiRootNodeCustomOffsets", nil, true)
-	if entry.allowAIDischarge then
-		local v27_ = self.spec_aiDischargeable
-		local v28_ = false
-		for _, v29_ in ipairs(v27_.aiDischargeNodes) do
-			if v29_.fillUnitIndex == entry.fillUnitIndex then
-				v28_ = true
-				break
+	else
+		entry.allowAIDischarge = xmlFile:getValue(key .. "#allowAIDischarge", false)
+		entry.aiRootNodeCustomOffsets = xmlFile:getValue(key .. "#aiRootNodeCustomOffsets", nil, true)
+		if entry.allowAIDischarge then
+			local spec = self.spec_aiDischargeable
+			local fillUnitAlreadyUsed = false
+			for _, dischargeNode in ipairs(spec.aiDischargeNodes) do
+				if dischargeNode.fillUnitIndex == entry.fillUnitIndex then
+					fillUnitAlreadyUsed = true
+					break
+				end
+			end
+			if not fillUnitAlreadyUsed then
+				table.insert(spec.aiDischargeNodes, entry)
+			else
+				Logging.xmlWarning(xmlFile, "Discharge node fill unit index already used for AI. Discharge node will be ignored for '%s'", key)
 			end
 		end
-		if v28_ then
-			Logging.xmlWarning(xmlFile, "Discharge node fill unit index already used for AI. Discharge node will be ignored for \'%s\'", key)
-		else
-			local v30_ = v27_.aiDischargeNodes
-			table.insert(v30_, entry)
-		end
+		return true
 	end
-	return true
 end
-
 function AIDischargeable:getDischargeNodeAutomaticDischarge(superFunc, dischargeNode)
 	if Platform.gameplay.automaticDischarge and self:getIsAIActive() then
 		return false
-	else
-		return superFunc(self, dischargeNode)
 	end
+	return superFunc(self, dischargeNode)
 end
-
--- Local values: spec
 function AIDischargeable:onDischargeStateChanged(state)
-	local v36_ = self.spec_aiDischargeable
-	if v36_.currentDischargeNode ~= nil and (v36_.isAIDischargeRunning and state == Dischargeable.DISCHARGE_STATE_OFF) then
+	local spec = self.spec_aiDischargeable
+	if spec.currentDischargeNode ~= nil and (spec.isAIDischargeRunning and state == Dischargeable.DISCHARGE_STATE_OFF) then
 		self:stoppedAIDischarge()
 	end
 end
-
--- Local values: spec
 function AIDischargeable:getAIDischargeNodes()
-	return self.spec_aiDischargeable.aiDischargeNodes
+	local spec = self.spec_aiDischargeable
+	return spec.aiDischargeNodes
 end
-
--- Local values: index, inputAttacherOffsets, offsetX, offsetY, offsetZ, currentVehicle, nextVehicle, attacherJoint, nextInputAttacherJointIndex, offsets, x, y, z, xDir, yDir, zDir, xUp, yUp, zUp, xNorm, yNorm, zNorm, nextOffsetX, nextOffsetY, nextOffsetZ, attacherJoint, offsets, x, y, z, xDir, yDir, zDir, xUp, yUp, zUp, xNorm, yNorm, zNorm, targetOffsetX, targetOffsetY, targetOffsetZ
 function AIDischargeable:getAIDischargeNodeZAlignedOffset(dischargeNode, targetVehicle)
 	if targetVehicle == self then
 		return dischargeNode.aiRootNodeOffsets[1], dischargeNode.aiRootNodeOffsets[2], dischargeNode.aiRootNodeOffsets[3]
+	else
+		local index = self:getActiveInputAttacherJointDescIndex()
+		local inputAttacherOffsets = dischargeNode.inputAttacherJointOffsets[index]
+		local offsetX = inputAttacherOffsets[1]
+		local offsetY = inputAttacherOffsets[2]
+		local offsetZ = inputAttacherOffsets[3]
+		local currentVehicle = self
+		local nextVehicle = currentVehicle:getAttacherVehicle()
+		while targetVehicle ~= nextVehicle do
+			local attacherJoint = nextVehicle:getAttacherJointDescFromObject(currentVehicle)
+			local nextInputAttacherJointIndex = nextVehicle:getActiveInputAttacherJointDescIndex()
+			local offsets = attacherJoint.inputAttacherJointOffsets[nextInputAttacherJointIndex]
+			local x, y, z, xDir, yDir, zDir, xUp, yUp, zUp, xNorm, yNorm, zNorm = unpack(offsets)
+			local nextOffsetX = x + xNorm * offsetX + xUp * offsetY + xDir * offsetZ
+			local nextOffsetY = y + yNorm * offsetX + yUp * offsetY + yDir * offsetZ
+			local nextOffsetZ = z + zNorm * offsetX + zUp * offsetY + zDir * offsetZ
+			offsetX = nextOffsetX
+			offsetY = nextOffsetY
+			offsetZ = nextOffsetZ
+			currentVehicle = nextVehicle
+			nextVehicle = currentVehicle:getAttacherVehicle()
+		end
+		local attacherJoint = targetVehicle:getAttacherJointDescFromObject(currentVehicle)
+		local offsets = attacherJoint.aiRootNodeOffset
+		local x, y, z, xDir, yDir, zDir, xUp, yUp, zUp, xNorm, yNorm, zNorm = unpack(offsets)
+		local targetOffsetX = x + xNorm * offsetX + xUp * offsetY + xDir * offsetZ
+		local targetOffsetY = y + yNorm * offsetX + yUp * offsetY + yDir * offsetZ
+		local targetOffsetZ = z + zNorm * offsetX + zUp * offsetY + zDir * offsetZ
+		return targetOffsetX, targetOffsetY, targetOffsetZ
 	end
-	local v41_ = self:getActiveInputAttacherJointDescIndex()
-	local v42_ = dischargeNode.inputAttacherJointOffsets[v41_]
-	local v43_ = v42_[1]
-	local v44_ = v42_[2]
-	local v45_ = v42_[3]
-	local v46_ = self:getAttacherVehicle()
-	while targetVehicle ~= v46_ do
-		local v47_ = v46_:getAttacherJointDescFromObject(self)
-		local v48_ = v46_:getActiveInputAttacherJointDescIndex()
-		local v49_ = v47_.inputAttacherJointOffsets[v48_]
-		local v50_, v51_, v52_, v53_, v54_, v55_, v56_, v57_, v58_, v59_, v60_, v61_ = unpack(v49_)
-		local v62_ = v50_ + v59_ * v43_ + v56_ * v44_ + v53_ * v45_
-		local v63_ = v51_ + v60_ * v43_ + v57_ * v44_ + v54_ * v45_
-		v45_ = v52_ + v61_ * v43_ + v58_ * v44_ + v55_ * v45_
-		local v64_ = v46_:getAttacherVehicle()
-		v44_ = v63_
-		v43_ = v62_
-		self = v46_
-		v46_ = v64_
-	end
-	local v65_ = targetVehicle:getAttacherJointDescFromObject(self).aiRootNodeOffset
-	local v66_, v67_, v68_, v69_, v70_, v71_, v72_, v73_, v74_, v75_, v76_, v77_ = unpack(v65_)
-	return v66_ + v75_ * v43_ + v72_ * v44_ + v69_ * v45_, v67_ + v76_ * v43_ + v73_ * v44_ + v70_ * v45_, v68_ + v77_ * v43_ + v74_ * v44_ + v71_ * v45_
 end
-
 function AIDischargeable:getAICanStartDischarge(dischargeNode)
 	return self:getCanDischargeToObject(dischargeNode)
 end
-
--- Local values: spec
 function AIDischargeable:startAIDischarge(dischargeNode, task)
-	local v83_ = self.spec_aiDischargeable
-	v83_.currentDischargeNode = dischargeNode
-	v83_.task = task
-	v83_.isAIDischargeRunning = true
+	local spec = self.spec_aiDischargeable
+	spec.currentDischargeNode = dischargeNode
+	spec.task = task
+	spec.isAIDischargeRunning = true
 	self:setDischargeState(Dischargeable.DISCHARGE_STATE_OBJECT)
 end
-
--- Local values: spec
 function AIDischargeable:stoppedAIDischarge()
-	self.spec_aiDischargeable.isAIDischargeRunning = false
+	local spec = self.spec_aiDischargeable
+	spec.isAIDischargeRunning = false
 end
-
--- Local values: spec
 function AIDischargeable:finishedAIDischarge()
-	local v86_ = self.spec_aiDischargeable
-	if v86_.task ~= nil then
-		v86_.task:finishedDischarge()
+	local spec = self.spec_aiDischargeable
+	if spec.task ~= nil then
+		spec.task:finishedDischarge()
 	end
-	v86_.currentDischargeNode = nil
-	v86_.task = nil
+	spec.currentDischargeNode = nil
+	spec.task = nil
 end
-
 function AIDischargeable:getAIHasFinishedDischarge(dischargeNode)
 	return true
 end

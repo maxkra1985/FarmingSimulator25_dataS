@@ -1,28 +1,22 @@
--- Local values: WoodHarvesterDropTreeEvent_mt
 WoodHarvesterDropTreeEvent = {}
 local WoodHarvesterDropTreeEvent_mt = Class(WoodHarvesterDropTreeEvent, Event)
 InitStaticEventClass(WoodHarvesterDropTreeEvent, "WoodHarvesterDropTreeEvent")
 function WoodHarvesterDropTreeEvent.emptyNew()
-	-- upvalues: (copy) WoodHarvesterDropTreeEvent_mt
-	return Event.new(WoodHarvesterDropTreeEvent_mt)
+	local self = Event.new(WoodHarvesterDropTreeEvent_mt)
+	return self
 end
-
--- Local values: self
 function WoodHarvesterDropTreeEvent.new(object)
-	local v3_ = WoodHarvesterDropTreeEvent.emptyNew()
-	v3_.object = object
-	return v3_
+	local self = WoodHarvesterDropTreeEvent.emptyNew()
+	self.object = object
+	return self
 end
-
 function WoodHarvesterDropTreeEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self:run(connection)
 end
-
 function WoodHarvesterDropTreeEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 end
-
 function WoodHarvesterDropTreeEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(WoodHarvesterDropTreeEvent.new(self.object), nil, connection, self.object)
@@ -31,7 +25,6 @@ function WoodHarvesterDropTreeEvent:run(connection)
 		self.object:dropWoodHarvesterTree(true)
 	end
 end
-
 function WoodHarvesterDropTreeEvent.sendEvent(object, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

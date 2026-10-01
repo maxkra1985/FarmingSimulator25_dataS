@@ -1,45 +1,31 @@
--- Local values: Butterfly_mt
 Butterfly = {}
 local Butterfly_mt = Class(Butterfly)
-
 function Butterfly:onCreate(id)
 	g_currentMission:addUpdateable(Butterfly.new(id))
 end
-
--- Upvalues: Butterfly_mt
--- Local values: self, i, butterflyId, splineId, meshId, speed, butterfly
 function Butterfly.new(id)
-	-- upvalues: (copy) Butterfly_mt
-	local v4_ = Butterfly_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.id = id
-	v5_.butterflies = {}
-	for v6_ = 1, getNumOfChildren(id) do
-		local v7_ = getChildAt(id, v6_ - 1)
-		local v8_ = {
-			["butterflyId"] = v7_,
-			["splineId"] = getChildAt(v7_, 0),
-			["meshId"] = getChildAt(v7_, 1),
-			["speed"] = Utils.getNoNil(getUserAttribute(v7_, "speed"), 0.005),
-			["splinePos"] = 0
-		}
-		local v9_ = v5_.butterflies
-		table.insert(v9_, v8_)
+	local self = setmetatable({}, Butterfly_mt)
+	self.id = id
+	self.butterflies = {}
+	for i = 1, getNumOfChildren(id) do
+		local butterflyId = getChildAt(id, i - 1)
+		local splineId = getChildAt(butterflyId, 0)
+		local meshId = getChildAt(butterflyId, 1)
+		local speed = Utils.getNoNil(getUserAttribute(butterflyId, "speed"), 0.005)
+		local butterfly = { butterflyId = butterflyId, splineId = splineId, meshId = meshId, speed = speed, splinePos = 0 }
+		table.insert(self.butterflies, butterfly)
 	end
-	v5_.time = 0
-	v5_.animTimer = 0
-	v5_.animDelay = 100
-	v5_.flip = true
-	v5_.checkClosestButterflyTimer = 0
-	v5_.checkClosestButterflyInterval = 2000
-	v5_.activeButterfly = nil
-	v5_.isSunOn = true
-	return v5_
+	self.time = 0
+	self.animTimer = 0
+	self.animDelay = 100
+	self.flip = true
+	self.checkClosestButterflyTimer = 0
+	self.checkClosestButterflyInterval = 2000
+	self.activeButterfly = nil
+	self.isSunOn = true
+	return self
 end
-
 function Butterfly:delete() end
-
--- Local values: closestDistance, closestButterfly, playerPositionX, playerPositionY, playerPositionZ, butterflyPositionX, butterflyPositionY, butterflyPositionZ, _, butterfly, distance, _, butterfly, _, butterfly, offset1, offset2, x, y, z, rx, ry, rz
 function Butterfly:update(dt)
 	if g_currentMission.environment.isSunOn ~= self.isSunOn then
 		self.isSunOn = g_currentMission.environment.isSunOn
@@ -49,32 +35,37 @@ function Butterfly:update(dt)
 			setVisibility(self.id, false)
 		end
 	end
-	if self.isSunOn then
+	if not self.isSunOn then
+		return
+	else
 		self.checkClosestButterflyTimer = self.checkClosestButterflyTimer - dt
 		if self.checkClosestButterflyTimer <= 0 then
-			local v12_, v13_, v14_ = g_localPlayer:getPosition()
-			local v15_ = 100000000
-			local v16_ = nil
-			for _, v17_ in pairs(self.butterflies) do
-				local v18_, v19_, v20_ = getWorldTranslation(v17_.splineId)
-				local v21_ = MathUtil.vector3Length(v12_ - v18_, v13_ - v19_, v14_ - v20_)
-				if v21_ < v15_ then
-					v16_ = v17_
-					v15_ = v21_
+			local closestDistance = 100000000
+			local closestButterfly = nil
+			local playerPositionX, playerPositionY, playerPositionZ = g_localPlayer:getPosition()
+			local butterflyPositionX = 0
+			local butterflyPositionY = 0
+			local butterflyPositionZ = 0
+			for _, butterfly in pairs(self.butterflies) do
+				butterflyPositionX, butterflyPositionY, butterflyPositionZ = getWorldTranslation(butterfly.splineId)
+				local distance = MathUtil.vector3Length(playerPositionX - butterflyPositionX, playerPositionY - butterflyPositionY, playerPositionZ - butterflyPositionZ)
+				if distance < closestDistance then
+					closestDistance = distance
+					closestButterfly = butterfly
 				end
 			end
-			if v15_ < 150 then
-				for _, v22_ in pairs(self.butterflies) do
-					if v22_.butterflyId == v16_.butterflyId then
-						setVisibility(v22_.butterflyId, true)
+			if closestDistance < 150 then
+				for _, butterfly in pairs(self.butterflies) do
+					if butterfly.butterflyId == closestButterfly.butterflyId then
+						setVisibility(butterfly.butterflyId, true)
 					else
-						setVisibility(v22_.butterflyId, false)
+						setVisibility(butterfly.butterflyId, false)
 					end
 				end
-				self.activeButterfly = v16_
+				self.activeButterfly = closestButterfly
 			else
-				for _, v23_ in pairs(self.butterflies) do
-					setVisibility(v23_.butterflyId, false)
+				for _, butterfly in pairs(self.butterflies) do
+					setVisibility(butterfly.butterflyId, false)
 				end
 				self.activeButterfly = nil
 			end
@@ -90,21 +81,15 @@ function Butterfly:update(dt)
 			end
 			self.time = self.time + dt * math.random() * 1
 			self.activeButterfly.splinePos = self.activeButterfly.splinePos + dt * math.random() * 1 * self.activeButterfly.speed * 0.01
-			local v24_ = self.time * 0.005
-			local v25_ = math.sin(v24_)
-			local v26_ = self.time * 0.025
-			local v27_ = v25_ * math.cos(v26_) * 0.05
-			local v28_ = self.time * 0.0175
-			local v29_ = math.sin(v28_)
-			local v30_ = self.time * 0.0125
-			local v31_ = v29_ * math.cos(v30_) * 0.05
-			if self.activeButterfly.splinePos > 1 then
+			local offset1 = math.sin(self.time * 0.005) * math.cos(self.time * 0.025) * 0.05
+			local offset2 = math.sin(self.time * 0.0175) * math.cos(self.time * 0.0125) * 0.05
+			if 1 < self.activeButterfly.splinePos then
 				self.activeButterfly.splinePos = self.activeButterfly.splinePos - 1
 			end
-			local v32_, v33_, v34_ = getSplinePosition(self.activeButterfly.splineId, self.activeButterfly.splinePos)
-			local v35_, v36_, v37_ = getSplineOrientation(self.activeButterfly.splineId, self.activeButterfly.splinePos, 0, -1, 0)
-			setTranslation(self.activeButterfly.meshId, v32_ + v27_, v33_ + v31_, v34_ + v27_)
-			setRotation(self.activeButterfly.meshId, v35_, v36_, v37_)
+			local x, y, z = getSplinePosition(self.activeButterfly.splineId, self.activeButterfly.splinePos)
+			local rx, ry, rz = getSplineOrientation(self.activeButterfly.splineId, self.activeButterfly.splinePos, 0, -1, 0)
+			setTranslation(self.activeButterfly.meshId, x + offset1, y + offset2, z + offset1)
+			setRotation(self.activeButterfly.meshId, rx, ry, rz)
 		end
 	end
 end

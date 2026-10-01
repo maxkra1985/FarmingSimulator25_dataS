@@ -1,41 +1,29 @@
--- Local values: Files_mt
 Files = {}
 local Files_mt = Class(Files)
-
--- Upvalues: Files_mt
--- Local values: self
 function Files.new(path)
-	-- upvalues: (copy) Files_mt
-	local v3_ = Files_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.path = path
-	v4_.files = {}
-	getFiles(path, "fileCallbackFunction", v4_)
-	return v4_
+	local self = setmetatable({}, Files_mt)
+	self.path = path
+	self.files = {}
+	getFiles(path, "fileCallbackFunction", self)
+	return self
 end
-
--- Local values: file
 function Files:fileCallbackFunction(filename, isDirectory)
-	local v8_ = {
-		["path"] = self.path .. "/" .. filename,
-		["filename"] = filename,
-		["isDirectory"] = isDirectory
-	}
-	local v9_ = self.files
-	table.insert(v9_, v8_)
+	local file = {}
+	file.path = self.path .. "/" .. filename
+	file.filename = filename
+	file.isDirectory = isDirectory
+	table.insert(self.files, file)
 end
-
--- Local values: files, i, file, subFiles, _, subFile
 function Files.getFilesRecursive(path)
-	local v11_ = Files.new(path).files
-	for v12_ = #v11_, 1, -1 do
-		local v13_ = v11_[v12_]
-		if v13_.isDirectory then
-			local v14_ = Files.getFilesRecursive(v13_.path)
-			for _, v15_ in ipairs(v14_) do
-				table.insert(v11_, v15_)
+	local files = Files.new(path).files
+	for i = #files, 1, -1 do
+		local file = files[i]
+		if file.isDirectory then
+			local subFiles = Files.getFilesRecursive(file.path)
+			for _, subFile in ipairs(subFiles) do
+				table.insert(files, subFile)
 			end
 		end
 	end
-	return v11_
+	return files
 end

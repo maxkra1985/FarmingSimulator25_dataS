@@ -1,29 +1,12 @@
--- Local values: StoreManager_mt
 StoreManager = {}
 local StoreManager_mt = Class(StoreManager, AbstractManager)
-StoreManager.CATEGORY_TYPE = {
-	["NONE"] = "",
-	["VEHICLE"] = "VEHICLE",
-	["TOOL"] = "TOOL",
-	["OBJECT"] = "OBJECT",
-	["PLACEABLE"] = "PLACEABLE"
-}
-
--- Upvalues: StoreManager_mt
--- Local values: self
+StoreManager.CATEGORY_TYPE = { NONE = "", VEHICLE = "VEHICLE", TOOL = "TOOL", OBJECT = "OBJECT", PLACEABLE = "PLACEABLE" }
 function StoreManager.new(customMt)
-	-- upvalues: (copy) StoreManager_mt
-	local v3_ = AbstractManager.new(customMt or StoreManager_mt)
-	v3_.speciesToSchema = {}
-	v3_.indexedSearch = IndexedSearch.new({
-		["title"] = 10,
-		["brand"] = 5,
-		["author"] = 3,
-		["dlcTitle"] = 3
-	})
-	return v3_
+	local self = AbstractManager.new(customMt or StoreManager_mt)
+	self.speciesToSchema = {}
+	self.indexedSearch = IndexedSearch.new({ title = 10, brand = 5, author = 3, dlcTitle = 3 })
+	return self
 end
-
 function StoreManager:initDataStructures()
 	self.numOfCategories = 0
 	self.numOfPacks = 0
@@ -47,997 +30,875 @@ function StoreManager:initDataStructures()
 		self.indexedSearch:clear()
 	end
 end
-
 function StoreManager:addSpeciesXMLSchema(species, xmlSchema)
 	self.speciesToSchema[species] = xmlSchema
 end
-
--- Local values: categoryXMLFile, _, key, _, key, _, categoryData, packsXMLFile, _, key, name, title, imageFilename, requiredDLC, _, item, _, storeItem, constructionXMLFile, defaultIconFilename, defaultRefSize, _, key, categoryName, title, iconFilename, refSize, iconUVs, iconSliceId, _, tKey, tabName, tabTitle, tabIconFilename, tabRefSize, tabIconUVs, tabIconSliceId, _, item, storeItemsFilename, mapStoreItemsFilename, _, item
 function StoreManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	StoreManager:superClass().loadMapData(self)
-	local v12_ = XMLFile.load("storeCategoriesXML", "dataS/storeCategories.xml")
-	for _, v13_ in v12_:iterator("categories.types.type") do
-		self:loadCategoryType(v12_, v13_, nil)
+	local categoryXMLFile = XMLFile.load("storeCategoriesXML", "dataS/storeCategories.xml")
+	for _, key in categoryXMLFile:iterator("categories.types.type") do
+		self:loadCategoryType(categoryXMLFile, key, nil)
 	end
-	for _, v14_ in v12_:iterator("categories.category") do
-		self:loadCategoryFromXML(v12_, v14_, "", false)
+	for _, key in categoryXMLFile:iterator("categories.category") do
+		self:loadCategoryFromXML(categoryXMLFile, key, "", false)
 	end
-	v12_:delete()
-	for _, v15_ in ipairs(self.modCategoryTypes) do
-		self:addCategory(v15_.name, v15_.title, v15_.imageFilename, v15_.categoryType, v15_.baseDir, v15_.insertAfter)
+	categoryXMLFile:delete()
+	for _, categoryData in ipairs(self.modCategoryTypes) do
+		self:addCategory(categoryData.name, categoryData.title, categoryData.imageFilename, categoryData.categoryType, categoryData.baseDir, categoryData.insertAfter)
 	end
-	local v_u_16_ = XMLFile.load("storePacksXML", "dataS/storePacks.xml")
-	for _, v17_ in v_u_16_:iterator("storePacks.storePack") do
-		local v_u_18_ = v_u_16_:getString(v17_ .. "#name")
-		local v19_ = v_u_16_:getString(v17_ .. "#title")
-		local v20_ = v_u_16_:getString(v17_ .. "#image")
-		if v19_ ~= nil and v19_:sub(1, 6) == "$l10n_" then
-			v19_ = g_i18n:getText(v19_:sub(7))
+	local packsXMLFile = XMLFile.load("storePacksXML", "dataS/storePacks.xml")
+	for _, key in packsXMLFile:iterator("storePacks.storePack") do
+		local name = packsXMLFile:getString(key .. "#name")
+		local title = packsXMLFile:getString(key .. "#title")
+		local imageFilename = packsXMLFile:getString(key .. "#image")
+		if title ~= nil and title:sub(1, 6) == "$l10n_" then
+			title = g_i18n:getText(title:sub(7))
 		end
-		local v21_ = v_u_16_:getString(v17_ .. "#requiredDLC")
-		if v21_ == nil or g_modIsLoaded[g_uniqueDlcNamePrefix .. v21_] ~= nil then
-			self:addPack(v_u_18_, v19_, v20_, "")
-			v_u_16_:iterate(v17_ .. ".storeItem", function(_, p22_)
-				-- upvalues: (copy) v_u_16_, (copy) self, (copy) v_u_18_, (copy) baseDirectory
-				local v23_ = v_u_16_:getString(p22_)
-				self:addPackItem(v_u_18_, Utils.getFilename(v23_, baseDirectory))
-			end)
-		else
-			Logging.devInfo("Ignore storepack \'%s\' because DLC \'%s\' is not loaded", v19_, v21_)
+		local requiredDLC = packsXMLFile:getString(key .. "#requiredDLC")
+		if requiredDLC ~= nil then
+			if g_modIsLoaded[g_uniqueDlcNamePrefix .. requiredDLC] == nil then
+				Logging.devInfo("Ignore storepack '%s' because DLC '%s' is not loaded", title, requiredDLC)
+			else
+				self:addPack(name, title, imageFilename, "")
+				packsXMLFile:iterate(key .. ".storeItem", function(_, storeItemKey)
+					local xmlFilename = packsXMLFile:getString(storeItemKey)
+					self:addPackItem(name, Utils.getFilename(xmlFilename, baseDirectory))
+				end)
+			end
 		end
 	end
-	v_u_16_:delete()
-	for _, v24_ in ipairs(self.modStorePacks) do
-		self:addPack(v24_.name, v24_.title, v24_.imageFilename, v24_.baseDir)
-		for _, v25_ in ipairs(v24_.storeItems) do
-			self:addPackItem(v24_.name, v25_)
+	packsXMLFile:delete()
+	for _, item in ipairs(self.modStorePacks) do
+		self:addPack(item.name, item.title, item.imageFilename, item.baseDir)
+		for _, storeItem in ipairs(item.storeItems) do
+			self:addPackItem(item.name, storeItem)
 		end
 	end
 	if Platform.hasContruction then
-		local v26_ = XMLFile.load("constructionXML", "dataS/constructionCategories.xml")
-		if v26_ ~= nil then
-			local v27_ = v26_:getString("constructionCategories#defaultIconFilename")
-			local v28_ = v26_:getVector("constructionCategories#refSize", nil, 2) or { 1024, 1024 }
-			for _, v29_ in v26_:iterator("constructionCategories.category") do
-				local v30_ = v26_:getString(v29_ .. "#name")
-				local v31_ = g_i18n:convertText(v26_:getString(v29_ .. "#title"))
-				local v32_ = v26_:getString(v29_ .. "#iconFilename") or v27_
-				local v33_ = v26_:getVector(v29_ .. "#refSize", v28_, 2)
-				self:addConstructionCategory(v30_, v31_, v32_, GuiUtils.getUVs(v26_:getString(v29_ .. "#iconUVs", "0 0 1 1"), v33_), "", (v26_:getString(v29_ .. "#iconSliceId")))
-				for _, v34_ in v26_:iterator(v29_ .. ".tab") do
-					local v35_ = v26_:getString(v34_ .. "#name")
-					local v36_ = g_i18n:convertText(v26_:getString(v34_ .. "#title"))
-					local v37_ = v26_:getString(v34_ .. "#iconFilename") or v27_
-					local v38_ = v26_:getVector(v34_ .. "#refSize", v28_, 2)
-					self:addConstructionTab(v30_, v35_, v36_, v37_, GuiUtils.getUVs(v26_:getString(v34_ .. "#iconUVs", "0 0 1 1"), v38_), "", (v26_:getString(v34_ .. "#iconSliceId")))
+		local constructionXMLFile = XMLFile.load("constructionXML", "dataS/constructionCategories.xml")
+		if constructionXMLFile ~= nil then
+			local defaultIconFilename = constructionXMLFile:getString("constructionCategories#defaultIconFilename")
+			local defaultRefSize = constructionXMLFile:getVector("constructionCategories#refSize", nil, 2) or { 1024, 1024 }
+			for _, key in constructionXMLFile:iterator("constructionCategories.category") do
+				local categoryName = constructionXMLFile:getString(key .. "#name")
+				local title = g_i18n:convertText(constructionXMLFile:getString(key .. "#title"))
+				local iconFilename = constructionXMLFile:getString(key .. "#iconFilename") or defaultIconFilename
+				local refSize = constructionXMLFile:getVector(key .. "#refSize", defaultRefSize, 2)
+				local iconUVs = GuiUtils.getUVs(constructionXMLFile:getString(key .. "#iconUVs", "0 0 1 1"), refSize)
+				local iconSliceId = constructionXMLFile:getString(key .. "#iconSliceId")
+				self:addConstructionCategory(categoryName, title, iconFilename, iconUVs, "", iconSliceId)
+				for _, tKey in constructionXMLFile:iterator(key .. ".tab") do
+					local tabName = constructionXMLFile:getString(tKey .. "#name")
+					local tabTitle = g_i18n:convertText(constructionXMLFile:getString(tKey .. "#title"))
+					local tabIconFilename = constructionXMLFile:getString(tKey .. "#iconFilename") or defaultIconFilename
+					local tabRefSize = constructionXMLFile:getVector(tKey .. "#refSize", defaultRefSize, 2)
+					local tabIconUVs = GuiUtils.getUVs(constructionXMLFile:getString(tKey .. "#iconUVs", "0 0 1 1"), tabRefSize)
+					local tabIconSliceId = constructionXMLFile:getString(tKey .. "#iconSliceId")
+					self:addConstructionTab(categoryName, tabName, tabTitle, tabIconFilename, tabIconUVs, "", tabIconSliceId)
 				end
 			end
-			v26_:delete()
+			constructionXMLFile:delete()
 		end
-		for _, v39_ in ipairs(self.modConstructionTabs) do
-			self:addConstructionTab(v39_.categoryName, v39_.tabName, v39_.tabTitle, v39_.tabIconFilename, v39_.tabIconUVs, "", v39_.tabIconSliceId)
+		for _, item in ipairs(self.modConstructionTabs) do
+			self:addConstructionTab(item.categoryName, item.tabName, item.tabTitle, item.tabIconFilename, item.tabIconUVs, "", item.tabIconSliceId)
 		end
 	end
-	self:loadItemsFromXML(self:getDefaultStoreItemsFilename(), "", nil)
+	local storeItemsFilename = self:getDefaultStoreItemsFilename()
+	self:loadItemsFromXML(storeItemsFilename, "", nil)
 	if xmlFile ~= nil then
-		local v40_ = getXMLString(xmlFile, "map.storeItems#filename")
-		if v40_ ~= nil then
-			self:loadItemsFromXML(Utils.getFilename(v40_, baseDirectory), baseDirectory, missionInfo.customEnvironment)
+		local mapStoreItemsFilename = getXMLString(xmlFile, "map.storeItems#filename")
+		if mapStoreItemsFilename ~= nil then
+			mapStoreItemsFilename = Utils.getFilename(mapStoreItemsFilename, baseDirectory)
+			self:loadItemsFromXML(mapStoreItemsFilename, baseDirectory, missionInfo.customEnvironment)
 		end
 	end
-	for _, v_u_41_ in ipairs(self.modStoreItems) do
+	for _, item in ipairs(self.modStoreItems) do
 		g_asyncTaskManager:addSubtask(function()
-			-- upvalues: (copy) self, (copy) v_u_41_
-			self:loadItem(v_u_41_.xmlFilename, v_u_41_.baseDir, v_u_41_.customEnvironment, v_u_41_.isMod, v_u_41_.isBundleItem, v_u_41_.dlcTitle, v_u_41_.extraContentId)
+			self:loadItem(item.xmlFilename, item.baseDir, item.customEnvironment, item.isMod, item.isBundleItem, item.dlcTitle, item.extraContentId)
 		end)
 	end
 	g_asyncTaskManager:addSubtask(function()
-		-- upvalues: (copy) self
 		self.indexedSearch:build()
 	end)
 	addConsoleCommand("gsStoreItemsReload", "Reloads storeItem data", "consoleCommandReloadStoreItems", self)
 	return true
 end
-
 function StoreManager:unloadMapData()
 	StoreManager:superClass().unloadMapData(self)
 	removeConsoleCommand("gsStoreItemsReload")
 end
-
 function StoreManager:getDefaultStoreItemsFilename()
 	return "dataS/storeItems.xml"
 end
-
--- Local values: xmlFile
 function StoreManager:loadItemsFromXML(filename, baseDirectory, customEnvironment)
-	local v_u_47_ = XMLFile.load("storeItemsXML", filename)
-	if v_u_47_ ~= nil then
-		v_u_47_:iterate("storeItems.storeItem", function(_, p48_)
-			-- upvalues: (copy) v_u_47_, (copy) baseDirectory, (copy) self, (copy) customEnvironment
-			local v_u_49_ = v_u_47_:getString(p48_ .. "#xmlFilename")
-			local v_u_50_ = v_u_47_:getString(p48_ .. "#extraContentId")
+	local xmlFile = XMLFile.load("storeItemsXML", filename)
+	if xmlFile == nil then
+		return
+	else
+		xmlFile:iterate("storeItems.storeItem", function(_, key)
+			local xmlFilename = xmlFile:getString(key .. "#xmlFilename")
+			local extraContentId = xmlFile:getString(key .. "#extraContentId")
 			g_asyncTaskManager:addSubtask(function()
-				-- upvalues: (copy) v_u_49_, (ref) baseDirectory, (ref) self, (ref) customEnvironment, (copy) v_u_50_
-				local v51_ = ""
-				local v52_ = Utils.getFilename(v_u_49_, baseDirectory)
-				local v53_, _ = Utils.getModNameAndBaseDirectory(v52_)
-				local v54_
-				if v53_ == nil then
-					v54_ = false
-				else
-					local v55_ = g_modManager:getModByName(v53_)
-					if v55_ ~= nil then
-						v51_ = v55_.title
+				local isMod = false
+				local dlcTitle = ""
+				local absFilename = Utils.getFilename(xmlFilename, baseDirectory)
+				local modName, _ = Utils.getModNameAndBaseDirectory(absFilename)
+				if modName ~= nil then
+					local modItem = g_modManager:getModByName(modName)
+					if modItem ~= nil then
+						dlcTitle = modItem.title
 					end
-					v54_ = not v55_.isDLC
+					isMod = not modItem.isDLC
 				end
-				self:loadItem(v_u_49_, baseDirectory, customEnvironment, v54_, false, v51_, v_u_50_)
-			end, string.format("StoreManager-loadItemsFromXML \'%s\'", v_u_49_))
+				self:loadItem(xmlFilename, baseDirectory, customEnvironment, isMod, false, dlcTitle, extraContentId)
+			end, string.format("StoreManager-loadItemsFromXML '%s'", xmlFilename))
 		end)
-		v_u_47_:delete()
+		xmlFile:delete()
 	end
 end
-
--- Local values: name, title, insertAfter
 function StoreManager:loadCategoryType(xmlFile, key, customEnv)
-	local v60_ = xmlFile:getString(key .. "#name")
-	local v61_ = xmlFile:getString(key .. "#title")
-	local v62_ = xmlFile:getString(key .. "#insertAfter")
-	if v61_ ~= nil then
-		v61_ = g_i18n:convertText(v61_, customEnv)
+	local name = xmlFile:getString(key .. "#name")
+	local title = xmlFile:getString(key .. "#title")
+	local insertAfter = xmlFile:getString(key .. "#insertAfter")
+	if title ~= nil then
+		title = g_i18n:convertText(title, customEnv)
 	end
-	self:addCategoryType(v60_, v61_, v62_)
+	self:addCategoryType(name, title, insertAfter)
 end
-
--- Local values: nameUpper, categoryType, needsInsert, insertAfterUpper, k, existingType
 function StoreManager:addCategoryType(name, title, insertAfter)
 	if string.isNilOrWhitespace(name) then
 		Logging.warning("Could not register store category type. Name is missing or empty!")
 		return false
 	end
 	if not ClassUtil.getIsValidIndexName(name) then
-		Logging.warning("Could not register store category type \'%s\'. Invalid name for a category type!", name)
+		Logging.warning("Could not register store category type '%s'. Invalid name for a category type!", name)
 		return false
 	end
 	if string.isNilOrWhitespace(title) then
-		Logging.warning("Could not register store category type \'%s\'. Title is missing or empty!", name)
+		Logging.warning("Could not register store category type '%s'. Title is missing or empty!", name)
 		return false
 	end
-	local v67_ = string.upper(name)
-	if self.categoryTypesByName[v67_] ~= nil then
-		Logging.warning("Could not register store category type \'%s\'. Already exists!", name)
+	local nameUpper = string.upper(name)
+	if self.categoryTypesByName[nameUpper] ~= nil then
+		Logging.warning("Could not register store category type '%s'. Already exists!", name)
 		return false
-	end
-	local v68_ = {
-		["name"] = v67_,
-		["title"] = title
-	}
-	local v69_ = true
-	if insertAfter ~= nil then
-		local v70_ = string.upper(insertAfter)
-		for v71_, v72_ in ipairs(self.categoryTypes) do
-			if v72_.name == v70_ then
-				local v73_ = self.categoryTypes
-				local v74_ = v71_ + 1
-				table.insert(v73_, v74_, v68_)
-				v69_ = false
-				break
+	else
+		local categoryType = { name = nameUpper, title = title }
+		local needsInsert = true
+		if insertAfter ~= nil then
+			local insertAfterUpper = string.upper(insertAfter)
+			for k, existingType in ipairs(self.categoryTypes) do
+				if existingType.name == insertAfterUpper then
+					table.insert(self.categoryTypes, k + 1, categoryType)
+					needsInsert = false
+					break
+				end
 			end
 		end
+		if needsInsert then
+			table.insert(self.categoryTypes, categoryType)
+		end
+		self.categoryTypesByName[nameUpper] = categoryType
+		return true
 	end
-	if v69_ then
-		local v75_ = self.categoryTypes
-		table.insert(v75_, v68_)
-	end
-	self.categoryTypesByName[v67_] = v68_
-	return true
 end
-
 function StoreManager:getCategoryTypes()
 	return self.categoryTypes
 end
-
--- Local values: name, title, imageFilename, categoryType, insertAfter, categoryData
 function StoreManager:loadCategoryFromXML(xmlFile, key, baseDir, customEnv, isMod)
-	local v83_ = xmlFile:getString(key .. "#name")
-	local v84_ = xmlFile:getString(key .. "#title")
-	local v85_ = xmlFile:getString(key .. "#image")
-	local v86_ = xmlFile:getString(key .. "#type")
-	local v87_ = xmlFile:getString(key .. "#insertAfter")
-	if v84_ ~= nil then
-		v84_ = g_i18n:convertText(v84_, customEnv)
+	local name = xmlFile:getString(key .. "#name")
+	local title = xmlFile:getString(key .. "#title")
+	local imageFilename = xmlFile:getString(key .. "#image")
+	local categoryType = xmlFile:getString(key .. "#type")
+	local insertAfter = xmlFile:getString(key .. "#insertAfter")
+	if title ~= nil then
+		title = g_i18n:convertText(title, customEnv)
 	end
 	if isMod then
-		local v88_ = self.modCategoryTypes
-		table.insert(v88_, {
-			["name"] = v83_,
-			["title"] = v84_,
-			["imageFilename"] = v85_,
-			["categoryType"] = v86_,
-			["baseDir"] = baseDir,
-			["insertAfter"] = v87_
-		})
+		local categoryData = {}
+		categoryData.name = name
+		categoryData.title = title
+		categoryData.imageFilename = imageFilename
+		categoryData.categoryType = categoryType
+		categoryData.baseDir = baseDir
+		categoryData.insertAfter = insertAfter
+		table.insert(self.modCategoryTypes, categoryData)
 	else
-		self:addCategory(v83_, v84_, v85_, v86_, baseDir, v87_)
+		self:addCategory(name, title, imageFilename, categoryType, baseDir, insertAfter)
 	end
 end
-
--- Local values: categoryTypeNameUpper, categoryType, nameUpper, category, needsInsert, insertAfterUpper, k, existingCategory, index, _category
 function StoreManager:addCategory(name, title, imageFilename, categoryTypeName, baseDir, insertAfter)
 	if string.isNilOrWhitespace(name) then
 		Logging.warning("Could not register store category. Name is missing or empty!")
 		return false
 	end
 	if not ClassUtil.getIsValidIndexName(name) then
-		Logging.warning("Could not register store category \'%s\'. Invalid name for a category!", name)
+		Logging.warning("Could not register store category '%s'. Invalid name for a category!", name)
 		return false
 	end
 	if string.isNilOrWhitespace(title) then
-		Logging.warning("Could not register store category \'%s\'. Title is missing or empty!", name)
+		Logging.warning("Could not register store category '%s'. Title is missing or empty!", name)
 		return false
 	end
 	if string.isNilOrWhitespace(imageFilename) then
-		Logging.warning("Could not register store category \'%s\'. Image is missing or empty!", name)
+		Logging.warning("Could not register store category '%s'. Image is missing or empty!", name)
 		return false
 	end
 	if baseDir == nil then
-		Logging.warning("Could not register store category \'%s\'. Basedirectory not defined!", name)
+		Logging.warning("Could not register store category '%s'. Basedirectory not defined!", name)
 		return false
 	end
 	if string.isNilOrWhitespace(categoryTypeName) then
-		Logging.warning("Could not register store category \'%s\'. CategoryType is missing or empty!", name)
+		Logging.warning("Could not register store category '%s'. CategoryType is missing or empty!", name)
 		return false
 	end
-	local v96_ = string.upper(categoryTypeName)
-	if self.categoryTypesByName[v96_] == nil then
-		Logging.warning("Could not register store category \'%s\'. CategoryType \'%s\' is not defined!", name, categoryTypeName)
+	local categoryTypeNameUpper = string.upper(categoryTypeName)
+	local categoryType = self.categoryTypesByName[categoryTypeNameUpper]
+	if categoryType == nil then
+		Logging.warning("Could not register store category '%s'. CategoryType '%s' is not defined!", name, categoryTypeName)
 		return false
 	end
-	local v97_ = string.upper(name)
+	local nameUpper = string.upper(name)
 	if GS_PLATFORM_SWITCH and name == "COINS" then
 		return false
 	end
-	if self.categoryByName[v97_] ~= nil then
-		Logging.warning("Could not register store category \'%s\'. Already exists!", name)
+	if self.categoryByName[nameUpper] ~= nil then
+		Logging.warning("Could not register store category '%s'. Already exists!", name)
 		return false
-	end
-	local v98_ = {
-		["name"] = v97_,
-		["title"] = title,
-		["image"] = Utils.getFilename(imageFilename, baseDir),
-		["type"] = v96_,
-		["orderId"] = #self.categories
-	}
-	local v99_ = true
-	if insertAfter ~= nil then
-		local v100_ = string.upper(insertAfter)
-		for v101_, v102_ in ipairs(self.categories) do
-			if v102_.name == v100_ then
-				local v103_ = self.categories
-				local v104_ = v101_ + 1
-				table.insert(v103_, v104_, v98_)
-				v99_ = false
-				for v105_, v106_ in ipairs(self.categories) do
-					v106_.orderId = v105_
+	else
+		local category = { name = nameUpper, title = title, type = categoryTypeNameUpper }
+		category.image = Utils.getFilename(imageFilename, baseDir)
+		category.orderId = #self.categories
+		local needsInsert = true
+		if insertAfter ~= nil then
+			local insertAfterUpper = string.upper(insertAfter)
+			for k, existingCategory in ipairs(self.categories) do
+				if existingCategory.name == insertAfterUpper then
+					table.insert(self.categories, k + 1, category)
+					needsInsert = false
+					for index, _category in ipairs(self.categories) do
+						_category.orderId = index
+					end
+					break
 				end
-				break
 			end
 		end
+		if needsInsert then
+			table.insert(self.categories, category)
+		end
+		self.categoryByName[nameUpper] = category
+		return true
 	end
-	if v99_ then
-		local v107_ = self.categories
-		table.insert(v107_, v98_)
-	end
-	self.categoryByName[v97_] = v98_
-	return true
 end
-
 function StoreManager:getCategoryByName(name)
-	if name == nil then
-		return nil
-	else
+	if name ~= nil then
 		return self.categoryByName[string.upper(name)]
+	else
+		return nil
 	end
 end
-
--- Local values: category
 function StoreManager:addConstructionCategory(name, title, iconFilename, iconUVs, baseDir, iconSliceId)
-	local v117_ = string.upper(name)
-	if self.constructionCategoriesByName[v117_] == nil then
-		local v118_ = {
-			["name"] = v117_,
-			["title"] = title,
-			["iconFilename"] = Utils.getFilename(iconFilename, baseDir),
-			["iconUVs"] = iconUVs,
-			["iconSliceId"] = iconSliceId,
-			["tabs"] = {},
-			["index"] = #self.constructionCategories + 1
-		}
-		local v119_ = self.constructionCategories
-		table.insert(v119_, v118_)
-		self.constructionCategoriesByName[v117_] = v118_
+	name = string.upper(name)
+	if self.constructionCategoriesByName[name] ~= nil then
+		Logging.warning("Construction category '%s' already exists.", name)
 	else
-		Logging.warning("Construction category \'%s\' already exists.", v117_)
+		local category = { name = name, title = title, iconUVs = iconUVs, iconSliceId = iconSliceId }
+		category.iconFilename = Utils.getFilename(iconFilename, baseDir)
+		category.tabs = {}
+		category.index = #self.constructionCategories + 1
+		table.insert(self.constructionCategories, category)
+		self.constructionCategoriesByName[name] = category
 	end
 end
-
 function StoreManager:getConstructionCategoryByName(name)
-	if name == nil then
-		return nil
-	else
+	if name ~= nil then
 		return self.constructionCategoriesByName[string.upper(name)]
-	end
-end
-
--- Local values: category
-function StoreManager:addConstructionTab(categoryName, name, title, iconFilename, iconUVs, baseDir, iconSliceId)
-	local v130_ = self:getConstructionCategoryByName(categoryName)
-	if v130_ ~= nil then
-		local v131_ = v130_.tabs
-		local v132_ = {
-			["name"] = string.upper(name),
-			["title"] = title,
-			["iconFilename"] = Utils.getFilename(iconFilename, baseDir),
-			["iconUVs"] = iconUVs,
-			["iconSliceId"] = iconSliceId,
-			["index"] = #v130_.tabs + 1
-		}
-		table.insert(v131_, v132_)
-	end
-end
-
--- Local values: category, i, tab
-function StoreManager:getConstructionTabByName(name, categoryName)
-	local v136_ = self:getConstructionCategoryByName(categoryName)
-	if v136_ == nil or name == nil then
+	else
 		return nil
 	end
-	local v137_ = string.upper(name)
-	for _, v138_ in ipairs(v136_.tabs) do
-		if v138_.name == v137_ then
-			return v138_
+end
+function StoreManager:addConstructionTab(categoryName, name, title, iconFilename, iconUVs, baseDir, iconSliceId)
+	local category = self:getConstructionCategoryByName(categoryName)
+	if category == nil then
+		return
+	else
+		table.insert(category.tabs, { title = title, iconUVs = iconUVs, iconSliceId = iconSliceId, name = string.upper(name), iconFilename = Utils.getFilename(iconFilename, baseDir), index = #category.tabs + 1 })
+	end
+end
+function StoreManager:getConstructionTabByName(name, categoryName)
+	local category = self:getConstructionCategoryByName(categoryName)
+	if category == nil or name == nil then
+		return nil
+	end
+	name = string.upper(name)
+	for i, tab in ipairs(category.tabs) do
+		if tab.name == name then
+			return tab
 		end
 	end
 	return nil
 end
-
 function StoreManager:getConstructionCategories()
 	return self.constructionCategories
 end
-
 function StoreManager:addVRamUsageFunction(func)
-	local v142_ = self.vramUsageFunctions
-	table.insert(v142_, func)
+	table.insert(self.vramUsageFunctions, func)
 end
-
--- Local values: specType
 function StoreManager:addSpecType(name, profile, loadFunc, getValueFunc, species, relatedConfigurations, configDataFunc)
-	if ClassUtil.getIsValidIndexName(name) then
-		if self.nameToSpecType == nil then
-			printCallstack()
-		end
-		if self.nameToSpecType[name] == nil then
-			local v151_ = {
-				["name"] = name,
-				["profile"] = profile,
-				["loadFunc"] = loadFunc,
-				["getValueFunc"] = getValueFunc,
-				["species"] = species or StoreSpecies.VEHICLE,
-				["relatedConfigurations"] = relatedConfigurations,
-				["configDataFunc"] = configDataFunc
-			}
-			self.nameToSpecType[name] = v151_
-			local v152_ = self.specTypes
-			table.insert(v152_, v151_)
-		else
-			printError("Error: spec type name \'" .. name .. "\' is already in use!")
-		end
-	else
-		printWarning("Warning: \'" .. tostring(name) .. "\' is no valid name for a spec type!")
+	if not ClassUtil.getIsValidIndexName(name) then
+		printWarning("Warning: '" .. tostring(name) .. "' is no valid name for a spec type!")
 		return
 	end
+	if self.nameToSpecType == nil then
+		printCallstack()
+	end
+	if self.nameToSpecType[name] ~= nil then
+		printError("Error: spec type name '" .. name .. "' is already in use!")
+	else
+		local specType = {}
+		specType.name = name
+		specType.profile = profile
+		specType.loadFunc = loadFunc
+		specType.getValueFunc = getValueFunc
+		specType.species = species or StoreSpecies.VEHICLE
+		specType.relatedConfigurations = relatedConfigurations
+		specType.configDataFunc = configDataFunc
+		self.nameToSpecType[name] = specType
+		table.insert(self.specTypes, specType)
+	end
 end
-
 function StoreManager:getSpecTypes()
 	return self.specTypes
 end
-
 function StoreManager:getSpecTypeByName(name)
-	if ClassUtil.getIsValidIndexName(name) then
+	if not ClassUtil.getIsValidIndexName(name) then
+		printWarning("Warning: '" .. tostring(name) .. "' is no valid name for a spec type!")
+		return
+	else
 		return self.nameToSpecType[name]
 	end
-	printWarning("Warning: \'" .. tostring(name) .. "\' is no valid name for a spec type!")
 end
-
--- Local values: i
 function StoreManager:getSpecTypeByProfile(profile)
-	for v158_ = 1, #self.specTypes do
-		if self.specTypes[v158_].profile == profile then
-			return self.specTypes[v158_]
+	for i = 1, #self.specTypes do
+		if self.specTypes[i].profile == profile then
+			return self.specTypes[i]
 		end
 	end
 	return nil
 end
-
--- Local values: otherItem, isUnlocked, author, customEnvironment, mod, brand, brandName
 function StoreManager:addItem(storeItem)
-	local v161_ = self.xmlFilenameToItem[storeItem.xmlFilenameLower]
-	if v161_ ~= nil then
-		if v161_.isBundleItem and not storeItem.isBundleItem then
-			v161_.isBundleItem = storeItem.isBundleItem
-			v161_.showInStore = storeItem.showInStore
+	local otherItem = self.xmlFilenameToItem[storeItem.xmlFilenameLower]
+	if otherItem ~= nil then
+		if otherItem.isBundleItem and not storeItem.isBundleItem then
+			otherItem.isBundleItem = storeItem.isBundleItem
+			otherItem.showInStore = storeItem.showInStore
 		end
 		return false
-	end
-	local v162_ = self.items
-	table.insert(v162_, storeItem)
-	storeItem.id = #self.items
-	self.xmlFilenameToItem[storeItem.xmlFilenameLower] = storeItem
-	local v163_ = (storeItem.extraContentId == nil or g_extraContentSystem == nil) and true or g_extraContentSystem:getIsItemIdUnlocked(storeItem.extraContentId)
-	if not storeItem.isBundleItem and (v163_ and (storeItem.showInStore and (storeItem.species == StoreSpecies.VEHICLE or storeItem.species == StoreSpecies.HANDTOOL))) then
-		local v164_ = ""
-		local v165_ = storeItem.customEnvironment
-		if storeItem.isMod then
-			local v166_ = g_modManager.nameToMod[v165_]
-			if v166_ ~= nil and v166_.author ~= nil then
-				v164_ = v166_.author
+	else
+		table.insert(self.items, storeItem)
+		storeItem.id = #self.items
+		self.xmlFilenameToItem[storeItem.xmlFilenameLower] = storeItem
+		local isUnlocked = true
+		if storeItem.extraContentId ~= nil then
+			isUnlocked = true
+			if g_extraContentSystem ~= nil then
+				isUnlocked = g_extraContentSystem:getIsItemIdUnlocked(storeItem.extraContentId)
 			end
 		end
-		local v167_ = g_brandManager:getBrandByIndex(storeItem.brandIndex)
-		local v168_ = storeItem.brandNameRaw or ""
-		if v167_ ~= nil and v167_.name ~= "NONE" then
-			v168_ = v167_.title
+		if not storeItem.isBundleItem and (isUnlocked and (storeItem.showInStore and (storeItem.species == StoreSpecies.VEHICLE or storeItem.species == StoreSpecies.HANDTOOL))) then
+			local author = ""
+			local customEnvironment = storeItem.customEnvironment
+			if storeItem.isMod then
+				local mod = g_modManager.nameToMod[customEnvironment]
+				if mod ~= nil and mod.author ~= nil then
+					author = mod.author
+				end
+			end
+			local brand = g_brandManager:getBrandByIndex(storeItem.brandIndex)
+			local brandName = storeItem.brandNameRaw or ""
+			if brand ~= nil and brand.name ~= "NONE" then
+				brandName = brand.title
+			end
+			self.indexedSearch:addDocument({ brand = brandName, author = author, title = storeItem.name, dlcTitle = storeItem.dlcTitle }, storeItem)
 		end
-		self.indexedSearch:addDocument({
-			["title"] = storeItem.name,
-			["brand"] = v168_,
-			["author"] = v164_,
-			["dlcTitle"] = storeItem.dlcTitle
-		}, storeItem)
+		return true
 	end
-	return true
 end
-
--- Local values: item, numItems
 function StoreManager:removeItemByIndex(index)
-	local v171_ = self.items[index]
-	if v171_ ~= nil then
-		self.xmlFilenameToItem[v171_.xmlFilenameLower] = nil
-		local v172_ = #self.items
-		if index < v172_ then
-			self.items[index] = self.items[v172_]
+	local item = self.items[index]
+	if item ~= nil then
+		self.xmlFilenameToItem[item.xmlFilenameLower] = nil
+		local numItems = #self.items
+		if index < numItems then
+			self.items[index] = self.items[numItems]
 			self.items[index].id = index
 		end
-		table.remove(self.items, v172_)
+		table.remove(self.items, numItems)
 	end
 end
-
 function StoreManager:getItems()
 	return self.items
 end
-
 function StoreManager:getItemByIndex(index)
-	if index == nil then
-		return nil
-	else
+	if index ~= nil then
 		return self.items[index]
-	end
-end
-
-function StoreManager:getItemByXMLFilename(xmlFilename)
-	if xmlFilename == nil then
-		return nil
 	else
-		return self.xmlFilenameToItem[string.lower(xmlFilename)]
+		return nil
 	end
 end
-
-function StoreManager:getIsItemUnlocked(storeItem)
-	return storeItem ~= nil and (storeItem.extraContentId == nil or g_extraContentSystem:getIsItemIdUnlocked(storeItem.extraContentId)) and true or false
+function StoreManager:getItemByXMLFilename(xmlFilename)
+	if xmlFilename ~= nil then
+		return self.xmlFilenameToItem[string.lower(xmlFilename)]
+	else
+		return nil
+	end
 end
-
--- Local values: items, storeItem, _, storeItem, categoryAllowed, _, filterCategoryName, _, storeItemCategoryName, desc, value, _maxValue, specMin, specMax, configDatas, _, configData, _, configurationName, configItems, configIndex, configData
+function StoreManager:getIsItemUnlocked(storeItem)
+	if storeItem ~= nil and (storeItem.extraContentId == nil or g_extraContentSystem:getIsItemIdUnlocked(storeItem.extraContentId)) then
+		return true
+	end
+	return false
+end
 function StoreManager:getItemsByCombinationData(combinationData)
-	local v181_ = {}
-	if combinationData.xmlFilename == nil then
-		for _, v182_ in ipairs(self.items) do
-			if self:getIsItemUnlocked(v182_) then
-				local v183_
-				if combinationData.filterCategories == nil then
-					v183_ = true
-				else
-					v183_ = false
-					if v182_.categoryNames ~= nil then
-						for _, v184_ in ipairs(combinationData.filterCategories) do
-							for _, v185_ in ipairs(v182_.categoryNames) do
-								if string.upper(v184_) == v185_ then
-									v183_ = true
+	local items = {}
+	if combinationData.xmlFilename ~= nil then
+		local storeItem = self.xmlFilenameToItem[string.lower(combinationData.customXMLFilename)]
+		if storeItem == nil then
+			storeItem = self.xmlFilenameToItem[string.lower(combinationData.xmlFilename)]
+			if storeItem == nil then
+				Logging.warning("Could not find combination vehicle '%s'", combinationData.xmlFilename)
+			end
+		end
+		if self:getIsItemUnlocked(storeItem) then
+			local _ = { storeItem = storeItem }
+			table.insert(items, _)
+			return items
+		end
+	else
+		for _, storeItem in ipairs(self.items) do
+			if self:getIsItemUnlocked(storeItem) then
+				local categoryAllowed = true
+				if combinationData.filterCategories ~= nil then
+					categoryAllowed = false
+					if storeItem.categoryNames ~= nil then
+						for _, filterCategoryName in ipairs(combinationData.filterCategories) do
+							for _, storeItemCategoryName in ipairs(storeItem.categoryNames) do
+								if string.upper(filterCategoryName) == storeItemCategoryName then
+									categoryAllowed = true
 									break
 								end
 							end
 						end
 					end
 				end
-				if v183_ then
+				if categoryAllowed then
 					if combinationData.filterSpec == nil then
-						table.insert(v181_, {
-							["storeItem"] = v182_
-						})
+						table.insert(items, { storeItem = storeItem })
 					else
-						local v186_ = self:getSpecTypeByName(combinationData.filterSpec)
-						if v186_ ~= nil and v186_.species == v182_.species then
-							StoreItemUtil.loadSpecsFromXML(v182_)
-							local v187_, _ = v186_.getValueFunc(v182_, nil, nil, nil, true, true)
-							if v187_ ~= nil then
-								local v188_ = combinationData.filterSpecMin
-								local v189_ = combinationData.filterSpecMax
-								if combinationData.filterSpec == "weight" then
-									v188_ = v188_ / 1000
-									v189_ = v189_ / 1000
+						local desc = self:getSpecTypeByName(combinationData.filterSpec)
+						if desc == nil then
+							continue
+						end
+						if desc.species == storeItem.species then
+							StoreItemUtil.loadSpecsFromXML(storeItem)
+							local value, _maxValue = desc.getValueFunc(storeItem, nil, nil, nil, true, true)
+							if value == nil then
+								continue
+							end
+							local specMin = combinationData.filterSpecMin
+							local specMax = combinationData.filterSpecMax
+							if combinationData.filterSpec == "weight" then
+								specMin = specMin / 1000
+								specMax = specMax / 1000
+							end
+							if specMin <= value then
+								if value <= specMax then
+									table.insert(items, { storeItem = storeItem })
+								elseif desc.configDataFunc ~= nil then
+									local configDatas = desc.configDataFunc(storeItem)
+									if configDatas == nil then
+										continue
+									end
+									for _, configData in ipairs(configDatas) do
+										if specMin <= configData.value and configData.value <= specMax then
+											table.insert(items, { storeItem = storeItem, configData = { [configData.name] = configData.index } })
+										end
+									end
+								else
+									if desc.relatedConfigurations == nil or storeItem.configurations == nil then
+										continue
+									end
+									for _, configurationName in ipairs(desc.relatedConfigurations) do
+										if storeItem.configurations[configurationName] == nil then
+											continue
+										end
+										local configItems = storeItem.configurations[configurationName]
+										for configIndex = 1, #configItems do
+											local configData = {}
+											configData[configurationName] = configIndex
+											value = desc.getValueFunc(storeItem, nil, configData, nil, true, true)
+											if specMin <= value and value <= specMax then
+												table.insert(items, { storeItem = storeItem, configData = configData })
+											end
+										end
+									end
 								end
-								if v188_ <= v187_ and v187_ <= v189_ then
-									table.insert(v181_, {
-										["storeItem"] = v182_
-									})
-								elseif v186_.configDataFunc == nil then
-									if v186_.relatedConfigurations ~= nil and v182_.configurations ~= nil then
-										for _, v190_ in ipairs(v186_.relatedConfigurations) do
-											if v182_.configurations[v190_] ~= nil then
-												for v191_ = 1, #v182_.configurations[v190_] do
-													local v192_ = {
-														[v190_] = v191_
-													}
-													local v193_ = v186_.getValueFunc(v182_, nil, v192_, nil, true, true)
-													if v188_ <= v193_ and v193_ <= v189_ then
-														table.insert(v181_, {
-															["storeItem"] = v182_,
-															["configData"] = v192_
-														})
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	return items
+end
+function StoreManager:getItemByCustomEnvironment(customEnvironment)
+	local items = {}
+	for _, item in ipairs(self.items) do
+		if item.customEnvironment == customEnvironment then
+			table.insert(items, item)
+		end
+	end
+	return items
+end
+function StoreManager:addModStoreItem(xmlFilename, baseDir, customEnvironment, isMod, isBundleItem, dlcTitle)
+	table.insert(self.modStoreItems, { xmlFilename = xmlFilename, baseDir = baseDir, customEnvironment = customEnvironment, isMod = isMod, isBundleItem = isBundleItem, dlcTitle = dlcTitle })
+end
+function StoreManager:loadItem(rawXMLFilename, baseDir, customEnvironment, isMod, isBundleItem, dlcTitle, extraContentId, ignoreAdd)
+	local xmlFilename = Utils.getFilename(rawXMLFilename, baseDir)
+	local xmlFile = loadXMLFile("storeItemXML", xmlFilename)
+	if xmlFile == 0 then
+		return nil
+	else
+		local baseXMLName = getXMLRootName(xmlFile)
+		local storeDataXMLKey = baseXMLName .. ".storeData"
+		local speciesStr = getXMLString(xmlFile, storeDataXMLKey .. ".species")
+		local species = StoreSpecies.getByName(speciesStr) or StoreSpecies.VEHICLE
+		local xmlSchema = self.speciesToSchema[species]
+		if xmlSchema ~= nil then
+			delete(xmlFile)
+			xmlFile = XMLFile.load("storeManagerLoadItemXml", xmlFilename, xmlSchema)
+			local xmlName = Utils.getFilenameInfo(xmlFilename, true)
+			local firstLetter = string.sub(xmlName, 1, 1)
+			if firstLetter ~= string.lower(firstLetter) then
+				Logging.xmlDevWarning(xmlFile, "Filename is starting with upper case character. Please follow the lower camel case naming convention.")
+			end
+			if tonumber(firstLetter) ~= nil then
+				Logging.xmlDevWarning(xmlFile, "Filename is starting with a number. Please start always with a character.")
+			end
+			local xmlPathPaths = xmlFilename:split("/")
+			local numParts = #xmlPathPaths
+			if 4 <= numParts and (xmlPathPaths[numParts - 3] == "vehicles" and string.startsWith(string.lower(xmlPathPaths[numParts]), string.lower(xmlPathPaths[numParts - 2]))) then
+				Logging.xmlDevWarning(xmlFile, "Vehicle filename '%s' starts with brand name '%s'.", xmlName, xmlPathPaths[numParts - 2])
+			end
+			if not xmlFile:hasProperty(storeDataXMLKey) then
+				Logging.xmlError(xmlFile, "No storeData found. StoreItem will be ignored!")
+				xmlFile:delete()
+				return nil
+			else
+				local isValid = true
+				local name = xmlFile:getValue(storeDataXMLKey .. ".name", nil, customEnvironment, true)
+				if name == nil then
+					Logging.xmlWarning(xmlFile, "Name missing for storeitem. Ignoring store item!")
+					isValid = false
+				end
+				if name ~= nil then
+					local params = xmlFile:getValue(storeDataXMLKey .. ".name#params")
+					if params ~= nil then
+						name = g_i18n:insertTextParams(name, params, customEnvironment, xmlFile)
+					end
+				end
+				local imageFilename = xmlFile:getValue(storeDataXMLKey .. ".image", "")
+				if imageFilename == "" then
+					imageFilename = nil
+				end
+				if imageFilename == nil and xmlFile:getValue(storeDataXMLKey .. ".showInStore", true) then
+					Logging.xmlWarning(xmlFile, "Image icon is missing for storeitem. Ignoring store item!")
+					isValid = false
+				end
+				if not isValid then
+					xmlFile:delete()
+					return nil
+				else
+					local storeItem = {}
+					storeItem.name = name
+					storeItem.extraContentId = extraContentId
+					storeItem.rawXMLFilename = rawXMLFilename
+					storeItem.baseDir = baseDir
+					storeItem.xmlSchema = xmlSchema
+					storeItem.xmlFilename = xmlFilename
+					storeItem.xmlFilenameLower = string.lower(xmlFilename)
+					storeItem.imageFilename = imageFilename and Utils.getFilename(imageFilename, baseDir)
+					storeItem.species = species
+					storeItem.functions = StoreItemUtil.getFunctionsFromXML(xmlFile, storeDataXMLKey, customEnvironment)
+					storeItem.specs = nil
+					storeItem.brandIndex = StoreItemUtil.getBrandIndexFromXML(xmlFile, storeDataXMLKey)
+					storeItem.brandNameRaw = xmlFile:getValue(storeDataXMLKey .. ".brand", "")
+					storeItem.customBrandIcon = xmlFile:getValue(storeDataXMLKey .. ".brand#customIcon")
+					storeItem.customBrandIconOffset = xmlFile:getValue(storeDataXMLKey .. ".brand#imageOffset")
+					if storeItem.customBrandIcon ~= nil then
+						storeItem.customBrandIcon = Utils.getFilename(storeItem.customBrandIcon, baseDir)
+					end
+					storeItem.canBeSold = xmlFile:getValue(storeDataXMLKey .. ".canBeSold", true)
+					storeItem.showInStore = xmlFile:getValue(storeDataXMLKey .. ".showInStore", not isBundleItem)
+					storeItem.isBundleItem = isBundleItem
+					storeItem.allowLeasing = xmlFile:getValue(storeDataXMLKey .. ".allowLeasing", true)
+					storeItem.maxItemCount = xmlFile:getValue(storeDataXMLKey .. ".maxItemCount")
+					storeItem.rotation = xmlFile:getValue(storeDataXMLKey .. ".rotation", 0)
+					storeItem.spawnRotationOffset = xmlFile:getValue(storeDataXMLKey .. ".spawnRotationOffset", nil, true)
+					storeItem.spawnSizeOffset = xmlFile:getValue(storeDataXMLKey .. ".spawnSizeOffset", nil, true)
+					storeItem.shopDynamicTitle = xmlFile:getValue(storeDataXMLKey .. ".shopDynamicTitle", false)
+					storeItem.shopTranslationOffset = xmlFile:getValue(storeDataXMLKey .. ".shopTranslationOffset", nil, true)
+					storeItem.shopRotationOffset = xmlFile:getValue(storeDataXMLKey .. ".shopRotationOffset", nil, true)
+					storeItem.shopIgnoreLastComponentPositions = xmlFile:getValue(storeDataXMLKey .. ".shopIgnoreLastComponentPositions", false)
+					storeItem.shopInitialLoadingDelay = xmlFile:getValue(storeDataXMLKey .. ".shopLoadingDelay#initial")
+					storeItem.shopConfigLoadingDelay = xmlFile:getValue(storeDataXMLKey .. ".shopLoadingDelay#config")
+					storeItem.shopHeight = xmlFile:getValue(storeDataXMLKey .. ".shopHeight", 0)
+					storeItem.financeCategory = xmlFile:getValue(storeDataXMLKey .. ".financeCategory")
+					storeItem.shopFoldingState = xmlFile:getValue(storeDataXMLKey .. ".shopFoldingState", 0)
+					storeItem.shopFoldingTime = xmlFile:getValue(storeDataXMLKey .. ".shopFoldingTime")
+					local sharedVramUsage, perInstanceVramUsage, ignoreVramUsage = StoreItemUtil.getVRamUsageFromXML(xmlFile, storeDataXMLKey)
+					for _, func in ipairs(self.vramUsageFunctions) do
+						local customSharedVramUsage, customPerInstanceVramUsage = func(xmlFile)
+						sharedVramUsage = sharedVramUsage + customSharedVramUsage
+						perInstanceVramUsage = perInstanceVramUsage + customPerInstanceVramUsage
+					end
+					storeItem.sharedVramUsage = sharedVramUsage
+					storeItem.perInstanceVramUsage = perInstanceVramUsage
+					storeItem.ignoreVramUsage = ignoreVramUsage
+					storeItem.dlcTitle = dlcTitle
+					storeItem.isMod = isMod
+					storeItem.customEnvironment = customEnvironment
+					storeItem.categoryNames = {}
+					local categoryNames = xmlFile:getValue(storeDataXMLKey .. ".category")
+					if categoryNames ~= nil then
+						for i = 1, #categoryNames do
+							local category = self:getCategoryByName(categoryNames[i])
+							if category ~= nil then
+								table.insert(storeItem.categoryNames, category.name)
+							else
+								Logging.xmlWarning(xmlFile, "Invalid category '%s' in store data!", tostring(categoryNames[i]))
+							end
+						end
+					end
+					if #storeItem.categoryNames == 0 then
+						if storeItem.showInStore then
+							Logging.xmlWarning(xmlFile, "No categories defined in store data! Using 'misc' instead!")
+						end
+						table.insert(storeItem.categoryNames, "MISC")
+					end
+					storeItem.categoryName = storeItem.categoryNames[1]
+					if species == StoreSpecies.VEHICLE then
+						storeItem.configurations, storeItem.defaultConfigurationIds = ConfigurationUtil.getConfigurationsFromXML(g_vehicleConfigurationManager, xmlFile, baseXMLName, baseDir, customEnvironment, isMod, storeItem)
+						storeItem.subConfigurations = ConfigurationUtil.getSubConfigurationsFromConfigurations(g_vehicleConfigurationManager, storeItem.configurations)
+						storeItem.configurationSets = ConfigurationUtil.getConfigurationSetsFromXML(storeItem, xmlFile, baseXMLName, baseDir, customEnvironment, isMod)
+						storeItem.hasLicensePlates = xmlFile:hasProperty("vehicle.licensePlates.licensePlate(0)")
+					elseif species == StoreSpecies.PLACEABLE then
+						storeItem.configurations, storeItem.defaultConfigurationIds = ConfigurationUtil.getConfigurationsFromXML(g_placeableConfigurationManager, xmlFile, baseXMLName, baseDir, customEnvironment, isMod, storeItem)
+					end
+					storeItem.price = xmlFile:getValue(storeDataXMLKey .. ".price", 0)
+					if storeItem.price < 0 then
+						Logging.xmlWarning(xmlFile, "Price has to be greater than 0. Using default 10.000 instead!")
+						storeItem.price = 10000
+					end
+					storeItem.dailyUpkeep = xmlFile:getValue(storeDataXMLKey .. ".dailyUpkeep", 0)
+					storeItem.runningLeasingFactor = xmlFile:getValue(storeDataXMLKey .. ".runningLeasingFactor", EconomyManager.DEFAULT_RUNNING_LEASING_FACTOR)
+					storeItem.lifetime = xmlFile:getValue(storeDataXMLKey .. ".lifetime", 600)
+					if storeItem.lifetime <= 0 then
+						Logging.xmlWarning(xmlFile, "Lifetime has to be greater than 0. Using default 600 instead!")
+						storeItem.lifetime = 600
+					end
+					xmlFile:iterate("handTool.storeData.storePacks.storePack", function(_, key)
+						local packName = xmlFile:getValue(key)
+						self:addPackItem(packName, xmlFilename)
+					end)
+					xmlFile:iterate("vehicle.storeData.storePacks.storePack", function(_, key)
+						local packName = xmlFile:getValue(key)
+						self:addPackItem(packName, xmlFilename)
+					end)
+					local bundleItemsToAdd = {}
+					if xmlFile:hasProperty(storeDataXMLKey .. ".bundleElements") then
+						local bundleInfo = {}
+						bundleInfo.bundleItems = {}
+						bundleInfo.attacherInfo = {}
+						local price = 0
+						local lifetime = math.huge
+						local dailyUpkeep = 0
+						local runningLeasingFactor = 0
+						for bundleIndex, bundleKey in xmlFile:iterator(storeDataXMLKey .. ".bundleElements.bundleElement") do
+							local bundleXmlFile = xmlFile:getValue(bundleKey .. ".xmlFilename")
+							local offset = xmlFile:getValue(bundleKey .. ".offset", "0 0 0", true)
+							local rotationOffset = xmlFile:getValue(bundleKey .. ".rotationOffset", "0 0 0", true)
+							local rotation = xmlFile:getValue(bundleKey .. ".yRotation", 0)
+							rotationOffset[2] = rotationOffset[2] + rotation
+							if bundleXmlFile == nil then
+								continue
+							end
+							local completePath = Utils.getFilename(bundleXmlFile, baseDir)
+							local item = self:getItemByXMLFilename(completePath)
+							if item == nil then
+								item = self:loadItem(bundleXmlFile, baseDir, customEnvironment, isMod, true, dlcTitle, nil, true)
+								table.insert(bundleItemsToAdd, item)
+							end
+							if item ~= nil then
+								price = price + item.price
+								dailyUpkeep = dailyUpkeep + item.dailyUpkeep
+								runningLeasingFactor = runningLeasingFactor + item.runningLeasingFactor
+								lifetime = math.min(lifetime, item.lifetime)
+								if item.configurations ~= nil then
+									storeItem.configurations = storeItem.configurations or {}
+									for configName, configOptions in pairs(item.configurations) do
+										if storeItem.configurations[configName] ~= nil then
+											local itemConfigOptions = storeItem.configurations[configName]
+											for j = 1, #configOptions do
+												if itemConfigOptions[j] == nil then
+													itemConfigOptions[j] = configOptions[j]
+												else
+													itemConfigOptions[j].price = itemConfigOptions[j].price + configOptions[j].price
+												end
+											end
+										else
+											storeItem.configurations[configName] = table.clone(configOptions, 5)
+										end
+									end
+								end
+								if item.defaultConfigurationIds ~= nil then
+									storeItem.defaultConfigurationIds = storeItem.defaultConfigurationIds or {}
+								end
+								if item.subConfigurations ~= nil then
+									storeItem.subConfigurations = storeItem.subConfigurations or {}
+									for configName, configOptions in pairs(item.subConfigurations) do
+										storeItem.subConfigurations[configName] = configOptions
+									end
+								end
+								if item.configurationSets ~= nil then
+									storeItem.configurationSets = storeItem.configurationSets or {}
+									for configName, configOptions in pairs(item.configurationSets) do
+										storeItem.configurationSets[configName] = configOptions
+									end
+								end
+								local preSelectedConfigurations = {}
+								xmlFile:iterate(bundleKey .. ".configurations.configuration", function(_, configKey)
+									local configName = xmlFile:getValue(configKey .. "#name")
+									local configValue = xmlFile:getValue(configKey .. "#value")
+									if configValue == nil then
+										local configSaveId = xmlFile:getValue(configKey .. "#saveId")
+										if item.configurations ~= nil then
+											local configs = item.configurations[configName]
+											if configs ~= nil then
+												for j = 1, #configs do
+													if configs[j].saveId == configSaveId then
+														configValue = configs[j].index
+														break
 													end
 												end
 											end
 										end
 									end
-								else
-									local v194_ = v186_.configDataFunc(v182_)
-									if v194_ ~= nil then
-										for _, v195_ in ipairs(v194_) do
-											if v188_ <= v195_.value and v195_.value <= v189_ then
-												local v196_ = {
-													["storeItem"] = v182_,
-													["configData"] = {
-														[v195_.name] = v195_.index
-													}
-												}
-												table.insert(v181_, v196_)
+									if configName ~= nil and configValue ~= nil then
+										local allowChange = xmlFile:getValue(configKey .. "#allowChange", false)
+										local hideOption = xmlFile:getValue(configKey .. "#hideOption", false)
+										local disableOption = xmlFile:getValue(configKey .. "#disableOption", false)
+										if not disableOption then
+											preSelectedConfigurations[configName] = { configValue = configValue, allowChange = allowChange, hideOption = hideOption }
+											return
+										end
+										local configElements = storeItem.configurations[configName]
+										if configElements ~= nil then
+											for j = 1, #configElements do
+												if j == configValue then
+													configElements[j].isSelectable = not configElements[j].isSelectable
+												end
 											end
 										end
 									end
-								end
+								end)
+								storeItem.hasLicensePlates = storeItem.hasLicensePlates or item.hasLicensePlates
+								table.insert(bundleInfo.bundleItems, { item = item, offset = offset, rotationOffset = rotationOffset, preSelectedConfigurations = preSelectedConfigurations, xmlFilename = item.xmlFilename, rotation = 0, price = item.price })
 							end
 						end
+						for attachIndex, attachKey in xmlFile:iterator(storeDataXMLKey .. ".attacherInfo.attach") do
+							local bundleElement0 = xmlFile:getValue(attachKey .. "#bundleElement0")
+							local bundleElement1 = xmlFile:getValue(attachKey .. "#bundleElement1")
+							local attacherJointIndex = xmlFile:getValue(attachKey .. "#attacherJointIndex")
+							local inputAttacherJointIndex = xmlFile:getValue(attachKey .. "#inputAttacherJointIndex")
+							if bundleElement0 == nil or bundleElement1 == nil or attacherJointIndex == nil or inputAttacherJointIndex == nil then
+								continue
+							end
+							table.insert(bundleInfo.attacherInfo, { bundleElement0 = bundleElement0, bundleElement1 = bundleElement1, attacherJointIndex = attacherJointIndex, inputAttacherJointIndex = inputAttacherJointIndex })
+						end
+						storeItem.price = price
+						storeItem.dailyUpkeep = dailyUpkeep
+						storeItem.runningLeasingFactor = runningLeasingFactor
+						storeItem.lifetime = lifetime
+						storeItem.bundleInfo = bundleInfo
 					end
-				end
-			end
-		end
-	else
-		local v197_ = self.xmlFilenameToItem[string.lower(combinationData.customXMLFilename)]
-		if v197_ == nil then
-			v197_ = self.xmlFilenameToItem[string.lower(combinationData.xmlFilename)]
-			if v197_ == nil then
-				Logging.warning("Could not find combination vehicle \'%s\'", combinationData.xmlFilename)
-			end
-		end
-		if self:getIsItemUnlocked(v197_) then
-			table.insert(v181_, {
-				["storeItem"] = v197_
-			})
-			return v181_
-		end
-	end
-	return v181_
-end
-
--- Local values: items, _, item
-function StoreManager:getItemByCustomEnvironment(customEnvironment)
-	local v200_ = {}
-	for _, v201_ in ipairs(self.items) do
-		if v201_.customEnvironment == customEnvironment then
-			table.insert(v200_, v201_)
-		end
-	end
-	return v200_
-end
-
-function StoreManager:addModStoreItem(xmlFilename, baseDir, customEnvironment, isMod, isBundleItem, dlcTitle)
-	local v209_ = self.modStoreItems
-	table.insert(v209_, {
-		["xmlFilename"] = xmlFilename,
-		["baseDir"] = baseDir,
-		["customEnvironment"] = customEnvironment,
-		["isMod"] = isMod,
-		["isBundleItem"] = isBundleItem,
-		["dlcTitle"] = dlcTitle
-	})
-end
-
--- Local values: xmlFilename, xmlFile, baseXMLName, storeDataXMLKey, speciesStr, species, xmlSchema, xmlName, firstLetter, xmlPathPaths, numParts, isValid, name, params, imageFilename, storeItem, sharedVramUsage, perInstanceVramUsage, ignoreVramUsage, _, func, customSharedVramUsage, customPerInstanceVramUsage, categoryNames, i, category, bundleItemsToAdd, bundleInfo, price, lifetime, dailyUpkeep, runningLeasingFactor, bundleIndex, bundleKey, bundleXmlFile, offset, rotationOffset, rotation, completePath, item, configName, configOptions, itemConfigOptions, j, configName, configOptions, configName, configOptions, preSelectedConfigurations, attachIndex, attachKey, bundleElement0, bundleElement1, attacherJointIndex, inputAttacherJointIndex, brushType, parameters, brushCategoryString, brushCategory, tab, constructionCategory, i
-function StoreManager:loadItem(rawXMLFilename, baseDir, customEnvironment, isMod, isBundleItem, dlcTitle, extraContentId, ignoreAdd)
-	local v_u_219_ = Utils.getFilename(rawXMLFilename, baseDir)
-	local v220_ = loadXMLFile("storeItemXML", v_u_219_)
-	if v220_ == 0 then
-		return nil
-	end
-	local v221_ = getXMLRootName(v220_)
-	local v222_ = v221_ .. ".storeData"
-	local v223_ = getXMLString(v220_, v222_ .. ".species")
-	local v224_ = StoreSpecies.getByName(v223_) or StoreSpecies.VEHICLE
-	local v225_ = self.speciesToSchema[v224_]
-	if v225_ == nil then
-		Logging.xmlError(v220_, "Unable to get xml schema for species \'%s\' in \'%s\'", v224_, v_u_219_)
-		return nil
-	end
-	delete(v220_)
-	local v_u_226_ = XMLFile.load("storeManagerLoadItemXml", v_u_219_, v225_)
-	local v227_ = Utils.getFilenameInfo(v_u_219_, true)
-	local v228_ = string.sub(v227_, 1, 1)
-	if v228_ ~= string.lower(v228_) then
-		Logging.xmlDevWarning(v_u_226_, "Filename is starting with upper case character. Please follow the lower camel case naming convention.")
-	end
-	if tonumber(v228_) ~= nil then
-		Logging.xmlDevWarning(v_u_226_, "Filename is starting with a number. Please start always with a character.")
-	end
-	local v229_ = v_u_219_:split("/")
-	local v230_ = #v229_
-	if v230_ >= 4 and (v229_[v230_ - 3] == "vehicles" and string.startsWith(string.lower(v229_[v230_]), string.lower(v229_[v230_ - 2]))) then
-		Logging.xmlDevWarning(v_u_226_, "Vehicle filename \'%s\' starts with brand name \'%s\'.", v227_, v229_[v230_ - 2])
-	end
-	if not v_u_226_:hasProperty(v222_) then
-		Logging.xmlError(v_u_226_, "No storeData found. StoreItem will be ignored!")
-		v_u_226_:delete()
-		return nil
-	end
-	local v231_ = v_u_226_:getValue(v222_ .. ".name", nil, customEnvironment, true)
-	local v232_
-	if v231_ == nil then
-		Logging.xmlWarning(v_u_226_, "Name missing for storeitem. Ignoring store item!")
-		v232_ = false
-	else
-		v232_ = true
-	end
-	if v231_ ~= nil then
-		local v233_ = v_u_226_:getValue(v222_ .. ".name#params")
-		if v233_ ~= nil then
-			v231_ = g_i18n:insertTextParams(v231_, v233_, customEnvironment, v_u_226_)
-		end
-	end
-	local v234_ = v_u_226_:getValue(v222_ .. ".image", "")
-	if v234_ == "" then
-		v234_ = nil
-	end
-	if v234_ == nil and v_u_226_:getValue(v222_ .. ".showInStore", true) then
-		Logging.xmlWarning(v_u_226_, "Image icon is missing for storeitem. Ignoring store item!")
-		v232_ = false
-	end
-	if not v232_ then
-		v_u_226_:delete()
-		return nil
-	end
-	local v_u_235_ = {
-		["name"] = v231_,
-		["extraContentId"] = extraContentId,
-		["rawXMLFilename"] = rawXMLFilename,
-		["baseDir"] = baseDir,
-		["xmlSchema"] = v225_,
-		["xmlFilename"] = v_u_219_,
-		["xmlFilenameLower"] = string.lower(v_u_219_)
-	}
-	if v234_ then
-		v234_ = Utils.getFilename(v234_, baseDir)
-	end
-	v_u_235_.imageFilename = v234_
-	v_u_235_.species = v224_
-	v_u_235_.functions = StoreItemUtil.getFunctionsFromXML(v_u_226_, v222_, customEnvironment)
-	v_u_235_.specs = nil
-	v_u_235_.brandIndex = StoreItemUtil.getBrandIndexFromXML(v_u_226_, v222_)
-	v_u_235_.brandNameRaw = v_u_226_:getValue(v222_ .. ".brand", "")
-	v_u_235_.customBrandIcon = v_u_226_:getValue(v222_ .. ".brand#customIcon")
-	v_u_235_.customBrandIconOffset = v_u_226_:getValue(v222_ .. ".brand#imageOffset")
-	if v_u_235_.customBrandIcon ~= nil then
-		v_u_235_.customBrandIcon = Utils.getFilename(v_u_235_.customBrandIcon, baseDir)
-	end
-	v_u_235_.canBeSold = v_u_226_:getValue(v222_ .. ".canBeSold", true)
-	v_u_235_.showInStore = v_u_226_:getValue(v222_ .. ".showInStore", not isBundleItem)
-	v_u_235_.isBundleItem = isBundleItem
-	v_u_235_.allowLeasing = v_u_226_:getValue(v222_ .. ".allowLeasing", true)
-	v_u_235_.maxItemCount = v_u_226_:getValue(v222_ .. ".maxItemCount")
-	v_u_235_.rotation = v_u_226_:getValue(v222_ .. ".rotation", 0)
-	v_u_235_.spawnRotationOffset = v_u_226_:getValue(v222_ .. ".spawnRotationOffset", nil, true)
-	v_u_235_.spawnSizeOffset = v_u_226_:getValue(v222_ .. ".spawnSizeOffset", nil, true)
-	v_u_235_.shopDynamicTitle = v_u_226_:getValue(v222_ .. ".shopDynamicTitle", false)
-	v_u_235_.shopTranslationOffset = v_u_226_:getValue(v222_ .. ".shopTranslationOffset", nil, true)
-	v_u_235_.shopRotationOffset = v_u_226_:getValue(v222_ .. ".shopRotationOffset", nil, true)
-	v_u_235_.shopIgnoreLastComponentPositions = v_u_226_:getValue(v222_ .. ".shopIgnoreLastComponentPositions", false)
-	v_u_235_.shopInitialLoadingDelay = v_u_226_:getValue(v222_ .. ".shopLoadingDelay#initial")
-	v_u_235_.shopConfigLoadingDelay = v_u_226_:getValue(v222_ .. ".shopLoadingDelay#config")
-	v_u_235_.shopHeight = v_u_226_:getValue(v222_ .. ".shopHeight", 0)
-	v_u_235_.financeCategory = v_u_226_:getValue(v222_ .. ".financeCategory")
-	v_u_235_.shopFoldingState = v_u_226_:getValue(v222_ .. ".shopFoldingState", 0)
-	v_u_235_.shopFoldingTime = v_u_226_:getValue(v222_ .. ".shopFoldingTime")
-	local v236_, v237_, v238_ = StoreItemUtil.getVRamUsageFromXML(v_u_226_, v222_)
-	for _, v239_ in ipairs(self.vramUsageFunctions) do
-		local v240_, v241_ = v239_(v_u_226_)
-		v236_ = v236_ + v240_
-		v237_ = v237_ + v241_
-	end
-	v_u_235_.sharedVramUsage = v236_
-	v_u_235_.perInstanceVramUsage = v237_
-	v_u_235_.ignoreVramUsage = v238_
-	v_u_235_.dlcTitle = dlcTitle
-	v_u_235_.isMod = isMod
-	v_u_235_.customEnvironment = customEnvironment
-	v_u_235_.categoryNames = {}
-	local v242_ = v_u_226_:getValue(v222_ .. ".category")
-	if v242_ ~= nil then
-		for v243_ = 1, #v242_ do
-			local v244_ = self:getCategoryByName(v242_[v243_])
-			if v244_ == nil then
-				local v245_ = Logging.xmlWarning
-				local v246_ = v242_[v243_]
-				v245_(v_u_226_, "Invalid category \'%s\' in store data!", (tostring(v246_)))
-			else
-				local v247_ = v_u_235_.categoryNames
-				local v248_ = v244_.name
-				table.insert(v247_, v248_)
-			end
-		end
-	end
-	if #v_u_235_.categoryNames == 0 then
-		if v_u_235_.showInStore then
-			Logging.xmlWarning(v_u_226_, "No categories defined in store data! Using \'misc\' instead!")
-		end
-		local v249_ = v_u_235_.categoryNames
-		table.insert(v249_, "MISC")
-	end
-	v_u_235_.categoryName = v_u_235_.categoryNames[1]
-	if v224_ == StoreSpecies.VEHICLE then
-		local v250_, v251_ = ConfigurationUtil.getConfigurationsFromXML(g_vehicleConfigurationManager, v_u_226_, v221_, baseDir, customEnvironment, isMod, v_u_235_)
-		v_u_235_.configurations = v250_
-		v_u_235_.defaultConfigurationIds = v251_
-		v_u_235_.subConfigurations = ConfigurationUtil.getSubConfigurationsFromConfigurations(g_vehicleConfigurationManager, v_u_235_.configurations)
-		v_u_235_.configurationSets = ConfigurationUtil.getConfigurationSetsFromXML(v_u_235_, v_u_226_, v221_, baseDir, customEnvironment, isMod)
-		v_u_235_.hasLicensePlates = v_u_226_:hasProperty("vehicle.licensePlates.licensePlate(0)")
-	elseif v224_ == StoreSpecies.PLACEABLE then
-		local v252_, v253_ = ConfigurationUtil.getConfigurationsFromXML(g_placeableConfigurationManager, v_u_226_, v221_, baseDir, customEnvironment, isMod, v_u_235_)
-		v_u_235_.configurations = v252_
-		v_u_235_.defaultConfigurationIds = v253_
-	end
-	v_u_235_.price = v_u_226_:getValue(v222_ .. ".price", 0)
-	if v_u_235_.price < 0 then
-		Logging.xmlWarning(v_u_226_, "Price has to be greater than 0. Using default 10.000 instead!")
-		v_u_235_.price = 10000
-	end
-	v_u_235_.dailyUpkeep = v_u_226_:getValue(v222_ .. ".dailyUpkeep", 0)
-	v_u_235_.runningLeasingFactor = v_u_226_:getValue(v222_ .. ".runningLeasingFactor", EconomyManager.DEFAULT_RUNNING_LEASING_FACTOR)
-	v_u_235_.lifetime = v_u_226_:getValue(v222_ .. ".lifetime", 600)
-	if v_u_235_.lifetime <= 0 then
-		Logging.xmlWarning(v_u_226_, "Lifetime has to be greater than 0. Using default 600 instead!")
-		v_u_235_.lifetime = 600
-	end
-	v_u_226_:iterate("handTool.storeData.storePacks.storePack", function(_, p254_)
-		-- upvalues: (ref) v_u_226_, (copy) self, (copy) v_u_219_
-		self:addPackItem(v_u_226_:getValue(p254_), v_u_219_)
-	end)
-	v_u_226_:iterate("vehicle.storeData.storePacks.storePack", function(_, p255_)
-		-- upvalues: (ref) v_u_226_, (copy) self, (copy) v_u_219_
-		self:addPackItem(v_u_226_:getValue(p255_), v_u_219_)
-	end)
-	local v256_ = {}
-	if v_u_226_:hasProperty(v222_ .. ".bundleElements") then
-		local v257_ = 0
-		local v258_ = 0
-		local v259_ = 0
-		local v260_ = {
-			["bundleItems"] = {},
-			["attacherInfo"] = {}
-		}
-		local v261_ = math.huge
-		for _, v262_ in v_u_226_:iterator(v222_ .. ".bundleElements.bundleElement") do
-			local v263_ = v_u_226_:getValue(v262_ .. ".xmlFilename")
-			local v264_ = v_u_226_:getValue(v262_ .. ".offset", "0 0 0", true)
-			local v265_ = v_u_226_:getValue(v262_ .. ".rotationOffset", "0 0 0", true)
-			local v266_ = v_u_226_:getValue(v262_ .. ".yRotation", 0)
-			v265_[2] = v265_[2] + v266_
-			if v263_ ~= nil then
-				local v_u_267_ = self:getItemByXMLFilename((Utils.getFilename(v263_, baseDir)))
-				if v_u_267_ == nil then
-					v_u_267_ = self:loadItem(v263_, baseDir, customEnvironment, isMod, true, dlcTitle, nil, true)
-					table.insert(v256_, v_u_267_)
-				end
-				if v_u_267_ ~= nil then
-					v257_ = v257_ + v_u_267_.price
-					v258_ = v258_ + v_u_267_.dailyUpkeep
-					v259_ = v259_ + v_u_267_.runningLeasingFactor
-					local v268_ = v_u_267_.lifetime
-					v261_ = math.min(v261_, v268_)
-					if v_u_267_.configurations ~= nil then
-						v_u_235_.configurations = v_u_235_.configurations or {}
-						for v269_, v270_ in pairs(v_u_267_.configurations) do
-							if v_u_235_.configurations[v269_] == nil then
-								v_u_235_.configurations[v269_] = table.clone(v270_, 5)
-							else
-								local v271_ = v_u_235_.configurations[v269_]
-								for v272_ = 1, #v270_ do
-									if v271_[v272_] == nil then
-										v271_[v272_] = v270_[v272_]
-									else
-										v271_[v272_].price = v271_[v272_].price + v270_[v272_].price
+					if Platform.hasContruction and xmlFile:hasProperty(storeDataXMLKey .. ".brush") then
+						if storeItem.showInStore then
+							local brushType = xmlFile:getValue(storeDataXMLKey .. ".brush.type")
+							if brushType ~= nil and brushType ~= "none" then
+								if g_constructionBrushTypeManager:getClassObjectByTypeName(brushType) == nil then
+									Logging.xmlError(xmlFile, "Unknown brush type %q", brushType)
+									printf("Available brush types: %s", table.concat(table.toList(g_constructionBrushTypeManager:getBrushTypes()), ", "))
+								end
+								local parameters = {}
+								xmlFile:iterate(storeDataXMLKey .. ".brush.parameters.parameter", function(index, key)
+									local value = xmlFile:getValue(key)
+									if xmlFile:getValue(key .. "#isFilename", false) then
+										value = Utils.getFilename(value, baseDir)
 									end
-								end
-							end
-						end
-					end
-					if v_u_267_.defaultConfigurationIds ~= nil then
-						v_u_235_.defaultConfigurationIds = v_u_235_.defaultConfigurationIds or {}
-					end
-					if v_u_267_.subConfigurations ~= nil then
-						v_u_235_.subConfigurations = v_u_235_.subConfigurations or {}
-						for v273_, v274_ in pairs(v_u_267_.subConfigurations) do
-							v_u_235_.subConfigurations[v273_] = v274_
-						end
-					end
-					if v_u_267_.configurationSets ~= nil then
-						v_u_235_.configurationSets = v_u_235_.configurationSets or {}
-						for v275_, v276_ in pairs(v_u_267_.configurationSets) do
-							v_u_235_.configurationSets[v275_] = v276_
-						end
-					end
-					local v_u_277_ = {}
-					v_u_226_:iterate(v262_ .. ".configurations.configuration", function(_, p278_)
-						-- upvalues: (ref) v_u_226_, (ref) v_u_267_, (copy) v_u_277_, (copy) v_u_235_
-						local v279_ = v_u_226_:getValue(p278_ .. "#name")
-						local v280_ = v_u_226_:getValue(p278_ .. "#value")
-						if v280_ == nil then
-							local v281_ = v_u_226_:getValue(p278_ .. "#saveId")
-							if v_u_267_.configurations ~= nil then
-								local v282_ = v_u_267_.configurations[v279_]
-								if v282_ ~= nil then
-									for v283_ = 1, #v282_ do
-										if v282_[v283_].saveId == v281_ then
-											v280_ = v282_[v283_].index
-											break
+									parameters[index] = value
+								end)
+								local brushCategoryString = xmlFile:getValue(storeDataXMLKey .. ".brush.category")
+								if brushCategoryString ~= nil then
+									local brushCategory = self:getConstructionCategoryByName(brushCategoryString)
+									if brushCategory ~= nil then
+										local tab = self:getConstructionTabByName(xmlFile:getValue(storeDataXMLKey .. ".brush.tab"), brushCategory.name)
+										if tab ~= nil then
+											storeItem.brush = { type = brushType, parameters = parameters, category = brushCategory, tab = tab }
+										else
+											Logging.xmlWarning(xmlFile, "Missing brush tab")
 										end
+									else
+										Logging.xmlWarning(xmlFile, "Missing brush category: %s", storeDataXMLKey .. ".brush.category")
 									end
+								else
+									Logging.xmlWarning(xmlFile, "Unknown brush category '%s'", brushCategoryString)
+								end
+							end
+						elseif storeItem.species == StoreSpecies.PLACEABLE then
+							if storeItem.showInStore then
+								local constructionCategory = self.constructionCategories[1]
+								if constructionCategory ~= nil then
+									storeItem.brush = { type = "placeable", parameters = {}, category = constructionCategory, tab = constructionCategory.tabs[1] }
+								else
+									Logging.xmlDevWarning(xmlFile, "Construction category not found for '%s'", storeDataXMLKey)
 								end
 							end
 						end
-						if v279_ ~= nil and v280_ ~= nil then
-							local v284_ = v_u_226_:getValue(p278_ .. "#allowChange", false)
-							local v285_ = v_u_226_:getValue(p278_ .. "#hideOption", false)
-							if not v_u_226_:getValue(p278_ .. "#disableOption", false) then
-								v_u_277_[v279_] = {
-									["configValue"] = v280_,
-									["allowChange"] = v284_,
-									["hideOption"] = v285_
-								}
-								return
-							end
-							local v286_ = v_u_235_.configurations[v279_]
-							if v286_ ~= nil then
-								for v287_ = 1, #v286_ do
-									if v287_ == v280_ then
-										v286_[v287_].isSelectable = not v286_[v287_].isSelectable
-									end
-								end
-							end
-						end
-					end)
-					v_u_235_.hasLicensePlates = v_u_235_.hasLicensePlates or v_u_267_.hasLicensePlates
-					local v288_ = v260_.bundleItems
-					local v289_ = {
-						["item"] = v_u_267_,
-						["xmlFilename"] = v_u_267_.xmlFilename,
-						["offset"] = v264_,
-						["rotationOffset"] = v265_,
-						["rotation"] = 0,
-						["price"] = v_u_267_.price,
-						["preSelectedConfigurations"] = v_u_277_
-					}
-					table.insert(v288_, v289_)
-				end
-			end
-		end
-		for _, v290_ in v_u_226_:iterator(v222_ .. ".attacherInfo.attach") do
-			local v291_ = v_u_226_:getValue(v290_ .. "#bundleElement0")
-			local v292_ = v_u_226_:getValue(v290_ .. "#bundleElement1")
-			local v293_ = v_u_226_:getValue(v290_ .. "#attacherJointIndex")
-			local v294_ = v_u_226_:getValue(v290_ .. "#inputAttacherJointIndex")
-			if v291_ ~= nil and (v292_ ~= nil and (v293_ ~= nil and v294_ ~= nil)) then
-				local v295_ = v260_.attacherInfo
-				table.insert(v295_, {
-					["bundleElement0"] = v291_,
-					["bundleElement1"] = v292_,
-					["attacherJointIndex"] = v293_,
-					["inputAttacherJointIndex"] = v294_
-				})
-			end
-		end
-		v_u_235_.price = v257_
-		v_u_235_.dailyUpkeep = v258_
-		v_u_235_.runningLeasingFactor = v259_
-		v_u_235_.lifetime = v261_
-		v_u_235_.bundleInfo = v260_
-	end
-	if Platform.hasContruction then
-		if v_u_226_:hasProperty(v222_ .. ".brush") and v_u_235_.showInStore then
-			local v296_ = v_u_226_:getValue(v222_ .. ".brush.type")
-			if v296_ ~= nil and v296_ ~= "none" then
-				if g_constructionBrushTypeManager:getClassObjectByTypeName(v296_) == nil then
-					Logging.xmlError(v_u_226_, "Unknown brush type %q", v296_)
-					printf("Available brush types: %s", table.concat(table.toList(g_constructionBrushTypeManager:getBrushTypes()), ", "))
-				end
-				local v_u_297_ = {}
-				v_u_226_:iterate(v222_ .. ".brush.parameters.parameter", function(p298_, p299_)
-					-- upvalues: (ref) v_u_226_, (copy) baseDir, (copy) v_u_297_
-					local v300_ = v_u_226_:getValue(p299_)
-					if v_u_226_:getValue(p299_ .. "#isFilename", false) then
-						v300_ = Utils.getFilename(v300_, baseDir)
 					end
-					v_u_297_[p298_] = v300_
-				end)
-				local v301_ = v_u_226_:getValue(v222_ .. ".brush.category")
-				if v301_ == nil then
-					Logging.xmlWarning(v_u_226_, "Unknown brush category \'%s\'", v301_)
-				else
-					local v302_ = self:getConstructionCategoryByName(v301_)
-					if v302_ == nil then
-						Logging.xmlWarning(v_u_226_, "Missing brush category: %s", v222_ .. ".brush.category")
-					else
-						local v303_ = self:getConstructionTabByName(v_u_226_:getValue(v222_ .. ".brush.tab"), v302_.name)
-						if v303_ == nil then
-							Logging.xmlWarning(v_u_226_, "Missing brush tab")
-						else
-							v_u_235_.brush = {
-								["type"] = v296_,
-								["parameters"] = v_u_297_,
-								["category"] = v302_,
-								["tab"] = v303_
-							}
+					if not ignoreAdd then
+						self:addItem(storeItem)
+						for i = 1, #bundleItemsToAdd do
+							self:addItem(bundleItemsToAdd[i])
 						end
 					end
+					xmlFile:delete()
+					return storeItem
 				end
 			end
-		elseif v_u_235_.species == StoreSpecies.PLACEABLE and v_u_235_.showInStore then
-			local v304_ = self.constructionCategories[1]
-			if v304_ == nil then
-				Logging.xmlDevWarning(v_u_226_, "Construction category not found for \'%s\'", v222_)
-			else
-				v_u_235_.brush = {
-					["type"] = "placeable",
-					["parameters"] = {},
-					["category"] = v304_,
-					["tab"] = v304_.tabs[1]
-				}
-			end
 		end
+		Logging.xmlError(xmlFile, "Unable to get xml schema for species '%s' in '%s'", species, xmlFilename)
+		return nil
 	end
-	if not ignoreAdd then
-		self:addItem(v_u_235_)
-		for v305_ = 1, #v256_ do
-			self:addItem(v256_[v305_])
-		end
-	end
-	v_u_226_:delete()
-	return v_u_235_
 end
-
 function StoreManager:addPack(name, title, imageFilename, baseDir)
 	if name == nil or name == "" then
 		printWarning("Warning: Could not register store pack. Name is missing or empty!")
 		return false
 	end
 	if not ClassUtil.getIsValidIndexName(name) then
-		printWarning("Warning: \'" .. tostring(name) .. "\' is no valid name for a store pack!")
+		printWarning("Warning: '" .. tostring(name) .. "' is no valid name for a store pack!")
 		return false
 	end
 	if title == nil or title == "" then
@@ -1052,91 +913,60 @@ function StoreManager:addPack(name, title, imageFilename, baseDir)
 		printWarning("Warning: Could not register store pack. Basedirectory not defined!")
 		return false
 	end
-	local v311_ = string.upper(name)
-	if self.packs[v311_] ~= nil then
+	name = string.upper(name)
+	if self.packs[name] == nil then
+		self.numOfPacks = self.numOfPacks + 1
+		self.packs[name] = { name = name, title = title, baseDir = baseDir, image = Utils.getFilename(imageFilename, baseDir), orderId = self.numOfPacks, items = {} }
+		return true
+	else
 		return false
 	end
-	self.numOfPacks = self.numOfPacks + 1
-	self.packs[v311_] = {
-		["name"] = v311_,
-		["title"] = title,
-		["image"] = Utils.getFilename(imageFilename, baseDir),
-		["baseDir"] = baseDir,
-		["orderId"] = self.numOfPacks,
-		["items"] = {}
-	}
-	return true
 end
-
 function StoreManager:addModConstructionTab(categoryName, tabName, tabTitle, tabIconFilename, tabRefSize, tabIconUVs, baseDir, tabIconSliceId)
-	local v321_ = self.modConstructionTabs
-	table.insert(v321_, {
-		["categoryName"] = categoryName,
-		["tabName"] = tabName,
-		["tabTitle"] = tabTitle,
-		["tabIconFilename"] = tabIconFilename,
-		["tabRefSize"] = tabRefSize,
-		["tabIconUVs"] = tabIconUVs,
-		["tabIconSliceId"] = tabIconSliceId,
-		["baseDir"] = baseDir
-	})
+	table.insert(self.modConstructionTabs, { categoryName = categoryName, tabName = tabName, tabTitle = tabTitle, tabIconFilename = tabIconFilename, tabRefSize = tabRefSize, tabIconUVs = tabIconUVs, tabIconSliceId = tabIconSliceId, baseDir = baseDir })
 end
-
 function StoreManager:addModStorePack(name, title, imageFilename, baseDir, storeItems)
-	local v328_ = self.modStorePacks
-	table.insert(v328_, {
-		["name"] = name,
-		["title"] = title,
-		["imageFilename"] = imageFilename,
-		["baseDir"] = baseDir,
-		["storeItems"] = storeItems or {}
-	})
+	table.insert(self.modStorePacks, { name = name, title = title, imageFilename = imageFilename, baseDir = baseDir, storeItems = storeItems or {} })
 end
-
 function StoreManager:addPackItem(name, itemFilename)
 	if name == nil or name == "" then
 		Logging.warning("Could not add pack item. Name is missing or empty.")
 		return
-	elseif self.packs[name] == nil then
-		Logging.warning("Could not add pack item. Pack \'%s\' does not exist.", name)
-		return
-	elseif itemFilename == nil or itemFilename == "" then
-		Logging.warning("Could not add pack item to \'%s\'. Item filename is missing.", name)
+	end
+	if self.packs[name] == nil then
+		Logging.warning("Could not add pack item. Pack '%s' does not exist.", name)
 	else
-		local v332_ = self.packs[name].items
-		table.insert(v332_, itemFilename)
+		if itemFilename == nil or itemFilename == "" then
+			Logging.warning("Could not add pack item to '%s'. Item filename is missing.", name)
+			return
+		end
+		table.insert(self.packs[name].items, itemFilename)
 	end
 end
-
 function StoreManager:getPacks()
 	return self.packs
 end
-
--- Local values: pack
 function StoreManager:getPackItems(name)
-	local v336_ = self.packs[name]
-	if v336_ == nil then
+	local pack = self.packs[name]
+	if pack == nil then
 		return nil
 	else
-		return v336_.items
+		return pack.items
 	end
 end
-
 function StoreManager:search(text, callback)
 	return self.indexedSearch:search(text, callback)
 end
-
--- Local values: i, item
 function StoreManager:consoleCommandReloadStoreItems()
-	for v341_, v342_ in ipairs(self.items) do
-		self.items[v341_] = self:loadItem(v342_.rawXMLFilename, v342_.baseDir, v342_.customEnvironment, v342_.isMod, v342_.isBundleItem, v342_.dlcTitle, v342_.extraContentId, true)
-		if self.items[v341_] ~= nil then
-			self.xmlFilenameToItem[self.items[v341_].xmlFilenameLower] = self.items[v341_]
+	for i, item in ipairs(self.items) do
+		self.items[i] = self:loadItem(item.rawXMLFilename, item.baseDir, item.customEnvironment, item.isMod, item.isBundleItem, item.dlcTitle, item.extraContentId, true)
+		if self.items[i] == nil then
+			continue
 		end
+		self.xmlFilenameToItem[self.items[i].xmlFilenameLower] = self.items[i]
 	end
 	g_messageCenter:publish(MessageType.STORE_ITEMS_RELOADED)
 end
-
 function StoreManager.registerStoreCategoriesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#name", "Store category name identifier")
 	schema:register(XMLValueType.STRING, basePath .. "#title", "Store category title")
@@ -1144,14 +974,12 @@ function StoreManager.registerStoreCategoriesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#type", "Store category type")
 	schema:register(XMLValueType.STRING, basePath .. "#insertAfter", "Store category should be inserted after this category")
 end
-
--- Local values: speciesDefaultValue, speciesDefaultValues
 function StoreManager.registerStoreDataXMLPaths(schema, basePath)
 	schema:register(XMLValueType.L10N_STRING, basePath .. ".storeData.name", "Name of store item", nil, true)
 	schema:register(XMLValueType.STRING, basePath .. ".storeData.name#params", "Parameters to add to name")
-	local v347_ = StoreSpecies.getName(StoreSpecies.VEHICLE)
-	local v348_ = StoreSpecies.getAllOrderedByName()
-	schema:register(XMLValueType.STRING, basePath .. ".storeData.species", "Store species", v347_, false, v348_)
+	local speciesDefaultValue = StoreSpecies.getName(StoreSpecies.VEHICLE)
+	local speciesDefaultValues = StoreSpecies.getAllOrderedByName()
+	schema:register(XMLValueType.STRING, basePath .. ".storeData.species", "Store species", speciesDefaultValue, false, speciesDefaultValues)
 	schema:register(XMLValueType.STRING, basePath .. ".storeData.image", "Path to store icon", nil, true)
 	schema:register(XMLValueType.STRING, basePath .. ".storeData.brand", "Brand identifier", "LIZARD")
 	schema:registerAutoCompletionDataSource(basePath .. ".storeData.brand", "$dataS/brands.xml", "brands.brand#name")
@@ -1179,7 +1007,7 @@ function StoreManager.registerStoreDataXMLPaths(schema, basePath)
 	schema:register(XMLValueType.TIME, basePath .. ".storeData.shopLoadingDelay#config", "Delay of shop loading after config change until the vehicle is displayed. (Used e.g. to hide vehicle while components still moving)")
 	schema:register(XMLValueType.FLOAT, basePath .. ".storeData.shopHeight", "Height of vehicle for shop placement", 0)
 	schema:register(XMLValueType.STRING, basePath .. ".storeData.financeCategory", "Finance category name")
-	schema:register(XMLValueType.INT, basePath .. ".storeData.shopFoldingState", "Inverts the shop folding state if set to \'1\'", 0)
+	schema:register(XMLValueType.INT, basePath .. ".storeData.shopFoldingState", "Inverts the shop folding state if set to '1'", 0)
 	schema:register(XMLValueType.FLOAT, basePath .. ".storeData.shopFoldingTime", "Defines a custom folding time for the shop")
 	schema:register(XMLValueType.INT, basePath .. ".storeData.vertexBufferMemoryUsage", "Vertex buffer memory usage", 0)
 	schema:register(XMLValueType.INT, basePath .. ".storeData.indexBufferMemoryUsage", "Index buffer memory usage", 0)

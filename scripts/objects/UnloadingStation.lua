@@ -1,99 +1,82 @@
--- Local values: UnloadingStation_mt
 UnloadingStation = {}
 UnloadingStation.FX_DURATION = 5000
 local UnloadingStation_mt = Class(UnloadingStation, Object)
 InitStaticObjectClass(UnloadingStation, "UnloadingStation")
-
--- Upvalues: UnloadingStation_mt
--- Local values: self
 function UnloadingStation.new(isServer, isClient, customMt)
-	-- upvalues: (copy) UnloadingStation_mt
-	return Object.new(isServer, isClient, customMt or UnloadingStation_mt)
+	local self = Object.new(isServer, isClient, customMt or UnloadingStation_mt)
+	return self
 end
-
--- Local values: stationName, k, trigger, _, fillplaneKey, node, fillTypes, fillplane, _, fillTypeIndex, _, baseDirectory
 function UnloadingStation:load(components, xmlFile, key, customEnv, i3dMappings, rootNode)
 	self.rootNode = rootNode or xmlFile:getValue(key .. "#node", rootNode, components, i3dMappings)
 	if self.rootNode == nil then
-		Logging.xmlError(xmlFile, "Missing node defined in \'%s\'", key)
+		Logging.xmlError(xmlFile, "Missing node defined in '%s'", key)
 		return false
-	end
-	self.rootNodeName = getName(self.rootNode)
-	self.xmlKey = key
-	local v11_ = xmlFile:getValue(key .. "#stationName", nil)
-	if v11_ then
-		v11_ = g_i18n:convertText(v11_)
-	end
-	self.stationName = v11_
-	self.storageRadius = xmlFile:getValue(key .. "#storageRadius", 50)
-	self.hideFromPricesMenu = xmlFile:getValue(key .. "#hideFromPricesMenu", false)
-	self.supportsExtension = xmlFile:getValue(key .. "#supportsExtension", false)
-	self.isTrainStation = xmlFile:getValue(key .. "#isTrainStation", false)
-	self.isPalletStation = xmlFile:getValue(key .. "#isPalletStation", false)
-	self.owningPlaceable = nil
-	self.hasStoragePerFarm = false
-	self.targetStorages = {}
-	self.supportedFillTypes = {}
-	self.aiSupportedFillTypes = {}
-	self.unloadTriggers = UnloadTrigger.createTriggers(self.isServer, self.isClient, xmlFile, key, components, self, nil, i3dMappings)
-	for v12_, v13_ in ipairs(self.unloadTriggers) do
-		if v13_.fillTypes == nil or next(v13_.fillTypes) == nil then
-			Logging.xmlWarning(xmlFile, "Unloading station trigger \'%d\' has no filltypes defined", v12_)
+	else
+		self.rootNodeName = getName(self.rootNode)
+		self.xmlKey = key
+		local stationName = xmlFile:getValue(key .. "#stationName", nil)
+		self.stationName = stationName and g_i18n:convertText(stationName)
+		self.storageRadius = xmlFile:getValue(key .. "#storageRadius", 50)
+		self.hideFromPricesMenu = xmlFile:getValue(key .. "#hideFromPricesMenu", false)
+		self.supportsExtension = xmlFile:getValue(key .. "#supportsExtension", false)
+		self.isTrainStation = xmlFile:getValue(key .. "#isTrainStation", false)
+		self.isPalletStation = xmlFile:getValue(key .. "#isPalletStation", false)
+		self.owningPlaceable = nil
+		self.hasStoragePerFarm = false
+		self.targetStorages = {}
+		self.supportedFillTypes = {}
+		self.aiSupportedFillTypes = {}
+		self.unloadTriggers = UnloadTrigger.createTriggers(self.isServer, self.isClient, xmlFile, key, components, self, nil, i3dMappings)
+		for k, trigger in ipairs(self.unloadTriggers) do
+			if trigger.fillTypes == nil or next(trigger.fillTypes) == nil then
+				Logging.xmlWarning(xmlFile, "Unloading station trigger '%d' has no filltypes defined", k)
+			end
+			trigger:register(true)
 		end
-		v13_:register(true)
-	end
-	for _, v14_ in xmlFile:iterator(key .. ".simpleFillplane") do
-		local v15_ = xmlFile:getValue(v14_ .. "#node", nil, components, i3dMappings)
-		if v15_ ~= nil then
-			local v16_ = g_fillTypeManager:loadCombinedFillTypesFromConfig(xmlFile, v14_)
-			if v16_ == nil then
-				Logging.xmlWarning(xmlFile, "No filltypes defined for %q", v14_)
+		for _, fillplaneKey in xmlFile:iterator(key .. ".simpleFillplane") do
+			local node = xmlFile:getValue(fillplaneKey .. "#node", nil, components, i3dMappings)
+			if node == nil then
+				continue
+			end
+			local fillTypes = g_fillTypeManager:loadCombinedFillTypesFromConfig(xmlFile, fillplaneKey)
+			if fillTypes == nil then
+				Logging.xmlWarning(xmlFile, "No filltypes defined for %q", fillplaneKey)
 			else
 				if self.simpleFillplanes == nil then
 					self.simpleFillplanes = {}
 					self.fillTypeIndexToFillplane = {}
 					g_messageCenter:subscribe(MessageType.DAY_CHANGED, UnloadingStation.dayChanged, self)
 				end
-				local v17_ = {
-					["node"] = v15_,
-					["hideTime"] = 0
-				}
-				local v18_ = self.simpleFillplanes
-				table.insert(v18_, v17_)
-				for _, v19_ in ipairs(v16_) do
-					if self.fillTypeIndexToFillplane[v19_] == nil then
-						self.fillTypeIndexToFillplane[v19_] = {}
+				local fillplane = { node = node, hideTime = 0 }
+				table.insert(self.simpleFillplanes, fillplane)
+				for _, fillTypeIndex in ipairs(fillTypes) do
+					if self.fillTypeIndexToFillplane[fillTypeIndex] == nil then
+						self.fillTypeIndexToFillplane[fillTypeIndex] = {}
 					end
-					local v20_ = self.fillTypeIndexToFillplane[v19_]
-					table.insert(v20_, v17_)
+					table.insert(self.fillTypeIndexToFillplane[fillTypeIndex], fillplane)
 				end
-				setVisibility(v15_, false)
+				setVisibility(node, false)
 			end
 		end
+		if self.isClient then
+			local _, baseDirectory = Utils.getModNameAndBaseDirectory(xmlFile:getFilename())
+			self.samples = { idle = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "idle", baseDirectory, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil), active = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "active", baseDirectory, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil) }
+			self.animations = g_animationManager:loadAnimations(xmlFile, key .. ".animationNodes", components, self, i3dMappings)
+			self.effects = g_effectManager:loadEffect(xmlFile, key .. ".effectNodes", components, self, i3dMappings)
+			self.hasFx = self.samples.active ~= nil or 0 < #self.animations or 0 < #self.effects
+			self.fxTimer = nil
+			self.fxActive = false
+			g_soundManager:playSample(self.samples.idle)
+		end
+		self:updateSupportedFillTypes()
+		self:validateUnloadTriggers(xmlFile, key)
+		return true
 	end
-	if self.isClient then
-		local _, v21_ = Utils.getModNameAndBaseDirectory(xmlFile:getFilename())
-		self.samples = {
-			["idle"] = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "idle", v21_, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil),
-			["active"] = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "active", v21_, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil)
-		}
-		self.animations = g_animationManager:loadAnimations(xmlFile, key .. ".animationNodes", components, self, i3dMappings)
-		self.effects = g_effectManager:loadEffect(xmlFile, key .. ".effectNodes", components, self, i3dMappings)
-		self.hasFx = (self.samples.active ~= nil or #self.animations > 0) and true or #self.effects > 0
-		self.fxTimer = nil
-		self.fxActive = false
-		g_soundManager:playSample(self.samples.idle)
-	end
-	self:updateSupportedFillTypes()
-	self:validateUnloadTriggers(xmlFile, key)
-	return true
 end
-
--- Local values: _, unloadTrigger, storage, _
 function UnloadingStation:delete()
 	if self.unloadTriggers ~= nil then
-		for _, v23_ in pairs(self.unloadTriggers) do
-			v23_:delete()
+		for _, unloadTrigger in pairs(self.unloadTriggers) do
+			unloadTrigger:delete()
 		end
 		table.clear(self.unloadTriggers)
 	end
@@ -115,8 +98,8 @@ function UnloadingStation:delete()
 		self.fxTimer = nil
 	end
 	if self.targetStorages ~= nil then
-		for v24_, _ in pairs(self.targetStorages) do
-			v24_:removeUnloadingStation(self)
+		for storage, _ in pairs(self.targetStorages) do
+			storage:removeUnloadingStation(self)
 		end
 		table.clear(self.targetStorages)
 	end
@@ -124,199 +107,172 @@ function UnloadingStation:delete()
 	self.owningPlaceable = nil
 	UnloadingStation:superClass().delete(self)
 end
-
--- Local values: _, unloadTrigger, unloadTriggerId
 function UnloadingStation:readStream(streamId, connection)
 	UnloadingStation:superClass().readStream(self, streamId, connection)
 	if connection:getIsServer() then
-		for _, v28_ in ipairs(self.unloadTriggers) do
-			local v29_ = NetworkUtil.readNodeObjectId(streamId)
-			v28_:readStream(streamId, connection)
-			g_client:finishRegisterObject(v28_, v29_)
+		for _, unloadTrigger in ipairs(self.unloadTriggers) do
+			local unloadTriggerId = NetworkUtil.readNodeObjectId(streamId)
+			unloadTrigger:readStream(streamId, connection)
+			g_client:finishRegisterObject(unloadTrigger, unloadTriggerId)
 		end
 	end
 end
-
--- Local values: _, unloadTrigger
 function UnloadingStation:writeStream(streamId, connection)
 	UnloadingStation:superClass().writeStream(self, streamId, connection)
 	if not connection:getIsServer() then
-		for _, v33_ in ipairs(self.unloadTriggers) do
-			NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v33_))
-			v33_:writeStream(streamId, connection)
-			g_server:registerObjectInStream(connection, v33_)
+		for _, unloadTrigger in ipairs(self.unloadTriggers) do
+			NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(unloadTrigger))
+			unloadTrigger:writeStream(streamId, connection)
+			g_server:registerObjectInStream(connection, unloadTrigger)
 		end
 	end
 end
-
 function UnloadingStation:loadFromXMLFile(xmlFile, key)
 	return true
 end
-
 function UnloadingStation:saveToXMLFile(xmlFile, key, usedModNames) end
-
 function UnloadingStation:getName()
-	return self.stationName or self.owningPlaceable and self.owningPlaceable:getName() or "Unloading Station"
+	local _v1 = self.stationName
+	if not _v1 then
+		self.owningPlaceable:getName()
+	end
+	return _v1
 end
-
--- Local values: _, unloadTrigger, supportsAI, fillType, _
 function UnloadingStation:updateSupportedFillTypes()
 	self.supportedFillTypes = {}
 	self.aiSupportedFillTypes = {}
-	for _, v36_ in pairs(self.unloadTriggers) do
-		if v36_.fillTypes ~= nil then
-			local v37_ = v36_:getSupportAIUnloading()
-			for v38_, _ in pairs(v36_.fillTypes) do
-				self.supportedFillTypes[v38_] = true
-				if v37_ then
-					self.aiSupportedFillTypes[v38_] = true
-				end
+	for _, unloadTrigger in pairs(self.unloadTriggers) do
+		if unloadTrigger.fillTypes == nil then
+			continue
+		end
+		local supportsAI = unloadTrigger:getSupportAIUnloading()
+		for fillType, _ in pairs(unloadTrigger.fillTypes) do
+			self.supportedFillTypes[fillType] = true
+			if supportsAI then
+				self.aiSupportedFillTypes[fillType] = true
 			end
 		end
 	end
 end
-
--- Local values: storageFillTypes, hasMatchingFillType, fillType, _
 function UnloadingStation:addTargetStorage(storage)
-	if storage == nil then
-		return false
-	end
-	local v41_ = storage.getFreeCapacity
-	assert(v41_)
-	local v42_ = storage.getIsFillTypeSupported ~= nil
-	assert(v42_)
-	local v43_ = storage.setFillLevel ~= nil
-	assert(v43_)
-	local v44_ = storage.getFillLevel ~= nil
-	assert(v44_)
-	local v45_ = storage.fillTypes
-	if storage.supportedFillTypes ~= nil then
-		v45_ = storage.supportedFillTypes
-	end
-	local v46_ = false
-	for v47_, _ in pairs(v45_) do
-		if self.supportedFillTypes[v47_] ~= nil then
-			v46_ = true
-			break
+	if storage ~= nil then
+		assert(storage.getFreeCapacity)
+		assert(storage.getIsFillTypeSupported ~= nil)
+		assert(storage.setFillLevel ~= nil)
+		assert(storage.getFillLevel ~= nil)
+		local storageFillTypes = storage.fillTypes
+		if storage.supportedFillTypes ~= nil then
+			storageFillTypes = storage.supportedFillTypes
+		end
+		local hasMatchingFillType = false
+		for fillType, _ in pairs(storageFillTypes) do
+			if self.supportedFillTypes[fillType] ~= nil then
+				hasMatchingFillType = true
+				break
+			end
+		end
+		if not hasMatchingFillType then
+			return false
+		else
+			self.targetStorages[storage] = storage
+			storage:addUnloadingStation(self)
+			return true
 		end
 	end
-	if not v46_ then
-		return false
-	end
-	self.targetStorages[storage] = storage
-	storage:addUnloadingStation(self)
-	return true
+	return false
 end
-
 function UnloadingStation:removeTargetStorage(storage)
 	if storage ~= nil then
 		storage:removeUnloadingStation(self)
 		self.targetStorages[storage] = nil
 	end
 end
-
 function UnloadingStation:getIsFillTypeSupported(fillTypeIndex)
 	return self.supportedFillTypes[fillTypeIndex] ~= nil
 end
-
 function UnloadingStation:getSupportedFillTypes()
 	return self.supportedFillTypes
 end
-
 function UnloadingStation:getIsFillTypeAISupported(fillTypeIndex)
 	return self.aiSupportedFillTypes[fillTypeIndex] ~= nil
 end
-
 function UnloadingStation:getAISupportedFillTypes()
 	return self.aiSupportedFillTypes
 end
-
 function UnloadingStation:getIsFillTypeAllowed(fillTypeIndex, extraAttributes)
 	return true
 end
-
--- Local values: freeCapacity, _, targetStorage
 function UnloadingStation:getFreeCapacity(fillTypeIndex, farmId)
-	local v59_ = 0
-	for _, v60_ in pairs(self.targetStorages) do
-		if farmId == nil or self:hasFarmAccessToStorage(farmId, v60_) then
-			v59_ = v59_ + v60_:getFreeCapacity(fillTypeIndex)
+	local freeCapacity = 0
+	for _, targetStorage in pairs(self.targetStorages) do
+		if farmId == nil or self:hasFarmAccessToStorage(farmId, targetStorage) then
+			freeCapacity = freeCapacity + targetStorage:getFreeCapacity(fillTypeIndex)
 		end
 	end
-	return v59_
+	return freeCapacity
 end
-
--- Local values: capacity, _, targetStorage, storageCapacity
 function UnloadingStation:getCapacity(fillTypeIndex, farmId)
-	local v64_ = 0
-	for _, v65_ in pairs(self.targetStorages) do
-		if self:hasFarmAccessToStorage(farmId, v65_) and v65_:getIsFillTypeSupported(fillTypeIndex) then
-			local v66_ = v65_:getCapacity(fillTypeIndex)
-			if v66_ ~= nil then
-				v64_ = v64_ + v66_
+	local capacity = 0
+	for _, targetStorage in pairs(self.targetStorages) do
+		if self:hasFarmAccessToStorage(farmId, targetStorage) and targetStorage:getIsFillTypeSupported(fillTypeIndex) then
+			local storageCapacity = targetStorage:getCapacity(fillTypeIndex)
+			if storageCapacity == nil then
+				continue
 			end
+			capacity = capacity + storageCapacity
 		end
 	end
-	return v64_
+	return capacity
 end
-
--- Local values: fillLevel, _, targetStorage
 function UnloadingStation:getFillLevel(fillTypeIndex, farmId)
-	local v70_ = 0
-	for _, v71_ in pairs(self.targetStorages) do
-		if self:hasFarmAccessToStorage(farmId, v71_) then
-			v70_ = v70_ + v71_:getFillLevel(fillTypeIndex)
+	local fillLevel = 0
+	for _, targetStorage in pairs(self.targetStorages) do
+		if self:hasFarmAccessToStorage(farmId, targetStorage) then
+			fillLevel = fillLevel + targetStorage:getFillLevel(fillTypeIndex)
 		end
 	end
-	return v70_
+	return fillLevel
 end
-
 function UnloadingStation:getIsToolTypeAllowed(toolType)
 	return true
 end
-
--- Local values: movedFillLevel, _, targetStorage, oldFillLevel, newFillLevel
 function UnloadingStation:addFillLevelFromTool(farmId, deltaFillLevel, fillType, fillInfo, toolType, extraAttributes)
-	local v78_ = deltaFillLevel >= 0
-	assert(v78_)
-	local v79_ = 0
+	assert(0 <= deltaFillLevel)
+	local movedFillLevel = 0
 	if self:getIsFillTypeAllowed(fillType) and self:getIsToolTypeAllowed(toolType) then
-		for _, v80_ in pairs(self.targetStorages) do
-			if self:hasFarmAccessToStorage(farmId, v80_) then
-				if v80_:getFreeCapacity(fillType) > 0 then
-					local v81_ = v80_:getFillLevel(fillType)
-					v80_:setFillLevel(v81_ + deltaFillLevel, fillType, fillInfo)
-					v79_ = v79_ + (v80_:getFillLevel(fillType) - v81_)
+		for _, targetStorage in pairs(self.targetStorages) do
+			if self:hasFarmAccessToStorage(farmId, targetStorage) then
+				if 0 < targetStorage:getFreeCapacity(fillType) then
+					local oldFillLevel = targetStorage:getFillLevel(fillType)
+					targetStorage:setFillLevel(oldFillLevel + deltaFillLevel, fillType, fillInfo)
+					local newFillLevel = targetStorage:getFillLevel(fillType)
+					movedFillLevel = movedFillLevel + (newFillLevel - oldFillLevel)
 				end
-				if deltaFillLevel - 0.001 <= v79_ then
+				if deltaFillLevel - 0.001 <= movedFillLevel then
+					movedFillLevel = deltaFillLevel
 					self:startFx(fillType)
-					v79_ = deltaFillLevel
 					break
 				end
 			end
 		end
 	end
 	self:activateSimpleFillplanes(fillType)
-	return v79_
+	return movedFillLevel
 end
-
--- Local values: fillplanes, _, fillplane
 function UnloadingStation:activateSimpleFillplanes(fillTypeIndex)
 	if self.fillTypeIndexToFillplane ~= nil then
-		local v84_ = self.fillTypeIndexToFillplane[fillTypeIndex]
-		if v84_ ~= nil then
-			for _, v85_ in ipairs(v84_) do
-				setVisibility(v85_.node, true)
+		local fillplanes = self.fillTypeIndexToFillplane[fillTypeIndex]
+		if fillplanes ~= nil then
+			for _, fillplane in ipairs(fillplanes) do
+				setVisibility(fillplane.node, true)
 			end
 		end
 	end
 end
-
 function UnloadingStation:startFx(fillType)
 	if self.isClient and self.hasFx then
 		if self.fxTimer == nil then
 			self.fxTimer = Timer.new(UnloadingStation.FX_DURATION):setFinishCallback(function()
-				-- upvalues: (copy) self
 				if self.isClient then
 					g_soundManager:stopSample(self.samples.active)
 					g_animationManager:stopAnimations(self.animations)
@@ -335,107 +291,109 @@ function UnloadingStation:startFx(fillType)
 		end
 	end
 end
-
--- Local values: _, targetStorage
 function UnloadingStation:getIsFillAllowedFromFarm(farmId)
-	for _, v90_ in pairs(self.targetStorages) do
-		if self:hasFarmAccessToStorage(farmId, v90_) then
+	for _, targetStorage in pairs(self.targetStorages) do
+		if self:hasFarmAccessToStorage(farmId, targetStorage) then
 			return true
 		end
 	end
 	return false
 end
-
--- Local values: mission
 function UnloadingStation:hasFarmAccessToStorage(farmId, storage)
 	if self.hasStoragePerFarm then
 		return farmId == storage:getOwnerFarmId()
 	else
-		return g_currentMission.accessHandler:canFarmAccess(farmId, storage, true)
+		local mission = g_currentMission
+		return mission.accessHandler:canFarmAccess(farmId, storage, true)
 	end
 end
-
--- Local values: unloadTrigger, _, trigger, x, z, xDir, zDir
 function UnloadingStation:getAITargetPositionAndDirection(fillType)
-	local v96_ = nil
-	for _, v97_ in ipairs(self.unloadTriggers) do
-		if v97_:getSupportAIUnloading() and (fillType == FillType.UNKNOWN or v97_:getIsFillTypeAllowed(fillType)) then
-			v96_ = v97_
-			break
+	local unloadTrigger = nil
+	for _, trigger in ipairs(self.unloadTriggers) do
+		if trigger:getSupportAIUnloading() then
+			if fillType == FillType.UNKNOWN or trigger:getIsFillTypeAllowed(fillType) then
+				unloadTrigger = trigger
+			else
+			end
+			if unloadTrigger ~= nil then
+				local x, z, xDir, zDir = unloadTrigger:getAITargetPositionAndDirection()
+				return x, z, xDir, zDir, unloadTrigger
+			else
+				return nil
+			end
 		end
 	end
-	if v96_ == nil then
-		return nil
-	end
-	local v98_, v99_, v100_, v101_ = v96_:getAITargetPositionAndDirection()
-	return v98_, v99_, v100_, v101_, v96_
 end
-
--- Local values: _, unloadTrigger
 function UnloadingStation:setOwnerFarmId(farmId, noEventSend)
 	UnloadingStation:superClass().setOwnerFarmId(self, farmId, noEventSend)
-	for _, v105_ in ipairs(self.unloadTriggers) do
-		v105_:setOwnerFarmId(farmId, true)
+	for _, unloadTrigger in ipairs(self.unloadTriggers) do
+		unloadTrigger:setOwnerFarmId(farmId, true)
 	end
 end
-
--- Local values: _, fillplane
 function UnloadingStation:dayChanged()
-	for _, v107_ in ipairs(self.simpleFillplanes) do
-		setVisibility(v107_.node, false)
+	for _, fillplane in ipairs(self.simpleFillplanes) do
+		setVisibility(fillplane.node, false)
 	end
 end
-
--- Local values: fillTypeIndex, _, fillTypeDesc, isValid, _, unloadTrigger, isValid, _, unloadTrigger, isValid, _, unloadTrigger
 function UnloadingStation:validateUnloadTriggers(xmlFile, key)
-	for v111_, _ in pairs(self.supportedFillTypes) do
-		local v112_ = g_fillTypeManager:getFillTypeByIndex(v111_)
-		if v112_.isPalletType then
-			local v113_ = false
-			for _, v114_ in pairs(self.unloadTriggers) do
-				if v114_.fillTypes[v111_] ~= nil then
-					if ClassUtil.getClassObjectByObject(v114_) == PalletUnloadTrigger then
-						v113_ = true
-					elseif v114_.exactFillRootNode == nil and ClassUtil.getClassObjectByObject(v114_) == UnloadTrigger then
-						v113_ = true
+	for fillTypeIndex, _ in pairs(self.supportedFillTypes) do
+		local fillTypeDesc = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
+		if fillTypeDesc.isPalletType then
+			local isValid = false
+			for _, unloadTrigger in pairs(self.unloadTriggers) do
+				if unloadTrigger.fillTypes[fillTypeIndex] == nil then
+					continue
+				end
+				if ClassUtil.getClassObjectByObject(unloadTrigger) == PalletUnloadTrigger then
+					isValid = true
+				elseif unloadTrigger.exactFillRootNode == nil then
+					if ClassUtil.getClassObjectByObject(unloadTrigger) == UnloadTrigger then
+						isValid = true
 					end
 				end
 			end
-			if not v113_ then
-				Logging.xmlDevWarning(xmlFile, "UnloadingStation does not have a PalletUnloadTrigger for fillType \'%s\'", g_fillTypeManager:getFillTypeNameByIndex(v111_))
+			if not isValid then
+				Logging.xmlDevWarning(xmlFile, "UnloadingStation does not have a PalletUnloadTrigger for fillType '%s'", g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex))
 			end
 		end
-		if not (self.isTrainStation or self.isPalletStation) then
-			if v112_.isBaleType then
-				local v115_ = false
-				for _, v116_ in pairs(self.unloadTriggers) do
-					if v116_.fillTypes[v111_] ~= nil then
-						if ClassUtil.getClassObjectByObject(v116_) == BaleUnloadTrigger then
-							v115_ = true
-						elseif v116_.exactFillRootNode == nil and ClassUtil.getClassObjectByObject(v116_) == UnloadTrigger then
-							v115_ = true
-						end
+		if self.isTrainStation or self.isPalletStation then
+			continue
+		end
+		if fillTypeDesc.isBaleType then
+			local isValid = false
+			for _, unloadTrigger in pairs(self.unloadTriggers) do
+				if unloadTrigger.fillTypes[fillTypeIndex] == nil then
+					continue
+				end
+				if ClassUtil.getClassObjectByObject(unloadTrigger) == BaleUnloadTrigger then
+					isValid = true
+				elseif unloadTrigger.exactFillRootNode == nil then
+					if ClassUtil.getClassObjectByObject(unloadTrigger) == UnloadTrigger then
+						isValid = true
 					end
 				end
-				if not (v115_ or string.contains(key, "husbandry")) then
-					Logging.xmlWarning(xmlFile, "UnloadingStation does not have a BaleUnloadTrigger for fillType \'%s\'", g_fillTypeManager:getFillTypeNameByIndex(v111_))
-				end
 			end
-			if v112_.isBulkType then
-				local v117_ = false
-				for _, v118_ in pairs(self.unloadTriggers) do
-					if ClassUtil.getClassObjectByObject(v118_) == UnloadTrigger and v118_.fillTypes[v111_] ~= nil then
-						v117_ = true
+			if not isValid and not string.contains(key, "husbandry") then
+				Logging.xmlWarning(xmlFile, "UnloadingStation does not have a BaleUnloadTrigger for fillType '%s'", g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex))
+			end
+		end
+		if fillTypeDesc.isBulkType then
+			local isValid = false
+			for _, unloadTrigger in pairs(self.unloadTriggers) do
+				if ClassUtil.getClassObjectByObject(unloadTrigger) == UnloadTrigger then
+					if unloadTrigger.fillTypes[fillTypeIndex] == nil then
+						continue
 					end
-				end
-				if not v117_ then
-					Logging.xmlWarning(xmlFile, "UnloadingStation does not have a regular UnloadTrigger for fillType \'%s\'", g_fillTypeManager:getFillTypeNameByIndex(v111_))
+					isValid = true
 				end
 			end
+			if isValid then
+				continue
+			end
+			Logging.xmlWarning(xmlFile, "UnloadingStation does not have a regular UnloadTrigger for fillType '%s'", g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex))
 		end
 	end
 end
-
 function UnloadingStation.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#node", "Unloading station node")
 	schema:register(XMLValueType.STRING, basePath .. "#stationName", "Station name", "LoadingStation")

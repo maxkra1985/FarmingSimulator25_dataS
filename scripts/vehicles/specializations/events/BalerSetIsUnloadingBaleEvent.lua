@@ -1,31 +1,25 @@
--- Local values: BalerSetIsUnloadingBaleEvent_mt
 BalerSetIsUnloadingBaleEvent = {}
 local BalerSetIsUnloadingBaleEvent_mt = Class(BalerSetIsUnloadingBaleEvent, Event)
 InitStaticEventClass(BalerSetIsUnloadingBaleEvent, "BalerSetIsUnloadingBaleEvent")
 function BalerSetIsUnloadingBaleEvent.emptyNew()
-	-- upvalues: (copy) BalerSetIsUnloadingBaleEvent_mt
-	return Event.new(BalerSetIsUnloadingBaleEvent_mt)
+	local self = Event.new(BalerSetIsUnloadingBaleEvent_mt)
+	return self
 end
-
--- Local values: self
 function BalerSetIsUnloadingBaleEvent.new(object, isUnloadingBale)
-	local v4_ = BalerSetIsUnloadingBaleEvent.emptyNew()
-	v4_.object = object
-	v4_.isUnloadingBale = isUnloadingBale
-	return v4_
+	local self = BalerSetIsUnloadingBaleEvent.emptyNew()
+	self.object = object
+	self.isUnloadingBale = isUnloadingBale
+	return self
 end
-
 function BalerSetIsUnloadingBaleEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.isUnloadingBale = streamReadBool(streamId)
 	self:run(connection)
 end
-
 function BalerSetIsUnloadingBaleEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	streamWriteBool(streamId, self.isUnloadingBale)
 end
-
 function BalerSetIsUnloadingBaleEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -34,7 +28,6 @@ function BalerSetIsUnloadingBaleEvent:run(connection)
 		self.object:setIsUnloadingBale(self.isUnloadingBale, true)
 	end
 end
-
 function BalerSetIsUnloadingBaleEvent.sendEvent(object, isUnloadingBale, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

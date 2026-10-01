@@ -1,19 +1,12 @@
--- Local values: ToolConnectionHoseMount_mt
 ToolConnectionHoseMount = {}
 local ToolConnectionHoseMount_mt = Class(ToolConnectionHoseMount)
-
--- Upvalues: ToolConnectionHoseMount_mt
--- Local values: self
 function ToolConnectionHoseMount.new(vehicle, customMt)
-	-- upvalues: (copy) ToolConnectionHoseMount_mt
-	local v4_ = customMt or ToolConnectionHoseMount_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.vehicle = vehicle
-	v5_.components = {}
-	v5_.i3dMappings = {}
-	return v5_
+	local self = setmetatable({}, customMt or ToolConnectionHoseMount_mt)
+	self.vehicle = vehicle
+	self.components = {}
+	self.i3dMappings = {}
+	return self
 end
-
 function ToolConnectionHoseMount:delete()
 	if self.xmlFile ~= nil then
 		self.xmlFile:delete()
@@ -28,12 +21,10 @@ function ToolConnectionHoseMount:delete()
 		self.sharedLoadRequestId = nil
 	end
 end
-
 function ToolConnectionHoseMount:setCallback(callback, callbackTarget)
 	self.callback = callback
 	self.callbackTarget = callbackTarget
 end
-
 function ToolConnectionHoseMount:onFinished(success)
 	if self.callback ~= nil then
 		if self.callbackTarget ~= nil then
@@ -43,21 +34,17 @@ function ToolConnectionHoseMount:onFinished(success)
 		self.callback(success)
 	end
 end
-
--- Local values: toolConnectionHose
 function ToolConnectionHoseMount:setReferenceTargets(startTarget, endTarget)
 	self.startTarget = startTarget
 	self.endTarget = endTarget
-	self.parentToolConnectionHose = self.vehicle.spec_connectionHoses.targetNodeToToolConnection[startTarget.index]
+	local toolConnectionHose = self.vehicle.spec_connectionHoses.targetNodeToToolConnection[startTarget.index]
+	self.parentToolConnectionHose = toolConnectionHose
 end
-
 function ToolConnectionHoseMount:setLinkNode(linkNode, x, y, z, rx, ry, rz)
 	self.linkNode = linkNode
 	self.translation = { x or 0, y or 0, z or 0 }
 	self.rotation = { rx or 0, ry or 0, rz or 0 }
 end
-
--- Local values: filename
 function ToolConnectionHoseMount:loadFromXML(xmlFilename, baseDirectory)
 	if self.startTarget == nil or self.endTarget == nil then
 		Logging.warning("Missing start or end target for tool connection hose mount!")
@@ -75,23 +62,25 @@ function ToolConnectionHoseMount:loadFromXML(xmlFilename, baseDirectory)
 		self:onFinished(false)
 		return false
 	end
-	local v26_ = self.xmlFile:getValue("toolConnectionHoseMount.filename")
-	if v26_ ~= nil then
-		self.filename = Utils.getFilename(v26_, baseDirectory)
-		if self.vehicle == nil or self.vehicle.loadSubSharedI3DFile == nil then
-			self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(self.filename, false, false, self.onI3DLoaded, self, nil)
-		else
-			self.sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(self.filename, false, false, self.onI3DLoaded, self, nil)
+	local filename = self.xmlFile:getValue("toolConnectionHoseMount.filename")
+	if filename == nil then
+		Logging.xmlWarning(self.xmlFile, "Missing toolConnectionHoseMount i3d filename!")
+		self.xmlFile:delete()
+		self.xmlFile = nil
+		self:onFinished(false)
+		return false
+	else
+		self.filename = Utils.getFilename(filename, baseDirectory)
+		if self.vehicle ~= nil then
+			if self.vehicle.loadSubSharedI3DFile ~= nil then
+				self.sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(self.filename, false, false, self.onI3DLoaded, self, nil)
+			else
+				self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(self.filename, false, false, self.onI3DLoaded, self, nil)
+			end
 		end
 		return true
 	end
-	Logging.xmlWarning(self.xmlFile, "Missing toolConnectionHoseMount i3d filename!")
-	self.xmlFile:delete()
-	self.xmlFile = nil
-	self:onFinished(false)
-	return false
 end
-
 function ToolConnectionHoseMount:onI3DLoaded(i3dNode, failedReason, args)
 	if i3dNode ~= 0 then
 		I3DUtil.loadI3DComponents(i3dNode, self.components)
@@ -100,64 +89,52 @@ function ToolConnectionHoseMount:onI3DLoaded(i3dNode, failedReason, args)
 		if self.node ~= nil then
 			self.length = self.xmlFile:getValue("toolConnectionHoseMount.rootNode#length", 3)
 			self.targetNodes = {}
-			self.xmlFile:iterate("toolConnectionHoseMount.target", function(_, p29_)
-				-- upvalues: (copy) self
-				local v30_ = {
-					["backNode"] = self.xmlFile:getValue(p29_ .. "#backNode", nil, self.components, self.i3dMappings),
-					["frontNode"] = self.xmlFile:getValue(p29_ .. "#frontNode", nil, self.components, self.i3dMappings),
-					["mountingNode"] = self.xmlFile:getValue(p29_ .. "#mountingNode", nil, self.components, self.i3dMappings)
-				}
-				if v30_.backNode == nil or v30_.frontNode == nil then
-					Logging.xmlWarning(self.xmlFile, "Missing back or front node for tool connection hose mount target at \'%s\'!", p29_)
-					return
-				else
-					v30_.typeName = self.xmlFile:getValue(p29_ .. "#typeName")
-					if v30_.typeName == nil then
-						Logging.xmlWarning(self.xmlFile, "Missing type name for tool connection hose mount target at \'%s\'!", p29_)
+			self.xmlFile:iterate("toolConnectionHoseMount.target", function(_, baseKey)
+				local target = {}
+				target.backNode = self.xmlFile:getValue(baseKey .. "#backNode", nil, self.components, self.i3dMappings)
+				target.frontNode = self.xmlFile:getValue(baseKey .. "#frontNode", nil, self.components, self.i3dMappings)
+				target.mountingNode = self.xmlFile:getValue(baseKey .. "#mountingNode", nil, self.components, self.i3dMappings)
+				if target.backNode ~= nil and target.frontNode ~= nil then
+					target.typeName = self.xmlFile:getValue(baseKey .. "#typeName")
+					if target.typeName ~= nil then
+						target.createHose = self.xmlFile:getValue(baseKey .. "#createHose", true)
+						target.moveNodes = self.xmlFile:getValue(baseKey .. "#moveNodes", true)
+						target.hoseOffset = self.xmlFile:getValue(baseKey .. "#hoseOffset", 0)
+						table.insert(self.targetNodes, target)
+						return
 					else
-						v30_.createHose = self.xmlFile:getValue(p29_ .. "#createHose", true)
-						v30_.moveNodes = self.xmlFile:getValue(p29_ .. "#moveNodes", true)
-						v30_.hoseOffset = self.xmlFile:getValue(p29_ .. "#hoseOffset", 0)
-						local v31_ = self.targetNodes
-						table.insert(v31_, v30_)
+						Logging.xmlWarning(self.xmlFile, "Missing type name for tool connection hose mount target at '%s'!", baseKey)
+						return
 					end
 				end
+				Logging.xmlWarning(self.xmlFile, "Missing back or front node for tool connection hose mount target at '%s'!", baseKey)
 			end)
 			self.additionalHoses = {}
-			self.xmlFile:iterate("toolConnectionHoseMount.hose", function(_, p32_)
-				-- upvalues: (copy) self
-				local v33_ = {
-					["startNode"] = self.xmlFile:getValue(p32_ .. "#startNode", nil, self.components, self.i3dMappings),
-					["endNode"] = self.xmlFile:getValue(p32_ .. "#endNode", nil, self.components, self.i3dMappings)
-				}
-				if v33_.startNode == nil or v33_.endNode == nil then
-					Logging.xmlWarning(self.xmlFile, "Missing start or end node for tool connection hose mount hose at \'%s\'!", p32_)
-				else
-					local v34_ = self.additionalHoses
-					table.insert(v34_, v33_)
+			self.xmlFile:iterate("toolConnectionHoseMount.hose", function(_, baseKey)
+				local additionalHose = {}
+				additionalHose.startNode = self.xmlFile:getValue(baseKey .. "#startNode", nil, self.components, self.i3dMappings)
+				additionalHose.endNode = self.xmlFile:getValue(baseKey .. "#endNode", nil, self.components, self.i3dMappings)
+				if additionalHose.startNode ~= nil and additionalHose.endNode ~= nil then
+					table.insert(self.additionalHoses, additionalHose)
+					return
 				end
+				Logging.xmlWarning(self.xmlFile, "Missing start or end node for tool connection hose mount hose at '%s'!", baseKey)
 			end)
 			self.adjustNodes = {}
-			self.xmlFile:iterate("toolConnectionHoseMount.adjustNodes", function(_, p35_)
-				-- upvalues: (copy) self
-				local v36_ = {
-					["node"] = self.xmlFile:getValue(p35_ .. "#node", nil, self.components, self.i3dMappings)
-				}
-				if v36_.node ~= nil then
-					v36_.startTranslation = { getTranslation(v36_.node) }
-					local v37_ = self.adjustNodes
-					table.insert(v37_, v36_)
+			self.xmlFile:iterate("toolConnectionHoseMount.adjustNodes", function(_, baseKey)
+				local adjustNode = {}
+				adjustNode.node = self.xmlFile:getValue(baseKey .. "#node", nil, self.components, self.i3dMappings)
+				if adjustNode.node ~= nil then
+					adjustNode.startTranslation = { getTranslation(adjustNode.node) }
+					table.insert(self.adjustNodes, adjustNode)
 				end
 			end)
 			self.scaleNodes = {}
-			self.xmlFile:iterate("toolConnectionHoseMount.scaleNodes", function(_, p38_)
-				-- upvalues: (copy) self
-				local v39_ = {
-					["node"] = self.xmlFile:getValue(p38_ .. "#node", nil, self.components, self.i3dMappings)
-				}
-				if v39_.node ~= nil then
-					local v40_ = self.scaleNodes
-					table.insert(v40_, v39_)
+			self.xmlFile:iterate("toolConnectionHoseMount.scaleNodes", function(_, baseKey)
+				local scaleNode = {}
+				scaleNode.node = self.xmlFile:getValue(baseKey .. "#node", nil, self.components, self.i3dMappings)
+				if scaleNode.node ~= nil then
+					table.insert(self.scaleNodes, scaleNode)
 				end
 			end)
 			link(self.linkNode, self.node)
@@ -174,72 +151,62 @@ function ToolConnectionHoseMount:onI3DLoaded(i3dNode, failedReason, args)
 	self.xmlFile = nil
 	self:onFinished(self.node ~= nil)
 end
-
--- Local values: scale, _, adjustNode, _, scaleNode
 function ToolConnectionHoseMount:setLength(length)
 	if self.node == nil then
 		self.lengthToSet = length
 	else
 		self.lengthToSet = nil
-		local v43_ = length / self.length
-		for _, v44_ in ipairs(self.adjustNodes) do
-			setTranslation(v44_.node, v44_.startTranslation[1], v44_.startTranslation[2], v44_.startTranslation[3] * v43_)
+		local scale = length / self.length
+		for _, adjustNode in ipairs(self.adjustNodes) do
+			setTranslation(adjustNode.node, adjustNode.startTranslation[1], adjustNode.startTranslation[2], adjustNode.startTranslation[3] * scale)
 		end
-		for _, v45_ in ipairs(self.scaleNodes) do
-			setScale(v45_.node, 1, 1, v43_)
+		for _, scaleNode in ipairs(self.scaleNodes) do
+			setScale(scaleNode.node, 1, 1, scale)
 		end
 	end
 end
-
--- Local values: spec, hoseTarget
 function ToolConnectionHoseMount:addHoseTarget(node, sourceTarget, newType)
-	local v50_ = self.vehicle.spec_connectionHoses
-	local v51_ = {
-		["node"] = node,
-		["attacherJointIndices"] = sourceTarget.attacherJointIndices,
-		["type"] = newType,
-		["straighteningFactor"] = sourceTarget.straighteningFactor,
-		["adapterName"] = sourceTarget.adapterName,
-		["adapter"] = {}
-	}
-	v51_.adapter.node = node
-	v51_.adapter.refNode = node
-	v51_.objectChanges = {}
-	local v52_ = v50_.targetNodes
-	table.insert(v52_, v51_)
-	v51_.index = #v50_.targetNodes
-	if v50_.targetNodesByType[v51_.type] == nil then
-		v50_.targetNodesByType[v51_.type] = {}
+	local spec = self.vehicle.spec_connectionHoses
+	local hoseTarget = {}
+	hoseTarget.node = node
+	hoseTarget.attacherJointIndices = sourceTarget.attacherJointIndices
+	hoseTarget.type = newType
+	hoseTarget.straighteningFactor = sourceTarget.straighteningFactor
+	hoseTarget.adapterName = sourceTarget.adapterName
+	hoseTarget.adapter = {}
+	hoseTarget.adapter.node = node
+	hoseTarget.adapter.refNode = node
+	hoseTarget.objectChanges = {}
+	table.insert(spec.targetNodes, hoseTarget)
+	hoseTarget.index = #spec.targetNodes
+	if spec.targetNodesByType[hoseTarget.type] == nil then
+		spec.targetNodesByType[hoseTarget.type] = {}
 	end
-	local v53_ = v50_.targetNodesByType[v51_.type]
-	table.insert(v53_, v51_)
-	return v51_.index
+	table.insert(spec.targetNodesByType[hoseTarget.type], hoseTarget)
+	return hoseTarget.index
 end
-
--- Local values: spec, _, target, frontTargetIndex, backTargetIndex, newToolConnectionHose
 function ToolConnectionHoseMount:createToolConnectionHoses()
-	local v55_ = self.vehicle.spec_connectionHoses
-	for _, v56_ in ipairs(self.targetNodes) do
-		local v57_ = {
-			["startTargetNodeIndex"] = self:addHoseTarget(v56_.frontNode, self.startTarget, v56_.typeName),
-			["endTargetNodeIndex"] = self:addHoseTarget(v56_.backNode, self.endTarget, v56_.typeName),
-			["mountingNode"] = v56_.mountingNode or self.node,
-			["moveNodes"] = v56_.moveNodes,
-			["additionalHose"] = v56_.createHose,
-			["additionalHoseOffset"] = v56_.hoseOffset,
-			["parentToolConnectionHose"] = self.parentToolConnectionHose,
-			["objectChanges"] = {},
-			["objectChangesTarget"] = self.vehicle,
-			["additionalHoses"] = self.additionalHoses
-		}
-		setVisibility(v57_.mountingNode, false)
-		local v58_ = v55_.toolConnectorHoses
-		table.insert(v58_, v57_)
-		v55_.targetNodeToToolConnection[v57_.startTargetNodeIndex] = v57_
-		v55_.targetNodeToToolConnection[v57_.endTargetNodeIndex] = v57_
+	local spec = self.vehicle.spec_connectionHoses
+	for _, target in ipairs(self.targetNodes) do
+		local frontTargetIndex = self:addHoseTarget(target.frontNode, self.startTarget, target.typeName)
+		local backTargetIndex = self:addHoseTarget(target.backNode, self.endTarget, target.typeName)
+		local newToolConnectionHose = {}
+		newToolConnectionHose.startTargetNodeIndex = frontTargetIndex
+		newToolConnectionHose.endTargetNodeIndex = backTargetIndex
+		newToolConnectionHose.mountingNode = target.mountingNode or self.node
+		newToolConnectionHose.moveNodes = target.moveNodes
+		newToolConnectionHose.additionalHose = target.createHose
+		newToolConnectionHose.additionalHoseOffset = target.hoseOffset
+		newToolConnectionHose.parentToolConnectionHose = self.parentToolConnectionHose
+		newToolConnectionHose.objectChanges = {}
+		newToolConnectionHose.objectChangesTarget = self.vehicle
+		newToolConnectionHose.additionalHoses = self.additionalHoses
+		setVisibility(newToolConnectionHose.mountingNode, false)
+		table.insert(spec.toolConnectorHoses, newToolConnectionHose)
+		spec.targetNodeToToolConnection[newToolConnectionHose.startTargetNodeIndex] = newToolConnectionHose
+		spec.targetNodeToToolConnection[newToolConnectionHose.endTargetNodeIndex] = newToolConnectionHose
 	end
 end
-
 function ToolConnectionHoseMount.registerExternalXMLPaths(schema)
 	schema:register(XMLValueType.STRING, "toolConnectionHoseMount.filename", "Path to i3d file", nil, true)
 	schema:register(XMLValueType.NODE_INDEX, "toolConnectionHoseMount.rootNode#node", "Node index", "0")

@@ -1,22 +1,18 @@
--- Local values: InlineBaleOpenEvent_mt
 InlineBaleOpenEvent = {}
 local InlineBaleOpenEvent_mt = Class(InlineBaleOpenEvent, Event)
 InitStaticEventClass(InlineBaleOpenEvent, "InlineBaleOpenEvent")
 function InlineBaleOpenEvent.emptyNew()
-	-- upvalues: (copy) InlineBaleOpenEvent_mt
-	return Event.new(InlineBaleOpenEvent_mt)
+	local self = Event.new(InlineBaleOpenEvent_mt)
+	return self
 end
-
--- Local values: self
 function InlineBaleOpenEvent.new(inlineBale, x, y, z)
-	local v6_ = InlineBaleOpenEvent.emptyNew()
-	v6_.inlineBale = inlineBale
-	v6_.x = x
-	v6_.y = y
-	v6_.z = z
-	return v6_
+	local self = InlineBaleOpenEvent.emptyNew()
+	self.inlineBale = inlineBale
+	self.x = x
+	self.y = y
+	self.z = z
+	return self
 end
-
 function InlineBaleOpenEvent:readStream(streamId, connection)
 	if not connection:getIsServer() then
 		self.inlineBale = NetworkUtil.readNodeObject(streamId)
@@ -26,7 +22,6 @@ function InlineBaleOpenEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function InlineBaleOpenEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
 		NetworkUtil.writeNodeObject(streamId, self.inlineBale)
@@ -35,7 +30,6 @@ function InlineBaleOpenEvent:writeStream(streamId, connection)
 		streamWriteFloat32(streamId, self.z)
 	end
 end
-
 function InlineBaleOpenEvent:run(connection)
 	if not connection:getIsServer() then
 		self.inlineBale:openBaleAtPosition(self.x, self.y, self.z)

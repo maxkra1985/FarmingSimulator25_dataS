@@ -1,92 +1,77 @@
 Rideable = {}
 source("dataS/scripts/vehicles/specializations/events/JumpEvent.lua")
 source("dataS/scripts/vehicles/specializations/events/RideableStableNotificationEvent.lua")
-Rideable.GAITTYPES = {
-	["MIN"] = 1,
-	["BACKWARDS"] = 1,
-	["STILL"] = 2,
-	["WALK"] = 3,
-	["TROT"] = 4,
-	["CANTER"] = 5,
-	["GALLOP"] = 6,
-	["MAX"] = 6
-}
-Rideable.HOOVES = {
-	["FRONT_LEFT"] = 1,
-	["FRONT_RIGHT"] = 2,
-	["BACK_LEFT"] = 3,
-	["BACK_RIGHT"] = 4
-}
+Rideable.GAITTYPES = { MIN = 1, BACKWARDS = 1, STILL = 2, WALK = 3, TROT = 4, CANTER = 5, GALLOP = 6, MAX = 6 }
+Rideable.HOOVES = { FRONT_LEFT = 1, FRONT_RIGHT = 2, BACK_LEFT = 3, BACK_RIGHT = 4 }
 Rideable.GROUND_RAYCAST_OFFSET = 1.2
 Rideable.GROUND_RAYCAST_MAXDISTANCE = 5
 Rideable.GROUND_RAYCAST_COLLISIONMASK = CollisionFlag.TERRAIN + CollisionFlag.TERRAIN_DELTA + CollisionFlag.ROAD + CollisionFlag.STATIC_OBJECT
-
 function Rideable.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(CCTDrivable, specializations)
 end
 function Rideable.initSpecialization()
-	local v2_ = Vehicle.xmlSchema
-	v2_:setXMLSpecializationType("Rideable")
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#speedBackwards", "Backward speed", -1)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#speedWalk", "Walk speed", 2.5)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#speedCanter", "Canter speed", 3.5)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#speedTrot", "Trot speed", 5)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#speedGallop", "Gallop speed", 10)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusBackwards", "Min turning radius backward", 1)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusWalk", "Min turning radius walk", 1)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusCanter", "Min turning radius canter", 2.5)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusTrot", "Min turning radius trot", 5)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusGallop", "Min turning radius gallop", 10)
-	v2_:register(XMLValueType.ANGLE, "vehicle.rideable#turnSpeed", "Turn speed (deg/s)", 45)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable#jumpHeight", "Jump height", 2)
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable#proxy", "Proxy node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontLeft#node", "Hoof node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemSlow#node", "Slow step particle emitterShape")
-	v2_:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemSlow#particleType", "Slow step particle type")
-	ParticleUtil.registerParticleCopyXMLPaths(v2_, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemSlow")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemFast#node", "Fast step particle emitterShape")
-	v2_:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemFast#particleType", "Fast step particle type")
-	ParticleUtil.registerParticleCopyXMLPaths(v2_, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemFast")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontRight#node", "Hoof node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemSlow#node", "Slow step particle emitterShape")
-	v2_:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemSlow#particleType", "Slow step particle type")
-	ParticleUtil.registerParticleCopyXMLPaths(v2_, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemSlow")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemFast#node", "Fast step particle emitterShape")
-	v2_:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemFast#particleType", "Fast step particle type")
-	ParticleUtil.registerParticleCopyXMLPaths(v2_, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemFast")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackLeft#node", "Hoof node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemSlow#node", "Slow step particle emitterShape")
-	v2_:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemSlow#particleType", "Slow step particle type")
-	ParticleUtil.registerParticleCopyXMLPaths(v2_, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemSlow")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemFast#node", "Fast step particle emitterShape")
-	v2_:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemFast#particleType", "Fast step particle type")
-	ParticleUtil.registerParticleCopyXMLPaths(v2_, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemFast")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackRight#node", "Hoof node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemSlow#node", "Slow step particle emitterShape")
-	v2_:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemSlow#particleType", "Slow step particle type")
-	ParticleUtil.registerParticleCopyXMLPaths(v2_, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemSlow")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemFast#node", "Fast step particle emitterShape")
-	v2_:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemFast#particleType", "Fast step particle type")
-	ParticleUtil.registerParticleCopyXMLPaths(v2_, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemFast")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#animationNode", "Animation node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#meshNode", "Mesh node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#equipmentNode", "Equipment node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#reinsNode", "Reins node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#reinLeftNode", "Rein left node")
-	v2_:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#reinRightNode", "Rein right node")
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable.sounds#breathIntervalNoEffort", "Breath interval no effort", 1)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable.sounds#breathIntervalEffort", "Breath interval effort", 1)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable.sounds#minBreathIntervalIdle", "Min. breath interval idle", 1)
-	v2_:register(XMLValueType.FLOAT, "vehicle.rideable.sounds#maxBreathIntervalIdle", "Max. breath interval idle", 1)
-	SoundManager.registerSampleXMLPaths(v2_, "vehicle.rideable.sounds", "halt")
-	SoundManager.registerSampleXMLPaths(v2_, "vehicle.rideable.sounds", "breathingNoEffort")
-	SoundManager.registerSampleXMLPaths(v2_, "vehicle.rideable.sounds", "breathingEffort")
-	ConditionalAnimation.registerXMLPaths(v2_, "vehicle.conditionalAnimation")
-	ConditionalAnimation.registerXMLPaths(v2_, "vehicle.riderConditionalAnimation")
-	v2_:setXMLSpecializationType()
-	Vehicle.xmlSchemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).rideable#animalType", "Animal type name")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Rideable")
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#speedBackwards", "Backward speed", -1)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#speedWalk", "Walk speed", 2.5)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#speedCanter", "Canter speed", 3.5)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#speedTrot", "Trot speed", 5)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#speedGallop", "Gallop speed", 10)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusBackwards", "Min turning radius backward", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusWalk", "Min turning radius walk", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusCanter", "Min turning radius canter", 2.5)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusTrot", "Min turning radius trot", 5)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#minTurnRadiusGallop", "Min turning radius gallop", 10)
+	schema:register(XMLValueType.ANGLE, "vehicle.rideable#turnSpeed", "Turn speed (deg/s)", 45)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable#jumpHeight", "Jump height", 2)
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable#proxy", "Proxy node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontLeft#node", "Hoof node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemSlow#node", "Slow step particle emitterShape")
+	schema:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemSlow#particleType", "Slow step particle type")
+	ParticleUtil.registerParticleCopyXMLPaths(schema, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemSlow")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemFast#node", "Fast step particle emitterShape")
+	schema:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemFast#particleType", "Fast step particle type")
+	ParticleUtil.registerParticleCopyXMLPaths(schema, "vehicle.rideable.modelInfo.hoofFrontLeft.particleSystemFast")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontRight#node", "Hoof node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemSlow#node", "Slow step particle emitterShape")
+	schema:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemSlow#particleType", "Slow step particle type")
+	ParticleUtil.registerParticleCopyXMLPaths(schema, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemSlow")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemFast#node", "Fast step particle emitterShape")
+	schema:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemFast#particleType", "Fast step particle type")
+	ParticleUtil.registerParticleCopyXMLPaths(schema, "vehicle.rideable.modelInfo.hoofFrontRight.particleSystemFast")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackLeft#node", "Hoof node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemSlow#node", "Slow step particle emitterShape")
+	schema:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemSlow#particleType", "Slow step particle type")
+	ParticleUtil.registerParticleCopyXMLPaths(schema, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemSlow")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemFast#node", "Fast step particle emitterShape")
+	schema:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemFast#particleType", "Fast step particle type")
+	ParticleUtil.registerParticleCopyXMLPaths(schema, "vehicle.rideable.modelInfo.hoofBackLeft.particleSystemFast")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackRight#node", "Hoof node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemSlow#node", "Slow step particle emitterShape")
+	schema:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemSlow#particleType", "Slow step particle type")
+	ParticleUtil.registerParticleCopyXMLPaths(schema, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemSlow")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemFast#node", "Fast step particle emitterShape")
+	schema:register(XMLValueType.STRING, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemFast#particleType", "Fast step particle type")
+	ParticleUtil.registerParticleCopyXMLPaths(schema, "vehicle.rideable.modelInfo.hoofBackRight.particleSystemFast")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#animationNode", "Animation node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#meshNode", "Mesh node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#equipmentNode", "Equipment node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#reinsNode", "Reins node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#reinLeftNode", "Rein left node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.rideable.modelInfo#reinRightNode", "Rein right node")
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable.sounds#breathIntervalNoEffort", "Breath interval no effort", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable.sounds#breathIntervalEffort", "Breath interval effort", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable.sounds#minBreathIntervalIdle", "Min. breath interval idle", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.rideable.sounds#maxBreathIntervalIdle", "Max. breath interval idle", 1)
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.rideable.sounds", "halt")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.rideable.sounds", "breathingNoEffort")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.rideable.sounds", "breathingEffort")
+	ConditionalAnimation.registerXMLPaths(schema, "vehicle.conditionalAnimation")
+	ConditionalAnimation.registerXMLPaths(schema, "vehicle.riderConditionalAnimation")
+	schema:setXMLSpecializationType()
+	local savegameSchema = Vehicle.xmlSchemaSavegame
+	savegameSchema:register(XMLValueType.STRING, "vehicles.vehicle(?).rideable#animalType", "Animal type name")
 end
-
 function Rideable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getIsRideableJumpAllowed", Rideable.getIsRideableJumpAllowed)
 	SpecializationUtil.registerFunction(vehicleType, "jump", Rideable.jump)
@@ -115,7 +100,6 @@ function Rideable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "setCluster", Rideable.setCluster)
 	SpecializationUtil.registerFunction(vehicleType, "getCluster", Rideable.getCluster)
 end
-
 function Rideable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Rideable)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoadFinished", Rideable)
@@ -135,7 +119,6 @@ function Rideable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onSetBroken", Rideable)
 	SpecializationUtil.registerEventListener(vehicleType, "onVehicleCharacterChanged", Rideable)
 end
-
 function Rideable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "setWorldPosition", Rideable.setWorldPosition)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "setWorldPositionQuaternion", Rideable.setWorldPositionQuaternion)
@@ -153,461 +136,393 @@ function Rideable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getCanBeSold", Rideable.getCanBeSold)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getInteractionHelp", Rideable.getInteractionHelp)
 end
-
--- Local values: spec, loadHoof, animationPlayer, key, parameter, mission, _, surfaceSound, sample, xmlFile, key, subTypeName, subType, cluster
 function Rideable:onLoad(savegame)
-	local v8_ = self.spec_rideable
+	local spec = self.spec_rideable
 	self.highPrecisionPositionSynchronization = true
-	v8_.leaveTimer = 15000
-	v8_.currentDirtScale = 0
-	v8_.abandonTimerDuration = g_gameSettings:getValue(GameSettings.SETTING.HORSE_ABANDON_TIMER_DURATION)
-	v8_.abandonTimer = v8_.abandonTimerDuration
-	v8_.fadeDuration = 400
-	v8_.isRideableRemoved = false
-	v8_.justSpawned = true
-	v8_.meshNode = nil
-	v8_.animationNode = nil
-	v8_.charsetId = nil
-	v8_.animationPlayer = nil
-	v8_.animationParameters = {}
-	v8_.animationParameters.forwardVelocity = {
-		["id"] = 1,
-		["value"] = 0,
-		["type"] = 1
-	}
-	v8_.animationParameters.verticalVelocity = {
-		["id"] = 2,
-		["value"] = 0,
-		["type"] = 1
-	}
-	v8_.animationParameters.yawVelocity = {
-		["id"] = 3,
-		["value"] = 0,
-		["type"] = 1
-	}
-	v8_.animationParameters.absForwardVelocity = {
-		["id"] = 4,
-		["value"] = 0,
-		["type"] = 1
-	}
-	v8_.animationParameters.onGround = {
-		["id"] = 5,
-		["value"] = false,
-		["type"] = 0
-	}
-	v8_.animationParameters.inWater = {
-		["id"] = 6,
-		["value"] = false,
-		["type"] = 0
-	}
-	v8_.animationParameters.closeToGround = {
-		["id"] = 7,
-		["value"] = false,
-		["type"] = 0
-	}
-	v8_.animationParameters.leftRightWeight = {
-		["id"] = 8,
-		["value"] = 0,
-		["type"] = 1
-	}
-	v8_.animationParameters.absYawVelocity = {
-		["id"] = 9,
-		["value"] = 0,
-		["type"] = 1
-	}
-	v8_.animationParameters.halted = {
-		["id"] = 10,
-		["value"] = false,
-		["type"] = 0
-	}
-	v8_.animationParameters.smoothedForwardVelocity = {
-		["id"] = 11,
-		["value"] = 0,
-		["type"] = 1
-	}
-	v8_.animationParameters.absSmoothedForwardVelocity = {
-		["id"] = 12,
-		["value"] = 0,
-		["type"] = 1
-	}
-	v8_.acceletateEventId = ""
-	v8_.brakeEventId = ""
-	v8_.steerEventId = ""
-	v8_.jumpEventId = ""
-	v8_.currentTurnAngle = 0
-	v8_.currentTurnSpeed = 0
-	v8_.currentSpeed = 0
-	v8_.currentSpeedY = 0
-	v8_.cctMoveQueue = {}
-	v8_.currentCCTPosX = 0
-	v8_.currentCCTPosY = 0
-	v8_.currentCCTPosZ = 0
-	v8_.lastCCTPosX = 0
-	v8_.lastCCTPosY = 0
-	v8_.lastCCTPosZ = 0
-	v8_.topSpeeds = {}
-	v8_.topSpeeds[Rideable.GAITTYPES.BACKWARDS] = self.xmlFile:getValue("vehicle.rideable#speedBackwards", -1)
-	v8_.topSpeeds[Rideable.GAITTYPES.STILL] = 0
-	v8_.topSpeeds[Rideable.GAITTYPES.WALK] = self.xmlFile:getValue("vehicle.rideable#speedWalk", 2.5)
-	v8_.topSpeeds[Rideable.GAITTYPES.CANTER] = self.xmlFile:getValue("vehicle.rideable#speedCanter", 3.5)
-	v8_.topSpeeds[Rideable.GAITTYPES.TROT] = self.xmlFile:getValue("vehicle.rideable#speedTrot", 5)
-	v8_.topSpeeds[Rideable.GAITTYPES.GALLOP] = self.xmlFile:getValue("vehicle.rideable#speedGallop", 10)
-	v8_.minTurnRadius = {}
-	v8_.minTurnRadius[Rideable.GAITTYPES.BACKWARDS] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusBackwards", 1)
-	v8_.minTurnRadius[Rideable.GAITTYPES.STILL] = 1
-	v8_.minTurnRadius[Rideable.GAITTYPES.WALK] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusWalk", 1)
-	v8_.minTurnRadius[Rideable.GAITTYPES.CANTER] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusCanter", 2.5)
-	v8_.minTurnRadius[Rideable.GAITTYPES.TROT] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusTrot", 5)
-	v8_.minTurnRadius[Rideable.GAITTYPES.GALLOP] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusGallop", 10)
-	v8_.groundRaycastResult = {}
-	v8_.groundRaycastResult.y = 0
-	v8_.groundRaycastResult.object = nil
-	v8_.groundRaycastResult.distance = 0
-	v8_.haltTimer = 0
-	v8_.smoothedLeftRightWeight = 0
-	v8_.interpolationDt = 16
-	v8_.ridingTimer = 0
-	v8_.doHusbandryCheck = 0
-	v8_.proxy = self.xmlFile:getValue("vehicle.rideable#proxy", nil, self.components, self.i3dMappings)
-	if v8_.proxy ~= nil then
-		setRigidBodyType(v8_.proxy, RigidBodyType.NONE)
+	spec.leaveTimer = 15000
+	spec.currentDirtScale = 0
+	spec.abandonTimerDuration = g_gameSettings:getValue(GameSettings.SETTING.HORSE_ABANDON_TIMER_DURATION)
+	spec.abandonTimer = spec.abandonTimerDuration
+	spec.fadeDuration = 400
+	spec.isRideableRemoved = false
+	spec.justSpawned = true
+	spec.meshNode = nil
+	spec.animationNode = nil
+	spec.charsetId = nil
+	spec.animationPlayer = nil
+	spec.animationParameters = {}
+	spec.animationParameters.forwardVelocity = { id = 1, value = 0, type = 1 }
+	spec.animationParameters.verticalVelocity = { id = 2, value = 0, type = 1 }
+	spec.animationParameters.yawVelocity = { id = 3, value = 0, type = 1 }
+	spec.animationParameters.absForwardVelocity = { id = 4, value = 0, type = 1 }
+	spec.animationParameters.onGround = { id = 5, value = false, type = 0 }
+	spec.animationParameters.inWater = { id = 6, value = false, type = 0 }
+	spec.animationParameters.closeToGround = { id = 7, value = false, type = 0 }
+	spec.animationParameters.leftRightWeight = { id = 8, value = 0, type = 1 }
+	spec.animationParameters.absYawVelocity = { id = 9, value = 0, type = 1 }
+	spec.animationParameters.halted = { id = 10, value = false, type = 0 }
+	spec.animationParameters.smoothedForwardVelocity = { id = 11, value = 0, type = 1 }
+	spec.animationParameters.absSmoothedForwardVelocity = { id = 12, value = 0, type = 1 }
+	spec.acceletateEventId = ""
+	spec.brakeEventId = ""
+	spec.steerEventId = ""
+	spec.jumpEventId = ""
+	spec.currentTurnAngle = 0
+	spec.currentTurnSpeed = 0
+	spec.currentSpeed = 0
+	spec.currentSpeedY = 0
+	spec.cctMoveQueue = {}
+	spec.currentCCTPosX = 0
+	spec.currentCCTPosY = 0
+	spec.currentCCTPosZ = 0
+	spec.lastCCTPosX = 0
+	spec.lastCCTPosY = 0
+	spec.lastCCTPosZ = 0
+	spec.topSpeeds = {}
+	spec.topSpeeds[Rideable.GAITTYPES.BACKWARDS] = self.xmlFile:getValue("vehicle.rideable#speedBackwards", -1)
+	spec.topSpeeds[Rideable.GAITTYPES.STILL] = 0
+	spec.topSpeeds[Rideable.GAITTYPES.WALK] = self.xmlFile:getValue("vehicle.rideable#speedWalk", 2.5)
+	spec.topSpeeds[Rideable.GAITTYPES.CANTER] = self.xmlFile:getValue("vehicle.rideable#speedCanter", 3.5)
+	spec.topSpeeds[Rideable.GAITTYPES.TROT] = self.xmlFile:getValue("vehicle.rideable#speedTrot", 5)
+	spec.topSpeeds[Rideable.GAITTYPES.GALLOP] = self.xmlFile:getValue("vehicle.rideable#speedGallop", 10)
+	spec.minTurnRadius = {}
+	spec.minTurnRadius[Rideable.GAITTYPES.BACKWARDS] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusBackwards", 1)
+	spec.minTurnRadius[Rideable.GAITTYPES.STILL] = 1
+	spec.minTurnRadius[Rideable.GAITTYPES.WALK] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusWalk", 1)
+	spec.minTurnRadius[Rideable.GAITTYPES.CANTER] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusCanter", 2.5)
+	spec.minTurnRadius[Rideable.GAITTYPES.TROT] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusTrot", 5)
+	spec.minTurnRadius[Rideable.GAITTYPES.GALLOP] = self.xmlFile:getValue("vehicle.rideable#minTurnRadiusGallop", 10)
+	spec.groundRaycastResult = {}
+	spec.groundRaycastResult.y = 0
+	spec.groundRaycastResult.object = nil
+	spec.groundRaycastResult.distance = 0
+	spec.haltTimer = 0
+	spec.smoothedLeftRightWeight = 0
+	spec.interpolationDt = 16
+	spec.ridingTimer = 0
+	spec.doHusbandryCheck = 0
+	spec.proxy = self.xmlFile:getValue("vehicle.rideable#proxy", nil, self.components, self.i3dMappings)
+	if spec.proxy ~= nil then
+		setRigidBodyType(spec.proxy, RigidBodyType.NONE)
 	end
-	v8_.collisionMask = getCollisionFilterMask(self.components[1].node)
-	v8_.maxAcceleration = 5
-	v8_.maxDeceleration = 10
-	v8_.gravity = -9.81
-	v8_.frontCheckDistance = 0
-	v8_.backCheckDistance = 0
-	v8_.isOnGround = true
-	v8_.isCloseToGround = true
-	local v9_ = v8_.topSpeeds[Rideable.GAITTYPES.MIN] < v8_.topSpeeds[Rideable.GAITTYPES.MAX]
-	assert(v9_)
-	v8_.maxTurnSpeed = self.xmlFile:getValue("vehicle.rideable#turnSpeed", 45)
-	v8_.jumpHeight = self.xmlFile:getValue("vehicle.rideable#jumpHeight", 2)
-	local function v20_(p10_, p11_, p12_)
-		-- upvalues: (copy) self
-		local v13_ = {
-			["node"] = self.xmlFile:getValue(p12_ .. "#node", nil, self.components, self.i3dMappings),
-			["onGround"] = false
-		}
-		local v14_ = self.xmlFile:getValue(p12_ .. ".particleSystemSlow#node", nil, self.components, self.i3dMappings)
-		local v15_ = self.xmlFile:getValue(p12_ .. ".particleSystemSlow#particleType")
-		if v15_ == nil then
-			Logging.xmlWarning(self.xmlFile, "Missing horse step slow particleType in \'%s\'", p12_ .. ".particleSystemSlow")
+	spec.collisionMask = getCollisionFilterMask(self.components[1].node)
+	spec.maxAcceleration = 5
+	spec.maxDeceleration = 10
+	spec.gravity = -9.81
+	spec.frontCheckDistance = 0
+	spec.backCheckDistance = 0
+	spec.isOnGround = true
+	spec.isCloseToGround = true
+	assert(spec.topSpeeds[Rideable.GAITTYPES.MIN] < spec.topSpeeds[Rideable.GAITTYPES.MAX])
+	spec.maxTurnSpeed = self.xmlFile:getValue("vehicle.rideable#turnSpeed", 45)
+	spec.jumpHeight = self.xmlFile:getValue("vehicle.rideable#jumpHeight", 2)
+	local loadHoof = function(target, index, key)
+		local hoof = {}
+		hoof.node = self.xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
+		hoof.onGround = false
+		local nodeSlow = self.xmlFile:getValue(key .. ".particleSystemSlow#node", nil, self.components, self.i3dMappings)
+		local particleType = self.xmlFile:getValue(key .. ".particleSystemSlow#particleType")
+		if particleType == nil then
+			Logging.xmlWarning(self.xmlFile, "Missing horse step slow particleType in '%s'", key .. ".particleSystemSlow")
 			return
+		end
+		local particleSystem = g_particleSystemManager:getParticleSystem(particleType)
+		if particleSystem ~= nil then
+			hoof.psSlow = ParticleUtil.copyParticleSystem(self.xmlFile, key .. ".particleSystemSlow", particleSystem, nodeSlow)
+			link(getRootNode(), hoof.psSlow.emitterShape)
+		end
+		local nodeFast = self.xmlFile:getValue(key .. ".particleSystemFast#node", nil, self.components, self.i3dMappings)
+		local particleTypeFast = self.xmlFile:getValue(key .. ".particleSystemFast#particleType")
+		if particleTypeFast == nil then
+			Logging.xmlWarning(self.xmlFile, "Missing horse step fast particleType in '%s'", key .. ".particleSystemFast")
 		else
-			local v16_ = g_particleSystemManager:getParticleSystem(v15_)
-			if v16_ ~= nil then
-				v13_.psSlow = ParticleUtil.copyParticleSystem(self.xmlFile, p12_ .. ".particleSystemSlow", v16_, v14_)
-				link(getRootNode(), v13_.psSlow.emitterShape)
+			local particleSystemFast = g_particleSystemManager:getParticleSystem(particleTypeFast)
+			if particleSystemFast ~= nil then
+				hoof.psFast = ParticleUtil.copyParticleSystem(self.xmlFile, key .. ".particleSystemFast", particleSystemFast, nodeFast)
+				link(getRootNode(), hoof.psFast.emitterShape)
 			end
-			local v17_ = self.xmlFile:getValue(p12_ .. ".particleSystemFast#node", nil, self.components, self.i3dMappings)
-			local v18_ = self.xmlFile:getValue(p12_ .. ".particleSystemFast#particleType")
-			if v18_ == nil then
-				Logging.xmlWarning(self.xmlFile, "Missing horse step fast particleType in \'%s\'", p12_ .. ".particleSystemFast")
-			else
-				local v19_ = g_particleSystemManager:getParticleSystem(v18_)
-				if v19_ ~= nil then
-					v13_.psFast = ParticleUtil.copyParticleSystem(self.xmlFile, p12_ .. ".particleSystemFast", v19_, v17_)
-					link(getRootNode(), v13_.psFast.emitterShape)
-				end
-				p10_[p11_] = v13_
-			end
+			target[index] = hoof
 		end
 	end
-	v8_.hooves = {}
-	v20_(v8_.hooves, Rideable.HOOVES.FRONT_LEFT, "vehicle.rideable.modelInfo.hoofFrontLeft")
-	v20_(v8_.hooves, Rideable.HOOVES.FRONT_RIGHT, "vehicle.rideable.modelInfo.hoofFrontRight")
-	v20_(v8_.hooves, Rideable.HOOVES.BACK_LEFT, "vehicle.rideable.modelInfo.hoofBackLeft")
-	v20_(v8_.hooves, Rideable.HOOVES.BACK_RIGHT, "vehicle.rideable.modelInfo.hoofBackRight")
-	v8_.frontCheckDistance = self:calculateLegsDistance(v8_.hooves[Rideable.HOOVES.FRONT_LEFT].node, v8_.hooves[Rideable.HOOVES.FRONT_RIGHT].node)
-	v8_.backCheckDistance = self:calculateLegsDistance(v8_.hooves[Rideable.HOOVES.BACK_LEFT].node, v8_.hooves[Rideable.HOOVES.BACK_RIGHT].node)
-	v8_.animationNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#animationNode", nil, self.components, self.i3dMappings)
-	v8_.meshNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#meshNode", nil, self.components, self.i3dMappings)
-	v8_.equipmentNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#equipmentNode", nil, self.components, self.i3dMappings)
-	v8_.reinsNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#reinsNode", nil, self.components, self.i3dMappings)
-	v8_.leftReinNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#reinLeftNode", nil, self.components, self.i3dMappings)
-	v8_.rightReinNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#reinRightNode", nil, self.components, self.i3dMappings)
-	v8_.leftReinParentNode = getParent(v8_.leftReinNode)
-	v8_.rightReinParentNode = getParent(v8_.rightReinNode)
-	if v8_.animationNode ~= nil then
-		v8_.charsetId = getAnimCharacterSet(v8_.animationNode)
-		local v21_ = createConditionalAnimation()
-		if v21_ ~= 0 then
-			v8_.animationPlayer = v21_
-			for v22_, v23_ in pairs(v8_.animationParameters) do
-				conditionalAnimationRegisterParameter(v8_.animationPlayer, v23_.id, v23_.type, v22_)
+	spec.hooves = {}
+	loadHoof(spec.hooves, Rideable.HOOVES.FRONT_LEFT, "vehicle.rideable.modelInfo.hoofFrontLeft")
+	loadHoof(spec.hooves, Rideable.HOOVES.FRONT_RIGHT, "vehicle.rideable.modelInfo.hoofFrontRight")
+	loadHoof(spec.hooves, Rideable.HOOVES.BACK_LEFT, "vehicle.rideable.modelInfo.hoofBackLeft")
+	loadHoof(spec.hooves, Rideable.HOOVES.BACK_RIGHT, "vehicle.rideable.modelInfo.hoofBackRight")
+	spec.frontCheckDistance = self:calculateLegsDistance(spec.hooves[Rideable.HOOVES.FRONT_LEFT].node, spec.hooves[Rideable.HOOVES.FRONT_RIGHT].node)
+	spec.backCheckDistance = self:calculateLegsDistance(spec.hooves[Rideable.HOOVES.BACK_LEFT].node, spec.hooves[Rideable.HOOVES.BACK_RIGHT].node)
+	spec.animationNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#animationNode", nil, self.components, self.i3dMappings)
+	spec.meshNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#meshNode", nil, self.components, self.i3dMappings)
+	spec.equipmentNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#equipmentNode", nil, self.components, self.i3dMappings)
+	spec.reinsNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#reinsNode", nil, self.components, self.i3dMappings)
+	spec.leftReinNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#reinLeftNode", nil, self.components, self.i3dMappings)
+	spec.rightReinNode = self.xmlFile:getValue("vehicle.rideable.modelInfo#reinRightNode", nil, self.components, self.i3dMappings)
+	spec.leftReinParentNode = getParent(spec.leftReinNode)
+	spec.rightReinParentNode = getParent(spec.rightReinNode)
+	if spec.animationNode ~= nil then
+		spec.charsetId = getAnimCharacterSet(spec.animationNode)
+		local animationPlayer = createConditionalAnimation()
+		if animationPlayer ~= 0 then
+			spec.animationPlayer = animationPlayer
+			for key, parameter in pairs(spec.animationParameters) do
+				conditionalAnimationRegisterParameter(spec.animationPlayer, parameter.id, parameter.type, key)
 			end
-			initConditionalAnimation(v8_.animationPlayer, v8_.charsetId, self.configFileName, "vehicle.conditionalAnimation")
-			setConditionalAnimationSpecificParameterIds(v8_.animationPlayer, v8_.animationParameters.absForwardVelocity.id, v8_.animationParameters.absYawVelocity.id)
+			initConditionalAnimation(spec.animationPlayer, spec.charsetId, self.configFileName, "vehicle.conditionalAnimation")
+			setConditionalAnimationSpecificParameterIds(spec.animationPlayer, spec.animationParameters.absForwardVelocity.id, spec.animationParameters.absYawVelocity.id)
 		end
 	end
-	v8_.surfaceSounds = {}
-	v8_.surfaceIdToSound = {}
-	v8_.surfaceNameToSound = {}
-	v8_.currentSurfaceSound = nil
-	local v24_ = g_currentMission
-	for _, v25_ in pairs(v24_.surfaceSounds) do
-		if v25_.type == "hoofstep" and v25_.sample ~= nil then
-			local v26_ = g_soundManager:cloneSample(v25_.sample, self.components[1].node, self)
-			v26_.sampleName = v25_.name
-			local v27_ = v8_.surfaceSounds
-			table.insert(v27_, v26_)
-			v8_.surfaceIdToSound[v25_.materialId] = v26_
-			v8_.surfaceNameToSound[v25_.name] = v26_
+	spec.surfaceSounds = {}
+	spec.surfaceIdToSound = {}
+	spec.surfaceNameToSound = {}
+	spec.currentSurfaceSound = nil
+	local mission = g_currentMission
+	for _, surfaceSound in pairs(mission.surfaceSounds) do
+		if surfaceSound.type == "hoofstep" then
+			if surfaceSound.sample == nil then
+				continue
+			end
+			local sample = g_soundManager:cloneSample(surfaceSound.sample, self.components[1].node, self)
+			sample.sampleName = surfaceSound.name
+			table.insert(spec.surfaceSounds, sample)
+			spec.surfaceIdToSound[surfaceSound.materialId] = sample
+			spec.surfaceNameToSound[surfaceSound.name] = sample
 		end
 	end
-	v8_.horseStopSound = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.rideable.sounds", "halt", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-	v8_.horseBreathSoundsNoEffort = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.rideable.sounds", "breathingNoEffort", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-	v8_.horseBreathSoundsEffort = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.rideable.sounds", "breathingEffort", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-	v8_.horseBreathIntervalNoEffort = self.xmlFile:getValue("vehicle.rideable.sounds#breathIntervalNoEffort", 1) * 1000
-	v8_.horseBreathIntervalEffort = self.xmlFile:getValue("vehicle.rideable.sounds#breathIntervalEffort", 1) * 1000
-	v8_.horseBreathMinIntervalIdle = self.xmlFile:getValue("vehicle.rideable.sounds#minBreathIntervalIdle", 1) * 1000
-	v8_.horseBreathMaxIntervalIdle = self.xmlFile:getValue("vehicle.rideable.sounds#maxBreathIntervalIdle", 1) * 1000
-	v8_.currentBreathTimer = 0
-	v8_.inputValues = {}
-	v8_.inputValues.axisSteer = 0
-	v8_.inputValues.axisSteerSend = 0
-	v8_.inputValues.currentGait = Rideable.GAITTYPES.STILL
+	spec.horseStopSound = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.rideable.sounds", "halt", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+	spec.horseBreathSoundsNoEffort = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.rideable.sounds", "breathingNoEffort", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+	spec.horseBreathSoundsEffort = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.rideable.sounds", "breathingEffort", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+	spec.horseBreathIntervalNoEffort = self.xmlFile:getValue("vehicle.rideable.sounds#breathIntervalNoEffort", 1) * 1000
+	spec.horseBreathIntervalEffort = self.xmlFile:getValue("vehicle.rideable.sounds#breathIntervalEffort", 1) * 1000
+	spec.horseBreathMinIntervalIdle = self.xmlFile:getValue("vehicle.rideable.sounds#minBreathIntervalIdle", 1) * 1000
+	spec.horseBreathMaxIntervalIdle = self.xmlFile:getValue("vehicle.rideable.sounds#maxBreathIntervalIdle", 1) * 1000
+	spec.currentBreathTimer = 0
+	spec.inputValues = {}
+	spec.inputValues.axisSteer = 0
+	spec.inputValues.axisSteerSend = 0
+	spec.inputValues.currentGait = Rideable.GAITTYPES.STILL
 	self:resetInputs()
-	v8_.interpolatorIsOnGround = InterpolatorValue.new(0)
+	spec.interpolatorIsOnGround = InterpolatorValue.new(0)
 	if self.isServer then
-		v8_.interpolatorTurnAngle = InterpolatorAngle.new(0)
+		spec.interpolatorTurnAngle = InterpolatorAngle.new(0)
 		self.networkTimeInterpolator.maxInterpolationAlpha = 1.2
 	end
-	v8_.dirtyFlag = self:getNextDirtyFlag()
+	spec.dirtyFlag = self:getNextDirtyFlag()
 	if savegame ~= nil then
-		local v28_ = savegame.xmlFile
-		local v29_ = savegame.key .. ".rideable"
-		local v30_ = v28_:getString(v29_ .. "#subType", "HORSE_GRAY")
-		local v31_ = v24_.animalSystem:getSubTypeByName(v30_)
-		if v31_ == nil then
-			Logging.xmlError(self.xmlFile, "Animal sub type \'%s\' not found for \'%s\'!", v30_, v29_)
+		local xmlFile = savegame.xmlFile
+		local key = savegame.key .. ".rideable"
+		local subTypeName = xmlFile:getString(key .. "#subType", "HORSE_GRAY")
+		local subType = mission.animalSystem:getSubTypeByName(subTypeName)
+		if subType ~= nil then
+			local cluster = mission.animalSystem:createClusterFromSubTypeIndex(subType.subTypeIndex)
+			cluster:loadFromXMLFile(xmlFile, key .. ".animal")
+			self:setCluster(cluster)
+		else
+			Logging.xmlError(self.xmlFile, "Animal sub type '%s' not found for '%s'!", subTypeName, key)
 			self:setLoadingState(VehicleLoadingState.ERROR)
 			return
 		end
-		local v32_ = v24_.animalSystem:createClusterFromSubTypeIndex(v31_.subTypeIndex)
-		v32_:loadFromXMLFile(v28_, v29_ .. ".animal")
-		self:setCluster(v32_)
 	end
-	v24_.husbandrySystem:addRideable(self)
+	mission.husbandrySystem:addRideable(self)
 	self.needWaterInfo = true
 end
-
 function Rideable:onLoadFinished()
 	self:raiseActive()
 end
-
--- Local values: spec, dx, _, dz
 function Rideable:setWorldPosition(superFunc, x, y, z, xRot, yRot, zRot, i, changeInterp)
 	superFunc(self, x, y, z, xRot, yRot, zRot, i, changeInterp)
 	if self.isServer and i == 1 then
-		local v44_ = self.spec_rideable
-		local v45_, _, v46_ = localDirectionToWorld(self.rootNode, 0, 0, 1)
-		v44_.currentTurnAngle = MathUtil.getYRotationFromDirection(v45_, v46_)
+		local spec = self.spec_rideable
+		local dx, _, dz = localDirectionToWorld(self.rootNode, 0, 0, 1)
+		spec.currentTurnAngle = MathUtil.getYRotationFromDirection(dx, dz)
 		if changeInterp then
-			v44_.interpolatorTurnAngle:setAngle(v44_.currentTurnAngle)
+			spec.interpolatorTurnAngle:setAngle(spec.currentTurnAngle)
 		end
 	end
 end
-
--- Local values: spec, dx, _, dz
 function Rideable:setWorldPositionQuaternion(superFunc, x, y, z, qx, qy, qz, qw, i, changeInterp)
 	superFunc(self, x, y, z, qx, qy, qz, qw, i, changeInterp)
 	if self.isServer and i == 1 then
-		local v58_ = self.spec_rideable
-		local v59_, _, v60_ = localDirectionToWorld(self.rootNode, 0, 0, 1)
-		v58_.currentTurnAngle = MathUtil.getYRotationFromDirection(v59_, v60_)
+		local spec = self.spec_rideable
+		local dx, _, dz = localDirectionToWorld(self.rootNode, 0, 0, 1)
+		spec.currentTurnAngle = MathUtil.getYRotationFromDirection(dx, dz)
 		if changeInterp then
-			v58_.interpolatorTurnAngle:setAngle(v58_.currentTurnAngle)
+			spec.interpolatorTurnAngle:setAngle(spec.currentTurnAngle)
 		end
 	end
 end
-
--- Local values: spec
 function Rideable:updateVehicleSpeed(superFunc, dt)
 	if self.isServer then
-		superFunc(self, self.spec_rideable.interpolationDt)
+		local spec = self.spec_rideable
+		superFunc(self, spec.interpolationDt)
 	else
 		superFunc(self, dt)
 	end
 end
-
--- Local values: distance, _, _, dzL, _, _, dzR
 function Rideable:calculateLegsDistance(leftLegNode, rightLegNode)
-	local v67_
-	if leftLegNode == nil or rightLegNode == nil then
-		v67_ = 0
-	else
-		local _, _, v68_ = localToLocal(leftLegNode, self.rootNode, 0, 0, 0)
-		local _, _, v69_ = localToLocal(rightLegNode, self.rootNode, 0, 0, 0)
-		v67_ = (v68_ + v69_) * 0.5
+	local distance = 0
+	if leftLegNode ~= nil and rightLegNode ~= nil then
+		local _, _, dzL = localToLocal(leftLegNode, self.rootNode, 0, 0, 0)
+		local _, _, dzR = localToLocal(rightLegNode, self.rootNode, 0, 0, 0)
+		distance = (dzL + dzR) * 0.5
 	end
-	return v67_
+	return distance
 end
-
--- Local values: spec, mission, _, d
 function Rideable:onDelete()
-	local v71_ = self.spec_rideable
-	g_currentMission.husbandrySystem:removeRideable(self)
-	g_soundManager:deleteSamples(v71_.surfaceSounds)
-	g_soundManager:deleteSample(v71_.horseStopSound)
-	g_soundManager:deleteSample(v71_.horseBreathSoundsNoEffort)
-	g_soundManager:deleteSample(v71_.horseBreathSoundsEffort)
-	if v71_.hooves ~= nil then
-		for _, v72_ in pairs(v71_.hooves) do
-			if v72_.psSlow ~= nil then
-				ParticleUtil.deleteParticleSystem(v72_.psSlow)
-				delete(v72_.psSlow.emitterShape)
+	local spec = self.spec_rideable
+	local mission = g_currentMission
+	mission.husbandrySystem:removeRideable(self)
+	g_soundManager:deleteSamples(spec.surfaceSounds)
+	g_soundManager:deleteSample(spec.horseStopSound)
+	g_soundManager:deleteSample(spec.horseBreathSoundsNoEffort)
+	g_soundManager:deleteSample(spec.horseBreathSoundsEffort)
+	if spec.hooves ~= nil then
+		for _, d in pairs(spec.hooves) do
+			if d.psSlow ~= nil then
+				ParticleUtil.deleteParticleSystem(d.psSlow)
+				delete(d.psSlow.emitterShape)
 			end
-			if v72_.psFast ~= nil then
-				ParticleUtil.deleteParticleSystem(v72_.psFast)
-				delete(v72_.psFast.emitterShape)
+			if d.psFast == nil then
+				continue
 			end
+			ParticleUtil.deleteParticleSystem(d.psFast)
+			delete(d.psFast.emitterShape)
 		end
 	end
-	if v71_.animationPlayer ~= nil then
-		delete(v71_.animationPlayer)
-		v71_.animationPlayer = nil
+	if spec.animationPlayer ~= nil then
+		delete(spec.animationPlayer)
+		spec.animationPlayer = nil
 	end
 end
-
--- Local values: spec, isOnGround, subTypeIndex, mission, cluster, player
 function Rideable:onReadStream(streamId, connection)
-	local v76_ = self.spec_rideable
+	local spec = self.spec_rideable
 	if connection:getIsServer() then
-		if streamReadBool(streamId) then
-			v76_.interpolatorIsOnGround:setValue(1)
+		local isOnGround = streamReadBool(streamId)
+		if isOnGround then
+			spec.interpolatorIsOnGround:setValue(1)
 		else
-			v76_.interpolatorIsOnGround:setValue(0)
+			spec.interpolatorIsOnGround:setValue(0)
 		end
 	end
 	if streamReadBool(streamId) then
-		local v77_ = streamReadUIntN(streamId, AnimalCluster.NUM_BITS_SUB_TYPE)
-		local v78_ = g_currentMission.animalSystem:createClusterFromSubTypeIndex(v77_)
-		v78_:readStream(streamId, connection)
-		self:setCluster(v78_)
+		local subTypeIndex = streamReadUIntN(streamId, AnimalCluster.NUM_BITS_SUB_TYPE)
+		local mission = g_currentMission
+		local cluster = mission.animalSystem:createClusterFromSubTypeIndex(subTypeIndex)
+		cluster:readStream(streamId, connection)
+		self:setCluster(cluster)
 	end
 	if streamReadBool(streamId) then
-		self:setPlayerToEnter((NetworkUtil.readNodeObject(streamId)))
+		local player = NetworkUtil.readNodeObject(streamId)
+		self:setPlayerToEnter(player)
 	end
 end
-
--- Local values: spec
 function Rideable:onWriteStream(streamId, connection)
-	local v82_ = self.spec_rideable
+	local spec = self.spec_rideable
 	if not connection:getIsServer() then
-		streamWriteBool(streamId, v82_.isOnGround)
+		streamWriteBool(streamId, spec.isOnGround)
 	end
-	if streamWriteBool(streamId, v82_.cluster ~= nil) then
-		streamWriteUIntN(streamId, v82_.cluster:getSubTypeIndex(), AnimalCluster.NUM_BITS_SUB_TYPE)
-		v82_.cluster:writeStream(streamId, connection)
+	if streamWriteBool(streamId, spec.cluster ~= nil) then
+		streamWriteUIntN(streamId, spec.cluster:getSubTypeIndex(), AnimalCluster.NUM_BITS_SUB_TYPE)
+		spec.cluster:writeStream(streamId, connection)
 	end
-	if streamWriteBool(streamId, v82_.playerToEnter ~= nil) then
-		NetworkUtil.writeNodeObject(streamId, v82_.playerToEnter)
+	if streamWriteBool(streamId, spec.playerToEnter ~= nil) then
+		NetworkUtil.writeNodeObject(streamId, spec.playerToEnter)
 	end
 end
-
--- Local values: spec
 function Rideable:onReadUpdateStream(streamId, timestamp, connection)
-	local v86_ = self.spec_rideable
-	if connection:getIsServer() then
-		v86_.haltTimer = streamReadFloat32(streamId)
-		if v86_.haltTimer > 0 then
-			v86_.inputValues.currentGait = Rideable.GAITTYPES.STILL
-			v86_.inputValues.axisSteerSend = 0
+	local spec = self.spec_rideable
+	if not connection:getIsServer() then
+		spec.inputValues.axisSteer = streamReadFloat32(streamId)
+		spec.inputValues.currentGait = streamReadUInt8(streamId)
+	else
+		spec.haltTimer = streamReadFloat32(streamId)
+		if 0 < spec.haltTimer then
+			spec.inputValues.currentGait = Rideable.GAITTYPES.STILL
+			spec.inputValues.axisSteerSend = 0
 		end
 		if streamReadBool(streamId) then
-			v86_.cluster:readUpdateStream(streamId, connection)
+			spec.cluster:readUpdateStream(streamId, connection)
 			self:updateDirt()
 		end
-	else
-		v86_.inputValues.axisSteer = streamReadFloat32(streamId)
-		v86_.inputValues.currentGait = streamReadUInt8(streamId)
 	end
 end
-
--- Local values: spec
 function Rideable:onWriteUpdateStream(streamId, connection, dirtyMask)
-	local v90_ = self.spec_rideable
+	local spec = self.spec_rideable
 	if connection:getIsServer() then
-		streamWriteFloat32(streamId, v90_.inputValues.axisSteerSend)
-		streamWriteUInt8(streamId, v90_.inputValues.currentGait)
+		streamWriteFloat32(streamId, spec.inputValues.axisSteerSend)
+		streamWriteUInt8(streamId, spec.inputValues.currentGait)
 	else
-		streamWriteFloat32(streamId, v90_.haltTimer)
-		if streamWriteBool(streamId, v90_.cluster ~= nil) then
-			v90_.cluster:writeUpdateStream(streamId, connection)
+		streamWriteFloat32(streamId, spec.haltTimer)
+		if streamWriteBool(streamId, spec.cluster ~= nil) then
+			spec.cluster:writeUpdateStream(streamId, connection)
 		end
 	end
 end
-
--- Local values: spec, isOnGround
 function Rideable:onReadPositionUpdateStream(streamId, connection)
-	local v93_ = self.spec_rideable
-	if streamReadBool(streamId) then
-		v93_.interpolatorIsOnGround:setValue(1)
+	local spec = self.spec_rideable
+	local isOnGround = streamReadBool(streamId)
+	if isOnGround then
+		spec.interpolatorIsOnGround:setValue(1)
 	else
-		v93_.interpolatorIsOnGround:setValue(0)
+		spec.interpolatorIsOnGround:setValue(0)
 	end
 end
-
--- Local values: spec
 function Rideable:onWritePositionUpdateStream(streamId, connection, dirtyMask)
-	local v96_ = self.spec_rideable
-	streamWriteBool(streamId, v96_.isOnGround)
+	local spec = self.spec_rideable
+	streamWriteBool(streamId, spec.isOnGround)
 end
-
 function Rideable:endFade() end
-
--- Local values: spec, mission, animalSystem, subTypeIndex, subType
 function Rideable:saveToXMLFile(xmlFile, key, usedModNames)
-	local v101_ = self.spec_rideable
-	if v101_.cluster ~= nil then
-		local v102_ = g_currentMission.animalSystem:getSubTypeByIndex((v101_.cluster:getSubTypeIndex()))
-		xmlFile:setString(key .. "#subType", v102_.name)
-		v101_.cluster:saveToXMLFile(xmlFile, key .. ".animal", usedModNames)
+	local spec = self.spec_rideable
+	if spec.cluster ~= nil then
+		local mission = g_currentMission
+		local animalSystem = mission.animalSystem
+		local subTypeIndex = spec.cluster:getSubTypeIndex()
+		local subType = animalSystem:getSubTypeByIndex(subTypeIndex)
+		xmlFile:setString(key .. "#subType", subType.name)
+		spec.cluster:saveToXMLFile(xmlFile, key .. ".animal", usedModNames)
 	end
 end
-
--- Local values: spec, mission, animalSystem, subTypeIndex, visual, variation, tileU, tileV
 function Rideable:setCluster(cluster)
-	local v105_ = self.spec_rideable
-	v105_.cluster = cluster
+	local spec = self.spec_rideable
+	spec.cluster = cluster
 	if cluster ~= nil then
-		local v106_ = g_currentMission.animalSystem:getVisualByAge(cluster:getSubTypeIndex(), cluster:getAge()).visualAnimal.variations[1]
-		local v107_ = v106_.tileUIndex / v106_.numTilesU
-		local v108_ = v106_.tileVIndex / v106_.numTilesV
-		I3DUtil.setShaderParameterRec(v105_.meshNode, "atlasInvSizeAndOffsetUV", nil, nil, v107_, v108_)
+		local mission = g_currentMission
+		local animalSystem = mission.animalSystem
+		local subTypeIndex = cluster:getSubTypeIndex()
+		local visual = animalSystem:getVisualByAge(subTypeIndex, cluster:getAge())
+		local variation = visual.visualAnimal.variations[1]
+		local tileU = variation.tileUIndex / variation.numTilesU
+		local tileV = variation.tileVIndex / variation.numTilesV
+		I3DUtil.setShaderParameterRec(spec.meshNode, "atlasInvSizeAndOffsetUV", nil, nil, tileU, tileV)
 		self:updateDirt()
 	end
 end
-
--- Local values: spec, cluster, dirtFactor
 function Rideable:updateDirt()
-	local v110_ = self.spec_rideable
-	local v111_ = v110_.cluster
-	local v112_ = (not Platform.gameplay.needHorseCleaning or (v111_ == nil or v111_.getDirtFactor == nil)) and 0 or v111_:getDirtFactor()
-	I3DUtil.setShaderParameterRec(v110_.meshNode, "dirt", v112_, nil, nil, nil)
+	local spec = self.spec_rideable
+	local cluster = spec.cluster
+	local dirtFactor = 0
+	if Platform.gameplay.needHorseCleaning and (cluster ~= nil and cluster.getDirtFactor ~= nil) then
+		dirtFactor = cluster:getDirtFactor()
+	end
+	I3DUtil.setShaderParameterRec(spec.meshNode, "dirt", dirtFactor, nil, nil, nil)
 end
-
 function Rideable:getCluster()
 	return self.spec_rideable.cluster
 end
-
--- Local values: spec, isEntered, inputHelpMode, dx, dy, dz, steeringValue, mission, isInRange, husbandry, isInStable, cluster
 function Rideable:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v117_ = self.spec_rideable
-	if self:getIsSynchronized() and (v117_.playerToEnter ~= nil and (v117_.checkPlayerToEnter and v117_.playerToEnter == g_localPlayer)) then
+	local spec = self.spec_rideable
+	if self:getIsSynchronized() and (spec.playerToEnter ~= nil and (spec.checkPlayerToEnter and spec.playerToEnter == g_localPlayer)) then
 		g_localPlayer:requestToEnterVehicle(self, true)
-		v117_.checkPlayerToEnter = false
+		spec.checkPlayerToEnter = false
 	end
-	if self:getIsEntered() then
+	local isEntered = self:getIsEntered()
+	if isEntered then
 		if isActiveForInputIgnoreSelection then
 			self:updateInputText()
 		end
 		if not self.isServer then
-			v117_.inputValues.axisSteerSend = v117_.inputValues.axisSteer
-			self:raiseDirtyFlags(v117_.dirtyFlag)
+			spec.inputValues.axisSteerSend = spec.inputValues.axisSteer
+			self:raiseDirtyFlags(spec.dirtyFlag)
 			self:resetInputs()
 		end
 	end
@@ -618,847 +533,761 @@ function Rideable:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection
 	if self.isServer then
 		self:updateRiding(dt)
 	end
-	if v117_.haltTimer > 0 then
+	if 0 < spec.haltTimer then
 		self:setCurrentGait(Rideable.GAITTYPES.STILL)
-		v117_.haltTimer = v117_.haltTimer - dt
+		spec.haltTimer = spec.haltTimer - dt
 	end
-	if self:getIsActiveForInput(true) and (g_inputBinding:getInputHelpMode() ~= GS_INPUT_HELP_MODE_GAMEPAD or GS_PLATFORM_SWITCH) and g_gameSettings:getValue(GameSettings.SETTING.GYROSCOPE_STEERING) then
-		local v118_, v119_, v120_ = getGravityDirection()
-		self:setRideableSteer((MathUtil.getSteeringAngleFromDeviceGravity(v118_, v119_, v120_)))
+	if self:getIsActiveForInput(true) then
+		local inputHelpMode = g_inputBinding:getInputHelpMode()
+		if (inputHelpMode ~= GS_INPUT_HELP_MODE_GAMEPAD or GS_PLATFORM_SWITCH) and g_gameSettings:getValue(GameSettings.SETTING.GYROSCOPE_STEERING) then
+			local dx, dy, dz = getGravityDirection()
+			local steeringValue = MathUtil.getSteeringAngleFromDeviceGravity(dx, dy, dz)
+			self:setRideableSteer(steeringValue)
+		end
 	end
-	if self.isServer and v117_.doHusbandryCheck > 0 then
-		v117_.doHusbandryCheck = v117_.doHusbandryCheck - dt
-		local v121_, v122_ = g_currentMission.husbandrySystem:getHusbandryInRideableRange(self)
-		if v121_ then
-			local v123_
-			if v122_ == nil then
-				v123_ = false
-			else
-				v122_:addCluster((self:getCluster()))
+	if self.isServer and 0 < spec.doHusbandryCheck then
+		spec.doHusbandryCheck = spec.doHusbandryCheck - dt
+		local mission = g_currentMission
+		local isInRange, husbandry = mission.husbandrySystem:getHusbandryInRideableRange(self)
+		if isInRange then
+			local isInStable = nil
+			if husbandry ~= nil then
+				local cluster = self:getCluster()
+				husbandry:addCluster(cluster)
 				self:delete()
-				v123_ = true
+				isInStable = true
+			else
+				isInStable = false
 			end
-			if v117_.lastOwner ~= nil then
-				v117_.lastOwner:sendEvent(RideableStableNotificationEvent.new(v123_, v117_.cluster:getName()), nil, true)
+			if spec.lastOwner ~= nil then
+				spec.lastOwner:sendEvent(RideableStableNotificationEvent.new(isInStable, spec.cluster:getName()), nil, true)
 			end
 		end
-		v117_.lastOwner = nil
+		spec.lastOwner = nil
 	end
 end
-
--- Local values: spec, interpolationDt, oldestMoveInfo, component, x, y, z, phaseDuration, turnAngle, _, dirY, _, dirX, dirZ, scale, isOnGroundFloat, posX, posY, posZ, dirX, dirY, dirZ, fx, fy, fz, bx, by, bz, dx, dy, dz, posX, posY, posZ
 function Rideable:onUpdateInterpolation(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v126_ = self.spec_rideable
+	local spec = self.spec_rideable
 	if self.isServer then
 		if not self:getIsControlled() then
 			self:setCurrentGait(Rideable.GAITTYPES.STILL)
 		end
-		local v127_ = v126_.cctMoveQueue[1]
-		local v128_
-		if v127_ == nil or not getIsPhysicsUpdateIndexSimulated(v127_.physicsIndex) then
-			v128_ = dt
-		else
-			v128_ = v127_.dt
+		local interpolationDt = dt
+		local oldestMoveInfo = spec.cctMoveQueue[1]
+		if oldestMoveInfo ~= nil and getIsPhysicsUpdateIndexSimulated(oldestMoveInfo.physicsIndex) then
+			interpolationDt = oldestMoveInfo.dt
 		end
-		v126_.interpolationDt = v128_
-		self:testCCTMove(v128_)
+		spec.interpolationDt = interpolationDt
+		self:testCCTMove(interpolationDt)
 		self:updateKinematic(dt)
 		if self:getIsEntered() then
 			self:resetInputs()
 		end
-		local v129_ = self.components[1]
-		local v130_, v131_, v132_ = self:getCCTWorldTranslation()
-		v129_.networkInterpolators.position:setTargetPosition(v130_, v131_, v132_)
-		v126_.interpolatorTurnAngle:setTargetAngle(v126_.currentTurnAngle)
-		v126_.interpolatorIsOnGround:setTargetValue(self:getIsCCTOnGround() and 1 or 0)
-		local v133_ = v128_ + 30
-		self.networkTimeInterpolator:startNewPhase(v133_)
-		self.networkTimeInterpolator:update(v128_)
-		local v134_, v135_, v136_ = v129_.networkInterpolators.position:getInterpolatedValues(self.networkTimeInterpolator.interpolationAlpha)
-		setTranslation(self.rootNode, v134_, v135_, v136_)
-		local v137_ = v126_.interpolatorTurnAngle:getInterpolatedValue(self.networkTimeInterpolator.interpolationAlpha)
-		local _, v138_, _ = localDirectionToWorld(self.rootNode, 0, 0, 1)
-		local v139_ = math.sin(v137_)
-		local v140_ = math.cos(v137_)
-		local v141_ = v138_ * v138_
-		local v142_ = 1 - math.min(v141_, 0.9)
-		local v143_ = math.sqrt(v142_)
-		local v144_ = v139_ * v143_
-		local v145_ = v140_ * v143_
-		setDirection(self.rootNode, v144_, v138_, v145_, 0, 1, 0)
+		local component = self.components[1]
+		local x, y, z = self:getCCTWorldTranslation()
+		component.networkInterpolators.position:setTargetPosition(x, y, z)
+		spec.interpolatorTurnAngle:setTargetAngle(spec.currentTurnAngle)
+		spec.interpolatorIsOnGround:setTargetValue(self:getIsCCTOnGround() and 1 or 0)
+		local phaseDuration = interpolationDt + 30
+		self.networkTimeInterpolator:startNewPhase(phaseDuration)
+		self.networkTimeInterpolator:update(interpolationDt)
+		x, y, z = component.networkInterpolators.position:getInterpolatedValues(self.networkTimeInterpolator.interpolationAlpha)
+		setTranslation(self.rootNode, x, y, z)
+		local turnAngle = spec.interpolatorTurnAngle:getInterpolatedValue(self.networkTimeInterpolator.interpolationAlpha)
+		local _, dirY, _ = localDirectionToWorld(self.rootNode, 0, 0, 1)
+		local dirX = math.sin(turnAngle)
+		local dirZ = math.cos(turnAngle)
+		local scale = math.sqrt(1 - math.min(dirY * dirY, 0.9))
+		dirX = dirX * scale
+		dirZ = dirZ * scale
+		setDirection(self.rootNode, dirX, dirY, dirZ, 0, 1, 0)
 	end
-	if not self:getIsEntered() and v126_.leaveTimer > 0 then
-		v126_.leaveTimer = v126_.leaveTimer - dt
+	if not self:getIsEntered() and 0 < spec.leaveTimer then
+		spec.leaveTimer = spec.leaveTimer - dt
 		self:raiseActive()
 	end
-	v126_.isOnGround = v126_.interpolatorIsOnGround:getInterpolatedValue(self.networkTimeInterpolator:getAlpha()) > 0.9
-	v126_.isCloseToGround = false
-	if v126_.isOnGround then
-		local v146_ = v126_.currentSpeed
-		if math.abs(v146_) > 0.001 then
-			::l22::
-			local v147_, v148_, v149_ = getWorldTranslation(self.rootNode)
-			local v150_, v151_, v152_ = localDirectionToWorld(self.rootNode, 0, 0, 1)
-			local v153_ = v147_ + v150_ * v126_.frontCheckDistance
-			local v154_ = v148_ + v151_ * v126_.frontCheckDistance
-			local v155_ = v149_ + v152_ * v126_.frontCheckDistance
-			v126_.groundRaycastResult.y = v154_ + Rideable.GROUND_RAYCAST_OFFSET - Rideable.GROUND_RAYCAST_MAXDISTANCE
-			raycastAll(v153_, v154_ + Rideable.GROUND_RAYCAST_OFFSET, v155_, 0, -1, 0, Rideable.GROUND_RAYCAST_MAXDISTANCE, "groundRaycastCallback", self, Rideable.GROUND_RAYCAST_COLLISIONMASK)
-			local v156_ = v126_.groundRaycastResult.y
-			local v157_ = v147_ + v150_ * v126_.backCheckDistance
-			local v158_ = v148_ + v151_ * v126_.backCheckDistance
-			local v159_ = v149_ + v152_ * v126_.backCheckDistance
-			v126_.groundRaycastResult.y = v158_ + Rideable.GROUND_RAYCAST_OFFSET - Rideable.GROUND_RAYCAST_MAXDISTANCE
-			raycastAll(v157_, v158_ + Rideable.GROUND_RAYCAST_OFFSET, v159_, 0, -1, 0, Rideable.GROUND_RAYCAST_MAXDISTANCE, "groundRaycastCallback", self, Rideable.GROUND_RAYCAST_COLLISIONMASK)
-			local v160_ = v126_.groundRaycastResult.y
-			local v161_ = v153_ - v157_
-			local v162_ = v156_ - v160_
-			local v163_ = v155_ - v159_
-			setDirection(self.rootNode, v161_, v162_, v163_, 0, 1, 0)
-			return
-		end
-		local v164_ = v126_.currentTurnSpeed
-		if math.abs(v164_) > 0.001 then
-			goto l22
-		end
+	local isOnGroundFloat = spec.interpolatorIsOnGround:getInterpolatedValue(self.networkTimeInterpolator:getAlpha())
+	spec.isOnGround = 0.9 < isOnGroundFloat
+	spec.isCloseToGround = false
+	if spec.isOnGround and (0.001 < math.abs(spec.currentSpeed) or 0.001 < math.abs(spec.currentTurnSpeed)) then
+		local posX, posY, posZ = getWorldTranslation(self.rootNode)
+		local dirX, dirY, dirZ = localDirectionToWorld(self.rootNode, 0, 0, 1)
+		local fx = posX + dirX * spec.frontCheckDistance
+		local fy = posY + dirY * spec.frontCheckDistance
+		local fz = posZ + dirZ * spec.frontCheckDistance
+		spec.groundRaycastResult.y = fy + Rideable.GROUND_RAYCAST_OFFSET - Rideable.GROUND_RAYCAST_MAXDISTANCE
+		raycastAll(fx, fy + Rideable.GROUND_RAYCAST_OFFSET, fz, 0, -1, 0, Rideable.GROUND_RAYCAST_MAXDISTANCE, "groundRaycastCallback", self, Rideable.GROUND_RAYCAST_COLLISIONMASK)
+		fy = spec.groundRaycastResult.y
+		local bx = posX + dirX * spec.backCheckDistance
+		local by = posY + dirY * spec.backCheckDistance
+		local bz = posZ + dirZ * spec.backCheckDistance
+		spec.groundRaycastResult.y = by + Rideable.GROUND_RAYCAST_OFFSET - Rideable.GROUND_RAYCAST_MAXDISTANCE
+		raycastAll(bx, by + Rideable.GROUND_RAYCAST_OFFSET, bz, 0, -1, 0, Rideable.GROUND_RAYCAST_MAXDISTANCE, "groundRaycastCallback", self, Rideable.GROUND_RAYCAST_COLLISIONMASK)
+		by = spec.groundRaycastResult.y
+		local dx = fx - bx
+		local dy = fy - by
+		local dz = fz - bz
+		setDirection(self.rootNode, dx, dy, dz, 0, 1, 0)
+		return
 	end
-	local v165_, v166_, v167_ = getWorldTranslation(self.rootNode)
-	v126_.groundRaycastResult.distance = Rideable.GROUND_RAYCAST_MAXDISTANCE
-	raycastAll(v165_, v166_, v167_, 0, -1, 0, Rideable.GROUND_RAYCAST_MAXDISTANCE, "groundRaycastCallback", self, Rideable.GROUND_RAYCAST_COLLISIONMASK)
-	v126_.isCloseToGround = v126_.groundRaycastResult.distance < 1.25
+	local posX, posY, posZ = getWorldTranslation(self.rootNode)
+	spec.groundRaycastResult.distance = Rideable.GROUND_RAYCAST_MAXDISTANCE
+	raycastAll(posX, posY, posZ, 0, -1, 0, Rideable.GROUND_RAYCAST_MAXDISTANCE, "groundRaycastCallback", self, Rideable.GROUND_RAYCAST_COLLISIONMASK)
+	spec.isCloseToGround = spec.groundRaycastResult.distance < 1.25
 end
-
--- Local values: spec, mission
 function Rideable:onDraw(isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v170_ = self.spec_rideable
-	if isActiveForInputIgnoreSelection and v170_.cluster ~= nil then
-		g_currentMission:addExtraPrintText(string.format("%s: %d %%", g_i18n:getText("infohud_riding"), v170_.cluster:getRidingFactor() * 100))
+	local spec = self.spec_rideable
+	if isActiveForInputIgnoreSelection and spec.cluster ~= nil then
+		local mission = g_currentMission
+		mission:addExtraPrintText(string.format("%s: %d %%", g_i18n:getText("infohud_riding"), spec.cluster:getRidingFactor() * 100))
 	end
 end
-
--- Local values: husbandry, spec, isInStable, cluster
 function Rideable:onSetBroken()
 	self:unlinkReins()
 	if self.isServer then
-		local v172_ = g_currentMission.husbandrySystem:getFirstAvailableHusbandry(self)
-		local v173_ = self.spec_rideable
-		local v174_
-		if v172_ == nil then
-			v174_ = false
-		else
-			v172_:addCluster((self:getCluster()))
+		local husbandry = g_currentMission.husbandrySystem:getFirstAvailableHusbandry(self)
+		local spec = self.spec_rideable
+		local isInStable = nil
+		if husbandry ~= nil then
+			local cluster = self:getCluster()
+			husbandry:addCluster(cluster)
 			self:delete()
-			v174_ = true
+			isInStable = true
+		else
+			isInStable = false
 		end
-		if v173_.lastOwner ~= nil then
-			v173_.lastOwner:sendEvent(RideableStableNotificationEvent.new(v174_, v173_.cluster:getName()), nil, true)
+		if spec.lastOwner ~= nil then
+			spec.lastOwner:sendEvent(RideableStableNotificationEvent.new(isInStable, spec.cluster:getName()), nil, true)
 		end
 	end
 end
-
--- Local values: spec, expectedMovementX, expectedMovementZ, expectedMovement, movementX, movementZ, movement
 function Rideable:testCCTMove(dt)
-	local v177_ = self.spec_rideable
-	local v178_ = v177_.currentCCTPosX
-	local v179_ = v177_.currentCCTPosY
-	local v180_ = v177_.currentCCTPosZ
-	v177_.lastCCTPosX = v178_
-	v177_.lastCCTPosY = v179_
-	v177_.lastCCTPosZ = v180_
-	local v181_, v182_, v183_ = getWorldTranslation(self.spec_cctdrivable.cctNode)
-	v177_.currentCCTPosX = v181_
-	v177_.currentCCTPosY = v182_
-	v177_.currentCCTPosZ = v183_
-	local v184_ = 0
-	local v185_ = 0
-	while v177_.cctMoveQueue[1] ~= nil and getIsPhysicsUpdateIndexSimulated(v177_.cctMoveQueue[1].physicsIndex) do
-		v184_ = v184_ + v177_.cctMoveQueue[1].moveX
-		v185_ = v185_ + v177_.cctMoveQueue[1].moveZ
-		table.remove(v177_.cctMoveQueue, 1)
+	local spec = self.spec_rideable
+	spec.lastCCTPosX = spec.currentCCTPosX
+	spec.lastCCTPosY = spec.currentCCTPosY
+	spec.lastCCTPosZ = spec.currentCCTPosZ
+	spec.currentCCTPosX, spec.currentCCTPosY, spec.currentCCTPosZ = getWorldTranslation(self.spec_cctdrivable.cctNode)
+	local expectedMovementX = 0
+	local expectedMovementZ = 0
+	while spec.cctMoveQueue[1] ~= nil do
+		if getIsPhysicsUpdateIndexSimulated(spec.cctMoveQueue[1].physicsIndex) then
+			expectedMovementX = expectedMovementX + spec.cctMoveQueue[1].moveX
+			expectedMovementZ = expectedMovementZ + spec.cctMoveQueue[1].moveZ
+			table.remove(spec.cctMoveQueue, 1)
+		end
 	end
-	local v186_ = v184_ * v184_ + v185_ * v185_
-	local v187_ = math.sqrt(v186_)
-	if 0.001 * dt < v187_ then
-		local v188_ = v177_.currentCCTPosX - v177_.lastCCTPosX
-		local v189_ = v177_.currentCCTPosZ - v177_.lastCCTPosZ
-		local v190_ = v188_ * v188_ + v189_ * v189_
-		if math.sqrt(v190_) <= v187_ * 0.7 and v177_.haltTimer <= 0 then
+	local expectedMovement = math.sqrt(expectedMovementX * expectedMovementX + expectedMovementZ * expectedMovementZ)
+	if 0.001 * dt < expectedMovement then
+		local movementX = spec.currentCCTPosX - spec.lastCCTPosX
+		local movementZ = spec.currentCCTPosZ - spec.lastCCTPosZ
+		local movement = math.sqrt(movementX * movementX + movementZ * movementZ)
+		if movement <= expectedMovement * 0.7 and spec.haltTimer <= 0 then
 			self:setCurrentGait(Rideable.GAITTYPES.STILL)
-			v177_.haltTimer = 900
-			if v177_.horseStopSound ~= nil then
-				g_soundManager:playSample(v177_.horseStopSound)
+			spec.haltTimer = 900
+			if spec.horseStopSound ~= nil then
+				g_soundManager:playSample(spec.horseStopSound)
 			end
 		end
 	end
 end
-
--- Local values: spec
 function Rideable:getIsRideableJumpAllowed(allowWhileJump)
-	local v193_ = self.spec_rideable
-	if v193_.isOnGround or allowWhileJump then
-		if v193_.inputValues.currentGait < Rideable.GAITTYPES.CANTER then
-			return false
-		else
-			return not self.isBroken
-		end
-	else
+	local spec = self.spec_rideable
+	if not spec.isOnGround and not allowWhileJump then
 		return false
 	end
-end
-
--- Local values: spec, total, _, jumpHeight, velY
-function Rideable:jump()
-	local v195_ = self.spec_rideable
-	if self.isServer then
-		local v196_, _ = g_farmManager:updateFarmStats(self:getOwnerFarmId(), "horseJumpCount", 1)
-		if v196_ ~= nil then
-			g_achievementManager:tryUnlock("HorseJumpsFirst", v196_)
-			g_achievementManager:tryUnlock("HorseJumps", v196_)
-		end
+	if spec.inputValues.currentGait < Rideable.GAITTYPES.CANTER then
+		return false
+	elseif self.isBroken then
+		return false
 	else
+		return true
+	end
+end
+function Rideable:jump()
+	local spec = self.spec_rideable
+	if not self.isServer then
 		g_client:getServerConnection():sendEvent(JumpEvent.new(self))
+	else
+		local total, _ = g_farmManager:updateFarmStats(self:getOwnerFarmId(), "horseJumpCount", 1)
+		if total ~= nil then
+			g_achievementManager:tryUnlock("HorseJumpsFirst", total)
+			g_achievementManager:tryUnlock("HorseJumps", total)
+		end
 	end
-	local v197_ = v195_.jumpHeight
-	if v195_.inputValues.currentGait == Rideable.GAITTYPES.CANTER then
-		v197_ = v197_ * 0.5
+	local jumpHeight = spec.jumpHeight
+	if spec.inputValues.currentGait == Rideable.GAITTYPES.CANTER then
+		jumpHeight = jumpHeight * 0.5
 	end
-	local v198_ = v195_.gravity
-	local v199_ = 2 * math.abs(v198_) * v197_
-	v195_.currentSpeedY = math.sqrt(v199_)
+	local velY = math.sqrt(2 * math.abs(spec.gravity) * jumpHeight)
+	spec.currentSpeedY = velY
 end
-
--- Local values: spec
 function Rideable:setCurrentGait(gait)
-	self.spec_rideable.inputValues.currentGait = gait
+	local spec = self.spec_rideable
+	spec.inputValues.currentGait = gait
 end
-
 function Rideable:getCurrentGait()
 	return self.spec_rideable.inputValues.currentGait
 end
-
--- Local values: spec
 function Rideable:setRideableSteer(axisSteer)
-	local v205_ = self.spec_rideable
+	local spec = self.spec_rideable
 	if axisSteer ~= 0 then
-		v205_.inputValues.axisSteer = -axisSteer
+		spec.inputValues.axisSteer = -axisSteer
 	end
 end
-
--- Local values: spec
 function Rideable:resetInputs()
-	self.spec_rideable.inputValues.axisSteer = 0
+	local spec = self.spec_rideable
+	spec.inputValues.axisSteer = 0
 end
-
--- Local values: spec, dtInSec, desiredSpeed, maxSpeedChange, speedChange, movement, gravitySpeedChange, movementY, slowestSpeed, fastestSpeed, maxTurnSpeedChange, desiredTurnSpeed, turnSpeedChange, movementX, movementZ
 function Rideable:updateKinematic(dt)
-	local v209_ = self.spec_rideable
-	local v210_ = dt * 0.001
-	local v211_ = v209_.topSpeeds[v209_.inputValues.currentGait]
-	local v212_ = v209_.maxAcceleration
-	if v211_ == 0 then
-		v212_ = v209_.maxDeceleration
+	local spec = self.spec_rideable
+	local dtInSec = dt * 0.001
+	local desiredSpeed = spec.topSpeeds[spec.inputValues.currentGait]
+	local maxSpeedChange = spec.maxAcceleration
+	if desiredSpeed == 0 then
+		maxSpeedChange = spec.maxDeceleration
 	end
-	local v213_ = v212_ * v210_
-	if not v209_.isOnGround then
-		v213_ = v213_ * 0.2
+	maxSpeedChange = maxSpeedChange * dtInSec
+	if not spec.isOnGround then
+		maxSpeedChange = maxSpeedChange * 0.2
 	end
-	local v214_ = v211_ - v209_.currentSpeed
-	local v215_ = -v213_
-	local v216_ = math.clamp(v214_, v215_, v213_)
-	if v209_.haltTimer <= 0 then
-		v209_.currentSpeed = v209_.currentSpeed + v216_
+	local speedChange = desiredSpeed - spec.currentSpeed
+	speedChange = math.clamp(speedChange, -maxSpeedChange, maxSpeedChange)
+	if spec.haltTimer <= 0 then
+		spec.currentSpeed = spec.currentSpeed + speedChange
 	else
-		v209_.currentSpeed = 0
+		spec.currentSpeed = 0
 	end
-	local v217_ = v209_.currentSpeed * v210_
-	if v209_.isOnGround and v209_.currentSpeedY < 0 then
-		v209_.currentSpeedY = 0
+	local movement = spec.currentSpeed * dtInSec
+	if spec.isOnGround and spec.currentSpeedY < 0 then
+		spec.currentSpeedY = 0
 	end
-	local v218_ = v209_.gravity * v210_
-	v209_.currentSpeedY = v209_.currentSpeedY + v218_
-	local v219_ = v209_.currentSpeedY * v210_
-	local v220_ = v209_.topSpeeds[Rideable.GAITTYPES.WALK]
-	local v221_ = v209_.topSpeeds[Rideable.GAITTYPES.MAX]
-	local v222_ = (v221_ - v209_.currentSpeed) / (v221_ - v220_)
-	local v223_ = (math.clamp(v222_, 0, 1) * 0.4 + 0.8) * v210_
-	if not v209_.isOnGround then
-		v223_ = v223_ * 0.25
+	local gravitySpeedChange = spec.gravity * dtInSec
+	spec.currentSpeedY = spec.currentSpeedY + gravitySpeedChange
+	local movementY = spec.currentSpeedY * dtInSec
+	local slowestSpeed = spec.topSpeeds[Rideable.GAITTYPES.WALK]
+	local fastestSpeed = spec.topSpeeds[Rideable.GAITTYPES.MAX]
+	local maxTurnSpeedChange = math.clamp((fastestSpeed - spec.currentSpeed) / (fastestSpeed - slowestSpeed), 0, 1) * 0.4 + 0.8
+	maxTurnSpeedChange = maxTurnSpeedChange * dtInSec
+	if not spec.isOnGround then
+		maxTurnSpeedChange = maxTurnSpeedChange * 0.25
 	end
-	if self.isServer and (not self:getIsEntered() and (not self:getIsControlled() and v209_.inputValues.axisSteer ~= 0)) then
-		v209_.inputValues.axisSteer = 0
+	if self.isServer and (not self:getIsEntered() and (not self:getIsControlled() and spec.inputValues.axisSteer ~= 0)) then
+		spec.inputValues.axisSteer = 0
 	end
-	local v224_ = v209_.maxTurnSpeed * v209_.inputValues.axisSteer - v209_.currentTurnSpeed
-	local v225_ = -v223_
-	local v226_ = math.clamp(v224_, v225_, v223_)
-	v209_.currentTurnSpeed = v209_.currentTurnSpeed + v226_
-	v209_.currentTurnAngle = v209_.currentTurnAngle + v209_.currentTurnSpeed * v210_ * (v217_ >= 0 and 1 or -1)
-	local v227_ = v209_.currentTurnAngle
-	local v228_ = math.sin(v227_) * v217_
-	local v229_ = v209_.currentTurnAngle
-	local v230_ = math.cos(v229_) * v217_
-	self:moveCCT(v228_, v219_, v230_, true)
-	local v231_ = v209_.cctMoveQueue
-	local v232_ = {
-		["physicsIndex"] = getPhysicsUpdateIndex(),
-		["moveX"] = v228_,
-		["moveY"] = v219_,
-		["moveZ"] = v230_,
-		["dt"] = dt
-	}
-	table.insert(v231_, v232_)
+	local desiredTurnSpeed = spec.maxTurnSpeed * spec.inputValues.axisSteer
+	local turnSpeedChange = desiredTurnSpeed - spec.currentTurnSpeed
+	turnSpeedChange = math.clamp(turnSpeedChange, -maxTurnSpeedChange, maxTurnSpeedChange)
+	spec.currentTurnSpeed = spec.currentTurnSpeed + turnSpeedChange
+	spec.currentTurnAngle = spec.currentTurnAngle + spec.currentTurnSpeed * dtInSec * (0 <= movement and 1 or -1)
+	local movementX = math.sin(spec.currentTurnAngle) * movement
+	local movementZ = math.cos(spec.currentTurnAngle) * movement
+	self:moveCCT(movementX, movementY, movementZ, true)
+	table.insert(spec.cctMoveQueue, { moveX = movementX, moveY = movementY, moveZ = movementZ, dt = dt, physicsIndex = getPhysicsUpdateIndex() })
 end
-
--- Local values: spec
 function Rideable:groundRaycastCallback(hitObjectId, x, y, z, distance)
-	local v237_ = self.spec_rideable
+	local spec = self.spec_rideable
 	if hitObjectId == self.spec_cctdrivable.cctNode then
 		return true
-	end
-	if getCollisionFilterMask(hitObjectId) == CollisionFlag.DEFAULT then
+	elseif getCollisionFilterMask(hitObjectId) == CollisionFlag.DEFAULT then
 		return true
+	else
+		spec.groundRaycastResult.y = y
+		spec.groundRaycastResult.object = hitObjectId
+		spec.groundRaycastResult.distance = distance
+		return false
 	end
-	v237_.groundRaycastResult.y = y
-	v237_.groundRaycastResult.object = hitObjectId
-	v237_.groundRaycastResult.distance = distance
-	return false
 end
-
--- Local values: spec, params, speed, smoothedSpeed, turnSpeed, interpQuat, lastDirX, _, lastDirZ, targetDirX, _, targetDirZ, lastTurnAngle, targetTurnAngle, turnAngleDiff, interpPos, speedY, leftRightWeight, closestGait, closestDiff, i, diff, minTurnRadius, _, parameter, isEntered, isControlled, character, _, parameter
 function Rideable:updateAnimation(dt)
-	local v240_ = self.spec_rideable
-	local v241_ = v240_.animationParameters
-	local v242_ = self.lastSignedSpeedReal * 1000
-	local v243_ = self.lastSignedSpeed * 1000
-	local v244_ = v240_.topSpeeds[Rideable.GAITTYPES.BACKWARDS]
-	local v245_ = v240_.topSpeeds[Rideable.GAITTYPES.MAX]
-	local v246_ = math.clamp(v242_, v244_, v245_)
-	local v247_ = v240_.topSpeeds[Rideable.GAITTYPES.BACKWARDS]
-	local v248_ = v240_.topSpeeds[Rideable.GAITTYPES.MAX]
-	local v249_ = math.clamp(v243_, v247_, v248_)
-	local v250_
+	local spec = self.spec_rideable
+	local params = spec.animationParameters
+	local speed = self.lastSignedSpeedReal * 1000
+	local smoothedSpeed = self.lastSignedSpeed * 1000
+	speed = math.clamp(speed, spec.topSpeeds[Rideable.GAITTYPES.BACKWARDS], spec.topSpeeds[Rideable.GAITTYPES.MAX])
+	smoothedSpeed = math.clamp(smoothedSpeed, spec.topSpeeds[Rideable.GAITTYPES.BACKWARDS], spec.topSpeeds[Rideable.GAITTYPES.MAX])
+	local turnSpeed = nil
 	if self.isServer then
-		v250_ = (v240_.interpolatorTurnAngle.targetValue - v240_.interpolatorTurnAngle.lastValue) / (self.networkTimeInterpolator.interpolationDuration * 0.001)
+		turnSpeed = (spec.interpolatorTurnAngle.targetValue - spec.interpolatorTurnAngle.lastValue) / (self.networkTimeInterpolator.interpolationDuration * 0.001)
 	else
-		local v251_ = self.components[1].networkInterpolators.quaternion
-		local v252_, _, v253_ = mathQuaternionRotateVector(v251_.lastQuaternionX, v251_.lastQuaternionY, v251_.lastQuaternionZ, v251_.lastQuaternionW, 0, 0, 1)
-		local v254_, _, v255_ = mathQuaternionRotateVector(v251_.targetQuaternionX, v251_.targetQuaternionY, v251_.targetQuaternionZ, v251_.targetQuaternionW, 0, 0, 1)
-		local v256_ = MathUtil.getYRotationFromDirection(v252_, v253_)
-		local v257_ = MathUtil.getYRotationFromDirection(v254_, v255_) - v256_
-		if v257_ > 3.141592653589793 then
-			v257_ = v257_ - 6.283185307179586
-		elseif v257_ < -3.141592653589793 then
-			v257_ = v257_ + 6.283185307179586
+		local interpQuat = self.components[1].networkInterpolators.quaternion
+		local lastDirX, _, lastDirZ = mathQuaternionRotateVector(interpQuat.lastQuaternionX, interpQuat.lastQuaternionY, interpQuat.lastQuaternionZ, interpQuat.lastQuaternionW, 0, 0, 1)
+		local targetDirX, _, targetDirZ = mathQuaternionRotateVector(interpQuat.targetQuaternionX, interpQuat.targetQuaternionY, interpQuat.targetQuaternionZ, interpQuat.targetQuaternionW, 0, 0, 1)
+		local lastTurnAngle = MathUtil.getYRotationFromDirection(lastDirX, lastDirZ)
+		local targetTurnAngle = MathUtil.getYRotationFromDirection(targetDirX, targetDirZ)
+		local turnAngleDiff = targetTurnAngle - lastTurnAngle
+		if 3.141592653589793 < turnAngleDiff then
+			turnAngleDiff = turnAngleDiff - 6.283185307179586
+		elseif turnAngleDiff < -3.141592653589793 then
+			turnAngleDiff = turnAngleDiff + 6.283185307179586
 		end
-		v250_ = v257_ / (self.networkTimeInterpolator.interpolationDuration * 0.001)
+		turnSpeed = turnAngleDiff / (self.networkTimeInterpolator.interpolationDuration * 0.001)
 	end
-	local v258_ = self.components[1].networkInterpolators.position
-	local v259_ = (v258_.targetPositionY - v258_.lastPositionY) / (self.networkTimeInterpolator.interpolationDuration * 0.001)
-	local v260_
-	if math.abs(v246_) > 0.01 then
-		local v261_ = Rideable.GAITTYPES.STILL
-		local v262_ = math.huge
-		for v263_ = 1, Rideable.GAITTYPES.MAX do
-			local v264_ = v246_ - v240_.topSpeeds[v263_]
-			local v265_ = math.abs(v264_)
-			if v265_ < v262_ then
-				v261_ = v263_
-				v262_ = v265_
+	local interpPos = self.components[1].networkInterpolators.position
+	local speedY = (interpPos.targetPositionY - interpPos.lastPositionY) / (self.networkTimeInterpolator.interpolationDuration * 0.001)
+	local leftRightWeight = nil
+	if 0.01 < math.abs(speed) then
+		local closestGait = Rideable.GAITTYPES.STILL
+		local closestDiff = math.huge
+		for i = 1, Rideable.GAITTYPES.MAX do
+			local diff = math.abs(speed - spec.topSpeeds[i])
+			if diff < closestDiff then
+				closestGait = i
+				closestDiff = diff
 			end
 		end
-		v260_ = v240_.minTurnRadius[v261_] * v250_ / v246_
+		local minTurnRadius = spec.minTurnRadius[closestGait]
+		leftRightWeight = minTurnRadius * turnSpeed / speed
 	else
-		v260_ = v250_ / v240_.maxTurnSpeed
+		leftRightWeight = turnSpeed / spec.maxTurnSpeed
 	end
-	if v260_ < v240_.smoothedLeftRightWeight then
-		local v266_ = v240_.smoothedLeftRightWeight - 0.002 * dt
-		v240_.smoothedLeftRightWeight = math.max(v260_, v266_, -1)
+	if leftRightWeight < spec.smoothedLeftRightWeight then
+		spec.smoothedLeftRightWeight = math.max(leftRightWeight, spec.smoothedLeftRightWeight - 0.002 * dt, -1)
 	else
-		local v267_ = v240_.smoothedLeftRightWeight + 0.002 * dt
-		v240_.smoothedLeftRightWeight = math.min(v260_, v267_, 1)
+		spec.smoothedLeftRightWeight = math.min(leftRightWeight, spec.smoothedLeftRightWeight + 0.002 * dt, 1)
 	end
-	v241_.forwardVelocity.value = v246_
-	v241_.absForwardVelocity.value = math.abs(v246_)
-	v241_.verticalVelocity.value = v259_
-	v241_.yawVelocity.value = v250_
-	v241_.absYawVelocity.value = math.abs(v250_)
-	v241_.leftRightWeight.value = v240_.smoothedLeftRightWeight
-	v241_.onGround.value = v240_.isOnGround
-	v241_.closeToGround.value = v240_.isCloseToGround
-	v241_.inWater.value = self.isInWater
-	v241_.halted.value = v240_.haltTimer > 0
-	v241_.smoothedForwardVelocity.value = v249_
-	v241_.absSmoothedForwardVelocity.value = math.abs(v249_)
-	if v240_.animationPlayer ~= nil then
-		for _, v268_ in pairs(v241_) do
-			if v268_.type == 0 then
-				setConditionalAnimationBoolValue(v240_.animationPlayer, v268_.id, v268_.value)
-			elseif v268_.type == 1 then
-				setConditionalAnimationFloatValue(v240_.animationPlayer, v268_.id, v268_.value)
+	params.forwardVelocity.value = speed
+	params.absForwardVelocity.value = math.abs(speed)
+	params.verticalVelocity.value = speedY
+	params.yawVelocity.value = turnSpeed
+	params.absYawVelocity.value = math.abs(turnSpeed)
+	params.leftRightWeight.value = spec.smoothedLeftRightWeight
+	params.onGround.value = spec.isOnGround
+	params.closeToGround.value = spec.isCloseToGround
+	params.inWater.value = self.isInWater
+	params.halted.value = 0 < spec.haltTimer
+	params.smoothedForwardVelocity.value = smoothedSpeed
+	params.absSmoothedForwardVelocity.value = math.abs(smoothedSpeed)
+	if spec.animationPlayer ~= nil then
+		for _, parameter in pairs(params) do
+			if parameter.type == 0 then
+				setConditionalAnimationBoolValue(spec.animationPlayer, parameter.id, parameter.value)
+			elseif parameter.type == 1 then
+				setConditionalAnimationFloatValue(spec.animationPlayer, parameter.id, parameter.value)
 			end
 		end
-		updateConditionalAnimation(v240_.animationPlayer, dt)
+		updateConditionalAnimation(spec.animationPlayer, dt)
 	end
-	local v269_
-	if self.getIsEntered == nil then
-		v269_ = false
-	else
-		v269_ = self:getIsEntered()
+	local isEntered = false
+	if self.getIsEntered ~= nil then
+		isEntered = self:getIsEntered()
 	end
-	local v270_
-	if self.getIsControlled == nil then
-		v270_ = false
-	else
-		v270_ = self:getIsControlled()
+	local isControlled = false
+	if self.getIsControlled ~= nil then
+		isControlled = self:getIsControlled()
 	end
-	if v269_ or v270_ then
-		local v271_ = self:getVehicleCharacter()
-		if v271_ ~= nil and (v271_.animationCharsetId ~= nil and v271_.animationPlayer ~= nil) then
-			for _, v272_ in pairs(v241_) do
-				if v272_.type == 0 then
-					setConditionalAnimationBoolValue(v271_.animationPlayer, v272_.id, v272_.value)
-				elseif v272_.type == 1 then
-					setConditionalAnimationFloatValue(v271_.animationPlayer, v272_.id, v272_.value)
+	if isEntered or isControlled then
+		local character = self:getVehicleCharacter()
+		if character ~= nil and (character.animationCharsetId ~= nil and character.animationPlayer ~= nil) then
+			for _, parameter in pairs(params) do
+				if parameter.type == 0 then
+					setConditionalAnimationBoolValue(character.animationPlayer, parameter.id, parameter.value)
+				elseif parameter.type == 1 then
+					setConditionalAnimationFloatValue(character.animationPlayer, parameter.id, parameter.value)
 				end
 			end
-			updateConditionalAnimation(v271_.animationPlayer, dt)
+			updateConditionalAnimation(character.animationPlayer, dt)
 		end
 	end
-	self:updateFootsteps(dt, (math.abs(v246_)))
+	self:updateFootsteps(dt, math.abs(speed))
 end
-
--- Local values: spec
 function Rideable:updateSound(dt)
-	local v275_ = self.spec_rideable
-	if v275_.horseBreathSoundsEffort ~= nil and (v275_.horseBreathSoundsNoEffort ~= nil and v275_.isOnGround) then
-		v275_.currentBreathTimer = v275_.currentBreathTimer - dt
-		local v276_ = v275_.currentBreathTimer
-		v275_.currentBreathTimer = math.max(v276_, 0)
-		if v275_.currentBreathTimer == 0 then
-			if v275_.inputValues.currentGait == Rideable.GAITTYPES.GALLOP then
-				g_soundManager:playSample(v275_.horseBreathSoundsEffort)
-				v275_.currentBreathTimer = v275_.horseBreathIntervalEffort
+	local spec = self.spec_rideable
+	if spec.horseBreathSoundsEffort ~= nil and (spec.horseBreathSoundsNoEffort ~= nil and spec.isOnGround) then
+		spec.currentBreathTimer = spec.currentBreathTimer - dt
+		spec.currentBreathTimer = math.max(spec.currentBreathTimer, 0)
+		if spec.currentBreathTimer == 0 then
+			if spec.inputValues.currentGait == Rideable.GAITTYPES.GALLOP then
+				g_soundManager:playSample(spec.horseBreathSoundsEffort)
+				spec.currentBreathTimer = spec.horseBreathIntervalEffort
 				return
 			end
-			g_soundManager:playSample(v275_.horseBreathSoundsNoEffort)
-			if v275_.inputValues.currentGait == Rideable.GAITTYPES.STILL then
-				v275_.currentBreathTimer = v275_.horseBreathMinIntervalIdle + math.random() * (v275_.horseBreathMaxIntervalIdle - v275_.horseBreathMinIntervalIdle)
+			g_soundManager:playSample(spec.horseBreathSoundsNoEffort)
+			if spec.inputValues.currentGait == Rideable.GAITTYPES.STILL then
+				spec.currentBreathTimer = spec.horseBreathMinIntervalIdle + math.random() * (spec.horseBreathMaxIntervalIdle - spec.horseBreathMinIntervalIdle)
 				return
 			end
-			v275_.currentBreathTimer = v275_.horseBreathIntervalNoEffort
+			spec.currentBreathTimer = spec.horseBreathIntervalNoEffort
 		end
 	end
 end
-
--- Local values: spec
 function Rideable:setWorldPositionQuat(x, y, z, qx, qy, qz, qw, changeInterp)
 	setWorldTranslation(self.rootNode, x, y, z)
 	setWorldQuaternion(self.rootNode, qx, qy, qz, qw)
 	if changeInterp then
-		local v286_ = self.spec_rideable
-		v286_.networkInterpolators.position:setPosition(x, y, z)
-		v286_.networkInterpolators.quaternion:setQuaternion(qx, qy, qz, qw)
+		local spec = self.spec_rideable
+		spec.networkInterpolators.position:setPosition(x, y, z)
+		spec.networkInterpolators.quaternion:setQuaternion(qx, qy, qz, qw)
 	end
 end
-
--- Local values: spec, _, actionEventId
 function Rideable:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v289_ = self.spec_rideable
-		self:clearActionEventsTable(v289_.actionEvents)
+		local spec = self.spec_rideable
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			local _, v290_ = self:addActionEvent(v289_.actionEvents, InputAction.AXIS_ACCELERATE_VEHICLE, self, Rideable.actionEventAccelerate, false, true, false, true, nil)
-			g_inputBinding:setActionEventTextPriority(v290_, GS_PRIO_VERY_HIGH)
-			g_inputBinding:setActionEventTextVisibility(v290_, false)
-			v289_.acceletateEventId = v290_
-			local _, v291_ = self:addActionEvent(v289_.actionEvents, InputAction.AXIS_BRAKE_VEHICLE, self, Rideable.actionEventBrake, false, true, false, true, nil)
-			g_inputBinding:setActionEventTextPriority(v291_, GS_PRIO_HIGH)
-			g_inputBinding:setActionEventTextVisibility(v291_, false)
-			v289_.brakeEventId = v291_
-			local _, v292_ = self:addActionEvent(v289_.actionEvents, InputAction.AXIS_MOVE_SIDE_VEHICLE, self, Rideable.actionEventSteer, false, false, true, true, nil)
-			g_inputBinding:setActionEventTextVisibility(v292_, false)
-			v289_.steerEventId = v292_
-			local _, v293_ = self:addActionEvent(v289_.actionEvents, InputAction.JUMP, self, Rideable.actionEventJump, false, true, false, true, nil)
-			g_inputBinding:setActionEventTextPriority(v293_, GS_PRIO_VERY_LOW)
-			g_inputBinding:setActionEventTextVisibility(v293_, false)
-			v289_.jumpEventId = v293_
+			local _ = nil
+			local actionEventId = nil
+			_, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.AXIS_ACCELERATE_VEHICLE, self, Rideable.actionEventAccelerate, false, true, false, true, nil)
+			g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_VERY_HIGH)
+			g_inputBinding:setActionEventTextVisibility(actionEventId, false)
+			spec.acceletateEventId = actionEventId
+			_, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.AXIS_BRAKE_VEHICLE, self, Rideable.actionEventBrake, false, true, false, true, nil)
+			g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
+			g_inputBinding:setActionEventTextVisibility(actionEventId, false)
+			spec.brakeEventId = actionEventId
+			_, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.AXIS_MOVE_SIDE_VEHICLE, self, Rideable.actionEventSteer, false, false, true, true, nil)
+			g_inputBinding:setActionEventTextVisibility(actionEventId, false)
+			spec.steerEventId = actionEventId
+			_, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.JUMP, self, Rideable.actionEventJump, false, true, false, true, nil)
+			g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_VERY_LOW)
+			g_inputBinding:setActionEventTextVisibility(actionEventId, false)
+			spec.jumpEventId = actionEventId
 		end
 	end
 end
-
--- Local values: spec
 function Rideable:onEnterVehicle(isControlling)
-	local v295_ = self.spec_rideable
+	local spec = self.spec_rideable
 	if self.isClient then
-		v295_.playerToEnter = nil
-		v295_.checkPlayerToEnter = false
-		v295_.currentSpeed = 0
-		v295_.currentTurnSpeed = 0
+		spec.playerToEnter = nil
+		spec.checkPlayerToEnter = false
+		spec.currentSpeed = 0
+		spec.currentTurnSpeed = 0
 		self:setCurrentGait(Rideable.GAITTYPES.STILL)
-		v295_.isOnGround = false
+		spec.isOnGround = false
 	end
 	if self.isServer then
-		v295_.lastOwner = self:getOwnerConnection()
-		v295_.doHusbandryCheck = 0
+		spec.lastOwner = self:getOwnerConnection()
+		spec.doHusbandryCheck = 0
 	end
 end
-
--- Local values: spec, key, parameter, mission
 function Rideable:onVehicleCharacterChanged(character)
 	if character ~= nil and self.isClient then
-		local v298_ = self.spec_rideable
-		link(character.playerModel.thirdPersonLeftHandNode, v298_.leftReinNode)
-		link(character.playerModel.thirdPersonRightHandNode, v298_.rightReinNode)
-		setVisibility(v298_.reinsNode, true)
+		local spec = self.spec_rideable
+		link(character.playerModel.thirdPersonLeftHandNode, spec.leftReinNode)
+		link(character.playerModel.thirdPersonRightHandNode, spec.rightReinNode)
+		setVisibility(spec.reinsNode, true)
 		if character ~= nil and (character.animationCharsetId ~= nil and character.animationPlayer ~= nil) then
-			for v299_, v300_ in pairs(v298_.animationParameters) do
-				conditionalAnimationRegisterParameter(character.animationPlayer, v300_.id, v300_.type, v299_)
+			for key, parameter in pairs(spec.animationParameters) do
+				conditionalAnimationRegisterParameter(character.animationPlayer, parameter.id, parameter.type, key)
 			end
 			initConditionalAnimation(character.animationPlayer, character.animationCharsetId, self.configFileName, "vehicle.riderConditionalAnimation")
-			setConditionalAnimationSpecificParameterIds(character.animationPlayer, v298_.animationParameters.absForwardVelocity.id, v298_.animationParameters.absYawVelocity.id)
+			setConditionalAnimationSpecificParameterIds(character.animationPlayer, spec.animationParameters.absForwardVelocity.id, spec.animationParameters.absYawVelocity.id)
 			self:setEquipmentVisibility(true)
 			conditionalAnimationZeroiseTrackTimes(character.animationPlayer)
-			conditionalAnimationZeroiseTrackTimes(v298_.animationPlayer)
+			conditionalAnimationZeroiseTrackTimes(spec.animationPlayer)
 		end
 		if self:getIsControlled() then
-			local v301_ = g_currentMission
-			if v301_.hud.fadeScreenElement:getAlpha() > 0 then
-				v301_:fadeScreen(-1, v298_.fadeDuration, self.endFade, self)
+			local mission = g_currentMission
+			if 0 < mission.hud.fadeScreenElement:getAlpha() then
+				mission:fadeScreen(-1, spec.fadeDuration, self.endFade, self)
 			end
 		end
 	end
 end
-
--- Local values: spec, mission
 function Rideable:onLeaveVehicle()
-	local v303_ = self.spec_rideable
+	local spec = self.spec_rideable
 	if self.isClient then
-		v303_.inputValues.currentGait = Rideable.GAITTYPES.STILL
+		spec.inputValues.currentGait = Rideable.GAITTYPES.STILL
 		self:resetInputs()
-		local v304_ = g_currentMission
-		if v304_.hud.fadeScreenElement:getAlpha() > 0 then
-			v304_:fadeScreen(-1, v303_.fadeDuration, self.endFade, self)
+		local mission = g_currentMission
+		if 0 < mission.hud.fadeScreenElement:getAlpha() then
+			mission:fadeScreen(-1, spec.fadeDuration, self.endFade, self)
 		end
 	end
 	if self.isServer then
-		v303_.doHusbandryCheck = 5000
+		spec.doHusbandryCheck = 5000
 	end
-	v303_.leaveTimer = 15000
+	spec.leaveTimer = 15000
 end
-
--- Local values: spec
 function Rideable:unlinkReins()
 	if self.isClient then
-		local v306_ = self.spec_rideable
-		link(v306_.leftReinParentNode, v306_.leftReinNode)
-		link(v306_.rightReinParentNode, v306_.rightReinNode)
-		setVisibility(v306_.reinsNode, false)
+		local spec = self.spec_rideable
+		link(spec.leftReinParentNode, spec.leftReinNode)
+		link(spec.rightReinParentNode, spec.rightReinNode)
+		setVisibility(spec.reinsNode, false)
 	end
 end
-
--- Local values: spec
 function Rideable:setEquipmentVisibility(val)
 	if self.isClient then
-		local v309_ = self.spec_rideable
-		if v309_.equipmentNode ~= nil then
-			setVisibility(v309_.equipmentNode, val)
-			setVisibility(v309_.reinsNode, val)
+		local spec = self.spec_rideable
+		if spec.equipmentNode ~= nil then
+			setVisibility(spec.equipmentNode, val)
+			setVisibility(spec.reinsNode, val)
 		end
 	end
 end
-
--- Local values: spec, enterable
 function Rideable:actionEventAccelerate(actionName, inputValue, callbackState, isAnalog)
-	local v311_ = self.spec_rideable
-	local v312_ = self.spec_enterable
-	if v312_.isEntered and (v312_.isControlled and (v311_.haltTimer <= 0 and v311_.isOnGround)) then
-		local v313_ = self:getCurrentGait() + 1
-		local v314_ = Rideable.GAITTYPES.MAX
-		self:setCurrentGait((math.min(v313_, v314_)))
+	local spec = self.spec_rideable
+	local enterable = self.spec_enterable
+	if enterable.isEntered and (enterable.isControlled and (spec.haltTimer <= 0 and spec.isOnGround)) then
+		self:setCurrentGait(math.min(self:getCurrentGait() + 1, Rideable.GAITTYPES.MAX))
 	end
 end
-
--- Local values: spec
 function Rideable:actionEventBrake(actionName, inputValue, callbackState, isAnalog)
-	local v316_ = self.spec_rideable
-	if self:getIsEntered() and (v316_.haltTimer <= 0 and v316_.isOnGround) then
-		local v317_ = self:getCurrentGait() - 1
-		self:setCurrentGait((math.max(v317_, 1)))
+	local spec = self.spec_rideable
+	if self:getIsEntered() and (spec.haltTimer <= 0 and spec.isOnGround) then
+		self:setCurrentGait(math.max(self:getCurrentGait() - 1, 1))
 	end
 end
-
--- Local values: spec
 function Rideable:actionEventSteer(actionName, inputValue, callbackState, isAnalog)
-	local v320_ = self.spec_rideable
-	if self:getIsEntered() and v320_.haltTimer <= 0 then
+	local spec = self.spec_rideable
+	if self:getIsEntered() and spec.haltTimer <= 0 then
 		self:setRideableSteer(inputValue)
 	end
 end
-
 function Rideable:actionEventJump(actionName, inputValue, callbackState, isAnalog)
 	if self:getIsRideableJumpAllowed() then
 		self:jump()
 	end
 end
-
--- Local values: spec, epsilon, dirX, _, dirZ, rotY, k, hoofInfo, posX, posY, posZ, hitTerrain, terrainY, onGround, r, g, b, _, _, sample
 function Rideable:updateFootsteps(dt, speed)
-	local v324_ = self.spec_rideable
-	if speed > 0.001 then
-		local v325_, _, v326_ = localDirectionToWorld(self.rootNode, 0, 0, 1)
-		local v327_ = MathUtil.getYRotationFromDirection(v325_, v326_)
-		for _, v328_ in pairs(v324_.hooves) do
-			local v329_, v330_, v331_ = getWorldTranslation(v328_.node)
-			v324_.groundRaycastResult.object = 0
-			v324_.groundRaycastResult.y = v330_ - 1
-			raycastClosest(v329_, v330_ + Rideable.GROUND_RAYCAST_OFFSET, v331_, 0, -1, 0, Rideable.GROUND_RAYCAST_MAXDISTANCE, "groundRaycastCallback", self, Rideable.GROUND_RAYCAST_COLLISIONMASK)
-			local v332_ = v324_.groundRaycastResult.object == g_terrainNode
-			local v333_ = v324_.groundRaycastResult.y
-			local v334_ = v330_ - v333_ < 0.05
-			if v334_ and not v328_.onGround then
-				local v335_, v336_, v337_, _, _ = getTerrainAttributesAtWorldPos(g_terrainNode, v329_, v330_, v331_, true, true, true, true, false)
-				v328_.onGround = true
-				if v324_.inputValues.currentGait < Rideable.GAITTYPES.CANTER then
-					if v328_.psSlow ~= nil and v328_.psSlow.emitterShape ~= nil then
-						ParticleUtil.resetNumOfEmittedParticles(v328_.psSlow)
-						ParticleUtil.setEmittingState(v328_.psSlow, true)
-						setShaderParameter(v328_.psSlow.shape, "psColor", v335_, v336_, v337_, 1, false)
-						setWorldTranslation(v328_.psSlow.emitterShape, v329_, v333_, v331_)
-						setWorldRotation(v328_.psSlow.emitterShape, 0, v327_, 0)
+	local spec = self.spec_rideable
+	local epsilon = 0.001
+	if epsilon < speed then
+		local dirX, _, dirZ = localDirectionToWorld(self.rootNode, 0, 0, 1)
+		local rotY = MathUtil.getYRotationFromDirection(dirX, dirZ)
+		for k, hoofInfo in pairs(spec.hooves) do
+			local posX, posY, posZ = getWorldTranslation(hoofInfo.node)
+			spec.groundRaycastResult.object = 0
+			spec.groundRaycastResult.y = posY - 1
+			raycastClosest(posX, posY + Rideable.GROUND_RAYCAST_OFFSET, posZ, 0, -1, 0, Rideable.GROUND_RAYCAST_MAXDISTANCE, "groundRaycastCallback", self, Rideable.GROUND_RAYCAST_COLLISIONMASK)
+			local hitTerrain = spec.groundRaycastResult.object == g_terrainNode
+			local terrainY = spec.groundRaycastResult.y
+			local onGround = posY - terrainY < 0.05
+			if onGround then
+				if not hoofInfo.onGround then
+					local r, g, b, _, _ = getTerrainAttributesAtWorldPos(g_terrainNode, posX, posY, posZ, true, true, true, true, false)
+					hoofInfo.onGround = true
+					if spec.inputValues.currentGait < Rideable.GAITTYPES.CANTER then
+						if hoofInfo.psSlow ~= nil and hoofInfo.psSlow.emitterShape ~= nil then
+							ParticleUtil.resetNumOfEmittedParticles(hoofInfo.psSlow)
+							ParticleUtil.setEmittingState(hoofInfo.psSlow, true)
+							setShaderParameter(hoofInfo.psSlow.shape, "psColor", r, g, b, 1, false)
+							setWorldTranslation(hoofInfo.psSlow.emitterShape, posX, terrainY, posZ)
+							setWorldRotation(hoofInfo.psSlow.emitterShape, 0, rotY, 0)
+						end
+					elseif hoofInfo.psFast ~= nil then
+						if hoofInfo.psFast.emitterShape ~= nil then
+							ParticleUtil.resetNumOfEmittedParticles(hoofInfo.psFast)
+							ParticleUtil.setEmittingState(hoofInfo.psFast, true)
+							setShaderParameter(hoofInfo.psFast.shape, "psColor", r, g, b, 1, false)
+							setWorldTranslation(hoofInfo.psFast.emitterShape, posX, terrainY, posZ)
+							setWorldRotation(hoofInfo.psSlow.emitterShape, 0, rotY, 0)
+						end
 					end
-				elseif v328_.psFast ~= nil and v328_.psFast.emitterShape ~= nil then
-					ParticleUtil.resetNumOfEmittedParticles(v328_.psFast)
-					ParticleUtil.setEmittingState(v328_.psFast, true)
-					setShaderParameter(v328_.psFast.shape, "psColor", v335_, v336_, v337_, 1, false)
-					setWorldTranslation(v328_.psFast.emitterShape, v329_, v333_, v331_)
-					setWorldRotation(v328_.psSlow.emitterShape, 0, v327_, 0)
-				end
-				local v338_ = self:getHoofSurfaceSound(v329_, v330_, v331_, v332_)
-				if v338_ ~= nil then
-					v328_.sampleDebug = string.format("%s - %s", v338_.sampleName, v338_.filename)
-					g_soundManager:playSample(v338_)
-				end
-			elseif not v334_ and v328_.onGround then
-				v328_.onGround = false
-				if v328_.psSlow ~= nil and v328_.psSlow.emitterShape ~= nil then
-					ParticleUtil.setEmittingState(v328_.psSlow, false)
-				end
-				if v328_.psFast ~= nil and v328_.psFast.emitterShape ~= nil then
-					ParticleUtil.setEmittingState(v328_.psFast, false)
+					local sample = self:getHoofSurfaceSound(posX, posY, posZ, hitTerrain)
+					if sample == nil then
+						continue
+					end
+					hoofInfo.sampleDebug = string.format("%s - %s", sample.sampleName, sample.filename)
+					g_soundManager:playSample(sample)
+				else
+					if onGround then
+						continue
+					end
+					if hoofInfo.onGround then
+						hoofInfo.onGround = false
+						if hoofInfo.psSlow ~= nil and hoofInfo.psSlow.emitterShape ~= nil then
+							ParticleUtil.setEmittingState(hoofInfo.psSlow, false)
+						end
+						if hoofInfo.psFast == nil or hoofInfo.psFast.emitterShape == nil then
+							continue
+						end
+						ParticleUtil.setEmittingState(hoofInfo.psFast, false)
+					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, ridingTime, changeDelta, speedFactor, gaitType, distance
 function Rideable:updateRiding(dt)
-	local v341_ = self.spec_rideable
-	if v341_.cluster ~= nil and v341_.currentSpeed ~= 0 then
-		local v342_ = v341_.cluster:getDailyRidingTime() / 100
-		local v343_ = v341_.inputValues.currentGait
-		local v344_ = v343_ == Rideable.GAITTYPES.CANTER and 2 or (v343_ == Rideable.GAITTYPES.GALLOP and 3 or 1)
-		v341_.ridingTimer = v341_.ridingTimer + dt * v344_
-		if v342_ < v341_.ridingTimer then
-			v341_.ridingTimer = 0
-			v341_.cluster:changeRiding(1)
-			v341_.cluster:changeDirt(1)
+	local spec = self.spec_rideable
+	if spec.cluster ~= nil and spec.currentSpeed ~= 0 then
+		local ridingTime = spec.cluster:getDailyRidingTime()
+		local changeDelta = ridingTime / 100
+		local speedFactor = 1
+		local gaitType = spec.inputValues.currentGait
+		if gaitType == Rideable.GAITTYPES.CANTER then
+			speedFactor = 2
+		elseif gaitType == Rideable.GAITTYPES.GALLOP then
+			speedFactor = 3
 		end
-		if self.lastMovedDistance > 0.001 then
-			local v345_ = self.lastMovedDistance * 0.001
-			g_farmManager:updateFarmStats(self:getOwnerFarmId(), "horseDistance", v345_)
+		spec.ridingTimer = spec.ridingTimer + dt * speedFactor
+		if changeDelta < spec.ridingTimer then
+			spec.ridingTimer = 0
+			spec.cluster:changeRiding(1)
+			spec.cluster:changeDirt(1)
+		end
+		if 0.001 < self.lastMovedDistance then
+			local distance = self.lastMovedDistance * 0.001
+			g_farmManager:updateFarmStats(self:getOwnerFarmId(), "horseDistance", distance)
 		end
 		self:updateDirt()
 	end
 end
-
--- Local values: spec, mission, snowHeight, isOnField, _, _, _, _, _, materialId
 function Rideable:getHoofSurfaceSound(x, y, z, hitTerrain)
-	local v351_ = self.spec_rideable
-	if not hitTerrain then
-		return v351_.surfaceNameToSound.asphalt
+	local spec = self.spec_rideable
+	if hitTerrain then
+		local mission = g_currentMission
+		local snowHeight = mission.snowSystem:getSnowHeightAtArea(x, z, x + 0.1, z + 0.1, x + 0.1, z)
+		if 0 < snowHeight then
+			return spec.surfaceNameToSound.snow
+		end
+		local isOnField, _ = FSDensityMapUtil.getFieldDataAtWorldPosition(x, y, z)
+		if isOnField then
+			return spec.surfaceNameToSound.field
+		elseif self.isInShallowWater then
+			return spec.surfaceNameToSound.shallowWater
+		elseif self.isInMediumWater then
+			return spec.surfaceNameToSound.mediumWater
+		else
+			local _, _, _, _, materialId = getTerrainAttributesAtWorldPos(g_terrainNode, x, y, z, true, true, true, true, false)
+			return spec.surfaceIdToSound[materialId]
+		end
 	end
-	if g_currentMission.snowSystem:getSnowHeightAtArea(x, z, x + 0.1, z + 0.1, x + 0.1, z) > 0 then
-		return v351_.surfaceNameToSound.snow
-	end
-	local v352_, _ = FSDensityMapUtil.getFieldDataAtWorldPosition(x, y, z)
-	if v352_ then
-		return v351_.surfaceNameToSound.field
-	end
-	if self.isInShallowWater then
-		return v351_.surfaceNameToSound.shallowWater
-	end
-	if self.isInMediumWater then
-		return v351_.surfaceNameToSound.mediumWater
-	end
-	local _, _, _, _, v353_ = getTerrainAttributesAtWorldPos(g_terrainNode, x, y, z, true, true, true, true, false)
-	return v351_.surfaceIdToSound[v353_]
+	return spec.surfaceNameToSound.asphalt
 end
-
 function Rideable:getPosition()
 	return getWorldTranslation(self.rootNode)
 end
-
 function Rideable:getRotation()
 	return getWorldRotation(self.rootNode)
 end
-
--- Local values: spec
 function Rideable:setPlayerToEnter(player)
-	local v358_ = self.spec_rideable
-	v358_.playerToEnter = player
-	v358_.checkPlayerToEnter = true
+	local spec = self.spec_rideable
+	spec.playerToEnter = player
+	spec.checkPlayerToEnter = true
 	self:raiseActive()
 end
-
--- Local values: spec
 function Rideable:getName(superFunc)
-	return self.spec_rideable.cluster:getName()
+	local spec = self.spec_rideable
+	return spec.cluster:getName()
 end
-
 function Rideable:getFullName(superFunc)
 	return self:getName()
 end
-
 function Rideable:getCanBeReset(superFunc)
 	return false
 end
-
 function Rideable:getCanBeSold(superFunc)
 	return false
 end
-
 function Rideable:getMapHotspotRotation(superFunc, isPlayerHotspot)
-	return not isPlayerHotspot and 0 or superFunc(self, isPlayerHotspot)
+	if not isPlayerHotspot then
+		return 0
+	else
+		return superFunc(self, isPlayerHotspot)
+	end
 end
-
 function Rideable:getShowInVehiclesOverview(superFunc)
 	return false
 end
-
--- Local values: spec
 function Rideable:periodChanged(superFunc)
 	superFunc(self)
-	local v366_ = self.spec_rideable
-	if v366_.cluster ~= nil then
-		v366_.cluster:onPeriodChanged()
+	local spec = self.spec_rideable
+	if spec.cluster ~= nil then
+		spec.cluster:onPeriodChanged()
 	end
 end
-
--- Local values: spec
 function Rideable:dayChanged(superFunc)
 	superFunc(self)
-	local v369_ = self.spec_rideable
-	if v369_.cluster ~= nil then
-		v369_.cluster:onDayChanged()
+	local spec = self.spec_rideable
+	if spec.cluster ~= nil then
+		spec.cluster:onDayChanged()
 	end
 end
-
--- Local values: imageFilename, cluster, mission, visual
 function Rideable:getImageFilename(superFunc)
-	local v372_ = superFunc(self)
-	local v373_ = self:getCluster()
-	if v373_ ~= nil then
-		v372_ = g_currentMission.animalSystem:getVisualByAge(v373_.subTypeIndex, v373_:getAge()).store.imageFilename
+	local imageFilename = superFunc(self)
+	local cluster = self:getCluster()
+	if cluster ~= nil then
+		local mission = g_currentMission
+		local visual = mission.animalSystem:getVisualByAge(cluster.subTypeIndex, cluster:getAge())
+		imageFilename = visual.store.imageFilename
 	end
-	return v372_
+	return imageFilename
 end
-
 function Rideable:deleteVehicleCharacter(superFunc)
 	self:setEquipmentVisibility(false)
 	self:unlinkReins()
 	superFunc(self)
 end
-
--- Local values: spec, enterText
 function Rideable:getInteractionHelp(superFunc)
-	if self.interactionFlag ~= Vehicle.INTERACTION_FLAG_ENTERABLE then
+	if self.interactionFlag == Vehicle.INTERACTION_FLAG_ENTERABLE then
+		local spec = self.spec_rideable
+		local enterText = string.format(g_i18n:getText("action_rideAnimal"), spec.cluster:getName())
+		return enterText
+	else
 		return superFunc(self)
 	end
-	local v378_ = self.spec_rideable
-	return string.format(g_i18n:getText("action_rideAnimal"), v378_.cluster:getName())
 end
-
--- Local values: spec
 function Rideable:showInfo(superFunc, box)
-	local v382_ = self.spec_rideable
-	if v382_.cluster ~= nil then
-		v382_.cluster:showInfo(box)
+	local spec = self.spec_rideable
+	if spec.cluster ~= nil then
+		spec.cluster:showInfo(box)
 	end
 	superFunc(self, box)
 end
-
--- Local values: spec, k, hoofInfo
 function Rideable:updateDebugValues(values)
-	local v385_ = self.spec_rideable
-	for v386_, v387_ in pairs(v385_.hooves) do
-		local v388_ = {
-			["name"] = "hoof sample " .. v386_,
-			["value"] = v387_.sampleDebug
-		}
-		table.insert(values, v388_)
+	local spec = self.spec_rideable
+	for k, hoofInfo in pairs(spec.hooves) do
+		table.insert(values, { name = "hoof sample " .. k, value = hoofInfo.sampleDebug })
 	end
 end
-
--- Local values: spec
 function Rideable:updateInputText()
-	local v390_ = self.spec_rideable
-	if v390_.inputValues.currentGait == Rideable.GAITTYPES.BACKWARDS then
-		g_inputBinding:setActionEventText(v390_.acceletateEventId, g_i18n:getText("action_stop"))
-		g_inputBinding:setActionEventActive(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventActive(v390_.brakeEventId, false)
-		g_inputBinding:setActionEventTextVisibility(v390_.brakeEventId, false)
-		g_inputBinding:setActionEventActive(v390_.jumpEventId, false)
-		g_inputBinding:setActionEventTextVisibility(v390_.jumpEventId, false)
-		return
-	elseif v390_.inputValues.currentGait == Rideable.GAITTYPES.STILL then
-		g_inputBinding:setActionEventText(v390_.acceletateEventId, g_i18n:getText("action_walk"))
-		g_inputBinding:setActionEventActive(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventText(v390_.brakeEventId, g_i18n:getText("action_walkBackwards"))
-		g_inputBinding:setActionEventActive(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventActive(v390_.jumpEventId, false)
-		g_inputBinding:setActionEventTextVisibility(v390_.jumpEventId, false)
-		return
-	elseif v390_.inputValues.currentGait == Rideable.GAITTYPES.WALK then
-		g_inputBinding:setActionEventText(v390_.acceletateEventId, g_i18n:getText("action_trot"))
-		g_inputBinding:setActionEventActive(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventText(v390_.brakeEventId, g_i18n:getText("action_stop"))
-		g_inputBinding:setActionEventActive(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventActive(v390_.jumpEventId, false)
-		g_inputBinding:setActionEventTextVisibility(v390_.jumpEventId, false)
-		return
-	elseif v390_.inputValues.currentGait == Rideable.GAITTYPES.TROT then
-		g_inputBinding:setActionEventText(v390_.acceletateEventId, g_i18n:getText("action_canter"))
-		g_inputBinding:setActionEventActive(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventText(v390_.brakeEventId, g_i18n:getText("action_walk"))
-		g_inputBinding:setActionEventActive(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventActive(v390_.jumpEventId, false)
-		g_inputBinding:setActionEventTextVisibility(v390_.jumpEventId, false)
-		return
-	elseif v390_.inputValues.currentGait == Rideable.GAITTYPES.CANTER then
-		g_inputBinding:setActionEventText(v390_.acceletateEventId, g_i18n:getText("action_gallop"))
-		g_inputBinding:setActionEventActive(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.acceletateEventId, true)
-		g_inputBinding:setActionEventText(v390_.brakeEventId, g_i18n:getText("action_trot"))
-		g_inputBinding:setActionEventActive(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventText(v390_.jumpEventId, g_i18n:getText("input_JUMP"))
-		g_inputBinding:setActionEventActive(v390_.jumpEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.jumpEventId, true)
-	elseif v390_.inputValues.currentGait == Rideable.GAITTYPES.GALLOP then
-		g_inputBinding:setActionEventActive(v390_.acceletateEventId, false)
-		g_inputBinding:setActionEventTextVisibility(v390_.acceletateEventId, false)
-		g_inputBinding:setActionEventText(v390_.brakeEventId, g_i18n:getText("action_canter"))
-		g_inputBinding:setActionEventActive(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.brakeEventId, true)
-		g_inputBinding:setActionEventText(v390_.jumpEventId, g_i18n:getText("input_JUMP"))
-		g_inputBinding:setActionEventActive(v390_.jumpEventId, true)
-		g_inputBinding:setActionEventTextVisibility(v390_.jumpEventId, true)
+	local spec = self.spec_rideable
+	if spec.inputValues.currentGait == Rideable.GAITTYPES.BACKWARDS then
+		g_inputBinding:setActionEventText(spec.acceletateEventId, g_i18n:getText("action_stop"))
+		g_inputBinding:setActionEventActive(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventActive(spec.brakeEventId, false)
+		g_inputBinding:setActionEventTextVisibility(spec.brakeEventId, false)
+		g_inputBinding:setActionEventActive(spec.jumpEventId, false)
+		g_inputBinding:setActionEventTextVisibility(spec.jumpEventId, false)
+	elseif spec.inputValues.currentGait == Rideable.GAITTYPES.STILL then
+		g_inputBinding:setActionEventText(spec.acceletateEventId, g_i18n:getText("action_walk"))
+		g_inputBinding:setActionEventActive(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventText(spec.brakeEventId, g_i18n:getText("action_walkBackwards"))
+		g_inputBinding:setActionEventActive(spec.brakeEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.brakeEventId, true)
+		g_inputBinding:setActionEventActive(spec.jumpEventId, false)
+		g_inputBinding:setActionEventTextVisibility(spec.jumpEventId, false)
+	elseif spec.inputValues.currentGait == Rideable.GAITTYPES.WALK then
+		g_inputBinding:setActionEventText(spec.acceletateEventId, g_i18n:getText("action_trot"))
+		g_inputBinding:setActionEventActive(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventText(spec.brakeEventId, g_i18n:getText("action_stop"))
+		g_inputBinding:setActionEventActive(spec.brakeEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.brakeEventId, true)
+		g_inputBinding:setActionEventActive(spec.jumpEventId, false)
+		g_inputBinding:setActionEventTextVisibility(spec.jumpEventId, false)
+	elseif spec.inputValues.currentGait == Rideable.GAITTYPES.TROT then
+		g_inputBinding:setActionEventText(spec.acceletateEventId, g_i18n:getText("action_canter"))
+		g_inputBinding:setActionEventActive(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventText(spec.brakeEventId, g_i18n:getText("action_walk"))
+		g_inputBinding:setActionEventActive(spec.brakeEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.brakeEventId, true)
+		g_inputBinding:setActionEventActive(spec.jumpEventId, false)
+		g_inputBinding:setActionEventTextVisibility(spec.jumpEventId, false)
+	elseif spec.inputValues.currentGait == Rideable.GAITTYPES.CANTER then
+		g_inputBinding:setActionEventText(spec.acceletateEventId, g_i18n:getText("action_gallop"))
+		g_inputBinding:setActionEventActive(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.acceletateEventId, true)
+		g_inputBinding:setActionEventText(spec.brakeEventId, g_i18n:getText("action_trot"))
+		g_inputBinding:setActionEventActive(spec.brakeEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.brakeEventId, true)
+		g_inputBinding:setActionEventText(spec.jumpEventId, g_i18n:getText("input_JUMP"))
+		g_inputBinding:setActionEventActive(spec.jumpEventId, true)
+		g_inputBinding:setActionEventTextVisibility(spec.jumpEventId, true)
+	else
+		if spec.inputValues.currentGait == Rideable.GAITTYPES.GALLOP then
+			g_inputBinding:setActionEventActive(spec.acceletateEventId, false)
+			g_inputBinding:setActionEventTextVisibility(spec.acceletateEventId, false)
+			g_inputBinding:setActionEventText(spec.brakeEventId, g_i18n:getText("action_canter"))
+			g_inputBinding:setActionEventActive(spec.brakeEventId, true)
+			g_inputBinding:setActionEventTextVisibility(spec.brakeEventId, true)
+			g_inputBinding:setActionEventText(spec.jumpEventId, g_i18n:getText("input_JUMP"))
+			g_inputBinding:setActionEventActive(spec.jumpEventId, true)
+			g_inputBinding:setActionEventTextVisibility(spec.jumpEventId, true)
+		end
 	end
 end

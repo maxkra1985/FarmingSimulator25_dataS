@@ -1,4 +1,3 @@
--- Local values: ShopMenu_mt
 ShopMenu = {}
 local ShopMenu_mt = Class(ShopMenu, TabbedMenuWithDetails)
 ShopMenu.LIST_CELL_NAME_CATEGORY = "category"
@@ -13,94 +12,80 @@ function ShopMenu.register()
 	ShopCategoriesFrame.register()
 	ShopItemsFrame.register()
 	ShopOthersFrame.register()
-	local v2_ = ShopMenu.new()
-	g_gui:loadGui("dataS/gui/ShopMenu.xml", "ShopMenu", v2_)
-	return v2_
+	local shopMenu = ShopMenu.new()
+	g_gui:loadGui("dataS/gui/ShopMenu.xml", "ShopMenu", shopMenu)
+	return shopMenu
 end
-
--- Upvalues: ShopMenu_mt
--- Local values: self
 function ShopMenu.new(target, customMt)
-	-- upvalues: (copy) ShopMenu_mt
-	local v5_ = TabbedMenuWithDetails.new(target, customMt or ShopMenu_mt)
-	v5_.performBackgroundBlur = true
-	v5_.gameState = GameState.MENU_SHOP
-	v5_.restorePageIndex = 2
-	v5_.useStack = true
-	v5_.playerFarm = nil
-	v5_.playerFarmId = 0
-	v5_.currentUserId = -1
-	v5_.paused = false
-	v5_.client = nil
-	v5_.server = nil
-	v5_.isMasterUser = false
-	v5_.isServer = false
-	v5_.selectedDisplayElement = nil
-	v5_.currentDisplayItems = nil
-	v5_.defaultMenuButtonInfo = {}
-	v5_.shopMenuButtonInfo = {}
-	v5_.buyButtonInfo = {}
-	v5_.shopDetailsButtonInfo = {}
-	v5_.shopDetailsButtonInfoWithCombinations = {}
-	v5_.itemDetailsButtonInfo = {}
-	v5_.garageMenuButtonInfo = {}
-	v5_.switchOwnedLeasedButtonInfo = {}
-	v5_.sellButtonInfo = {}
-	v5_.showCategoriesButtonInfo = {}
-	v5_.showDLCsButtonInfo = {}
-	v5_.showDLCVehiclesButtonInfo = {}
-	v5_.backButtonInfo = {}
-	g_shopConfigScreen:setRequestExitCallback(v5_:makeSelfCallback(v5_.exitMenuFromConfig))
-	g_messageCenter:subscribe(MessageType.STORE_ITEMS_RELOADED, v5_.onStoreItemsReloaded, v5_)
-	g_messageCenter:subscribe(MessageType.CURRENT_MISSION_LOADED, v5_.onMissionLoaded, v5_)
-	v5_.showDLCsPage = true
-	return v5_
+	local self = TabbedMenuWithDetails.new(target, customMt or ShopMenu_mt)
+	self.performBackgroundBlur = true
+	self.gameState = GameState.MENU_SHOP
+	self.restorePageIndex = 2
+	self.useStack = true
+	self.playerFarm = nil
+	self.playerFarmId = 0
+	self.currentUserId = -1
+	self.paused = false
+	self.client = nil
+	self.server = nil
+	self.isMasterUser = false
+	self.isServer = false
+	self.selectedDisplayElement = nil
+	self.currentDisplayItems = nil
+	self.defaultMenuButtonInfo = {}
+	self.shopMenuButtonInfo = {}
+	self.buyButtonInfo = {}
+	self.shopDetailsButtonInfo = {}
+	self.shopDetailsButtonInfoWithCombinations = {}
+	self.itemDetailsButtonInfo = {}
+	self.garageMenuButtonInfo = {}
+	self.switchOwnedLeasedButtonInfo = {}
+	self.sellButtonInfo = {}
+	self.showCategoriesButtonInfo = {}
+	self.showDLCsButtonInfo = {}
+	self.showDLCVehiclesButtonInfo = {}
+	self.backButtonInfo = {}
+	g_shopConfigScreen:setRequestExitCallback(self:makeSelfCallback(self.exitMenuFromConfig))
+	g_messageCenter:subscribe(MessageType.STORE_ITEMS_RELOADED, self.onStoreItemsReloaded, self)
+	g_messageCenter:subscribe(MessageType.CURRENT_MISSION_LOADED, self.onMissionLoaded, self)
+	self.showDLCsPage = true
+	return self
 end
-
--- Local values: newGui
 function ShopMenu.createFromExistingGui(gui, guiName)
 	ShopCategoriesFrame.createFromExistingGui(g_gui.frames.shopCategories.target, "ShopCategoriesFrame")
 	ShopItemsFrame.createFromExistingGui(g_gui.frames.shopItems.target, "ShopItemsFrame")
 	ShopOthersFrame.createFromExistingGui(g_gui.frames.shopOthers.target, "ShopOthersFrame")
-	local v8_ = ShopMenu.new()
+	local newGui = ShopMenu.new()
 	g_gui.guis.ShopMenu:delete()
 	g_gui.guis.ShopMenu.target:delete()
-	g_gui:loadGui(gui.xmlFilename, guiName, v8_)
-	v8_.client = gui.client
-	v8_.server = gui.server
-	v8_:onLoadMapFinished()
-	v8_:setPlayerFarm(gui.playerFarm)
-	v8_:setCurrentUserId(gui.currentUserId)
-	return v8_
+	g_gui:loadGui(gui.xmlFilename, guiName, newGui)
+	newGui.client = gui.client
+	newGui.server = gui.server
+	newGui:onLoadMapFinished()
+	newGui:setPlayerFarm(gui.playerFarm)
+	newGui:setCurrentUserId(gui.currentUserId)
+	return newGui
 end
-
 function ShopMenu:setClient(client)
 	self.client = client
 	g_shopController:setClient(client)
 end
-
 function ShopMenu:setServer(server)
 	self.server = server
 	self.isServer = server ~= nil
 end
-
 function ShopMenu:onVehicleSaleChanged()
 	self.pageUsedSale:setDisplayItems(g_shopController:getItemsByCategory(ShopController.SALES_CATEGORY))
 end
-
--- Local values: vehicleFilename
 function ShopMenu:onMissionLoaded()
-	local v15_ = StartParams.getValue("viewVehicleFilename")
-	if v15_ ~= nil then
-		self:viewVehicle(v15_)
+	local vehicleFilename = StartParams.getValue("viewVehicleFilename")
+	if vehicleFilename ~= nil then
+		self:viewVehicle(vehicleFilename)
 	end
 end
-
 function ShopMenu:onLoadMapFinished()
 	self:initializePages()
 end
-
--- Local values: selectCategoryCallback, clickItemCategoryCallback
 function ShopMenu:initializePages()
 	g_inAppPurchaseController:load()
 	self.clickBackCallback = self:makeSelfCallback(self.onButtonBack)
@@ -111,14 +96,14 @@ function ShopMenu:initializePages()
 	g_shopController:setSaleItemBoughtCallback(self.closeConfigScreen, self)
 	g_shopController:setSwitchToConfigurationCallback(self.showConfigurationScreen, self)
 	g_shopController:load()
-	local v18_ = self:makeSelfCallback(self.onSelectCategory)
-	self.pageShopBrands:initialize(g_shopController:getBrandCategories(), g_shopController:getBrandNames(), self:makeSelfCallback(self.onClickBrand), v18_, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_BRANDS), ShopMenu.SLICE_ID.BRANDS, ShopMenu.LIST_CELL_NAME_BRAND, ShopMenu.LIST_EMPTY_CELL_NAME_CATEGORY)
-	local v19_ = self:makeSelfCallback(self.onClickItemCategory)
-	self.pageShopVehicles:initialize(g_storeManager:getCategoryTypes(), g_shopController:getShopCategories(), v19_, v18_, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_VEHICLES), ShopMenu.SLICE_ID.VEHICLES, ShopMenu.LIST_CELL_NAME_CATEGORY, ShopMenu.LIST_EMPTY_CELL_NAME_CATEGORY)
-	self.pageShopDLCs:initialize(g_shopController:getDLCCategoryTypes(), g_shopController:getDLCCategories(), self:makeSelfCallback(self.onClickDLCs), v18_, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_DLCS), ShopMenu.SLICE_ID.DLCS, ShopMenu.LIST_CELL_NAME_DLC, ShopMenu.LIST_EMPTY_CELL_NAME_DLC)
-	self.pageShopDLCVehicles:initialize(g_storeManager:getCategoryTypes(), g_shopController:getShopDLCCategories(), self:makeSelfCallback(self.onClickDLCCategory), v18_, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_DLCS), ShopMenu.SLICE_ID.DLCS, ShopMenu.LIST_CELL_NAME_CATEGORY, ShopMenu.LIST_EMPTY_CELL_NAME_CATEGORY)
-	self.pageShopPacks:initialize(g_shopController:getStorePackTypes(), g_shopController:getStorePacks(), self:makeSelfCallback(self.onClickPack), v18_, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_PACKS), ShopMenu.SLICE_ID.PACKS, ShopMenu.LIST_CELL_NAME_PACKS, ShopMenu.LIST_EMPTY_CELL_NAME_CATEGORY)
-	self.pageShopOthers:initialize(v18_, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_OTHERS), ShopMenu.SLICE_ID.OTHERS)
+	local selectCategoryCallback = self:makeSelfCallback(self.onSelectCategory)
+	self.pageShopBrands:initialize(g_shopController:getBrandCategories(), g_shopController:getBrandNames(), self:makeSelfCallback(self.onClickBrand), selectCategoryCallback, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_BRANDS), ShopMenu.SLICE_ID.BRANDS, ShopMenu.LIST_CELL_NAME_BRAND, ShopMenu.LIST_EMPTY_CELL_NAME_CATEGORY)
+	local clickItemCategoryCallback = self:makeSelfCallback(self.onClickItemCategory)
+	self.pageShopVehicles:initialize(g_storeManager:getCategoryTypes(), g_shopController:getShopCategories(), clickItemCategoryCallback, selectCategoryCallback, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_VEHICLES), ShopMenu.SLICE_ID.VEHICLES, ShopMenu.LIST_CELL_NAME_CATEGORY, ShopMenu.LIST_EMPTY_CELL_NAME_CATEGORY)
+	self.pageShopDLCs:initialize(g_shopController:getDLCCategoryTypes(), g_shopController:getDLCCategories(), self:makeSelfCallback(self.onClickDLCs), selectCategoryCallback, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_DLCS), ShopMenu.SLICE_ID.DLCS, ShopMenu.LIST_CELL_NAME_DLC, ShopMenu.LIST_EMPTY_CELL_NAME_DLC)
+	self.pageShopDLCVehicles:initialize(g_storeManager:getCategoryTypes(), g_shopController:getShopDLCCategories(), self:makeSelfCallback(self.onClickDLCCategory), selectCategoryCallback, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_DLCS), ShopMenu.SLICE_ID.DLCS, ShopMenu.LIST_CELL_NAME_CATEGORY, ShopMenu.LIST_EMPTY_CELL_NAME_CATEGORY)
+	self.pageShopPacks:initialize(g_shopController:getStorePackTypes(), g_shopController:getStorePacks(), self:makeSelfCallback(self.onClickPack), selectCategoryCallback, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_PACKS), ShopMenu.SLICE_ID.PACKS, ShopMenu.LIST_CELL_NAME_PACKS, ShopMenu.LIST_EMPTY_CELL_NAME_CATEGORY)
+	self.pageShopOthers:initialize(selectCategoryCallback, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_OTHERS), ShopMenu.SLICE_ID.OTHERS)
 	self.pageUsedSale:initialize()
 	self.pageUsedSale:setItemClickCallback(self:makeClickBuyItemCallback())
 	self.pageUsedSale:setItemSelectCallback(self:makeSelfCallback(self.onSelectItemBuyDetail))
@@ -131,235 +116,96 @@ function ShopMenu:initializePages()
 	self.pageShopItemCombinations:setItemClickCallback(self:makeClickBuyItemCallback())
 	self.pageShopItemCombinations:setItemSelectCallback(self:makeSelfCallback(self.onSelectItemBuyDetail))
 end
-
--- Local values: orderedDefaultPages, i, pageDef, page, predicate, sliceId
 function ShopMenu:setupMenuPages()
-	local v21_ = {
-		{ self.pageShopBrands, self:makeIsShopBrandsEnabledPredicate(), ShopMenu.SLICE_ID.BRANDS },
-		{ self.pageShopVehicles, self:makeIsShopVehiclesEnabledPredicate(), ShopMenu.SLICE_ID.VEHICLES },
-		{ self.pageShopPacks, self:makeIsShopPacksEnabledPredicate(), ShopMenu.SLICE_ID.PACKS },
-		{ self.pageUsedSale, self:makeIsShopUsedEnabledPredicate(), ShopMenu.SLICE_ID.SALE },
-		{ self.pageShopDLCs, self:makeIsDLCPageEnabledPredicate(), ShopMenu.SLICE_ID.DLCS },
-		{ self.pageShopDLCVehicles, self:makeIsDLCVehiclesPageEnabledPredicate(), ShopMenu.SLICE_ID.DLCS },
-		{ self.pageShopOthers, self:makeIsShopOthersEnabledPredicate(), ShopMenu.SLICE_ID.OTHERS },
-		{ self.pageShopItemDetails, self:makeIsShopItemsEnabledPredicate(), ShopMenu.SLICE_ID.VEHICLES },
-		{ self.pageShopItemCombinations, self:makeIsShopCombinationsEnabledPredicate(), ShopMenu.SLICE_ID.SALE }
-	}
-	for v22_, v23_ in ipairs(v21_) do
-		local v24_, v25_, v26_ = unpack(v23_)
-		self:registerPage(v24_, v22_, v25_)
-		self:addPageTab(v24_, nil, nil, v26_)
+	local orderedDefaultPages = { { self.pageShopBrands, self:makeIsShopBrandsEnabledPredicate(), ShopMenu.SLICE_ID.BRANDS }, { self.pageShopVehicles, self:makeIsShopVehiclesEnabledPredicate(), ShopMenu.SLICE_ID.VEHICLES }, { self.pageShopPacks, self:makeIsShopPacksEnabledPredicate(), ShopMenu.SLICE_ID.PACKS }, i, pageDef, { self.pageShopDLCVehicles, self:makeIsDLCVehiclesPageEnabledPredicate(), ShopMenu.SLICE_ID.DLCS }, { self.pageShopOthers, self:makeIsShopOthersEnabledPredicate(), ShopMenu.SLICE_ID.OTHERS }, { self.pageShopItemDetails, self:makeIsShopItemsEnabledPredicate(), ShopMenu.SLICE_ID.VEHICLES }, { self.pageShopItemCombinations, self:makeIsShopCombinationsEnabledPredicate(), ShopMenu.SLICE_ID.SALE } }
+	local i = { self.pageUsedSale, self:makeIsShopUsedEnabledPredicate(), ShopMenu.SLICE_ID.SALE }
+	local pageDef = { self.pageShopDLCs, self:makeIsDLCPageEnabledPredicate(), ShopMenu.SLICE_ID.DLCS }
+	for i, pageDef in ipairs(orderedDefaultPages) do
+		local page, predicate, sliceId = unpack(pageDef)
+		self:registerPage(page, i, predicate)
+		self:addPageTab(page, nil, nil, sliceId)
 	end
 	self:rebuildTabList()
 end
-
 function ShopMenu:setupMenuButtonInfo()
 	ShopMenu:superClass().setupMenuButtonInfo(self)
-	self.backButtonInfo = {
-		["inputAction"] = InputAction.MENU_BACK,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_BACK),
-		["callback"] = self.clickBackCallback
-	}
-	self.nextPageButtonInfo = {
-		["inputAction"] = InputAction.MENU_PAGE_NEXT,
-		["text"] = g_i18n:getText("ui_ingameMenuNext"),
-		["callback"] = self.onPageNext
-	}
-	self.prevPageButtonInfo = {
-		["inputAction"] = InputAction.MENU_PAGE_PREV,
-		["text"] = g_i18n:getText("ui_ingameMenuPrev"),
-		["callback"] = self.onPagePrevious
-	}
-	self.selectButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACCEPT,
-		["text"] = g_i18n:getText("button_select"),
-		["callback"] = self.onButtonSelect
-	}
-	self.searchButtonInfo = {
-		["inputAction"] = InputAction.MENU_EXTRA_2,
-		["text"] = g_i18n:getText("button_search"),
-		["callback"] = self.onButtonSearch
-	}
-	self.defaultMenuButtonInfo = {
-		self.backButtonInfo,
-		self.nextPageButtonInfo,
-		self.prevPageButtonInfo,
-		self.selectButtonInfo
-	}
+	self.backButtonInfo = { inputAction = InputAction.MENU_BACK, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_BACK), callback = self.clickBackCallback }
+	self.nextPageButtonInfo = { inputAction = InputAction.MENU_PAGE_NEXT, text = g_i18n:getText("ui_ingameMenuNext"), callback = self.onPageNext }
+	self.prevPageButtonInfo = { inputAction = InputAction.MENU_PAGE_PREV, text = g_i18n:getText("ui_ingameMenuPrev"), callback = self.onPagePrevious }
+	self.selectButtonInfo = { inputAction = InputAction.MENU_ACCEPT, text = g_i18n:getText("button_select"), callback = self.onButtonSelect }
+	self.searchButtonInfo = { inputAction = InputAction.MENU_EXTRA_2, text = g_i18n:getText("button_search"), callback = self.onButtonSearch }
+	self.defaultMenuButtonInfo = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.selectButtonInfo }
 	self.defaultMenuButtonInfoByActions[InputAction.MENU_BACK] = self.defaultMenuButtonInfo[1]
-	self.defaultButtonActionCallbacks = {
-		[InputAction.MENU_BACK] = self.clickBackCallback
-	}
+	self.defaultButtonActionCallbacks = { [InputAction.MENU_BACK] = self.clickBackCallback }
 	if Platform.isMobile then
 		self.shopMenuButtonInfo = { self.backButtonInfo }
 	else
-		self.shopMenuButtonInfo = {
-			self.backButtonInfo,
-			self.nextPageButtonInfo,
-			self.prevPageButtonInfo,
-			self.selectButtonInfo
-		}
+		self.shopMenuButtonInfo = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.selectButtonInfo }
 	end
-	self.showCategoriesButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SHOW_CATEGORIES),
-		["callback"] = self:makeSelfCallback(self.showCategories),
-		["profile"] = "buttonSwitch"
-	}
-	self.showBrandsButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SHOW_BRANDS),
-		["callback"] = self:makeSelfCallback(self.showBrands),
-		["profile"] = "buttonSwitch"
-	}
+	self.showCategoriesButtonInfo = { inputAction = InputAction.MENU_ACTIVATE, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SHOW_CATEGORIES), callback = self:makeSelfCallback(self.showCategories), profile = "buttonSwitch" }
+	self.showBrandsButtonInfo = { inputAction = InputAction.MENU_ACTIVATE, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SHOW_BRANDS), callback = self:makeSelfCallback(self.showBrands), profile = "buttonSwitch" }
 	if Platform.isMobile then
 		self.shopMenuButtonInfoBrands = { self.backButtonInfo, self.showBrandsButtonInfo }
 	else
-		self.shopMenuButtonInfoBrands = {
-			self.backButtonInfo,
-			self.nextPageButtonInfo,
-			self.prevPageButtonInfo,
-			self.selectButtonInfo,
-			self.searchButtonInfo
-		}
+		self.shopMenuButtonInfoBrands = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.selectButtonInfo, self.searchButtonInfo }
 	end
 	if Platform.isMobile then
 		self.shopMenuButtonInfoCategories = { self.backButtonInfo, self.showCategoriesButtonInfo }
 	else
-		self.shopMenuButtonInfoCategories = {
-			self.backButtonInfo,
-			self.nextPageButtonInfo,
-			self.prevPageButtonInfo,
-			self.selectButtonInfo,
-			self.searchButtonInfo
-		}
+		self.shopMenuButtonInfoCategories = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.selectButtonInfo, self.searchButtonInfo }
 	end
-	self.showDLCsButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SHOW_PACKS),
-		["callback"] = self:makeSelfCallback(self.showDLCs),
-		["profile"] = "buttonSwitch"
-	}
-	self.showDLCVehiclesButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SHOW_CATEGORIES),
-		["callback"] = self:makeSelfCallback(self.showDLCVehicles),
-		["profile"] = "buttonSwitch"
-	}
-	self.shopMenuButtonInfoDLCs = {
-		self.backButtonInfo,
-		self.nextPageButtonInfo,
-		self.prevPageButtonInfo,
-		self.showDLCVehiclesButtonInfo,
-		self.selectButtonInfo
-	}
-	self.shopMenuButtonInfoDLCVehicles = {
-		self.backButtonInfo,
-		self.nextPageButtonInfo,
-		self.prevPageButtonInfo,
-		self.showDLCsButtonInfo,
-		self.selectButtonInfo
-	}
+	self.showDLCsButtonInfo = { inputAction = InputAction.MENU_ACTIVATE, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SHOW_PACKS), callback = self:makeSelfCallback(self.showDLCs), profile = "buttonSwitch" }
+	self.showDLCVehiclesButtonInfo = { inputAction = InputAction.MENU_ACTIVATE, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SHOW_CATEGORIES), callback = self:makeSelfCallback(self.showDLCVehicles), profile = "buttonSwitch" }
+	self.shopMenuButtonInfoDLCs = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.showDLCVehiclesButtonInfo, self.selectButtonInfo }
+	self.shopMenuButtonInfoDLCVehicles = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.showDLCsButtonInfo, self.selectButtonInfo }
 	self.shopMenuButtonsInfoOthers = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo }
-	self.buyButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACCEPT,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_BUY),
-		["callback"] = self:makeSelfCallback(self.onButtonAcceptItem),
-		["profile"] = "buttonBuy"
-	}
-	self.itemDetailsButtonInfo = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_INFO),
-		["callback"] = self:makeSelfCallback(self.onButtonInfo),
-		["profile"] = "buttonShowInfo"
-	}
+	self.buyButtonInfo = { inputAction = InputAction.MENU_ACCEPT, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_BUY), callback = self:makeSelfCallback(self.onButtonAcceptItem), profile = "buttonBuy" }
+	self.itemDetailsButtonInfo = { inputAction = InputAction.MENU_CANCEL, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_INFO), callback = self:makeSelfCallback(self.onButtonInfo), profile = "buttonShowInfo" }
 	if Platform.isMobile then
 		self.shopDetailsButtonInfo = { self.backButtonInfo, self.buyButtonInfo, self.itemDetailsButtonInfo }
 	else
-		self.shopDetailsButtonInfo = {
-			self.backButtonInfo,
-			self.nextPageButtonInfo,
-			self.prevPageButtonInfo,
-			self.buyButtonInfo
-		}
+		self.shopDetailsButtonInfo = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.buyButtonInfo }
 	end
-	self.combinationsButtonInfo = {
-		["inputAction"] = InputAction.MENU_EXTRA_2,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_COMBINATIONS),
-		["callback"] = self:makeSelfCallback(self.onButtonCombinations),
-		["profile"] = "buttonCombinations"
-	}
+	self.combinationsButtonInfo = { inputAction = InputAction.MENU_EXTRA_2, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_COMBINATIONS), callback = self:makeSelfCallback(self.onButtonCombinations), profile = "buttonCombinations" }
 	if Platform.isMobile then
-		self.shopDetailsButtonInfoWithCombinations = {
-			self.backButtonInfo,
-			self.buyButtonInfo,
-			self.combinationsButtonInfo,
-			self.itemDetailsButtonInfo
-		}
+		self.shopDetailsButtonInfoWithCombinations = { self.backButtonInfo, self.buyButtonInfo, self.combinationsButtonInfo, self.itemDetailsButtonInfo }
 	else
-		self.shopDetailsButtonInfoWithCombinations = {
-			self.backButtonInfo,
-			self.nextPageButtonInfo,
-			self.prevPageButtonInfo,
-			self.combinationsButtonInfo,
-			self.buyButtonInfo
-		}
+		self.shopDetailsButtonInfoWithCombinations = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.combinationsButtonInfo, self.buyButtonInfo }
 	end
-	self.sellButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACCEPT,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SELL),
-		["callback"] = self:makeSelfCallback(self.onButtonAcceptItem),
-		["profile"] = "buttonSell"
-	}
-	self.hotspotButtonInfo = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_HOTSPOT),
-		["callback"] = self:makeSelfCallback(self.onButtonToggleHotspot),
-		["profile"] = "buttonHotspot"
-	}
+	self.sellButtonInfo = { inputAction = InputAction.MENU_ACCEPT, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SELL), callback = self:makeSelfCallback(self.onButtonAcceptItem), profile = "buttonSell" }
+	self.hotspotButtonInfo = { inputAction = InputAction.MENU_CANCEL, text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_HOTSPOT), callback = self:makeSelfCallback(self.onButtonToggleHotspot), profile = "buttonHotspot" }
 	if Platform.isMobile then
 		self.garageMenuButtonInfo = { self.backButtonInfo }
 	else
-		self.garageMenuButtonInfo = {
-			self.backButtonInfo,
-			self.nextPageButtonInfo,
-			self.prevPageButtonInfo,
-			self.hotspotButtonInfo
-		}
+		self.garageMenuButtonInfo = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.hotspotButtonInfo }
 	end
 end
-
 function ShopMenu:onGuiSetupFinished()
 	ShopMenu:superClass().onGuiSetupFinished(self)
 	self:setupMenuPages()
 end
-
 function ShopMenu:setPlayerFarm(farm)
 	self.playerFarm = farm
-	if farm == nil then
-		self.playerFarmId = 0
-	else
+	if farm ~= nil then
 		self.playerFarmId = farm.farmId
+	else
+		self.playerFarmId = 0
 	end
 	g_shopController:setPlayerFarm(farm)
 	if self:getIsOpen() then
 		self:updatePages()
 	end
 end
-
 function ShopMenu:setCurrentMission(currentMission)
 	g_shopController:setCurrentMission(currentMission)
 end
-
 function ShopMenu:setCurrentUserId(currentUserId)
 	self.currentUserId = currentUserId
 end
-
 function ShopMenu:exitMenuFromConfig()
 	g_shopConfigScreen:changeScreen(ShopMenu)
 	self:exitMenu()
 end
-
 function ShopMenu:reset()
 	ShopMenu:superClass().reset(self)
 	g_shopController:reset()
@@ -371,7 +217,6 @@ function ShopMenu:reset()
 		self.restorePageIndex = 2
 	end
 end
-
 function ShopMenu:onOpen()
 	self:onVehicleSaleChanged()
 	ShopMenu:superClass().onOpen(self)
@@ -381,30 +226,28 @@ function ShopMenu:onOpen()
 	g_messageCenter:subscribe(MessageType.VEHICLE_REPAINTED, self.onVehicleRepairRepaintEvent, self)
 	g_messageCenter:subscribe(MessageType.VEHICLE_SALES_CHANGED, self.onVehicleSaleChanged, self)
 end
-
--- Local values: mission
 function ShopMenu:onClose(element)
 	ShopMenu:superClass().onClose(self)
 	self.mouseDown = false
 	self.alreadyClosed = true
 	if not self.closingForConfigurationScreen then
 		self.currentDisplayItems = nil
-		local v38_ = g_currentMission
-		v38_:showMoneyChange(MoneyType.SHOP_VEHICLE_BUY)
-		v38_:showMoneyChange(MoneyType.SHOP_VEHICLE_SELL)
-		v38_:showMoneyChange(MoneyType.SHOP_PROPERTY_BUY)
-		v38_:showMoneyChange(MoneyType.SHOP_PROPERTY_SELL)
-		v38_:showMoneyChange(MoneyType.SHOP_HANDTOOL_BUY)
-		v38_:showMoneyChange(MoneyType.SHOP_HANDTOOL_SELL)
-		v38_:showMoneyChange(MoneyType.LEASING_COSTS)
-		v38_:showMoneyChange(MoneyType.PURCHASE_SEEDS)
-		v38_:showMoneyChange(MoneyType.PURCHASE_FERTILIZER)
-		v38_:showMoneyChange(MoneyType.PURCHASE_FUEL)
-		v38_:showMoneyChange(MoneyType.PURCHASE_SAPLINGS)
-		v38_:showMoneyChange(MoneyType.PURCHASE_PALLETS)
-		v38_:showMoneyChange(MoneyType.PURCHASE_BALES)
-		v38_:showMoneyChange(MoneyType.OTHER)
-		v38_:showMoneyChange(MoneyType.BOUGHT_MATERIALS)
+		local mission = g_currentMission
+		mission:showMoneyChange(MoneyType.SHOP_VEHICLE_BUY)
+		mission:showMoneyChange(MoneyType.SHOP_VEHICLE_SELL)
+		mission:showMoneyChange(MoneyType.SHOP_PROPERTY_BUY)
+		mission:showMoneyChange(MoneyType.SHOP_PROPERTY_SELL)
+		mission:showMoneyChange(MoneyType.SHOP_HANDTOOL_BUY)
+		mission:showMoneyChange(MoneyType.SHOP_HANDTOOL_SELL)
+		mission:showMoneyChange(MoneyType.LEASING_COSTS)
+		mission:showMoneyChange(MoneyType.PURCHASE_SEEDS)
+		mission:showMoneyChange(MoneyType.PURCHASE_FERTILIZER)
+		mission:showMoneyChange(MoneyType.PURCHASE_FUEL)
+		mission:showMoneyChange(MoneyType.PURCHASE_SAPLINGS)
+		mission:showMoneyChange(MoneyType.PURCHASE_PALLETS)
+		mission:showMoneyChange(MoneyType.PURCHASE_BALES)
+		mission:showMoneyChange(MoneyType.OTHER)
+		mission:showMoneyChange(MoneyType.BOUGHT_MATERIALS)
 	end
 	self.closingForConfigurationScreen = false
 	g_messageCenter:unsubscribe(MessageType.MONEY_CHANGED, self)
@@ -430,170 +273,149 @@ function ShopMenu:onClose(element)
 		self.pageUsedSale.overlayCache:clearCache()
 	end
 end
-
 function ShopMenu:onButtonSelect()
-	if self.selectedCategory == nil or self:getIsDetailMode() then
-		if self.currentPage == self.pageShopOthers then
-			self.pageShopOthers:onMenuAccept()
-		end
-	else
+	if self.selectedCategory ~= nil and not self:getIsDetailMode() then
 		self:getTopFrame():onOpenCategory()
+		return
+	end
+	if self.currentPage == self.pageShopOthers then
+		self.pageShopOthers:onMenuAccept()
 	end
 end
-
 function ShopMenu:onButtonInfo()
 	InfoDialog.show(self.selectedDisplayElement.functionText)
 end
-
 function ShopMenu:onButtonShop()
 	self:popDetail()
 end
-
--- Local values: combinations, items, details, title
 function ShopMenu:onButtonCombinations()
-	local v43_ = self.selectedDisplayElement.storeItem.specs.combinations
-	local v44_ = g_shopController:getItemsFromCombinations(v43_)
-	self.pageShopItemCombinations:setDisplayItems(v44_, false)
-	local v45_ = self.pageShopItemDetails
-	local v46_ = string.format(g_i18n:getText("ui_combinationsFor"), self.selectedDisplayElement.storeItem.name)
-	self.pageShopItemCombinations:setCategory(v45_.rootName, v45_.categoryName, nil, v46_)
+	local combinations = self.selectedDisplayElement.storeItem.specs.combinations
+	local items = g_shopController:getItemsFromCombinations(combinations)
+	self.pageShopItemCombinations:setDisplayItems(items, false)
+	local details = self.pageShopItemDetails
+	local title = string.format(g_i18n:getText("ui_combinationsFor"), self.selectedDisplayElement.storeItem.name)
+	self.pageShopItemCombinations:setCategory(details.rootName, details.categoryName, nil, title)
 	self:pushDetail(self.pageShopItemCombinations)
-	self.currentDisplayItems = v44_
+	self.currentDisplayItems = items
 end
-
 function ShopMenu:onButtonSearch()
 	self:openSeachDialog(nil)
 end
-
--- Local values: text
 function ShopMenu:openSeachDialog(defaultText)
-	local v50_ = g_i18n:getText("modHub_search")
-	TextInputDialog.show(self.onSearchTextEntered, self, defaultText, v50_, v50_, 40, v50_, nil, nil, false)
+	local text = g_i18n:getText("modHub_search")
+	TextInputDialog.show(self.onSearchTextEntered, self, defaultText, text, text, 40, text, nil, nil, false)
 end
-
--- Local values: noResults, isSearching, success
 function ShopMenu:onSearchTextEntered(text, ok)
 	if ok then
-		local v_u_54_ = true
-		if g_storeManager:search(text, function(p55_)
-			-- upvalues: (ref) v_u_54_, (copy) self, (copy) text
+		local noResults = function()
+			InfoDialog.show(g_i18n:getText("ui_storeSearchingNoResults"), function()
+				self:openSeachDialog(text)
+			end)
+		end
+		local isSearching = true
+		local success = g_storeManager:search(text, function(results)
 			MessageDialog.hide()
-			v_u_54_ = false
-			if #p55_ == 0 then
+			isSearching = false
+			if #results == 0 then
 				InfoDialog.show(g_i18n:getText("ui_storeSearchingNoResults"), function()
-					-- upvalues: (ref) self, (ref) text
 					self:openSeachDialog(text)
 				end)
 			else
-				local v56_ = {}
-				for _, v57_ in ipairs(p55_) do
-					local v58_ = v57_.ref
-					table.insert(v56_, v58_)
+				local storeItems = {}
+				for _, data in ipairs(results) do
+					table.insert(storeItems, data.ref)
 				end
-				local v59_ = g_shopController:getItemsByStoreItems(v56_)
+				local items = g_shopController:getItemsByStoreItems(storeItems)
 				self.currentCategoryName = "Search results"
-				self.currentDisplayItems = v59_
+				self.currentDisplayItems = items
 				self.currentCategoryFilter = nil
 				self.currentItemDetailsType = ShopMenu.DETAILS.VEHICLE
-				self.pageShopItemDetails:setDisplayItems(v59_)
-				self.pageShopItemDetails:setCategory("", string.format("\"%s\"", text), ShopMenu.SLICE_ID.SEARCH)
+				self.pageShopItemDetails:setDisplayItems(items)
+				self.pageShopItemDetails:setCategory("", string.format('"%s"', text), ShopMenu.SLICE_ID.SEARCH)
 				self:pushDetail(self.pageShopItemDetails)
 				self.pageShopItemDetails:resetListSelection()
 			end
-		end) then
-			if v_u_54_ then
+		end)
+		if success then
+			if isSearching then
 				MessageDialog.show(g_i18n:getText("ui_storeSearching"))
 			end
 		else
 			InfoDialog.show(g_i18n:getText("ui_storeSearchingNoResults"), function()
-				-- upvalues: (copy) self, (copy) text
 				self:openSeachDialog(text)
 			end)
 		end
 	end
 end
-
 function ShopMenu:onVehicleRepairRepaintEvent(vehicle, _)
 	if self.selectedDisplayElement ~= nil and self.selectedDisplayElement.concreteItem == vehicle then
 		self:updateGarageButtonInfo(true, 1, self.selectedDisplayElement:hasCombinationInfo())
 	end
 end
-
 function ShopMenu:onButtonAcceptItem()
 	if self:getIsDetailMode() then
 		self:getTopFrame():onOpenItem(nil, nil, nil, nil, true)
 	end
 end
-
 function ShopMenu:setIsGamePaused(paused)
 	self.paused = paused
 	if self.currentPage ~= nil then
 		self:updateButtonsPanel(self.currentPage)
 	end
 end
-
 function ShopMenu:onDetailClosed(detailPage)
 	self.currentDisplayItems = nil
 end
-
 function ShopMenu:update(dt)
 	ShopMenu:superClass().update(self, dt)
 	g_shopController:update(dt)
 end
-
 function ShopMenu:setConfigurations(vehicleBuyData)
 	g_shopController:setConfigurations(vehicleBuyData)
 end
-
--- Local values: enoughSlots
 function ShopMenu:showConfigurationScreen(storeItem, saleItem, configurations)
-	if g_currentMission.slotSystem:hasEnoughSlots(storeItem) then
+	local enoughSlots = g_currentMission.slotSystem:hasEnoughSlots(storeItem)
+	if not enoughSlots then
+		self:playSample(GuiSoundPlayer.SOUND_SAMPLES.ERROR)
+		InfoDialog.show(g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.TOO_FEW_SLOTS))
+	else
 		self.closingForConfigurationScreen = true
 		self:changeScreen(ShopConfigScreen)
 		g_shopConfigScreen:setReturnScreenClass(ShopMenu)
 		g_shopConfigScreen:setStoreItem(storeItem, nil, saleItem, nil, configurations)
 		g_shopConfigScreen:setCallbacks(self.setConfigurations, self)
-	else
-		self:playSample(GuiSoundPlayer.SOUND_SAMPLES.ERROR)
-		InfoDialog.show(g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.TOO_FEW_SLOTS))
 	end
 end
-
--- Local values: updatedDisplayItems
 function ShopMenu:updateCurrentDisplayItems()
 	if self.currentDisplayItems ~= nil then
-		local v74_ = g_shopController:updateDisplayItems(self.currentDisplayItems)
-		if #v74_ == 0 then
+		local updatedDisplayItems = g_shopController:updateDisplayItems(self.currentDisplayItems)
+		if #updatedDisplayItems == 0 then
 			self:onButtonBack()
 			return
 		end
 		if self:getTopFrame() == self.pageShopItemCombinations then
-			self.pageShopItemCombinations:setDisplayItems(v74_, false)
+			self.pageShopItemCombinations:setDisplayItems(updatedDisplayItems, false)
 			return
 		end
-		self.pageShopItemDetails:setDisplayItems(v74_, false)
+		self.pageShopItemDetails:setDisplayItems(updatedDisplayItems, false)
 	end
 end
-
 function ShopMenu:onStoreItemsReloaded()
 	self:updateCurrentDisplayItems()
 end
-
 function ShopMenu:inputEvent(action, value, eventUsed)
-	local v80_ = ShopMenu:superClass().inputEvent(self, action, value, eventUsed)
-	if not v80_ and action == InputAction.TOGGLE_STORE then
+	eventUsed = ShopMenu:superClass().inputEvent(self, action, value, eventUsed)
+	if not eventUsed and action == InputAction.TOGGLE_STORE then
 		self:playSample(GuiSoundPlayer.SOUND_SAMPLES.BACK)
 		self:exitMenu()
-		v80_ = true
+		eventUsed = true
 	end
-	return v80_
+	return eventUsed
 end
-
 function ShopMenu:onClickMenu()
 	self:exitMenu()
 	return true
 end
-
 function ShopMenu:exitMenu()
 	self.pageShopItemDetails:setDisplayItems(nil)
 	self.pageShopItemCombinations:setDisplayItems(nil)
@@ -602,37 +424,32 @@ function ShopMenu:exitMenu()
 	self.currentDisplayItems = nil
 	ShopMenu:superClass().exitMenu(self)
 end
-
 function ShopMenu:onPageNext()
 	if not Platform.isMobile then
 		self:popToRoot()
 		ShopMenu:superClass().onPageNext(self)
 	end
 end
-
 function ShopMenu:onPagePrevious()
 	if not Platform.isMobile then
 		self:popToRoot()
 		ShopMenu:superClass().onPagePrevious(self)
 	end
 end
-
--- Local values: farm, balanceMoneyText
 function ShopMenu:onMoneyChange()
 	if g_localPlayer ~= nil then
-		local v86_ = g_farmManager:getFarmById(g_localPlayer.farmId)
-		local v87_ = g_i18n:formatMoney(v86_.money, 0, true, false)
-		self.pageShopItemDetails:setCurrentBalance(v86_.money, v87_)
-		self.pageShopItemCombinations:setCurrentBalance(v86_.money, v87_)
-		self.pageUsedSale:setCurrentBalance(v86_.money, v87_)
-		self.pageShopVehicles:setCurrentBalance(v86_.money, v87_)
-		self.pageShopBrands:setCurrentBalance(v86_.money, v87_)
-		self.pageShopPacks:setCurrentBalance(v86_.money, v87_)
-		self.pageShopDLCs:setCurrentBalance(v86_.money, v87_)
-		self.pageShopDLCVehicles:setCurrentBalance(v86_.money, v87_)
+		local farm = g_farmManager:getFarmById(g_localPlayer.farmId)
+		local balanceMoneyText = g_i18n:formatMoney(farm.money, 0, true, false)
+		self.pageShopItemDetails:setCurrentBalance(farm.money, balanceMoneyText)
+		self.pageShopItemCombinations:setCurrentBalance(farm.money, balanceMoneyText)
+		self.pageUsedSale:setCurrentBalance(farm.money, balanceMoneyText)
+		self.pageShopVehicles:setCurrentBalance(farm.money, balanceMoneyText)
+		self.pageShopBrands:setCurrentBalance(farm.money, balanceMoneyText)
+		self.pageShopPacks:setCurrentBalance(farm.money, balanceMoneyText)
+		self.pageShopDLCs:setCurrentBalance(farm.money, balanceMoneyText)
+		self.pageShopDLCVehicles:setCurrentBalance(farm.money, balanceMoneyText)
 	end
 end
-
 function ShopMenu:onSlotUsageChanged(currentSlotUsage, maxSlotUsage)
 	if self.pageShopItemDetails ~= nil then
 		self.pageShopItemDetails:setSlotsUsage(currentSlotUsage, maxSlotUsage)
@@ -647,58 +464,60 @@ function ShopMenu:onSlotUsageChanged(currentSlotUsage, maxSlotUsage)
 		self.pageShopVehicles:setSlotsUsage(currentSlotUsage, maxSlotUsage)
 	end
 end
-
 function ShopMenu:onSelectCategory(category, selectedElement)
 	self.selectedCategory = category
 end
-
--- Local values: isVehicle, isConfigurable, isHandTool
 function ShopMenu:onSelectItemBuyDetail(displayItem, selectedElementIndex)
 	self.selectedDisplayElement = displayItem
-	local v95_ = StoreItemUtil.getIsVehicle(displayItem.storeItem)
-	local v96_ = StoreItemUtil.getIsConfigurable(displayItem.storeItem)
-	if v95_ and (v96_ and not Platform.isMobile) then
-		self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_CUSTOMIZE)
-	elseif v96_ or (StoreItemUtil.getIsHandTool(displayItem.storeItem) or Platform.isMobile) then
-		self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_BUY)
-	else
-		self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_DETAILS)
-	end
-	if v95_ and (Platform.isMobile and displayItem.storeItem.canBeRecovered) then
-		self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_RECOVER)
-		self.buyButtonInfo.profile = "buttonRecover"
-	elseif displayItem.storeItem.isInAppPurchase then
-		if not displayItem.storeItem.isInAppPurchaseConsumable then
-			self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_UNLOCK)
+	local isVehicle = StoreItemUtil.getIsVehicle(displayItem.storeItem)
+	local isConfigurable = StoreItemUtil.getIsConfigurable(displayItem.storeItem)
+	if isVehicle and isConfigurable then
+		if not Platform.isMobile then
+			self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_CUSTOMIZE)
+		else
+			local isHandTool = StoreItemUtil.getIsHandTool(displayItem.storeItem)
+			if not isConfigurable and not isHandTool then
+				if not Platform.isMobile then
+					self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_DETAILS)
+				else
+					self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_BUY)
+				end
+			end
 		end
-		self.buyButtonInfo.profile = "buttonBuyIAP"
-	elseif displayItem.storeItem.isInAppPurchase then
-		self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_UNLOCK)
-		self.buyButtonInfo.profile = "buttonBuyIAP"
-	else
-		self.buyButtonInfo.profile = "buttonBuy"
+	end
+	if isVehicle and Platform.isMobile then
+		if displayItem.storeItem.canBeRecovered then
+			self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_RECOVER)
+			self.buyButtonInfo.profile = "buttonRecover"
+		elseif displayItem.storeItem.isInAppPurchase then
+			if not displayItem.storeItem.isInAppPurchaseConsumable then
+				self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_UNLOCK)
+			end
+			self.buyButtonInfo.profile = "buttonBuyIAP"
+		elseif displayItem.storeItem.isInAppPurchase then
+			self.buyButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_UNLOCK)
+			self.buyButtonInfo.profile = "buttonBuyIAP"
+		else
+			self.buyButtonInfo.profile = "buttonBuy"
+		end
 	end
 	self:updateButtonsPanel(self.pageShopItemDetails)
 end
-
--- Local values: concreteItem, itemPropertyState, isOwned
 function ShopMenu:onSelectItemSellDetail(displayItem, selectedElementIndex)
 	self.selectedDisplayElement = displayItem
-	local v99_ = displayItem.concreteItem.propertyState
-	self:updateGarageButtonInfo(v99_ == nil and true or v99_ ~= VehiclePropertyState.LEASED, 1, displayItem:hasCombinationInfo())
+	local concreteItem = displayItem.concreteItem
+	local itemPropertyState = concreteItem.propertyState
+	local isOwned = itemPropertyState == nil or itemPropertyState ~= VehiclePropertyState.LEASED
+	self:updateGarageButtonInfo(isOwned, 1, displayItem:hasCombinationInfo())
 end
-
--- Local values: buttons, i
 function ShopMenu:updateGarageButtonInfo(isOwned, numItems, hasCombinations)
-	local v104_ = self:getPageButtonInfo(self.pageShopItemDetails)
-	for v105_ = 1, #v104_ do
-		v104_[v105_] = nil
+	local buttons = self:getPageButtonInfo(self.pageShopItemDetails)
+	for i = 1, #buttons do
+		buttons[i] = nil
 	end
-	local v106_ = self.backButtonInfo
-	table.insert(v104_, v106_)
-	if numItems > 0 then
-		local v107_ = self.sellButtonInfo
-		table.insert(v104_, v107_)
+	table.insert(buttons, self.backButtonInfo)
+	if 0 < numItems then
+		table.insert(buttons, self.sellButtonInfo)
 		if isOwned then
 			self.sellButtonInfo.text = g_i18n:getText(ShopMenu.L10N_SYMBOL.BUTTON_SELL)
 		else
@@ -706,112 +525,108 @@ function ShopMenu:updateGarageButtonInfo(isOwned, numItems, hasCombinations)
 		end
 	end
 	if not Platform.isMobile and (self.selectedDisplayElement ~= nil and self.selectedDisplayElement.concreteItem.getMapHotspot ~= nil) then
-		local v108_ = self.hotspotButtonInfo
-		table.insert(v104_, v108_)
+		table.insert(buttons, self.hotspotButtonInfo)
 	end
 	if hasCombinations then
-		local v109_ = self.combinationsButtonInfo
-		table.insert(v104_, v109_)
+		table.insert(buttons, self.combinationsButtonInfo)
 	end
 	self:updateButtonsPanel(self.pageShopItemDetails)
 end
-
--- Local values: buttonInfo
 function ShopMenu:getPageButtonInfo(page)
+	local buttonInfo = nil
 	if self:getIsDetailMode() then
-		if self.selectedDisplayElement == nil or (not self.selectedDisplayElement:hasCombinationInfo() or self:getTopFrame() == self.pageShopItemCombinations) then
-			return self.shopDetailsButtonInfo
-		else
-			return self.shopDetailsButtonInfoWithCombinations
+		if self.selectedDisplayElement ~= nil and (self.selectedDisplayElement:hasCombinationInfo() and self:getTopFrame() ~= self.pageShopItemCombinations) then
+			buttonInfo = self.shopDetailsButtonInfoWithCombinations
+			return buttonInfo
 		end
+		buttonInfo = self.shopDetailsButtonInfo
+		return buttonInfo
 	elseif page == self.pageShopItemDetails then
 		if self.selectedDisplayElement:hasCombinationInfo() and self:getTopFrame() ~= self.pageShopItemCombinations then
-			return self.shopDetailsButtonInfoWithCombinations
-		else
-			return self.shopDetailsButtonInfo
+			buttonInfo = self.shopDetailsButtonInfoWithCombinations
+			return buttonInfo
 		end
+		buttonInfo = self.shopDetailsButtonInfo
+		return buttonInfo
 	elseif page == self.pageShopBrands then
-		return self.shopMenuButtonInfoCategories
+		buttonInfo = self.shopMenuButtonInfoCategories
+		return buttonInfo
 	elseif page == self.pageShopVehicles then
-		return self.shopMenuButtonInfoBrands
+		buttonInfo = self.shopMenuButtonInfoBrands
+		return buttonInfo
 	elseif page == self.pageShopDLCs then
-		return self.shopMenuButtonInfoDLCs
+		buttonInfo = self.shopMenuButtonInfoDLCs
+		return buttonInfo
 	elseif page == self.pageShopDLCVehicles then
-		return self.shopMenuButtonInfoDLCVehicles
-	elseif page == self.pageShopOthers and self.pageShopOthers.gameplayHintSelector:getIsFocused() then
-		return self.shopMenuButtonsInfoOthers
+		buttonInfo = self.shopMenuButtonInfoDLCVehicles
+		return buttonInfo
 	else
-		return self.shopMenuButtonInfo
+		if page == self.pageShopOthers and self.pageShopOthers.gameplayHintSelector:getIsFocused() then
+			buttonInfo = self.shopMenuButtonsInfoOthers
+			return buttonInfo
+		end
+		buttonInfo = self.shopMenuButtonInfo
+		return buttonInfo
 	end
 end
-
--- Local values: brandItems
 function ShopMenu:onClickBrand(brandId, categoryDisplayName, categoryLabel, categorySliceId)
-	local v116_ = g_shopController:getItemsByBrand(brandId)
-	self.currentDisplayItems = v116_
-	self.pageShopItemDetails:setDisplayItems(v116_, false)
+	local brandItems = g_shopController:getItemsByBrand(brandId)
+	self.currentDisplayItems = brandItems
+	self.pageShopItemDetails:setDisplayItems(brandItems, false)
 	self.pageShopItemDetails:setCategory(g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_BRANDS), categoryDisplayName, categorySliceId)
 	self.currentItemDetailsType = ShopMenu.DETAILS.BRAND
 	self.currentBrandId = brandId
 	self:pushDetail(self.pageShopItemDetails)
 	self.pageShopItemDetails:resetListSelection()
 end
-
--- Local values: items
 function ShopMenu:onClickPack(packName, categoryDisplayName, packLabel, categorySliceId)
-	local v121_ = g_shopController:getItemsByPack(packName)
-	self.currentDisplayItems = v121_
-	self.pageShopItemDetails:setDisplayItems(v121_, false)
+	local items = g_shopController:getItemsByPack(packName)
+	self.currentDisplayItems = items
+	self.pageShopItemDetails:setDisplayItems(items, false)
 	self.pageShopItemDetails:setCategory(g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_PACKS), categoryDisplayName, categorySliceId)
 	self:pushDetail(self.pageShopItemDetails)
 	self.pageShopItemDetails:resetListSelection()
 end
-
--- Local values: items
 function ShopMenu:onClickDLCs(dlcId, categoryDisplayName, dlcLabel, categorySliceId)
-	local v127_ = g_shopController:getItemsByDLC(dlcId)
-	self.currentDisplayItems = v127_
-	self.pageShopItemDetails:setDisplayItems(v127_, false)
+	local items = g_shopController:getItemsByDLC(dlcId)
+	self.currentDisplayItems = items
+	self.pageShopItemDetails:setDisplayItems(items, false)
 	self.pageShopItemDetails:setCategory(g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_DLCS), categoryDisplayName, categorySliceId, dlcLabel)
 	self:pushDetail(self.pageShopItemDetails)
 	self.pageShopItemDetails:resetListSelection()
 end
-
--- Local values: categoryItems
 function ShopMenu:onClickDLCCategory(categoryName, baseCategoryDisplayName, categoryDisplayName, categorySliceId, filter)
-	local v134_ = g_shopController:getItemsByCategory(categoryName, true)
+	local categoryItems = g_shopController:getItemsByCategory(categoryName, true)
 	self.currentCategoryName = categoryName
-	self.currentDisplayItems = v134_
+	self.currentDisplayItems = categoryItems
 	self.currentCategoryFilter = filter
 	self.currentItemDetailsType = ShopMenu.DETAILS.VEHICLE
-	self.pageShopItemDetails:setDisplayItems(v134_)
+	self.pageShopItemDetails:setDisplayItems(categoryItems)
 	self.pageShopItemDetails:setCategory(baseCategoryDisplayName, categoryDisplayName, categorySliceId)
 	self:pushDetail(self.pageShopItemDetails)
 	self.pageShopItemDetails:resetListSelection()
 end
-
--- Local values: categoryItems, hasInAppPurchases, i, displayItem
 function ShopMenu:onClickItemCategory(categoryName, baseCategoryDisplayName, categoryDisplayName, headerIconSlice, filter)
-	local v141_ = g_shopController:getItemsByCategory(categoryName)
+	local categoryItems = g_shopController:getItemsByCategory(categoryName)
 	self.currentCategoryName = categoryName
-	self.currentDisplayItems = v141_
+	self.currentDisplayItems = categoryItems
 	self.currentCategoryFilter = filter
 	self.currentItemDetailsType = ShopMenu.DETAILS.VEHICLE
-	self.pageShopItemDetails:setDisplayItems(v141_)
+	self.pageShopItemDetails:setDisplayItems(categoryItems)
 	if categoryName == ShopController.COINS_CATEGORY and not g_inAppPurchaseController:getIsAvailable() then
 		InfoDialog.show(g_i18n:getText("ui_iap_notAvailable"), nil, nil, DialogElement.TYPE_INFO)
 		return
 	end
-	local v142_ = false
-	for v143_ = 1, #self.currentDisplayItems do
-		if self.currentDisplayItems[v143_].storeItem.isInAppPurchase then
-			v142_ = true
+	local hasInAppPurchases = false
+	for i = 1, #self.currentDisplayItems do
+		local displayItem = self.currentDisplayItems[i]
+		if displayItem.storeItem.isInAppPurchase then
+			hasInAppPurchases = true
 			break
 		end
 	end
-	if v142_ then
+	if hasInAppPurchases then
 		g_inAppPurchaseController:setPendingPurchaseCallback(function()
-			-- upvalues: (copy) self
 			if self:getIsOpen() then
 				self:updateCurrentDisplayItems()
 			end
@@ -823,331 +638,252 @@ function ShopMenu:onClickItemCategory(categoryName, baseCategoryDisplayName, cat
 	self:pushDetail(self.pageShopItemDetails)
 	self.pageShopItemDetails:resetListSelection()
 end
-
--- Local values: storeItem, enoughMoney, price, enoughSlots, callback, text, callback, target
 function ShopMenu:buyItem(displayItem)
 	if GS_IS_MOBILE_VERSION then
-		local v146_ = displayItem.storeItem
-		if v146_.isInAppPurchase then
-			self:purchaseInAppProduct(v146_.product)
+		local storeItem = displayItem.storeItem
+		if storeItem.isInAppPurchase then
+			self:purchaseInAppProduct(storeItem.product)
+			return
+		end
+		local enoughMoney = true
+		local price = g_currentMission.economyManager:getBuyPrice(storeItem)
+		if 0 < price then
+			enoughMoney = price <= g_currentMission:getMoney()
+		end
+		local enoughSlots = g_currentMission.slotSystem:hasEnoughSlots(storeItem)
+		if not enoughMoney then
+			self:playSample(GuiSoundPlayer.SOUND_SAMPLES.ERROR)
+			if g_inAppPurchaseController:getIsAvailable() then
+				local callback = function(yes)
+					if yes then
+						self:showCoinShop()
+					end
+				end
+				YesNoDialog.show(callback, self, g_i18n:getText("shop_messageNotEnoughMoneyToBuy_buyCoins"), g_i18n:getText("ui_buy"))
+				return
+			else
+				InfoDialog.show(g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.NOT_ENOUGH_MONEY_BUY))
+				return
+			end
+		elseif not enoughSlots then
+			self:playSample(GuiSoundPlayer.SOUND_SAMPLES.ERROR)
+			InfoDialog.show(g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.TOO_FEW_SLOTS))
 			return
 		else
-			local v147_ = g_currentMission.economyManager:getBuyPrice(v146_)
-			local v148_ = v147_ <= 0 and true or v147_ <= g_currentMission:getMoney()
-			local v149_ = g_currentMission.slotSystem:hasEnoughSlots(v146_)
-			if v148_ then
-				if v149_ then
-					self:playSample(GuiSoundPlayer.SOUND_SAMPLES.CLICK)
-					local v150_ = string.format(g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.CONFIRM_BUY), g_i18n:formatMoney(v147_, 0, true, true))
-					self.currentBuyDialogItem = displayItem
-					local v151_ = self.onYesNoBuy
-					YesNoDialog.show(v151_, self, v150_)
-				else
-					self:playSample(GuiSoundPlayer.SOUND_SAMPLES.ERROR)
-					InfoDialog.show(g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.TOO_FEW_SLOTS))
-				end
-			else
-				self:playSample(GuiSoundPlayer.SOUND_SAMPLES.ERROR)
-				if g_inAppPurchaseController:getIsAvailable() then
-					YesNoDialog.show(function(p152_, p153_)
-						if p153_ then
-							p152_:showCoinShop()
-						end
-					end, self, g_i18n:getText("shop_messageNotEnoughMoneyToBuy_buyCoins"), g_i18n:getText("ui_buy"))
-				else
-					InfoDialog.show(g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.NOT_ENOUGH_MONEY_BUY))
-				end
-			end
+			self:playSample(GuiSoundPlayer.SOUND_SAMPLES.CLICK)
+			local text = string.format(g_i18n:getText(ShopConfigScreen.L10N_SYMBOL.CONFIRM_BUY), g_i18n:formatMoney(price, 0, true, true))
+			self.currentBuyDialogItem = displayItem
+			local callback = self.onYesNoBuy
+			YesNoDialog.show(callback, self, text)
+			return
 		end
-	else
-		g_shopController:buy(displayItem.storeItem, displayItem.saleItem, false, displayItem.configurations)
-		return
 	end
+	g_shopController:buy(displayItem.storeItem, displayItem.saleItem, false, displayItem.configurations)
 end
-
 function ShopMenu:onYesNoBuy(yes)
 	if yes then
 		g_shopController:buy(self.currentBuyDialogItem.storeItem, self.currentBuyDialogItem.saleItem, false)
 	end
 	self.currentBuyDialogItem = nil
 end
-
 function ShopMenu:purchaseInAppProduct(product)
-	if not g_inAppPurchaseController:tryPerformPendingPurchase(product, function(p158_, p159_)
-		-- upvalues: (copy) self
-		if p158_ then
+	if not g_inAppPurchaseController:tryPerformPendingPurchase(product, function(success, warningText)
+		if success then
 			InfoDialog.show(g_i18n:getText(ShopMenu.IAP_ERROR_TEXTS[InAppPurchase.ERROR_OK]), nil, nil, DialogElement.TYPE_INFO)
 			self:updateCurrentDisplayItems()
 		else
-			local v160_ = g_i18n:getText(ShopMenu.IAP_ERROR_TEXTS[InAppPurchase.ERROR_FAILED])
-			if p159_ ~= nil then
-				v160_ = v160_ .. "\n" .. p159_
+			local text = g_i18n:getText(ShopMenu.IAP_ERROR_TEXTS[InAppPurchase.ERROR_FAILED])
+			if warningText ~= nil then
+				text = text .. "\n" .. warningText
 			end
-			InfoDialog.show(v160_, nil, nil, DialogElement.TYPE_INFO)
+			InfoDialog.show(text, nil, nil, DialogElement.TYPE_INFO)
 		end
 	end) then
 		if not g_inAppPurchaseController:getIsAvailable() then
 			InfoDialog.show(g_i18n:getText("ui_iap_notAvailable"), nil, nil, DialogElement.TYPE_INFO)
 			return
 		end
-		g_inAppPurchaseController:purchase(product, function(_, p161_, p162_)
-			if not p161_ then
-				InfoDialog.show(g_i18n:getText(ShopMenu.IAP_ERROR_TEXTS[p162_]), nil, nil, DialogElement.TYPE_INFO)
+		g_inAppPurchaseController:purchase(product, function(success, cancelled, errorCode)
+			if cancelled then
+				return
+			else
+				InfoDialog.show(g_i18n:getText(ShopMenu.IAP_ERROR_TEXTS[errorCode]), nil, nil, DialogElement.TYPE_INFO)
 			end
 		end)
 	end
 end
-
 function ShopMenu:showCoinShop()
 	self:changeScreen(ShopMenu)
 	self:goToPage(self.pageShopVehicles)
 	self:onClickItemCategory(ShopController.COINS_CATEGORY, nil, g_i18n:getText("ui_coins"))
 end
-
--- Local values: displayItem, vehicle
 function ShopMenu:onButtonToggleHotspot()
 	if self:getIsDetailMode() then
-		local v165_ = self:getTopFrame():getSelectedDisplayItem().concreteItem
-		if v165_:getMapHotspot() == g_currentMission.currentMapTargetHotspot then
+		local displayItem = self:getTopFrame():getSelectedDisplayItem()
+		local vehicle = displayItem.concreteItem
+		if vehicle:getMapHotspot() == g_currentMission.currentMapTargetHotspot then
 			g_currentMission:setMapTargetHotspot()
 			return
 		end
-		g_currentMission:setMapTargetHotspot(v165_:getMapHotspot())
+		g_currentMission:setMapTargetHotspot(vehicle:getMapHotspot())
 	end
 end
-
 function ShopMenu:showCategories()
 	self:goToPage(self.pageShopVehicles)
 end
-
 function ShopMenu:showBrands()
 	self:goToPage(self.pageShopBrands)
 end
-
 function ShopMenu:showDLCs()
 	self.showDLCsPage = true
 	self:updatePages()
 	self:goToPage(self.pageShopDLCs)
 end
-
 function ShopMenu:showDLCVehicles()
 	self.showDLCsPage = false
 	self:updatePages()
 	self:goToPage(self.pageShopDLCVehicles)
 end
-
 function ShopMenu:closeConfigScreen()
 	g_shopConfigScreen:changeScreen(ShopMenu)
 end
-
 function ShopMenu:onButtonConstruction()
 	self:changeScreen(ConstructionScreen)
 end
-
--- Local values: basePath, storeItem, category, i
 function ShopMenu:viewVehicle(vehicleFilename)
-	local v173_ = vehicleFilename:gsub("\\", "/")
-	local v174_ = getAppBasePath()
-	if v173_:startsWith(v174_) then
-		v173_ = v173_:sub(v174_:len() + 1)
+	vehicleFilename = vehicleFilename:gsub("\\", "/")
+	local basePath = getAppBasePath()
+	if vehicleFilename:startsWith(basePath) then
+		vehicleFilename = vehicleFilename:sub(basePath:len() + 1)
 	end
-	local v175_ = g_storeManager:getItemByXMLFilename(v173_)
-	if v175_ ~= nil then
+	local storeItem = g_storeManager:getItemByXMLFilename(vehicleFilename)
+	if storeItem ~= nil then
 		g_gui:changeScreen(nil, ShopMenu)
-		local v176_ = nil
-		for v177_ = 1, #v175_.categoryNames do
-			v176_ = g_storeManager:getCategoryByName(v175_.categoryNames[v177_])
-			if v176_ ~= nil then
-				break
+		local category = nil
+		for i = 1, #storeItem.categoryNames do
+			category = g_storeManager:getCategoryByName(storeItem.categoryNames[i])
+			if category == nil then
+				continue
 			end
+			if category ~= nil then
+				self:onClickItemCategory(category.name, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_VEHICLES), category.title, self.currentCategoryFilter)
+			end
+			g_shopMenu:showConfigurationScreen(storeItem, nil, nil)
+			return
 		end
-		if v176_ ~= nil then
-			self:onClickItemCategory(v176_.name, g_i18n:getText(ShopMenu.L10N_SYMBOL.HEADER_VEHICLES), v176_.title, self.currentCategoryFilter)
-		end
-		g_shopMenu:showConfigurationScreen(v175_, nil, nil)
 	end
 end
-
 function ShopMenu:getIsDetailMode()
 	return ShopMenu:superClass().getIsDetailMode(self) or self.currentPage == self.pageUsedSale
 end
-
 function ShopMenu:makeIsShopBrandsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
 		return not self:getIsDetailMode() or self.currentPage == self.pageUsedSale
 	end
 end
-
 function ShopMenu:makeIsShopVehiclesEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
 		return not self:getIsDetailMode() or self.currentPage == self.pageUsedSale
 	end
 end
-
 function ShopMenu:makeIsShopToolsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v182_
-		if self:getIsDetailMode() and self.currentPage ~= self.pageUsedSale then
-			v182_ = false
-		else
-			v182_ = not GS_IS_MOBILE_VERSION
+		if not (not self:getIsDetailMode() or self.currentPage == self.pageUsedSale) then
+			return false
 		end
-		return v182_
+		return not GS_IS_MOBILE_VERSION
 	end
 end
-
 function ShopMenu:makeIsShopObjectsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v184_
-		if self:getIsDetailMode() and self.currentPage ~= self.pageUsedSale then
-			v184_ = false
-		else
-			v184_ = not GS_IS_MOBILE_VERSION
+		if not (not self:getIsDetailMode() or self.currentPage == self.pageUsedSale) then
+			return false
 		end
-		return v184_
+		return not GS_IS_MOBILE_VERSION
 	end
 end
-
 function ShopMenu:makeIsShopPacksEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v186_
-		if self:getIsDetailMode() and self.currentPage ~= self.pageUsedSale then
-			v186_ = false
-		else
-			v186_ = not GS_IS_MOBILE_VERSION
+		if not (not self:getIsDetailMode() or self.currentPage == self.pageUsedSale) then
+			return false
 		end
-		return v186_
+		return not GS_IS_MOBILE_VERSION
 	end
 end
-
 function ShopMenu:makeIsShopUsedEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v188_
-		if self:getIsDetailMode() and self.currentPage ~= self.pageUsedSale then
-			v188_ = false
-		else
-			v188_ = not GS_IS_MOBILE_VERSION
+		if not (not self:getIsDetailMode() or self.currentPage == self.pageUsedSale) then
+			return false
 		end
-		return v188_
+		return not GS_IS_MOBILE_VERSION
 	end
 end
-
 function ShopMenu:makeIsShopGarageEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
 		return not self:getIsDetailMode() or self.currentPage == self.pageUsedSale
 	end
 end
-
 function ShopMenu:makeIsShopLeasedEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v191_
-		if self:getIsDetailMode() and self.currentPage ~= self.pageUsedSale then
-			v191_ = false
-		else
-			v191_ = not GS_IS_MOBILE_VERSION
+		if not (not self:getIsDetailMode() or self.currentPage == self.pageUsedSale) then
+			return false
 		end
-		return v191_
+		return not GS_IS_MOBILE_VERSION
 	end
 end
-
 function ShopMenu:makeIsShopOthersEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v193_
-		if self:getIsDetailMode() and self.currentPage ~= self.pageUsedSale then
-			v193_ = false
-		else
-			v193_ = not GS_IS_MOBILE_VERSION
+		if not (not self:getIsDetailMode() or self.currentPage == self.pageUsedSale) then
+			return false
 		end
-		return v193_
+		return not GS_IS_MOBILE_VERSION
 	end
 end
-
 function ShopMenu:makeIsShopItemsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v195_ = ShopMenu:superClass().getIsDetailMode(self)
-		if v195_ then
-			v195_ = self:getTopFrame() == self.pageShopItemDetails and true or self.currentPage == self.pageUsedSale
-		end
-		return v195_
+		return ShopMenu:superClass().getIsDetailMode(self) and self:getTopFrame() ~= self.pageShopItemDetails and self.currentPage == self.pageUsedSale
 	end
 end
-
 function ShopMenu:makeIsShopCombinationsEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v197_ = self:getIsDetailMode()
-		if v197_ then
-			if self:getTopFrame() == self.pageShopItemCombinations then
-				v197_ = not GS_IS_MOBILE_VERSION
-			else
-				v197_ = false
-			end
-		end
-		return v197_
+		return self:getIsDetailMode()
 	end
 end
-
 function ShopMenu:makeIsDLCPageEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v199_ = Platform.supportsMods
-		if v199_ then
-			if table.size(g_shopController:getDLCCategories()) > 0 then
-				v199_ = self.showDLCsPage
-			else
-				v199_ = false
+		local _v0 = Platform.supportsMods
+		if _v0 then
+			_v0 = false
+			if 0 < table.size(g_shopController:getDLCCategories()) then
+				_v0 = self.showDLCsPage
 			end
 		end
-		return v199_
+		return _v0
 	end
 end
-
 function ShopMenu:makeIsDLCVehiclesPageEnabledPredicate()
 	return function()
-		-- upvalues: (copy) self
-		local v201_ = Platform.supportsMods
-		if v201_ then
-			if table.size(g_shopController:getDLCCategories()) > 0 then
-				v201_ = not self.showDLCsPage
-			else
-				v201_ = false
+		local _v0 = Platform.supportsMods
+		if _v0 then
+			_v0 = false
+			if 0 < table.size(g_shopController:getDLCCategories()) then
+				_v0 = not self.showDLCsPage
 			end
 		end
-		return v201_
+		return _v0
 	end
 end
-
 function ShopMenu:makeClickBuyItemCallback()
-	return function(p203_)
-		-- upvalues: (copy) self
-		self:buyItem(p203_)
+	return function(displayItem)
+		self:buyItem(displayItem)
 	end
 end
-
 function ShopMenu:makeClickSellItemCallback()
-	return function(p204_)
-		g_shopController:sell(p204_.storeItem, p204_.concreteItem)
+	return function(displayItem)
+		g_shopController:sell(displayItem.storeItem, displayItem.concreteItem)
 	end
 end
-ShopMenu.SLICE_ID = {
-	["VEHICLES"] = "gui.icon_vehicleDealer_machines",
-	["BRANDS"] = "gui.icon_vehicleDealer_brands",
-	["DLCS"] = "gui.icon_vehicleDealer_mods",
-	["PACKS"] = "gui.icon_vehicleDealer_packs",
-	["SALE"] = "gui.icon_vehicleDealer_sale",
-	["OTHERS"] = "gui.icon_others",
-	["SEARCH"] = "gui.icon_vehicleDealer_search"
-}
+ShopMenu.SLICE_ID = { VEHICLES = "gui.icon_vehicleDealer_machines", BRANDS = "gui.icon_vehicleDealer_brands", DLCS = "gui.icon_vehicleDealer_mods", PACKS = "gui.icon_vehicleDealer_packs", SALE = "gui.icon_vehicleDealer_sale", OTHERS = "gui.icon_others", SEARCH = "gui.icon_vehicleDealer_search" }
 ShopMenu.L10N_SYMBOL = {
 	["HEADER_BRANDS"] = "ui_brands",
 	["HEADER_VEHICLES"] = GS_IS_MOBILE_VERSION and "ui_categories" or "ui_vehicles",
@@ -1182,35 +918,10 @@ ShopMenu.L10N_SYMBOL = {
 	["BUTTON_SHOW_BRANDS"] = "button_showBrands",
 	["BUTTON_SHOW_PACKS"] = "button_showPacks",
 	["NOT_ENOUGH_MONEY_BUY"] = "shop_messageNotEnoughMoneyToBuy",
-	["MESSAGE_NO_PERMISSION"] = "shop_messageNoPermissionGeneral"
+	["MESSAGE_NO_PERMISSION"] = "shop_messageNoPermissionGeneral",
 }
-ShopMenu.DETAILS = {
-	["BRAND"] = 1,
-	["VEHICLE"] = 2
-}
-ShopMenu.FILTER = {
-	["OWNED"] = 1,
-	["LEASED"] = 2
-}
-ShopMenu.GUI_PROFILE = {
-	["SHOP_MONEY"] = "fs25_shopMoney",
-	["SHOP_MONEY_NEGATIVE"] = "fs25_shopMoneyNeg",
-	["SHOP_MONEY_BG"] = "fs25_shopMoneyBoxBg",
-	["SHOP_MONEY_SLOTS_BG"] = "fs25_shopMoneySlotsBoxBg"
-}
-ShopMenu.IAP_ERROR_TEXTS = {
-	[InAppPurchase.ERROR_FAILED] = "ui_iap_errorFailed",
-	[InAppPurchase.ERROR_NETWORK_UNAVAILABLE] = "ui_iap_errorNetworkUnavailable",
-	[InAppPurchase.ERROR_CANCELLED] = "ui_iap_errorCancelled",
-	[InAppPurchase.ERROR_PURCHASE_IN_PROGRESS] = "ui_iap_purchaseInProgress",
-	[InAppPurchase.ERROR_OK] = "ui_iap_purchaseComplete",
-	[InAppPurchase.ERROR_PENDING_PAYMENT] = "ui_iap_pendingPayment"
-}
-ShopMenu.IAP_ERROR_TEXTS = {
-	[InAppPurchase.ERROR_FAILED] = "ui_iap_errorFailed",
-	[InAppPurchase.ERROR_NETWORK_UNAVAILABLE] = "ui_iap_errorNetworkUnavailable",
-	[InAppPurchase.ERROR_CANCELLED] = "ui_iap_errorCancelled",
-	[InAppPurchase.ERROR_PURCHASE_IN_PROGRESS] = "ui_iap_purchaseInProgress",
-	[InAppPurchase.ERROR_OK] = "ui_iap_purchaseComplete",
-	[InAppPurchase.ERROR_PENDING_PAYMENT] = "ui_iap_pendingPayment"
-}
+ShopMenu.DETAILS = { BRAND = 1, VEHICLE = 2 }
+ShopMenu.FILTER = { OWNED = 1, LEASED = 2 }
+ShopMenu.GUI_PROFILE = { SHOP_MONEY = "fs25_shopMoney", SHOP_MONEY_NEGATIVE = "fs25_shopMoneyNeg", SHOP_MONEY_BG = "fs25_shopMoneyBoxBg", SHOP_MONEY_SLOTS_BG = "fs25_shopMoneySlotsBoxBg" }
+ShopMenu.IAP_ERROR_TEXTS = { [InAppPurchase.ERROR_FAILED] = "ui_iap_errorFailed", [InAppPurchase.ERROR_NETWORK_UNAVAILABLE] = "ui_iap_errorNetworkUnavailable", [InAppPurchase.ERROR_CANCELLED] = "ui_iap_errorCancelled", [InAppPurchase.ERROR_PURCHASE_IN_PROGRESS] = "ui_iap_purchaseInProgress", [InAppPurchase.ERROR_OK] = "ui_iap_purchaseComplete", [InAppPurchase.ERROR_PENDING_PAYMENT] = "ui_iap_pendingPayment" }
+ShopMenu.IAP_ERROR_TEXTS = { [InAppPurchase.ERROR_FAILED] = "ui_iap_errorFailed", [InAppPurchase.ERROR_NETWORK_UNAVAILABLE] = "ui_iap_errorNetworkUnavailable", [InAppPurchase.ERROR_CANCELLED] = "ui_iap_errorCancelled", [InAppPurchase.ERROR_PURCHASE_IN_PROGRESS] = "ui_iap_purchaseInProgress", [InAppPurchase.ERROR_OK] = "ui_iap_purchaseComplete", [InAppPurchase.ERROR_PENDING_PAYMENT] = "ui_iap_pendingPayment" }

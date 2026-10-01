@@ -1,339 +1,310 @@
--- Local values: FoliageSystem_mt, _sub, _len, _oldaddFoliageTypeFromXML, _addFoliageTypeFromXML
 FoliageSystem = {}
 local FoliageSystem_mt = Class(FoliageSystem)
 g_xmlManager:addInitSchemaFunction(function()
-	local v2_ = FruitTypeDesc.xmlSchema
-	DensityMapHeightManager.registerXMLPaths(v2_, "foliageType")
-	FruitTypeManager.registerXMLPaths(v2_, "foliageType")
-	FillTypeManager.registerXMLPaths(v2_, "foliageType")
-	MotionPathEffectManager.registerMotionPathXMLFiles(v2_, "foliageType")
-	local v3_ = FillTypeManager.xmlSchema
-	FillTypeManager.registerXMLPaths(v3_, "foliageType")
+	local xmlSchemaFruitType = FruitTypeDesc.xmlSchema
+	DensityMapHeightManager.registerXMLPaths(xmlSchemaFruitType, "foliageType")
+	FruitTypeManager.registerXMLPaths(xmlSchemaFruitType, "foliageType")
+	FillTypeManager.registerXMLPaths(xmlSchemaFruitType, "foliageType")
+	MotionPathEffectManager.registerMotionPathXMLFiles(xmlSchemaFruitType, "foliageType")
+	local xmlSchemaFillType = FillTypeManager.xmlSchema
+	FillTypeManager.registerXMLPaths(xmlSchemaFillType, "foliageType")
 end)
-
--- Upvalues: FoliageSystem_mt
--- Local values: self
 function FoliageSystem.new(customMt)
-	-- upvalues: (copy) FoliageSystem_mt
-	local v5_ = customMt or FoliageSystem_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.terrainRootNode = 0
-	v6_.paintableFoliages = {}
-	v6_.decoFoliages = {}
-	v6_.decoFoliageMappings = {}
-	v6_.modFoliageTypesToLoad = {}
-	return v6_
+	local self = setmetatable({}, customMt or FoliageSystem_mt)
+	self.terrainRootNode = 0
+	self.paintableFoliages = {}
+	self.decoFoliages = {}
+	self.decoFoliageMappings = {}
+	self.modFoliageTypesToLoad = {}
+	return self
 end
-
 function FoliageSystem:delete()
 	self.paintableFoliages = {}
 	self.decoFoliages = {}
 	self.modFoliageTypesToLoad = {}
 end
-
--- Local values: xmlFile, decoFoliageLayerNames, newFoliageTypes, i, newFoliageType, i, foliageType
 function FoliageSystem:loadMapData(mapXmlFile, missionInfo, baseDirectory)
-	local v_u_11_ = XMLFile.wrap(mapXmlFile)
-	v_u_11_:iterate("map.paintableFoliages.paintableFoliage", function(_, p12_)
-		-- upvalues: (copy) v_u_11_, (copy) self
-		local v13_ = v_u_11_:getString(p12_ .. "#layerName")
-		if v13_ == nil then
-			Logging.xmlWarning(v_u_11_, "Missing layerName for paintableFoliage \'%s\'", p12_)
+	local xmlFile = XMLFile.wrap(mapXmlFile)
+	xmlFile:iterate("map.paintableFoliages.paintableFoliage", function(index, key)
+		local layerName = xmlFile:getString(key .. "#layerName")
+		if layerName ~= nil then
+			local startStateChannel = xmlFile:getInt(key .. "#startChannel", 0)
+			local numStateChannels = xmlFile:getInt(key .. "#numChannels", 4)
+			local state = xmlFile:getInt(key .. "#state", 0)
+			local paintableFoliage = { layerName = layerName, startStateChannel = startStateChannel, numStateChannels = numStateChannels, state = state }
+			paintableFoliage.id = #self.paintableFoliages + 1
+			table.insert(self.paintableFoliages, paintableFoliage)
 		else
-			local v14_ = {
-				["layerName"] = v13_,
-				["startStateChannel"] = v_u_11_:getInt(p12_ .. "#startChannel", 0),
-				["numStateChannels"] = v_u_11_:getInt(p12_ .. "#numChannels", 4),
-				["state"] = v_u_11_:getInt(p12_ .. "#state", 0),
-				["id"] = #self.paintableFoliages + 1
-			}
-			local v15_ = self.paintableFoliages
-			table.insert(v15_, v14_)
+			Logging.xmlWarning(xmlFile, "Missing layerName for paintableFoliage '%s'", key)
 		end
 	end)
-	local v_u_16_ = {}
-	v_u_11_:iterate("map.decoFoliages.decoFoliage", function(_, p17_)
-		-- upvalues: (copy) v_u_11_, (copy) v_u_16_, (copy) self
-		local v18_ = {
-			["layerName"] = v_u_11_:getString(p17_ .. "#layerName")
-		}
-		if v18_.layerName == nil then
-			Logging.xmlWarning(v_u_11_, "Missing layerName for decoFoliage \'%s\'", p17_)
+	local decoFoliageLayerNames = {}
+	xmlFile:iterate("map.decoFoliages.decoFoliage", function(index, key)
+		local decoFoliage = {}
+		decoFoliage.layerName = xmlFile:getString(key .. "#layerName")
+		if decoFoliage.layerName ~= nil then
+			decoFoliage.startStateChannel = xmlFile:getInt(key .. "#startChannel", 0)
+			decoFoliage.numStateChannels = xmlFile:getInt(key .. "#numChannels", 4)
+			decoFoliage.mowable = xmlFile:getBool(key .. "#mowable")
+			decoFoliageLayerNames[string.upper(decoFoliage.layerName)] = decoFoliage
+			table.insert(self.decoFoliages, decoFoliage)
 		else
-			v18_.startStateChannel = v_u_11_:getInt(p17_ .. "#startChannel", 0)
-			v18_.numStateChannels = v_u_11_:getInt(p17_ .. "#numChannels", 4)
-			v18_.mowable = v_u_11_:getBool(p17_ .. "#mowable")
-			v_u_16_[string.upper(v18_.layerName)] = v18_
-			local v19_ = self.decoFoliages
-			table.insert(v19_, v18_)
+			Logging.xmlWarning(xmlFile, "Missing layerName for decoFoliage '%s'", key)
 		end
 	end)
 	self.decoFoliageMappings = {}
-	v_u_11_:iterate("map.decoFoliages.mapping", function(_, p20_)
-		-- upvalues: (copy) v_u_11_, (copy) self, (copy) v_u_16_
-		local v21_ = v_u_11_:getString(p20_ .. "#name")
-		if v21_ == nil then
-			Logging.xmlWarning(v_u_11_, "Missing name for decoFoliage mapping \'%s\'", p20_)
-			return
-		else
-			local v22_ = string.upper(v21_)
-			if self.decoFoliageMappings[v22_] == nil then
-				local v23_ = v_u_11_:getString(p20_ .. "#layerName")
-				if v23_ == nil then
-					Logging.xmlWarning(v_u_11_, "Missing layerName for decoFoliage mapping \'%s\'", p20_)
-					return
-				else
-					local v24_ = v_u_16_[string.upper(v23_)]
-					if v24_ == nil then
-						Logging.xmlWarning(v_u_11_, "Mapping layerName \'%s\' not defined deco foliages for \'%s\'", v23_, p20_)
+	xmlFile:iterate("map.decoFoliages.mapping", function(index, key)
+		local name = xmlFile:getString(key .. "#name")
+		if name ~= nil then
+			local nameUpper = string.upper(name)
+			if self.decoFoliageMappings[nameUpper] == nil then
+				local layerName = xmlFile:getString(key .. "#layerName")
+				if layerName ~= nil then
+					local layerNameUpper = string.upper(layerName)
+					local decoFoliage = decoFoliageLayerNames[layerNameUpper]
+					if decoFoliage ~= nil then
+						local state = xmlFile:getInt(key .. "#state")
+						self.decoFoliageMappings[nameUpper] = { decoFoliage = decoFoliage, state = state }
+						return
 					else
-						local v25_ = {
-							["decoFoliage"] = v24_,
-							["state"] = v_u_11_:getInt(p20_ .. "#state")
-						}
-						self.decoFoliageMappings[v22_] = v25_
+						Logging.xmlWarning(xmlFile, "Mapping layerName '%s' not defined deco foliages for '%s'", layerName, key)
+						return
 					end
 				end
+				Logging.xmlWarning(xmlFile, "Missing layerName for decoFoliage mapping '%s'", key)
+				return
 			else
-				Logging.xmlWarning(v_u_11_, "Name \'%s\' already defined for decoFoliage mapping \'%s\'", v21_, p20_)
+				Logging.xmlWarning(xmlFile, "Name '%s' already defined for decoFoliage mapping '%s'", name, key)
 				return
 			end
 		end
+		Logging.xmlWarning(xmlFile, "Missing name for decoFoliage mapping '%s'", key)
 	end)
-	v_u_11_:delete()
+	xmlFile:delete()
 	self.modFoliageTypesToLoad = missionInfo.foliageTypes or self.modFoliageTypesToLoad
-	local v26_ = g_fruitTypeManager.modFoliageTypesToLoad
-	for v27_ = 1, #v26_ do
-		local v28_ = v26_[v27_]
-		self:addModFoliageType(v28_.name, v28_.filename)
+	local newFoliageTypes = g_fruitTypeManager.modFoliageTypesToLoad
+	for i = 1, #newFoliageTypes do
+		local newFoliageType = newFoliageTypes[i]
+		self:addModFoliageType(newFoliageType.name, newFoliageType.filename)
 	end
-	for v29_ = 1, #self.modFoliageTypesToLoad do
-		local v30_ = self.modFoliageTypesToLoad[v29_]
-		self:loadModFoliageType(v30_.name, v30_.filename)
+	for i = 1, #self.modFoliageTypesToLoad do
+		local foliageType = self.modFoliageTypesToLoad[i]
+		self:loadModFoliageType(foliageType.name, foliageType.filename)
 	end
-	if #self.modFoliageTypesToLoad > 0 then
+	if 0 < #self.modFoliageTypesToLoad then
 		g_fruitTypeManager:initializeFruitTypeConverters()
 	end
 	return true
 end
-
 function FoliageSystem:unloadMapData()
 	self.paintableFoliages = {}
 end
-
--- Local values: _, foliageType
 function FoliageSystem:streamWriteModFoliageTypes(streamId, connection)
 	streamWriteUInt8(streamId, #self.modFoliageTypesToLoad)
-	for _, v34_ in ipairs(self.modFoliageTypesToLoad) do
-		streamWriteString(streamId, v34_.name)
-		streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(v34_.filename))
+	for _, foliageType in ipairs(self.modFoliageTypesToLoad) do
+		streamWriteString(streamId, foliageType.name)
+		streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(foliageType.filename))
 	end
 end
-
--- Local values: numLoadedFoliageTypes, numTypes, i, name, filename
 function FoliageSystem:streamReadModFoliageTypes(streamId, connection)
-	local v37_ = 0
-	for _ = 1, streamReadUInt8(streamId) do
-		local v38_ = streamReadString(streamId)
-		local v39_ = NetworkUtil.convertFromNetworkFilename(streamReadString(streamId))
-		if self:addModFoliageType(v38_, v39_) and self:loadModFoliageType(v38_, v39_) then
-			v37_ = v37_ + v37_
+	local numLoadedFoliageTypes = 0
+	local numTypes = streamReadUInt8(streamId)
+	for i = 1, numTypes do
+		local name = streamReadString(streamId)
+		local filename = NetworkUtil.convertFromNetworkFilename(streamReadString(streamId))
+		if self:addModFoliageType(name, filename) and self:loadModFoliageType(name, filename) then
+			numLoadedFoliageTypes = numLoadedFoliageTypes + numLoadedFoliageTypes
 		end
 	end
-	if v37_ > 0 then
+	if 0 < numLoadedFoliageTypes then
 		g_fruitTypeManager:initializeFruitTypeConverters()
 	end
 end
-
--- Local values: i, foliageType, key
 function FoliageSystem:saveToXMLFile(xmlFile)
-	for v42_ = 1, #self.modFoliageTypesToLoad do
-		local v43_ = self.modFoliageTypesToLoad[v42_]
-		local v44_ = string.format("careerSavegame.foliageTypes.foliageType(%d)", v42_ - 1)
-		setXMLString(xmlFile, v44_ .. "#name", v43_.name)
-		setXMLString(xmlFile, v44_ .. "#filename", NetworkUtil.convertToNetworkFilename(v43_.filename))
+	for i = 1, #self.modFoliageTypesToLoad do
+		local foliageType = self.modFoliageTypesToLoad[i]
+		local key = string.format("careerSavegame.foliageTypes.foliageType(%d)", i - 1)
+		setXMLString(xmlFile, key .. "#name", foliageType.name)
+		setXMLString(xmlFile, key .. "#filename", NetworkUtil.convertToNetworkFilename(foliageType.filename))
 	end
 end
-
--- Local values: key, paintableFoliage, id, _, key, decoFoliage, id, _
 function FoliageSystem:initTerrain(mission, terrainRootNode, terrainDetailId)
 	self.terrainRootNode = terrainRootNode
-	for _, v47_ in pairs(self.paintableFoliages) do
-		local v48_, _ = getTerrainDataPlaneByName(self.terrainRootNode, v47_.layerName)
-		if v48_ == nil or v48_ == 0 then
-			v47_.disabled = true
-		else
-			v47_.terrainDataPlaneId = v48_
-			v47_.paintModifier = DensityMapModifier.new(v48_, v47_.startStateChannel, v47_.numStateChannels, terrainRootNode)
-			v47_.paintFilter = DensityMapFilter.new(v47_.paintModifier)
+	for key, paintableFoliage in pairs(self.paintableFoliages) do
+		local id, _ = getTerrainDataPlaneByName(self.terrainRootNode, paintableFoliage.layerName)
+		if id ~= nil then
+			if id ~= 0 then
+				paintableFoliage.terrainDataPlaneId = id
+				paintableFoliage.paintModifier = DensityMapModifier.new(id, paintableFoliage.startStateChannel, paintableFoliage.numStateChannels, terrainRootNode)
+				paintableFoliage.paintFilter = DensityMapFilter.new(paintableFoliage.paintModifier)
+			else
+				paintableFoliage.disabled = true
+			end
 		end
 	end
-	for _, v49_ in pairs(self.decoFoliages) do
-		local v50_, _ = getTerrainDataPlaneByName(self.terrainRootNode, v49_.layerName)
-		if v50_ ~= nil and v50_ ~= 0 then
-			v49_.terrainDataPlaneId = v50_
-			v49_.modifier = DensityMapModifier.new(v50_, v49_.startStateChannel, v49_.numStateChannels, terrainRootNode)
+	for key, decoFoliage in pairs(self.decoFoliages) do
+		local id, _ = getTerrainDataPlaneByName(self.terrainRootNode, decoFoliage.layerName)
+		if id == nil or id == 0 then
+			continue
 		end
+		decoFoliage.terrainDataPlaneId = id
+		decoFoliage.modifier = DensityMapModifier.new(id, decoFoliage.startStateChannel, decoFoliage.numStateChannels, terrainRootNode)
 	end
 	self:loadModFoliageTypes()
 end
-
--- Local values: key, decoFoliage
 function FoliageSystem:addDensityMapSyncer(densityMapSyncer)
-	for _, v53_ in pairs(self.decoFoliages) do
-		if v53_.terrainDataPlaneId ~= nil then
-			densityMapSyncer:addDensityMap(v53_.terrainDataPlaneId)
+	for key, decoFoliage in pairs(self.decoFoliages) do
+		if decoFoliage.terrainDataPlaneId == nil then
+			continue
 		end
+		densityMapSyncer:addDensityMap(decoFoliage.terrainDataPlaneId)
 	end
 end
-
--- Local values: _, paintableFoliage, _, area, x, z, x1, z1, x2, z2
 function FoliageSystem:applyAreas(modifiedAreas, paintTerrainFoliageId)
-	for _, v57_ in pairs(self.paintableFoliages) do
-		if v57_.id == paintTerrainFoliageId and not v57_.disabled then
-			for _, v58_ in pairs(modifiedAreas) do
-				local v59_, v60_, v61_, v62_, v63_, v64_ = unpack(v58_)
-				self:apply(v57_, v59_, v60_, v61_ - v59_, v62_ - v60_, v63_ - v59_, v64_ - v60_)
+	for _, paintableFoliage in pairs(self.paintableFoliages) do
+		if paintableFoliage.id == paintTerrainFoliageId then
+			if paintableFoliage.disabled then
+				continue
+			end
+			for _, area in pairs(modifiedAreas) do
+				local x, z, x1, z1, x2, z2 = unpack(area)
+				self:apply(paintableFoliage, x, z, x1 - x, z1 - z, x2 - x, z2 - z)
 			end
 			return true
 		end
 	end
 	return false
 end
-
--- Local values: _, paintableFoliage
 function FoliageSystem:getFoliagePaint(id)
-	for _, v67_ in pairs(self.paintableFoliages) do
-		if v67_.id == id and not v67_.disabled then
-			return v67_
+	for _, paintableFoliage in pairs(self.paintableFoliages) do
+		if paintableFoliage.id == id then
+			if paintableFoliage.disabled then
+				continue
+			end
+			return paintableFoliage
 		end
 	end
 	return nil
 end
-
--- Local values: _, paintableFoliage
 function FoliageSystem:getFoliagePaintByName(name)
-	for _, v70_ in pairs(self.paintableFoliages) do
-		if v70_.layerName == name and not v70_.disabled then
-			return v70_
+	for _, paintableFoliage in pairs(self.paintableFoliages) do
+		if paintableFoliage.layerName == name then
+			if paintableFoliage.disabled then
+				continue
+			end
+			return paintableFoliage
 		end
 	end
 	return nil
 end
-
--- Local values: modifier, filter, _, numPixels, _
 function FoliageSystem:apply(foliage, x, z, x1, z1, x2, z2, value)
-	local v79_ = foliage.paintModifier
-	local v80_ = foliage.paintFilter
+	local modifier = foliage.paintModifier
+	local filter = foliage.paintFilter
 	if value == nil then
 		value = foliage.value
 	end
-	v79_:setParallelogramWorldCoords(x, z, x1, z1, x2, z2, DensityCoordType.POINT_POINT_POINT)
-	v80_:setValueCompareParams(DensityValueCompareType.NOTEQUAL, value)
-	local _, v81_, _ = v79_:executeSetWithStats(value, v80_)
-	return v81_ / 4
+	modifier:setParallelogramWorldCoords(x, z, x1, z1, x2, z2, DensityCoordType.POINT_POINT_POINT)
+	filter:setValueCompareParams(DensityValueCompareType.NOTEQUAL, value)
+	local _, numPixels, _ = modifier:executeSetWithStats(value, filter)
+	return numPixels / 4
 end
-
 function FoliageSystem:getDecoFoliages()
 	return self.decoFoliages
 end
-
--- Local values: nameUpper, data
 function FoliageSystem:getIsDecoLayerDefined(decoName)
-	local v85_ = string.upper(decoName)
-	return self.decoFoliageMappings[v85_] ~= nil
+	local nameUpper = string.upper(decoName)
+	local data = self.decoFoliageMappings[nameUpper]
+	return data ~= nil
 end
-
--- Local values: data, decoFoliage
 function FoliageSystem:getDensityMapData(decoFoliageName)
-	local v88_ = self.decoFoliageMappings[string.upper(decoFoliageName)]
-	if v88_ == nil then
+	local data = self.decoFoliageMappings[string.upper(decoFoliageName)]
+	if data == nil then
 		return nil
+	else
+		local decoFoliage = data.decoFoliage
+		return decoFoliage.terrainDataPlaneId, decoFoliage.startStateChannel, decoFoliage.numStateChannels, data.state
 	end
-	local v89_ = v88_.decoFoliage
-	return v89_.terrainDataPlaneId, v89_.startStateChannel, v89_.numStateChannels, v88_.state
 end
-
--- Local values: nameUpper, data, decoFoliage, state, modifier
 function FoliageSystem:applyDecoFoliage(decoName, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
-	local v98_ = string.upper(decoName)
-	local v99_ = self.decoFoliageMappings[v98_]
-	if v99_ ~= nil then
-		local v100_ = v99_.decoFoliage
-		local v101_ = v99_.state
-		local v102_ = v100_.modifier
-		if v102_ ~= nil then
-			v102_:setParallelogramWorldCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
-			v102_:executeSet(v101_)
+	local nameUpper = string.upper(decoName)
+	local data = self.decoFoliageMappings[nameUpper]
+	if data ~= nil then
+		local decoFoliage = data.decoFoliage
+		local state = data.state
+		local modifier = decoFoliage.modifier
+		if modifier ~= nil then
+			modifier:setParallelogramWorldCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
+			modifier:executeSet(state)
 		end
 	end
 end
-
--- Local values: foliageXMLFile, foliageXMLFileHandle
 function FoliageSystem:loadModFoliageType(name, filename, missionInfo, baseDirectory)
 	if g_fruitTypeManager.filenameToFruitType[filename] ~= nil then
-		Logging.devInfo("FoliageSystem - FoliageType \'%s\' already loaded from \'%s\'", name, filename)
+		Logging.devInfo("FoliageSystem - FoliageType '%s' already loaded from '%s'", name, filename)
 		return false
 	end
-	local v107_ = XMLFile.load("fillTypeXMLFile", filename, FruitTypeDesc.xmlSchema)
-	if v107_ == nil then
+	local foliageXMLFile = XMLFile.load("fillTypeXMLFile", filename, FruitTypeDesc.xmlSchema)
+	if foliageXMLFile ~= nil then
+		local foliageXMLFileHandle = foliageXMLFile:getHandle()
+		g_fillTypeManager:loadFillTypes(foliageXMLFile, "", false, nil, true)
+		g_fruitTypeManager:loadFruitTypeFromXML(filename)
+		g_fruitTypeManager:loadMapCategoriesAndConverters(foliageXMLFileHandle, missionInfo, baseDirectory)
+		g_densityMapHeightManager:loadDensityMapHeightTypes(foliageXMLFile, missionInfo, nil, false)
+		g_motionPathEffectManager:loadMotionPathEffects(foliageXMLFileHandle, "foliageType.motionPathEffects.motionPathEffect", baseDirectory, nil)
+		foliageXMLFile:delete()
+		Logging.devInfo("FoliageSystem - Loaded mod foliageType '%s'", name)
+		return true
+	else
 		return false
 	end
-	local v108_ = v107_:getHandle()
-	g_fillTypeManager:loadFillTypes(v107_, "", false, nil, true)
-	g_fruitTypeManager:loadFruitTypeFromXML(filename)
-	g_fruitTypeManager:loadMapCategoriesAndConverters(v108_, missionInfo, baseDirectory)
-	g_densityMapHeightManager:loadDensityMapHeightTypes(v107_, missionInfo, nil, false)
-	g_motionPathEffectManager:loadMotionPathEffects(v108_, "foliageType.motionPathEffects.motionPathEffect", baseDirectory, nil)
-	v107_:delete()
-	Logging.devInfo("FoliageSystem - Loaded mod foliageType \'%s\'", name)
-	return true
 end
-
--- Local values: j, foliageType
 function FoliageSystem:addModFoliageType(name, configFilename)
-	for v112_ = 1, #self.modFoliageTypesToLoad do
-		if name == self.modFoliageTypesToLoad[v112_].name then
-			Logging.devWarning("FoliageSystem - Mod foliageType \'%s\' is already added. Skipping...", name)
+	for j = 1, #self.modFoliageTypesToLoad do
+		local foliageType = self.modFoliageTypesToLoad[j]
+		if name == foliageType.name then
+			Logging.devWarning("FoliageSystem - Mod foliageType '%s' is already added. Skipping...", name)
 			return false
 		end
 	end
-	Logging.devWarning("FoliageSystem - Added Mod foliageType \'%s\'", name)
-	local v113_ = self.modFoliageTypesToLoad
-	table.insert(v113_, {
-		["name"] = name,
-		["filename"] = configFilename
-	})
+	Logging.devWarning("FoliageSystem - Added Mod foliageType '%s'", name)
+	table.insert(self.modFoliageTypesToLoad, { name = name, filename = configFilename })
 	return true
 end
-local v_u_114_ = string.sub
-local _ = string.len
-local v_u_115_ = addFoliageTypeFromXML
-
--- Upvalues: _sub, _oldaddFoliageTypeFromXML
--- Local values: terrainNode, i, foliageType, id, _, _, fruitType, terrainId, dmId, name, xmlFilename, path
+local _sub = string.sub
+local _len = string.len
+local _oldaddFoliageTypeFromXML = addFoliageTypeFromXML
+local _addFoliageTypeFromXML = function(terrainId, dmId, name, xmlFilename)
+	local path = "data/foliage"
+	if _sub(xmlFilename, 1, 12) == "data/foliage" then
+		return _oldaddFoliageTypeFromXML(terrainId, dmId, name, xmlFilename)
+	else
+		Logging.error("Failed to load foliage xml '%s'", xmlFilename)
+		return nil
+	end
+end
 function FoliageSystem:loadModFoliageTypes()
-	-- upvalues: (copy) v_u_114_, (copy) v_u_115_
-	local v117_ = g_terrainNode
-	for v118_ = 1, #self.modFoliageTypesToLoad do
-		local v119_ = self.modFoliageTypesToLoad[v118_]
-		local v120_ = nil
-		for _, v121_ in ipairs(g_fruitTypeManager:getFruitTypes()) do
-			local v122_
-			v120_, v122_ = getTerrainDataPlaneByName(self.terrainRootNode, v121_.layerName)
-			if v120_ ~= nil then
-				break
+	local terrainNode = g_terrainNode
+	for i = 1, #self.modFoliageTypesToLoad do
+		local foliageType = self.modFoliageTypesToLoad[i]
+		local id = nil
+		local _ = nil
+		for _, fruitType in ipairs(g_fruitTypeManager:getFruitTypes()) do
+			id, _ = getTerrainDataPlaneByName(self.terrainRootNode, fruitType.layerName)
+			if id == nil then
+				continue
 			end
-		end
-		if v120_ == nil then
-			Logging.warning("Failed to load foliage xml \'%s\'", v119_.filename)
-		else
-			local v123_ = v119_.name
-			local v124_ = v119_.filename
-			if v_u_114_(v124_, 1, 12) == "data/foliage" then
-				v_u_115_(v117_, v120_, v123_, v124_)
+			if id ~= nil then
+				local dmId = id
+				local name = foliageType.name
+				local xmlFilename = foliageType.filename
+				local path = "data/foliage"
+				if _sub(xmlFilename, 1, 12) == "data/foliage" then
+					_oldaddFoliageTypeFromXML(terrainNode, dmId, name, xmlFilename)
+				else
+					Logging.error("Failed to load foliage xml '%s'", xmlFilename)
+				end
 			else
-				Logging.error("Failed to load foliage xml \'%s\'", v124_)
+				Logging.warning("Failed to load foliage xml '%s'", foliageType.filename)
 			end
 		end
 	end

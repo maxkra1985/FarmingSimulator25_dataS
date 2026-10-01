@@ -1,122 +1,107 @@
--- Local values: WildlifeSpeciesCrow_mt
 WildlifeSpeciesCrow = {}
 local WildlifeSpeciesCrow_mt = Class(WildlifeSpeciesCrow, WildlifeSpeciesSimple)
 g_xmlManager:addInitSchemaFunction(function()
-	local _ = WildlifeSpecies.xmlSchema
+	local xmlSchema = WildlifeSpecies.xmlSchema
 end)
-
--- Upvalues: WildlifeSpeciesCrow_mt
--- Local values: self
 function WildlifeSpeciesCrow.new(customMt)
-	-- upvalues: (copy) WildlifeSpeciesCrow_mt
-	local v3_ = WildlifeSpeciesSimple.new(customMt or WildlifeSpeciesCrow_mt)
-	v3_.spawnCallbackFunc = nil
-	v3_.nonFieldSpawnChange = 0.1
-	v3_.maxNumExtraInstances = 2
-	v3_.flyByChance = 0.8
-	v3_.maxNumExtraInstancesFlyBy = 5
-	v3_.minSpawnDistanceRadiusFlyBy = 70
-	v3_.maxSpawnDistanceRadiusFlyBy = 100
-	v3_.spawnTimerThreshold = 7000
-	v3_.spawnTimer = v3_.spawnTimerThreshold
-	v3_.groupMinRadius = 0.5
-	v3_.groupMaxRadius = 10
-	return v3_
+	local self = WildlifeSpeciesSimple.new(customMt or WildlifeSpeciesCrow_mt)
+	self.spawnCallbackFunc = nil
+	self.nonFieldSpawnChange = 0.1
+	self.maxNumExtraInstances = 2
+	self.flyByChance = 0.8
+	self.maxNumExtraInstancesFlyBy = 5
+	self.minSpawnDistanceRadiusFlyBy = 70
+	self.maxSpawnDistanceRadiusFlyBy = 100
+	self.spawnTimerThreshold = 7000
+	self.spawnTimer = self.spawnTimerThreshold
+	self.groupMinRadius = 0.5
+	self.groupMaxRadius = 10
+	return self
 end
-
 function WildlifeSpeciesCrow:trySpawnAt(playerX, playerZ, playerRotY, cameraFovY, callbackFunc)
-	if WildlifeSpeciesCrow:superClass().trySpawnAt(self, playerX, playerZ, playerRotY, cameraFovY, callbackFunc) then
-		return self:spawn(playerX, playerZ, playerRotY, cameraFovY)
-	else
+	if not WildlifeSpeciesCrow:superClass().trySpawnAt(self, playerX, playerZ, playerRotY, cameraFovY, callbackFunc) then
 		return false
+	else
+		return self:spawn(playerX, playerZ, playerRotY, cameraFovY)
 	end
 end
-
--- Local values: spawnDistance, x, z, terrainY, isOnField, fruitIndex, growthState, waterLevel, fruitTypeDesc
 function WildlifeSpeciesCrow:spawn(playerX, playerZ, playerRotY, cameraFovY)
-	local v15_ = MathUtil.randomFloat(self.spawnRadiusMin, self.spawnRadiusMax)
-	local v16_, v17_ = WildlifeUtil.calculateRandomSpawnPosition(playerX, playerZ, playerRotY, cameraFovY, v15_)
-	local v18_ = getTerrainHeightAtWorldPos(g_terrainNode, v16_, 0, v17_)
-	if FSDensityMapUtil.getIsFieldAtWorldPos(v16_, v17_) then
-		local v19_, v20_ = FSDensityMapUtil.getFruitTypeIndexAtWorldPos(v16_, v17_)
-		if v19_ ~= nil then
-			if g_currentMission.fieldGroundSystem:getValueAtWorldPos(FieldDensityMap.WATER_LEVEL, v16_, 0, v17_) > 0 then
+	local spawnDistance = MathUtil.randomFloat(self.spawnRadiusMin, self.spawnRadiusMax)
+	local x, z = WildlifeUtil.calculateRandomSpawnPosition(playerX, playerZ, playerRotY, cameraFovY, spawnDistance)
+	local terrainY = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+	local isOnField = FSDensityMapUtil.getIsFieldAtWorldPos(x, z)
+	if isOnField then
+		local fruitIndex, growthState = FSDensityMapUtil.getFruitTypeIndexAtWorldPos(x, z)
+		if fruitIndex ~= nil then
+			local waterLevel = g_currentMission.fieldGroundSystem:getValueAtWorldPos(FieldDensityMap.WATER_LEVEL, x, 0, z)
+			if 0 < waterLevel then
 				self:finishSpawning(false)
 				return false
+			end
+			local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(fruitIndex)
+			if fruitTypeDesc == nil then
+				self:finishSpawning(false)
+				return false
+			elseif fruitTypeDesc:getIsCut(growthState) and math.random() < 0.6 then
+				self:spawnInstances(x, terrainY, z, math.random(1, self.maxNumExtraInstances), nil, nil, nil)
+				return true
+			elseif fruitTypeDesc:getIsWeedable(growthState) and math.random() < 0.6 then
+				self:spawnInstances(x, terrainY, z, math.random(1, self.maxNumExtraInstances), nil, nil, nil)
+				return true
 			else
-				local v21_ = g_fruitTypeManager:getFruitTypeByIndex(v19_)
-				if v21_ == nil then
-					self:finishSpawning(false)
-					return false
-				elseif v21_:getIsCut(v20_) and math.random() < 0.6 then
-					self:spawnInstances(v16_, v18_, v17_, math.random(1, self.maxNumExtraInstances), nil, nil, nil)
-					return true
-				elseif v21_:getIsWeedable(v20_) and math.random() < 0.6 then
-					self:spawnInstances(v16_, v18_, v17_, math.random(1, self.maxNumExtraInstances), nil, nil, nil)
-					return true
-				else
-					self:finishSpawning(false)
-					return false
-				end
+				self:finishSpawning(false)
+				return false
 			end
 		end
 	end
-	if math.random() > self.nonFieldSpawnChange then
+	if self.nonFieldSpawnChange < math.random() then
 		self:finishSpawning(false)
 		return false
 	else
-		raycastClosestAsync(v16_, v18_ + 100, v17_, 0, -1, 0, 200, "onSpawnYCallback", self, CollisionFlag.TERRAIN + CollisionFlag.ROAD + CollisionFlag.WATER)
+		raycastClosestAsync(x, terrainY + 100, z, 0, -1, 0, 200, "onSpawnYCallback", self, CollisionFlag.TERRAIN + CollisionFlag.ROAD + CollisionFlag.WATER)
 		return true
 	end
 end
-
--- Local values: transformCollisionGroup, isRoad, isWater, isObject
 function WildlifeSpeciesCrow:onSpawnYCallback(nodeId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
 	if nodeId == nil or nodeId == 0 then
 		self:finishSpawning(false)
 		return
+	end
+	local transformCollisionGroup = getCollisionFilterGroup(nodeId)
+	local isRoad = CollisionFlag.getHasGroupFlagSet(nodeId, CollisionFlag.ROAD) and nodeId ~= g_terrainNode
+	if isRoad then
+		self:finishSpawning(false)
+		return
+	end
+	local isWater = CollisionFlag.getHasGroupFlagSet(nodeId, CollisionFlag.WATER)
+	if isWater then
+		self:finishSpawning(false)
 	else
-		local v27_ = getCollisionFilterGroup(nodeId)
-		local v28_ = CollisionFlag.getHasGroupFlagSet(nodeId, CollisionFlag.ROAD)
-		if v28_ then
-			v28_ = nodeId ~= g_terrainNode
-		end
-		if v28_ then
+		local isObject = bit32.band(transformCollisionGroup, CollisionFlag.TERRAIN) == 0
+		if not self.canSpawnOnObjects and isObject then
 			self:finishSpawning(false)
 			return
-		elseif CollisionFlag.getHasGroupFlagSet(nodeId, CollisionFlag.WATER) then
-			self:finishSpawning(false)
-			return
-		else
-			local v29_ = CollisionFlag.TERRAIN
-			local v30_ = bit32.band(v27_, v29_) == 0
-			if self.canSpawnOnObjects or not v30_ then
-				self:spawnInstances(x, y, z, math.random(1, self.maxNumExtraInstances), nodeId, nil, nil)
-			else
-				self:finishSpawning(false)
-			end
 		end
+		self:spawnInstances(x, y, z, math.random(1, self.maxNumExtraInstances), nodeId, nil, nil)
 	end
 end
-
--- Local values: i, instance, angle, radius
 function WildlifeSpeciesCrow:spawnInstances(x, y, z, numInstances, nodeId, dirX, dirZ)
-	for v38_ = 1, numInstances do
-		local v39_ = self:createInstance()
-		local v40_ = v38_ * (6.283185307179586 / numInstances)
-		local v41_ = MathUtil.lerp(self.groupMinRadius, self.groupMaxRadius, math.random())
-		x = x + math.cos(v40_) * v41_
-		z = z + math.sin(v40_) * v41_
-		v39_:spawnAt(x, y, z)
-		if dirX ~= nil and dirZ ~= nil then
-			v39_.stateMachine.states.flee:fleeToDespawn(dirX, dirZ, false)
-			v39_.mover.overiddenSpeed = nil
-			v39_.mover:randomiseCurrentSpeed()
+	for i = 1, numInstances do
+		local instance = self:createInstance()
+		local angle = i * (6.283185307179586 / numInstances)
+		local radius = MathUtil.lerp(self.groupMinRadius, self.groupMaxRadius, math.random())
+		x = x + math.cos(angle) * radius
+		z = z + math.sin(angle) * radius
+		instance:spawnAt(x, y, z)
+		if dirX == nil or dirZ == nil then
+			continue
 		end
+		instance.stateMachine.states.flee:fleeToDespawn(dirX, dirZ, false)
+		instance.mover.overiddenSpeed = nil
+		instance.mover:randomiseCurrentSpeed()
 	end
 	self:finishSpawning(true)
 end
-
 function WildlifeSpeciesCrow:debugSpawn(x, y, z, numInstances)
 	WildlifeSpeciesCrow:superClass().debugSpawn(self, x, y, z, numInstances)
 	self:spawnInstances(x, y, z, numInstances, nil, nil, nil)

@@ -1,209 +1,172 @@
--- Local values: VehicleConfigurationItemWheel_mt
 VehicleConfigurationItemWheel = {}
 VehicleConfigurationItemWheel.SELECTOR = ConfigurationUtil.SELECTOR_MULTIOPTION
 local VehicleConfigurationItemWheel_mt = Class(VehicleConfigurationItemWheel, VehicleConfigurationItem)
-
--- Upvalues: VehicleConfigurationItemWheel_mt
--- Local values: self
 function VehicleConfigurationItemWheel.new(configName, customMt)
-	-- upvalues: (copy) VehicleConfigurationItemWheel_mt
-	return VehicleConfigurationItemWheel:superClass().new(configName, VehicleConfigurationItemWheel_mt)
+	local self = VehicleConfigurationItemWheel:superClass().new(configName, VehicleConfigurationItemWheel_mt)
+	return self
 end
-
--- Local values: name, brandDesc, configurationIndexToParentConfigIndex, dimensionCombinations, numWheels, i, dimensions, i, customBrandOrder, i, v, tireCategories, _, category, configWhitelistedCombinations, addTireCombinations, _, combination, i, defaultCombination, _, combination
 function VehicleConfigurationItemWheel:loadFromXML(xmlFile, baseKey, configKey, baseDirectory, customEnvironment)
 	if not VehicleConfigurationItemWheel:superClass().loadFromXML(self, xmlFile, baseKey, configKey, baseDirectory, customEnvironment) then
 		return false
 	end
-	local v9_ = xmlFile:getValue(configKey .. "#brand")
+	local name = xmlFile:getValue(configKey .. "#brand")
 	self.wheelBrandKey = configKey
-	if v9_ ~= nil then
-		local v10_ = g_brandManager:getBrandByName(v9_)
-		if v10_ == nil then
-			Logging.xmlWarning(xmlFile, "Wheel brand \'%s\' is not defined for \'%s\'!", v9_, configKey)
+	if name ~= nil then
+		local brandDesc = g_brandManager:getBrandByName(name)
+		if brandDesc ~= nil then
+			self.wheelBrandName = brandDesc.title
+			self.wheelBrandIconFilename = brandDesc.image
 		else
-			self.wheelBrandName = v10_.title
-			self.wheelBrandIconFilename = v10_.image
+			Logging.xmlWarning(xmlFile, "Wheel brand '%s' is not defined for '%s'!", name, configKey)
 		end
 	end
 	self.maxForwardSpeed = xmlFile:getValue(configKey .. "#maxForwardSpeed")
 	self.maxForwardSpeedShop = xmlFile:getValue(configKey .. "#maxForwardSpeedShop")
-	local v_u_11_ = Wheels.createConfigToParentConfigMapping(xmlFile)
+	local configurationIndexToParentConfigIndex = Wheels.createConfigToParentConfigMapping(xmlFile)
 	self.baseWheelData = {}
-	xmlFile:iterate(configKey .. ".wheels.wheel", function(p12_, _)
-		-- upvalues: (copy) xmlFile, (copy) v_u_11_, (copy) baseDirectory, (copy) self
-		local v13_ = WheelXMLObject.new(xmlFile, "vehicle.wheels.wheelConfigurations.wheelConfiguration", 1, string.format(".wheels.wheel(%d)", p12_ - 1), v_u_11_)
-		v13_:setXMLLoadKey("")
-		local v14_ = nil
-		local v15_ = v13_:getLocalValue("#dimensions")
-		if v15_ ~= nil then
-			local v16_ = v15_:split(" ")
-			if #v16_ > 0 then
-				v14_ = v16_[1]
+	xmlFile:iterate(configKey .. ".wheels.wheel", function(index, key)
+		local wheeXMLObject = WheelXMLObject.new(xmlFile, "vehicle.wheels.wheelConfigurations.wheelConfiguration", 1, string.format(".wheels.wheel(%d)", index - 1), configurationIndexToParentConfigIndex)
+		wheeXMLObject:setXMLLoadKey("")
+		local dimension = nil
+		local dimensionsStr = wheeXMLObject:getLocalValue("#dimensions")
+		if dimensionsStr ~= nil then
+			local dimensionParts = dimensionsStr:split(" ")
+			if 0 < #dimensionParts then
+				dimension = dimensionParts[1]
 			end
 		end
-		local v17_ = v13_:getLocalValue(".physics#xOffset", 0)
-		local v18_ = v13_:getLocalValue("#rimOffset", 0)
-		local v19_ = nil
-		local v20_ = nil
-		if v14_ == nil then
-			local v21_ = v13_:getLocalValue("#filename")
-			if v21_ ~= nil then
-				local v22_ = Utils.getFilename(v21_, baseDirectory)
-				v19_, v20_ = g_wheelManager:getWheelRadiusAndWidthFromFilename(v22_)
-			end
+		local xOffset = wheeXMLObject:getLocalValue(".physics#xOffset", 0)
+		local rimOffset = wheeXMLObject:getLocalValue("#rimOffset", 0)
+		local radius = nil
+		local width = nil
+		if dimension ~= nil then
+			radius, width = g_wheelManager:getWheelRadiusAndWidthFromDimension(dimension)
 		else
-			v19_, v20_ = g_wheelManager:getWheelRadiusAndWidthFromDimension(v14_)
+			local filename = wheeXMLObject:getLocalValue("#filename")
+			if filename ~= nil then
+				filename = Utils.getFilename(filename, baseDirectory)
+				radius, width = g_wheelManager:getWheelRadiusAndWidthFromFilename(filename)
+			end
 		end
-		v13_:delete()
-		if v19_ ~= nil and v20_ ~= nil then
-			self.baseWheelData[p12_] = {
-				["radius"] = v19_,
-				["width"] = v20_,
-				["xOffset"] = v17_,
-				["rimOffset"] = v18_
-			}
+		wheeXMLObject:delete()
+		if radius ~= nil and width ~= nil then
+			self.baseWheelData[index] = { radius = radius, width = width, xOffset = xOffset, rimOffset = rimOffset }
 		end
 	end)
-	local v_u_23_ = {}
-	local v_u_24_ = 0
-	xmlFile:iterate(configKey .. ".wheels.wheel", function(p25_, _)
-		-- upvalues: (copy) xmlFile, (copy) self, (copy) v_u_11_, (copy) v_u_23_, (ref) v_u_24_
-		local v26_ = WheelXMLObject.new(xmlFile, "vehicle.wheels.wheelConfigurations.wheelConfiguration", self.index, string.format(".wheels.wheel(%d)", p25_ - 1), v_u_11_)
-		v26_:setXMLLoadKey("")
-		local v27_ = v26_:getLocalValue("#dimensions")
-		if v27_ ~= nil then
-			local v28_ = v27_:split(" ")
-			for v29_, v30_ in ipairs(v28_) do
-				if v_u_23_[v29_] == nil then
-					v_u_23_[v29_] = {}
+	local dimensionCombinations = {}
+	local numWheels = 0
+	xmlFile:iterate(configKey .. ".wheels.wheel", function(index, key)
+		local wheeXMLObject = WheelXMLObject.new(xmlFile, "vehicle.wheels.wheelConfigurations.wheelConfiguration", self.index, string.format(".wheels.wheel(%d)", index - 1), configurationIndexToParentConfigIndex)
+		wheeXMLObject:setXMLLoadKey("")
+		local dimensionsStr = wheeXMLObject:getLocalValue("#dimensions")
+		if dimensionsStr ~= nil then
+			local dimensionParts = dimensionsStr:split(" ")
+			for i, dimension in ipairs(dimensionParts) do
+				if dimensionCombinations[i] == nil then
+					dimensionCombinations[i] = {}
 				end
-				local v31_ = v_u_23_[v29_]
-				table.insert(v31_, p25_, v30_)
+				table.insert(dimensionCombinations[i], index, dimension)
 			end
 		end
-		v26_:delete()
-		v_u_24_ = v_u_24_ + 1
+		wheeXMLObject:delete()
+		numWheels = numWheels + 1
 	end)
-	local v32_ = v_u_24_
-	for _, v33_ in pairs(v_u_23_) do
-		for v34_ = 1, v32_ do
-			if v33_[v34_] == nil then
-				v33_[v34_] = "-"
+	for i, dimensions in pairs(dimensionCombinations) do
+		for i = 1, numWheels do
+			if dimensions[i] == nil then
+				dimensions[i] = "-"
 			end
 		end
 	end
-	if #v_u_23_ == 0 then
+	if #dimensionCombinations == 0 then
 		return true
-	end
-	if self.wheelBrandName ~= nil then
+	elseif self.wheelBrandName ~= nil then
 		Logging.xmlWarning(xmlFile, "Wheel brand defined for dynamic configuration, this is not allowed! (%s)", configKey)
 		return true
-	end
-	local v35_ = xmlFile:getValue("vehicle.wheels.wheelConfigurations#customBrandOrder", nil, true)
-	if v35_ ~= nil then
-		self.customBrandOrder = {}
-		for v36_, v37_ in ipairs(v35_) do
-			self.customBrandOrder[string.upper(v37_)] = v36_
-		end
-	end
-	local v38_ = xmlFile:getValue(configKey .. "#tireCategories") or xmlFile:getValue("vehicle.wheels.wheelConfigurations#tireCategories")
-	if v38_ ~= nil then
-		local v39_ = v38_:split(" ")
-		if #v39_ > 0 then
-			self.tireCategories = {}
-			for _, v40_ in ipairs(v39_) do
-				self.tireCategories[v40_] = true
+	else
+		local customBrandOrder = xmlFile:getValue("vehicle.wheels.wheelConfigurations#customBrandOrder", nil, true)
+		if customBrandOrder ~= nil then
+			self.customBrandOrder = {}
+			for i, v in ipairs(customBrandOrder) do
+				self.customBrandOrder[string.upper(v)] = i
 			end
 		end
-	end
-	self.whitelistedCombinations = {}
-	xmlFile:iterate("vehicle.wheels.wheelConfigurations.tireCombination", function(_, p41_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v42_ = xmlFile:getValue(p41_ .. "#brand")
-		local v43_ = g_brandManager:getBrandByName(v42_)
-		if v43_ ~= nil then
-			local v44_ = xmlFile:getValue(p41_ .. "#names")
-			if v44_ ~= nil then
-				if v44_ == "-" then
-					local v45_ = self.whitelistedCombinations
-					table.insert(v45_, {
-						["brand"] = v43_,
-						["names"] = {}
-					})
-					return
-				end
-				local v46_ = v44_:split(" ")
-				if #v46_ > 0 then
-					local v47_ = self.whitelistedCombinations
-					table.insert(v47_, {
-						["brand"] = v43_,
-						["names"] = v46_
-					})
+		local tireCategories = xmlFile:getValue(configKey .. "#tireCategories") or xmlFile:getValue("vehicle.wheels.wheelConfigurations#tireCategories")
+		if tireCategories ~= nil then
+			tireCategories = tireCategories:split(" ")
+			if 0 < #tireCategories then
+				self.tireCategories = {}
+				for _, category in ipairs(tireCategories) do
+					self.tireCategories[category] = true
 				end
 			end
 		end
-	end)
-	local v_u_48_ = {}
-	local function v_u_58_(p49_)
-		-- upvalues: (copy) v_u_11_, (copy) v_u_58_, (copy) xmlFile, (copy) v_u_48_
-		local v50_ = v_u_11_[p49_]
-		if v50_ ~= nil then
-			v_u_58_(v50_)
-		end
-		xmlFile:iterate(string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d).tireCombination", p49_ - 1), function(_, p51_)
-			-- upvalues: (ref) xmlFile, (ref) v_u_48_
-			local v52_ = xmlFile:getValue(p51_ .. "#brand")
-			local v53_ = g_brandManager:getBrandByName(v52_)
-			if v53_ ~= nil then
-				local v54_ = xmlFile:getValue(p51_ .. "#names")
-				if v54_ ~= nil then
-					if v54_ == "-" then
-						local v55_ = v_u_48_
-						table.insert(v55_, {
-							["brand"] = v53_,
-							["names"] = {}
-						})
+		self.whitelistedCombinations = {}
+		xmlFile:iterate("vehicle.wheels.wheelConfigurations.tireCombination", function(index, key)
+			local brandName = xmlFile:getValue(key .. "#brand")
+			local brand = g_brandManager:getBrandByName(brandName)
+			if brand ~= nil then
+				local names = xmlFile:getValue(key .. "#names")
+				if names ~= nil then
+					if names == "-" then
+						table.insert(self.whitelistedCombinations, { brand = brand, names = {} })
 						return
 					end
-					local v56_ = v54_:split(" ")
-					if #v56_ > 0 then
-						local v57_ = v_u_48_
-						table.insert(v57_, {
-							["brand"] = v53_,
-							["names"] = v56_
-						})
+					names = names:split(" ")
+					if 0 < #names then
+						table.insert(self.whitelistedCombinations, { brand = brand, names = names })
 					end
 				end
 			end
 		end)
-	end
-	v_u_58_(self.index)
-	self.numDynamicConfigurations = xmlFile:getValue(configKey .. "#numDynamicConfigurations", math.huge)
-	for _, v59_ in ipairs(v_u_48_) do
-		for v60_ = #self.whitelistedCombinations, 1, -1 do
-			if self.whitelistedCombinations[v60_].brand == v59_.brand then
-				table.remove(self.whitelistedCombinations, v60_)
+		local configWhitelistedCombinations = {}
+		local function addTireCombinations(index)
+			local parentIndex = configurationIndexToParentConfigIndex[index]
+			if parentIndex ~= nil then
+				addTireCombinations(parentIndex)
+			end
+			xmlFile:iterate(string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d).tireCombination", index - 1), function(_, key)
+				local brandName = xmlFile:getValue(key .. "#brand")
+				local brand = g_brandManager:getBrandByName(brandName)
+				if brand ~= nil then
+					local names = xmlFile:getValue(key .. "#names")
+					if names ~= nil then
+						if names == "-" then
+							table.insert(configWhitelistedCombinations, { brand = brand, names = {} })
+							return
+						end
+						names = names:split(" ")
+						if 0 < #names then
+							table.insert(configWhitelistedCombinations, { brand = brand, names = names })
+						end
+					end
+				end
+			end)
+		end
+		addTireCombinations(self.index)
+		self.numDynamicConfigurations = xmlFile:getValue(configKey .. "#numDynamicConfigurations", math.huge)
+		for _, combination in ipairs(configWhitelistedCombinations) do
+			for i = #self.whitelistedCombinations, 1, -1 do
+				local defaultCombination = self.whitelistedCombinations[i]
+				if defaultCombination.brand == combination.brand then
+					table.remove(self.whitelistedCombinations, i)
+				end
 			end
 		end
+		for _, combination in ipairs(configWhitelistedCombinations) do
+			table.insert(self.whitelistedCombinations, combination)
+		end
+		self.dimensionCombinations = dimensionCombinations
+		return true
 	end
-	for _, v61_ in ipairs(v_u_48_) do
-		local v62_ = self.whitelistedCombinations
-		table.insert(v62_, v61_)
-	end
-	self.dimensionCombinations = v_u_23_
-	return true
 end
-
 function VehicleConfigurationItemWheel:getNeedsRenaming(otherItem)
-	if self.wheelBrandName == otherItem.wheelBrandName then
-		return VehicleConfigurationItemWheel:superClass().getNeedsRenaming(self, otherItem)
-	else
+	if self.wheelBrandName ~= otherItem.wheelBrandName then
 		return false
+	else
+		return VehicleConfigurationItemWheel:superClass().getNeedsRenaming(self, otherItem)
 	end
 end
-
--- Local values: configurationIndexToParentConfigIndex, maxOffset, wheelIndex, wheelData, wheelKey, baseWidth, baseXOffset, baseRimOffset, wheeXMLObject, xOffsetDifference, additionalOffset, i, key, _xmlFile, _, additionalWheelOffset
 function VehicleConfigurationItemWheel:onSizeLoad(xmlFile, sizeData)
 	VehicleConfigurationItemWheel:superClass().onSizeLoad(self, xmlFile, sizeData)
 	if self.isDynamicConfig then
@@ -211,167 +174,155 @@ function VehicleConfigurationItemWheel:onSizeLoad(xmlFile, sizeData)
 		if xmlFile:getValue(self.configKey .. ".size#width") ~= nil then
 			return
 		end
-		local v68_ = Wheels.createConfigToParentConfigMapping(xmlFile)
-		local v69_ = 0
-		for v70_, v71_ in ipairs(self.tireCombination.wheels) do
-			if v71_.path ~= nil then
-				local v72_ = string.format(".wheels.wheel(%d)", v70_ - 1)
-				local v73_ = v71_.width
-				local v74_, v75_
-				if self.baseConfigItem.baseWheelData == nil or self.baseConfigItem.baseWheelData[v70_] == nil then
-					v74_ = 0
-					v75_ = 0
-				else
-					v73_ = self.baseConfigItem.baseWheelData[v70_].width
-					v74_ = self.baseConfigItem.baseWheelData[v70_].xOffset
-					v75_ = self.baseConfigItem.baseWheelData[v70_].rimOffset
-				end
-				local v76_ = WheelXMLObject.new(xmlFile, "vehicle.wheels.wheelConfigurations.wheelConfiguration", self.index, v72_, v68_)
-				v76_:setXMLLoadKey("")
-				local v77_ = (v76_:getLocalValue(".physics#xOffset", 0) - v74_) * 2 + (v76_:getLocalValue("#rimOffset", 0) - v75_) * 2
-				local v78_ = v71_.width - v73_ + v77_
-				local v79_ = math.max(v69_, v78_)
-				local v80_ = 0
-				local v81_ = 0
-				while true do
-					local v82_ = string.format(".additionalWheel(%d)", v80_)
-					local v83_, _ = v76_:getXMLFileAndPropertyKey(v82_)
-					if v83_ == nil then
-						break
-					end
-					v81_ = v81_ + (v76_:getLocalValue(v82_ .. "#offset", 0) + v71_.width)
-					v80_ = v80_ + 1
-				end
-				local v84_ = v81_ * 2 + (v71_.width - v73_) + v77_
-				v69_ = math.max(v79_, v84_)
-				v76_:delete()
+		local configurationIndexToParentConfigIndex = Wheels.createConfigToParentConfigMapping(xmlFile)
+		local maxOffset = 0
+		for wheelIndex, wheelData in ipairs(self.tireCombination.wheels) do
+			if wheelData.path == nil then
+				continue
 			end
+			local wheelKey = string.format(".wheels.wheel(%d)", wheelIndex - 1)
+			local baseWidth = wheelData.width
+			local baseXOffset = 0
+			local baseRimOffset = 0
+			if self.baseConfigItem.baseWheelData ~= nil and self.baseConfigItem.baseWheelData[wheelIndex] ~= nil then
+				baseWidth = self.baseConfigItem.baseWheelData[wheelIndex].width
+				baseXOffset = self.baseConfigItem.baseWheelData[wheelIndex].xOffset
+				baseRimOffset = self.baseConfigItem.baseWheelData[wheelIndex].rimOffset
+			end
+			local wheeXMLObject = WheelXMLObject.new(xmlFile, "vehicle.wheels.wheelConfigurations.wheelConfiguration", self.index, wheelKey, configurationIndexToParentConfigIndex)
+			wheeXMLObject:setXMLLoadKey("")
+			local xOffsetDifference = (wheeXMLObject:getLocalValue(".physics#xOffset", 0) - baseXOffset) * 2
+			xOffsetDifference = xOffsetDifference + (wheeXMLObject:getLocalValue("#rimOffset", 0) - baseRimOffset) * 2
+			maxOffset = math.max(maxOffset, wheelData.width - baseWidth + xOffsetDifference)
+			local additionalOffset = 0
+			local i = 0
+			while true do
+				local key = string.format(".additionalWheel(%d)", i)
+				local _xmlFile, _ = wheeXMLObject:getXMLFileAndPropertyKey(key)
+				if _xmlFile == nil then
+					break
+				end
+				local additionalWheelOffset = wheeXMLObject:getLocalValue(key .. "#offset", 0)
+				additionalOffset = additionalOffset + (additionalWheelOffset + wheelData.width)
+				i = i + 1
+			end
+			maxOffset = math.max(maxOffset, additionalOffset * 2 + (wheelData.width - baseWidth) + xOffsetDifference)
+			wheeXMLObject:delete()
 		end
-		sizeData.width = sizeData.width + v69_
+		sizeData.width = sizeData.width + maxOffset
 	end
 end
-
--- Local values: i, baseConfigItem, hasWheelBrands, _, item, _, item
 function VehicleConfigurationItemWheel.postLoad(xmlFile, baseKey, baseDir, customEnvironment, isMod, configurationItems, storeItem, configName)
 	VehicleConfigurationItemWheel:superClass().postLoad(xmlFile, baseKey, baseDir, customEnvironment, isMod, configurationItems, storeItem, configName)
-	for _, v93_ in ipairs(configurationItems) do
-		if v93_.dimensionCombinations ~= nil and v93_.isSelectable then
-			v93_.isSelectable = false
-			VehicleConfigurationItemWheel.generateConfigurations(configurationItems, xmlFile, configName, v93_)
+	for i, baseConfigItem in ipairs(configurationItems) do
+		if baseConfigItem.dimensionCombinations == nil then
+			continue
+		end
+		if baseConfigItem.isSelectable then
+			baseConfigItem.isSelectable = false
+			VehicleConfigurationItemWheel.generateConfigurations(configurationItems, xmlFile, configName, baseConfigItem)
 		end
 	end
-	local v94_ = false
-	for _, v95_ in ipairs(configurationItems) do
-		if v95_.wheelBrandName ~= nil then
-			v94_ = true
+	local hasWheelBrands = false
+	for _, item in ipairs(configurationItems) do
+		if item.wheelBrandName ~= nil then
+			hasWheelBrands = true
 			break
 		end
 	end
-	if v94_ then
-		for _, v96_ in ipairs(configurationItems) do
-			if v96_.isSelectable and v96_.wheelBrandName == nil then
-				Logging.xmlWarning(xmlFile, "Wheel brand missing for wheel configuration \'%s\'!", v96_.wheelBrandKey)
+	if hasWheelBrands then
+		for _, item in ipairs(configurationItems) do
+			if item.isSelectable and item.wheelBrandName == nil then
+				Logging.xmlWarning(xmlFile, "Wheel brand missing for wheel configuration '%s'!", item.wheelBrandKey)
 			end
 		end
 	end
 end
-
--- Local values: parts, maxNumMatches, maxNumMatchesConfig, _, config, otherParts, numMatches, i
 function VehicleConfigurationItemWheel.getFallbackConfigId(configs, configId, configName, configFileName)
-	local v99_ = configId:split("_")
-	local v100_ = 0
-	local v101_ = nil
-	for _, v102_ in pairs(configs) do
-		local v103_ = v102_.saveId:split("_")
-		local v104_ = #v99_
-		local v105_ = #v103_
-		local v106_ = 0
-		for v107_ = 1, math.min(v104_, v105_) do
-			if v99_[v107_] ~= v103_[v107_] then
-				break
+	local parts = configId:split("_")
+	local maxNumMatches = 0
+	local maxNumMatchesConfig = nil
+	for _, config in pairs(configs) do
+		local otherParts = config.saveId:split("_")
+		local numMatches = 0
+		for i = 1, math.min(#parts, #otherParts) do
+			if parts[i] == otherParts[i] then
+				numMatches = numMatches + 1
 			end
-			v106_ = v106_ + 1
 		end
-		if v100_ < v106_ then
-			v101_ = v102_
-			v100_ = v106_
+		if maxNumMatches < numMatches then
+			maxNumMatches = numMatches
+			maxNumMatchesConfig = config
 		end
 	end
-	if v101_ == nil then
-		return nil, nil
+	if maxNumMatchesConfig ~= nil then
+		return maxNumMatchesConfig.index, maxNumMatchesConfig.saveId
 	else
-		return v101_.index, v101_.saveId
+		return nil, nil
 	end
 end
-
--- Local values: tireCombinations, _, tireCombination, configItem, index
 function VehicleConfigurationItemWheel.generateConfigurations(configurationItems, xmlFile, configName, baseConfigItem)
-	local v111_ = g_wheelManager:getTiresForDimensionCombinations(baseConfigItem.dimensionCombinations, baseConfigItem.tireCategories, baseConfigItem.whitelistedCombinations, baseConfigItem.numDynamicConfigurations, baseConfigItem.customBrandOrder)
-	for _, v112_ in ipairs(v111_) do
-		local v113_ = VehicleConfigurationItemWheel.new(configName)
-		v113_.name = baseConfigItem.name
-		if v112_.index > 1 then
-			v113_.name = string.format("%s (%d)", v113_.name, v112_.index)
+	local tireCombinations = g_wheelManager:getTiresForDimensionCombinations(baseConfigItem.dimensionCombinations, baseConfigItem.tireCategories, baseConfigItem.whitelistedCombinations, baseConfigItem.numDynamicConfigurations, baseConfigItem.customBrandOrder)
+	for _, tireCombination in ipairs(tireCombinations) do
+		local configItem = VehicleConfigurationItemWheel.new(configName)
+		configItem.name = baseConfigItem.name
+		if 1 < tireCombination.index then
+			configItem.name = string.format("%s (%d)", configItem.name, tireCombination.index)
 		end
-		v113_.price = baseConfigItem.price
-		v113_.wheelBrandName = v112_.wheelBrand.name
-		v113_.wheelBrandIconFilename = v112_.wheelBrand.image
-		v113_.isDefault = baseConfigItem.isDefault
-		v113_.saveId = baseConfigItem.saveId .. "_" .. v112_.wheelSaveId
-		v113_.isDynamicConfig = true
-		v113_.tireCombination = v112_
-		v113_.baseConfigItem = baseConfigItem
-		v113_.maxForwardSpeed = baseConfigItem.maxForwardSpeed
-		v113_.maxForwardSpeedShop = baseConfigItem.maxForwardSpeedShop
-		table.insert(configurationItems, v113_)
-		local v114_ = #configurationItems
-		v113_:setIndex(v114_)
-		v113_.configKey = string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d)", v114_ - 1)
+		configItem.price = baseConfigItem.price
+		configItem.wheelBrandName = tireCombination.wheelBrand.name
+		configItem.wheelBrandIconFilename = tireCombination.wheelBrand.image
+		configItem.isDefault = baseConfigItem.isDefault
+		configItem.saveId = baseConfigItem.saveId .. "_" .. tireCombination.wheelSaveId
+		configItem.isDynamicConfig = true
+		configItem.tireCombination = tireCombination
+		configItem.baseConfigItem = baseConfigItem
+		configItem.maxForwardSpeed = baseConfigItem.maxForwardSpeed
+		configItem.maxForwardSpeedShop = baseConfigItem.maxForwardSpeedShop
+		table.insert(configurationItems, configItem)
+		local index = #configurationItems
+		configItem:setIndex(index)
+		configItem.configKey = string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d)", index - 1)
 	end
 end
-
--- Local values: configurationIndexToParentConfigIndex, wheelIndex, wheelData, wheelKey, wheeXMLObject, path, baseRadius, baseYOffset
 function VehicleConfigurationItemWheel:applyGeneratedConfiguration(xmlFile)
 	if self.isDynamicConfig then
 		xmlFile:copyTree(self.baseConfigItem.configKey, self.configKey, true, ".wheel")
 		xmlFile:setValue(self.configKey .. ".wheels#baseConfig", self.baseConfigItem.saveId)
-		local v117_ = Wheels.createConfigToParentConfigMapping(xmlFile)
-		for v118_, v119_ in ipairs(self.tireCombination.wheels) do
-			local v120_ = string.format(".wheels.wheel(%d)", v118_ - 1)
-			local v121_ = WheelXMLObject.new(xmlFile, "vehicle.wheels.wheelConfigurations.wheelConfiguration", self.baseConfigItem.index, v120_, v117_)
-			v121_:setXMLLoadKey("")
-			if v119_.path == nil then
-				xmlFile:setBool(self.configKey .. v120_ .. "#temp", true)
+		local configurationIndexToParentConfigIndex = Wheels.createConfigToParentConfigMapping(xmlFile)
+		for wheelIndex, wheelData in ipairs(self.tireCombination.wheels) do
+			local wheelKey = string.format(".wheels.wheel(%d)", wheelIndex - 1)
+			local wheeXMLObject = WheelXMLObject.new(xmlFile, "vehicle.wheels.wheelConfigurations.wheelConfiguration", self.baseConfigItem.index, wheelKey, configurationIndexToParentConfigIndex)
+			wheeXMLObject:setXMLLoadKey("")
+			if wheelData.path ~= nil then
+				local path = wheelData.path
+				if string.startsWith(path, "data/shared/wheels") then
+					path = "$" .. path
+				end
+				xmlFile:setValue(self.configKey .. wheelKey .. "#filename", path)
+				local baseRadius = wheelData.radius
+				if self.baseConfigItem.baseWheelData ~= nil and self.baseConfigItem.baseWheelData[wheelIndex] ~= nil then
+					baseRadius = self.baseConfigItem.baseWheelData[wheelIndex].radius
+				end
+				local baseYOffset = wheeXMLObject:getLocalValue(".physics#yOffset") or 0
+				xmlFile:setValue(self.configKey .. wheelKey .. ".physics#yOffset", baseYOffset - (baseRadius - wheelData.radius))
 			else
-				local v122_ = v119_.path
-				if string.startsWith(v122_, "data/shared/wheels") then
-					v122_ = "$" .. v122_
-				end
-				xmlFile:setValue(self.configKey .. v120_ .. "#filename", v122_)
-				local v123_ = v119_.radius
-				if self.baseConfigItem.baseWheelData ~= nil and self.baseConfigItem.baseWheelData[v118_] ~= nil then
-					v123_ = self.baseConfigItem.baseWheelData[v118_].radius
-				end
-				local v124_ = v121_:getLocalValue(".physics#yOffset") or 0
-				xmlFile:setValue(self.configKey .. v120_ .. ".physics#yOffset", v124_ - (v123_ - v119_.radius))
+				xmlFile:setBool(self.configKey .. wheelKey .. "#temp", true)
 			end
-			v121_:delete()
+			wheeXMLObject:delete()
 		end
 	end
 end
-
--- Local values: parentConfigIndex, key, objects
 function VehicleConfigurationItemWheel:applyObjectChanges(vehicle, configurationIndexToParentConfigIndex, index)
-	local v129_ = configurationIndexToParentConfigIndex[index or self.index]
-	if v129_ ~= nil then
-		self:applyObjectChanges(vehicle, configurationIndexToParentConfigIndex, v129_)
+	local parentConfigIndex = configurationIndexToParentConfigIndex[index or self.index]
+	if parentConfigIndex ~= nil then
+		self:applyObjectChanges(vehicle, configurationIndexToParentConfigIndex, parentConfigIndex)
 	end
-	local v130_ = string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d)", (index or self.index) - 1)
-	local v131_ = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(vehicle.xmlFile, v130_, v131_, vehicle.components, vehicle)
-	ObjectChangeUtil.setObjectChanges(v131_, true, vehicle, vehicle.setMovingToolDirty)
+	local key = string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d)", (index or self.index) - 1)
+	local objects = {}
+	ObjectChangeUtil.loadObjectChangeFromXML(vehicle.xmlFile, key, objects, vehicle.components, vehicle)
+	ObjectChangeUtil.setObjectChanges(objects, true, vehicle, vehicle.setMovingToolDirty)
 end
-
 function VehicleConfigurationItemWheel.registerXMLPaths(schema, rootPath, configPath)
 	VehicleConfigurationItemWheel:superClass().registerXMLPaths(schema, rootPath, configPath)
 	schema:register(XMLValueType.STRING, configPath .. "#brand", "Name of wheel brand")

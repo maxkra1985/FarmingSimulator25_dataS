@@ -9,11 +9,9 @@ source("dataS/scripts/placeables/specializations/rollercoaster/RollercoasterPass
 source("dataS/scripts/placeables/specializations/rollercoaster/RollercoasterPassengerEnterResponseEvent.lua")
 source("dataS/scripts/placeables/specializations/rollercoaster/RollercoasterStateRideWaiting.lua")
 source("dataS/scripts/placeables/specializations/rollercoaster/RollercoasterStateRiding.lua")
-
 function PlaceableRollercoaster.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(PlaceableConstructible, specializations)
 end
-
 function PlaceableRollercoaster.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "onSharedAnimationFileLoaded", PlaceableRollercoaster.onSharedAnimationFileLoaded)
 	SpecializationUtil.registerFunction(placeableType, "getCanEnter", PlaceableRollercoaster.getCanEnter)
@@ -36,12 +34,10 @@ function PlaceableRollercoaster.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "setPlayerTriggerState", PlaceableRollercoaster.setPlayerTriggerState)
 	SpecializationUtil.registerFunction(placeableType, "getNumRides", PlaceableRollercoaster.getNumRides)
 end
-
 function PlaceableRollercoaster.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getHotspot", PlaceableRollercoaster.getHotspot)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "finalizeConstruction", PlaceableRollercoaster.finalizeConstruction)
 end
-
 function PlaceableRollercoaster.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableRollercoaster)
 	SpecializationUtil.registerEventListener(placeableType, "onFinalizePlacement", PlaceableRollercoaster)
@@ -50,7 +46,6 @@ function PlaceableRollercoaster.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onReadStream", PlaceableRollercoaster)
 	SpecializationUtil.registerEventListener(placeableType, "onWriteStream", PlaceableRollercoaster)
 end
-
 function PlaceableRollercoaster.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Rollercoaster")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".rollercoaster.animation.clip#rootNode", "Animation root node")
@@ -77,548 +72,480 @@ function PlaceableRollercoaster.registerXMLPaths(schema, basePath)
 	VehicleCharacter.registerCharacterXMLPaths(schema, basePath .. ".rollercoaster.carts.cart(?).seat(?).characterNode")
 	schema:setXMLSpecializationType()
 end
-
 function PlaceableRollercoaster.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. ".state#index", "")
 	schema:register(XMLValueType.FLOAT, basePath .. "#splineTime", "")
 	schema:register(XMLValueType.STRING, basePath .. ".player(?)#uniqueUserId", "")
 	schema:register(XMLValueType.INT, basePath .. ".player(?)#rideCount", 0)
 end
-
--- Local values: spec, key, clipRootNode, clipName, _, baseDirectory, clipFilename, loadingTask, arguments, cartIndex, cartKey, cart, _, seatKey, seatEntry, camera, _, pointKey, exitPoint, index, soundKey, movingSoundNode, soundFilename, innerRadius, radius, volume, audioSource, sample
 function PlaceableRollercoaster:onLoad(savegame)
-	local v10_ = self.spec_rollercoaster
-	local v11_ = self.xmlFile:getValue("placeable.rollercoaster.animation.clip#rootNode", nil, self.components, self.i3dMappings)
-	local v12_ = self.xmlFile:getValue("placeable.rollercoaster.animation.clip#name")
-	local _, v13_ = Utils.getModNameAndBaseDirectory(self.xmlFile:getFilename())
-	if v11_ ~= nil and v12_ ~= nil then
-		local v14_ = self.xmlFile:getValue("placeable.rollercoaster.animation.clip#filename")
-		v10_.animation = {}
-		v10_.animation.clipRootNode = v11_
-		v10_.animation.clipName = v12_
-		v10_.animation.clipTrack = 0
-		v10_.animation.speedScale = self.xmlFile:getValue("placeable.rollercoaster.animation#speedScale", 1)
-		if v14_ ~= nil then
-			local v15_ = Utils.getFilename(v14_, v13_)
-			local v16_ = {
-				["loadingTask"] = self:createLoadingTask()
-			}
-			v10_.animation.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(v15_, false, false, self.onSharedAnimationFileLoaded, self, v16_)
-			v10_.animation.clipFilename = v15_
+	local spec = self.spec_rollercoaster
+	local key = "placeable.rollercoaster"
+	local clipRootNode = self.xmlFile:getValue("placeable.rollercoaster" .. ".animation.clip#rootNode", nil, self.components, self.i3dMappings)
+	local clipName = self.xmlFile:getValue("placeable.rollercoaster" .. ".animation.clip#name")
+	local _, baseDirectory = Utils.getModNameAndBaseDirectory(self.xmlFile:getFilename())
+	if clipRootNode ~= nil and clipName ~= nil then
+		local clipFilename = self.xmlFile:getValue("placeable.rollercoaster" .. ".animation.clip#filename")
+		spec.animation = {}
+		spec.animation.clipRootNode = clipRootNode
+		spec.animation.clipName = clipName
+		spec.animation.clipTrack = 0
+		spec.animation.speedScale = self.xmlFile:getValue("placeable.rollercoaster" .. ".animation#speedScale", 1)
+		if clipFilename ~= nil then
+			clipFilename = Utils.getFilename(clipFilename, baseDirectory)
+			local loadingTask = self:createLoadingTask()
+			local arguments = { loadingTask = loadingTask }
+			spec.animation.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(clipFilename, false, false, self.onSharedAnimationFileLoaded, self, arguments)
+			spec.animation.clipFilename = clipFilename
 		end
-		setVisibility(v11_, false)
-		v10_.animationTimeInterpolator = InterpolationTime.new(1.3)
-		v10_.animationInterpolator = InterpolatorValue.new(0)
+		setVisibility(clipRootNode, false)
+		spec.animationTimeInterpolator = InterpolationTime.new(1.3)
+		spec.animationInterpolator = InterpolatorValue.new(0)
 	end
-	v10_.playerTrigger = self.xmlFile:getValue("placeable.rollercoaster.playerTrigger#node", nil, self.components, self.i3dMappings)
-	addTrigger(v10_.playerTrigger, "playerTriggerCallback", self)
+	spec.playerTrigger = self.xmlFile:getValue("placeable.rollercoaster" .. ".playerTrigger#node", nil, self.components, self.i3dMappings)
+	addTrigger(spec.playerTrigger, "playerTriggerCallback", self)
 	self:setPlayerTriggerState(false)
-	v10_.activatable = RollercoasterActivatable.new(self)
-	v10_.carts = {}
-	v10_.seats = {}
-	for _, v17_ in self.xmlFile:iterator("placeable.rollercoaster.carts.cart") do
-		local v18_ = {
-			["node"] = self.xmlFile:getValue(v17_ .. "#node", nil, self.components, self.i3dMappings),
-			["slope"] = 0,
-			["angleChange"] = 0
-		}
-		local v19_, v20_, v21_ = localDirectionToWorld(v18_.node, 0, 0, 1)
-		v18_.dirX = v19_
-		v18_.dirY = v20_
-		v18_.dirZ = v21_
-		for _, v22_ in self.xmlFile:iterator(v17_ .. ".seat") do
-			local v23_ = {
-				["cart"] = v18_,
-				["node"] = self.xmlFile:getValue(v22_ .. "#node", nil, self.components, self.i3dMappings)
-			}
-			if v23_.node ~= nil then
-				local v24_ = VehicleCamera.new(self)
-				if v24_:loadFromXML(self.xmlFile, v22_ .. ".camera", nil, 1) then
-					v23_.camera = v24_
+	spec.activatable = RollercoasterActivatable.new(self)
+	spec.carts = {}
+	spec.seats = {}
+	for cartIndex, cartKey in self.xmlFile:iterator("placeable.rollercoaster" .. ".carts.cart") do
+		local cart = {}
+		cart.node = self.xmlFile:getValue(cartKey .. "#node", nil, self.components, self.i3dMappings)
+		cart.slope = 0
+		cart.angleChange = 0
+		cart.dirX, cart.dirY, cart.dirZ = localDirectionToWorld(cart.node, 0, 0, 1)
+		for _, seatKey in self.xmlFile:iterator(cartKey .. ".seat") do
+			local seatEntry = {}
+			seatEntry.cart = cart
+			seatEntry.node = self.xmlFile:getValue(seatKey .. "#node", nil, self.components, self.i3dMappings)
+			if seatEntry.node ~= nil then
+				local camera = VehicleCamera.new(self)
+				if camera:loadFromXML(self.xmlFile, seatKey .. ".camera", nil, 1) then
+					seatEntry.camera = camera
 				end
-				v23_.vehicleCharacter = VehicleCharacter.new(self)
-				if v23_.vehicleCharacter ~= nil and not v23_.vehicleCharacter:load(self.xmlFile, v22_ .. ".characterNode") then
-					v23_.vehicleCharacter = nil
+				seatEntry.vehicleCharacter = VehicleCharacter.new(self)
+				if seatEntry.vehicleCharacter ~= nil and not seatEntry.vehicleCharacter:load(self.xmlFile, seatKey .. ".characterNode") then
+					seatEntry.vehicleCharacter = nil
 				end
 			end
-			v23_.characterSpineLastRotationX = 0
-			v23_.characterSpineLastRotationZ = 0
-			v23_.randomFactor = math.random()
-			v23_.smoothingFactor = 1 - math.random(10, 40) / 100
-			v23_.smoothingFactorInv = 1 - v23_.smoothingFactor
-			local v25_ = v10_.seats
-			table.insert(v25_, v23_)
+			seatEntry.characterSpineLastRotationX = 0
+			seatEntry.characterSpineLastRotationZ = 0
+			seatEntry.randomFactor = math.random()
+			seatEntry.smoothingFactor = 1 - math.random(10, 40) / 100
+			seatEntry.smoothingFactorInv = 1 - seatEntry.smoothingFactor
+			table.insert(spec.seats, seatEntry)
 		end
-		local v26_ = v10_.carts
-		table.insert(v26_, v18_)
+		table.insert(spec.carts, cart)
 	end
-	v10_.centerCart = v10_.carts[MathUtil.round(#v10_.carts / 2)]
-	v10_.localSeatIndex = nil
-	v10_.numRiders = 0
-	v10_.ridersChangedListeners = {}
-	v10_.exitPoints = {}
-	for _, v27_ in self.xmlFile:iterator("placeable.rollercoaster.exitPoints.exitPoint") do
-		local v28_ = self.xmlFile:getValue(v27_ .. "#node", nil, self.components, self.i3dMappings)
-		if v28_ ~= nil then
-			local v29_ = v10_.exitPoints
-			table.insert(v29_, v28_)
+	spec.centerCart = spec.carts[MathUtil.round(#spec.carts / 2)]
+	spec.localSeatIndex = nil
+	spec.numRiders = 0
+	spec.ridersChangedListeners = {}
+	spec.exitPoints = {}
+	for _, pointKey in self.xmlFile:iterator("placeable.rollercoaster" .. ".exitPoints.exitPoint") do
+		local exitPoint = self.xmlFile:getValue(pointKey .. "#node", nil, self.components, self.i3dMappings)
+		if exitPoint == nil then
+			continue
 		end
+		table.insert(spec.exitPoints, exitPoint)
 	end
-	if #v10_.exitPoints < #v10_.seats then
-		Logging.xmlWarning(self.xmlFile, "Only %d exitPoints defined for %d seats", #v10_.exitPoints, #v10_.seats)
+	if #spec.exitPoints < #spec.seats then
+		Logging.xmlWarning(self.xmlFile, "Only %d exitPoints defined for %d seats", #spec.exitPoints, #spec.seats)
 	end
-	v10_.rollercoasterHotspot = RollercoasterHotspot.new()
-	v10_.hotSpotLinkNode = self.xmlFile:getValue("placeable.rollercoaster.hotspot#linkNode", nil, self.components, self.i3dMappings)
-	v10_.hotSpotTeleportNode = self.xmlFile:getValue("placeable.rollercoaster.hotspot#teleportNode", nil, self.components, self.i3dMappings)
+	spec.rollercoasterHotspot = RollercoasterHotspot.new()
+	spec.hotSpotLinkNode = self.xmlFile:getValue("placeable.rollercoaster" .. ".hotspot#linkNode", nil, self.components, self.i3dMappings)
+	spec.hotSpotTeleportNode = self.xmlFile:getValue("placeable.rollercoaster" .. ".hotspot#teleportNode", nil, self.components, self.i3dMappings)
 	if self.isClient then
-		v10_.soundsMoving = {}
-		for v30_, v31_ in self.xmlFile:iterator("placeable.rollercoaster.movingSounds.sound") do
-			local v32_ = self.xmlFile:getValue(v31_ .. "#node", nil, self.components, self.i3dMappings)
-			local v33_ = Utils.getFilename(self.xmlFile:getValue(v31_ .. "#filename"), v13_)
-			local v34_ = self.xmlFile:getValue(v31_ .. "#innerRadius")
-			local v35_ = self.xmlFile:getValue(v31_ .. "#radius")
-			local v36_ = self.xmlFile:getValue(v31_ .. "#volume", 1)
-			local v37_ = createAudioSource("rollercoaster_" .. tostring(v30_), v33_, v35_, v34_, v36_, 0)
-			local v38_ = getAudioSourceSample(v37_)
-			setSampleGroup(v38_, AudioGroup.ENVIRONMENT)
-			link(getChildAt(v32_, 1), v37_)
-			local v39_ = v10_.soundsMoving
-			table.insert(v39_, {
-				["node"] = v32_,
-				["movingSound"] = nil
-			})
+		spec.soundsMoving = {}
+		for index, soundKey in self.xmlFile:iterator("placeable.rollercoaster" .. ".movingSounds.sound") do
+			local movingSoundNode = self.xmlFile:getValue(soundKey .. "#node", nil, self.components, self.i3dMappings)
+			local soundFilename = Utils.getFilename(self.xmlFile:getValue(soundKey .. "#filename"), baseDirectory)
+			local innerRadius = self.xmlFile:getValue(soundKey .. "#innerRadius")
+			local radius = self.xmlFile:getValue(soundKey .. "#radius")
+			local volume = self.xmlFile:getValue(soundKey .. "#volume", 1)
+			local audioSource = createAudioSource("rollercoaster_" .. tostring(index), soundFilename, radius, innerRadius, volume, 0)
+			local sample = getAudioSourceSample(audioSource)
+			setSampleGroup(sample, AudioGroup.ENVIRONMENT)
+			link(getChildAt(movingSoundNode, 1), audioSource)
+			table.insert(spec.soundsMoving, { node = movingSoundNode, movingSound = nil })
 		end
-		v10_.sounds = {}
-		v10_.sounds.driving1 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster.sounds", "driving1", v13_, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
-		v10_.sounds.driving2 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster.sounds", "driving2", v13_, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
-		v10_.sounds.driving3 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster.sounds", "driving3", v13_, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
-		v10_.sounds.driving4 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster.sounds", "driving4", v13_, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
-		v10_.sounds.driving5 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster.sounds", "driving5", v13_, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
-		v10_.speed = 0
-		local v40_, v41_, v42_ = getWorldTranslation(v10_.centerCart.node)
-		v10_.posX = v40_
-		v10_.posY = v41_
-		v10_.posZ = v42_
+		spec.sounds = {}
+		spec.sounds.driving1 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster" .. ".sounds", "driving1", baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
+		spec.sounds.driving2 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster" .. ".sounds", "driving2", baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
+		spec.sounds.driving3 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster" .. ".sounds", "driving3", baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
+		spec.sounds.driving4 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster" .. ".sounds", "driving4", baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
+		spec.sounds.driving5 = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.rollercoaster" .. ".sounds", "driving5", baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, self)
+		spec.speed = 0
+		spec.posX, spec.posY, spec.posZ = getWorldTranslation(spec.centerCart.node)
 		self.currentUpdateDistance = math.huge
 	end
 	g_messageCenter:subscribe(MessageType.USER_REMOVED, self.onUserRemoved, self)
 end
-
--- Local values: spec, animNode, characterSet, clipIndex, _, state
 function PlaceableRollercoaster:onSharedAnimationFileLoaded(node, failedReason, args)
-	local v46_ = self.spec_rollercoaster
+	local spec = self.spec_rollercoaster
 	if node ~= 0 and node ~= nil then
 		if not self.isDeleted then
-			local v47_ = getChildAt(getChildAt(node, 0), 0)
-			if cloneAnimCharacterSet(v47_, v46_.animation.clipRootNode) then
-				local v48_ = getAnimCharacterSet(v46_.animation.clipRootNode)
-				local v49_ = getAnimClipIndex(v48_, v46_.animation.clipName)
-				if v49_ == -1 then
-					Logging.error("Animation clip with name \'%s\' does not exist in \'%s\'", v46_.animation.clipName, v46_.animation.clipFilename or self.xmlFilename)
+			local animNode = getChildAt(getChildAt(node, 0), 0)
+			if cloneAnimCharacterSet(animNode, spec.animation.clipRootNode) then
+				local characterSet = getAnimCharacterSet(spec.animation.clipRootNode)
+				local clipIndex = getAnimClipIndex(characterSet, spec.animation.clipName)
+				if clipIndex ~= -1 then
+					assignAnimTrackClip(characterSet, spec.animation.clipTrack, clipIndex)
+					setAnimTrackLoopState(characterSet, spec.animation.clipTrack, false)
+					spec.animation.clipDuration = getAnimClipDuration(characterSet, clipIndex)
+					spec.animation.clipIndex = clipIndex
+					spec.animation.clipCharacterSet = characterSet
+					setAnimTrackSpeedScale(characterSet, clipIndex, spec.animation.speedScale)
 				else
-					assignAnimTrackClip(v48_, v46_.animation.clipTrack, v49_)
-					setAnimTrackLoopState(v48_, v46_.animation.clipTrack, false)
-					v46_.animation.clipDuration = getAnimClipDuration(v48_, v49_)
-					v46_.animation.clipIndex = v49_
-					v46_.animation.clipCharacterSet = v48_
-					setAnimTrackSpeedScale(v48_, v49_, v46_.animation.speedScale)
+					Logging.error("Animation clip with name '%s' does not exist in '%s'", spec.animation.clipName, spec.animation.clipFilename or self.xmlFilename)
 				end
 			end
 		end
 		delete(node)
 	end
-	v46_.playerRideCounter = {}
-	for _, v50_ in pairs(self.spec_constructible.stateMachine) do
-		if v50_.init ~= nil then
-			v50_:init()
+	spec.playerRideCounter = {}
+	for _, state in pairs(self.spec_constructible.stateMachine) do
+		if state.init == nil then
+			continue
 		end
+		state:init()
 	end
 	self:finishLoadingTask(args.loadingTask)
 end
-
--- Local values: spec, x, y, z, _
 function PlaceableRollercoaster:onFinalizePlacement(savegame)
-	local v52_ = self.spec_rollercoaster
-	v52_.rollercoasterHotspot:setPlaceable(self)
-	v52_.rollercoasterHotspot:setOwnerFarmId(nil)
-	local v53_, _, v54_ = getWorldTranslation(v52_.hotSpotLinkNode)
-	v52_.rollercoasterHotspot:setWorldPosition(v53_, v54_)
-	local v55_, v56_, v57_ = getWorldTranslation(v52_.hotSpotTeleportNode)
-	v52_.rollercoasterHotspot:setTeleportWorldPosition(v55_, v56_, v57_)
-	g_currentMission:addMapHotspot(v52_.rollercoasterHotspot)
+	local spec = self.spec_rollercoaster
+	spec.rollercoasterHotspot:setPlaceable(self)
+	spec.rollercoasterHotspot:setOwnerFarmId(nil)
+	local x = nil
+	local y = nil
+	local z = nil
+	local _ = nil
+	x, _, z = getWorldTranslation(spec.hotSpotLinkNode)
+	spec.rollercoasterHotspot:setWorldPosition(x, z)
+	x, y, z = getWorldTranslation(spec.hotSpotTeleportNode)
+	spec.rollercoasterHotspot:setTeleportWorldPosition(x, y, z)
+	g_currentMission:addMapHotspot(spec.rollercoasterHotspot)
 	if PlaceableRollercoaster.INSTANCE == nil then
 		PlaceableRollercoaster.INSTANCE = self
 	end
 end
-
--- Local values: spec, _, seat, _, sound
 function PlaceableRollercoaster:onDelete()
-	local v59_ = self.spec_rollercoaster
+	local spec = self.spec_rollercoaster
 	g_messageCenter:unsubscribeAll(self)
-	g_currentMission:removeMapHotspot(v59_.rollercoasterHotspot)
-	v59_.rollercoasterHotspot:delete()
-	if v59_.animation ~= nil and v59_.animation.sharedLoadRequestId ~= nil then
-		g_i3DManager:releaseSharedI3DFile(v59_.animation.sharedLoadRequestId)
-		v59_.animation.sharedLoadRequestId = nil
+	g_currentMission:removeMapHotspot(spec.rollercoasterHotspot)
+	spec.rollercoasterHotspot:delete()
+	if spec.animation ~= nil and spec.animation.sharedLoadRequestId ~= nil then
+		g_i3DManager:releaseSharedI3DFile(spec.animation.sharedLoadRequestId)
+		spec.animation.sharedLoadRequestId = nil
 	end
-	for _, v60_ in ipairs(v59_.seats) do
-		if v60_.vehicleCharacter ~= nil then
-			v60_.vehicleCharacter:delete()
+	for _, seat in ipairs(spec.seats) do
+		if seat.vehicleCharacter ~= nil then
+			seat.vehicleCharacter:delete()
 		end
-		if v60_.camera ~= nil then
-			v60_.camera:delete()
+		if seat.camera == nil then
+			continue
 		end
+		seat.camera:delete()
 	end
-	if v59_.soundsMoving ~= nil then
-		for _, v61_ in ipairs(v59_.soundsMoving) do
-			if v61_.movingSound ~= nil then
-				g_currentMission.ambientSoundSystem:removeMovingSound(v61_.movingSound)
-				v61_.movingSound = nil
+	if spec.soundsMoving ~= nil then
+		for _, sound in ipairs(spec.soundsMoving) do
+			if sound.movingSound == nil then
+				continue
 			end
+			g_currentMission.ambientSoundSystem:removeMovingSound(sound.movingSound)
+			sound.movingSound = nil
 		end
 	end
-	if v59_.sounds ~= nil then
-		g_soundManager:deleteSamples(v59_.sounds)
+	if spec.sounds ~= nil then
+		g_soundManager:deleteSamples(spec.sounds)
 	end
-	if v59_.playerTrigger ~= nil then
-		removeTrigger(v59_.playerTrigger)
-		v59_.playerTrigger = nil
+	if spec.playerTrigger ~= nil then
+		removeTrigger(spec.playerTrigger)
+		spec.playerTrigger = nil
 	end
 	if PlaceableRollercoaster.INSTANCE == self then
 		PlaceableRollercoaster.INSTANCE = nil
 	end
 end
-
--- Local values: spec, i, uniqueUserId, rideCount, counterKey
 function PlaceableRollercoaster:saveToXMLFile(xmlFile, key, usedModNames)
-	local v65_ = self.spec_rollercoaster
-	local v66_ = 0
-	for v67_, v68_ in pairs(v65_.playerRideCounter) do
-		local v69_ = string.format("%s.player(%d)", key, v66_)
-		xmlFile:setValue(v69_ .. "#uniqueUserId", v67_)
-		xmlFile:setValue(v69_ .. "#rideCount", v68_)
-		v66_ = v66_ + 1
+	local spec = self.spec_rollercoaster
+	local i = 0
+	for uniqueUserId, rideCount in pairs(spec.playerRideCounter) do
+		local counterKey = string.format("%s.player(%d)", key, i)
+		xmlFile:setValue(counterKey .. "#uniqueUserId", uniqueUserId)
+		xmlFile:setValue(counterKey .. "#rideCount", rideCount)
+		i = i + 1
 	end
 end
-
--- Local values: spec, _, counterKey, uniqueUserId, rideCount
 function PlaceableRollercoaster:loadFromXMLFile(xmlFile, key)
-	local v73_ = self.spec_rollercoaster
-	for _, v74_ in xmlFile:iterator(key .. ".player") do
-		local v75_ = xmlFile:getValue(v74_ .. "#uniqueUserId")
-		local v76_ = xmlFile:getValue(v74_ .. "#rideCount")
-		if v75_ ~= nil and v76_ ~= nil then
-			v73_.playerRideCounter[v75_] = v76_
+	local spec = self.spec_rollercoaster
+	for _, counterKey in xmlFile:iterator(key .. ".player") do
+		local uniqueUserId = xmlFile:getValue(counterKey .. "#uniqueUserId")
+		local rideCount = xmlFile:getValue(counterKey .. "#rideCount")
+		if uniqueUserId == nil or rideCount == nil then
+			continue
 		end
+		spec.playerRideCounter[uniqueUserId] = rideCount
 	end
 end
-
--- Local values: spec, seatIndex, seat, player
 function PlaceableRollercoaster:onReadStream(streamId, connection)
-	local v79_ = self.spec_rollercoaster
-	for v80_, _ in ipairs(v79_.seats) do
+	local spec = self.spec_rollercoaster
+	for seatIndex, seat in ipairs(spec.seats) do
 		if streamReadBool(streamId) then
-			self:enterRide(v80_, (NetworkUtil.readNodeObject(streamId)))
+			local player = NetworkUtil.readNodeObject(streamId)
+			self:enterRide(seatIndex, player)
 		end
 	end
 end
-
--- Local values: spec, seatIndex, seat
 function PlaceableRollercoaster:onWriteStream(streamId, connection)
-	local v83_ = self.spec_rollercoaster
-	for _, v84_ in ipairs(v83_.seats) do
-		if streamWriteBool(streamId, v84_.player ~= nil) then
-			NetworkUtil.writeNodeObject(streamId, v84_.player)
+	local spec = self.spec_rollercoaster
+	for seatIndex, seat in ipairs(spec.seats) do
+		if streamWriteBool(streamId, seat.player ~= nil) then
+			NetworkUtil.writeNodeObject(streamId, seat.player)
 		end
 	end
 end
-
--- Local values: spec, _, seat, randomDeviation
 function PlaceableRollercoaster:onUpdate(dt)
-	local v87_ = self.spec_rollercoaster
+	local spec = self.spec_rollercoaster
 	if self.isClient then
-		if v87_.localSeatIndex ~= nil then
-			v87_.seats[v87_.localSeatIndex].camera:update(dt)
+		if spec.localSeatIndex ~= nil then
+			spec.seats[spec.localSeatIndex].camera:update(dt)
 			self:raiseActive()
 		end
-		for _, v88_ in ipairs(v87_.seats) do
-			if v88_.player ~= nil and v88_.player ~= g_localPlayer then
-				local v89_ = 1 - v88_.randomFactor
-				local v90_ = g_time / 500 + v88_.randomFactor
-				local v91_ = v89_ + math.sin(v90_) * (v88_.randomFactor / 5)
-				v88_.characterSpineLastRotationX = v88_.smoothingFactor * v88_.characterSpineLastRotationX + v88_.smoothingFactorInv * ((v88_.cart.slope + v91_ / 2) / 5)
-				v88_.characterSpineLastRotationZ = v88_.smoothingFactor * v88_.characterSpineLastRotationZ + v88_.smoothingFactorInv * ((v88_.cart.angleChange - v91_) / 20)
-				setRotation(v88_.vehicleCharacter.characterNode, v88_.characterSpineLastRotationX, 0, v88_.characterSpineLastRotationZ)
-				v88_.vehicleCharacter:updateVisibility()
-				v88_.vehicleCharacter:update(dt)
+		for _, seat in ipairs(spec.seats) do
+			if seat.player == nil or seat.player == g_localPlayer then
+				continue
 			end
+			local randomDeviation = 1 - seat.randomFactor + math.sin(g_time / 500 + seat.randomFactor) * (seat.randomFactor / 5)
+			seat.characterSpineLastRotationX = seat.smoothingFactor * seat.characterSpineLastRotationX + seat.smoothingFactorInv * ((seat.cart.slope + randomDeviation / 2) / 5)
+			seat.characterSpineLastRotationZ = seat.smoothingFactor * seat.characterSpineLastRotationZ + seat.smoothingFactorInv * ((seat.cart.angleChange - randomDeviation) / 20)
+			setRotation(seat.vehicleCharacter.characterNode, seat.characterSpineLastRotationX, 0, seat.characterSpineLastRotationZ)
+			seat.vehicleCharacter:updateVisibility()
+			seat.vehicleCharacter:update(dt)
 		end
-		if v87_.numRiders > 0 then
+		if 0 < spec.numRiders then
 			self:raiseActive()
-			self.currentUpdateDistance = calcDistanceFrom(v87_.centerCart.node, getCamera())
+			self.currentUpdateDistance = calcDistanceFrom(spec.centerCart.node, getCamera())
 		end
 	end
 end
-
--- Local values: spec, _, sound
 function PlaceableRollercoaster:finalizeConstruction(superFunc)
 	superFunc(self)
-	local v94_ = self.spec_rollercoaster
-	if v94_.soundsMoving ~= nil then
-		for _, v95_ in ipairs(v94_.soundsMoving) do
-			if v95_.node and v95_.movingSound == nil then
-				v95_.movingSound = g_currentMission.ambientSoundSystem:addMovingSound(v95_.node)
+	local spec = self.spec_rollercoaster
+	if spec.soundsMoving ~= nil then
+		for _, sound in ipairs(spec.soundsMoving) do
+			if sound.node and sound.movingSound == nil then
+				sound.movingSound = g_currentMission.ambientSoundSystem:addMovingSound(sound.node)
 			end
 		end
 	end
-	v94_.rollercoasterHotspot:changeToRollercoaster()
+	spec.rollercoasterHotspot:changeToRollercoaster()
 end
-
--- Local values: spec, currentState, waitingState, isInWaitingState
 function PlaceableRollercoaster:getCanEnter()
-	local v97_ = self.spec_rollercoaster
-	local v98_ = self:getConstructibleStateIndex() == self:getConstructibleStateIndexByName("RIDE_WAITING")
-	if v98_ then
-		if v97_.animation.clipCharacterSet == nil or v97_.localSeatIndex ~= nil then
-			v98_ = false
-		else
-			v98_ = v97_.numRiders < #v97_.seats
-		end
-	end
-	return v98_
+	local spec = self.spec_rollercoaster
+	local currentState = self:getConstructibleStateIndex()
+	local waitingState = self:getConstructibleStateIndexByName("RIDE_WAITING")
+	local isInWaitingState = currentState == waitingState
+	return isInWaitingState and spec.animation.clipCharacterSet ~= nil and spec.localSeatIndex == nil and spec.numRiders < #spec.seats
 end
-
--- Local values: spec, seatIndex, seat
 function PlaceableRollercoaster:getFreeSeatIndex()
-	local v100_ = self.spec_rollercoaster
-	for v101_, v102_ in ipairs(v100_.seats) do
-		if v102_.player == nil then
-			return v101_
+	local spec = self.spec_rollercoaster
+	for seatIndex, seat in ipairs(spec.seats) do
+		if seat.player == nil then
+			return seatIndex
 		end
 	end
 	return nil
 end
-
--- Local values: spec
 function PlaceableRollercoaster:getCanStart()
-	return self.spec_rollercoaster.numRiders > 0
+	local spec = self.spec_rollercoaster
+	return 0 < spec.numRiders
 end
-
--- Local values: spec
 function PlaceableRollercoaster:startRide()
-	local v105_ = self.spec_rollercoaster
-	if v105_.animation.clipCharacterSet ~= nil then
-		local _ = v105_.localSeatIndex == nil
+	local spec = self.spec_rollercoaster
+	if spec.animation.clipCharacterSet ~= nil then
 		if self.isClient then
-			v105_.animationInterpolator:setValue(0)
-			v105_.animationTimeInterpolator:reset()
+			spec.animationInterpolator:setValue(0)
+			spec.animationTimeInterpolator:reset()
 		end
-		setAnimTrackTime(v105_.animation.clipCharacterSet, v105_.animation.clipTrack, 0, true)
-		enableAnimTrack(v105_.animation.clipCharacterSet, v105_.animation.clipTrack)
+		setAnimTrackTime(spec.animation.clipCharacterSet, spec.animation.clipTrack, 0, true)
+		enableAnimTrack(spec.animation.clipCharacterSet, spec.animation.clipTrack)
 		if self.isClient then
-			g_soundManager:playSamples(v105_.sounds)
+			g_soundManager:playSamples(spec.sounds)
 		end
 	end
 end
-
--- Local values: spec, seatIndex, seat
 function PlaceableRollercoaster:endRide()
-	local v107_ = self.spec_rollercoaster
+	local spec = self.spec_rollercoaster
 	if self.isClient then
-		g_soundManager:stopSamples(v107_.sounds)
+		g_soundManager:stopSamples(spec.sounds)
 	end
-	for v108_, v109_ in ipairs(v107_.seats) do
-		if v109_.player ~= nil then
-			self:exitRide(v108_)
+	for seatIndex, seat in ipairs(spec.seats) do
+		if seat.player == nil then
+			continue
 		end
+		self:exitRide(seatIndex)
 	end
 end
-
--- Local values: seatIndex, userId
 function PlaceableRollercoaster:tryEnterRide(connection, player)
-	local v112_ = self:getFreeSeatIndex()
-	if v112_ ~= nil then
-		local v113_ = g_currentMission.userManager:getUserIdByConnection(connection)
-		g_server:broadcastEvent(RollercoasterPassengerEnterResponseEvent.new(self, v113_, v112_), true, nil, self, false, nil, true)
+	local seatIndex = self:getFreeSeatIndex()
+	if seatIndex ~= nil then
+		local userId = g_currentMission.userManager:getUserIdByConnection(connection)
+		g_server:broadcastEvent(RollercoasterPassengerEnterResponseEvent.new(self, userId, seatIndex), true, nil, self, false, nil, true)
 	end
 end
-
--- Local values: spec, playerStyle, target, func
 function PlaceableRollercoaster:enterRide(seatIndex, player)
-	local v117_ = self.spec_rollercoaster
+	local spec = self.spec_rollercoaster
 	if player == g_localPlayer then
-		v117_.localSeatIndex = seatIndex
-		v117_.seats[seatIndex].camera:onActivate()
+		spec.localSeatIndex = seatIndex
+		spec.seats[seatIndex].camera:onActivate()
 	else
-		local v118_ = player.graphicsComponent:getStyle()
-		v117_.seats[seatIndex].vehicleCharacter:loadCharacter(v118_, self, PlaceableRollercoaster.passengerCharacterLoaded, {
-			["seat"] = v117_.seats[seatIndex]
-		})
+		local playerStyle = player.graphicsComponent:getStyle()
+		spec.seats[seatIndex].vehicleCharacter:loadCharacter(playerStyle, self, PlaceableRollercoaster.passengerCharacterLoaded, { seat = spec.seats[seatIndex] })
 	end
-	v117_.numRiders = v117_.numRiders + 1
-	for _, v119_ in pairs(v117_.ridersChangedListeners) do
-		v119_(v117_.numRiders, 1, player)
+	spec.numRiders = spec.numRiders + 1
+	for target, func in pairs(spec.ridersChangedListeners) do
+		func(spec.numRiders, 1, player)
 	end
-	if v117_.numRiders >= #v117_.seats then
+	if #spec.seats <= spec.numRiders then
 		self:setPlayerTriggerState(false)
 	end
-	v117_.seats[seatIndex].player = player
+	spec.seats[seatIndex].player = player
 	self:raiseActive()
 end
-
--- Local values: spec, isOwner, player, target, func, userId, user, uniqueUserId, stats
 function PlaceableRollercoaster:exitRide(seatIndex)
-	local v122_ = self.spec_rollercoaster
-	local v123_ = v122_.localSeatIndex == seatIndex
-	v122_.seats[seatIndex].vehicleCharacter:unloadCharacter()
-	local v124_ = v122_.seats[seatIndex].player
-	if v123_ then
-		v122_.seats[seatIndex].camera:onDeactivate()
+	local spec = self.spec_rollercoaster
+	local isOwner = spec.localSeatIndex == seatIndex
+	spec.seats[seatIndex].vehicleCharacter:unloadCharacter()
+	local player = spec.seats[seatIndex].player
+	if isOwner then
+		spec.seats[seatIndex].camera:onDeactivate()
 		g_currentMission.hud:setIsVisible(true)
-		v122_.localSeatIndex = nil
+		spec.localSeatIndex = nil
 	end
-	v124_:onLeaveRollercoaster()
-	v122_.numRiders = v122_.numRiders - 1
-	for _, v125_ in pairs(v122_.ridersChangedListeners) do
-		v125_(v122_.numRiders, -1, v122_.seats[seatIndex].player)
+	player:onLeaveRollercoaster()
+	spec.numRiders = spec.numRiders - 1
+	for target, func in pairs(spec.ridersChangedListeners) do
+		func(spec.numRiders, -1, spec.seats[seatIndex].player)
 	end
-	if self.isServer and v124_ ~= nil then
-		local v126_ = v124_.userId
-		local v127_ = g_currentMission.userManager:getUserByUserId(v126_)
-		if v127_ ~= nil then
-			local v128_ = v127_:getUniqueUserId()
-			if v122_.playerRideCounter[v128_] == nil then
-				v122_.playerRideCounter[v128_] = 0
+	if self.isServer and player ~= nil then
+		local userId = player.userId
+		local user = g_currentMission.userManager:getUserByUserId(userId)
+		if user ~= nil then
+			local uniqueUserId = user:getUniqueUserId()
+			if spec.playerRideCounter[uniqueUserId] == nil then
+				spec.playerRideCounter[uniqueUserId] = 0
 			end
-			v122_.playerRideCounter[v128_] = v122_.playerRideCounter[v128_] + 1
+			spec.playerRideCounter[uniqueUserId] = spec.playerRideCounter[uniqueUserId] + 1
 		end
-		if v124_ == g_localPlayer then
-			g_currentMission:farmStats(g_localPlayer.farmId)
+		if player == g_localPlayer then
+			local stats = g_currentMission:farmStats(g_localPlayer.farmId)
 		end
 	end
-	v122_.seats[seatIndex].player = nil
+	spec.seats[seatIndex].player = nil
 end
-
--- Local values: spec, userId, seatIndex, seat
 function PlaceableRollercoaster:onUserRemoved(user)
-	local v131_ = self.spec_rollercoaster
-	local v132_ = user:getId()
-	for v133_, v134_ in ipairs(v131_.seats) do
-		if v134_.player ~= nil and v134_.player.userId == v132_ then
-			self:exitRide(v133_)
+	local spec = self.spec_rollercoaster
+	local userId = user:getId()
+	for seatIndex, seat in ipairs(spec.seats) do
+		if seat.player == nil then
+			continue
+		end
+		if seat.player.userId == userId then
+			self:exitRide(seatIndex)
 			return
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableRollercoaster:registerRidersChangedListener(target, func)
-	self.spec_rollercoaster.ridersChangedListeners[target] = func
+	local spec = self.spec_rollercoaster
+	spec.ridersChangedListeners[target] = func
 end
-
--- Local values: spec
 function PlaceableRollercoaster:unregisterRidersChangedListener(target)
-	self.spec_rollercoaster.ridersChangedListeners[target] = nil
+	local spec = self.spec_rollercoaster
+	spec.ridersChangedListeners[target] = nil
 end
-
--- Local values: spec
 function PlaceableRollercoaster:getAnimation()
-	return self.spec_rollercoaster.animation
+	local spec = self.spec_rollercoaster
+	return spec.animation
 end
-
--- Local values: spec
 function PlaceableRollercoaster:setAnimationTime(animationTime)
-	local v143_ = self.spec_rollercoaster
-	setAnimTrackTime(v143_.animation.clipCharacterSet, v143_.animation.clipTrack, animationTime, true)
+	local spec = self.spec_rollercoaster
+	setAnimTrackTime(spec.animation.clipCharacterSet, spec.animation.clipTrack, animationTime, true)
 end
-
--- Local values: spec, x, y, z, distance, _, cart, dx, dy, dz, angleChange, slope
 function PlaceableRollercoaster:updateFxModifierValues(dt)
-	local v146_ = self.spec_rollercoaster
-	local v147_, v148_, v149_ = getWorldTranslation(v146_.centerCart.node)
-	local v150_ = MathUtil.vector3Length(v147_ - v146_.posX, v148_ - v146_.posY, v149_ - v146_.posZ)
-	v146_.posX = v147_
-	v146_.posY = v148_
-	v146_.posZ = v149_
-	v146_.speed = 0.2 * v146_.speed + 0.8 * v150_ / (dt / 1000)
-	for _, v151_ in ipairs(v146_.carts) do
-		local v152_, v153_, v154_ = localDirectionToWorld(v151_.node, 0, 0, 1)
-		local v155_ = MathUtil.getVectorAngleDifference(v152_, 0, v154_, v151_.dirX, 0, v151_.dirZ)
-		local v156_ = MathUtil.isNan(v155_) and 0 or v155_
-		v151_.angleChange = 0.6 * v151_.angleChange + 0.4 * (v156_ * 100)
-		v151_.dirX = v152_
-		v151_.dirY = v153_
-		v151_.dirZ = v154_
-		local v157_, v158_, v159_ = localDirectionToWorld(v151_.node, 1, 0, 0)
-		local v160_ = v158_ / MathUtil.vector3Length(v157_, v158_, v159_)
-		local v161_ = math.acos(v160_) - 1.5707963267948966
-		v151_.slope = 0.7 * v151_.slope + 0.3 * v161_
+	local spec = self.spec_rollercoaster
+	local x, y, z = getWorldTranslation(spec.centerCart.node)
+	local distance = MathUtil.vector3Length(x - spec.posX, y - spec.posY, z - spec.posZ)
+	spec.posX = x
+	spec.posY = y
+	spec.posZ = z
+	spec.speed = 0.2 * spec.speed + 0.8 * distance / (dt / 1000)
+	for _, cart in ipairs(spec.carts) do
+		local dx, dy, dz = localDirectionToWorld(cart.node, 0, 0, 1)
+		local angleChange = MathUtil.getVectorAngleDifference(dx, 0, dz, cart.dirX, 0, cart.dirZ)
+		if MathUtil.isNan(angleChange) then
+			angleChange = 0
+		end
+		cart.angleChange = 0.6 * cart.angleChange + 0.4 * (angleChange * 100)
+		cart.dirX = dx
+		cart.dirY = dy
+		cart.dirZ = dz
+		dx, dy, dz = localDirectionToWorld(cart.node, 1, 0, 0)
+		local slope = math.acos(dy / MathUtil.vector3Length(dx, dy, dz)) - 1.5707963267948966
+		cart.slope = 0.7 * cart.slope + 0.3 * slope
 	end
 end
-
 function PlaceableRollercoaster:getParentComponent(node)
 	return getParent(node)
 end
-
--- Local values: seat
 function PlaceableRollercoaster:passengerCharacterLoaded(success, arguments)
 	if success then
-		local v165_ = arguments.seat
-		if v165_ ~= nil then
-			v165_.vehicleCharacter:updateVisibility()
-			v165_.vehicleCharacter:updateIKChains()
+		local seat = arguments.seat
+		if seat ~= nil then
+			seat.vehicleCharacter:updateVisibility()
+			seat.vehicleCharacter:updateIKChains()
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableRollercoaster:playerTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay, otherShapeId)
 	if (onEnter or onLeave) and (g_localPlayer ~= nil and otherId == g_localPlayer.rootNode) then
-		local v170_ = self.spec_rollercoaster
+		local spec = self.spec_rollercoaster
 		if onEnter then
-			if Platform.isMobile and v170_.activatable:getIsActivatable() then
-				v170_.activatable:run()
+			if Platform.isMobile and spec.activatable:getIsActivatable() then
+				spec.activatable:run()
 				return
 			end
-			g_currentMission.activatableObjectsSystem:addActivatable(v170_.activatable)
+			g_currentMission.activatableObjectsSystem:addActivatable(spec.activatable)
 		end
 		if onLeave then
-			g_currentMission.activatableObjectsSystem:removeActivatable(v170_.activatable)
+			g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableRollercoaster:setPlayerTriggerState(state)
-	local v173_ = self.spec_rollercoaster
-	setVisibility(v173_.playerTrigger, state)
+	local spec = self.spec_rollercoaster
+	setVisibility(spec.playerTrigger, state)
 end
-
--- Local values: spec
 function PlaceableRollercoaster:getNumRides(uniqueUserId)
-	return self.spec_rollercoaster.playerRideCounter[uniqueUserId] or 0
+	local spec = self.spec_rollercoaster
+	return spec.playerRideCounter[uniqueUserId] or 0
 end
-
--- Local values: spec
 function PlaceableRollercoaster:getHotspot(index)
-	return self.spec_rollercoaster.rollercoasterHotspot
+	local spec = self.spec_rollercoaster
+	return spec.rollercoasterHotspot
 end
-
--- Local values: spec
 function PlaceableRollercoaster:getSpeedSoundModifier()
-	return self.spec_rollercoaster.speed
+	local spec = self.spec_rollercoaster
+	return spec.speed
 end
 g_soundManager:registerModifierType("ROLLERCOASTER_SPEED", PlaceableRollercoaster.getSpeedSoundModifier)
-
--- Local values: spec
 function PlaceableRollercoaster:getCurveSoundModifier()
-	local v179_ = self.spec_rollercoaster
-	if v179_.localSeatIndex == nil then
-		local v180_ = v179_.centerCart.angleChange
-		return math.abs(v180_)
+	local spec = self.spec_rollercoaster
+	if spec.localSeatIndex ~= nil then
+		return math.abs(spec.seats[spec.localSeatIndex].cart.angleChange)
 	else
-		local v181_ = v179_.seats[v179_.localSeatIndex].cart.angleChange
-		return math.abs(v181_)
+		return math.abs(spec.centerCart.angleChange)
 	end
 end
 g_soundManager:registerModifierType("ROLLERCOASTER_CURVE", PlaceableRollercoaster.getCurveSoundModifier)

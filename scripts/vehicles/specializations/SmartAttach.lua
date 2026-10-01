@@ -1,205 +1,177 @@
--- Local values: SmartAttachActivatable_mt, SmartAttachEvent_mt
 SmartAttach = {}
 SmartAttach.DISTANCE_THRESHOLD = 3.5
 SmartAttach.ABS_ANGLE_THRESHOLD = 0.3490658503988659
-
 function SmartAttach.prerequisitesPresent(specializations)
 	return true
 end
 function SmartAttach.initSpecialization()
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("SmartAttach")
-	v1_:register(XMLValueType.STRING, "vehicle.smartAttach#jointType", "Joint type name")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.smartAttach#trigger", "Trigger node")
-	v1_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("SmartAttach")
+	schema:register(XMLValueType.STRING, "vehicle.smartAttach#jointType", "Joint type name")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.smartAttach#trigger", "Trigger node")
+	schema:setXMLSpecializationType()
 end
-
 function SmartAttach.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "smartAttachCallback", SmartAttach.smartAttachCallback)
 	SpecializationUtil.registerFunction(vehicleType, "getCanBeSmartAttached", SmartAttach.getCanBeSmartAttached)
 	SpecializationUtil.registerFunction(vehicleType, "doSmartAttach", SmartAttach.doSmartAttach)
 end
-
 function SmartAttach.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", SmartAttach)
 	SpecializationUtil.registerEventListener(vehicleType, "onDelete", SmartAttach)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreAttach", SmartAttach)
 end
-
--- Local values: spec, jointTypeStr, jointType, inputJointDescIndex, inputAttacherJoint, triggerNode
 function SmartAttach:onLoad(savegame)
-	local v5_ = self.spec_smartAttach
-	v5_.inputJointDescIndex = nil
-	local v6_ = self.xmlFile:getValue("vehicle.smartAttach#jointType")
-	if v6_ ~= nil then
-		local v7_ = AttacherJoints.jointTypeNameToInt[v6_]
-		if v7_ == nil then
-			printWarning("Warning: invalid jointType " .. v6_)
-		else
-			for v8_, v9_ in pairs(self:getInputAttacherJoints()) do
-				if v9_.jointType == v7_ then
-					v5_.inputJointDescIndex = v8_
+	local spec = self.spec_smartAttach
+	spec.inputJointDescIndex = nil
+	local jointTypeStr = self.xmlFile:getValue("vehicle.smartAttach#jointType")
+	if jointTypeStr ~= nil then
+		local jointType = AttacherJoints.jointTypeNameToInt[jointTypeStr]
+		if jointType ~= nil then
+			for inputJointDescIndex, inputAttacherJoint in pairs(self:getInputAttacherJoints()) do
+				if inputAttacherJoint.jointType == jointType then
+					spec.inputJointDescIndex = inputJointDescIndex
 					break
 				end
 			end
-			v5_.jointType = v7_
-			if v5_.inputJointDescIndex == nil then
-				printWarning("Warning: SmartAttach jointType not defined in \'" .. self.configFileName .. "\'!")
+			spec.jointType = jointType
+			if spec.inputJointDescIndex == nil then
+				printWarning("Warning: SmartAttach jointType not defined in '" .. self.configFileName .. "'!")
 			end
+		else
+			printWarning("Warning: invalid jointType " .. jointTypeStr)
 		end
 	end
-	local v10_ = self.xmlFile:getValue("vehicle.smartAttach#trigger", nil, self.components, self.i3dMappings)
-	if v10_ ~= nil then
-		v5_.trigger = v10_
-		addTrigger(v5_.trigger, "smartAttachCallback", self)
+	local triggerNode = self.xmlFile:getValue("vehicle.smartAttach#trigger", nil, self.components, self.i3dMappings)
+	if triggerNode ~= nil then
+		spec.trigger = triggerNode
+		addTrigger(spec.trigger, "smartAttachCallback", self)
 	end
-	v5_.targetVehicle = nil
-	v5_.targetVehicleCount = 0
-	v5_.jointDescIndex = nil
-	v5_.activatable = SmartAttachActivatable.new(self)
+	spec.targetVehicle = nil
+	spec.targetVehicleCount = 0
+	spec.jointDescIndex = nil
+	spec.activatable = SmartAttachActivatable.new(self)
 end
-
--- Local values: spec
 function SmartAttach:onDelete()
-	local v12_ = self.spec_smartAttach
-	if v12_.activatable ~= nil then
-		g_currentMission.activatableObjectsSystem:removeActivatable(v12_.activatable)
-		v12_.activatable = nil
+	local spec = self.spec_smartAttach
+	if spec.activatable ~= nil then
+		g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
+		spec.activatable = nil
 	end
-	if v12_.trigger ~= nil then
-		removeTrigger(v12_.trigger)
-		v12_.trigger = nil
+	if spec.trigger ~= nil then
+		removeTrigger(spec.trigger)
+		spec.trigger = nil
 	end
 end
-
--- Local values: attacherVehicle
 function SmartAttach:doSmartAttach(targetVehicle, inputJointDescIndex, jointDescIndex, noEventSend)
 	SmartAttachEvent.sendEvent(self, targetVehicle, inputJointDescIndex, jointDescIndex, noEventSend)
 	if self.isServer then
-		local v18_ = self:getAttacherVehicle()
-		if v18_ ~= nil then
-			v18_:detachImplementByObject(self)
+		local attacherVehicle = self:getAttacherVehicle()
+		if attacherVehicle ~= nil then
+			attacherVehicle:detachImplementByObject(self)
 		end
 		targetVehicle:attachImplement(self, inputJointDescIndex, jointDescIndex, false)
 	end
 end
-
--- Local values: spec, targetVehicle, activeForInput, attacherJoint, inputAttacherJoint, x1, _, z1, x2, _, z2, distance, yRot
 function SmartAttach:getCanBeSmartAttached()
-	local v20_ = self.spec_smartAttach
-	local v21_ = v20_.targetVehicle
-	if v21_ == nil then
+	local spec = self.spec_smartAttach
+	local targetVehicle = spec.targetVehicle
+	if targetVehicle == nil then
 		return false
 	end
-	if not (self:getIsActiveForInput(true) or v20_.targetVehicle:getIsActiveForInput(true)) then
+	local activeForInput = self:getIsActiveForInput(true) or spec.targetVehicle:getIsActiveForInput(true)
+	if not activeForInput then
 		return false
-	end
-	local v22_ = v21_:getAttacherJoints()[v20_.jointDescIndex].jointTransform
-	local v23_ = self:getInputAttacherJoints()[v20_.inputJointDescIndex].node
-	local v24_, _, v25_ = getWorldTranslation(v22_)
-	local v26_, _, v27_ = getWorldTranslation(v23_)
-	local v28_ = MathUtil.vector2Length(v24_ - v26_, v25_ - v27_)
-	local v29_ = Utils.getYRotationBetweenNodes(v22_, v23_)
-	local v30_
-	if v28_ < SmartAttach.DISTANCE_THRESHOLD then
-		v30_ = math.abs(v29_) < SmartAttach.ABS_ANGLE_THRESHOLD
 	else
-		v30_ = false
+		local attacherJoint = targetVehicle:getAttacherJoints()[spec.jointDescIndex].jointTransform
+		local inputAttacherJoint = self:getInputAttacherJoints()[spec.inputJointDescIndex].node
+		local x1, _, z1 = getWorldTranslation(attacherJoint)
+		local x2, _, z2 = getWorldTranslation(inputAttacherJoint)
+		local distance = MathUtil.vector2Length(x1 - x2, z1 - z2)
+		local yRot = Utils.getYRotationBetweenNodes(attacherJoint, inputAttacherJoint)
+		return distance < SmartAttach.DISTANCE_THRESHOLD and math.abs(yRot) < SmartAttach.ABS_ANGLE_THRESHOLD
 	end
-	return v30_
 end
-
--- Local values: spec
 function SmartAttach:onPreAttach()
-	local v32_ = self.spec_smartAttach
-	v32_.targetVehicle = nil
-	v32_.targetVehicleCount = 0
+	local spec = self.spec_smartAttach
+	spec.targetVehicle = nil
+	spec.targetVehicleCount = 0
 end
-
--- Local values: spec, vehicle, i, jointDesc, name, storeItem, object
 function SmartAttach:smartAttachCallback(triggerId, otherActorId, onEnter, onLeave, onStay, otherShapeId)
-	local v37_ = self.spec_smartAttach
+	local spec = self.spec_smartAttach
 	if onEnter then
-		local v38_ = g_currentMission.nodeToObject[otherActorId]
-		if v38_ ~= nil then
-			if v37_.targetVehicle == nil and (v38_ ~= nil and (v38_ ~= self and v38_.getAttacherJoints ~= nil)) then
-				for v39_, v40_ in ipairs(v38_:getAttacherJoints()) do
-					if v40_.jointIndex == 0 and v40_.jointType == v37_.jointType then
-						v37_.targetVehicle = v38_
-						v37_.jointDescIndex = v39_
-						v37_.targetVehicleCount = 0
-						local v41_ = Utils.getNoNil(self.typeDesc, "")
-						local v42_ = g_storeManager:getItemByXMLFilename(string.lower(self.configFileName))
-						if v42_ ~= nil then
-							v41_ = v42_.name
+		local vehicle = g_currentMission.nodeToObject[otherActorId]
+		if vehicle ~= nil then
+			if spec.targetVehicle == nil and (vehicle ~= nil and (vehicle ~= self and vehicle.getAttacherJoints ~= nil)) then
+				for i, jointDesc in ipairs(vehicle:getAttacherJoints()) do
+					if jointDesc.jointIndex == 0 and jointDesc.jointType == spec.jointType then
+						spec.targetVehicle = vehicle
+						spec.jointDescIndex = i
+						spec.targetVehicleCount = 0
+						local name = Utils.getNoNil(self.typeDesc, "")
+						local storeItem = g_storeManager:getItemByXMLFilename(string.lower(self.configFileName))
+						if storeItem ~= nil then
+							name = storeItem.name
 						end
 						if self:getAttacherVehicle() == nil then
-							v37_.activatable.activateText = string.format(g_i18n:getText("action_doSmartAttachGround", self.customEnvironment), v41_)
+							spec.activatable.activateText = string.format(g_i18n:getText("action_doSmartAttachGround", self.customEnvironment), name)
 						else
-							v37_.activatable.activateText = string.format(g_i18n:getText("action_doSmartAttachTransform", self.customEnvironment), v41_)
+							spec.activatable.activateText = string.format(g_i18n:getText("action_doSmartAttachTransform", self.customEnvironment), name)
 						end
-						g_currentMission.activatableObjectsSystem:addActivatable(v37_.activatable)
+						g_currentMission.activatableObjectsSystem:addActivatable(spec.activatable)
 						break
 					end
 				end
 			end
-			if v38_ == v37_.targetVehicle then
-				v37_.targetVehicleCount = v37_.targetVehicleCount + 1
-				return
+			if vehicle == spec.targetVehicle then
+				spec.targetVehicleCount = spec.targetVehicleCount + 1
 			end
 		end
-	elseif onLeave and v37_.targetVehicle ~= nil then
-		local v43_ = g_currentMission.nodeToObject[otherActorId]
-		if v43_ ~= nil and v43_ == v37_.targetVehicle then
-			v37_.targetVehicleCount = v37_.targetVehicleCount - 1
-			if v37_.targetVehicleCount <= 0 then
-				v37_.targetVehicle = nil
-				g_currentMission.activatableObjectsSystem:removeActivatable(v37_.activatable)
-				v37_.targetVehicleCount = 0
+	elseif onLeave then
+		if spec.targetVehicle ~= nil then
+			local object = g_currentMission.nodeToObject[otherActorId]
+			if object ~= nil and object == spec.targetVehicle then
+				spec.targetVehicleCount = spec.targetVehicleCount - 1
+				if spec.targetVehicleCount <= 0 then
+					spec.targetVehicle = nil
+					g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
+					spec.targetVehicleCount = 0
+				end
 			end
 		end
 	end
 end
 SmartAttachActivatable = {}
-local v_u_44_ = Class(SmartAttachActivatable)
-
--- Upvalues: SmartAttachActivatable_mt
--- Local values: self
+local SmartAttachActivatable_mt = Class(SmartAttachActivatable)
 function SmartAttachActivatable.new(smartAttachVehicle)
-	-- upvalues: (copy) v_u_44_
-	local v46_ = v_u_44_
-	local v47_ = setmetatable({}, v46_)
-	v47_.smartAttachVehicle = smartAttachVehicle
-	v47_.activateText = ""
-	return v47_
+	local self = setmetatable({}, SmartAttachActivatable_mt)
+	self.smartAttachVehicle = smartAttachVehicle
+	self.activateText = ""
+	return self
 end
-
 function SmartAttachActivatable:getIsActivatable()
 	return self.smartAttachVehicle:getCanBeSmartAttached()
 end
-
--- Local values: vehicle, spec
 function SmartAttachActivatable:run()
-	local v50_ = self.smartAttachVehicle
-	local v51_ = v50_.spec_smartAttach
-	v50_:doSmartAttach(v51_.targetVehicle, v51_.inputJointDescIndex, v51_.jointDescIndex)
+	local vehicle = self.smartAttachVehicle
+	local spec = vehicle.spec_smartAttach
+	vehicle:doSmartAttach(spec.targetVehicle, spec.inputJointDescIndex, spec.jointDescIndex)
 end
 SmartAttachEvent = {}
-local v_u_52_ = Class(SmartAttachEvent, Event)
+local SmartAttachEvent_mt = Class(SmartAttachEvent, Event)
 InitStaticEventClass(SmartAttachEvent, "SmartAttachEvent")
 function SmartAttachEvent.emptyNew()
-	-- upvalues: (copy) v_u_52_
-	return Event.new(v_u_52_)
+	local self = Event.new(SmartAttachEvent_mt)
+	return self
 end
-function SmartAttachEvent.new(p53_, p54_, p55_, p56_)
-	local v57_ = SmartAttachEvent.emptyNew()
-	v57_.vehicle = p53_
-	v57_.targetVehicle = p54_
-	v57_.inputJointDescIndex = p55_
-	v57_.jointDescIndex = p56_
-	return v57_
+function SmartAttachEvent.new(vehicle, targetVehicle, inputJointDescIndex, jointDescIndex)
+	local self = SmartAttachEvent.emptyNew()
+	self.vehicle = vehicle
+	self.targetVehicle = targetVehicle
+	self.inputJointDescIndex = inputJointDescIndex
+	self.jointDescIndex = jointDescIndex
+	return self
 end
-
 function SmartAttachEvent:readStream(streamId, connection)
 	self.vehicle = NetworkUtil.readNodeObject(streamId)
 	self.targetVehicle = NetworkUtil.readNodeObject(streamId)
@@ -207,21 +179,18 @@ function SmartAttachEvent:readStream(streamId, connection)
 	self.jointDescIndex = streamReadUIntN(streamId, 7)
 	self:run(connection)
 end
-
 function SmartAttachEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.vehicle)
 	NetworkUtil.writeNodeObject(streamId, self.targetVehicle)
 	streamWriteUIntN(streamId, self.inputJointDescIndex, 7)
 	streamWriteUIntN(streamId, self.jointDescIndex, 7)
 end
-
 function SmartAttachEvent:run(connection)
 	self.vehicle:doSmartAttach(self.targetVehicle, self.inputJointDescIndex, self.jointDescIndex, true)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(SmartAttachEvent.new(self.vehicle, self.targetVehicle, self.inputJointDescIndex, self.jointDescIndex), nil, connection, self.vehicle)
 	end
 end
-
 function SmartAttachEvent.sendEvent(vehicle, targetVehicle, inputJointDescIndex, jointDescIndex, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

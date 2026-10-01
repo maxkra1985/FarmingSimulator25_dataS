@@ -1,42 +1,34 @@
--- Local values: InGameMenuMobileSettingsFrame_mt
 InGameMenuMobileSettingsFrame = {}
 local InGameMenuMobileSettingsFrame_mt = Class(InGameMenuMobileSettingsFrame, TabbedMenuFrameElement)
 function InGameMenuMobileSettingsFrame.register()
 	if Platform.isMobile then
-		local v2_ = InGameMenuMobileSettingsFrame.new()
-		g_gui:loadGui("dataS/gui/InGameMenuMobileSettingsFrame.xml", "MobileSettingsFrame", v2_, true)
+		local inGameMenuMobileSettingsFrame = InGameMenuMobileSettingsFrame.new()
+		g_gui:loadGui("dataS/gui/InGameMenuMobileSettingsFrame.xml", "MobileSettingsFrame", inGameMenuMobileSettingsFrame, true)
 	end
 end
-
--- Upvalues: InGameMenuMobileSettingsFrame_mt
--- Local values: self
 function InGameMenuMobileSettingsFrame.new(target, custom_mt)
-	-- upvalues: (copy) InGameMenuMobileSettingsFrame_mt
-	local v5_ = TabbedMenuFrameElement.new(target, custom_mt or InGameMenuMobileSettingsFrame_mt)
-	v5_.missionInfo = nil
-	v5_.hasMasterRights = false
-	v5_.checkboxMapping = {}
-	v5_.checkboxMappingGame = {}
-	v5_.optionMapping = {}
-	v5_.manureLoadingStations = {}
-	v5_.liquidManureLoadingStations = {}
-	v5_.instantApplySettings = {}
-	v5_.instantApplySettings[GameSettings.SETTING.VOLUME_MASTER] = true
-	v5_.instantApplySettings[GameSettings.SETTING.VOLUME_MUSIC] = true
-	v5_.instantApplySettings[GameSettings.SETTING.VOLUME_GUI] = true
-	v5_.hasCustomMenuButtons = false
-	return v5_
+	local self = TabbedMenuFrameElement.new(target, custom_mt or InGameMenuMobileSettingsFrame_mt)
+	self.missionInfo = nil
+	self.hasMasterRights = false
+	self.checkboxMapping = {}
+	self.checkboxMappingGame = {}
+	self.optionMapping = {}
+	self.manureLoadingStations = {}
+	self.liquidManureLoadingStations = {}
+	self.instantApplySettings = {}
+	self.instantApplySettings[GameSettings.SETTING.VOLUME_MASTER] = true
+	self.instantApplySettings[GameSettings.SETTING.VOLUME_MUSIC] = true
+	self.instantApplySettings[GameSettings.SETTING.VOLUME_GUI] = true
+	self.hasCustomMenuButtons = false
+	return self
 end
-
--- Local values: newGui
 function InGameMenuMobileSettingsFrame.createFromExistingGui(gui, guiName)
-	local v8_ = InGameMenuMobileSettingsFrame.new()
+	local newGui = InGameMenuMobileSettingsFrame.new()
 	g_gui.frames[gui.name].target:delete()
 	g_gui.frames[gui.name]:delete()
-	g_gui:loadGui(gui.xmlFilename, guiName, v8_, true)
-	return v8_
+	g_gui:loadGui(gui.xmlFilename, guiName, newGui, true)
+	return newGui
 end
-
 function InGameMenuMobileSettingsFrame:initialize()
 	self.checkboxMapping[self.checkGyroscope] = SettingsModel.SETTING.GYROSCOPE_STEERING
 	self.checkboxMapping[self.checkTilt] = SettingsModel.SETTING.CAMERA_TILTING
@@ -78,28 +70,24 @@ function InGameMenuMobileSettingsFrame:initialize()
 	self.multiGraphics.parent:setVisible(GS_PLATFORM_PHONE)
 	self.optionMapping[self.multiFrameLimit] = SettingsModel.SETTING.FRAME_LIMIT
 	self.multiFrameLimit:setTexts(g_settingsModel:getFrameLimitTexts())
-	self.multiFrameLimit.parent:setVisible(#Platform.frameLimits > 1)
+	self.multiFrameLimit.parent:setVisible(1 < #Platform.frameLimits)
 	self.separatorGraphics:setVisible(self.multiGraphics.parent.visible or self.multiFrameLimit.parent.visible)
 end
-
 function InGameMenuMobileSettingsFrame:setMissionInfo(missionInfo)
 	self.missionInfo = missionInfo
 end
-
 function InGameMenuMobileSettingsFrame:setHasMasterRights(hasMasterRights)
 	self.hasMasterRights = hasMasterRights
 end
-
--- Local values: showRestoreButton
 function InGameMenuMobileSettingsFrame:onFrameOpen(element)
 	InGameMenuMobileSettingsFrame:superClass().onFrameOpen(self)
 	self:assignDynamicTexts()
 	self:updateGeneralSettings()
 	self:updateGameSettings()
-	local v15_ = g_inAppPurchaseController:getHasPurchasesToRestore()
-	self.iapRestoreSeparator:setVisible(v15_)
-	self.iapRestoreButton:setVisible(v15_)
-	self.iapRestoreSeparatorEnd:setVisible(v15_)
+	local showRestoreButton = g_inAppPurchaseController:getHasPurchasesToRestore()
+	self.iapRestoreSeparator:setVisible(showRestoreButton)
+	self.iapRestoreButton:setVisible(showRestoreButton)
+	self.iapRestoreSeparatorEnd:setVisible(showRestoreButton)
 	if FocusManager:getFocusedElement() == nil then
 		self:setSoundSuppressed(true)
 		FocusManager:setFocus(self.multiTimeScale)
@@ -107,7 +95,6 @@ function InGameMenuMobileSettingsFrame:onFrameOpen(element)
 	end
 	self.boxLayout:invalidateLayout()
 end
-
 function InGameMenuMobileSettingsFrame:onFrameClose()
 	InGameMenuMobileSettingsFrame:superClass().onFrameClose(self)
 	if g_settingsModel:hasChanges() then
@@ -118,23 +105,19 @@ function InGameMenuMobileSettingsFrame:onFrameClose()
 		g_settingsModel:applyChanges(SettingsModel.SETTING_CLASS.SAVE_GAMEPLAY_SETTINGS)
 	end
 end
-
--- Local values: element, settingsKey, element, settingsKey
 function InGameMenuMobileSettingsFrame:updateGeneralSettings()
 	g_settingsModel:refresh()
-	for v18_, v19_ in pairs(self.checkboxMapping) do
-		v18_:setIsChecked(g_settingsModel:getValue(v19_))
+	for element, settingsKey in pairs(self.checkboxMapping) do
+		element:setIsChecked(g_settingsModel:getValue(settingsKey))
 	end
-	for v20_, v21_ in pairs(self.optionMapping) do
-		if type(v21_) == "table" then
-			v20_:setState(g_settingsModel:getValue(v21_[1]))
+	for element, settingsKey in pairs(self.optionMapping) do
+		if type(settingsKey) == "table" then
+			element:setState(g_settingsModel:getValue(settingsKey[1]))
 		else
-			v20_:setState(g_settingsModel:getValue(v21_))
+			element:setState(g_settingsModel:getValue(settingsKey))
 		end
 	end
 end
-
--- Local values: timeScaleTable, numTimeScales, i
 function InGameMenuMobileSettingsFrame:updateGameSettings()
 	self.checkTraffic:setIsChecked(self.missionInfo.trafficEnabled)
 	self.checkHelperRefillSlurry:setState(self.missionInfo.helperSlurrySource)
@@ -143,121 +126,101 @@ function InGameMenuMobileSettingsFrame:updateGameSettings()
 	self.checkHelperRefillSeed:setIsChecked(self.missionInfo.helperBuySeeds)
 	self.checkHelperRefillFertilizer:setIsChecked(self.missionInfo.helperBuyFertilizer)
 	self.checkIntroductionHelp:setIsChecked(self.missionInfo.introductionHelpActive)
-	local v23_ = {}
-	for v24_ = 1, Utils.getNumTimeScales() do
-		local v25_ = Utils.getTimeScaleString
-		table.insert(v23_, v25_(v24_))
+	local timeScaleTable = {}
+	local numTimeScales = Utils.getNumTimeScales()
+	for i = 1, numTimeScales do
+		table.insert(timeScaleTable, Utils.getTimeScaleString(i))
 	end
-	self.multiTimeScale:setTexts(v23_)
+	self.multiTimeScale:setTexts(timeScaleTable)
 	self.multiTimeScale:setState(Utils.getTimeScaleIndex(self.missionInfo.timeScale))
 end
-
--- Local values: helperTexts, textTable, stationIndex, station, stationIndex, station
 function InGameMenuMobileSettingsFrame:assignDynamicTexts()
 	self.helperManureTextToStationIndexMapping = { 1, 2 }
 	self.helperSlurryTextToStationIndexMapping = { 1, 2 }
-	local v27_ = { g_i18n:getText("ui_off"), g_i18n:getText("ui_buy") }
-	local v28_ = {}
-	local v29_ = v27_[1]
-	table.insert(v28_, v29_)
-	local v30_ = v27_[2]
-	table.insert(v28_, v30_)
-	for v31_, v32_ in ipairs(self.manureLoadingStations) do
-		if g_currentMission.accessHandler:canPlayerAccess(v32_) then
-			table.insert(v28_, v32_:getName())
-			self.helperManureTextToStationIndexMapping[#v28_] = v31_ + 2
+	local helperTexts = { g_i18n:getText("ui_off"), g_i18n:getText("ui_buy") }
+	local textTable = {}
+	table.insert(textTable, helperTexts[1])
+	table.insert(textTable, helperTexts[2])
+	for stationIndex, station in ipairs(self.manureLoadingStations) do
+		if g_currentMission.accessHandler:canPlayerAccess(station) then
+			table.insert(textTable, station:getName())
+			self.helperManureTextToStationIndexMapping[#textTable] = stationIndex + 2
 		end
 	end
-	self.checkHelperRefillManure:setTexts(v28_)
-	local v33_ = {}
-	local v34_ = v27_[1]
-	table.insert(v33_, v34_)
-	local v35_ = v27_[2]
-	table.insert(v33_, v35_)
-	for v36_, v37_ in ipairs(self.liquidManureLoadingStations) do
-		if g_currentMission.accessHandler:canPlayerAccess(v37_) and v37_:getIsFillAllowedToFarm(g_currentMission:getFarmId()) then
-			table.insert(v33_, v37_:getName())
-			self.helperSlurryTextToStationIndexMapping[#v33_] = v36_ + 2
+	self.checkHelperRefillManure:setTexts(textTable)
+	textTable = {}
+	table.insert(textTable, helperTexts[1])
+	table.insert(textTable, helperTexts[2])
+	for stationIndex, station in ipairs(self.liquidManureLoadingStations) do
+		if g_currentMission.accessHandler:canPlayerAccess(station) and station:getIsFillAllowedToFarm(g_currentMission:getFarmId()) then
+			table.insert(textTable, station:getName())
+			self.helperSlurryTextToStationIndexMapping[#textTable] = stationIndex + 2
 		end
 	end
-	self.checkHelperRefillSlurry:setTexts(v33_)
+	self.checkHelperRefillSlurry:setTexts(textTable)
 end
-
 function InGameMenuMobileSettingsFrame:setManureTriggers(manureLoadingStations, liquidManureLoadingStations)
 	self.manureLoadingStations = manureLoadingStations
 	self.liquidManureLoadingStations = liquidManureLoadingStations
 end
-
 function InGameMenuMobileSettingsFrame:onClickTraffic(state)
 	if self.hasMasterRights then
 		g_currentMission:setTrafficEnabled(state == CheckedOptionElement.STATE_CHECKED)
 	end
 end
-
 function InGameMenuMobileSettingsFrame:onClickTimeScale(state)
 	if self.hasMasterRights then
 		g_currentMission:setTimeScale(Utils.getTimeScaleFromIndex(state))
 	end
 end
-
--- Local values: settingsKey
 function InGameMenuMobileSettingsFrame:onClickCheckbox(state, checkboxElement)
-	local v48_ = self.checkboxMapping[checkboxElement]
-	if v48_ == nil then
-		printWarning("Warning: Invalid settings checkbox event or key configuration for element " .. checkboxElement:toString())
+	local settingsKey = self.checkboxMapping[checkboxElement]
+	if settingsKey ~= nil then
+		g_settingsModel:setValue(settingsKey, state == CheckedOptionElement.STATE_CHECKED)
 	else
-		g_settingsModel:setValue(v48_, state == CheckedOptionElement.STATE_CHECKED)
+		printWarning("Warning: Invalid settings checkbox event or key configuration for element " .. checkboxElement:toString())
 	end
 end
-
--- Local values: settingsKey, _, v
 function InGameMenuMobileSettingsFrame:onClickMultiOption(state, optionElement)
-	local v52_ = self.optionMapping[optionElement]
-	if v52_ == nil then
-		printWarning("Warning: Invalid settings multi option event or key configuration for element " .. optionElement:toString())
-	else
-		if type(v52_) == "table" then
-			for _, v53_ in ipairs(v52_) do
-				g_settingsModel:setValue(v53_, state)
+	local settingsKey = self.optionMapping[optionElement]
+	if settingsKey ~= nil then
+		if type(settingsKey) == "table" then
+			for _, v in ipairs(settingsKey) do
+				g_settingsModel:setValue(v, state)
 			end
 		else
-			g_settingsModel:setValue(v52_, state)
+			g_settingsModel:setValue(settingsKey, state)
 		end
-		if self.instantApplySettings[v52_] then
-			g_settingsModel:applyChange(v52_)
-			return
+		if self.instantApplySettings[settingsKey] then
+			g_settingsModel:applyChange(settingsKey)
 		end
-	end
-end
-
--- Local values: settingsKey
-function InGameMenuMobileSettingsFrame:onClickGraphics(state, optionElement)
-	local v57_ = self.optionMapping[optionElement]
-	if v57_ == nil then
-		printWarning("Warning: Invalid settings multi option event or key configuration for element " .. optionElement:toString())
 	else
-		g_settingsModel:setValue(v57_, state)
+		printWarning("Warning: Invalid settings multi option event or key configuration for element " .. optionElement:toString())
 	end
 end
-
+function InGameMenuMobileSettingsFrame:onClickGraphics(state, optionElement)
+	local settingsKey = self.optionMapping[optionElement]
+	if settingsKey ~= nil then
+		g_settingsModel:setValue(settingsKey, state)
+	else
+		printWarning("Warning: Invalid settings multi option event or key configuration for element " .. optionElement:toString())
+	end
+end
 function InGameMenuMobileSettingsFrame:onClickHelperRefillFuel(state)
 	if self.hasMasterRights then
 		g_currentMission:setHelperBuyFuel(state == CheckedOptionElement.STATE_CHECKED)
 	end
 end
-
 function InGameMenuMobileSettingsFrame:onClickHelperRefillSeed(state)
 	if self.hasMasterRights then
 		g_currentMission:setHelperBuySeeds(state == CheckedOptionElement.STATE_CHECKED)
 	end
 end
-
 function InGameMenuMobileSettingsFrame:onClickHelperRefillFertilizer(state)
 	if self.hasMasterRights then
 		g_currentMission:setHelperBuyFertilizer(state == CheckedOptionElement.STATE_CHECKED)
 	end
 end
-
 function InGameMenuMobileSettingsFrame:onClickHelperRefillSlurry(state)
 	if self.hasMasterRights then
 		if self.helperSlurryTextToStationIndexMapping ~= nil then
@@ -267,7 +230,6 @@ function InGameMenuMobileSettingsFrame:onClickHelperRefillSlurry(state)
 		g_currentMission:setHelperSlurrySource(1)
 	end
 end
-
 function InGameMenuMobileSettingsFrame:onClickHelperRefillManure(state)
 	if self.hasMasterRights then
 		if self.helperManureTextToStationIndexMapping ~= nil then
@@ -277,13 +239,11 @@ function InGameMenuMobileSettingsFrame:onClickHelperRefillManure(state)
 		g_currentMission:setHelperManureSource(1)
 	end
 end
-
 function InGameMenuMobileSettingsFrame:onClickIntroductionHelp(state)
 	if self.hasMasterRights then
 		self.missionInfo.introductionHelpActive = state == CheckedOptionElement.STATE_CHECKED
 	end
 end
-
 function InGameMenuMobileSettingsFrame:onClickRestoreInAppPurchases(state)
 	g_inAppPurchaseController:restorePurchases()
 end

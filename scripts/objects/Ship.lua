@@ -1,62 +1,46 @@
--- Local values: Ship_mt
 Ship = {}
 local Ship_mt = Class(Ship)
-
 function Ship:onCreate(id)
 	g_currentMission:addUpdateable(Ship.new(id))
 end
-
--- Upvalues: Ship_mt
--- Local values: instance, length, numShips, i, shipId
 function Ship.new(id)
-	-- upvalues: (copy) Ship_mt
-	local v4_ = {}
-	local v5_ = Ship_mt
-	setmetatable(v4_, v5_)
-	v4_.nurbsId = getChildAt(id, 0)
-	v4_.shipIds = {}
-	local v6_ = v4_.shipIds
-	local v7_ = getChildAt
-	table.insert(v6_, v7_(id, 1))
-	v4_.times = {}
-	local v8_ = v4_.times
-	table.insert(v8_, 0)
-	local v9_ = getSplineLength(v4_.nurbsId)
-	v4_.timeScale = Utils.getNoNil(getUserAttribute(id, "speed"), 10) / 3.6
-	local v10_ = Utils.getNoNil(getUserAttribute(id, "numShips"), 1)
-	for v11_ = 2, v10_ do
-		local v12_ = clone(v4_.shipIds[1], false, true)
-		link(id, v12_)
-		local v13_ = v4_.shipIds
-		table.insert(v13_, v12_)
-		local v14_ = v4_.times
-		local v15_ = 1 / v10_ * (v11_ - 1)
-		table.insert(v14_, v15_)
+	local instance = {}
+	setmetatable(instance, Ship_mt)
+	instance.nurbsId = getChildAt(id, 0)
+	instance.shipIds = {}
+	table.insert(instance.shipIds, getChildAt(id, 1))
+	instance.times = {}
+	table.insert(instance.times, 0)
+	local length = getSplineLength(instance.nurbsId)
+	instance.timeScale = Utils.getNoNil(getUserAttribute(id, "speed"), 10) / 3.6
+	local numShips = Utils.getNoNil(getUserAttribute(id, "numShips"), 1)
+	for i = 2, numShips do
+		local shipId = clone(instance.shipIds[1], false, true)
+		link(id, shipId)
+		table.insert(instance.shipIds, shipId)
+		table.insert(instance.times, 1 / numShips * (i - 1))
 	end
-	if v9_ ~= 0 then
-		v4_.timeScale = v4_.timeScale / v9_
+	if length ~= 0 then
+		instance.timeScale = instance.timeScale / length
 	end
-	v4_.initCount = 0
-	return v4_
+	instance.initCount = 0
+	return instance
 end
-
 function Ship:delete() end
-
--- Local values: i, x, y, z, rx, ry, rz
 function Ship:update(dt)
-	if self.initCount > 0 then
-		for v18_ = 1, #self.shipIds do
-			self.times[v18_] = self.times[v18_] - 0.001 * dt * self.timeScale
-			if self.times[v18_] < 0 then
-				self.times[v18_] = self.times[v18_] + 1
+	if 0 < self.initCount then
+		for i = 1, #self.shipIds do
+			self.times[i] = self.times[i] - 0.001 * dt * self.timeScale
+			if self.times[i] < 0 then
+				self.times[i] = self.times[i] + 1
 			end
-			if self.times[v18_] > 1 then
-				self.times[v18_] = self.times[v18_] - 1
+			if 1 < self.times[i] then
+				self.times[i] = self.times[i] - 1
 			end
-			local v19_, v20_, v21_ = getSplinePosition(self.nurbsId, self.times[v18_])
-			local v22_, v23_, v24_ = getSplineOrientation(self.nurbsId, self.times[v18_], 0, -1, 0)
-			setTranslation(self.shipIds[v18_], v19_, v20_, v21_)
-			setRotation(self.shipIds[v18_], v22_, v23_, v24_)
+			local x, y, z = getSplinePosition(self.nurbsId, self.times[i])
+			local rx, ry, rz = getSplineOrientation(self.nurbsId, self.times[i], 0, -1, 0)
+			setTranslation(self.shipIds[i], x, y, z)
+			setRotation(self.shipIds[i], rx, ry, rz)
 		end
 	else
 		self.initCount = self.initCount + 1

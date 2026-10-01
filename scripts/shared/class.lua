@@ -1,63 +1,49 @@
 function Class(...)
-	local v1_ = select("#", ...)
-	local v2_ = select(1, ...)
-	local v_u_3_
-	if v1_ > 1 then
-		v_u_3_ = select(2, ...)
-		if v_u_3_ == nil then
+	local numParameters = select("#", ...)
+	local members = select(1, ...)
+	local baseClass = nil
+	if 1 < numParameters then
+		baseClass = select(2, ...)
+		if baseClass == nil then
 			printError("Error: Given base class is not defined")
 			printCallstack()
 		end
-	else
-		v_u_3_ = nil
 	end
-	local v_u_4_ = v2_ or {}
-	local v_u_5_ = {
-		["__metatable"] = v_u_4_,
-		["__index"] = v_u_4_
-	}
-	if v_u_3_ ~= nil then
-		setmetatable(v_u_4_, {
-			["__index"] = v_u_3_
-		})
+	members = members or {}
+	local mt = {}
+	local __index = members
+	mt.__metatable = members
+	mt.__index = __index
+	if baseClass ~= nil then
+		setmetatable(members, { __index = baseClass })
 	end
-	
--- Upvalues: members
-function v_u_4_:class()
-		-- upvalues: (ref) v_u_4_
-		return v_u_4_
+	local new = function(_, init)
+		return setmetatable(init or {}, mt)
 	end
-	
--- Upvalues: baseClass
-function v_u_4_:superClass()
-		-- upvalues: (ref) v_u_3_
-		return v_u_3_
+	local copy = function(obj, ...)
+		local newobj = obj.new(...)
+		for n, v in pairs(obj) do
+			newobj[n] = v
+		end
+		return newobj
 	end
-	
--- Upvalues: members
--- Local values: curClass
-function v_u_4_:isa(other)
-		-- upvalues: (ref) v_u_4_
-		local v7_ = v_u_4_
-		while v7_ ~= nil do
-			if v7_ == other then
+	function members:class()
+		return members
+	end
+	function members:superClass()
+		return baseClass
+	end
+	function members:isa(other)
+		local curClass = members
+		while curClass ~= nil do
+			if curClass == other then
 				return true
 			end
-			v7_ = v7_:superClass()
+			curClass = curClass:superClass()
 		end
 		return false
 	end
-	v_u_4_.new = v_u_4_.new or function(_, p8_)
-		-- upvalues: (copy) v_u_5_
-		local v9_ = v_u_5_
-		return setmetatable(p8_ or {}, v9_)
-	end
-	v_u_4_.copy = v_u_4_.copy or function(p10_, ...)
-		local v11_ = p10_.new(...)
-		for v12_, v13_ in pairs(p10_) do
-			v11_[v12_] = v13_
-		end
-		return v11_
-	end
-	return v_u_5_
+	members.new = members.new or new
+	members.copy = members.copy or copy
+	return mt
 end

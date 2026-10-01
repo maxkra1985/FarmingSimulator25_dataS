@@ -1,74 +1,67 @@
--- Local values: InputHelpDisplayExtension_mt
 InputHelpDisplayExtension = {}
 InputHelpDisplayExtension.MOD_NAME = g_currentModName
 InputHelpDisplayExtension.MOD_DIR = g_currentModDirectory
 local InputHelpDisplayExtension_mt = Class(InputHelpDisplayExtension)
-
--- Upvalues: InputHelpDisplayExtension_mt
--- Local values: self
 function InputHelpDisplayExtension.new(precisionFarming, customMt)
-	-- upvalues: (copy) InputHelpDisplayExtension_mt
-	local v4_ = customMt or InputHelpDisplayExtension_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.isEnabled = true
-	v5_.precisionFarming = precisionFarming
-	v5_.headline = utf8ToUpper(g_i18n:getText("ui_header"))
-	v5_.precisionFarming:addSetting("inputHelpDisplay", g_i18n:getText("settingTitle_inputHelpDisplay"), g_i18n:getText("settingDescription_inputHelpDisplay"), v5_.onInputHelpDisplaySettingChanged, v5_, v5_.isEnabled, true)
-	return v5_
+	local self = setmetatable({}, customMt or InputHelpDisplayExtension_mt)
+	self.isEnabled = true
+	self.precisionFarming = precisionFarming
+	self.headline = utf8ToUpper(g_i18n:getText("ui_header"))
+	self.precisionFarming:addSetting("inputHelpDisplay", g_i18n:getText("settingTitle_inputHelpDisplay"), g_i18n:getText("settingDescription_inputHelpDisplay"), self.onInputHelpDisplaySettingChanged, self, self.isEnabled, true)
+	return self
 end
-
 function InputHelpDisplayExtension:onInputHelpDisplaySettingChanged(state)
 	self.isEnabled = state
 end
-
 function InputHelpDisplayExtension:overwriteGameFunctions(pfModule)
-	pfModule:overwriteGameFunction(InputHelpDisplay, "draw", function(p10_, p11_, p12_, p13_)
-		-- upvalues: (copy) self
+	pfModule:overwriteGameFunction(InputHelpDisplay, "draw", function(superFunc, _self, offsetX, offsetY)
 		if self.isEnabled then
-			if p11_:getVisible() then
-				p10_(p11_, p12_, p13_)
-			else
-				local v14_, v15_ = p11_:getPosition()
-				local v16_ = v14_ + (p12_ or 0)
-				local v17_, _ = p11_:drawVehicleSchema(v16_, v15_ + (p13_ or 0), false)
-				table.sort(p11_.helpExtensions, function(p18_, p19_)
-					return p18_.priority < p19_.priority
+			if not _self:getVisible() then
+				local posX, posY = _self:getPosition()
+				local numElements = 0
+				local _ = nil
+				posX = posX + (offsetX or 0)
+				posY = posY + (offsetY or 0)
+				posY, _ = _self:drawVehicleSchema(posX, posY, false)
+				table.sort(_self.helpExtensions, function(a, b)
+					return a.priority < b.priority
 				end)
-				local v20_ = 0
-				local v21_ = 0
-				for v22_ = #p11_.helpExtensions, 1, -1 do
-					local v23_ = p11_.helpExtensions[v22_]:getHeight()
-					if v23_ > 0 then
-						v20_ = v20_ + v23_ + p11_.lineOffsetY
+				local helpExtensionTotalHeight = 0
+				for i = #_self.helpExtensions, 1, -1 do
+					local helpExtension = _self.helpExtensions[i]
+					local height = helpExtension:getHeight()
+					if 0 < height then
+						helpExtensionTotalHeight = helpExtensionTotalHeight + height + _self.lineOffsetY
 					else
-						table.remove(p11_.helpExtensions, v22_)
+						table.remove(_self.helpExtensions, i)
 					end
 				end
-				for v24_, v25_ in pairs(p11_.helpExtensions) do
-					if v21_ < (v25_.priority <= GS_PRIO_HIGH and InputHelpDisplay.MAX_NUM_ELEMENTS_HIGH_PRIORITY or InputHelpDisplay.MAX_NUM_ELEMENTS) then
-						v17_ = v25_:draw(p11_, v16_, v17_) - p11_.lineOffsetY
-						v21_ = v21_ + 1
+				for k, extension in pairs(_self.helpExtensions) do
+					local maxNumElements = extension.priority <= GS_PRIO_HIGH and InputHelpDisplay.MAX_NUM_ELEMENTS_HIGH_PRIORITY or InputHelpDisplay.MAX_NUM_ELEMENTS
+					if numElements < maxNumElements then
+						posY = extension:draw(_self, posX, posY)
+						posY = posY - _self.lineOffsetY
+						numElements = numElements + 1
 					end
-					p11_.helpExtensions[v24_] = nil
+					_self.helpExtensions[k] = nil
 				end
-			end
-		else
-			p10_(p11_, p12_, p13_)
-			return
-		end
-	end)
-	pfModule:overwriteGameFunction(InputHelpDisplay, "addHelpExtension", function(p26_, p27_, p28_)
-		-- upvalues: (copy) self
-		if self.isEnabled and not p27_:getVisible() then
-			if p28_:isa(ExtendedSowingMachineHUDExtension) or (p28_:isa(ExtendedSprayerHUDExtension) or p28_:isa(ExtendedCombineHUDExtension)) then
-				local v29_ = p27_.helpExtensions
-				table.insert(v29_, p28_)
+				return
 			else
-				p26_(p27_, p28_)
+				superFunc(_self, offsetX, offsetY)
+				return
 			end
-		else
-			p26_(p27_, p28_)
+		end
+		superFunc(_self, offsetX, offsetY)
+	end)
+	pfModule:overwriteGameFunction(InputHelpDisplay, "addHelpExtension", function(superFunc, _self, extension)
+		if self.isEnabled and not _self:getVisible() then
+			if extension:isa(ExtendedSowingMachineHUDExtension) or extension:isa(ExtendedSprayerHUDExtension) or extension:isa(ExtendedCombineHUDExtension) then
+				table.insert(_self.helpExtensions, extension)
+				return
+			end
+			superFunc(_self, extension)
 			return
 		end
+		superFunc(_self, extension)
 	end)
 end

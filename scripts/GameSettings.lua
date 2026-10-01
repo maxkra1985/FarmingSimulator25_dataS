@@ -1,4 +1,3 @@
--- Local values: GameSettings_mt
 GameSettings = {}
 local GameSettings_mt = Class(GameSettings)
 g_xmlManager:addEarlyCreateSchemaFunction(function()
@@ -92,81 +91,43 @@ GameSettings.SETTING = {
 	["SHOW_FISHING_INTRO"] = "showFishingIntro",
 	["PLAYED_MULTIPLAYER"] = "playedMultiplayer",
 	["TOTAL_PLAYED_SECONDS"] = "totalPlayedSeconds",
-	["STARTED_GUIDED_TOUR"] = "startedGuidedTour"
+	["STARTED_GUIDED_TOUR"] = "startedGuidedTour",
 }
-GameSettings.PERFORMANCE_CLASS_PRESETS = {
-	{
-		["lightsProfile"] = GS_PROFILE_VERY_LOW,
-		["maxNumMirrors"] = 0,
-		["realBeaconLights"] = false
-	},
-	{
-		["lightsProfile"] = GS_PROFILE_LOW,
-		["maxNumMirrors"] = 0,
-		["realBeaconLights"] = false
-	},
-	{
-		["lightsProfile"] = GS_PROFILE_MEDIUM,
-		["maxNumMirrors"] = 3,
-		["realBeaconLights"] = false
-	},
-	{
-		["lightsProfile"] = GS_PROFILE_HIGH,
-		["maxNumMirrors"] = 4,
-		["realBeaconLights"] = false
-	},
-	{
-		["lightsProfile"] = GS_PROFILE_VERY_HIGH,
-		["maxNumMirrors"] = 5,
-		["realBeaconLights"] = false
-	},
-	{
-		["lightsProfile"] = GS_PROFILE_ULTRA,
-		["maxNumMirrors"] = 6,
-		["realBeaconLights"] = true
-	}
-}
-
+GameSettings.PERFORMANCE_CLASS_PRESETS = { { lightsProfile = GS_PROFILE_VERY_LOW, maxNumMirrors = 0, realBeaconLights = false }, { lightsProfile = GS_PROFILE_LOW, maxNumMirrors = 0, realBeaconLights = false }, { lightsProfile = GS_PROFILE_MEDIUM, maxNumMirrors = 3, realBeaconLights = false }, { lightsProfile = GS_PROFILE_HIGH, maxNumMirrors = 4, realBeaconLights = false }, { lightsProfile = GS_PROFILE_VERY_HIGH, maxNumMirrors = 5, realBeaconLights = false }, { lightsProfile = GS_PROFILE_ULTRA, maxNumMirrors = 6, realBeaconLights = true } }
 function GameSettings.registerXMLPaths(xmlSchema)
 	PlayerStyle.registerSavegameXMLPaths(xmlSchema, "gameSettings.lastPlayerStyle")
 	LicensePlateManager.registerSavegameXMLpaths(xmlSchema, "gameSettings.lastCreatedLicensePlate")
 	xmlSchema:register(XMLValueType.VECTOR_3, "gameSettings.customColors.color(?)#color", "Color values (sRGB)")
 end
-
--- Upvalues: GameSettings_mt
--- Local values: self
 function GameSettings.new(customMt)
-	-- upvalues: (copy) GameSettings_mt
-	local v4_ = customMt or GameSettings_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.notifyOnChange = false
-	v5_.joinGame = {}
-	v5_.createGame = {}
-	v5_.frameLimitValues = Platform.frameLimits
-	v5_:setDefault()
-	v5_.printedSettingsChanges = {
-		[GameSettings.SETTING.VOLUME_MASTER] = "Setting \'Master Volume\': %.3f",
-		[GameSettings.SETTING.VOLUME_MUSIC] = "Setting \'Music Volume\': %.3f",
-		[GameSettings.SETTING.VOLUME_VEHICLE] = "Setting \'Vehicle Volume\': %.3f",
-		[GameSettings.SETTING.VOLUME_ENVIRONMENT] = "Setting \'Environment Volume\': %.3f",
-		[GameSettings.SETTING.VOLUME_CHARACTER] = "Setting \'Character Volume\': %.3f",
-		[GameSettings.SETTING.VOLUME_RADIO] = "Setting \'Radio Volume\': %.3f",
-		[GameSettings.SETTING.VOLUME_GUI] = "Setting \'GUI Volume\': %.3f",
-		[GameSettings.SETTING.VOLUME_NO_FOCUS] = "Setting \'Game Volume While Not In Focus\': %.3f",
-		[GameSettings.SETTING.SHOW_TRIGGER_MARKER] = "Setting \'Show Trigger Marker\': %s",
-		[GameSettings.SETTING.SHOW_HELP_TRIGGER] = "Setting \'Show Help Trigger\': %s",
-		[GameSettings.SETTING.IS_TRAIN_TABBABLE] = "Setting \'Is Train Tabbable\': %s",
-		[GameSettings.SETTING.RADIO_IS_ACTIVE] = "Setting \'Radio Active\': %s",
-		[GameSettings.SETTING.RADIO_VEHICLE_ONLY] = "Setting \'Radio Vehicle Only\': %s",
-		[GameSettings.SETTING.SHOW_HELP_ICONS] = "Setting \'Show Help Icons\': %s",
-		[GameSettings.SETTING.USE_COLORBLIND_MODE] = "Setting \'Use Colorblind Mode\': %s",
-		[GameSettings.SETTING.EASY_ARM_CONTROL] = "Setting \'Easy Arm Control\': %s",
-		[GameSettings.SETTING.INVERT_Y_LOOK] = "Setting \'Invert Y-Look\': %s",
-		[GameSettings.SETTING.SHOW_FIELD_INFO] = "Setting \'Show Field-Info\': %s"
+	local self = setmetatable({}, customMt or GameSettings_mt)
+	self.notifyOnChange = false
+	self.joinGame = {}
+	self.createGame = {}
+	self.frameLimitValues = Platform.frameLimits
+	self:setDefault()
+	self.printedSettingsChanges = {
+		[GameSettings.SETTING.VOLUME_MASTER] = "Setting 'Master Volume': %.3f",
+		[GameSettings.SETTING.VOLUME_MUSIC] = "Setting 'Music Volume': %.3f",
+		[GameSettings.SETTING.VOLUME_VEHICLE] = "Setting 'Vehicle Volume': %.3f",
+		[GameSettings.SETTING.VOLUME_ENVIRONMENT] = "Setting 'Environment Volume': %.3f",
+		[GameSettings.SETTING.VOLUME_CHARACTER] = "Setting 'Character Volume': %.3f",
+		[GameSettings.SETTING.VOLUME_RADIO] = "Setting 'Radio Volume': %.3f",
+		[GameSettings.SETTING.VOLUME_GUI] = "Setting 'GUI Volume': %.3f",
+		[GameSettings.SETTING.VOLUME_NO_FOCUS] = "Setting 'Game Volume While Not In Focus': %.3f",
+		[GameSettings.SETTING.SHOW_TRIGGER_MARKER] = "Setting 'Show Trigger Marker': %s",
+		[GameSettings.SETTING.SHOW_HELP_TRIGGER] = "Setting 'Show Help Trigger': %s",
+		[GameSettings.SETTING.IS_TRAIN_TABBABLE] = "Setting 'Is Train Tabbable': %s",
+		[GameSettings.SETTING.RADIO_IS_ACTIVE] = "Setting 'Radio Active': %s",
+		[GameSettings.SETTING.RADIO_VEHICLE_ONLY] = "Setting 'Radio Vehicle Only': %s",
+		[GameSettings.SETTING.SHOW_HELP_ICONS] = "Setting 'Show Help Icons': %s",
+		[GameSettings.SETTING.USE_COLORBLIND_MODE] = "Setting 'Use Colorblind Mode': %s",
+		[GameSettings.SETTING.EASY_ARM_CONTROL] = "Setting 'Easy Arm Control': %s",
+		[GameSettings.SETTING.INVERT_Y_LOOK] = "Setting 'Invert Y-Look': %s",
+		[GameSettings.SETTING.SHOW_FIELD_INFO] = "Setting 'Show Field-Info': %s",
 	}
-	return v5_
+	return self
 end
-
 function GameSettings:setDefault()
 	self.joinGame = {}
 	self.createGame = {}
@@ -264,129 +225,112 @@ function GameSettings:setDefault()
 		self[GameSettings.SETTING.INPUT_HELP_MODE] = GS_INPUT_HELP_MODE_GAMEPAD
 	end
 end
-
 function GameSettings:getTableValue(name, tableKey)
 	if name == nil then
 		Logging.error("GameSetting table name missing or nil!")
 		return false
-	end
-	if tableKey ~= nil then
+	elseif tableKey == nil then
+		Logging.error("GameSetting table tableKey missing or nil!")
+		return false
+	else
 		return self[name][tableKey]
 	end
-	Logging.error("GameSetting table tableKey missing or nil!")
-	return false
 end
-
 function GameSettings:setTableValue(name, tableKey, value, doSave)
 	if name == nil then
 		printError("Error: GameSetting table name missing or nil!")
 		return false
-	end
-	if tableKey == nil then
+	elseif tableKey == nil then
 		printError("Error: GameSetting tableKey missing or nil!")
 		return false
-	end
-	if value == nil then
-		printError("Error: GameSetting table value missing or nil for index \'" .. tableKey .. "\'!")
+	elseif value == nil then
+		printError("Error: GameSetting table value missing or nil for index '" .. tableKey .. "'!")
 		return false
-	end
-	if self[name] == nil then
-		printError("Error: GameSetting table \'" .. name .. "\' not found!")
+	elseif self[name] == nil then
+		printError("Error: GameSetting table '" .. name .. "' not found!")
 		return false
+	else
+		self[name][tableKey] = value
+		if doSave then
+			self:save()
+		end
+		return true
 	end
-	self[name][tableKey] = value
-	if doSave then
-		self:save()
-	end
-	return true
 end
-
 function GameSettings:getValue(name)
-	if name ~= nil then
+	if name == nil then
+		Logging.error("GameSetting %s missing or nil!", name)
+		printCallstack()
+		return false
+	else
 		return self[name]
 	end
-	Logging.error("GameSetting %s missing or nil!", name)
-	printCallstack()
-	return false
 end
-
--- Local values: messageType
 function GameSettings:setValue(name, value, doSave)
 	if name == nil then
 		Logging.error("GameSetting %s missing or nil!", name)
 		printCallstack()
 		return false
-	end
-	if value == nil then
-		Logging.error("GameSetting value missing or nil for setting \'%s\'!", name)
+	elseif value == nil then
+		Logging.error("GameSetting value missing or nil for setting '%s'!", name)
 		printCallstack()
 		return false
-	end
-	if self[name] == nil then
-		Logging.error("GameSetting \'" .. name .. "\' not found!")
+	elseif self[name] == nil then
+		Logging.error("GameSetting '" .. name .. "' not found!")
 		return false
+	else
+		self[name] = value
+		if self.printedSettingsChanges[name] ~= nil then
+			print("  " .. string.format(self.printedSettingsChanges[name], value))
+		end
+		if self.notifyOnChange then
+			local messageType = MessageType.SETTING_CHANGED[name]
+			g_messageCenter:publish(messageType, value)
+		end
+		if doSave then
+			self:save()
+		end
+		return true
 	end
-	self[name] = value
-	if self.printedSettingsChanges[name] ~= nil then
-		print("  " .. string.format(self.printedSettingsChanges[name], value))
-	end
-	if self.notifyOnChange then
-		local v21_ = MessageType.SETTING_CHANGED[name]
-		g_messageCenter:publish(v21_, value)
-	end
-	if doSave then
-		self:save()
-	end
-	return true
 end
-
--- Local values: preset, isHeadTrackingEnabled, motorStopTimerDuration, horseAbandonTimerDuration, isGamepadEnabled, mpLanguage, inputHelpMode, fovY, fovYPlayerFirstPerson, fovYPlayerThirdPerson, uiScale, modToggle, onlinePresenceName, frameLimitValue, found, _, value, wrapped, lastPlayerStyle, colors, index, path, name, materialName, color
 function GameSettings:loadFromXML(xmlFile)
 	if xmlFile ~= nil then
 		if GS_PLATFORM_PC then
-			local v24_ = GameSettings.SETTING.DEFAULT_SERVER_PORT
-			local v25_ = getXMLInt(xmlFile, "gameSettings.defaultMultiplayerPort") or 10823
-			self:setValue(v24_, (math.clamp(v25_, 0, 65535)))
-			local v26_ = GameSettings.PERFORMANCE_CLASS_PRESETS[Utils.getPerformanceClassId()]
-			local v27_ = GameSettings.SETTING.MAX_NUM_MIRRORS
-			local v28_ = getXMLInt(xmlFile, "gameSettings.maxNumMirrors") or v26_.maxNumMirrors
-			self:setValue(v27_, (math.clamp(v28_, 0, 7)))
-			local v29_ = GameSettings.SETTING.LIGHTS_PROFILE
-			local v30_ = getXMLInt(xmlFile, "gameSettings.lightsProfile") or v26_.lightsProfile
-			local v31_ = GS_PROFILE_LOW
-			local v32_ = GS_PROFILE_ULTRA
-			self:setValue(v29_, (math.clamp(v30_, v31_, v32_)))
-			local v33_ = getXMLBool(xmlFile, "gameSettings.isHeadTrackingEnabled")
-			if v33_ ~= nil then
+			self:setValue(GameSettings.SETTING.DEFAULT_SERVER_PORT, math.clamp(getXMLInt(xmlFile, "gameSettings.defaultMultiplayerPort") or 10823, 0, 65535))
+			local preset = GameSettings.PERFORMANCE_CLASS_PRESETS[Utils.getPerformanceClassId()]
+			self:setValue(GameSettings.SETTING.MAX_NUM_MIRRORS, math.clamp(getXMLInt(xmlFile, "gameSettings.maxNumMirrors") or preset.maxNumMirrors, 0, 7))
+			self:setValue(GameSettings.SETTING.LIGHTS_PROFILE, math.clamp(getXMLInt(xmlFile, "gameSettings.lightsProfile") or preset.lightsProfile, GS_PROFILE_LOW, GS_PROFILE_ULTRA))
+			local isHeadTrackingEnabled = getXMLBool(xmlFile, "gameSettings.isHeadTrackingEnabled")
+			if isHeadTrackingEnabled ~= nil then
 				self:setValue(GameSettings.SETTING.HEAD_TRACKING_ENABLED_SET_BY_USER, true)
-				self:setValue(GameSettings.SETTING.IS_HEAD_TRACKING_ENABLED, v33_)
+				self:setValue(GameSettings.SETTING.IS_HEAD_TRACKING_ENABLED, isHeadTrackingEnabled)
 			end
 			self:setValue(GameSettings.SETTING.IS_SOUND_PLAYER_STREAM_ACCESS_ALLOWED, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.soundPlayer#allowStreams"), self[GameSettings.SETTING.IS_SOUND_PLAYER_STREAM_ACCESS_ALLOWED]))
-			local v34_ = getXMLInt(xmlFile, "gameSettings.motorStopTimerDuration")
-			if v34_ ~= nil then
-				self:setValue(GameSettings.SETTING.MOTOR_STOP_TIMER_DURATION, v34_ * 1000)
+			local motorStopTimerDuration = getXMLInt(xmlFile, "gameSettings.motorStopTimerDuration")
+			if motorStopTimerDuration ~= nil then
+				self:setValue(GameSettings.SETTING.MOTOR_STOP_TIMER_DURATION, motorStopTimerDuration * 1000)
 			end
-			local v35_ = getXMLInt(xmlFile, "gameSettings.horseAbandonTimerDuration")
-			if v35_ ~= nil then
-				self:setValue(GameSettings.SETTING.HORSE_ABANDON_TIMER_DURATION, v35_ * 1000)
+			local horseAbandonTimerDuration = getXMLInt(xmlFile, "gameSettings.horseAbandonTimerDuration")
+			if horseAbandonTimerDuration ~= nil then
+				self:setValue(GameSettings.SETTING.HORSE_ABANDON_TIMER_DURATION, horseAbandonTimerDuration * 1000)
 			end
-			local v36_ = getXMLBool(xmlFile, "gameSettings.isGamepadEnabled")
-			if v36_ ~= nil then
+			local isGamepadEnabled = getXMLBool(xmlFile, "gameSettings.isGamepadEnabled")
+			if isGamepadEnabled ~= nil then
 				self:setValue(GameSettings.SETTING.GAMEPAD_ENABLED_SET_BY_USER, true)
-				self:setValue(GameSettings.SETTING.IS_GAMEPAD_ENABLED, v36_)
+				self:setValue(GameSettings.SETTING.IS_GAMEPAD_ENABLED, isGamepadEnabled)
 			end
 		end
 		self:setValue(GameSettings.SETTING.REAL_BEACON_LIGHTS, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.realBeaconLights"), self[GameSettings.SETTING.REAL_BEACON_LIGHTS]))
 		if GS_PLATFORM_PC then
-			local v37_ = getXMLInt(xmlFile, "gameSettings.mpLanguage")
-			if v37_ ~= nil and (v37_ >= 0 and v37_ <= getNumOfLanguages() - 1) then
-				self:setValue(GameSettings.SETTING.MP_LANGUAGE, v37_)
+			local mpLanguage = getXMLInt(xmlFile, "gameSettings.mpLanguage")
+			if mpLanguage ~= nil and (0 <= mpLanguage and mpLanguage <= getNumOfLanguages() - 1) then
+				self:setValue(GameSettings.SETTING.MP_LANGUAGE, mpLanguage)
 			end
-			local v38_ = getXMLInt(xmlFile, "gameSettings.inputHelpMode")
-			if v38_ ~= nil then
-				if v38_ == GS_INPUT_HELP_MODE_AUTO or (v38_ == GS_INPUT_HELP_MODE_GAMEPAD or v38_ == GS_INPUT_HELP_MODE_KEYBOARD) then
-					self:setValue(GameSettings.SETTING.INPUT_HELP_MODE, v38_)
-					if not getGamepadEnabled() and v38_ == GS_INPUT_HELP_MODE_GAMEPAD then
+			local inputHelpMode = getXMLInt(xmlFile, "gameSettings.inputHelpMode")
+			if inputHelpMode ~= nil then
+				if inputHelpMode == GS_INPUT_HELP_MODE_AUTO or inputHelpMode == GS_INPUT_HELP_MODE_GAMEPAD or inputHelpMode == GS_INPUT_HELP_MODE_KEYBOARD then
+					self:setValue(GameSettings.SETTING.INPUT_HELP_MODE, inputHelpMode)
+					if not getGamepadEnabled() and inputHelpMode == GS_INPUT_HELP_MODE_GAMEPAD then
 						self:setValue(GameSettings.SETTING.INPUT_HELP_MODE, GS_INPUT_HELP_MODE_AUTO)
 					end
 				else
@@ -394,45 +338,33 @@ function GameSettings:loadFromXML(xmlFile)
 				end
 			end
 		end
-		local v39_ = getXMLFloat(xmlFile, "gameSettings.fovY")
-		if v39_ ~= nil then
-			local v40_ = GameSettings.SETTING.FOV_Y
-			local v41_ = math.rad(v39_)
-			local v42_ = g_fovYMin
-			local v43_ = g_fovYMax
-			self:setValue(v40_, (math.clamp(v41_, v42_, v43_)))
+		local fovY = getXMLFloat(xmlFile, "gameSettings.fovY")
+		if fovY ~= nil then
+			self:setValue(GameSettings.SETTING.FOV_Y, math.clamp(math.rad(fovY), g_fovYMin, g_fovYMax))
 		end
-		local v44_ = getXMLFloat(xmlFile, "gameSettings.fovY#playerFirstPerson")
-		if v44_ ~= nil then
-			local v45_ = GameSettings.SETTING.FOV_Y_PLAYER_FIRST_PERSON
-			local v46_ = math.rad(v44_)
-			local v47_ = g_fovYMin
-			local v48_ = g_fovYMax
-			self:setValue(v45_, (math.clamp(v46_, v47_, v48_)))
+		local fovYPlayerFirstPerson = getXMLFloat(xmlFile, "gameSettings.fovY#playerFirstPerson")
+		if fovYPlayerFirstPerson ~= nil then
+			self:setValue(GameSettings.SETTING.FOV_Y_PLAYER_FIRST_PERSON, math.clamp(math.rad(fovYPlayerFirstPerson), g_fovYMin, g_fovYMax))
 		end
-		local v49_ = getXMLFloat(xmlFile, "gameSettings.fovY#playerThirdPerson")
-		if v49_ ~= nil then
-			local v50_ = GameSettings.SETTING.FOV_Y_PLAYER_THIRD_PERSON
-			local v51_ = math.rad(v49_)
-			local v52_ = g_fovYMin
-			local v53_ = g_fovYMax
-			self:setValue(v50_, (math.clamp(v51_, v52_, v53_)))
+		local fovYPlayerThirdPerson = getXMLFloat(xmlFile, "gameSettings.fovY#playerThirdPerson")
+		if fovYPlayerThirdPerson ~= nil then
+			self:setValue(GameSettings.SETTING.FOV_Y_PLAYER_THIRD_PERSON, math.clamp(math.rad(fovYPlayerThirdPerson), g_fovYMin, g_fovYMax))
 		end
-		local v54_ = getXMLFloat(xmlFile, "gameSettings.uiScale")
-		if v54_ ~= nil then
-			self:setValue(GameSettings.SETTING.UI_SCALE, (math.clamp(v54_, 0.5, 1.5)))
+		local uiScale = getXMLFloat(xmlFile, "gameSettings.uiScale")
+		if uiScale ~= nil then
+			self:setValue(GameSettings.SETTING.UI_SCALE, math.clamp(uiScale, 0.5, 1.5))
 		end
-		local v55_ = getXMLBool(xmlFile, "gameSettings.showAllMods")
-		if v55_ ~= nil then
-			self:setValue(GameSettings.SETTING.SHOW_ALL_MODS, v55_)
+		local modToggle = getXMLBool(xmlFile, "gameSettings.showAllMods")
+		if modToggle ~= nil then
+			self:setValue(GameSettings.SETTING.SHOW_ALL_MODS, modToggle)
 		end
 		if not GS_IS_CONSOLE_VERSION then
-			local v56_ = getXMLString(xmlFile, "gameSettings.onlinePresenceName")
-			if v56_ ~= nil then
-				if v56_ == "" then
-					v56_ = string.trim(getUserName())
+			local onlinePresenceName = getXMLString(xmlFile, "gameSettings.onlinePresenceName")
+			if onlinePresenceName ~= nil then
+				if onlinePresenceName == "" then
+					onlinePresenceName = string.trim(getUserName())
 				end
-				self:setValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME, v56_)
+				self:setValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME, onlinePresenceName)
 			end
 		end
 		self:setValue(GameSettings.SETTING.LAST_PLAYER_STYLE_MALE, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.player#lastPlayerStyleMale"), self[GameSettings.SETTING.LAST_PLAYER_STYLE_MALE]))
@@ -519,61 +451,53 @@ function GameSettings:loadFromXML(xmlFile)
 		self:setValue(GameSettings.SETTING.TOTAL_PLAYED_SECONDS, Utils.getNoNil(getXMLInt(xmlFile, "gameSettings.recommender#totalPlayedSeconds"), self[GameSettings.SETTING.TOTAL_PLAYED_SECONDS]))
 		self:setValue(GameSettings.SETTING.STARTED_GUIDED_TOUR, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.recommender#startedGuidedTour"), self[GameSettings.SETTING.STARTED_GUIDED_TOUR]))
 		if Platform.hasAdjustableFrameLimit then
-			local v57_ = getXMLInt(xmlFile, "gameSettings.frameLimit") or self[GameSettings.SETTING.FRAME_LIMIT]
-			local v58_ = false
-			for _, v59_ in ipairs(self.frameLimitValues) do
-				if v59_ == v57_ then
-					v58_ = true
+			local frameLimitValue = getXMLInt(xmlFile, "gameSettings.frameLimit") or self[GameSettings.SETTING.FRAME_LIMIT]
+			local found = false
+			for _, value in ipairs(self.frameLimitValues) do
+				if value == frameLimitValue then
+					found = true
 					break
 				end
 			end
-			if not v58_ then
-				v57_ = self[GameSettings.SETTING.FRAME_LIMIT]
+			if not found then
+				frameLimitValue = self[GameSettings.SETTING.FRAME_LIMIT]
 			end
-			self:setValue(GameSettings.SETTING.FRAME_LIMIT, v57_)
+			self:setValue(GameSettings.SETTING.FRAME_LIMIT, frameLimitValue)
 		end
-		local v60_ = XMLFile.wrap(xmlFile, GameSettings.xmlSchema)
-		self.lastCreatedLicensePlate = g_licensePlateManager.loadLicensePlateDataFromXML(v60_, "gameSettings.lastCreatedLicensePlate", true)
-		if v60_:hasProperty("gameSettings.lastPlayerStyle") then
-			local v61_ = PlayerStyle.new()
-			if v61_:loadFromXMLFile(v60_, "gameSettings.lastPlayerStyle") then
-				self.lastPlayerStyle = v61_
+		local wrapped = XMLFile.wrap(xmlFile, GameSettings.xmlSchema)
+		self.lastCreatedLicensePlate = g_licensePlateManager.loadLicensePlateDataFromXML(wrapped, "gameSettings.lastCreatedLicensePlate", true)
+		if wrapped:hasProperty("gameSettings.lastPlayerStyle") then
+			local lastPlayerStyle = PlayerStyle.new()
+			if lastPlayerStyle:loadFromXMLFile(wrapped, "gameSettings.lastPlayerStyle") then
+				self.lastPlayerStyle = lastPlayerStyle
 			else
-				v61_:delete()
+				lastPlayerStyle:delete()
 			end
 		end
-		local v62_ = {}
-		for _, v63_ in v60_:iterator("gameSettings.customColors.color") do
-			local v64_ = v60_:getString(v63_ .. "#name")
-			local v65_ = v60_:getString(v63_ .. "#materialName", nil, true)
-			local v66_ = v60_:getValue(v63_ .. "#color", nil, true)
-			if v66_ ~= nil then
-				table.insert(v62_, {
-					["name"] = v64_,
-					["color"] = v66_,
-					["materialName"] = v65_
-				})
+		local colors = {}
+		for index, path in wrapped:iterator("gameSettings.customColors.color") do
+			local name = wrapped:getString(path .. "#name")
+			local materialName = wrapped:getString(path .. "#materialName", nil, true)
+			local color = wrapped:getValue(path .. "#color", nil, true)
+			if color == nil then
+				continue
 			end
+			table.insert(colors, { name = name, color = color, materialName = materialName })
 		end
-		self:setValue(GameSettings.SETTING.CUSTOM_COLORS, v62_)
-		v60_:delete()
+		self:setValue(GameSettings.SETTING.CUSTOM_COLORS, colors)
+		wrapped:delete()
 		self.notifyOnChange = true
 	end
 end
-
--- Local values: value
 function GameSettings:setTableValueFromXML(tableName, tableKey, xmlFunc, xmlFile, xmlPath)
-	local v73_ = xmlFunc(xmlFile, xmlPath)
-	if v73_ ~= nil then
-		self:setTableValue(tableName, tableKey, v73_)
+	local value = xmlFunc(xmlFile, xmlPath)
+	if value ~= nil then
+		self:setTableValue(tableName, tableKey, value)
 	end
 end
-
 function GameSettings:save()
 	self:saveToXMLFile(g_savegameXML)
 end
-
--- Local values: wrapped, colors, index, _, color, key
 function GameSettings:saveToXMLFile(xmlFile)
 	if xmlFile ~= nil then
 		setXMLBool(xmlFile, "gameSettings.invertYLook", self[GameSettings.SETTING.INVERT_Y_LOOK])
@@ -666,49 +590,39 @@ function GameSettings:saveToXMLFile(xmlFile)
 		setXMLBool(xmlFile, "gameSettings.useColorblindMode", self[GameSettings.SETTING.USE_COLORBLIND_MODE])
 		setXMLInt(xmlFile, "gameSettings.maxNumMirrors", self[GameSettings.SETTING.MAX_NUM_MIRRORS])
 		setXMLInt(xmlFile, "gameSettings.lightsProfile", self[GameSettings.SETTING.LIGHTS_PROFILE])
-		local v77_ = setXMLFloat
-		local v78_ = self[GameSettings.SETTING.FOV_Y]
-		v77_(xmlFile, "gameSettings.fovY", (math.deg(v78_)))
-		local v79_ = setXMLFloat
-		local v80_ = self[GameSettings.SETTING.FOV_Y_PLAYER_FIRST_PERSON]
-		v79_(xmlFile, "gameSettings.fovY#playerFirstPerson", (math.deg(v80_)))
-		local v81_ = setXMLFloat
-		local v82_ = self[GameSettings.SETTING.FOV_Y_PLAYER_THIRD_PERSON]
-		v81_(xmlFile, "gameSettings.fovY#playerThirdPerson", (math.deg(v82_)))
+		setXMLFloat(xmlFile, "gameSettings.fovY", math.deg(self[GameSettings.SETTING.FOV_Y]))
+		setXMLFloat(xmlFile, "gameSettings.fovY#playerFirstPerson", math.deg(self[GameSettings.SETTING.FOV_Y_PLAYER_FIRST_PERSON]))
+		setXMLFloat(xmlFile, "gameSettings.fovY#playerThirdPerson", math.deg(self[GameSettings.SETTING.FOV_Y_PLAYER_THIRD_PERSON]))
 		setXMLFloat(xmlFile, "gameSettings.uiScale", self[GameSettings.SETTING.UI_SCALE])
 		setXMLBool(xmlFile, "gameSettings.realBeaconLights", self[GameSettings.SETTING.REAL_BEACON_LIGHTS])
 		setXMLBool(xmlFile, "gameSettings.cameraBobbing", self[GameSettings.SETTING.CAMERA_BOBBING])
 		setXMLBool(xmlFile, "gameSettings.steeringAssistLines", self[GameSettings.SETTING.STEERING_ASSIST_LINES])
 		setXMLBool(xmlFile, "gameSettings.steeringAssistCruiseControl", self[GameSettings.SETTING.STEERING_ASSIST_CRUISE_CONTROL])
-		local v83_ = XMLFile.wrap(xmlFile, GameSettings.xmlSchema)
-		g_licensePlateManager.saveLicensePlateDataToXML(v83_, "gameSettings.lastCreatedLicensePlate", self.lastCreatedLicensePlate, true)
+		local wrapped = XMLFile.wrap(xmlFile, GameSettings.xmlSchema)
+		g_licensePlateManager.saveLicensePlateDataToXML(wrapped, "gameSettings.lastCreatedLicensePlate", self.lastCreatedLicensePlate, true)
 		if self.lastPlayerStyle ~= nil then
-			self.lastPlayerStyle:saveToXMLFile(v83_, "gameSettings.lastPlayerStyle")
+			self.lastPlayerStyle:saveToXMLFile(wrapped, "gameSettings.lastPlayerStyle")
 		end
-		v83_:removeProperty("gameSettings.customColors")
-		local v84_ = self[GameSettings.SETTING.CUSTOM_COLORS]
-		local v85_ = 0
-		for _, v86_ in pairs(v84_) do
-			local v87_ = string.format("gameSettings.customColors.color(%d)", v85_)
-			v83_:setString(v87_ .. "#name", v86_.name or "")
-			v83_:setString(v87_ .. "#materialName", v86_.materialName or "")
-			local v88_ = v87_ .. "#color"
-			local v89_ = v86_.color
-			v83_:setValue(v88_, unpack(v89_))
-			v85_ = v85_ + 1
+		wrapped:removeProperty("gameSettings.customColors")
+		local colors = self[GameSettings.SETTING.CUSTOM_COLORS]
+		local index = 0
+		for _, color in pairs(colors) do
+			local key = string.format("gameSettings.customColors.color(%d)", index)
+			wrapped:setString(key .. "#name", color.name or "")
+			wrapped:setString(key .. "#materialName", color.materialName or "")
+			wrapped:setValue(key .. "#color", unpack(color.color))
+			index = index + 1
 		end
-		v83_:delete()
+		wrapped:delete()
 		saveXMLFile(xmlFile)
 		syncProfileFiles()
 	end
 end
-
 function GameSettings:setXMLValue(xmlFile, func, xPath, value)
 	if value ~= nil then
 		func(xmlFile, xPath, value)
 	end
 end
-
 function GameSettings:setLastPlayerStyle(playerStyle)
 	if self.lastPlayerStyle == nil then
 		self.lastPlayerStyle = PlayerStyle.new()

@@ -1,10 +1,8 @@
--- Local values: FenceGate_mt
 source("dataS/scripts/objects/AnimatedObject.lua")
 FenceGate = {}
 FenceGate.DEFAULT_PRICE_PER_M = FenceSegment.DEFAULT_PRICE_PER_M * 2
 FenceGate.MIN_WIDTH_AI_BLOCKING_REGION = 3
 local FenceGate_mt = Class(FenceGate, FenceSegment)
-
 function FenceGate.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Fence")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".gate#node", "")
@@ -19,92 +17,78 @@ function FenceGate.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".gate.animatedObject(?).aiBlockingRegion#stopDistance", "Distance the GoTo-AI agent waits in front of the blocking region", 2)
 	schema:register(XMLValueType.FLOAT, basePath .. ".gate.animatedObject(?).aiBlockingRegion#openedStateAnimTime", "Normalized time [0..1] of the animation where the gate is in its opened state", 1)
 end
-
 function FenceGate.registerSavegameXMLPaths(schema, basePath)
 	FenceSegment.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. "#reversed", "Segment is reversed")
 	schema:register(XMLValueType.STRING, basePath .. ".animatedObject(?)#id")
 	AnimatedObject.registerSavegameXMLPaths(schema, basePath .. ".animatedObject(?)")
 end
-
--- Upvalues: FenceGate_mt
--- Local values: self, xmlFile, i3dFilename, fenceI3d, sharedLoadRequestId, _, components, i3dMapping, gate, node, _, animatedObjectKey, animatedObject, useAIBlockingRegion
 function FenceGate.new(id, metadata, fence, customMt)
-	-- upvalues: (copy) FenceGate_mt
-	local v_u_10_ = FenceGate:superClass().new(id, metadata, fence, customMt or FenceGate_mt)
-	v_u_10_.isReversed = false
-	v_u_10_.rootHidden = nil
-	local v11_ = XMLFile.load("fenceGateXML", v_u_10_.fence.xmlFilename, Fence.xmlSchema)
-	local v12_ = fence.i3dFilename
-	local v13_, v14_, _ = g_i3DManager:loadSharedI3DFile(v12_, false, false)
-	local v15_ = I3DUtil.loadI3DComponents(v13_)
-	local v16_ = I3DUtil.loadI3DMapping(v11_, nil, v15_)
-	local v17_ = v_u_10_.metadata.gate
-	local v18_ = v11_:getNode(v17_.xmlKey .. "#node", nil, v15_, v16_)
-	unlink(v18_)
-	v_u_10_.rootHidden = v18_
-	delete(v13_)
-	g_i3DManager:releaseSharedI3DFile(v14_)
-	for _, v19_ in v11_:iterator(v17_.xmlKey .. ".animatedObject") do
-		local v_u_20_ = AnimatedObject.new(g_server ~= nil, g_client ~= nil)
-		v_u_20_:load(v18_, v11_, v19_, v11_:getFilename(), v16_)
-		v_u_20_.getCanBeTriggered = Utils.overwrittenFunction(v_u_20_.getCanBeTriggered, function(_, p21_)
-			-- upvalues: (copy) v_u_20_, (copy) v_u_10_
-			if not p21_(v_u_20_) then
+	local self = FenceGate:superClass().new(id, metadata, fence, customMt or FenceGate_mt)
+	self.isReversed = false
+	self.rootHidden = nil
+	local xmlFile = XMLFile.load("fenceGateXML", self.fence.xmlFilename, Fence.xmlSchema)
+	local i3dFilename = fence.i3dFilename
+	local fenceI3d, sharedLoadRequestId, _ = g_i3DManager:loadSharedI3DFile(i3dFilename, false, false)
+	local components = I3DUtil.loadI3DComponents(fenceI3d)
+	local i3dMapping = I3DUtil.loadI3DMapping(xmlFile, nil, components)
+	local gate = self.metadata.gate
+	local node = xmlFile:getNode(gate.xmlKey .. "#node", nil, components, i3dMapping)
+	unlink(node)
+	self.rootHidden = node
+	delete(fenceI3d)
+	g_i3DManager:releaseSharedI3DFile(sharedLoadRequestId)
+	for _, animatedObjectKey in xmlFile:iterator(gate.xmlKey .. ".animatedObject") do
+		local animatedObject = AnimatedObject.new(g_server ~= nil, g_client ~= nil)
+		animatedObject:load(node, xmlFile, animatedObjectKey, xmlFile:getFilename(), i3dMapping)
+		animatedObject.getCanBeTriggered = Utils.overwrittenFunction(animatedObject.getCanBeTriggered, function(_, superFunc)
+			if not superFunc(animatedObject) then
 				return false
 			end
-			local v22_ = g_currentMission:getFarmId()
-			local v23_ = g_missionManager:getMissionByFarmlandId(v_u_10_.farmlandId)
-			if v23_ ~= nil and g_currentMission.accessHandler:canFarmAccessOtherId(v22_, v23_.farmId) then
+			local playerFarmId = g_currentMission:getFarmId()
+			local mission = g_missionManager:getMissionByFarmlandId(self.farmlandId)
+			if mission ~= nil and g_currentMission.accessHandler:canFarmAccessOtherId(playerFarmId, mission.farmId) then
 				return true
 			end
-			local v24_ = g_farmlandManager:getFarmlandOwner(v_u_10_.farmlandId)
-			return g_currentMission.accessHandler:canFarmAccessOtherId(v22_, v24_) and true or false
+			local farmlandOwnerFarmId = g_farmlandManager:getFarmlandOwner(self.farmlandId)
+			if not g_currentMission.accessHandler:canFarmAccessOtherId(playerFarmId, farmlandOwnerFarmId) then
+				return false
+			else
+				return true
+			end
 		end)
-		if v11_:getBool(v19_ .. "#useAIBlockingRegion") and v_u_10_.metadata.gate.length > FenceGate.MIN_WIDTH_AI_BLOCKING_REGION then
-			v_u_20_.aiBlockingRegion = {
-				["stopDistance"] = v11_:getFloat(v19_ .. ".aiBlockingRegion#stopDistance"),
-				["openedStateAnimTime"] = v11_:getFloat(v19_ .. ".aiBlockingRegion#openedStateAnimTime") or 1
-			}
+		local useAIBlockingRegion = xmlFile:getBool(animatedObjectKey .. "#useAIBlockingRegion")
+		if useAIBlockingRegion and FenceGate.MIN_WIDTH_AI_BLOCKING_REGION < self.metadata.gate.length then
+			animatedObject.aiBlockingRegion = { stopDistance = xmlFile:getFloat(animatedObjectKey .. ".aiBlockingRegion#stopDistance"), openedStateAnimTime = xmlFile:getFloat(animatedObjectKey .. ".aiBlockingRegion#openedStateAnimTime") or 1 }
 		end
-		v_u_10_.animatedObjects = v_u_10_.animatedObjects or {}
-		local v25_ = v_u_10_.animatedObjects
-		table.insert(v25_, v_u_20_)
-		v_u_20_:register(true)
+		self.animatedObjects = self.animatedObjects or {}
+		table.insert(self.animatedObjects, animatedObject)
+		animatedObject:register(true)
 	end
-	v11_:delete()
-	return v_u_10_
+	xmlFile:delete()
+	return self
 end
-
--- Local values: metadata, gateKey, length, depth, depthOffset, alignY, hasStartPole, hasEndPole
 function FenceGate.loadMetadataFromXML(xmlFile, key, id, fence)
-	local v30_ = FenceSegment.loadMetadataFromXML(xmlFile, key, id, fence)
-	v30_.class = FenceGate
-	local v31_ = key .. ".gate"
-	local v32_ = xmlFile:getFloat(v31_ .. "#length")
-	local v33_ = xmlFile:getFloat(v31_ .. "#depth")
-	local v34_ = xmlFile:getFloat(v31_ .. "#depthOffset")
-	v30_.gate = {
-		["xmlKey"] = v31_,
-		["length"] = v32_,
-		["depth"] = v33_,
-		["alignY"] = xmlFile:getBool(v31_ .. "#alignY"),
-		["depthOffset"] = v34_,
-		["hasStartPole"] = xmlFile:getBool(v31_ .. "#hasStartPole", true),
-		["hasEndPole"] = xmlFile:getBool(v31_ .. "#hasEndPole", true)
-	}
-	return v30_
+	local metadata = FenceSegment.loadMetadataFromXML(xmlFile, key, id, fence)
+	metadata.class = FenceGate
+	local gateKey = key .. ".gate"
+	local length = xmlFile:getFloat(gateKey .. "#length")
+	local depth = xmlFile:getFloat(gateKey .. "#depth")
+	local depthOffset = xmlFile:getFloat(gateKey .. "#depthOffset")
+	local alignY = xmlFile:getBool(gateKey .. "#alignY")
+	local hasStartPole = xmlFile:getBool(gateKey .. "#hasStartPole", true)
+	local hasEndPole = xmlFile:getBool(gateKey .. "#hasEndPole", true)
+	metadata.gate = { xmlKey = gateKey, length = length, depth = depth, alignY = alignY, depthOffset = depthOffset, hasStartPole = hasStartPole, hasEndPole = hasEndPole }
+	return metadata
 end
-
--- Local values: _, animatedObject
 function FenceGate:delete()
 	if self.animatedObjects ~= nil then
-		for _, v36_ in ipairs(self.animatedObjects) do
-			if v36_.aiBlockingRegion ~= nil then
-				g_currentMission.aiSystem:removeBlockingRegion(v36_.aiBlockingRegion.blockingRegionId)
-				v36_.aiBlockingRegion = nil
+		for _, animatedObject in ipairs(self.animatedObjects) do
+			if animatedObject.aiBlockingRegion ~= nil then
+				g_currentMission.aiSystem:removeBlockingRegion(animatedObject.aiBlockingRegion.blockingRegionId)
+				animatedObject.aiBlockingRegion = nil
 			end
-			v36_:delete()
+			animatedObject:delete()
 		end
 		self.animatedObjects = nil
 	end
@@ -115,108 +99,94 @@ function FenceGate:delete()
 	g_messageCenter:unsubscribe(MessageType.FARMLAND_OWNER_CHANGED, self)
 	FenceGate:superClass().delete(self)
 end
-
--- Local values: needsUpdate, isNewSavegame, startY, endY, _, animatedObjectKey, id, _, animatedObject
 function FenceGate:loadFromXMLFile(xmlFile, key)
 	self.isReversed = xmlFile:getBool(key .. "#reversed", false)
 	if not FenceGate:superClass().loadFromXMLFile(self, xmlFile, key) then
 		return false
-	end
-	local v40_ = not g_currentMission.missionInfo.isValid
-	local v41_ = getTerrainHeightAtWorldPos(g_terrainNode, self.startPosX, 0, self.startPosZ)
-	local v42_
-	if v40_ or self.startPosY < v41_ then
-		self.startPosY = v41_
-		v42_ = true
 	else
-		v42_ = false
-	end
-	local v43_ = getTerrainHeightAtWorldPos(g_terrainNode, self.endPosX, 0, self.endPosZ)
-	if v40_ or self.endPosY < v43_ then
-		self.endPosY = v43_
-		v42_ = true
-	end
-	if v42_ then
-		self:updateMeshes(true, false)
-	end
-	for _, v44_ in xmlFile:iterator(key .. ".animatedObject") do
-		local v45_ = xmlFile:getString(v44_ .. "#id")
-		for _, v46_ in ipairs(self.animatedObjects) do
-			if v46_.saveId == v45_ then
-				v46_:loadFromXMLFile(xmlFile, v44_)
+		local needsUpdate = false
+		local isNewSavegame = not g_currentMission.missionInfo.isValid
+		local startY = getTerrainHeightAtWorldPos(g_terrainNode, self.startPosX, 0, self.startPosZ)
+		if isNewSavegame or self.startPosY < startY then
+			self.startPosY = startY
+			needsUpdate = true
+		end
+		local endY = getTerrainHeightAtWorldPos(g_terrainNode, self.endPosX, 0, self.endPosZ)
+		if isNewSavegame or self.endPosY < endY then
+			self.endPosY = endY
+			needsUpdate = true
+		end
+		if needsUpdate then
+			self:updateMeshes(true, false)
+		end
+		for _, animatedObjectKey in xmlFile:iterator(key .. ".animatedObject") do
+			local id = xmlFile:getString(animatedObjectKey .. "#id")
+			for _, animatedObject in ipairs(self.animatedObjects) do
+				if animatedObject.saveId == id then
+					animatedObject:loadFromXMLFile(xmlFile, animatedObjectKey)
+				end
 			end
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: index, _, animatedObject, animatedObjectKey
 function FenceGate:saveToXMLFile(xmlFile, key)
 	if not FenceGate:superClass().saveToXMLFile(self, xmlFile, key) then
 		return false
-	end
-	if self.isReversed then
-		xmlFile:setBool(key .. "#reversed", self.isReversed)
-	end
-	if self.animatedObjects ~= nil then
-		local v50_ = 0
-		for _, v51_ in ipairs(self.animatedObjects) do
-			local v52_ = string.format("%s.animatedObject(%d)", key, v50_)
-			xmlFile:setString(v52_ .. "#id", v51_.saveId)
-			v51_:saveToXMLFile(xmlFile, v52_)
-			v50_ = v50_ + 1
+	else
+		if self.isReversed then
+			xmlFile:setBool(key .. "#reversed", self.isReversed)
 		end
+		if self.animatedObjects ~= nil then
+			local index = 0
+			for _, animatedObject in ipairs(self.animatedObjects) do
+				local animatedObjectKey = string.format("%s.animatedObject(%d)", key, index)
+				xmlFile:setString(animatedObjectKey .. "#id", animatedObject.saveId)
+				animatedObject:saveToXMLFile(xmlFile, animatedObjectKey)
+				index = index + 1
+			end
+		end
+		return true
 	end
-	return true
 end
-
--- Local values: _, animatedObject, animatedObjectId
 function FenceGate:readStream(streamId, connection, lastSegment)
 	FenceGate:superClass().readStream(self, streamId, connection, lastSegment)
 	self.isReversed = streamReadBool(streamId)
 	if connection:getIsServer() and self.animatedObjects ~= nil then
-		for _, v57_ in ipairs(self.animatedObjects) do
-			local v58_ = NetworkUtil.readNodeObjectId(streamId)
-			v57_:readStream(streamId, connection)
-			g_client:finishRegisterObject(v57_, v58_)
+		for _, animatedObject in ipairs(self.animatedObjects) do
+			local animatedObjectId = NetworkUtil.readNodeObjectId(streamId)
+			animatedObject:readStream(streamId, connection)
+			g_client:finishRegisterObject(animatedObject, animatedObjectId)
 		end
 	end
 end
-
--- Local values: _, animatedObject
 function FenceGate:writeStream(streamId, connection, lastSegment)
 	FenceGate:superClass().writeStream(self, streamId, connection, lastSegment)
 	streamWriteBool(streamId, self.isReversed)
 	if not connection:getIsServer() and self.animatedObjects ~= nil then
-		for _, v63_ in ipairs(self.animatedObjects) do
-			NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v63_))
-			v63_:writeStream(streamId, connection)
-			g_server:registerObjectInStream(connection, v63_)
+		for _, animatedObject in ipairs(self.animatedObjects) do
+			NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(animatedObject))
+			animatedObject:writeStream(streamId, connection)
+			g_server:registerObjectInStream(connection, animatedObject)
 		end
 	end
 end
-
 function FenceGate:registerTerrainHeightChangeCallbacks() end
-
 function FenceGate:getPrice()
 	return self:getActualLength() * (self.metadata.price or FenceGate.DEFAULT_PRICE_PER_M)
 end
-
 function FenceGate:setIsReversed(isReversed)
 	self.isReversed = isReversed
 	self:updateMeshes(true)
 end
-
 function FenceGate:getIsReversed()
 	return self.isReversed
 end
-
--- Local values: terrain, i, child, length, lengthXZ, curLen, dx, dz, x, y, z, gate, _x, yTest, _z, slopeAngle, gateNode, actualPanelLength, posX, posY, posZ, dirX, dirY, dirZ, endX, endY, endZ, _, animatedObject
 function FenceGate:updateMeshes(force, validatePlacement)
-	local v71_ = Utils.getNoNil(force, false)
-	local v72_ = Utils.getNoNil(validatePlacement, true)
+	force = Utils.getNoNil(force, false)
+	validatePlacement = Utils.getNoNil(validatePlacement, true)
 	self.lastError = nil
-	if not (v71_ or self.isDirty) then
+	if not force and not self.isDirty then
 		return true
 	end
 	if self.startPosX == nil or self.endPosX == nil then
@@ -224,196 +194,194 @@ function FenceGate:updateMeshes(force, validatePlacement)
 	end
 	if not entityExists(self.root) then
 		return false
-	end
-	local v73_ = g_terrainNode or getChild(getRootNode(), "terrain")
-	for v74_ = getNumOfChildren(self.root) - 1, 0, -1 do
-		local v75_ = getChildAt(self.root, v74_)
-		removeFromPhysics(v75_)
-		unlink(v75_)
-		self.rootHidden = v75_
-	end
-	if v72_ then
-		if MathUtil.vector3Length(self.endPosX - self.startPosX, self.endPosY - self.startPosY, self.endPosZ - self.startPosZ) < 0.1 then
-			self.lastError = FenceSegment.ERROR_TOO_SHORT
-			return false
+	else
+		local terrain = g_terrainNode or getChild(getRootNode(), "terrain")
+		for i = getNumOfChildren(self.root) - 1, 0, -1 do
+			local child = getChildAt(self.root, i)
+			removeFromPhysics(child)
+			unlink(child)
+			self.rootHidden = child
 		end
-		if MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ) < 0.1 then
-			self.lastError = FenceSegment.ERROR_TOO_SHORT
-			return false
-		end
-	end
-	local v76_ = MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
-	local v77_ = 0
-	local v78_, v79_ = MathUtil.vector2Normalize(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
-	local v80_ = self.metadata.gate
-	if v76_ - v77_ >= 0.1 then
-		local v81_ = self.startPosX
-		local v82_ = self.startPosY
-		local v83_ = self.startPosZ
-		local v84_ = self.endPosX
-		local v85_ = self.endPosY
-		local v86_ = self.endPosZ
-		if v72_ then
-			v81_, v82_, v83_ = self:lerpOnTerrain(v73_, v77_ / v76_)
-			v84_, v85_, v86_ = self:lerpOnTerrain(v73_, (v77_ + v80_.length) / v76_)
-			local v87_ = (v82_ - v85_) / v80_.length
-			local v88_ = math.atan(v87_)
-			if math.abs(v88_) > self.metadata.maxSlopeAngle then
-				self.lastError = FenceSegment.ERROR_TOO_STEEP
+		if validatePlacement then
+			local length = MathUtil.vector3Length(self.endPosX - self.startPosX, self.endPosY - self.startPosY, self.endPosZ - self.startPosZ)
+			if length < 0.1 then
+				self.lastError = FenceSegment.ERROR_TOO_SHORT
+				return false
+			end
+			if MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ) < 0.1 then
+				self.lastError = FenceSegment.ERROR_TOO_SHORT
 				return false
 			end
 		end
-		local v89_ = self.rootHidden
-		removeFromPhysics(v89_)
-		link(self.root, v89_)
-		self.rootHidden = nil
-		local v90_ = v80_.length
-		local v91_
-		if v80_.alignY then
-			v78_, v91_, v79_ = MathUtil.vector3Normalize(v84_ - v81_, v85_ - v82_, v86_ - v83_)
-			if v72_ then
-				v84_ = v81_ + v78_ * v80_.length
-				v85_ = v82_ + v91_ * v80_.length
-				v86_ = v83_ + v79_ * v80_.length
-				if v73_ ~= nil and v73_ ~= 0 then
-					v85_ = getTerrainHeightAtWorldPos(v73_, v84_, 0, v86_)
+		local lengthXZ = MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
+		local curLen = 0
+		local dx, dz = MathUtil.vector2Normalize(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
+		local x = nil
+		local y = nil
+		local z = nil
+		local gate = self.metadata.gate
+		if 0.1 <= lengthXZ - curLen then
+			x = self.startPosX
+			y = self.startPosY
+			z = self.startPosZ
+			local _x = self.endPosX
+			local yTest = self.endPosY
+			local _z = self.endPosZ
+			if validatePlacement then
+				x, y, z = self:lerpOnTerrain(terrain, curLen / lengthXZ)
+				_x, yTest, _z = self:lerpOnTerrain(terrain, (curLen + gate.length) / lengthXZ)
+				local slopeAngle = math.abs(math.atan((y - yTest) / gate.length))
+				if self.metadata.maxSlopeAngle < slopeAngle then
+					self.lastError = FenceSegment.ERROR_TOO_STEEP
+					return false
 				end
-				v78_, v91_, v79_ = MathUtil.vector3Normalize(v84_ - v81_, v85_ - v82_, v86_ - v83_)
 			end
-			v90_ = MathUtil.vector2Length(v84_ - v81_, v86_ - v83_)
-		else
-			v91_ = 0
+			local gateNode = self.rootHidden
+			removeFromPhysics(gateNode)
+			link(self.root, gateNode)
+			self.rootHidden = nil
+			local actualPanelLength = gate.length
+			local posX = x
+			local posY = y
+			local posZ = z
+			local dirX = dx
+			local dirY = 0
+			local dirZ = dz
+			local endX = _x
+			local endY = yTest
+			local endZ = _z
+			if gate.alignY then
+				dirX, dirY, dirZ = MathUtil.vector3Normalize(endX - x, endY - y, endZ - z)
+				if validatePlacement then
+					endX = x + dirX * gate.length
+					endY = y + dirY * gate.length
+					endZ = z + dirZ * gate.length
+					if terrain ~= nil and terrain ~= 0 then
+						endY = getTerrainHeightAtWorldPos(terrain, endX, 0, endZ)
+					end
+					dirX, dirY, dirZ = MathUtil.vector3Normalize(endX - x, endY - y, endZ - z)
+				end
+				actualPanelLength = MathUtil.vector2Length(endX - x, endZ - z)
+			end
+			curLen = curLen + actualPanelLength
+			if self.isReversed then
+				posX = endX
+				posY = endY
+				posZ = endZ
+				dirX = -dirX
+				dirY = -dirY
+				dirZ = -dirZ
+			end
+			setWorldTranslation(gateNode, posX, posY, posZ)
+			setWorldDirection(gateNode, dirX, dirY, dirZ, 0, 1, 0)
 		end
-		v77_ = v77_ + v90_
-		if self.isReversed then
-			v78_ = -v78_
-			v91_ = -v91_
-			v79_ = -v79_
-		else
-			v86_ = v83_
-			v85_ = v82_
-			v84_ = v81_
+		x, y, z = self:lerpOnTerrain(terrain, curLen / lengthXZ)
+		self.actualEndX = x
+		self.actualEndY = y
+		self.actualEndZ = z
+		if self.notYetFinalized and self.animatedObjects ~= nil then
+			for _, animatedObject in ipairs(self.animatedObjects) do
+				animatedObject:setAnimTime(0.4)
+			end
 		end
-		setWorldTranslation(v89_, v84_, v85_, v86_)
-		setWorldDirection(v89_, v78_, v91_, v79_, 0, 1, 0)
+		self.isDirty = false
+		return true
 	end
-	local v92_, v93_, v94_ = self:lerpOnTerrain(v73_, v77_ / v76_)
-	self.actualEndX = v92_
-	self.actualEndY = v93_
-	self.actualEndZ = v94_
-	if self.notYetFinalized and self.animatedObjects ~= nil then
-		for _, v95_ in ipairs(self.animatedObjects) do
-			v95_:setAnimTime(0.4)
-		end
-	end
-	self.isDirty = false
-	return true
 end
-
--- Local values: x, y, z
 function FenceGate:lerpOnTerrain(terrain, alpha)
+	local x = nil
+	local y = nil
+	local z = nil
 	if terrain == nil or terrain == 0 then
-		local v99_, v100_, v101_ = MathUtil.vector3Lerp(self.startPosX, self.startPosY, self.startPosZ, self.endPosX, self.endPosY, self.endPosZ, alpha)
-		return v99_, v100_, v101_
-	else
-		local v102_, v103_ = MathUtil.vector2Lerp(self.startPosX, self.startPosZ, self.endPosX, self.endPosZ, alpha)
-		return v102_, getTerrainHeightAtWorldPos(terrain, v102_, 0, v103_), v103_
+		return MathUtil.vector3Lerp(self.startPosX, self.startPosY, self.startPosZ, self.endPosX, self.endPosY, self.endPosZ, alpha)
 	end
+	x, z = MathUtil.vector2Lerp(self.startPosX, self.startPosZ, self.endPosX, self.endPosZ, alpha)
+	y = getTerrainHeightAtWorldPos(terrain, x, 0, z)
+	return x, y, z
 end
-
--- Local values: gate, dx, dz, cx, cy, cz, halfWidth, widthOffset, rx, ry, rz, height, ex, ey, ez
 function FenceGate:getOverlapBox()
-	local v105_ = self.metadata.gate
-	local v106_, v107_ = MathUtil.vector2Normalize(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
-	local v108_ = (self.startPosX + self.actualEndX) / 2
-	local v109_ = (self.startPosY + self.actualEndY) / 2
-	local v110_ = (self.startPosZ + self.actualEndZ) / 2
-	local v111_ = v105_.depth or v105_.length / 2
-	local v112_ = (v105_.depthOffset or v111_) / 2
-	local v113_ = v108_ - v107_ * v112_ * (self.isReversed and -1 or 1)
-	local v114_ = v110_ + v106_ * v112_ * (self.isReversed and -1 or 1)
-	local v115_ = self.actualEndX - self.startPosX
-	local v116_ = self.actualEndZ - self.startPosZ
-	local v117_ = math.atan2(v115_, v116_) + 6.283185307179586
-	local v118_ = v105_.height or 2
-	local v119_ = v111_ / 2
-	local v120_ = math.max(v119_, 0.05)
-	local v121_ = self.actualEndY - self.startPosY
-	return v113_, v109_, v114_, 0, v117_, 0, v120_, math.abs(v121_) / 2 + v118_, v105_.length / 2
+	local gate = self.metadata.gate
+	local dx, dz = MathUtil.vector2Normalize(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
+	local cx = (self.startPosX + self.actualEndX) / 2
+	local cy = (self.startPosY + self.actualEndY) / 2
+	local cz = (self.startPosZ + self.actualEndZ) / 2
+	local halfWidth = gate.depth or gate.length / 2
+	local widthOffset = (gate.depthOffset or halfWidth) / 2
+	cx = cx - dz * widthOffset * (self.isReversed and -1 or 1)
+	cz = cz + dx * widthOffset * (self.isReversed and -1 or 1)
+	local rx = 0
+	local ry = math.atan2(self.actualEndX - self.startPosX, self.actualEndZ - self.startPosZ) + 6.283185307179586
+	local rz = 0
+	local height = gate.height or 2
+	local ex = math.max(halfWidth / 2, 0.05)
+	local ey = math.abs(self.actualEndY - self.startPosY) / 2 + height
+	local ez = gate.length / 2
+	return cx, cy, cz, 0, ry, 0, ex, ey, ez
 end
-
--- Local values: hitNodes
 function FenceGate:update()
-	self:checkOverlap({})
+	local hitNodes = {}
+	self:checkOverlap(hitNodes)
 end
-
--- Local values: _, animatedObject, aiBlockingRegion, x, y, z, rx, ry, rz, ex, ey, ez, stopDistance
 function FenceGate:finalize(loadedFromSavegame)
 	if not FenceGate:superClass().finalize(self, loadedFromSavegame) then
 		return false
-	end
-	if self.animatedObjects ~= nil then
-		for _, v125_ in ipairs(self.animatedObjects) do
-			if not loadedFromSavegame then
-				v125_:setAnimTime(0)
-			end
-			if g_server ~= nil and (v125_.aiBlockingRegion ~= nil and (g_currentMission ~= nil and g_currentMission.aiSystem ~= nil)) then
-				local v126_ = v125_.aiBlockingRegion or {}
-				local v127_, v128_, v129_, v130_, v131_, v132_, v133_, v134_, v135_ = self:getOverlapBox()
-				local v136_ = v126_.stopDistance or 2
-				v126_.blockingRegionId = g_currentMission.aiSystem:addBlockingRegion(v127_, v128_, v129_, v130_, v131_, v132_, v133_ * 2, v134_ * 2, v135_ * 2, v136_, "blockingPositionCallback", self)
+	else
+		if self.animatedObjects ~= nil then
+			for _, animatedObject in ipairs(self.animatedObjects) do
+				if not loadedFromSavegame then
+					animatedObject:setAnimTime(0)
+				end
+				if g_server == nil or animatedObject.aiBlockingRegion == nil or g_currentMission == nil or g_currentMission.aiSystem == nil then
+					continue
+				end
+				local aiBlockingRegion = animatedObject.aiBlockingRegion or {}
+				local x, y, z, rx, ry, rz, ex, ey, ez = self:getOverlapBox()
+				local stopDistance = aiBlockingRegion.stopDistance or 2
+				aiBlockingRegion.blockingRegionId = g_currentMission.aiSystem:addBlockingRegion(x, y, z, rx, ry, rz, ex * 2, ey * 2, ez * 2, stopDistance, "blockingPositionCallback", self)
 			end
 		end
+		if g_farmlandManager ~= nil then
+			self.farmlandId = g_farmlandManager:getFarmlandIdAtWorldPosition(self.startPosX, self.startPosZ)
+			self:updateOwnerFarmId()
+		end
+		if g_messageCenter ~= nil then
+			g_messageCenter:subscribe(MessageType.FARMLAND_OWNER_CHANGED, self.onFarmlandStateChanged, self)
+		end
+		return true
 	end
-	if g_farmlandManager ~= nil then
-		self.farmlandId = g_farmlandManager:getFarmlandIdAtWorldPosition(self.startPosX, self.startPosZ)
-		self:updateOwnerFarmId()
-	end
-	if g_messageCenter ~= nil then
-		g_messageCenter:subscribe(MessageType.FARMLAND_OWNER_CHANGED, self.onFarmlandStateChanged, self)
-	end
-	return true
 end
-
--- Local values: _, animatedObject, openedStateAnimTime
 function FenceGate:blockingPositionCallback(_, agentId, blockerId)
-	for _, v139_ in ipairs(self.animatedObjects) do
-		local v140_ = v139_.aiBlockingRegion.openedStateAnimTime
-		if v139_.animation.time == 1 - v140_ then
-			v139_:setDirection(v140_)
+	for _, animatedObject in ipairs(self.animatedObjects) do
+		local openedStateAnimTime = animatedObject.aiBlockingRegion.openedStateAnimTime
+		if animatedObject.animation.time == 1 - openedStateAnimTime then
+			animatedObject:setDirection(openedStateAnimTime)
 		end
-		if v139_.animation.time == v140_ then
+		if animatedObject.animation.time == openedStateAnimTime then
 			g_currentMission.aiSystem:setBlockingRegionState(blockerId, false)
 		end
 	end
 end
-
--- Local values: _, animatedObject
 function FenceGate:setOwnerFarmId(ownerFarmId, noEventSend)
 	FenceGate:superClass().setOwnerFarmId(self, ownerFarmId, noEventSend)
 	if self.animatedObjects ~= nil then
-		for _, v144_ in ipairs(self.animatedObjects) do
-			v144_:setOwnerFarmId(ownerFarmId, true)
+		for _, animatedObject in ipairs(self.animatedObjects) do
+			animatedObject:setOwnerFarmId(ownerFarmId, true)
 		end
 	end
 end
-
 function FenceGate:onFarmlandStateChanged(farmlandId, farmId, loadFromSavegame)
 	if self.farmlandId == farmlandId then
 		self:updateOwnerFarmId()
 	end
 end
-
--- Local values: farmId, _, animatedObject
 function FenceGate:updateOwnerFarmId()
-	local v148_ = g_farmlandManager:getFarmlandOwner(self.farmlandId)
+	local farmId = g_farmlandManager:getFarmlandOwner(self.farmlandId)
 	if self.animatedObjects ~= nil then
-		for _, v149_ in ipairs(self.animatedObjects) do
-			v149_:setOwnerFarmId(v148_, true)
+		for _, animatedObject in ipairs(self.animatedObjects) do
+			animatedObject:setOwnerFarmId(farmId, true)
 		end
 	end
 end
-
 function FenceGate:getHasVisualStartPole()
 	if self.isReversed then
 		return self.metadata.gate.hasEndPole
@@ -421,7 +389,6 @@ function FenceGate:getHasVisualStartPole()
 		return self.metadata.gate.hasStartPole
 	end
 end
-
 function FenceGate:getHasVisualEndPole()
 	if self.isReversed then
 		return self.metadata.gate.hasStartPole
@@ -429,15 +396,14 @@ function FenceGate:getHasVisualEndPole()
 		return self.metadata.gate.hasEndPole
 	end
 end
-
--- Local values: sx, sy, sz, isFirst, isLast
 function FenceGate:getSegmentPartStartEnd(node)
-	local v154_ = self:getSegmentPartFromNode(node)
-	if v154_ == nil then
+	node = self:getSegmentPartFromNode(node)
+	if node == nil then
 		return nil
+	else
+		local sx, sy, sz = getWorldTranslation(node)
+		local isFirst = MathUtil.vector3Length(sx - self.startPosX, sy - self.startPosY, sz - self.startPosZ) < 0.01
+		local isLast = MathUtil.vector3Length(sx - self.endPosX, sy - self.endPosY, sz - self.endPosZ) < 0.01
+		return self.startPosX, self.startPosY, self.startPosZ, self.endPosX, self.endPosY, self.endPosZ, isFirst, isLast
 	end
-	local v155_, v156_, v157_ = getWorldTranslation(v154_)
-	local v158_ = MathUtil.vector3Length(v155_ - self.startPosX, v156_ - self.startPosY, v157_ - self.startPosZ) < 0.01
-	local v159_ = MathUtil.vector3Length(v155_ - self.endPosX, v156_ - self.endPosY, v157_ - self.endPosZ) < 0.01
-	return self.startPosX, self.startPosY, self.startPosZ, self.endPosX, self.endPosY, self.endPosZ, v158_, v159_
 end

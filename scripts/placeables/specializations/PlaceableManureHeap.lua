@@ -1,16 +1,13 @@
 PlaceableManureHeap = {}
-
 function PlaceableManureHeap.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableManureHeap.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "setOwnerFarmId", PlaceableManureHeap.setOwnerFarmId)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "collectPickObjects", PlaceableManureHeap.collectPickObjects)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getCanBePlacedAt", PlaceableManureHeap.getCanBePlacedAt)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "updateInfo", PlaceableManureHeap.updateInfo)
 end
-
 function PlaceableManureHeap.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableManureHeap)
 	SpecializationUtil.registerEventListener(placeableType, "onDelete", PlaceableManureHeap)
@@ -18,7 +15,6 @@ function PlaceableManureHeap.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onReadStream", PlaceableManureHeap)
 	SpecializationUtil.registerEventListener(placeableType, "onWriteStream", PlaceableManureHeap)
 end
-
 function PlaceableManureHeap.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("ManureHeap")
 	ManureHeap.registerXMLPaths(schema, basePath .. ".manureHeap")
@@ -26,7 +22,6 @@ function PlaceableManureHeap.registerXMLPaths(schema, basePath)
 	LoadingStation.registerXMLPaths(schema, basePath .. ".manureHeap.loadingStation")
 	schema:setXMLSpecializationType()
 end
-
 function PlaceableManureHeap.registerSavegameXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("ManureHeap")
 	ManureHeap.registerSavegameXMLPaths(schema, basePath)
@@ -35,193 +30,173 @@ end
 function PlaceableManureHeap.initSpecialization()
 	g_storeManager:addSpecType("manureHeapCapacity", "shopListAttributeIconCapacity", PlaceableManureHeap.loadSpecValueCapacity, PlaceableManureHeap.getSpecValueCapacity, StoreSpecies.PLACEABLE)
 end
-
--- Local values: spec, xmlFile
 function PlaceableManureHeap:onLoad(savegame)
-	local v8_ = self.spec_manureHeap
-	local v9_ = self.xmlFile
-	v8_.loadingStation = LoadingStation.new(self.isServer, self.isClient)
-	if not v8_.loadingStation:load(v8_.components, v9_, "placeable.manureHeap.loadingStation", self.customEnvironment, self.i3dMappings, self.components[1].node) then
-		v8_.loadingStation:delete()
-		v8_.loadingStation = nil
+	local spec = self.spec_manureHeap
+	local xmlFile = self.xmlFile
+	spec.loadingStation = LoadingStation.new(self.isServer, self.isClient)
+	if not spec.loadingStation:load(spec.components, xmlFile, "placeable.manureHeap.loadingStation", self.customEnvironment, self.i3dMappings, self.components[1].node) then
+		spec.loadingStation:delete()
+		spec.loadingStation = nil
 		return false
+	else
+		spec.loadingStation.owningPlaceable = self
+		spec.loadingStation.hasStoragePerFarm = false
+		spec.manureHeap = ManureHeap.new(spec.isServer, self.isClient)
+		if not spec.manureHeap:load(spec.components, xmlFile, "placeable.manureHeap", self.customEnvironment, self.i3dMappings, self.components[1].node) then
+			spec.manureHeap:delete()
+			spec.manureHeap = nil
+		end
+		spec.needsBarn = xmlFile:getValue("placeable.manureHeap#needsBarn", false)
+		spec.infoFillLevel = { title = g_i18n:getText("fillType_manure"), text = "" }
+		return true
 	end
-	v8_.loadingStation.owningPlaceable = self
-	v8_.loadingStation.hasStoragePerFarm = false
-	v8_.manureHeap = ManureHeap.new(v8_.isServer, self.isClient)
-	if not v8_.manureHeap:load(v8_.components, v9_, "placeable.manureHeap", self.customEnvironment, self.i3dMappings, self.components[1].node) then
-		v8_.manureHeap:delete()
-		v8_.manureHeap = nil
-	end
-	v8_.needsBarn = v9_:getValue("placeable.manureHeap#needsBarn", false)
-	v8_.infoFillLevel = {
-		["title"] = g_i18n:getText("fillType_manure"),
-		["text"] = ""
-	}
-	return true
 end
-
--- Local values: spec, storageSystem
 function PlaceableManureHeap:onDelete()
-	local v11_ = self.spec_manureHeap
-	local v12_ = g_currentMission.storageSystem
-	if v11_.manureHeap ~= nil then
-		if v12_:hasStorage(v11_.manureHeap) then
-			v12_:removeStorageFromUnloadingStations(v11_.manureHeap, v11_.manureHeap.unloadingStations)
-			v12_:removeStorageFromLoadingStations(v11_.manureHeap, v11_.manureHeap.loadingStations)
-			v12_:removeStorage(v11_.manureHeap)
+	local spec = self.spec_manureHeap
+	local storageSystem = g_currentMission.storageSystem
+	if spec.manureHeap ~= nil then
+		if storageSystem:hasStorage(spec.manureHeap) then
+			storageSystem:removeStorageFromUnloadingStations(spec.manureHeap, spec.manureHeap.unloadingStations)
+			storageSystem:removeStorageFromLoadingStations(spec.manureHeap, spec.manureHeap.loadingStations)
+			storageSystem:removeStorage(spec.manureHeap)
 		end
-		v11_.manureHeap:delete()
-		v11_.manureHeap = nil
+		spec.manureHeap:delete()
+		spec.manureHeap = nil
 	end
-	if v11_.loadingStation ~= nil then
-		if v11_.loadingStation:getIsFillTypeSupported(FillType.MANURE) then
-			g_currentMission:removeManureLoadingStation(v11_.loadingStation)
+	if spec.loadingStation ~= nil then
+		if spec.loadingStation:getIsFillTypeSupported(FillType.MANURE) then
+			g_currentMission:removeManureLoadingStation(spec.loadingStation)
 		end
-		v12_:removeLoadingStation(v11_.loadingStation, self)
-		v11_.loadingStation:delete()
-		v11_.loadingStation = nil
+		storageSystem:removeLoadingStation(spec.loadingStation, self)
+		spec.loadingStation:delete()
+		spec.loadingStation = nil
 	end
 end
-
--- Local values: spec, storageSystem, ownerFarmId, storagesInRange, _, storage, lastFoundUnloadingStations, lastFoundLoadingStations
 function PlaceableManureHeap:onFinalizePlacement()
-	local v14_ = self.spec_manureHeap
-	local v15_ = g_currentMission.storageSystem
-	local v16_ = self:getOwnerFarmId()
-	if v14_.loadingStation ~= nil and v14_.manureHeap ~= nil then
-		v14_.loadingStation:register(true)
-		v15_:addLoadingStation(v14_.loadingStation, self)
-		v14_.manureHeap:finalize()
-		v14_.manureHeap:register(true)
-		v14_.manureHeap:setOwnerFarmId(v16_, true)
-		v15_:addStorage(v14_.manureHeap)
-		v15_:addStorageToLoadingStation(v14_.manureHeap, v14_.loadingStation)
-		if v14_.loadingStation:getIsFillTypeSupported(FillType.MANURE) then
-			g_currentMission:addManureLoadingStation(v14_.loadingStation)
+	local spec = self.spec_manureHeap
+	local storageSystem = g_currentMission.storageSystem
+	local ownerFarmId = self:getOwnerFarmId()
+	if spec.loadingStation ~= nil and spec.manureHeap ~= nil then
+		spec.loadingStation:register(true)
+		storageSystem:addLoadingStation(spec.loadingStation, self)
+		spec.manureHeap:finalize()
+		spec.manureHeap:register(true)
+		spec.manureHeap:setOwnerFarmId(ownerFarmId, true)
+		storageSystem:addStorage(spec.manureHeap)
+		storageSystem:addStorageToLoadingStation(spec.manureHeap, spec.loadingStation)
+		if spec.loadingStation:getIsFillTypeSupported(FillType.MANURE) then
+			g_currentMission:addManureLoadingStation(spec.loadingStation)
 		end
-		local v17_ = v15_:getStorageExtensionsInRange(v14_.loadingStation, v16_)
-		for _, v18_ in ipairs(v17_) do
-			if v14_.loadingStation.sourceStorages[v18_] == nil then
-				v15_:addStorageToLoadingStation(v18_, v14_.loadingStation)
+		local storagesInRange = storageSystem:getStorageExtensionsInRange(spec.loadingStation, ownerFarmId)
+		for _, storage in ipairs(storagesInRange) do
+			if spec.loadingStation.sourceStorages[storage] == nil then
+				storageSystem:addStorageToLoadingStation(storage, spec.loadingStation)
 			end
 		end
-		local v19_ = v15_:getExtendableUnloadingStationsInRange(v14_.manureHeap, v16_)
-		local v20_ = v15_:getExtendableLoadingStationsInRange(v14_.manureHeap, v16_)
-		v15_:addStorageToUnloadingStations(v14_.manureHeap, v19_)
-		v15_:addStorageToLoadingStations(v14_.manureHeap, v20_)
+		local lastFoundUnloadingStations = storageSystem:getExtendableUnloadingStationsInRange(spec.manureHeap, ownerFarmId)
+		local lastFoundLoadingStations = storageSystem:getExtendableLoadingStationsInRange(spec.manureHeap, ownerFarmId)
+		storageSystem:addStorageToUnloadingStations(spec.manureHeap, lastFoundUnloadingStations)
+		storageSystem:addStorageToLoadingStations(spec.manureHeap, lastFoundLoadingStations)
 	end
 end
-
--- Local values: spec, loadingStationId, manureHeapId
 function PlaceableManureHeap:onReadStream(streamId, connection)
-	local v24_ = self.spec_manureHeap
-	if v24_.loadingStation ~= nil and v24_.manureHeap ~= nil then
-		local v25_ = NetworkUtil.readNodeObjectId(streamId)
-		v24_.loadingStation:readStream(streamId, connection)
-		g_client:finishRegisterObject(v24_.loadingStation, v25_)
-		local v26_ = NetworkUtil.readNodeObjectId(streamId)
-		v24_.manureHeap:readStream(streamId, connection)
-		g_client:finishRegisterObject(v24_.manureHeap, v26_)
+	local spec = self.spec_manureHeap
+	if spec.loadingStation ~= nil and spec.manureHeap ~= nil then
+		local loadingStationId = NetworkUtil.readNodeObjectId(streamId)
+		spec.loadingStation:readStream(streamId, connection)
+		g_client:finishRegisterObject(spec.loadingStation, loadingStationId)
+		local manureHeapId = NetworkUtil.readNodeObjectId(streamId)
+		spec.manureHeap:readStream(streamId, connection)
+		g_client:finishRegisterObject(spec.manureHeap, manureHeapId)
 	end
 end
-
--- Local values: spec
 function PlaceableManureHeap:onWriteStream(streamId, connection)
-	local v30_ = self.spec_manureHeap
-	if v30_.loadingStation ~= nil and v30_.manureHeap ~= nil then
-		NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v30_.loadingStation))
-		v30_.loadingStation:writeStream(streamId, connection)
-		g_server:registerObjectInStream(connection, v30_.loadingStation)
-		NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(v30_.manureHeap))
-		v30_.manureHeap:writeStream(streamId, connection)
-		g_server:registerObjectInStream(connection, v30_.manureHeap)
+	local spec = self.spec_manureHeap
+	if spec.loadingStation ~= nil and spec.manureHeap ~= nil then
+		NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(spec.loadingStation))
+		spec.loadingStation:writeStream(streamId, connection)
+		g_server:registerObjectInStream(connection, spec.loadingStation)
+		NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(spec.manureHeap))
+		spec.manureHeap:writeStream(streamId, connection)
+		g_server:registerObjectInStream(connection, spec.manureHeap)
 	end
 end
-
--- Local values: spec
 function PlaceableManureHeap:loadFromXMLFile(xmlFile, key)
-	local v34_ = self.spec_manureHeap
-	if v34_.manureHeap ~= nil then
-		v34_.manureHeap:loadFromXMLFile(xmlFile, key)
+	local spec = self.spec_manureHeap
+	if spec.manureHeap ~= nil then
+		spec.manureHeap:loadFromXMLFile(xmlFile, key)
 	end
 end
-
--- Local values: spec
 function PlaceableManureHeap:saveToXMLFile(xmlFile, key, usedModNames)
-	local v39_ = self.spec_manureHeap
-	if v39_.manureHeap ~= nil then
-		v39_.manureHeap:saveToXMLFile(xmlFile, key, usedModNames)
+	local spec = self.spec_manureHeap
+	if spec.manureHeap ~= nil then
+		spec.manureHeap:saveToXMLFile(xmlFile, key, usedModNames)
 	end
 end
-
--- Local values: spec, storageSystem, storagesInRange, _, storage, lastFoundUnloadingStations, lastFoundLoadingStations
 function PlaceableManureHeap:setOwnerFarmId(superFunc, farmId, noEventSend)
 	superFunc(self, farmId, noEventSend)
-	local v44_ = self.spec_manureHeap
-	if self.isServer and v44_.manureHeap ~= nil then
-		v44_.manureHeap:setOwnerFarmId(farmId, true)
+	local spec = self.spec_manureHeap
+	if self.isServer and spec.manureHeap ~= nil then
+		spec.manureHeap:setOwnerFarmId(farmId, true)
 	end
-	local v45_ = g_currentMission.storageSystem
-	if v44_.loadingStation ~= nil then
-		local v46_ = v45_:getStorageExtensionsInRange(v44_.loadingStation, farmId)
-		for _, v47_ in ipairs(v46_) do
-			if v44_.loadingStation.sourceStorages[v47_] == nil then
-				v45_:addStorageToLoadingStation(v47_, v44_.loadingStation)
+	local storageSystem = g_currentMission.storageSystem
+	if spec.loadingStation ~= nil then
+		local storagesInRange = storageSystem:getStorageExtensionsInRange(spec.loadingStation, farmId)
+		for _, storage in ipairs(storagesInRange) do
+			if spec.loadingStation.sourceStorages[storage] == nil then
+				storageSystem:addStorageToLoadingStation(storage, spec.loadingStation)
 			end
 		end
 	end
-	if v44_.manureHeap ~= nil then
-		local v48_ = v45_:getExtendableUnloadingStationsInRange(v44_.manureHeap, farmId)
-		local v49_ = v45_:getExtendableLoadingStationsInRange(v44_.manureHeap, farmId)
-		v45_:addStorageToUnloadingStations(v44_.manureHeap, v48_)
-		v45_:addStorageToLoadingStations(v44_.manureHeap, v49_)
+	if spec.manureHeap ~= nil then
+		local lastFoundUnloadingStations = storageSystem:getExtendableUnloadingStationsInRange(spec.manureHeap, farmId)
+		local lastFoundLoadingStations = storageSystem:getExtendableLoadingStationsInRange(spec.manureHeap, farmId)
+		storageSystem:addStorageToUnloadingStations(spec.manureHeap, lastFoundUnloadingStations)
+		storageSystem:addStorageToLoadingStations(spec.manureHeap, lastFoundLoadingStations)
 	end
 end
-
--- Local values: spec, _, loadTrigger
 function PlaceableManureHeap:collectPickObjects(superFunc, node)
-	local v53_ = self.spec_manureHeap
-	if v53_.loadingStation ~= nil then
-		for _, v54_ in ipairs(v53_.loadingStation.loadTriggers) do
-			if node == v54_.triggerNode then
+	local spec = self.spec_manureHeap
+	if spec.loadingStation ~= nil then
+		for _, loadTrigger in ipairs(spec.loadingStation.loadTriggers) do
+			if node == loadTrigger.triggerNode then
 				return
 			end
 		end
 	end
-	if v53_.manureHeap == nil or node ~= v53_.manureHeap.activationTriggerNode then
+	if not (spec.manureHeap ~= nil and node == spec.manureHeap.activationTriggerNode) then
 		superFunc(self, node)
 	end
 end
-
--- Local values: spec, storageSystem, lastFoundUnloadingStations
 function PlaceableManureHeap:getCanBePlacedAt(superFunc, x, y, z, farmId)
-	local v61_ = self.spec_manureHeap
-	if v61_.manureHeap == nil then
+	local spec = self.spec_manureHeap
+	if spec.manureHeap == nil then
 		return false
-	elseif v61_.needsBarn and #g_currentMission.storageSystem:getExtendableUnloadingStationsInRange(v61_.manureHeap, farmId, x, y, z) == 0 then
-		return false, g_i18n:getText("warning_manureHeapNotNearBarn")
 	else
+		if spec.needsBarn then
+			local storageSystem = g_currentMission.storageSystem
+			local lastFoundUnloadingStations = storageSystem:getExtendableUnloadingStationsInRange(spec.manureHeap, farmId, x, y, z)
+			if #lastFoundUnloadingStations == 0 then
+				return false, g_i18n:getText("warning_manureHeapNotNearBarn")
+			end
+		end
 		return superFunc(self, x, y, z, farmId)
 	end
 end
-
--- Local values: spec, fillLevel
 function PlaceableManureHeap:updateInfo(superFunc, infoTable)
 	superFunc(self, infoTable)
-	local v65_ = self.spec_manureHeap
-	if v65_.manureHeap ~= nil then
-		local v66_ = v65_.manureHeap:getFillLevel(v65_.manureHeap.fillTypeIndex)
-		v65_.infoFillLevel.text = string.format("%d l", v66_)
-		local v67_ = v65_.infoFillLevel
-		table.insert(infoTable, v67_)
+	local spec = self.spec_manureHeap
+	if spec.manureHeap == nil then
+		return
+	else
+		local fillLevel = spec.manureHeap:getFillLevel(spec.manureHeap.fillTypeIndex)
+		spec.infoFillLevel.text = string.format("%d l", fillLevel)
+		table.insert(infoTable, spec.infoFillLevel)
 	end
 end
-
 function PlaceableManureHeap.loadSpecValueCapacity(xmlFile, customEnvironment, baseDir)
 	return xmlFile:getValue("placeable.manureHeap#capacity")
 end
-
 function PlaceableManureHeap.getSpecValueCapacity(storeItem, realItem)
 	if storeItem.specs.manureHeapCapacity == nil then
 		return nil

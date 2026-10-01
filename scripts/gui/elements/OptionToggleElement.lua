@@ -1,32 +1,23 @@
--- Local values: OptionToggleElement_mt
 OptionToggleElement = {}
 local OptionToggleElement_mt = Class(OptionToggleElement, MultiTextOptionElement)
 Gui.registerGuiElement("OptionToggle", OptionToggleElement)
-
--- Upvalues: OptionToggleElement_mt
--- Local values: self
 function OptionToggleElement.new(target, custom_mt)
-	-- upvalues: (copy) OptionToggleElement_mt
-	local v4_ = MultiTextOptionElement.new(target, custom_mt or OptionToggleElement_mt)
-	v4_.dataSouce = nil
-	return v4_
+	local self = MultiTextOptionElement.new(target, custom_mt or OptionToggleElement_mt)
+	self.dataSouce = nil
+	return self
 end
-
 function OptionToggleElement:delete()
 	self.dataSource = nil
 	OptionToggleElement:superClass().delete(self)
 end
-
 function OptionToggleElement:setDataSource(dataSource)
 	self.dataSource = dataSource
 	self:updateTitle()
 end
-
 function OptionToggleElement:updateTitle()
 	self.texts = { self.dataSource:getString() }
 	self:setState(1)
 end
-
 function OptionToggleElement:onRightButtonClicked(steps, noFocus)
 	if self.dataSource ~= nil then
 		self.dataSource:setNextItem()
@@ -34,7 +25,6 @@ function OptionToggleElement:onRightButtonClicked(steps, noFocus)
 	end
 	OptionToggleElement:superClass().onRightButtonClicked(self, steps, noFocus)
 end
-
 function OptionToggleElement:onLeftButtonClicked(steps, noFocus)
 	if self.dataSource ~= nil then
 		self.dataSource:setPreviousItem()

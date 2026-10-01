@@ -1,76 +1,69 @@
--- Local values: PlaceableSystem_mt
 g_xmlManager:addInitSchemaFunction(function()
-	Mission00.xmlSchema:register(XMLValueType.VECTOR_2, "map.placeableSystem.boundary.point(?)#translation", "Translation of the point")
+	local schema = Mission00.xmlSchema
+	schema:register(XMLValueType.VECTOR_2, "map.placeableSystem.boundary.point(?)#translation", "Translation of the point")
 end)
 PlaceableSystem = {}
 PlaceableSystem.TERRAIN_BORDER = 40
 PlaceableSystem.UNIQUE_ID_PREFIX = "placeable"
 local PlaceableSystem_mt = Class(PlaceableSystem)
-
--- Upvalues: PlaceableSystem_mt
--- Local values: self
 function PlaceableSystem.new(mission, customMt)
-	-- upvalues: (copy) PlaceableSystem_mt
-	local v4_ = customMt or PlaceableSystem_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.mission = mission
-	v5_.placeables = {}
-	v5_.placableByUniqueId = {}
-	v5_.pendingPlaceableLoadingData = {}
-	v5_.preplacedPlaceableData = {}
-	v5_.uniqueIdToReplacedPlaceableData = {}
-	v5_.placeablesToDelete = {}
-	v5_.weatherStations = {}
-	v5_.farmhouses = {}
-	v5_.bunkerSilos = {}
-	v5_.boundary = nil
-	v5_.version = 1
-	v5_.isReloadRunning = false
-	if v5_.mission:getIsServer() and g_addTestCommands then
-		addConsoleCommand("gsPlaceablesDeleteAll", "Deletes all placeables", "consoleCommandDeleteAllPlaceables", v5_, nil, true)
-		addConsoleCommand("gsPlaceablesReloadAll", "Reloads all placeables", "consoleCommandReloadAllPlaceables", v5_)
-		addConsoleCommand("gsPlaceablesLoadAll", "Loads all placeables", "consoleCommandLoadAllPlaceables", v5_, nil, true)
+	local self = setmetatable({}, customMt or PlaceableSystem_mt)
+	self.mission = mission
+	self.placeables = {}
+	self.placableByUniqueId = {}
+	self.pendingPlaceableLoadingData = {}
+	self.preplacedPlaceableData = {}
+	self.uniqueIdToReplacedPlaceableData = {}
+	self.placeablesToDelete = {}
+	self.weatherStations = {}
+	self.farmhouses = {}
+	self.bunkerSilos = {}
+	self.boundary = nil
+	self.version = 1
+	self.isReloadRunning = false
+	if self.mission:getIsServer() and g_addTestCommands then
+		addConsoleCommand("gsPlaceablesDeleteAll", "Deletes all placeables", "consoleCommandDeleteAllPlaceables", self, nil, true)
+		addConsoleCommand("gsPlaceablesReloadAll", "Reloads all placeables", "consoleCommandReloadAllPlaceables", self)
+		addConsoleCommand("gsPlaceablesLoadAll", "Loads all placeables", "consoleCommandLoadAllPlaceables", self, nil, true)
 	end
 	if g_addTestCommands then
-		addConsoleCommand("gsPlaceablesPendingLoadings", "Prints the pending placeable loadings", "consoleCommandPrintPendingLoadings", v5_)
-		addConsoleCommand("gsPlaceableSystemDrawBoundary", "Draws the placeable map boundaries", "consoleCommandDrawMapBoundaries", v5_)
+		addConsoleCommand("gsPlaceablesPendingLoadings", "Prints the pending placeable loadings", "consoleCommandPrintPendingLoadings", self)
+		addConsoleCommand("gsPlaceableSystemDrawBoundary", "Draws the placeable map boundaries", "consoleCommandDrawMapBoundaries", self)
 	end
-	return v5_
+	return self
 end
-
--- Local values: xmlFile, boundary, _, pointKey, point
 function PlaceableSystem:loadMapData(xmlFileHandle, missionInfo, baseDirectory)
-	local v8_ = XMLFile.wrap(xmlFileHandle)
-	if v8_ ~= nil then
-		if v8_:hasProperty("map.placeableSystem.boundary") then
-			local v9_ = {}
-			for _, v10_ in v8_:iterator("map.placeableSystem.boundary.point") do
-				local v11_ = v8_:getVector(v10_ .. "#translation", nil, 2)
-				if v11_ ~= nil then
-					table.insert(v9_, v11_)
+	local xmlFile = XMLFile.wrap(xmlFileHandle)
+	if xmlFile ~= nil then
+		if xmlFile:hasProperty("map.placeableSystem.boundary") then
+			local boundary = {}
+			for _, pointKey in xmlFile:iterator("map.placeableSystem.boundary.point") do
+				local point = xmlFile:getVector(pointKey .. "#translation", nil, 2)
+				if point == nil then
+					continue
 				end
+				table.insert(boundary, point)
 			end
-			if #v9_ >= 3 then
-				self.boundary = v9_
+			if 3 <= #boundary then
+				self.boundary = boundary
 			else
-				Logging.error("PlaceableSystem: Boundary must have at least 3 points, found %d", #v9_)
+				Logging.error("PlaceableSystem: Boundary must have at least 3 points, found %d", #boundary)
 			end
 		end
-		v8_:delete()
+		xmlFile:delete()
 	end
 end
-
--- Local values: i, k, placeable, i, placeable
 function PlaceableSystem:delete()
-	for v13_ = #self.pendingPlaceableLoadingData, 1, -1 do
-		self.pendingPlaceableLoadingData[v13_]:cancelLoading()
+	for i = #self.pendingPlaceableLoadingData, 1, -1 do
+		self.pendingPlaceableLoadingData[i]:cancelLoading()
 	end
-	for v14_, v15_ in pairs(self.placeablesToDelete) do
-		v15_:delete(true)
-		self.placeablesToDelete[v14_] = nil
+	for k, placeable in pairs(self.placeablesToDelete) do
+		placeable:delete(true)
+		self.placeablesToDelete[k] = nil
 	end
-	for v16_ = #self.placeables, 1, -1 do
-		self.placeables[v16_]:delete(true)
+	for i = #self.placeables, 1, -1 do
+		local placeable = self.placeables[i]
+		placeable:delete(true)
 	end
 	if self.savegameXMLFile ~= nil then
 		self.savegameXMLFile:delete()
@@ -90,497 +83,443 @@ function PlaceableSystem:delete()
 	removeConsoleCommand("gsPlaceablesPendingLoadings")
 	removeConsoleCommand("gsPlaceableSystemDrawBoundary")
 end
-
--- Local values: numDeleted, i, placeable
 function PlaceableSystem:deleteAll()
-	local v18_ = #self.placeables
-	for v19_ = #self.placeables, 1, -1 do
-		self.placeables[v19_]:delete()
+	local numDeleted = #self.placeables
+	for i = #self.placeables, 1, -1 do
+		local placeable = self.placeables[i]
+		placeable:delete()
 	end
-	return v18_
+	return numDeleted
 end
-
--- Local values: i, point, nextPoint, pH, npH, limit, e1x, e1z, e2x, e2z, e3x, e3z, e4x, e4z, e1y, e2y, e3y, e4y
 function PlaceableSystem:draw()
 	if PlaceableSystem.DEBUG_DRAW_BOUNDARIES then
 		if self.boundary ~= nil then
-			for v21_ = 1, #self.boundary - 1 do
-				local v22_ = self.boundary[v21_]
-				local v23_ = self.boundary[v21_ + 1]
-				local v24_ = getTerrainHeightAtWorldPos(g_terrainNode, v22_[1], 0, v22_[2])
-				local v25_ = getTerrainHeightAtWorldPos(g_terrainNode, v23_[1], 0, v23_[2])
-				drawDebugLine(v22_[1], v24_, v22_[2], 1, 0, 0, v23_[1], v25_, v23_[2], 1, 0, 0, false)
+			for i = 1, #self.boundary - 1 do
+				local point = self.boundary[i]
+				local nextPoint = self.boundary[i + 1]
+				local pH = getTerrainHeightAtWorldPos(g_terrainNode, point[1], 0, point[2])
+				local npH = getTerrainHeightAtWorldPos(g_terrainNode, nextPoint[1], 0, nextPoint[2])
+				drawDebugLine(point[1], pH, point[2], 1, 0, 0, nextPoint[1], npH, nextPoint[2], 1, 0, 0, false)
 			end
-			return
+		else
+			local limit = g_currentMission.terrainSize * 0.5 - PlaceableSystem.TERRAIN_BORDER
+			local e1x = -limit
+			local e1z = -limit
+			local e2x = limit
+			local e2z = -limit
+			local e3x = limit
+			local e3z = limit
+			local e4x = -limit
+			local e4z = limit
+			local e1y = getTerrainHeightAtWorldPos(g_terrainNode, e1x, 0, e1z)
+			local e2y = getTerrainHeightAtWorldPos(g_terrainNode, e2x, 0, e2z)
+			local e3y = getTerrainHeightAtWorldPos(g_terrainNode, e3x, 0, e3z)
+			local e4y = getTerrainHeightAtWorldPos(g_terrainNode, e4x, 0, e4z)
+			drawDebugLine(e1x, e1y, e1z, 1, 0, 0, e2x, e2y, e2z, 1, 0, 0, false)
+			drawDebugLine(e2x, e2y, e2z, 1, 0, 0, e3x, e3y, e3z, 1, 0, 0, false)
+			drawDebugLine(e3x, e3y, e3z, 1, 0, 0, e4x, e4y, e4z, 1, 0, 0, false)
+			drawDebugLine(e4x, e4y, e4z, 1, 0, 0, e1x, e1y, e1z, 1, 0, 0, false)
 		end
-		local v26_ = g_currentMission.terrainSize * 0.5 - PlaceableSystem.TERRAIN_BORDER
-		local v27_ = -v26_
-		local v28_ = -v26_
-		local v29_ = -v26_
-		local v30_ = -v26_
-		local v31_ = getTerrainHeightAtWorldPos(g_terrainNode, v27_, 0, v28_)
-		local v32_ = getTerrainHeightAtWorldPos(g_terrainNode, v26_, 0, v29_)
-		local v33_ = getTerrainHeightAtWorldPos(g_terrainNode, v26_, 0, v26_)
-		local v34_ = getTerrainHeightAtWorldPos(g_terrainNode, v30_, 0, v26_)
-		drawDebugLine(v27_, v31_, v28_, 1, 0, 0, v26_, v32_, v29_, 1, 0, 0, false)
-		drawDebugLine(v26_, v32_, v29_, 1, 0, 0, v26_, v33_, v26_, 1, 0, 0, false)
-		drawDebugLine(v26_, v33_, v26_, 1, 0, 0, v30_, v34_, v26_, 1, 0, 0, false)
-		drawDebugLine(v30_, v34_, v26_, 1, 0, 0, v27_, v31_, v28_, 1, 0, 0, false)
 	end
 end
-
--- Local values: newPosX, newPosZ, limit, y
 function PlaceableSystem:limitPositionToBoundary(x, z)
+	local newPosX = x
+	local newPosZ = z
 	if self.boundary == nil then
-		local v38_ = g_currentMission.terrainSize * 0.5 - PlaceableSystem.TERRAIN_BORDER
-		local v39_ = -v38_
-		x = math.clamp(x, v39_, v38_)
-		local v40_ = -v38_
-		z = math.clamp(z, v40_, v38_)
-	elseif not FieldCourseUtil.getIsPointInsideBoundary(x, z, self.boundary) then
-		x, z = FieldCourseUtil.getClosestPositionOnBoundary(x, z, self.boundary)
+		local limit = g_currentMission.terrainSize * 0.5 - PlaceableSystem.TERRAIN_BORDER
+		newPosX = math.clamp(newPosX, -limit, limit)
+		newPosZ = math.clamp(newPosZ, -limit, limit)
+	elseif not FieldCourseUtil.getIsPointInsideBoundary(newPosX, newPosZ, self.boundary) then
+		newPosX, newPosZ = FieldCourseUtil.getClosestPositionOnBoundary(newPosX, newPosZ, self.boundary)
 	end
 	if PlaceableSystem.DEBUG_DRAW_BOUNDARIES then
 		self:draw()
-		local v41_ = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
-		drawDebugArrow(x, v41_, z, 0, 0, 1, 0, 1, 0, 0, 1, 0, false)
+		local y = getTerrainHeightAtWorldPos(g_terrainNode, newPosX, 0, newPosZ)
+		drawDebugArrow(newPosX, y, newPosZ, 0, 0, 1, 0, 1, 0, 0, 1, 0, false)
 	end
-	return x, z
+	return newPosX, newPosZ
 end
-
--- Local values: limit
 function PlaceableSystem:getIsInsideBoundary(x, z)
 	if self.boundary == nil then
-		local v45_ = g_currentMission.terrainSize * 0.5 - PlaceableSystem.TERRAIN_BORDER
-		if x < -v45_ or v45_ < x then
+		local limit = g_currentMission.terrainSize * 0.5 - PlaceableSystem.TERRAIN_BORDER
+		if x < -limit or limit < x then
 			return false
-		else
-			return z >= -v45_ and v45_ >= z
 		end
+		if z < -limit or limit < z then
+			return false
+		end
+		return true
 	else
 		return FieldCourseUtil.getIsPointInsideBoundary(x, z, self.boundary)
 	end
 end
-
--- Local values: numPreplacedPlaceables, i, data, isDeleted
 function PlaceableSystem:readStreamPreplacedInfo(streamId, connection)
-	for v48_ = 1, streamReadUInt16(streamId) do
-		local v49_ = self.preplacedPlaceableData[v48_]
-		if streamReadBool(streamId) then
-			self:deletePreplacedPlaceable(v49_)
+	local numPreplacedPlaceables = streamReadUInt16(streamId)
+	for i = 1, numPreplacedPlaceables do
+		local data = self.preplacedPlaceableData[i]
+		local isDeleted = streamReadBool(streamId)
+		if isDeleted then
+			self:deletePreplacedPlaceable(data)
 		end
 	end
 end
-
--- Local values: _, data
 function PlaceableSystem:writeStreamPreplacedInfo(streamId, connection)
 	streamWriteUInt16(streamId, #self.preplacedPlaceableData)
-	for _, v52_ in ipairs(self.preplacedPlaceableData) do
-		streamWriteBool(streamId, v52_.isDeleted)
+	for _, data in ipairs(self.preplacedPlaceableData) do
+		streamWriteBool(streamId, data.isDeleted)
 	end
 end
-
--- Local values: uniqueId, xmlFilename, xmlFile, boughtWithFarmlandOverwrite, customImageFilename, rootNode, node, data
 function PlaceableSystem:addMapPlaceableNode(nodeId)
-	Logging.devInfo("Adding preplaced map placeable \'%s\'", getName(nodeId))
+	Logging.devInfo("Adding preplaced map placeable '%s'", getName(nodeId))
 	if nodeId == nil then
 		Logging.error("No node given for validation")
 		return
-	elseif getNumOfChildren(nodeId) == 0 then
-		Logging.error("Node \'%s\' is not a valid preplaced placeable node. No children defined", I3DUtil.getNodePath(nodeId))
+	end
+	if getNumOfChildren(nodeId) == 0 then
+		Logging.error("Node '%s' is not a valid preplaced placeable node. No children defined", I3DUtil.getNodePath(nodeId))
 		return
+	end
+	local uniqueId = getUserAttribute(nodeId, "uniqueId")
+	if string.isNilOrWhitespace(uniqueId) then
+		Logging.error("Node '%s' is not a valid preplaced placeable node. Missing uniqueId attribute", I3DUtil.getNodePath(nodeId))
+		return
+	end
+	local xmlFilename = getUserAttribute(nodeId, "xmlFilename")
+	if string.isNilOrWhitespace(xmlFilename) then
+		Logging.error("Node '%s' is not a valid preplaced placeable node. Missing xmlFilename attribute", I3DUtil.getNodePath(nodeId))
+		return
+	end
+	xmlFilename = Utils.getFilename(xmlFilename, g_currentMission.loadingMapBaseDirectory)
+	local xmlFile = XMLFile.load("Preplaced Placeable", xmlFilename, Placeable.xmlSchema)
+	if xmlFile == nil then
+		Logging.error("Node '%s' is not a valid preplaced placeable node. Cannot open config xml file", I3DUtil.getNodePath(nodeId))
+		return
+	end
+	xmlFile:delete()
+	local boughtWithFarmlandOverwrite = getUserAttribute(nodeId, "boughtWithFarmlandOverwrite") or false
+	local customImageFilename = getUserAttribute(nodeId, "customImageFilename")
+	local node = getChildAt(nodeId, 0)
+	if getNumOfChildren(node) == 0 then
+		Logging.error("Node '%s' is not a valid preplaced placeable node. No child nodes for 'placeable' transform group", I3DUtil.getNodePath(nodeId))
 	else
-		local v55_ = getUserAttribute(nodeId, "uniqueId")
-		if string.isNilOrWhitespace(v55_) then
-			Logging.error("Node \'%s\' is not a valid preplaced placeable node. Missing uniqueId attribute", I3DUtil.getNodePath(nodeId))
-			return
-		else
-			local v56_ = getUserAttribute(nodeId, "xmlFilename")
-			if string.isNilOrWhitespace(v56_) then
-				Logging.error("Node \'%s\' is not a valid preplaced placeable node. Missing xmlFilename attribute", I3DUtil.getNodePath(nodeId))
-				return
-			else
-				local v57_ = Utils.getFilename(v56_, g_currentMission.loadingMapBaseDirectory)
-				local v58_ = XMLFile.load("Preplaced Placeable", v57_, Placeable.xmlSchema)
-				if v58_ == nil then
-					Logging.error("Node \'%s\' is not a valid preplaced placeable node. Cannot open config xml file", I3DUtil.getNodePath(nodeId))
-					return
-				else
-					v58_:delete()
-					local v59_ = getUserAttribute(nodeId, "boughtWithFarmlandOverwrite") or false
-					local v60_ = getUserAttribute(nodeId, "customImageFilename")
-					local v61_ = getChildAt(nodeId, 0)
-					if getNumOfChildren(v61_) == 0 then
-						Logging.error("Node \'%s\' is not a valid preplaced placeable node. No child nodes for \'placeable\' transform group", I3DUtil.getNodePath(nodeId))
-					else
-						local v62_ = {
-							["index"] = #self.preplacedPlaceableData + 1,
-							["rootNode"] = nodeId,
-							["node"] = v61_,
-							["xmlFilename"] = v57_,
-							["uniqueId"] = v55_,
-							["foundInSavegame"] = false,
-							["isDeleted"] = false,
-							["boughtWithFarmlandOverwrite"] = v59_,
-							["customImageFilename"] = v60_
-						}
-						local v63_ = self.preplacedPlaceableData
-						table.insert(v63_, v62_)
-						self.uniqueIdToReplacedPlaceableData[v55_] = v62_
-					end
-				end
-			end
-		end
+		local data = { rootNode = nodeId, node = node, xmlFilename = xmlFilename, uniqueId = uniqueId, boughtWithFarmlandOverwrite = boughtWithFarmlandOverwrite, customImageFilename = customImageFilename }
+		data.index = #self.preplacedPlaceableData + 1
+		data.foundInSavegame = false
+		data.isDeleted = false
+		table.insert(self.preplacedPlaceableData, data)
+		self.uniqueIdToReplacedPlaceableData[uniqueId] = data
 	end
 end
-
--- Local values: uniqueId
 function PlaceableSystem:addPlaceable(placeable)
 	if placeable == nil or placeable:isa(Placeable) == nil then
 		Logging.error("Given object is not a placeable")
 		return
-	else
-		local v66_ = placeable:getUniqueId()
-		if v66_ == nil or self.placableByUniqueId[v66_] == nil then
-			if v66_ == nil then
-				v66_ = Utils.getUniqueId(placeable, self.placableByUniqueId, PlaceableSystem.UNIQUE_ID_PREFIX)
-				placeable:setUniqueId(v66_)
-			end
-			g_messageCenter:publish(MessageType.PLACEABLE_ADDED, placeable)
-			table.addElement(self.placeables, placeable)
-			self.placableByUniqueId[v66_] = placeable
-		else
-			local v67_ = Logging.warning
-			local v68_ = self.placableByUniqueId[v66_]
-			v67_("Tried to add existing placeable with unique id of %s! Existing: %s, new: %s", v66_, tostring(v68_), (tostring(placeable)))
-		end
 	end
+	local uniqueId = placeable:getUniqueId()
+	if uniqueId ~= nil and self.placableByUniqueId[uniqueId] ~= nil then
+		Logging.warning("Tried to add existing placeable with unique id of %s! Existing: %s, new: %s", uniqueId, tostring(self.placableByUniqueId[uniqueId]), tostring(placeable))
+		return
+	end
+	if uniqueId == nil then
+		uniqueId = Utils.getUniqueId(placeable, self.placableByUniqueId, PlaceableSystem.UNIQUE_ID_PREFIX)
+		placeable:setUniqueId(uniqueId)
+	end
+	g_messageCenter:publish(MessageType.PLACEABLE_ADDED, placeable)
+	table.addElement(self.placeables, placeable)
+	self.placableByUniqueId[uniqueId] = placeable
 end
-
--- Local values: uniqueId
 function PlaceableSystem:removePlaceable(placeable)
 	table.removeElement(self.placeables, placeable)
-	local v71_ = placeable:getUniqueId()
-	if v71_ ~= nil then
-		self.placableByUniqueId[v71_] = nil
+	local uniqueId = placeable:getUniqueId()
+	if uniqueId ~= nil then
+		self.placableByUniqueId[uniqueId] = nil
 	end
 	g_messageCenter:publish(MessageType.PLACEABLE_REMOVED, placeable)
 end
-
--- Local values: uniqueId, preplacedData, rootNode, aiSplineNodePath, aiSplineNode, i, splineNode, maxWidth, maxWidthType, maxTurningRadius, maxTurningRadiusType, maxHeight, maxHeightType
 function PlaceableSystem:addPreplacedPlaceable(placeable)
-	local v74_ = placeable:getUniqueId()
-	local v75_ = self.uniqueIdToReplacedPlaceableData[v74_]
-	if v75_ ~= nil then
-		v75_.placeable = placeable
-		local v76_ = v75_.rootNode
-		local v77_ = getUserAttribute(v76_, "aiSplines")
-		if not string.isNilOrWhitespace(v77_) then
-			local v78_ = I3DUtil.indexToObject(v76_, v77_)
-			if v78_ ~= nil then
-				for v79_ = 0, getNumOfChildren(v78_) - 1 do
-					local v80_ = getChildAt(v78_, v79_)
-					local v81_, v82_ = getUserAttributeValueAndType(v80_, "maxWidth")
-					if v81_ ~= nil and v82_ ~= UserAttributeType.FLOAT then
-						Logging.warning("Preplaced placeable aiSpline node \'%s\' maxWidth attribute has wrong type. Has to be float type", getName(v80_))
-						v81_ = nil
+	local uniqueId = placeable:getUniqueId()
+	local preplacedData = self.uniqueIdToReplacedPlaceableData[uniqueId]
+	if preplacedData ~= nil then
+		preplacedData.placeable = placeable
+		local rootNode = preplacedData.rootNode
+		local aiSplineNodePath = getUserAttribute(rootNode, "aiSplines")
+		if not string.isNilOrWhitespace(aiSplineNodePath) then
+			local aiSplineNode = I3DUtil.indexToObject(rootNode, aiSplineNodePath)
+			if aiSplineNode ~= nil then
+				for i = 0, getNumOfChildren(aiSplineNode) - 1 do
+					local splineNode = getChildAt(aiSplineNode, i)
+					local maxWidth, maxWidthType = getUserAttributeValueAndType(splineNode, "maxWidth")
+					if maxWidth ~= nil and maxWidthType ~= UserAttributeType.FLOAT then
+						maxWidth = nil
+						Logging.warning("Preplaced placeable aiSpline node '%s' maxWidth attribute has wrong type. Has to be float type", getName(splineNode))
 					end
-					local v83_, v84_ = getUserAttributeValueAndType(v80_, "maxTurningRadius")
-					if v83_ ~= nil and v84_ ~= UserAttributeType.FLOAT then
-						Logging.warning("Preplaced placeable aiSpline node \'%s\' maxTurningRadius attribute has wrong type. Has to be float type", getName(v80_))
-						v83_ = nil
+					local maxTurningRadius, maxTurningRadiusType = getUserAttributeValueAndType(splineNode, "maxTurningRadius")
+					if maxTurningRadius ~= nil and maxTurningRadiusType ~= UserAttributeType.FLOAT then
+						maxTurningRadius = nil
+						Logging.warning("Preplaced placeable aiSpline node '%s' maxTurningRadius attribute has wrong type. Has to be float type", getName(splineNode))
 					end
-					local v85_, v86_ = getUserAttributeValueAndType(v80_, "maxHeight")
-					if v85_ ~= nil and v86_ ~= UserAttributeType.FLOAT then
-						Logging.warning("Preplaced placeable aiSpline node \'%s\' maxHeight attribute has wrong type. Has to be float type", getName(v80_))
-						v85_ = nil
+					local maxHeight, maxHeightType = getUserAttributeValueAndType(splineNode, "maxHeight")
+					if maxHeight ~= nil and maxHeightType ~= UserAttributeType.FLOAT then
+						maxHeight = nil
+						Logging.warning("Preplaced placeable aiSpline node '%s' maxHeight attribute has wrong type. Has to be float type", getName(splineNode))
 					end
-					g_currentMission.aiSystem:addRoadSpline(v80_, v81_, v83_, v85_)
-					if v75_.aiSplineNodes == nil then
-						v75_.aiSplineNodes = {}
+					g_currentMission.aiSystem:addRoadSpline(splineNode, maxWidth, maxTurningRadius, maxHeight)
+					if preplacedData.aiSplineNodes == nil then
+						preplacedData.aiSplineNodes = {}
 					end
-					local v87_ = v75_.aiSplineNodes
-					table.insert(v87_, v80_)
+					table.insert(preplacedData.aiSplineNodes, splineNode)
 				end
 			end
 		end
 	end
 end
-
--- Local values: uniqueId, preplacedData, _, splineNode
 function PlaceableSystem:removePreplacedPlaceable(placeable)
-	local v90_ = placeable:getUniqueId()
-	local v91_ = self.uniqueIdToReplacedPlaceableData[v90_]
-	if v91_ ~= nil then
-		v91_.placeable = nil
-		if v91_.aiSplineNodes ~= nil then
-			for _, v92_ in ipairs(v91_.aiSplineNodes) do
-				g_currentMission.aiSystem:removeRoadSpline(v92_)
+	local uniqueId = placeable:getUniqueId()
+	local preplacedData = self.uniqueIdToReplacedPlaceableData[uniqueId]
+	if preplacedData ~= nil then
+		preplacedData.placeable = nil
+		if preplacedData.aiSplineNodes ~= nil then
+			for _, splineNode in ipairs(preplacedData.aiSplineNodes) do
+				g_currentMission.aiSystem:removeRoadSpline(splineNode)
 			end
 		end
 		if not placeable.isReloading then
-			self:deletePreplacedPlaceable(v91_)
+			self:deletePreplacedPlaceable(preplacedData)
 		end
 	end
 end
-
 function PlaceableSystem:deletePreplacedPlaceable(data)
 	if entityExists(data.rootNode) then
-		Logging.devInfo("PlaceableSystem:deletePreplacedPlaceable - Deleted node \'%s\'", getName(data.rootNode))
+		Logging.devInfo("PlaceableSystem:deletePreplacedPlaceable - Deleted node '%s'", getName(data.rootNode))
 		delete(data.rootNode)
 	else
 		Logging.devWarning("PlaceableSystem:deletePreplacedPlaceable - entity %d does not exist", data.rootNode)
 	end
 	data.isDeleted = true
 end
-
--- Local values: data
 function PlaceableSystem:getPreplacedNodeByIndex(index)
-	local v96_ = self.preplacedPlaceableData[index]
-	if v96_ == nil then
+	local data = self.preplacedPlaceableData[index]
+	if data == nil then
 		return nil
 	else
-		return v96_.node
+		return data.node
 	end
 end
-
--- Local values: data
 function PlaceableSystem:getPreplacedFilenameByIndex(index)
-	local v99_ = self.preplacedPlaceableData[index]
-	if v99_ == nil then
+	local data = self.preplacedPlaceableData[index]
+	if data == nil then
 		return nil
 	else
-		return v99_.xmlFilename
+		return data.xmlFilename
 	end
 end
-
--- Local values: data
 function PlaceableSystem:getPreplacedUniqueIdByIndex(index)
-	local v102_ = self.preplacedPlaceableData[index]
-	if v102_ == nil then
+	local data = self.preplacedPlaceableData[index]
+	if data == nil then
 		return nil
 	else
-		return v102_.uniqueId
+		return data.uniqueId
 	end
 end
-
 function PlaceableSystem:getPlaceableByUniqueId(uniqueId)
 	return self.placableByUniqueId[uniqueId]
 end
-
--- Local values: _, placeable
 function PlaceableSystem:getArePlaceablesOnFarmland(farmId, farmlandId, includeBoughtWithFarmland)
-	for _, v109_ in ipairs(self.placeables) do
-		if v109_.ownerFarmId == farmId and (includeBoughtWithFarmland or not v109_.boughtWithFarmland) and v109_:getIsOnFarmland(farmlandId) then
+	for _, placeable in ipairs(self.placeables) do
+		if placeable.ownerFarmId == farmId and ((includeBoughtWithFarmland or not placeable.boughtWithFarmland) and placeable:getIsOnFarmland(farmlandId)) then
 			return true
 		end
 	end
 	return false
 end
-
 function PlaceableSystem:addPendingPlaceableLoad(placeableLoadingData)
 	table.addElement(self.pendingPlaceableLoadingData, placeableLoadingData)
 end
-
 function PlaceableSystem:removePendingPlaceableLoad(placeableLoadingData)
 	table.removeElement(self.pendingPlaceableLoadingData, placeableLoadingData)
 end
-
 function PlaceableSystem:getNumPendingPlaceables()
 	return #self.pendingPlaceableLoadingData
 end
-
--- Local values: i
 function PlaceableSystem:canStartMission()
-	for v116_ = 1, #self.placeables do
-		if not self.placeables[v116_]:getIsSynchronized() then
-			return false
+	for i = 1, #self.placeables do
+		if self.placeables[i]:getIsSynchronized() then
+			continue
 		end
+		return false
 	end
-	return #self.pendingPlaceableLoadingData <= 0
+	if 0 < #self.pendingPlaceableLoadingData then
+		return false
+	else
+		return true
+	end
 end
-
 function PlaceableSystem:addWeatherStation(weatherStation)
 	table.addElement(self.weatherStations, weatherStation)
 end
-
 function PlaceableSystem:removeWeatherStation(weatherStation)
 	table.removeElement(self.weatherStations, weatherStation)
 end
-
 function PlaceableSystem:addBunkerSilo(bunkerSilo)
 	table.addElement(self.bunkerSilos, bunkerSilo)
 end
-
 function PlaceableSystem:removeBunkerSilo(bunkerSilo)
 	table.removeElement(self.bunkerSilos, bunkerSilo)
 end
-
 function PlaceableSystem:getBunkerSilos()
 	return self.bunkerSilos
 end
-
--- Local values: _, placeable
 function PlaceableSystem:getExistingPlaceableByXMLFilename(xmlFilename, ownerFarmId, excludeBoughtWithFarmland)
-	for _, v130_ in ipairs(self.placeables) do
-		if v130_.configFileName == xmlFilename and (not v130_.markedForDeletion and (ownerFarmId == nil or v130_.ownerFarmId == ownerFarmId)) and not (excludeBoughtWithFarmland and v130_.boughtWithFarmlandSavegameOverwrite) then
-			return v130_
+	for _, placeable in ipairs(self.placeables) do
+		if placeable.configFileName == xmlFilename then
+			if placeable.markedForDeletion then
+				continue
+			end
+			if (ownerFarmId == nil or placeable.ownerFarmId == ownerFarmId) and (not excludeBoughtWithFarmland or not placeable.boughtWithFarmlandSavegameOverwrite) then
+				return placeable
+			end
 		end
 	end
 	return nil
 end
-
--- Local values: _, weatherStation
 function PlaceableSystem:getHasWeatherStation(farmId)
-	for _, v133_ in ipairs(self.weatherStations) do
-		if farmId == nil or v133_:getOwnerFarmId() == farmId then
+	for _, weatherStation in ipairs(self.weatherStations) do
+		if farmId == nil or weatherStation:getOwnerFarmId() == farmId then
 			return true
 		end
 	end
 	return false
 end
-
 function PlaceableSystem:addFarmhouse(farmhouse)
 	table.addElement(self.farmhouses, farmhouse)
 end
-
 function PlaceableSystem:removeFarmhouse(farmhouse)
 	table.removeElement(self.farmhouses, farmhouse)
 end
-
--- Local values: _, farmhouse
 function PlaceableSystem:getFarmhouse(farmId)
-	for _, v140_ in ipairs(self.farmhouses) do
-		if farmId == nil or v140_:getOwnerFarmId() == farmId then
-			return v140_
+	for _, farmhouse in ipairs(self.farmhouses) do
+		if farmId == nil or farmhouse:getOwnerFarmId() == farmId then
+			return farmhouse
 		end
 	end
 	return nil
 end
-
--- Local values: k, placeable
 function PlaceableSystem:deleteMarkedPlaceables()
-	for v142_, v143_ in pairs(self.placeablesToDelete) do
-		v143_:delete(true)
-		self.placeablesToDelete[v142_] = nil
+	for k, placeable in pairs(self.placeablesToDelete) do
+		placeable:delete(true)
+		self.placeablesToDelete[k] = nil
 	end
 end
-
 function PlaceableSystem:markPlaceableForDeletion(placeable)
 	self.placeablesToDelete[placeable] = placeable
 end
-
--- Local values: xmlFile
 function PlaceableSystem:save(xmlFilename, usedModNames)
-	local v149_ = XMLFile.create("placeablesXML", xmlFilename, "placeables", Placeable.xmlSchemaSavegame)
-	if v149_ ~= nil then
-		self:saveToXML(v149_, usedModNames)
-		v149_:save()
-		v149_:delete()
+	local xmlFile = XMLFile.create("placeablesXML", xmlFilename, "placeables", Placeable.xmlSchemaSavegame)
+	if xmlFile ~= nil then
+		self:saveToXML(xmlFile, usedModNames)
+		xmlFile:save()
+		xmlFile:delete()
 	end
 end
-
--- Local values: xmlIndex, _, data, placeableKey, i, placeable
 function PlaceableSystem:saveToXML(xmlFile, usedModNames, savePreplaced)
 	if xmlFile ~= nil then
 		xmlFile:setValue("placeables#version", self.version)
-		local v154_ = 0
-		if Utils.getNoNil(savePreplaced, true) then
-			for _, v155_ in ipairs(self.preplacedPlaceableData) do
-				local v156_ = string.format("placeables.placeable(%d)", v154_)
-				xmlFile:setValue(v156_ .. "#isPreplaced", true)
-				xmlFile:setValue(v156_ .. "#uniqueId", v155_.uniqueId)
-				if v155_.isDeleted then
-					xmlFile:setValue(v156_ .. "#isDeleted", true)
+		savePreplaced = Utils.getNoNil(savePreplaced, true)
+		local xmlIndex = 0
+		if savePreplaced then
+			for _, data in ipairs(self.preplacedPlaceableData) do
+				local placeableKey = string.format("placeables.placeable(%d)", xmlIndex)
+				xmlFile:setValue(placeableKey .. "#isPreplaced", true)
+				xmlFile:setValue(placeableKey .. "#uniqueId", data.uniqueId)
+				if data.isDeleted then
+					xmlFile:setValue(placeableKey .. "#isDeleted", true)
 				end
-				if v155_.boughtWithFarmlandOverwrite then
-					xmlFile:setBool(v156_ .. "#boughtWithFarmlandOverwrite", true)
+				if data.boughtWithFarmlandOverwrite then
+					xmlFile:setBool(placeableKey .. "#boughtWithFarmlandOverwrite", true)
 				end
-				if not string.isNilOrWhitespace(v155_.customImageFilename) then
-					xmlFile:setString(v156_ .. ".customImage#filename", v155_.customImageFilename)
+				if not string.isNilOrWhitespace(data.customImageFilename) then
+					xmlFile:setString(placeableKey .. ".customImage#filename", data.customImageFilename)
 				end
-				if v155_.placeable ~= nil then
-					v155_.placeable:saveToXMLFile(xmlFile, v156_, usedModNames)
+				if data.placeable ~= nil then
+					data.placeable:saveToXMLFile(xmlFile, placeableKey, usedModNames)
 				end
-				v154_ = v154_ + 1
+				xmlIndex = xmlIndex + 1
 			end
 		end
-		for v157_, v158_ in ipairs(self.placeables) do
-			if v158_:getNeedsSaving() and not v158_.isPreplaced then
-				self:savePlaceableToXML(v158_, xmlFile, v154_, v157_, usedModNames)
-				v154_ = v154_ + 1
+		for i, placeable in ipairs(self.placeables) do
+			if placeable:getNeedsSaving() then
+				if placeable.isPreplaced then
+					continue
+				end
+				self:savePlaceableToXML(placeable, xmlFile, xmlIndex, i, usedModNames)
+				xmlIndex = xmlIndex + 1
 			end
 		end
 	end
 end
-
--- Local values: placeableKey, modName
 function PlaceableSystem:savePlaceableToXML(placeable, xmlFile, index, i, usedModNames)
-	local v163_ = string.format("placeables.placeable(%d)", index)
-	local v164_ = placeable.customEnvironment
-	if v164_ ~= nil then
+	local placeableKey = string.format("placeables.placeable(%d)", index)
+	local modName = placeable.customEnvironment
+	if modName ~= nil then
 		if usedModNames ~= nil then
-			usedModNames[v164_] = v164_
+			usedModNames[modName] = modName
 		end
-		xmlFile:setValue(v163_ .. "#modName", v164_)
+		xmlFile:setValue(placeableKey .. "#modName", modName)
 	end
-	xmlFile:setValue(v163_ .. "#filename", HTMLUtil.encodeToHTML(NetworkUtil.convertToNetworkFilename(placeable.configFileName)))
-	placeable:saveToXMLFile(xmlFile, v163_, usedModNames)
+	xmlFile:setValue(placeableKey .. "#filename", HTMLUtil.encodeToHTML(NetworkUtil.convertToNetworkFilename(placeable.configFileName)))
+	placeable:saveToXMLFile(xmlFile, placeableKey, usedModNames)
 end
-
 function PlaceableSystem:load(xmlFilename, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
 	self.savegameXMLFile = XMLFile.load("placeablesXML", xmlFilename, Placeable.xmlSchemaSavegame)
 	self:loadFromXMLFile(self.savegameXMLFile, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
 end
-
--- Local values: defaultItemsToSPFarm, usedUniqueIds, _, key, isPreplaced, isDeleted, uniqueId, preplacedData, success, _, data
 function PlaceableSystem:loadFromXMLFile(xmlFile, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
-	local v175_ = xmlFile:getValue("placeables#loadAnyFarmInSingleplayer", false)
+	local defaultItemsToSPFarm = xmlFile:getValue("placeables#loadAnyFarmInSingleplayer", false)
 	self.loadedPlaceables = {}
 	self.placeablesToLoad = 0
 	self.placeableLoadingState = nil
 	self.asyncCallbackFunction = asyncCallbackFunction
 	self.asyncCallbackObject = asyncCallbackObject
 	self.asyncCallbackArguments = asyncCallbackArguments
-	local v176_ = {}
-	for _, v177_ in xmlFile:iterator("placeables.placeable") do
-		local v178_ = xmlFile:getValue(v177_ .. "#isPreplaced")
-		local v179_ = xmlFile:getValue(v177_ .. "#isDeleted")
-		local v180_ = xmlFile:getValue(v177_ .. "#uniqueId")
-		if v180_ == nil then
-			::l4::
-			if v178_ then
-				v178_ = self.uniqueIdToReplacedPlaceableData[v180_]
-			end
-			if v178_ ~= nil then
-				v178_.foundInSavegame = true
-			end
-			if v179_ then
-				if v178_ == nil then
-					Logging.xmlWarning(xmlFile, "Only preplaced placeables can be marked as deleted. \'%s\'", v177_)
-				else
-					self:deletePreplacedPlaceable(v178_)
+	local usedUniqueIds = {}
+	for _, key in xmlFile:iterator("placeables.placeable") do
+		local isPreplaced = xmlFile:getValue(key .. "#isPreplaced")
+		local isDeleted = xmlFile:getValue(key .. "#isDeleted")
+		local uniqueId = xmlFile:getValue(key .. "#uniqueId")
+		if uniqueId ~= nil then
+			if usedUniqueIds[uniqueId] ~= nil then
+				Logging.xmlError(xmlFile, "Skipping placeable '%s' because another placeable has the same uniqueId", key)
+			else
+				usedUniqueIds[uniqueId] = true
+				local preplacedData = isPreplaced and self.uniqueIdToReplacedPlaceableData[uniqueId]
+				if preplacedData ~= nil then
+					preplacedData.foundInSavegame = true
 				end
-			elseif not self:loadPlaceableFromXML(xmlFile, v177_, v175_, v178_, self.loadPlaceableFinished, self, nil) and v178_ ~= nil then
-				self:deletePreplacedPlaceable(v178_)
+				if isDeleted then
+					if preplacedData ~= nil then
+						self:deletePreplacedPlaceable(preplacedData)
+					else
+						Logging.xmlWarning(xmlFile, "Only preplaced placeables can be marked as deleted. '%s'", key)
+					end
+				else
+					local success = self:loadPlaceableFromXML(xmlFile, key, defaultItemsToSPFarm, preplacedData, self.loadPlaceableFinished, self, nil)
+					if success or preplacedData == nil then
+						continue
+					end
+					self:deletePreplacedPlaceable(preplacedData)
+				end
 			end
-		else
-			if v176_[v180_] == nil then
-				v176_[v180_] = true
-				goto l4
-			end
-			Logging.xmlError(xmlFile, "Skipping placeable \'%s\' because another placeable has the same uniqueId", v177_)
 		end
 	end
-	for _, v181_ in ipairs(self.preplacedPlaceableData) do
-		if not v181_.foundInSavegame then
-			Logging.xmlWarning(xmlFile, "No entry defined for map preplaced placeable \'%s\'. Deleting preplaced placeable!", v181_.uniqueId)
-			self:deletePreplacedPlaceable(v181_)
+	for _, data in ipairs(self.preplacedPlaceableData) do
+		if data.foundInSavegame then
+			continue
 		end
+		Logging.xmlWarning(xmlFile, "No entry defined for map preplaced placeable '%s'. Deleting preplaced placeable!", data.uniqueId)
+		self:deletePreplacedPlaceable(data)
 	end
 	if self.asyncCallbackFunction ~= nil and self.placeablesToLoad <= 0 then
 		g_asyncTaskManager:addSubtask(function()
-			-- upvalues: (copy) self
 			self.asyncCallbackFunction(self.asyncCallbackObject, self.loadedPlaceables, PlaceableLoadingState.OK, self.asyncCallbackArguments)
 			self.asyncCallbackFunction = nil
 			self.asyncCallbackObject = nil
@@ -588,82 +527,71 @@ function PlaceableSystem:loadFromXMLFile(xmlFile, asyncCallbackFunction, asyncCa
 		end)
 	end
 end
-
--- Local values: missionInfo, missionDynamicInfo, defaultProperty, farmId, loadForCompetitive, loadDefaultProperty, allowedToLoad, filename, storeItem, savegame, data
 function PlaceableSystem:loadPlaceableFromXML(xmlFile, key, defaultItemsToSPFarm, preplacedData, callback, callbackTarget, callbackArguments)
-	local v190_ = g_currentMission.missionInfo
-	local v191_ = g_currentMission.missionDynamicInfo
-	local v192_ = xmlFile:getValue(key .. "#defaultFarmProperty", false)
-	local v193_ = xmlFile:getValue(key .. "#farmId")
-	local v194_ = v192_ and v190_.isCompetitiveMultiplayer
-	if v194_ then
-		v194_ = g_farmManager:getFarmById(v193_) ~= nil
+	local missionInfo = g_currentMission.missionInfo
+	local missionDynamicInfo = g_currentMission.missionDynamicInfo
+	local defaultProperty = xmlFile:getValue(key .. "#defaultFarmProperty", false)
+	local farmId = xmlFile:getValue(key .. "#farmId")
+	local loadForCompetitive = defaultProperty and missionInfo.isCompetitiveMultiplayer and g_farmManager:getFarmById(farmId) ~= nil
+	if defaultProperty and (missionInfo.loadDefaultFarm and not missionDynamicInfo.isMultiplayer) then
+		local loadDefaultProperty = true
+		if farmId ~= FarmManager.SINGLEPLAYER_FARM_ID then
+			loadDefaultProperty = defaultItemsToSPFarm
+		end
 	end
-	local v195_ = v192_ and (v190_.loadDefaultFarm and not v191_.isMultiplayer)
-	if v195_ then
-		v195_ = v193_ == FarmManager.SINGLEPLAYER_FARM_ID and true or defaultItemsToSPFarm
-	end
-	local v196_ = v190_.isValid or (not v192_ or (v195_ or v194_))
-	local v197_
-	if preplacedData == nil then
-		v197_ = xmlFile:getValue(key .. "#filename")
+	local allowedToLoad = missionInfo.isValid or not defaultProperty or loadDefaultProperty or loadForCompetitive
+	local filename = nil
+	if preplacedData ~= nil then
+		filename = preplacedData.xmlFilename
 	else
-		v197_ = preplacedData.xmlFilename
+		filename = xmlFile:getValue(key .. "#filename")
 	end
-	if v197_ == nil then
+	if filename == nil then
 		if xmlFile:getValue(key .. "#isPreplaced") then
-			Logging.xmlInfo(xmlFile, "Preplaced placeable node is not defined anmore in the map. \'%s\'", key)
+			Logging.xmlInfo(xmlFile, "Preplaced placeable node is not defined anmore in the map. '%s'", key)
 		else
-			Logging.xmlInfo(xmlFile, "Missing filename for placeable \'%s\'", key)
+			Logging.xmlInfo(xmlFile, "Missing filename for placeable '%s'", key)
 		end
 		return false
 	else
-		if v196_ then
-			if string.startsWith(v197_, "$data") then
-				v197_ = Utils.getFilename(v197_)
+		if allowedToLoad then
+			if string.startsWith(filename, "$data") then
+				filename = Utils.getFilename(filename)
 			end
-			local v198_ = NetworkUtil.convertFromNetworkFilename(v197_)
-			local v199_ = g_storeManager:getItemByXMLFilename(v198_)
-			if v199_ ~= nil then
-				local v200_ = {
-					["xmlFile"] = xmlFile,
-					["key"] = key,
-					["ignoreFarmId"] = false
-				}
-				if v195_ and (defaultItemsToSPFarm and v193_ ~= FarmManager.SINGLEPLAYER_FARM_ID) then
-					local _ = FarmManager.SINGLEPLAYER_FARM_ID
-					v200_.ignoreFarmId = true
+			filename = NetworkUtil.convertFromNetworkFilename(filename)
+			local storeItem = g_storeManager:getItemByXMLFilename(filename)
+			if storeItem ~= nil then
+				local savegame = { xmlFile = xmlFile, key = key, ignoreFarmId = false }
+				if loadDefaultProperty and (defaultItemsToSPFarm and farmId ~= FarmManager.SINGLEPLAYER_FARM_ID) then
+					farmId = FarmManager.SINGLEPLAYER_FARM_ID
+					savegame.ignoreFarmId = true
 				end
 				self.placeablesToLoad = self.placeablesToLoad + 1
-				local v_u_201_ = PlaceableLoadingData.new()
-				v_u_201_:setStoreItem(v199_)
-				v_u_201_:setSavegameData(v200_)
+				local data = PlaceableLoadingData.new()
+				data:setStoreItem(storeItem)
+				data:setSavegameData(savegame)
 				if preplacedData ~= nil then
-					v_u_201_:setPreplacedIndex(preplacedData.index)
+					data:setPreplacedIndex(preplacedData.index)
 				end
 				g_asyncTaskManager:addSubtask(function()
-					-- upvalues: (copy) v_u_201_, (copy) callback, (copy) callbackTarget, (copy) callbackArguments
-					v_u_201_:load(callback, callbackTarget, callbackArguments)
+					data:load(callback, callbackTarget, callbackArguments)
 				end)
 				return true
 			end
-			Logging.xmlWarning(xmlFile, "Placeable \'%s\' not defined in store items", v198_)
+			Logging.xmlWarning(xmlFile, "Placeable '%s' not defined in store items", filename)
 		end
 		return false
 	end
 end
-
 function PlaceableSystem:loadPlaceableFinished(placeable, loadingState, arguments)
 	if loadingState == PlaceableLoadingState.OK then
-		local v205_ = self.loadedPlaceables
-		table.insert(v205_, placeable)
+		table.insert(self.loadedPlaceables, placeable)
 	else
 		self.placeableLoadingState = self.placeableLoadingState or loadingState
 	end
 	self.placeablesToLoad = self.placeablesToLoad - 1
 	if self.asyncCallbackFunction ~= nil and self.placeablesToLoad <= 0 then
 		g_asyncTaskManager:addTask(function()
-			-- upvalues: (copy) self
 			self.asyncCallbackFunction(self.asyncCallbackObject, self.loadedPlaceables, self.placeableLoadingState or PlaceableLoadingState.OK, self.asyncCallbackArguments)
 			self.asyncCallbackFunction = nil
 			self.asyncCallbackObject = nil
@@ -673,39 +601,35 @@ function PlaceableSystem:loadPlaceableFinished(placeable, loadingState, argument
 		end, "PlaceableSystem:loadPlaceableFinished asyncCallbackFunction")
 	end
 end
-
--- Local values: _, pendingData, _, placeable
 function PlaceableSystem:consoleCommandPrintPendingLoadings()
 	Logging.info("Pending Placeable Loadings:")
-	for _, v207_ in ipairs(self.pendingPlaceableLoadingData) do
-		Logging.info("    - %s", v207_.storeItem == nil and "Unknown" or (v207_.storeItem.xmlFilename or "Unknown"))
+	for _, pendingData in ipairs(self.pendingPlaceableLoadingData) do
+		Logging.info("    - %s", pendingData.storeItem ~= nil and pendingData.storeItem.xmlFilename or "Unknown")
 	end
 	Logging.info("Pending Placeable:")
-	for _, v208_ in ipairs(self.placeables) do
-		if not v208_:getIsSynchronized() then
-			Logging.info("    - LoadingState: %s | LoadingStep: %s | %s", PlaceableLoadingState.getName(v208_.loadingState), SpecializationUtil.getLoadingStepName(v208_.loadingStep), v208_.configFileName)
+	for _, placeable in ipairs(self.placeables) do
+		if placeable:getIsSynchronized() then
+			continue
 		end
+		Logging.info("    - LoadingState: %s | LoadingStep: %s | %s", PlaceableLoadingState.getName(placeable.loadingState), SpecializationUtil.getLoadingStepName(placeable.loadingStep), placeable.configFileName)
 	end
 end
-
--- Local values: usage, numDeleted, i, placeable
 function PlaceableSystem:consoleCommandDeleteAllPlaceables(includePreplaced)
-	local v211_ = 0
-	for v212_ = #self.placeables, 1, -1 do
-		local v213_ = self.placeables[v212_]
-		if not v213_:getIsPreplaced() or includePreplaced then
-			v213_:delete()
-			v211_ = v211_ + 1
+	local usage = "Usage: gsPlaceablesDeleteAll [includePreplaced]"
+	local numDeleted = 0
+	for i = #self.placeables, 1, -1 do
+		local placeable = self.placeables[i]
+		if not placeable:getIsPreplaced() or includePreplaced then
+			placeable:delete()
+			numDeleted = numDeleted + 1
 		end
 	end
 	if includePreplaced then
-		return string.format("Deleted all %i placeables! Included preplaced ones!", v211_)
+		return string.format("Deleted all %i placeables! Included preplaced ones!", numDeleted)
 	else
-		return string.format("Deleted %i placeables! Excluded preplaced ones.\n%s", v211_, "Usage: gsPlaceablesDeleteAll [includePreplaced]")
+		return string.format("Deleted %i placeables! Excluded preplaced ones.\n%s", numDeleted, "Usage: gsPlaceablesDeleteAll [includePreplaced]")
 	end
 end
-
--- Local values: xmlFile, numPlaceables, usedModNames, i, placeable
 function PlaceableSystem:consoleCommandReloadAllPlaceables()
 	if self.isReloadRunning then
 		return "Cannot start reloading. Another reloading is currently running"
@@ -713,66 +637,61 @@ function PlaceableSystem:consoleCommandReloadAllPlaceables()
 	if not g_currentMission:getIsServer() or g_currentMission.missionDynamicInfo.isMultiplayer then
 		return "Placeable reloading only allowed in SP"
 	end
-	local v215_ = 0
-	local v_u_216_
+	local xmlFile = nil
+	local numPlaceables = 0
 	if self.reloadPlaceableSavegame == nil then
 		g_i3DManager:clearEntireSharedI3DFileCache(false)
 		Logging.info("Start reloading placeables (non preplaced placables)...")
-		v_u_216_ = XMLFile.create("placeableXMLFile", "", "placeables", Placeable.xmlSchemaSavegame)
-		self:saveToXML(v_u_216_, {}, false)
-		for v217_ = #self.placeables, 1, -1 do
-			local v218_ = self.placeables[v217_]
-			if not v218_.isPreplaced then
-				v218_.isReloading = true
-				v218_:delete()
-				v215_ = v215_ + 1
+		xmlFile = XMLFile.create("placeableXMLFile", "", "placeables", Placeable.xmlSchemaSavegame)
+		local usedModNames = {}
+		self:saveToXML(xmlFile, usedModNames, false)
+		for i = #self.placeables, 1, -1 do
+			local placeable = self.placeables[i]
+			if placeable.isPreplaced then
+				continue
 			end
+			placeable.isReloading = true
+			placeable:delete()
+			numPlaceables = numPlaceables + 1
 		end
 	else
 		Logging.info("Restart reloading placeables with remaining placeables...")
-		v_u_216_ = self.reloadPlaceableSavegame
-		v215_ = v_u_216_:getNumOfElements("placeables.placeable")
+		xmlFile = self.reloadPlaceableSavegame
+		numPlaceables = xmlFile:getNumOfElements("placeables.placeable")
 	end
-	
--- Upvalues: xmlFile, self
--- Local values: _, placeable, uniqueId, _, key, id, numElements
-
--- Upvalues: placeablesToLoad, self, loadNextPlaceable
--- Local values: nextItem
-function callback(_, loadedPlaceable, placeableLoadingState, args)
-		-- upvalues: (ref) v_u_216_, (copy) self
-		for _, v220_ in ipairs(loadedPlaceable) do
-			local v221_ = v220_:getUniqueId()
-			for _, v222_ in v_u_216_:iterator("placeables.placeable") do
-				if v_u_216_:getValue(v222_ .. "#uniqueId") == v221_ then
-					v_u_216_:removeProperty(v222_)
-					Logging.info("Reloaded placeable \'%s\'.", v220_.configFileName)
+	function callback(_, loadedPlaceables, placeableLoadingState, args)
+		for _, placeable in ipairs(loadedPlaceables) do
+			local uniqueId = placeable:getUniqueId()
+			for _, key in xmlFile:iterator("placeables.placeable") do
+				local id = xmlFile:getValue(key .. "#uniqueId")
+				if id == uniqueId then
+					xmlFile:removeProperty(key)
+					Logging.info("Reloaded placeable '%s'.", placeable.configFileName)
 					break
 				end
 			end
 		end
-		local v223_ = v_u_216_:getNumOfElements("placeables.placeable")
-		if v223_ == 0 then
+		local numElements = xmlFile:getNumOfElements("placeables.placeable")
+		if numElements == 0 then
 			Logging.info("Finished reloading.")
-			v_u_216_:delete()
+			xmlFile:delete()
 			self.reloadPlaceableSavegame = nil
 		else
-			self.reloadPlaceableSavegame = v_u_216_
-			Logging.info("Finished reloading. %d placeables could not be reloaded. Please fix the config/i3d and run the command again!", v223_)
+			self.reloadPlaceableSavegame = xmlFile
+			Logging.info("Finished reloading. %d placeables could not be reloaded. Please fix the config/i3d and run the command again!", numElements)
 		end
 		self.isReloadRunning = false
 	end
-	self.isReloadRunning = v215_ > 0
-	if v215_ <= 0 then
+	self.isReloadRunning = 0 < numPlaceables
+	if 0 < numPlaceables then
+		g_asyncTaskManager:addTask(function()
+			self:loadFromXMLFile(xmlFile, callback, nil, nil)
+		end)
+		return
+	else
 		return "No placeables found to reload"
 	end
-	g_asyncTaskManager:addTask(function()
-		-- upvalues: (copy) self, (ref) v_u_216_
-		self:loadFromXMLFile(v_u_216_, callback, nil, nil)
-	end)
 end
-
--- Local values: placeablesToLoad, _, storeItem, singletonFilename, x, z, y, loadNextPlaceable, callback
 function PlaceableSystem:consoleCommandLoadAllPlaceables()
 	if self.isLoadAllRunning then
 		return "Cannot start loading all placeables. Another loading is currently running"
@@ -780,64 +699,63 @@ function PlaceableSystem:consoleCommandLoadAllPlaceables()
 	if not g_currentMission:getIsServer() or g_currentMission.missionDynamicInfo.isMultiplayer then
 		return "Placeable loading only allowed in SP"
 	end
-	local v_u_225_ = {}
-	for _, v226_ in ipairs(g_storeManager:getItems()) do
-		if v226_.brush ~= nil and v226_.brush.type ~= "" then
-			if v226_.brush.type == "fence" then
-				local v227_ = v226_.brush.parameters[1]
-				if v227_ == nil then
-					Logging.error("No fence singleton filename found for \'%s\'", v226_.xmlFilename)
-				else
-					table.insert(v_u_225_, v227_)
-				end
+	local placeablesToLoad = {}
+	for _, storeItem in ipairs(g_storeManager:getItems()) do
+		if storeItem.brush == nil or storeItem.brush.type == "" then
+			continue
+		end
+		if storeItem.brush.type == "fence" then
+			local singletonFilename = storeItem.brush.parameters[1]
+			if singletonFilename ~= nil then
+				table.insert(placeablesToLoad, singletonFilename)
 			else
-				table.insert(v_u_225_, v226_)
+				Logging.error("No fence singleton filename found for '%s'", storeItem.xmlFilename)
+			end
+		else
+			table.insert(placeablesToLoad, storeItem)
+		end
+	end
+	if #placeablesToLoad == 0 then
+		return "No placeables found"
+	else
+		g_i3DManager:clearEntireSharedI3DFileCache(false)
+		self.isLoadAllRunning = true
+		Logging.info("Start loading all placeables...")
+		local x = 0
+		local z = 0
+		local y = getTerrainHeightAtWorldPos(g_terrainNode, 0, 0, 0)
+		local loadNextPlaceable = nil
+		local callback = function(_, loadedPlaceable, placeableLoadingState, args)
+			if placeableLoadingState ~= PlaceableLoadingState.OK then
+				Logging.error("Could not load placeable '%s', PlaceableLoadingState: %s", args.filename, EnumUtil.getName(PlaceableLoadingState, placeableLoadingState))
+			else
+				Logging.info("Loaded placeable '%s'", loadedPlaceable.configFileName)
+				loadedPlaceable:finalizePlacement()
+			end
+			if loadedPlaceable ~= nil then
+				loadedPlaceable:delete()
+			end
+			table.remove(placeablesToLoad, 1)
+			if #placeablesToLoad == 0 then
+				self.isLoadAllRunning = false
+				print("Finished loading placeables")
+			else
+				local nextItem = placeablesToLoad[1]
+				loadNextPlaceable(nextItem)
 			end
 		end
-	end
-	if #v_u_225_ == 0 then
-		return "No placeables found"
-	end
-	g_i3DManager:clearEntireSharedI3DFileCache(false)
-	self.isLoadAllRunning = true
-	Logging.info("Start loading all placeables...")
-	local v_u_228_ = 0
-	local v_u_229_ = 0
-	local v_u_230_ = getTerrainHeightAtWorldPos(g_terrainNode, 0, 0, 0)
-	local v_u_231_ = nil
-	local function v_u_235_(_, p232_, p233_, p234_)
-		-- upvalues: (copy) v_u_225_, (copy) self, (ref) v_u_231_
-		if p233_ == PlaceableLoadingState.OK then
-			Logging.info("Loaded placeable \'%s\'", p232_.configFileName)
-			p232_:finalizePlacement()
-		else
-			Logging.error("Could not load placeable \'%s\', PlaceableLoadingState: %s", p234_.filename, EnumUtil.getName(PlaceableLoadingState, p233_))
+		function loadNextPlaceable(storeItem)
+			local data = PlaceableLoadingData.new()
+			data:setStoreItem(storeItem)
+			data:setSavegameData(nil)
+			data:setPosition(0, y, 0)
+			data:setRotation(0, 0, 0)
+			data:load(callback, nil, { filename = storeItem.xmlFilename })
 		end
-		if p232_ ~= nil then
-			p232_:delete()
-		end
-		table.remove(v_u_225_, 1)
-		if #v_u_225_ == 0 then
-			self.isLoadAllRunning = false
-			print("Finished loading placeables")
-		else
-			v_u_231_(v_u_225_[1])
-		end
+		loadNextPlaceable(placeablesToLoad[1])
+		return
 	end
-	v_u_231_ = function(p236_)
-		-- upvalues: (copy) v_u_230_, (copy) v_u_235_, (copy) v_u_228_, (copy) v_u_229_
-		local v237_ = PlaceableLoadingData.new()
-		v237_:setStoreItem(p236_)
-		v237_:setSavegameData(nil)
-		v237_:setPosition(0, v_u_230_, 0)
-		v237_:setRotation(0, 0, 0)
-		v237_:load(v_u_235_, nil, {
-			["filename"] = p236_.xmlFilename
-		})
-	end
-	v_u_231_(v_u_225_[1])
 end
-
 function PlaceableSystem:consoleCommandDrawMapBoundaries()
 	PlaceableSystem.DEBUG_DRAW_BOUNDARIES = not PlaceableSystem.DEBUG_DRAW_BOUNDARIES
 	if PlaceableSystem.DEBUG_DRAW_BOUNDARIES then

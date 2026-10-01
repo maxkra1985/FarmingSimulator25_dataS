@@ -1,25 +1,18 @@
--- Local values: InterpolatorPosition_mt
 InterpolatorPosition = {}
 local InterpolatorPosition_mt = Class(InterpolatorPosition)
-
--- Upvalues: InterpolatorPosition_mt
--- Local values: self
 function InterpolatorPosition.new(positionX, positionY, positionZ, customMt)
-	-- upvalues: (copy) InterpolatorPosition_mt
-	local v6_ = customMt or InterpolatorPosition_mt
-	local v7_ = setmetatable({}, v6_)
-	v7_.positionX = positionX
-	v7_.positionY = positionY
-	v7_.positionZ = positionZ
-	v7_.lastPositionX = positionX
-	v7_.lastPositionY = positionY
-	v7_.lastPositionZ = positionZ
-	v7_.targetPositionX = positionX
-	v7_.targetPositionY = positionY
-	v7_.targetPositionZ = positionZ
-	return v7_
+	local self = setmetatable({}, customMt or InterpolatorPosition_mt)
+	self.positionX = positionX
+	self.positionY = positionY
+	self.positionZ = positionZ
+	self.lastPositionX = positionX
+	self.lastPositionY = positionY
+	self.lastPositionZ = positionZ
+	self.targetPositionX = positionX
+	self.targetPositionY = positionY
+	self.targetPositionZ = positionZ
+	return self
 end
-
 function InterpolatorPosition:setPosition(x, y, z)
 	self.positionX = x
 	self.positionY = y
@@ -31,7 +24,6 @@ function InterpolatorPosition:setPosition(x, y, z)
 	self.targetPositionY = y
 	self.targetPositionZ = z
 end
-
 function InterpolatorPosition:setTargetPosition(x, y, z)
 	self.targetPositionX = x
 	self.targetPositionY = y
@@ -40,7 +32,6 @@ function InterpolatorPosition:setTargetPosition(x, y, z)
 	self.lastPositionY = self.positionY
 	self.lastPositionZ = self.positionZ
 end
-
 function InterpolatorPosition:getInterpolatedValues(interpolationAlpha)
 	self.positionX = self.lastPositionX + interpolationAlpha * (self.targetPositionX - self.lastPositionX)
 	self.positionY = self.lastPositionY + interpolationAlpha * (self.targetPositionY - self.lastPositionY)

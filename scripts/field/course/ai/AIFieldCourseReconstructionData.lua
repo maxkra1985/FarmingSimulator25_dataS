@@ -1,69 +1,61 @@
--- Local values: AIFieldCourseReconstructionData_mt
 AIFieldCourseReconstructionData = {}
 local AIFieldCourseReconstructionData_mt = Class(AIFieldCourseReconstructionData)
 function AIFieldCourseReconstructionData.new()
-	-- upvalues: (copy) AIFieldCourseReconstructionData_mt
-	local v2_ = AIFieldCourseReconstructionData_mt
-	local v3_ = setmetatable({}, v2_)
-	v3_.lastVehicleX = 0
-	v3_.lastVehicleZ = 0
-	v3_.fieldCourseField = nil
-	v3_.fieldCourseSettings = nil
-	v3_.activeSegmentId = nil
-	v3_.fieldCourseSegments = {}
-	return v3_
+	local self = setmetatable({}, AIFieldCourseReconstructionData_mt)
+	self.lastVehicleX = 0
+	self.lastVehicleZ = 0
+	self.fieldCourseField = nil
+	self.fieldCourseSettings = nil
+	self.activeSegmentId = nil
+	self.fieldCourseSegments = {}
+	return self
 end
-
--- Local values: activeSegment, usedSegments, excludedSegments, segmentsToSkip, getIsUsed, _, segment, segmentData, allSegmentsWorked, _, otherSegment
 function AIFieldCourseReconstructionData:setDataByAIFieldCourse(aiFieldCourse)
-	local v6_ = aiFieldCourse.lastVehicleX
-	local v7_ = aiFieldCourse.lastVehicleZ
-	self.lastVehicleX = v6_
-	self.lastVehicleZ = v7_
+	self.lastVehicleX = aiFieldCourse.lastVehicleX
+	self.lastVehicleZ = aiFieldCourse.lastVehicleZ
 	self.fieldCourseField = aiFieldCourse.fieldCourse.courseField
 	self.fieldCourseSettings = aiFieldCourse.fieldCourseSettings
-	local v8_ = aiFieldCourse:getActiveSegment()
-	if v8_ ~= nil then
-		self.activeSegmentId = v8_.segmentId
+	local activeSegment = aiFieldCourse:getActiveSegment()
+	if activeSegment ~= nil then
+		self.activeSegmentId = activeSegment.segmentId
 	end
-	local v_u_9_ = aiFieldCourse.usedSegments
-	local v_u_10_ = aiFieldCourse.segmentOrderTask.excludedSegments
-	local v_u_11_ = aiFieldCourse.segmentOrderTask.segmentsToSkip
-	local function v14_(p12_)
-		-- upvalues: (copy) self, (copy) v_u_10_, (copy) v_u_11_, (copy) v_u_9_
-		if p12_.segmentId == self.activeSegmentId then
+	local usedSegments = aiFieldCourse.usedSegments
+	local excludedSegments = aiFieldCourse.segmentOrderTask.excludedSegments
+	local segmentsToSkip = aiFieldCourse.segmentOrderTask.segmentsToSkip
+	local getIsUsed = function(segment)
+		if segment.segmentId == self.activeSegmentId then
 			return false
 		end
-		for v13_, _ in pairs(v_u_10_) do
-			if v13_.segmentId == p12_.segmentId then
+		for excludedSegment, _ in pairs(excludedSegments) do
+			if excludedSegment.segmentId == segment.segmentId then
 				return true
 			end
 		end
-		return v_u_11_[p12_.segmentId] ~= nil and true or v_u_9_[p12_.segmentId] ~= nil
+		if segmentsToSkip[segment.segmentId] ~= nil then
+			return true
+		else
+			return usedSegments[segment.segmentId] ~= nil
+		end
 	end
-	for _, v15_ in pairs(aiFieldCourse.fieldCourse.segments) do
-		local v16_ = {
-			["segmentId"] = v15_.segmentId,
-			["lineGroupIndex"] = v15_.lineGroupIndex,
-			["isHeadlandSegment"] = v15_.isHeadlandSegment,
-			["headlandIndex"] = v15_.headlandIndex,
-			["isIslandSegment"] = v15_.isIslandSegment,
-			["islandIndex"] = v15_.islandIndex
-		}
-		local v17_ = true
-		for _, v18_ in pairs(aiFieldCourse.fieldCourse.segments) do
-			if v18_.segmentId == v15_.segmentId and not v14_(v18_) then
-				v17_ = false
+	for _, segment in pairs(aiFieldCourse.fieldCourse.segments) do
+		local segmentData = {}
+		segmentData.segmentId = segment.segmentId
+		segmentData.lineGroupIndex = segment.lineGroupIndex
+		segmentData.isHeadlandSegment = segment.isHeadlandSegment
+		segmentData.headlandIndex = segment.headlandIndex
+		segmentData.isIslandSegment = segment.isIslandSegment
+		segmentData.islandIndex = segment.islandIndex
+		local allSegmentsWorked = true
+		for _, otherSegment in pairs(aiFieldCourse.fieldCourse.segments) do
+			if otherSegment.segmentId == segment.segmentId and not getIsUsed(otherSegment) then
+				allSegmentsWorked = false
 				break
 			end
 		end
-		v16_.used = v17_
-		local v19_ = self.fieldCourseSegments
-		table.insert(v19_, v16_)
+		segmentData.used = allSegmentsWorked
+		table.insert(self.fieldCourseSegments, segmentData)
 	end
 end
-
--- Local values: xmlIndex, _, segmentData, segmentKey
 function AIFieldCourseReconstructionData:saveToXML(xmlFile, key)
 	xmlFile:setValue(key .. "#lastPosition", self.lastVehicleX, self.lastVehicleZ)
 	if self.fieldCourseField ~= nil then
@@ -75,31 +67,27 @@ function AIFieldCourseReconstructionData:saveToXML(xmlFile, key)
 	if self.activeSegmentId ~= nil then
 		xmlFile:setValue(key .. "#activeSegmentId", self.activeSegmentId)
 	end
-	local v23_ = 0
-	for _, v24_ in pairs(self.fieldCourseSegments) do
-		local v25_ = string.format("%s.segments.segment(%d)", key, v23_)
-		xmlFile:setValue(v25_ .. "#segmentId", v24_.segmentId)
-		xmlFile:setValue(v25_ .. "#used", v24_.used)
-		if v24_.lineGroupIndex ~= nil then
-			xmlFile:setValue(v25_ .. "#lineGroupIndex", v24_.lineGroupIndex)
+	local xmlIndex = 0
+	for _, segmentData in pairs(self.fieldCourseSegments) do
+		local segmentKey = string.format("%s.segments.segment(%d)", key, xmlIndex)
+		xmlFile:setValue(segmentKey .. "#segmentId", segmentData.segmentId)
+		xmlFile:setValue(segmentKey .. "#used", segmentData.used)
+		if segmentData.lineGroupIndex ~= nil then
+			xmlFile:setValue(segmentKey .. "#lineGroupIndex", segmentData.lineGroupIndex)
 		end
-		if v24_.isHeadlandSegment then
-			xmlFile:setValue(v25_ .. "#isHeadlandSegment", v24_.isHeadlandSegment)
-			xmlFile:setValue(v25_ .. "#headlandIndex", v24_.headlandIndex)
+		if segmentData.isHeadlandSegment then
+			xmlFile:setValue(segmentKey .. "#isHeadlandSegment", segmentData.isHeadlandSegment)
+			xmlFile:setValue(segmentKey .. "#headlandIndex", segmentData.headlandIndex)
 		end
-		if v24_.isIslandSegment then
-			xmlFile:setValue(v25_ .. "#isIslandSegment", v24_.isIslandSegment)
-			xmlFile:setValue(v25_ .. "#islandIndex", v24_.islandIndex)
+		if segmentData.isIslandSegment then
+			xmlFile:setValue(segmentKey .. "#isIslandSegment", segmentData.isIslandSegment)
+			xmlFile:setValue(segmentKey .. "#islandIndex", segmentData.islandIndex)
 		end
-		v23_ = v23_ + 1
+		xmlIndex = xmlIndex + 1
 	end
 end
-
--- Local values: _, segmentKey, segmentData
 function AIFieldCourseReconstructionData:loadFromXML(xmlFile, key)
-	local v29_, v30_ = xmlFile:getValue(key .. "#lastPosition", "0 0")
-	self.lastVehicleX = v29_
-	self.lastVehicleZ = v30_
+	self.lastVehicleX, self.lastVehicleZ = xmlFile:getValue(key .. "#lastPosition", "0 0")
 	self.fieldCourseSettings = FieldCourseSettings.loadFromXML(xmlFile, key .. ".fieldCourseSettings")
 	if self.fieldCourseSettings == nil then
 		Logging.warning("Failed to load FieldCourseSettings from xml")
@@ -109,36 +97,33 @@ function AIFieldCourseReconstructionData:loadFromXML(xmlFile, key)
 	if not self.fieldCourseField:loadFromXML(xmlFile, key .. ".field") then
 		Logging.warning("Failed to load FieldCourseField from xml")
 		return false
-	end
-	self.activeSegmentId = xmlFile:getValue(key .. "#activeSegmentId")
-	self.fieldCourseSegments = {}
-	for _, v31_ in xmlFile:iterator(key .. ".segments.segment") do
-		local v32_ = {
-			["segmentId"] = xmlFile:getValue(v31_ .. "#segmentId")
-		}
-		if v32_.segmentId ~= nil then
-			v32_.used = xmlFile:getValue(v31_ .. "#used", false)
-			v32_.lineGroupIndex = xmlFile:getValue(v31_ .. "#lineGroupIndex")
-			v32_.isHeadlandSegment = xmlFile:getValue(v31_ .. "#isHeadlandSegment", false)
-			v32_.headlandIndex = xmlFile:getValue(v31_ .. "#headlandIndex")
-			v32_.isIslandSegment = xmlFile:getValue(v31_ .. "#isIslandSegment", false)
-			v32_.islandIndex = xmlFile:getValue(v31_ .. "#islandIndex")
-			local v33_ = self.fieldCourseSegments
-			table.insert(v33_, v32_)
+	else
+		self.activeSegmentId = xmlFile:getValue(key .. "#activeSegmentId")
+		self.fieldCourseSegments = {}
+		for _, segmentKey in xmlFile:iterator(key .. ".segments.segment") do
+			local segmentData = {}
+			segmentData.segmentId = xmlFile:getValue(segmentKey .. "#segmentId")
+			if segmentData.segmentId == nil then
+				continue
+			end
+			segmentData.used = xmlFile:getValue(segmentKey .. "#used", false)
+			segmentData.lineGroupIndex = xmlFile:getValue(segmentKey .. "#lineGroupIndex")
+			segmentData.isHeadlandSegment = xmlFile:getValue(segmentKey .. "#isHeadlandSegment", false)
+			segmentData.headlandIndex = xmlFile:getValue(segmentKey .. "#headlandIndex")
+			segmentData.isIslandSegment = xmlFile:getValue(segmentKey .. "#isIslandSegment", false)
+			segmentData.islandIndex = xmlFile:getValue(segmentKey .. "#islandIndex")
+			table.insert(self.fieldCourseSegments, segmentData)
 		end
+		self:generateFieldCourse()
+		return true
 	end
-	self:generateFieldCourse()
-	return true
 end
-
--- Local values: generator
 function AIFieldCourseReconstructionData:generateFieldCourse()
 	if self.fieldCourse == nil and not self.fieldCourseInProgress then
-		local v37_ = FieldCourseSegmentGenerator.new(self.fieldCourseSettings, function(p35_, _, p36_)
-			-- upvalues: (copy) self
-			if #p35_ > 0 then
-				self.fieldCourse = FieldCourse.new(self.fieldCourseSettings, self.fieldCourseField, p36_)
-				self.fieldCourse:addSegments(p35_)
+		local generator = FieldCourseSegmentGenerator.new(self.fieldCourseSettings, function(segments, _, isVineyardCourse)
+			if 0 < #segments then
+				self.fieldCourse = FieldCourse.new(self.fieldCourseSettings, self.fieldCourseField, isVineyardCourse)
+				self.fieldCourse:addSegments(segments)
 				self.fieldCourseInProgress = false
 			else
 				Logging.devWarning("Unable to generate field course based on savegame data")
@@ -148,86 +133,81 @@ function AIFieldCourseReconstructionData:generateFieldCourse()
 			end
 		end)
 		self.fieldCourseField.headlandBoundaries = {}
-		v37_:setFieldData(self.fieldCourseField)
+		generator:setFieldData(self.fieldCourseField)
 		self.fieldCourseInProgress = true
-		v37_:generate()
+		generator:generate()
 	end
 end
-
--- Local values: distance
 function AIFieldCourseReconstructionData:apply(callbackTarget, callback, vx, vz)
 	if self.lastVehicleX == nil or self.lastVehicleZ == nil then
 		Logging.devInfo("AIFieldCourseReconstructionData: No last vehicle position available. Completely regenerate field course.")
 		return false
 	end
-	if MathUtil.vector2Length(vx - self.lastVehicleX, vz - self.lastVehicleZ) > 25 then
+	local distance = MathUtil.vector2Length(vx - self.lastVehicleX, vz - self.lastVehicleZ)
+	if 25 < distance then
 		Logging.devInfo("AIFieldCourseReconstructionData: Vehicle has moved too far. Completely regenerate field course.")
 		return false
-	end
-	if not FieldCourseUtil.getIsPointInsideBoundary(vx, vz, self.fieldCourseField.boundaryPositions) then
+	elseif not FieldCourseUtil.getIsPointInsideBoundary(vx, vz, self.fieldCourseField.boundaryPositions) then
 		Logging.devInfo("AIFieldCourseReconstructionData: Vehicle is not inside the field anymore. Completely regenerate field course.")
 		return false
+	else
+		self.callbackTarget = callbackTarget
+		self.callback = callback
+		self:generateFieldCourse()
+		if self.fieldCourse ~= nil then
+			self:doCallback()
+		end
+		return true
 	end
-	self.callbackTarget = callbackTarget
-	self.callback = callback
-	self:generateFieldCourse()
-	if self.fieldCourse ~= nil then
-		self:doCallback()
-	end
-	return true
 end
-
--- Local values: aiFieldCourse, numSkippedSegments, segmentsToSkip, isValid, _, segment, _, segmentData
 function AIFieldCourseReconstructionData:doCallback()
 	if self.callback ~= nil then
-		local v44_ = AIFieldCourse.new(self.fieldCourse)
-		local v45_ = {}
-		local v46_ = 0
-		local v47_ = true
-		for _, v48_ in pairs(self.fieldCourse.segments) do
-			for _, v49_ in pairs(self.fieldCourseSegments) do
-				if v48_.segmentId == v49_.segmentId then
-					if v49_.lineGroupIndex ~= v48_.lineGroupIndex then
-						v47_ = false
+		local aiFieldCourse = AIFieldCourse.new(self.fieldCourse)
+		local numSkippedSegments = 0
+		local segmentsToSkip = {}
+		local isValid = true
+		for _, segment in pairs(self.fieldCourse.segments) do
+			for _, segmentData in pairs(self.fieldCourseSegments) do
+				if segment.segmentId == segmentData.segmentId then
+					if segmentData.lineGroupIndex ~= segment.lineGroupIndex then
+						isValid = false
 					end
-					if v49_.isHeadlandSegment ~= v48_.isHeadlandSegment then
-						v47_ = false
+					if segmentData.isHeadlandSegment ~= segment.isHeadlandSegment then
+						isValid = false
 					end
-					if v49_.headlandIndex ~= v48_.headlandIndex then
-						v47_ = false
+					if segmentData.headlandIndex ~= segment.headlandIndex then
+						isValid = false
 					end
-					if v49_.isIslandSegment ~= v48_.isIslandSegment then
-						v47_ = false
+					if segmentData.isIslandSegment ~= segment.isIslandSegment then
+						isValid = false
 					end
-					if v49_.islandIndex ~= v48_.islandIndex then
-						v47_ = false
+					if segmentData.islandIndex ~= segment.islandIndex then
+						isValid = false
 					end
-					if v49_.used then
-						v45_[v48_.segmentId] = true
-						v46_ = v46_ + 1
+					if segmentData.used then
+						segmentsToSkip[segment.segmentId] = true
+						numSkippedSegments = numSkippedSegments + 1
 					end
-					break
 				end
 			end
 		end
-		if v47_ then
-			Logging.devInfo("AIFieldCourseReconstructionData: Reconstructed field course from savegame. Skipping %d already worked segments.", v46_)
-		else
+		if not isValid then
 			Logging.devInfo("AIFieldCourseReconstructionData: Loaded field course from savegame does not match the generated one. Dismiss worked data.")
-			v45_ = nil
+			segmentsToSkip = nil
+		else
+			Logging.devInfo("AIFieldCourseReconstructionData: Reconstructed field course from savegame. Skipping %d already worked segments.", numSkippedSegments)
 		end
-		if v45_ ~= nil then
-			v44_:setSegmentsToSkip(v45_)
+		if segmentsToSkip ~= nil then
+			aiFieldCourse:setSegmentsToSkip(segmentsToSkip)
 		end
 		if self.activeSegmentId ~= nil then
-			v44_:setLastActiveSegmentId(self.activeSegmentId)
+			aiFieldCourse:setLastActiveSegmentId(self.activeSegmentId)
 		end
-		self.callback(self.callbackTarget, v44_)
+		self.callback(self.callbackTarget, aiFieldCourse)
 		self.callbackTarget = nil
 		self.callback = nil
 	end
 end
-
 function AIFieldCourseReconstructionData.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.VECTOR_2, basePath .. "#lastPosition", "Last vehicle position in world space")
 	FieldCourseSettings.registerXMLPaths(schema, basePath .. ".fieldCourseSettings")

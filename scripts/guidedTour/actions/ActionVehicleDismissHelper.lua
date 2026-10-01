@@ -1,41 +1,30 @@
--- Local values: ActionVehicleDismissHelper_mt
 ActionVehicleDismissHelper = {}
 ActionVehicleDismissHelper.NAME = "vehicleDismissHelper"
 local ActionVehicleDismissHelper_mt = Class(ActionVehicleDismissHelper)
-
 function ActionVehicleDismissHelper.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#vehicle", "Name of the vehicle", nil, true)
 end
-
--- Upvalues: ActionVehicleDismissHelper_mt
--- Local values: self
 function ActionVehicleDismissHelper.new(vehicleName, customMt)
-	-- upvalues: (copy) ActionVehicleDismissHelper_mt
-	local v6_ = customMt or ActionVehicleDismissHelper_mt
-	local v7_ = setmetatable({}, v6_)
-	v7_.vehicleName = vehicleName
-	return v7_
+	local self = setmetatable({}, customMt or ActionVehicleDismissHelper_mt)
+	self.vehicleName = vehicleName
+	return self
 end
-
--- Local values: vehicle
 function ActionVehicleDismissHelper:run(tour, step)
-	local v9_ = g_guidedTourManager:getVehicleByName(self.vehicleName)
-	if v9_ == nil then
-		Logging.warning("ActionVehicleDismissHelper.run: Vehicle \'%s\' not found", self.vehicleName)
+	local vehicle = g_guidedTourManager:getVehicleByName(self.vehicleName)
+	if vehicle == nil then
+		Logging.warning("ActionVehicleDismissHelper.run: Vehicle '%s' not found", self.vehicleName)
 	end
-	if v9_.stopCurrentAIJob ~= nil then
-		v9_:stopCurrentAIJob()
+	if vehicle.stopCurrentAIJob ~= nil then
+		vehicle:stopCurrentAIJob()
 	end
 	return true
 end
-
--- Local values: vehicleName
 function ActionVehicleDismissHelper.createFromXML(xmlFile, key, baseDirectory, customEnvironment)
-	local v12_ = xmlFile:getValue(key .. "#vehicle")
-	if v12_ == nil then
-		return nil
+	local vehicleName = xmlFile:getValue(key .. "#vehicle")
+	if vehicleName ~= nil then
+		return ActionVehicleDismissHelper.new(vehicleName)
 	else
-		return ActionVehicleDismissHelper.new(v12_)
+		return nil
 	end
 end
 g_guidedTourManager:registerActionClass(ActionVehicleDismissHelper.NAME, ActionVehicleDismissHelper)

@@ -1,26 +1,20 @@
--- Local values: ProductionChainManager_mt
 ProductionChainManager = {}
 ProductionChainManager.NUM_MAX_PRODUCTION_POINTS = 60
 local ProductionChainManager_mt = Class(ProductionChainManager, AbstractManager)
-
--- Upvalues: ProductionChainManager_mt
--- Local values: self
 function ProductionChainManager.new(isServer, customMt)
-	-- upvalues: (copy) ProductionChainManager_mt
-	local v4_ = AbstractManager.new(customMt or ProductionChainManager_mt)
-	v4_.isServer = isServer
-	addConsoleCommand("gsProductionPointsList", "List all production points on map", "commandListProductionPoints", v4_)
-	addConsoleCommand("gsProductionPointsPrintAutoDeliverMapping", "Prints which fillTypes are required by which production points", "commandPrintAutoDeliverMapping", v4_)
-	addConsoleCommand("gsProductionPointSetOwner", "", "commandSetOwner", v4_)
-	addConsoleCommand("gsProductionPointSetProductionState", "", "commandSetProductionState", v4_)
-	addConsoleCommand("gsProductionPointSetOutputMode", "", "commandSetOutputMode", v4_)
-	addConsoleCommand("gsProductionPointSetFillLevel", "", "commandSetFillLevel", v4_)
-	if v4_.isServer then
-		g_messageCenter:subscribe(MessageType.HOUR_CHANGED, v4_.hourChanged, v4_)
+	local self = AbstractManager.new(customMt or ProductionChainManager_mt)
+	self.isServer = isServer
+	addConsoleCommand("gsProductionPointsList", "List all production points on map", "commandListProductionPoints", self)
+	addConsoleCommand("gsProductionPointsPrintAutoDeliverMapping", "Prints which fillTypes are required by which production points", "commandPrintAutoDeliverMapping", self)
+	addConsoleCommand("gsProductionPointSetOwner", "", "commandSetOwner", self)
+	addConsoleCommand("gsProductionPointSetProductionState", "", "commandSetProductionState", self)
+	addConsoleCommand("gsProductionPointSetOutputMode", "", "commandSetOutputMode", self)
+	addConsoleCommand("gsProductionPointSetFillLevel", "", "commandSetFillLevel", self)
+	if self.isServer then
+		g_messageCenter:subscribe(MessageType.HOUR_CHANGED, self.hourChanged, self)
 	end
-	return v4_
+	return self
 end
-
 function ProductionChainManager:initDataStructures()
 	self.productionPoints = {}
 	self.reverseProductionPoint = {}
@@ -31,7 +25,6 @@ function ProductionChainManager:initDataStructures()
 	self.hourChangedDirty = false
 	self.hourChangeUpdating = false
 end
-
 function ProductionChainManager:unloadMapData()
 	removeConsoleCommand("gsProductionPointsList")
 	removeConsoleCommand("gsProductionPointsPrintAutoDeliverMapping")
@@ -44,176 +37,153 @@ function ProductionChainManager:unloadMapData()
 	end
 	ProductionChainManager:superClass().unloadMapData(self)
 end
-
--- Local values: farmId
 function ProductionChainManager:addProductionPoint(productionPoint)
 	if self.reverseProductionPoint[productionPoint] then
-		Logging.warning("Production point \'%s\' already registered.", productionPoint:tableId())
+		Logging.warning("Production point '%s' already registered.", productionPoint:tableId())
 		return false
-	end
-	if #self.productionPoints >= ProductionChainManager.NUM_MAX_PRODUCTION_POINTS then
+	elseif ProductionChainManager.NUM_MAX_PRODUCTION_POINTS <= #self.productionPoints then
 		printf("Maximum number of %i Production Points reached.", ProductionChainManager.NUM_MAX_PRODUCTION_POINTS)
 		return false
-	end
-	if #self.productionPoints == 0 and self.isServer then
-		g_currentMission:addUpdateable(self)
-	end
-	self.reverseProductionPoint[productionPoint] = true
-	local v9_ = self.productionPoints
-	table.insert(v9_, productionPoint)
-	local v10_ = productionPoint:getOwnerFarmId()
-	if v10_ ~= AccessHandler.EVERYONE then
-		if not self.farmIds[v10_] then
-			self.farmIds[v10_] = {}
+	else
+		if #self.productionPoints == 0 and self.isServer then
+			g_currentMission:addUpdateable(self)
 		end
-		self:addProductionPointToFarm(productionPoint, self.farmIds[v10_])
+		self.reverseProductionPoint[productionPoint] = true
+		table.insert(self.productionPoints, productionPoint)
+		local farmId = productionPoint:getOwnerFarmId()
+		if farmId ~= AccessHandler.EVERYONE then
+			if not self.farmIds[farmId] then
+				self.farmIds[farmId] = {}
+			end
+			self:addProductionPointToFarm(productionPoint, self.farmIds[farmId])
+		end
+		return true
 	end
-	return true
 end
-
--- Local values: inputType
 function ProductionChainManager:addProductionPointToFarm(productionPoint, farmTable)
 	if not farmTable.productionPoints then
 		farmTable.productionPoints = {}
 	end
-	local v13_ = farmTable.productionPoints
-	table.insert(v13_, productionPoint)
+	table.insert(farmTable.productionPoints, productionPoint)
 	if not farmTable.inputTypeToProductionPoints then
 		farmTable.inputTypeToProductionPoints = {}
 	end
-	for v14_ in pairs(productionPoint.inputFillTypeIds) do
-		if not farmTable.inputTypeToProductionPoints[v14_] then
-			farmTable.inputTypeToProductionPoints[v14_] = {}
+	for inputType in pairs(productionPoint.inputFillTypeIds) do
+		if not farmTable.inputTypeToProductionPoints[inputType] then
+			farmTable.inputTypeToProductionPoints[inputType] = {}
 		end
-		local v15_ = farmTable.inputTypeToProductionPoints[v14_]
-		table.insert(v15_, productionPoint)
+		table.insert(farmTable.inputTypeToProductionPoints[inputType], productionPoint)
 	end
 end
-
--- Local values: farmId
 function ProductionChainManager:addFactory(factory)
 	if self.reverseFactory[factory] then
-		Logging.warning("Factory \'%s\' already registered.", factory:tableId())
+		Logging.warning("Factory '%s' already registered.", factory:tableId())
 		return false
-	end
-	self.reverseFactory[factory] = true
-	local v18_ = self.factories
-	table.insert(v18_, factory)
-	local v19_ = factory:getOwnerFarmId()
-	if v19_ ~= AccessHandler.EVERYONE then
-		if not self.farmIds[v19_] then
-			self.farmIds[v19_] = {}
+	else
+		self.reverseFactory[factory] = true
+		table.insert(self.factories, factory)
+		local farmId = factory:getOwnerFarmId()
+		if farmId ~= AccessHandler.EVERYONE then
+			if not self.farmIds[farmId] then
+				self.farmIds[farmId] = {}
+			end
+			self:addFactoryToFarm(factory, self.farmIds[farmId])
 		end
-		self:addFactoryToFarm(factory, self.farmIds[v19_])
+		return true
 	end
-	return true
 end
-
 function ProductionChainManager:addFactoryToFarm(factory, farmTable)
 	if not farmTable.factories then
 		farmTable.factories = {}
 	end
-	local v22_ = farmTable.factories
-	table.insert(v22_, factory)
+	table.insert(farmTable.factories, factory)
 end
-
--- Local values: farmId
 function ProductionChainManager:removeProductionPoint(productionPoint)
 	self.reverseProductionPoint[productionPoint] = nil
 	if table.removeElement(self.productionPoints, productionPoint) then
-		local v25_ = productionPoint:getOwnerFarmId()
-		if v25_ ~= AccessHandler.EVERYONE then
-			self.farmIds[v25_] = self:removeProductionPointFromFarm(productionPoint, self.farmIds[v25_])
+		local farmId = productionPoint:getOwnerFarmId()
+		if farmId ~= AccessHandler.EVERYONE then
+			self.farmIds[farmId] = self:removeProductionPointFromFarm(productionPoint, self.farmIds[farmId])
 		end
 	end
 	if #self.productionPoints == 0 and self.isServer then
 		g_currentMission:removeUpdateable(self)
 	end
 end
-
--- Local values: inputTypeToProductionPoints, inputType
 function ProductionChainManager:removeProductionPointFromFarm(productionPoint, farmTable)
 	if farmTable.productionPoints == nil then
 		return farmTable
-	end
-	table.removeElement(farmTable.productionPoints, productionPoint)
-	local v28_ = farmTable.inputTypeToProductionPoints
-	for v29_ in pairs(productionPoint.inputFillTypeIds) do
-		if v28_[v29_] then
-			if not table.removeElement(v28_[v29_], productionPoint) then
-				printError("Error: ProductionChainManager:removeProductionPoint(): Unable to remove production point from input type mapping")
-			end
-			if #v28_[v29_] == 0 then
-				v28_[v29_] = nil
+	else
+		table.removeElement(farmTable.productionPoints, productionPoint)
+		local inputTypeToProductionPoints = farmTable.inputTypeToProductionPoints
+		for inputType in pairs(productionPoint.inputFillTypeIds) do
+			if inputTypeToProductionPoints[inputType] then
+				if not table.removeElement(inputTypeToProductionPoints[inputType], productionPoint) then
+					printError("Error: ProductionChainManager:removeProductionPoint(): Unable to remove production point from input type mapping")
+				end
+				if #inputTypeToProductionPoints[inputType] == 0 then
+					inputTypeToProductionPoints[inputType] = nil
+				end
 			end
 		end
+		if #farmTable.productionPoints == 0 and farmTable.factories == nil then
+			farmTable = nil
+		end
+		return farmTable
 	end
-	if #farmTable.productionPoints == 0 and farmTable.factories == nil then
-		farmTable = nil
-	end
-	return farmTable
 end
-
 function ProductionChainManager:removeFactory(factory, farmId)
 	self.reverseFactory[factory] = nil
 	if table.removeElement(self.factories, factory) and (farmId ~= AccessHandler.EVERYONE and self.farmIds[farmId] ~= nil) then
 		self.farmIds[farmId] = self:removeFactoryFromFarm(factory, self.farmIds[farmId])
 	end
 end
-
 function ProductionChainManager:removeFactoryFromFarm(factory, farmTable)
 	if farmTable.factories == nil then
 		return farmTable
+	else
+		table.removeElement(farmTable.factories, factory)
+		if #farmTable.factories == 0 and farmTable.productionPoints == nil then
+			farmTable = nil
+		end
+		return farmTable
 	end
-	table.removeElement(farmTable.factories, factory)
-	if #farmTable.factories == 0 and farmTable.productionPoints == nil then
-		farmTable = nil
-	end
-	return farmTable
 end
-
 function ProductionChainManager:getProductionPointsForFarmId(farmId)
 	return self.farmIds[farmId] and self.farmIds[farmId].productionPoints or {}
 end
-
 function ProductionChainManager:getFactoriesForFarmId(farmId)
 	return self.farmIds[farmId] and self.farmIds[farmId].factories or {}
 end
-
 function ProductionChainManager:getNumOfProductionPoints()
 	return #self.productionPoints
 end
-
--- Local values: unownedPoints, _, point
 function ProductionChainManager:getUnownedProductionPoints()
-	local v41_ = {}
-	for _, v42_ in pairs(self.productionPoints) do
-		if v42_:getOwnerFarmId() == AccessHandler.EVERYONE then
-			table.insert(v41_, v42_)
+	local unownedPoints = {}
+	for _, point in pairs(self.productionPoints) do
+		if point:getOwnerFarmId() == AccessHandler.EVERYONE then
+			table.insert(unownedPoints, point)
 		end
 	end
-	return v41_
+	return unownedPoints
 end
-
--- Local values: unownedFactories, _, factory
 function ProductionChainManager:getUnownedFactories()
-	local v44_ = {}
-	for _, v45_ in pairs(self.factories) do
-		if v45_:getOwnerFarmId() == AccessHandler.EVERYONE then
-			table.insert(v44_, v45_)
+	local unownedFactories = {}
+	for _, factory in pairs(self.factories) do
+		if factory:getOwnerFarmId() == AccessHandler.EVERYONE then
+			table.insert(unownedFactories, factory)
 		end
 	end
-	return v44_
+	return unownedFactories
 end
-
 function ProductionChainManager:getHasFreeSlots()
 	return #self.productionPoints < ProductionChainManager.NUM_MAX_PRODUCTION_POINTS
 end
-
--- Local values: prodPoint
 function ProductionChainManager:update()
-	if #self.productionPoints ~= 0 then
-		if self.currentUpdateIndex > #self.productionPoints then
+	if #self.productionPoints == 0 then
+		return
+	else
+		if #self.productionPoints < self.currentUpdateIndex then
 			self.currentUpdateIndex = 1
 			if self.hourChangedDirty then
 				self.hourChangeUpdating = true
@@ -223,50 +193,50 @@ function ProductionChainManager:update()
 				self:distributeGoods()
 			end
 		end
-		local v48_ = self.productionPoints[self.currentUpdateIndex]
-		if v48_ then
-			v48_:updateProduction()
-			if self.hourChangeUpdating and (self.isServer and v48_.isOwned) then
-				v48_:claimProductionCosts()
-				v48_:directlySellOutputs()
-				v48_:updateBalaceDirectlySoldOutputs()
+		local prodPoint = self.productionPoints[self.currentUpdateIndex]
+		if prodPoint then
+			prodPoint:updateProduction()
+			if self.hourChangeUpdating and (self.isServer and prodPoint.isOwned) then
+				prodPoint:claimProductionCosts()
+				prodPoint:directlySellOutputs()
+				prodPoint:updateBalaceDirectlySoldOutputs()
 			end
 		end
 		self.currentUpdateIndex = self.currentUpdateIndex + 1
 	end
 end
-
 function ProductionChainManager:hourChanged()
 	self.hourChangedDirty = true
 end
-
--- Local values: _, farmTable, i, distributingProdPoint, fillTypeIdToDistribute, amountToDistribute, prodPointsInDemand, totalFreeCapacity, n, n, prodPointInDemand, maxAmountToReceive, amountToTransfer, distanceSourceToTarget, transferCosts
 function ProductionChainManager:distributeGoods()
-	if self.isServer then
-		for _, v51_ in pairs(self.farmIds) do
-			if v51_.productionPoints ~= nil then
-				for v52_ = 1, #v51_.productionPoints do
-					local v53_ = v51_.productionPoints[v52_]
-					for v54_ in pairs(v53_.outputFillTypeIdsAutoDeliver) do
-						local v55_ = v53_.storage:getFillLevel(v54_)
-						if v55_ > 0 then
-							local v56_ = v51_.inputTypeToProductionPoints[v54_] or {}
-							local v57_ = 0
-							for v58_ = 1, #v56_ do
-								v57_ = v57_ + v56_[v58_].storage:getFreeCapacity(v54_, true)
-							end
-							if v57_ > 0 then
-								for v59_ = 1, #v56_ do
-									local v60_ = v56_[v59_]
-									local v61_ = v60_.storage:getFreeCapacity(v54_, true)
-									if v61_ > 0 then
-										local v62_ = v55_ * (v61_ / v57_)
-										local v63_ = math.min(v61_, v62_)
-										local v64_ = v63_ * calcDistanceFrom(v53_.owningPlaceable.rootNode, v60_.owningPlaceable.rootNode) * ProductionPoint.DIRECT_DELIVERY_PRICE
-										g_currentMission:addMoney(-v64_, v60_.ownerFarmId, MoneyType.PRODUCTION_COSTS, true)
-										v60_.storage:setFillLevel(v60_.storage:getFillLevel(v54_) + v63_, v54_)
-										v53_.storage:setFillLevel(v53_.storage:getFillLevel(v54_) - v63_, v54_)
-									end
+	if not self.isServer then
+		return
+	else
+		for _, farmTable in pairs(self.farmIds) do
+			if farmTable.productionPoints == nil then
+				continue
+			end
+			for i = 1, #farmTable.productionPoints do
+				local distributingProdPoint = farmTable.productionPoints[i]
+				for fillTypeIdToDistribute in pairs(distributingProdPoint.outputFillTypeIdsAutoDeliver) do
+					local amountToDistribute = distributingProdPoint.storage:getFillLevel(fillTypeIdToDistribute)
+					if 0 < amountToDistribute then
+						local prodPointsInDemand = farmTable.inputTypeToProductionPoints[fillTypeIdToDistribute] or {}
+						local totalFreeCapacity = 0
+						for n = 1, #prodPointsInDemand do
+							totalFreeCapacity = totalFreeCapacity + prodPointsInDemand[n].storage:getFreeCapacity(fillTypeIdToDistribute, true)
+						end
+						if 0 < totalFreeCapacity then
+							for n = 1, #prodPointsInDemand do
+								local prodPointInDemand = prodPointsInDemand[n]
+								local maxAmountToReceive = prodPointInDemand.storage:getFreeCapacity(fillTypeIdToDistribute, true)
+								if 0 < maxAmountToReceive then
+									local amountToTransfer = math.min(maxAmountToReceive, amountToDistribute * (maxAmountToReceive / totalFreeCapacity))
+									local distanceSourceToTarget = calcDistanceFrom(distributingProdPoint.owningPlaceable.rootNode, prodPointInDemand.owningPlaceable.rootNode)
+									local transferCosts = amountToTransfer * distanceSourceToTarget * ProductionPoint.DIRECT_DELIVERY_PRICE
+									g_currentMission:addMoney(-transferCosts, prodPointInDemand.ownerFarmId, MoneyType.PRODUCTION_COSTS, true)
+									prodPointInDemand.storage:setFillLevel(prodPointInDemand.storage:getFillLevel(fillTypeIdToDistribute) + amountToTransfer, fillTypeIdToDistribute)
+									distributingProdPoint.storage:setFillLevel(distributingProdPoint.storage:getFillLevel(fillTypeIdToDistribute) - amountToTransfer, fillTypeIdToDistribute)
 								end
 							end
 						end
@@ -276,200 +246,192 @@ function ProductionChainManager:distributeGoods()
 		end
 	end
 end
-
 function ProductionChainManager:updateBalance() end
-
--- Local values: i, productionPoint
 function ProductionChainManager:commandListProductionPoints()
-	if #self.productionPoints <= 0 then
+	if 0 < #self.productionPoints then
+		print("available production points:")
+		for i = 1, #self.productionPoints do
+			local productionPoint = self.productionPoints[i]
+			print(string.format("%i: %s", i, productionPoint:toString()))
+		end
+		return string.format("listed %i production points", #self.productionPoints)
+	else
 		return "no productions points available"
 	end
-	print("available production points:")
-	for v66_ = 1, #self.productionPoints do
-		local v67_ = self.productionPoints[v66_]
-		print(string.format("%i: %s", v66_, v67_:toString()))
-	end
-	return string.format("listed %i production points", #self.productionPoints)
 end
-
--- Local values: farmId, farmTable, inputType, prodPoints, _, prodPoint
 function ProductionChainManager:commandPrintAutoDeliverMapping()
 	print("AutoDeliverMapping")
-	for v69_, v70_ in pairs(self.farmIds) do
-		printf("  Farm %i", v69_)
-		for v71_, v72_ in pairs(v70_.inputTypeToProductionPoints) do
-			print(string.format("    FillType %s distributed to", g_fillTypeManager:getFillTypeNameByIndex(v71_)))
-			for _, v73_ in pairs(v72_) do
-				print(string.format("      %s", v73_:toString()))
+	for farmId, farmTable in pairs(self.farmIds) do
+		printf("  Farm %i", farmId)
+		for inputType, prodPoints in pairs(farmTable.inputTypeToProductionPoints) do
+			print(string.format("    FillType %s distributed to", g_fillTypeManager:getFillTypeNameByIndex(inputType)))
+			for _, prodPoint in pairs(prodPoints) do
+				print(string.format("      %s", prodPoint:toString()))
 			end
 		end
 	end
 end
-
--- Local values: usage, productionPoints, _, prodPoint
 function ProductionChainManager:commandSetOwner(ppIdentifier, farmId)
-	local v77_ = self:getProductionPointsFromString(ppIdentifier)
-	local v78_ = tonumber(farmId)
-	if v77_ == false then
-		return "Error: no production point given\nUsage: gsProductionPointSetOwner ppIdentifier farmId"
+	local usage = "Usage: gsProductionPointSetOwner ppIdentifier farmId"
+	local productionPoints = self:getProductionPointsFromString(ppIdentifier)
+	farmId = tonumber(farmId)
+	if productionPoints == false then
+		return "Error: no production point given\n" .. "Usage: gsProductionPointSetOwner ppIdentifier farmId"
+	elseif farmId == nil then
+		return "Error: no farmId given\n" .. "Usage: gsProductionPointSetOwner ppIdentifier farmId"
+	else
+		productionPoints = table.clone(productionPoints)
+		for _, prodPoint in pairs(productionPoints) do
+			prodPoint:setOwnerFarmId(farmId, true)
+		end
+		return string.format("Updated owner for %d production points", table.size(productionPoints))
 	end
-	if v78_ == nil then
-		return "Error: no farmId given\nUsage: gsProductionPointSetOwner ppIdentifier farmId"
-	end
-	local v79_ = table.clone(v77_)
-	for _, v80_ in pairs(v79_) do
-		v80_:setOwnerFarmId(v78_, true)
-	end
-	return string.format("Updated owner for %d production points", table.size(v79_))
 end
-
--- Local values: usage, productionPoints, productions, _, prodPoint, _, production, production, _, ppProdPair, prodPoint, production
 function ProductionChainManager:commandSetProductionState(ppIdentifier, productionIdentifier, state)
-	local v85_ = self:getProductionPointsFromString(ppIdentifier)
-	local v86_ = Utils.stringToBoolean(state)
-	if v85_ == false then
-		return "Error: no production point given\nUsage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state"
+	local usage = "Usage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state"
+	local productionPoints = self:getProductionPointsFromString(ppIdentifier)
+	state = Utils.stringToBoolean(state)
+	if productionPoints == false then
+		return "Error: no production point given\n" .. "Usage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state"
 	end
 	if productionIdentifier == nil then
-		return "Error: no production identifier given\nUsage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state"
+		return "Error: no production identifier given\n" .. "Usage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state"
 	end
-	if v86_ == nil then
-		return "Error: no valid state given\nUsage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state"
+	if state == nil then
+		return "Error: no valid state given\n" .. "Usage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state"
 	end
-	local v87_ = {}
-	for _, v88_ in pairs(v85_) do
+	local productions = {}
+	for _, prodPoint in pairs(productionPoints) do
 		if string.lower(productionIdentifier) == "all" then
-			for _, v89_ in pairs(v88_.productions) do
-				table.insert(v87_, { v88_, v89_ })
+			for _, production in pairs(prodPoint.productions) do
+				table.insert(productions, { prodPoint, production })
 			end
 		else
-			local v90_ = v88_.productionsIdToObj[productionIdentifier]
-			if v90_ then
-				table.insert(v87_, { v88_, v90_ })
+			local production = prodPoint.productionsIdToObj[productionIdentifier]
+			if production then
+				table.insert(productions, { prodPoint, production })
 			end
 		end
 	end
-	if #v87_ == 0 then
-		return string.format("Error: no productions found for identifier \'%s\'\n%s", productionIdentifier, "Usage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state")
-	end
-	for _, v91_ in pairs(v87_) do
-		local v92_ = v91_[1]
-		local v93_ = v91_[2]
-		v92_:setProductionState(v93_.id, v86_)
-		print(string.format("%s (%s): %s = %s", v92_:getName(), v92_:tableId(), v93_.id, v86_))
-	end
-	return string.format("Updated state for %d productions", table.size(v87_))
-end
-
--- Local values: usage, outputModes, productionPoints, outputType, _, prodPoint, _, prodPoint, outputType
-function ProductionChainManager:commandSetOutputMode(ppIdentifier, outputFillTypeIdentifier, mode)
-	local function v102_()
-		local v98_ = {}
-		for v99_, v100_ in pairs(ProductionPoint.OUTPUT_MODE) do
-			local v101_ = v100_ .. "=" .. v99_
-			table.insert(v98_, v101_)
-		end
-		return table.concat(v98_, "\n")
-	end
-	local v103_ = self:getProductionPointsFromString(ppIdentifier)
-	if v103_ == false then
-		return "Error: no production point given\nUsage: gsProductionPointSetOutputMode ppIdentifier outputFillType|all outputMode"
-	end
-	if not outputFillTypeIdentifier then
-		return "Error: Missing argument outputFillType.\nUsage: gsProductionPointSetOutputMode ppIdentifier outputFillType|all outputMode"
-	end
-	if not table.hasElement(ProductionPoint.OUTPUT_MODE, (tonumber(mode))) then
-		return string.format("Error: Invalid output mode \'%s\'. Available modes:\n%s", mode, v102_())
-	end
-	if string.lower(outputFillTypeIdentifier) == "all" then
-		for _, v104_ in pairs(v103_) do
-			for v105_ in pairs(v104_.outputFillTypeIds) do
-				v104_:setOutputDistributionMode(v105_, mode)
-			end
-		end
+	if #productions == 0 then
+		return string.format("Error: no productions found for identifier '%s'\n%s", productionIdentifier, "Usage: gsProductionPointSetProductionState ppIdentifier productionIdentifier|all state")
 	else
-		local v106_ = g_fillTypeManager:getFillTypeIndexByName(outputFillTypeIdentifier)
-		for _, v107_ in pairs(v103_) do
-			if v107_.outputFillTypeIds[v106_] then
-				v107_:setOutputDistributionMode(v106_, mode)
+		for _, ppProdPair in pairs(productions) do
+			local prodPoint = ppProdPair[1]
+			local production = ppProdPair[2]
+			prodPoint:setProductionState(production.id, state)
+			print(string.format("%s (%s): %s = %s", prodPoint:getName(), prodPoint:tableId(), production.id, state))
+		end
+		return string.format("Updated state for %d productions", table.size(productions))
+	end
+end
+function ProductionChainManager:commandSetOutputMode(ppIdentifier, outputFillTypeIdentifier, mode)
+	local usage = "Usage: gsProductionPointSetOutputMode ppIdentifier outputFillType|all outputMode"
+	local outputModes = function()
+		local str = {}
+		for key, val in pairs(ProductionPoint.OUTPUT_MODE) do
+			table.insert(str, val .. "=" .. key)
+		end
+		return table.concat(str, "\n")
+	end
+	local productionPoints = self:getProductionPointsFromString(ppIdentifier)
+	if productionPoints == false then
+		return "Error: no production point given\n" .. "Usage: gsProductionPointSetOutputMode ppIdentifier outputFillType|all outputMode"
+	elseif not outputFillTypeIdentifier then
+		return "Error: Missing argument outputFillType.\n" .. "Usage: gsProductionPointSetOutputMode ppIdentifier outputFillType|all outputMode"
+	elseif not table.hasElement(ProductionPoint.OUTPUT_MODE, tonumber(mode)) then
+		return string.format("Error: Invalid output mode '%s'. Available modes:\n%s", mode, outputModes())
+	else
+		if string.lower(outputFillTypeIdentifier) ~= "all" then
+			local outputType = g_fillTypeManager:getFillTypeIndexByName(outputFillTypeIdentifier)
+			for _, prodPoint in pairs(productionPoints) do
+				if prodPoint.outputFillTypeIds[outputType] then
+					prodPoint:setOutputDistributionMode(outputType, mode)
+				end
+			end
+		else
+			for _, prodPoint in pairs(productionPoints) do
+				for outputType in pairs(prodPoint.outputFillTypeIds) do
+					prodPoint:setOutputDistributionMode(outputType, mode)
+				end
 			end
 		end
+		return "Updated production points"
 	end
-	return "Updated production points"
 end
-
--- Local values: usage, productionPoints, fillType, numStorageSpaces, _, prodPoint, supportedFillType
 function ProductionChainManager:commandSetFillLevel(ppIdentifier, fillTypeIdentifier, fillLevel)
-	local v112_ = self:getProductionPointsFromString(ppIdentifier)
-	if v112_ == false then
-		return "Error: no production point given\nUsage: gsProductionPointSetFillLevel ppIdentifier fillTypeName|all fillLevel"
+	local usage = "Usage: gsProductionPointSetFillLevel ppIdentifier fillTypeName|all fillLevel"
+	local productionPoints = self:getProductionPointsFromString(ppIdentifier)
+	if productionPoints == false then
+		return "Error: no production point given\n" .. "Usage: gsProductionPointSetFillLevel ppIdentifier fillTypeName|all fillLevel"
 	end
-	local v113_ = g_fillTypeManager:getFillTypeIndexByName(fillTypeIdentifier)
-	if not fillTypeIdentifier or string.lower(fillTypeIdentifier) ~= "all" and not v113_ then
-		return "Error: no valid fillType given\nUsage: gsProductionPointSetFillLevel ppIdentifier fillTypeName|all fillLevel"
+	local fillType = g_fillTypeManager:getFillTypeIndexByName(fillTypeIdentifier)
+	if not fillTypeIdentifier or string.lower(fillTypeIdentifier) ~= "all" and not fillType then
+		return "Error: no valid fillType given\n" .. "Usage: gsProductionPointSetFillLevel ppIdentifier fillTypeName|all fillLevel"
 	end
-	local v114_ = tonumber(fillLevel)
-	if not v114_ then
-		return "Error: no fillLevel given\nUsage: gsProductionPointSetFillLevel ppIdentifier fillTypeName|all fillLevel"
-	end
-	local v115_ = 0
-	for _, v116_ in pairs(v112_) do
-		if string.lower(fillTypeIdentifier) == "all" then
-			for v117_ in pairs(v116_.storage:getSupportedFillTypes()) do
-				v116_.storage:setFillLevel(v114_, v117_)
-				v115_ = v115_ + 1
+	fillLevel = tonumber(fillLevel)
+	if not fillLevel then
+		return "Error: no fillLevel given\n" .. "Usage: gsProductionPointSetFillLevel ppIdentifier fillTypeName|all fillLevel"
+	else
+		local numStorageSpaces = 0
+		for _, prodPoint in pairs(productionPoints) do
+			if string.lower(fillTypeIdentifier) ~= "all" then
+				if fillType and prodPoint.storage:getIsFillTypeSupported(fillType) then
+					prodPoint.storage:setFillLevel(fillLevel, fillType)
+					numStorageSpaces = numStorageSpaces + 1
+				end
+			else
+				for supportedFillType in pairs(prodPoint.storage:getSupportedFillTypes()) do
+					prodPoint.storage:setFillLevel(fillLevel, supportedFillType)
+					numStorageSpaces = numStorageSpaces + 1
+				end
 			end
-		elseif v113_ and v116_.storage:getIsFillTypeSupported(v113_) then
-			v116_.storage:setFillLevel(v114_, v113_)
-			v115_ = v115_ + 1
 		end
+		return string.format("Filled %i storage spaces", numStorageSpaces)
 	end
-	return string.format("Filled %i storage spaces", v115_)
 end
-
--- Local values: _, prodPoint
 function ProductionChainManager:consoleCommandToggleProdPointDebug()
 	self.debugEnabled = not self.debugEnabled
 	if g_currentMission ~= nil then
-		for _, v119_ in pairs(self.productionPoints) do
+		for _, prodPoint in pairs(self.productionPoints) do
 			if self.debugEnabled then
-				g_currentMission:addDrawable(v119_)
+				g_currentMission:addDrawable(prodPoint)
 			else
-				g_currentMission:removeDrawable(v119_)
+				g_currentMission:removeDrawable(prodPoint)
 			end
 		end
 	end
-	local v120_ = self.debugEnabled
-	return "ProductionChainManager.debugEnabled=" .. tostring(v120_)
+	return "ProductionChainManager.debugEnabled=" .. tostring(self.debugEnabled)
 end
-
--- Local values: prodPoints, prodPoint, _, productionPoint
 function ProductionChainManager:getProductionPointsFromString(identificationString)
 	if not identificationString or identificationString == "" then
 		return false
 	end
-	local v123_ = {}
+	local prodPoints = {}
 	if string.lower(identificationString) == "all" then
-		return self.productionPoints
+		prodPoints = self.productionPoints
+		return prodPoints
 	end
-	local v124_ = self.productionPoints[tonumber(identificationString)]
-	if not v124_ and string.len(identificationString) >= 4 then
-		for _, v125_ in pairs(self.productionPoints) do
-			if string.find(v125_:tableId(), identificationString) then
-				if v124_ ~= nil then
-					printError(string.format("Error: Multiple production points for index/identifier \'%s\'. Please provide a longer identifier.", identificationString))
+	local prodPoint = self.productionPoints[tonumber(identificationString)]
+	if not prodPoint and 4 <= string.len(identificationString) then
+		for _, productionPoint in pairs(self.productionPoints) do
+			if string.find(productionPoint:tableId(), identificationString) then
+				if prodPoint == nil then
+					prodPoint = productionPoint
+				else
+					printError(string.format("Error: Multiple production points for index/identifier '%s'. Please provide a longer identifier.", identificationString))
 					self:commandListProductionPoints()
 					return false
 				end
-				v124_ = v125_
 			end
 		end
 	end
-	if v124_ then
-		table.insert(v123_, v124_)
-		return v123_
+	if not prodPoint then
+		printError(string.format("Error: No Production Point for index/identifier '%s'", identificationString))
+		self:commandListProductionPoints()
+		return false
+	else
+		table.insert(prodPoints, prodPoint)
+		return prodPoints
 	end
-	printError(string.format("Error: No Production Point for index/identifier \'%s\'", identificationString))
-	self:commandListProductionPoints()
-	return false
 end

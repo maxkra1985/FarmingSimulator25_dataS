@@ -44,61 +44,51 @@ Lights.ADDITIONAL_LIGHT_ATTRIBUTES_KEYS = {
 	"vehicle.lights.dayTimeLights.dayTimeLight(?)",
 	"vehicle.lights.turnLights.turnLightLeft(?)",
 	"vehicle.lights.turnLights.turnLightRight(?)",
-	"vehicle.lights.staticLightCompounds.staticLightCompound(?).node(?)"
+	"vehicle.lights.staticLightCompounds.staticLightCompound(?).node(?)",
 }
-
-function Lights.prerequisitesPresent(self)
+function Lights.prerequisitesPresent(specializations)
 	return true
 end
 function Lights.initSpecialization()
 	g_vehicleConfigurationManager:addConfigurationType("beaconLight", g_i18n:getText("configuration_beacon"), "lights", VehicleConfigurationItem)
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("Lights")
-	v1_:register(XMLValueType.FLOAT, "vehicle.lights#reverseLightActivationSpeed", "Speed which needs to be reached to activate reverse lights (km/h)", 1)
-	v1_:register(XMLValueType.VECTOR_N, "vehicle.lights.states.state(?)#lightTypes", "Light states")
-	v1_:register(XMLValueType.VECTOR_N, "vehicle.lights.states.automaticState#lightTypes", "Light states while ai is active", "0")
-	v1_:register(XMLValueType.VECTOR_N, "vehicle.lights.states.automaticState#lightTypesWork", "Light states while ai is working", "0 1 2")
-	SharedLight.registerXMLPaths(v1_, "vehicle.lights.sharedLight(?)")
-	Lights.registerRealLightSetupXMLPath(v1_, "vehicle.lights.realLights.low")
-	Lights.registerRealLightSetupXMLPath(v1_, "vehicle.lights.realLights.high")
-	StaticLight.registerXMLPaths(v1_, "vehicle.lights.defaultLights.defaultLight(?)")
-	StaticLight.registerXMLPaths(v1_, "vehicle.lights.topLights.topLight(?)")
-	StaticLight.registerXMLPaths(v1_, "vehicle.lights.bottomLights.bottomLight(?)")
-	StaticLight.registerXMLPaths(v1_, "vehicle.lights.brakeLights.brakeLight(?)")
-	StaticLight.registerXMLPaths(v1_, "vehicle.lights.reverseLights.reverseLight(?)")
-	StaticLight.registerXMLPaths(v1_, "vehicle.lights.dayTimeLights.dayTimeLight(?)")
-	StaticLight.registerXMLPaths(v1_, "vehicle.lights.turnLights.turnLightLeft(?)")
-	StaticLight.registerXMLPaths(v1_, "vehicle.lights.turnLights.turnLightRight(?)")
-	StaticLightCompound.registerXMLPaths(v1_, "vehicle.lights.staticLightCompounds.staticLightCompound(?)")
-	BeaconLight.registerVehicleXMLPaths(v1_, "vehicle.lights.beaconLights.beaconLight(?)")
-	v1_:register(XMLValueType.BOOL, "vehicle.lights.beaconLights.beaconLight(?)#alwaysActive", "Defines if the beacon light is always active while the vehicle is entered", false)
-	BeaconLight.registerVehicleXMLPaths(v1_, "vehicle.lights.beaconLightConfigurations.beaconLightConfiguration(?).beaconLight(?)")
-	v1_:register(XMLValueType.BOOL, "vehicle.lights.beaconLightConfigurations.beaconLightConfiguration(?).beaconLight(?)#alwaysActive", "Defines if the beacon light is always active while the vehicle is entered", false)
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.lights.sounds", "toggleLights")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.lights.sounds", "turnLight")
-	Dashboard.registerDashboardXMLPaths(v1_, "vehicle.lights.dashboards", {
-		"lightState",
-		"turnLightLeft",
-		"turnLightRight",
-		"turnLight",
-		"turnLightHazard",
-		"turnLightAny",
-		"beaconLight"
-	})
-	Dashboard.addDelayedRegistrationFunc(v1_, function(p2_, p3_)
-		p2_:register(XMLValueType.VECTOR_N, p3_ .. "#lightTypes", "Light types")
-		p2_:register(XMLValueType.VECTOR_N, p3_ .. "#excludedLightTypes", "Excluded light types")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Lights")
+	schema:register(XMLValueType.FLOAT, "vehicle.lights#reverseLightActivationSpeed", "Speed which needs to be reached to activate reverse lights (km/h)", 1)
+	schema:register(XMLValueType.VECTOR_N, "vehicle.lights.states.state(?)#lightTypes", "Light states")
+	schema:register(XMLValueType.VECTOR_N, "vehicle.lights.states.automaticState#lightTypes", "Light states while ai is active", "0")
+	schema:register(XMLValueType.VECTOR_N, "vehicle.lights.states.automaticState#lightTypesWork", "Light states while ai is working", "0 1 2")
+	SharedLight.registerXMLPaths(schema, "vehicle.lights.sharedLight(?)")
+	Lights.registerRealLightSetupXMLPath(schema, "vehicle.lights.realLights.low")
+	Lights.registerRealLightSetupXMLPath(schema, "vehicle.lights.realLights.high")
+	StaticLight.registerXMLPaths(schema, "vehicle.lights.defaultLights.defaultLight(?)")
+	StaticLight.registerXMLPaths(schema, "vehicle.lights.topLights.topLight(?)")
+	StaticLight.registerXMLPaths(schema, "vehicle.lights.bottomLights.bottomLight(?)")
+	StaticLight.registerXMLPaths(schema, "vehicle.lights.brakeLights.brakeLight(?)")
+	StaticLight.registerXMLPaths(schema, "vehicle.lights.reverseLights.reverseLight(?)")
+	StaticLight.registerXMLPaths(schema, "vehicle.lights.dayTimeLights.dayTimeLight(?)")
+	StaticLight.registerXMLPaths(schema, "vehicle.lights.turnLights.turnLightLeft(?)")
+	StaticLight.registerXMLPaths(schema, "vehicle.lights.turnLights.turnLightRight(?)")
+	StaticLightCompound.registerXMLPaths(schema, "vehicle.lights.staticLightCompounds.staticLightCompound(?)")
+	BeaconLight.registerVehicleXMLPaths(schema, "vehicle.lights.beaconLights.beaconLight(?)")
+	schema:register(XMLValueType.BOOL, "vehicle.lights.beaconLights.beaconLight(?)#alwaysActive", "Defines if the beacon light is always active while the vehicle is entered", false)
+	BeaconLight.registerVehicleXMLPaths(schema, "vehicle.lights.beaconLightConfigurations.beaconLightConfiguration(?).beaconLight(?)")
+	schema:register(XMLValueType.BOOL, "vehicle.lights.beaconLightConfigurations.beaconLightConfiguration(?).beaconLight(?)#alwaysActive", "Defines if the beacon light is always active while the vehicle is entered", false)
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.lights.sounds", "toggleLights")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.lights.sounds", "turnLight")
+	Dashboard.registerDashboardXMLPaths(schema, "vehicle.lights.dashboards", { "lightState", "turnLightLeft", "turnLightRight", "turnLight", "turnLightHazard", "turnLightAny", "beaconLight" })
+	Dashboard.addDelayedRegistrationFunc(schema, function(cSchema, cKey)
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. "#lightTypes", "Light types")
+		cSchema:register(XMLValueType.VECTOR_N, cKey .. "#excludedLightTypes", "Excluded light types")
 	end)
-	for v4_ = 1, #Lights.ADDITIONAL_LIGHT_ATTRIBUTES_KEYS do
-		local v5_ = Lights.ADDITIONAL_LIGHT_ATTRIBUTES_KEYS[v4_]
-		v1_:register(XMLValueType.BOOL, v5_ .. "#isTopLight", "Light is only active when switched to top light mode", false)
-		v1_:register(XMLValueType.BOOL, v5_ .. "#isBottomLight", "Light is only active when not switched to top light mode", false)
+	for i = 1, #Lights.ADDITIONAL_LIGHT_ATTRIBUTES_KEYS do
+		local key = Lights.ADDITIONAL_LIGHT_ATTRIBUTES_KEYS[i]
+		schema:register(XMLValueType.BOOL, key .. "#isTopLight", "Light is only active when switched to top light mode", false)
+		schema:register(XMLValueType.BOOL, key .. "#isBottomLight", "Light is only active when not switched to top light mode", false)
 	end
-	v1_:register(XMLValueType.VECTOR_N, Dashboard.GROUP_XML_KEY .. "#lightTypes", "Defined light types need to be enabled to activate group")
-	v1_:register(XMLValueType.VECTOR_N, Dashboard.GROUP_XML_KEY .. "#excludedLightTypes", "Defined light types need to be disabled to activate group")
-	v1_:setXMLSpecializationType()
+	schema:register(XMLValueType.VECTOR_N, Dashboard.GROUP_XML_KEY .. "#lightTypes", "Defined light types need to be enabled to activate group")
+	schema:register(XMLValueType.VECTOR_N, Dashboard.GROUP_XML_KEY .. "#excludedLightTypes", "Defined light types need to be disabled to activate group")
+	schema:setXMLSpecializationType()
 end
-
 function Lights.registerRealLightSetupXMLPath(schema, basePath)
 	RealLight.registerXMLPaths(schema, basePath .. ".light(?)")
 	RealLight.registerXMLPaths(schema, basePath .. ".topLight(?)")
@@ -110,7 +100,6 @@ function Lights.registerRealLightSetupXMLPath(schema, basePath)
 	RealLight.registerXMLPaths(schema, basePath .. ".turnLightRight(?)")
 	RealLight.registerXMLPaths(schema, basePath .. ".interiorLight(?)")
 end
-
 function Lights.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onTurnLightStateChanged")
 	SpecializationUtil.registerEvent(vehicleType, "onTopLightsVisibilityChanged")
@@ -119,7 +108,6 @@ function Lights.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onLightsTypesMaskChanged")
 	SpecializationUtil.registerEvent(vehicleType, "onBeaconLightsVisibilityChanged")
 end
-
 function Lights.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "loadRealLightSetup", Lights.loadRealLightSetup)
 	SpecializationUtil.registerFunction(vehicleType, "applyAdditionalActiveLightType", Lights.applyAdditionalActiveLightType)
@@ -152,12 +140,10 @@ function Lights.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "onLightsRealBeaconLightChanged", Lights.onLightsRealBeaconLightChanged)
 	SpecializationUtil.registerFunction(vehicleType, "deactivateBeaconLights", Lights.deactivateBeaconLights)
 end
-
 function Lights.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "loadDashboardGroupFromXML", Lights.loadDashboardGroupFromXML)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getIsDashboardGroupActive", Lights.getIsDashboardGroupActive)
 end
-
 function Lights.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Lights)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoadFinished", Lights)
@@ -188,8 +174,6 @@ function Lights.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onDeactivate", Lights)
 	SpecializationUtil.registerEventListener(vehicleType, "onRequiresTopLightsChanged", Lights)
 end
-
--- Local values: spec, registeredLightTypes, i, key, lightTypes, _, lightType, loadLightsMaskFromXML, xmlFile, lightTypes, lightsTypesMask, _, lightType, xmlFile, lightTypes, lightsTypesMask, _, lightType, _, compoundKey, staticLightCompound, _, lights, _, staticLight, _, profile, _, lights, _, realLight, configKey
 function Lights:onLoad(savegame)
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.lights.low.light#decoration", "vehicle.lights.defaultLights#node")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.lights.high.light#decoration", "vehicle.lights.defaultLights#node")
@@ -207,147 +191,145 @@ function Lights:onLoad(savegame)
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.reverseLights.reverseLight#decoration", "vehicle.lights.reverseLights.reverseLight#node")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.lights.states.aiState#lightTypes", "vehicle.lights.states.automaticState#lightTypes")
 	XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.lights.states.aiState#lightTypesWork", "vehicle.lights.states.automaticState#lightTypesWork")
-	local v_u_13_ = self.spec_lights
-	v_u_13_.reverseLightActivationSpeed = self.xmlFile:getValue("vehicle.lights#reverseLightActivationSpeed", 1) / 3600
-	v_u_13_.sharedLoadRequestIds = {}
-	v_u_13_.xmlLoadingHandles = {}
-	v_u_13_.lightsTypesMask = 0
-	v_u_13_.currentLightState = 0
-	v_u_13_.maxLightState = Lights.LIGHT_TYPE_HIGHBEAM
-	v_u_13_.numLightTypes = 0
-	v_u_13_.lightStates = {}
-	v_u_13_.lastIsActiveForLights = false
-	local v14_ = 0
-	local v15_ = {}
+	local spec = self.spec_lights
+	spec.reverseLightActivationSpeed = self.xmlFile:getValue("vehicle.lights#reverseLightActivationSpeed", 1) / 3600
+	spec.sharedLoadRequestIds = {}
+	spec.xmlLoadingHandles = {}
+	spec.lightsTypesMask = 0
+	spec.currentLightState = 0
+	spec.maxLightState = Lights.LIGHT_TYPE_HIGHBEAM
+	spec.numLightTypes = 0
+	spec.lightStates = {}
+	spec.lastIsActiveForLights = false
+	local registeredLightTypes = {}
+	local i = 0
 	while true do
-		local v16_ = string.format("vehicle.lights.states.state(%d)", v14_)
-		if not self.xmlFile:hasProperty(v16_) then
+		local key = string.format("vehicle.lights.states.state(%d)", i)
+		if not self.xmlFile:hasProperty(key) then
 			break
 		end
-		local v17_ = self.xmlFile:getValue(v16_ .. "#lightTypes", nil, true) or {}
-		for _, v18_ in pairs(v17_) do
-			if v15_[v18_] == nil then
-				v15_[v18_] = v18_
-				v_u_13_.numLightTypes = v_u_13_.numLightTypes + 1
-				local v19_ = v_u_13_.maxLightState
-				v_u_13_.maxLightState = math.max(v19_, v18_)
+		local lightTypes = self.xmlFile:getValue(key .. "#lightTypes", nil, true) or {}
+		for _, lightType in pairs(lightTypes) do
+			if registeredLightTypes[lightType] == nil then
+				registeredLightTypes[lightType] = lightType
+				spec.numLightTypes = spec.numLightTypes + 1
+				spec.maxLightState = math.max(spec.maxLightState, lightType)
 			end
 		end
-		local v20_ = v_u_13_.lightStates
-		table.insert(v20_, v17_)
-		v14_ = v14_ + 1
+		table.insert(spec.lightStates, lightTypes)
+		i = i + 1
 	end
-	local v21_ = self.xmlFile:getValue("vehicle.lights.states.automaticState#lightTypes", "0", true)
-	local v22_ = 0
-	for _, v23_ in pairs(v21_) do
-		local v24_ = 2 ^ v23_
-		v22_ = bit32.bor(v22_, v24_)
+	local loadLightsMaskFromXML = function(xmlFile, key, default)
+		local lightTypes = xmlFile:getValue(key, default, true)
+		local lightsTypesMask = 0
+		for _, lightType in pairs(lightTypes) do
+			lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ lightType)
+		end
+		return lightsTypesMask
 	end
-	v_u_13_.automaticLightsTypesMask = v22_
-	local v25_ = self.xmlFile:getValue("vehicle.lights.states.automaticState#lightTypesWork", "0 1 2", true)
-	local v26_ = 0
-	for _, v27_ in pairs(v25_) do
-		local v28_ = 2 ^ v27_
-		v26_ = bit32.bor(v26_, v28_)
+	local xmlFile = self.xmlFile
+	local lightTypes = xmlFile:getValue("vehicle.lights.states.automaticState#lightTypes", "0", true)
+	local lightsTypesMask = 0
+	for _, lightType in pairs(lightTypes) do
+		lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ lightType)
 	end
-	v_u_13_.automaticLightsTypesMaskWork = v26_
-	v_u_13_.interiorLightsBrightness = 0
-	v_u_13_.interiorLightsAvailable = false
-	v_u_13_.realLights = {}
-	v_u_13_.realLights.low = {}
-	self:loadRealLightSetup(self.xmlFile, "vehicle.lights.realLights.low", v_u_13_.realLights.low)
-	v_u_13_.realLights.high = {}
-	self:loadRealLightSetup(self.xmlFile, "vehicle.lights.realLights.high", v_u_13_.realLights.high)
-	v_u_13_.staticLights = {}
-	v_u_13_.staticLights.defaultLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.defaultLights.defaultLight", self, self.components, self.i3dMappings, true)
-	v_u_13_.staticLights.topLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.topLights.topLight", self, self.components, self.i3dMappings, false)
-	v_u_13_.staticLights.bottomLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.bottomLights.bottomLight", self, self.components, self.i3dMappings, false)
-	v_u_13_.staticLights.brakeLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.brakeLights.brakeLight", self, self.components, self.i3dMappings, false)
-	v_u_13_.staticLights.reverseLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.reverseLights.reverseLight", self, self.components, self.i3dMappings, false)
-	v_u_13_.staticLights.dayTimeLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.dayTimeLights.dayTimeLight", self, self.components, self.i3dMappings, false)
-	v_u_13_.staticLights.turnLightsLeft = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.turnLights.turnLightLeft", self, self.components, self.i3dMappings, false)
-	v_u_13_.staticLights.turnLightsRight = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.turnLights.turnLightRight", self, self.components, self.i3dMappings, false)
-	v_u_13_.staticLightCompounds = {}
-	for _, v29_ in self.xmlFile:iterator("vehicle.lights.staticLightCompounds.staticLightCompound") do
-		local v30_ = StaticLightCompound.new(self)
-		if v30_:loadFromXML(self.xmlFile, v29_, self.components, self.i3dMappings, self) then
-			local v31_ = v_u_13_.staticLightCompounds
-			table.insert(v31_, v30_)
+	spec.automaticLightsTypesMask = lightsTypesMask
+	local xmlFile = self.xmlFile
+	local lightTypes = xmlFile:getValue("vehicle.lights.states.automaticState#lightTypesWork", "0 1 2", true)
+	local lightsTypesMask = 0
+	for _, lightType in pairs(lightTypes) do
+		lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ lightType)
+	end
+	spec.automaticLightsTypesMaskWork = lightsTypesMask
+	spec.interiorLightsBrightness = 0
+	spec.interiorLightsAvailable = false
+	spec.realLights = {}
+	spec.realLights.low = {}
+	self:loadRealLightSetup(self.xmlFile, "vehicle.lights.realLights.low", spec.realLights.low)
+	spec.realLights.high = {}
+	self:loadRealLightSetup(self.xmlFile, "vehicle.lights.realLights.high", spec.realLights.high)
+	spec.staticLights = {}
+	spec.staticLights.defaultLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.defaultLights.defaultLight", self, self.components, self.i3dMappings, true)
+	spec.staticLights.topLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.topLights.topLight", self, self.components, self.i3dMappings, false)
+	spec.staticLights.bottomLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.bottomLights.bottomLight", self, self.components, self.i3dMappings, false)
+	spec.staticLights.brakeLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.brakeLights.brakeLight", self, self.components, self.i3dMappings, false)
+	spec.staticLights.reverseLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.reverseLights.reverseLight", self, self.components, self.i3dMappings, false)
+	spec.staticLights.dayTimeLights = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.dayTimeLights.dayTimeLight", self, self.components, self.i3dMappings, false)
+	spec.staticLights.turnLightsLeft = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.turnLights.turnLightLeft", self, self.components, self.i3dMappings, false)
+	spec.staticLights.turnLightsRight = StaticLight.loadLightsFromXML(nil, self.xmlFile, "vehicle.lights.turnLights.turnLightRight", self, self.components, self.i3dMappings, false)
+	spec.staticLightCompounds = {}
+	for _, compoundKey in self.xmlFile:iterator("vehicle.lights.staticLightCompounds.staticLightCompound") do
+		local staticLightCompound = StaticLightCompound.new(self)
+		if staticLightCompound:loadFromXML(self.xmlFile, compoundKey, self.components, self.i3dMappings, self) then
+			table.insert(spec.staticLightCompounds, staticLightCompound)
 		end
 	end
-	v_u_13_.sharedLights = {}
-	self.xmlFile:iterate("vehicle.lights.sharedLight", function(_, p32_)
-		-- upvalues: (copy) self
-		self:loadSharedLight(self.xmlFile, p32_)
+	spec.sharedLights = {}
+	self.xmlFile:iterate("vehicle.lights.sharedLight", function(_, key)
+		self:loadSharedLight(self.xmlFile, key)
 	end)
-	for _, v33_ in pairs(v_u_13_.staticLights) do
-		for _, v34_ in ipairs(v33_) do
-			if v34_.lightTypes ~= nil then
-				local v35_ = v_u_13_.maxLightState
-				local v36_ = v34_.lightTypes
-				local v37_ = unpack
-				v_u_13_.maxLightState = math.max(v35_, v37_(v36_))
+	for _, lights in pairs(spec.staticLights) do
+		for _, staticLight in ipairs(lights) do
+			if staticLight.lightTypes == nil then
+				continue
 			end
+			spec.maxLightState = math.max(spec.maxLightState, unpack(staticLight.lightTypes))
 		end
 	end
-	for _, v38_ in pairs(v_u_13_.realLights) do
-		for _, v39_ in pairs(v38_) do
-			for _, v40_ in ipairs(v39_) do
-				if v40_.lightTypes ~= nil then
-					local v41_ = v_u_13_.maxLightState
-					local v42_ = v40_.lightTypes
-					local v43_ = unpack
-					v_u_13_.maxLightState = math.max(v41_, v43_(v42_))
+	for _, profile in pairs(spec.realLights) do
+		for _, lights in pairs(profile) do
+			for _, realLight in ipairs(lights) do
+				if realLight.lightTypes == nil then
+					continue
 				end
+				spec.maxLightState = math.max(spec.maxLightState, unpack(realLight.lightTypes))
 			end
 		end
 	end
-	v_u_13_.maxLightStateMask = 2 ^ (v_u_13_.maxLightState + 1) - 1
-	v_u_13_.additionalLightTypes = {}
-	v_u_13_.additionalLightTypes.bottomLight = v_u_13_.maxLightState + 1
-	v_u_13_.additionalLightTypes.topLight = v_u_13_.maxLightState + 2
-	v_u_13_.additionalLightTypes.brakeLight = v_u_13_.maxLightState + 3
-	v_u_13_.additionalLightTypes.turnLightLeft = v_u_13_.maxLightState + 4
-	v_u_13_.additionalLightTypes.turnLightRight = v_u_13_.maxLightState + 5
-	v_u_13_.additionalLightTypes.turnLightAny = v_u_13_.maxLightState + 6
-	v_u_13_.additionalLightTypes.reverseLight = v_u_13_.maxLightState + 7
-	v_u_13_.additionalLightTypes.interiorLight = v_u_13_.maxLightState + 8
-	v_u_13_.totalNumLightTypes = v_u_13_.additionalLightTypes.interiorLight + 1
-	if v_u_13_.totalNumLightTypes > 31 then
+	spec.maxLightStateMask = 2 ^ (spec.maxLightState + 1) - 1
+	spec.additionalLightTypes = {}
+	spec.additionalLightTypes.bottomLight = spec.maxLightState + 1
+	spec.additionalLightTypes.topLight = spec.maxLightState + 2
+	spec.additionalLightTypes.brakeLight = spec.maxLightState + 3
+	spec.additionalLightTypes.turnLightLeft = spec.maxLightState + 4
+	spec.additionalLightTypes.turnLightRight = spec.maxLightState + 5
+	spec.additionalLightTypes.turnLightAny = spec.maxLightState + 6
+	spec.additionalLightTypes.reverseLight = spec.maxLightState + 7
+	spec.additionalLightTypes.interiorLight = spec.maxLightState + 8
+	spec.totalNumLightTypes = spec.additionalLightTypes.interiorLight + 1
+	if 31 < spec.totalNumLightTypes then
 		Logging.xmlError(self.xmlFile, "Max. number of light types reached (31). Please reduce them.")
-		v_u_13_.totalNumLightTypes = 31
+		spec.totalNumLightTypes = 31
 	end
-	v_u_13_.topLightsVisibility = false
-	v_u_13_.brakeLightsVisibility = false
-	v_u_13_.reverseLightsVisibility = false
-	v_u_13_.turnLightState = Lights.TURNLIGHT_OFF
-	v_u_13_.turnLightTriState = 0.5
-	v_u_13_.turnLightRepetitionCount = nil
-	v_u_13_.actionEventsActiveChange = {}
-	v_u_13_.beaconLightsActive = false
-	v_u_13_.beaconLights = {}
-	v_u_13_.alwaysActiveBeaconLights = {}
-	local v44_ = string.format("vehicle.lights.beaconLightConfigurations.beaconLightConfiguration(%d)", (self.configurations.beaconLight or 1) - 1)
-	self.xmlFile:iterate(v44_ .. ".beaconLight", function(_, p45_)
-		-- upvalues: (copy) self, (copy) v_u_13_
-		if self.xmlFile:hasProperty(p45_ .. "#alwaysActive") then
-			BeaconLight.loadFromVehicleXML(v_u_13_.alwaysActiveBeaconLights, self.xmlFile, p45_, self)
+	spec.topLightsVisibility = false
+	spec.brakeLightsVisibility = false
+	spec.reverseLightsVisibility = false
+	spec.turnLightState = Lights.TURNLIGHT_OFF
+	spec.turnLightTriState = 0.5
+	spec.turnLightRepetitionCount = nil
+	spec.actionEventsActiveChange = {}
+	spec.beaconLightsActive = false
+	spec.beaconLights = {}
+	spec.alwaysActiveBeaconLights = {}
+	local configKey = string.format("vehicle.lights.beaconLightConfigurations.beaconLightConfiguration(%d)", (self.configurations.beaconLight or 1) - 1)
+	self.xmlFile:iterate(configKey .. ".beaconLight", function(_, key)
+		if self.xmlFile:hasProperty(key .. "#alwaysActive") then
+			BeaconLight.loadFromVehicleXML(spec.alwaysActiveBeaconLights, self.xmlFile, key, self)
 		else
-			BeaconLight.loadFromVehicleXML(v_u_13_.beaconLights, self.xmlFile, p45_, self)
+			BeaconLight.loadFromVehicleXML(spec.beaconLights, self.xmlFile, key, self)
 		end
 	end)
-	self.xmlFile:iterate("vehicle.lights.beaconLights.beaconLight", function(_, p46_)
-		-- upvalues: (copy) self, (copy) v_u_13_
-		if self.xmlFile:hasProperty(p46_ .. "#alwaysActive") then
-			BeaconLight.loadFromVehicleXML(v_u_13_.alwaysActiveBeaconLights, self.xmlFile, p46_, self)
+	self.xmlFile:iterate("vehicle.lights.beaconLights.beaconLight", function(_, key)
+		if self.xmlFile:hasProperty(key .. "#alwaysActive") then
+			BeaconLight.loadFromVehicleXML(spec.alwaysActiveBeaconLights, self.xmlFile, key, self)
 		else
-			BeaconLight.loadFromVehicleXML(v_u_13_.beaconLights, self.xmlFile, p46_, self)
+			BeaconLight.loadFromVehicleXML(spec.beaconLights, self.xmlFile, key, self)
 		end
 	end)
 	if self.isClient ~= nil then
-		v_u_13_.samples = {}
-		v_u_13_.samples.toggleLights = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.lights.sounds", "toggleLights", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_13_.samples.turnLight = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.lights.sounds", "turnLight", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples = {}
+		spec.samples.toggleLights = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.lights.sounds", "toggleLights", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.turnLight = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.lights.sounds", "turnLight", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
 	end
 	if g_currentMission ~= nil and g_currentMission.environment ~= nil then
 		g_messageCenter:subscribe(MessageType.DAY_NIGHT_CHANGED, self.lightsWeatherChanged, self)
@@ -355,379 +337,335 @@ function Lights:onLoad(savegame)
 	g_messageCenter:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.LIGHTS_PROFILE], self.onLightsProfileChanged, self)
 	g_messageCenter:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.REAL_BEACON_LIGHTS], self.onLightsRealBeaconLightChanged, self)
 end
-
--- Local values: spec, _, profile, _, lights, _, realLight, _, staticLight
 function Lights:onLoadFinished(savegame)
-	local v48_ = self.spec_lights
-	self:applyAdditionalActiveLightType(v48_.staticLights.topLights, v48_.additionalLightTypes.topLight)
-	self:applyAdditionalActiveLightType(v48_.staticLights.bottomLights, v48_.additionalLightTypes.bottomLight)
-	self:applyAdditionalActiveLightType(v48_.staticLights.brakeLights, v48_.additionalLightTypes.brakeLight)
-	self:applyAdditionalActiveLightType(v48_.staticLights.reverseLights, v48_.additionalLightTypes.reverseLight)
-	self:applyAdditionalActiveLightType(v48_.staticLights.turnLightsLeft, v48_.additionalLightTypes.turnLightLeft, true)
-	self:applyAdditionalActiveLightType(v48_.staticLights.turnLightsLeft, v48_.additionalLightTypes.turnLightAny, true)
-	self:applyAdditionalActiveLightType(v48_.staticLights.turnLightsRight, v48_.additionalLightTypes.turnLightRight, true)
-	self:applyAdditionalActiveLightType(v48_.staticLights.turnLightsRight, v48_.additionalLightTypes.turnLightAny, true)
-	for _, v49_ in pairs(v48_.realLights) do
-		self:applyAdditionalActiveLightType(v49_.topLights, v48_.additionalLightTypes.topLight)
-		self:applyAdditionalActiveLightType(v49_.bottomLights, v48_.additionalLightTypes.bottomLight)
-		self:applyAdditionalActiveLightType(v49_.brakeLights, v48_.additionalLightTypes.brakeLight)
-		self:applyAdditionalActiveLightType(v49_.reverseLights, v48_.additionalLightTypes.reverseLight)
-		self:applyAdditionalActiveLightType(v49_.turnLightsLeft, v48_.additionalLightTypes.turnLightLeft, true)
-		self:applyAdditionalActiveLightType(v49_.turnLightsLeft, v48_.additionalLightTypes.turnLightAny, true)
-		self:applyAdditionalActiveLightType(v49_.turnLightsRight, v48_.additionalLightTypes.turnLightRight, true)
-		self:applyAdditionalActiveLightType(v49_.turnLightsRight, v48_.additionalLightTypes.turnLightAny, true)
-		self:applyAdditionalActiveLightType(v49_.interiorLights, v48_.additionalLightTypes.interiorLight)
-		for _, v50_ in pairs(v49_) do
-			for _, v51_ in ipairs(v50_) do
-				v51_:finalize()
+	local spec = self.spec_lights
+	self:applyAdditionalActiveLightType(spec.staticLights.topLights, spec.additionalLightTypes.topLight)
+	self:applyAdditionalActiveLightType(spec.staticLights.bottomLights, spec.additionalLightTypes.bottomLight)
+	self:applyAdditionalActiveLightType(spec.staticLights.brakeLights, spec.additionalLightTypes.brakeLight)
+	self:applyAdditionalActiveLightType(spec.staticLights.reverseLights, spec.additionalLightTypes.reverseLight)
+	self:applyAdditionalActiveLightType(spec.staticLights.turnLightsLeft, spec.additionalLightTypes.turnLightLeft, true)
+	self:applyAdditionalActiveLightType(spec.staticLights.turnLightsLeft, spec.additionalLightTypes.turnLightAny, true)
+	self:applyAdditionalActiveLightType(spec.staticLights.turnLightsRight, spec.additionalLightTypes.turnLightRight, true)
+	self:applyAdditionalActiveLightType(spec.staticLights.turnLightsRight, spec.additionalLightTypes.turnLightAny, true)
+	for _, profile in pairs(spec.realLights) do
+		self:applyAdditionalActiveLightType(profile.topLights, spec.additionalLightTypes.topLight)
+		self:applyAdditionalActiveLightType(profile.bottomLights, spec.additionalLightTypes.bottomLight)
+		self:applyAdditionalActiveLightType(profile.brakeLights, spec.additionalLightTypes.brakeLight)
+		self:applyAdditionalActiveLightType(profile.reverseLights, spec.additionalLightTypes.reverseLight)
+		self:applyAdditionalActiveLightType(profile.turnLightsLeft, spec.additionalLightTypes.turnLightLeft, true)
+		self:applyAdditionalActiveLightType(profile.turnLightsLeft, spec.additionalLightTypes.turnLightAny, true)
+		self:applyAdditionalActiveLightType(profile.turnLightsRight, spec.additionalLightTypes.turnLightRight, true)
+		self:applyAdditionalActiveLightType(profile.turnLightsRight, spec.additionalLightTypes.turnLightAny, true)
+		self:applyAdditionalActiveLightType(profile.interiorLights, spec.additionalLightTypes.interiorLight)
+		for _, lights in pairs(profile) do
+			for _, realLight in ipairs(lights) do
+				realLight:finalize()
 			end
 		end
 	end
 	if self:getIsInShowroom() then
-		for _, v52_ in ipairs(v48_.staticLights.dayTimeLights) do
-			v52_:setState(true)
+		for _, staticLight in ipairs(spec.staticLights.dayTimeLights) do
+			staticLight:setState(true)
 		end
 	end
 end
-
--- Local values: spec, lightState, turnLightLeft, turnLightRight, turnLight, turnLightHazard, turnLightAny, beaconLight
 function Lights:onRegisterDashboardValueTypes()
-	local v_u_54_ = self.spec_lights
-	local v55_ = DashboardValueType.new("lights", "lightState")
-	v55_:setValue(v_u_54_, function(_, p56_)
-		-- upvalues: (copy) v_u_54_, (copy) self
-		if p56_.displayTypeIndex == Dashboard.TYPES.MULTI_STATE then
-			return v_u_54_.lightsTypesMask
+	local spec = self.spec_lights
+	local lightState = DashboardValueType.new("lights", "lightState")
+	lightState:setValue(spec, function(_, dashboard)
+		if dashboard.displayTypeIndex == Dashboard.TYPES.MULTI_STATE then
+			return spec.lightsTypesMask
 		end
-		local v57_ = false
-		if p56_.lightTypes ~= nil then
-			for _, v58_ in pairs(p56_.lightTypes) do
-				local v59_ = v_u_54_.lightsTypesMask
-				local v60_ = 2 ^ v58_
-				if bit32.band(v59_, v60_) ~= 0 or v58_ == -1 and self:getIsActiveForLights(true) then
-					v57_ = true
-					break
+		local lightIsActive = false
+		if dashboard.lightTypes ~= nil then
+			for _, lightType in pairs(dashboard.lightTypes) do
+				if bit32.band(spec.lightsTypesMask, 2 ^ lightType) ~= 0 or lightType == -1 and self:getIsActiveForLights(true) then
+					lightIsActive = true
+				else
+				end
+				if lightIsActive and dashboard.excludedLightTypes ~= nil then
+					for _, excludedLightType in pairs(dashboard.excludedLightTypes) do
+						if bit32.band(spec.lightsTypesMask, 2 ^ excludedLightType) ~= 0 then
+							lightIsActive = false
+							break
+						end
+					end
+				end
+				if lightIsActive then
+					return 1
+				else
+					return 0
 				end
 			end
 		end
-		if v57_ and p56_.excludedLightTypes ~= nil then
-			for _, v61_ in pairs(p56_.excludedLightTypes) do
-				local v62_ = v_u_54_.lightsTypesMask
-				local v63_ = 2 ^ v61_
-				if bit32.band(v62_, v63_) ~= 0 then
-					v57_ = false
-					break
-				end
-			end
+	end)
+	lightState:setAdditionalFunctions(Lights.dashboardLightAttributes, Lights.dashboardLightState)
+	lightState:setPollUpdate(false)
+	self:registerDashboardValueType(lightState)
+	local turnLightLeft = DashboardValueType.new("lights", "turnLightLeft")
+	turnLightLeft:setValue(spec, "turnLightState")
+	turnLightLeft:setValueCompare(Lights.TURNLIGHT_LEFT, Lights.TURNLIGHT_HAZARD)
+	turnLightLeft:setPollUpdate(false)
+	self:registerDashboardValueType(turnLightLeft)
+	local turnLightRight = DashboardValueType.new("lights", "turnLightRight")
+	turnLightRight:setValue(spec, "turnLightState")
+	turnLightRight:setValueCompare(Lights.TURNLIGHT_RIGHT, Lights.TURNLIGHT_HAZARD)
+	turnLightRight:setPollUpdate(false)
+	self:registerDashboardValueType(turnLightRight)
+	local turnLight = DashboardValueType.new("lights", "turnLight")
+	turnLight:setValue(spec, "turnLightTriState")
+	turnLight:setIdleValue(0.5)
+	turnLight:setPollUpdate(false)
+	self:registerDashboardValueType(turnLight)
+	local turnLightHazard = DashboardValueType.new("lights", "turnLightHazard")
+	turnLightHazard:setValue(spec, "turnLightState")
+	turnLightHazard:setValueCompare(Lights.TURNLIGHT_HAZARD)
+	turnLightHazard:setPollUpdate(false)
+	self:registerDashboardValueType(turnLightHazard)
+	local turnLightAny = DashboardValueType.new("lights", "turnLightAny")
+	turnLightAny:setValue(spec, "turnLightState")
+	turnLightAny:setValueCompare(Lights.TURNLIGHT_LEFT, Lights.TURNLIGHT_RIGHT, Lights.TURNLIGHT_HAZARD)
+	turnLightAny:setPollUpdate(false)
+	self:registerDashboardValueType(turnLightAny)
+	local beaconLight = DashboardValueType.new("lights", "beaconLight")
+	beaconLight:setValue(spec, function(_spec)
+		if _spec.beaconLightsActive then
+			return 1
+		else
+			return 0
 		end
-		return v57_ and 1 or 0
 	end)
-	v55_:setAdditionalFunctions(Lights.dashboardLightAttributes, Lights.dashboardLightState)
-	v55_:setPollUpdate(false)
-	self:registerDashboardValueType(v55_)
-	local v64_ = DashboardValueType.new("lights", "turnLightLeft")
-	v64_:setValue(v_u_54_, "turnLightState")
-	v64_:setValueCompare(Lights.TURNLIGHT_LEFT, Lights.TURNLIGHT_HAZARD)
-	v64_:setPollUpdate(false)
-	self:registerDashboardValueType(v64_)
-	local v65_ = DashboardValueType.new("lights", "turnLightRight")
-	v65_:setValue(v_u_54_, "turnLightState")
-	v65_:setValueCompare(Lights.TURNLIGHT_RIGHT, Lights.TURNLIGHT_HAZARD)
-	v65_:setPollUpdate(false)
-	self:registerDashboardValueType(v65_)
-	local v66_ = DashboardValueType.new("lights", "turnLight")
-	v66_:setValue(v_u_54_, "turnLightTriState")
-	v66_:setIdleValue(0.5)
-	v66_:setPollUpdate(false)
-	self:registerDashboardValueType(v66_)
-	local v67_ = DashboardValueType.new("lights", "turnLightHazard")
-	v67_:setValue(v_u_54_, "turnLightState")
-	v67_:setValueCompare(Lights.TURNLIGHT_HAZARD)
-	v67_:setPollUpdate(false)
-	self:registerDashboardValueType(v67_)
-	local v68_ = DashboardValueType.new("lights", "turnLightAny")
-	v68_:setValue(v_u_54_, "turnLightState")
-	v68_:setValueCompare(Lights.TURNLIGHT_LEFT, Lights.TURNLIGHT_RIGHT, Lights.TURNLIGHT_HAZARD)
-	v68_:setPollUpdate(false)
-	self:registerDashboardValueType(v68_)
-	local v69_ = DashboardValueType.new("lights", "beaconLight")
-	v69_:setValue(v_u_54_, function(p70_)
-		return p70_.beaconLightsActive and 1 or 0
-	end)
-	v69_:setPollUpdate(false)
-	self:registerDashboardValueType(v69_)
+	beaconLight:setPollUpdate(false)
+	self:registerDashboardValueType(beaconLight)
 end
-
--- Local values: spec, _, sharedLight, _, beaconLight, _, beaconLight, lightXMLFile, _, _, sharedLoadRequestId
 function Lights:onDelete()
-	local v72_ = self.spec_lights
-	if v72_.sharedLights ~= nil then
-		for _, v73_ in ipairs(v72_.sharedLights) do
-			v73_:delete()
+	local spec = self.spec_lights
+	if spec.sharedLights ~= nil then
+		for _, sharedLight in ipairs(spec.sharedLights) do
+			sharedLight:delete()
 		end
-		v72_.sharedLights = {}
+		spec.sharedLights = {}
 	end
-	if v72_.beaconLights ~= nil then
-		for _, v74_ in ipairs(v72_.beaconLights) do
-			v74_:delete()
+	if spec.beaconLights ~= nil then
+		for _, beaconLight in ipairs(spec.beaconLights) do
+			beaconLight:delete()
 		end
-		v72_.beaconLights = {}
+		spec.beaconLights = {}
 	end
-	if v72_.alwaysActiveBeaconLights ~= nil then
-		for _, v75_ in ipairs(v72_.alwaysActiveBeaconLights) do
-			v75_:delete()
+	if spec.alwaysActiveBeaconLights ~= nil then
+		for _, beaconLight in ipairs(spec.alwaysActiveBeaconLights) do
+			beaconLight:delete()
 		end
-		v72_.alwaysActiveBeaconLights = {}
+		spec.alwaysActiveBeaconLights = {}
 	end
-	if v72_.xmlLoadingHandles ~= nil then
-		for v76_, _ in pairs(v72_.xmlLoadingHandles) do
-			v76_:delete()
-			v72_.xmlLoadingHandles[v76_] = nil
-		end
-	end
-	if v72_.sharedLoadRequestIds ~= nil then
-		for _, v77_ in ipairs(v72_.sharedLoadRequestIds) do
-			g_i3DManager:releaseSharedI3DFile(v77_)
+	if spec.xmlLoadingHandles ~= nil then
+		for lightXMLFile, _ in pairs(spec.xmlLoadingHandles) do
+			lightXMLFile:delete()
+			spec.xmlLoadingHandles[lightXMLFile] = nil
 		end
 	end
-	if v72_.staticLightCompounds ~= nil then
-		v72_.staticLightCompounds = {}
+	if spec.sharedLoadRequestIds ~= nil then
+		for _, sharedLoadRequestId in ipairs(spec.sharedLoadRequestIds) do
+			g_i3DManager:releaseSharedI3DFile(sharedLoadRequestId)
+		end
 	end
-	g_soundManager:deleteSamples(v72_.samples)
+	if spec.staticLightCompounds ~= nil then
+		spec.staticLightCompounds = {}
+	end
+	g_soundManager:deleteSamples(spec.samples)
 end
-
--- Local values: spec, lightsTypesMask, beaconLightsActive
 function Lights:onReadStream(streamId, connection)
-	local v80_ = self.spec_lights
-	self:setLightsTypesMask(streamReadUIntN(streamId, v80_.totalNumLightTypes), true, true)
-	self:setBeaconLightsVisibility(streamReadBool(streamId), true, true)
+	local spec = self.spec_lights
+	local lightsTypesMask = streamReadUIntN(streamId, spec.totalNumLightTypes)
+	self:setLightsTypesMask(lightsTypesMask, true, true)
+	local beaconLightsActive = streamReadBool(streamId)
+	self:setBeaconLightsVisibility(beaconLightsActive, true, true)
 end
-
--- Local values: spec
 function Lights:onWriteStream(streamId, connection)
-	local v83_ = self.spec_lights
-	streamWriteUIntN(streamId, v83_.lightsTypesMask, v83_.totalNumLightTypes)
-	streamWriteBool(streamId, v83_.beaconLightsActive)
+	local spec = self.spec_lights
+	streamWriteUIntN(streamId, spec.lightsTypesMask, spec.totalNumLightTypes)
+	streamWriteBool(streamId, spec.beaconLightsActive)
 end
-
--- Local values: spec, shaderTime, _, fracTime, alpha, _, light, _, light, turnLightRepetitionCount
 function Lights:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	if self.isClient then
-		local v86_ = self.spec_lights
-		if v86_.turnLightState ~= Lights.TURNLIGHT_OFF then
-			local v87_ = getShaderTimeSec()
-			local _, v88_ = math.modf(v87_)
-			local v89_ = v88_ - 0.5
-			local v90_ = 4 * math.abs(v89_) - 0.8
-			local v91_ = math.clamp(v90_, 0, 1)
-			if v86_.turnLightState == Lights.TURNLIGHT_LEFT or v86_.turnLightState == Lights.TURNLIGHT_HAZARD then
-				for _, v92_ in pairs(v86_.activeTurnLightSetup.turnLightsLeft) do
-					v92_:setCharge(v91_)
+		local spec = self.spec_lights
+		if spec.turnLightState ~= Lights.TURNLIGHT_OFF then
+			local shaderTime = getShaderTimeSec()
+			local _, fracTime = math.modf(shaderTime)
+			local alpha = math.clamp(4 * math.abs(fracTime - 0.5) - 0.8, 0, 1)
+			if spec.turnLightState == Lights.TURNLIGHT_LEFT or spec.turnLightState == Lights.TURNLIGHT_HAZARD then
+				for _, light in pairs(spec.activeTurnLightSetup.turnLightsLeft) do
+					light:setCharge(alpha)
 				end
 			end
-			if v86_.turnLightState == Lights.TURNLIGHT_RIGHT or v86_.turnLightState == Lights.TURNLIGHT_HAZARD then
-				for _, v93_ in pairs(v86_.activeTurnLightSetup.turnLightsRight) do
-					v93_:setCharge(v91_)
+			if spec.turnLightState == Lights.TURNLIGHT_RIGHT or spec.turnLightState == Lights.TURNLIGHT_HAZARD then
+				for _, light in pairs(spec.activeTurnLightSetup.turnLightsRight) do
+					light:setCharge(alpha)
 				end
 			end
-			if v86_.samples.turnLight ~= nil and isActiveForInputIgnoreSelection then
-				local v94_ = v87_ - 0.8
-				local v95_ = math.floor(v94_)
-				if v86_.turnLightRepetitionCount ~= nil and v95_ ~= v86_.turnLightRepetitionCount then
-					g_soundManager:playSample(v86_.samples.turnLight)
+			if spec.samples.turnLight ~= nil and isActiveForInputIgnoreSelection then
+				local turnLightRepetitionCount = math.floor(shaderTime - 0.8)
+				if spec.turnLightRepetitionCount ~= nil and turnLightRepetitionCount ~= spec.turnLightRepetitionCount then
+					g_soundManager:playSample(spec.samples.turnLight)
 				end
-				v86_.turnLightRepetitionCount = v95_
+				spec.turnLightRepetitionCount = turnLightRepetitionCount
 			end
 			self:raiseActive()
 		end
 	end
 end
-
--- Local values: spec, isActiveForLights, _, beaconLight, _, v
 function Lights:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
 	if self.isClient then
-		local v97_ = self.spec_lights
-		local v98_ = self:getIsActiveForLights()
-		if v98_ ~= v97_.lastIsActiveForLights then
-			for _, v99_ in ipairs(v97_.alwaysActiveBeaconLights) do
-				v99_:setIsActive(v98_)
+		local spec = self.spec_lights
+		local isActiveForLights = self:getIsActiveForLights()
+		if isActiveForLights ~= spec.lastIsActiveForLights then
+			for _, beaconLight in ipairs(spec.alwaysActiveBeaconLights) do
+				beaconLight:setIsActive(isActiveForLights)
 			end
-			v97_.lastIsActiveForLights = v98_
+			spec.lastIsActiveForLights = isActiveForLights
 		end
-		if v97_.interiorLightsAvailable then
+		if spec.interiorLightsAvailable then
 			self:setInteriorLightsVisibility(self:getIsActiveForInteriorLights())
 		end
-		for _, v100_ in ipairs(v97_.actionEventsActiveChange) do
-			g_inputBinding:setActionEventActive(v100_, v98_)
+		for _, v in ipairs(spec.actionEventsActiveChange) do
+			g_inputBinding:setActionEventActive(v, isActiveForLights)
 		end
-		g_inputBinding:setActionEventActive(v97_.actionEventIdLight, v98_)
+		g_inputBinding:setActionEventActive(spec.actionEventIdLight, isActiveForLights)
 		if Platform.gameplay.automaticLights and (self == self.rootVehicle and not self:getIsAIActive()) then
-			self:updateAutomaticLights(not g_currentMission.environment.isSunOn and v98_, self.rootVehicle:getActionControllerDirection() == -1)
+			self:updateAutomaticLights(not g_currentMission.environment.isSunOn and isActiveForLights, self.rootVehicle:getActionControllerDirection() == -1)
 		end
 	end
 end
-
 function Lights:getIsActiveForLights(onlyPowered)
 	if onlyPowered == true and not self:getIsPowered() then
 		return false
-	elseif self.getIsEntered == nil or not (self:getIsEntered() and self:getCanToggleLight()) then
-		if self.attacherVehicle == nil then
-			return false
-		else
-			return self.attacherVehicle:getIsActiveForLights()
-		end
-	else
+	end
+	if self.getIsEntered ~= nil and (self:getIsEntered() and self:getCanToggleLight()) then
 		return true
 	end
+	if self.attacherVehicle ~= nil then
+		return self.attacherVehicle:getIsActiveForLights()
+	else
+		return false
+	end
 end
-
-function Lights.getIsActiveForInteriorLights(self)
+function Lights:getIsActiveForInteriorLights()
 	return false
 end
-
--- Local values: spec
 function Lights:getCanToggleLight()
-	local v104_ = self.spec_lights
+	local spec = self.spec_lights
 	if self:getIsAIActive() then
 		return false
-	elseif v104_.numLightTypes == 0 then
+	elseif spec.numLightTypes == 0 then
 		return false
+	elseif g_localPlayer:getCurrentVehicle() == self then
+		return true
 	else
-		return g_localPlayer:getCurrentVehicle() == self
+		return false
 	end
 end
-
--- Local values: lightsProfile
 function Lights:getUseHighProfile()
-	local v105_ = g_gameSettings:getValue(GameSettings.SETTING.LIGHTS_PROFILE)
-	return Utils.getNoNil(Platform.gameplay.lightsProfile, v105_) >= GS_PROFILE_HIGH
+	local lightsProfile = g_gameSettings:getValue(GameSettings.SETTING.LIGHTS_PROFILE)
+	lightsProfile = Utils.getNoNil(Platform.gameplay.lightsProfile, lightsProfile)
+	return GS_PROFILE_HIGH <= lightsProfile
 end
-
--- Local values: spec, oldLightsTypesMask, currentLightState, lightsTypesMask, _, lightType
 function Lights:setNextLightsState(increment)
-	local v108_ = self.spec_lights
-	if v108_.lightStates ~= nil and #v108_.lightStates > 0 then
-		local v109_ = v108_.lightsTypesMask
-		local v110_ = v108_.maxLightStateMask
-		local v111_ = bit32.band(v109_, v110_)
-		local v112_ = v108_.currentLightState + increment
-		local v113_ = (#v108_.lightStates < v112_ or v108_.currentLightState == 0 and v111_ > 0) and 0 or (v112_ < 0 and #v108_.lightStates or v112_)
-		local v114_ = v108_.lightsTypesMask
-		local v115_ = v108_.maxLightStateMask
-		local v116_ = bit32.bnot(v115_)
-		local v117_ = bit32.band(v114_, v116_)
-		if v113_ > 0 then
-			for _, v118_ in pairs(v108_.lightStates[v113_]) do
-				local v119_ = 2 ^ v118_
-				v117_ = bit32.bor(v117_, v119_)
+	local spec = self.spec_lights
+	if spec.lightStates ~= nil and 0 < #spec.lightStates then
+		local oldLightsTypesMask = bit32.band(spec.lightsTypesMask, spec.maxLightStateMask)
+		local currentLightState = spec.currentLightState + increment
+		if #spec.lightStates < currentLightState or spec.currentLightState == 0 and 0 < oldLightsTypesMask then
+			currentLightState = 0
+		else
+			if currentLightState < 0 then
+				currentLightState = #spec.lightStates
 			end
 		end
-		v108_.currentLightState = v113_
-		self:setLightsTypesMask(v117_)
+		local lightsTypesMask = bit32.band(spec.lightsTypesMask, bit32.bnot(spec.maxLightStateMask))
+		if 0 < currentLightState then
+			for _, lightType in pairs(spec.lightStates[currentLightState]) do
+				lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ lightType)
+			end
+		end
+		spec.currentLightState = currentLightState
+		self:setLightsTypesMask(lightsTypesMask)
 	end
 end
-
--- Local values: spec, activeLightSetup, _, lights, _, staticLight, _, profile, _, lights, _, realLight, _, staticLightCompound
 function Lights:setLightsTypesMask(lightsTypesMask, force, noEventSend)
-	local v124_ = self.spec_lights
-	local v125_
+	local spec = self.spec_lights
 	if self.isServer then
-		local v126_ = v124_.maxLightStateMask
-		v125_ = bit32.band(lightsTypesMask, v126_)
-		if v124_.turnLightState == Lights.TURNLIGHT_LEFT then
-			local v127_ = 2 ^ v124_.additionalLightTypes.turnLightLeft
-			v125_ = bit32.bor(v125_, v127_)
+		lightsTypesMask = bit32.band(lightsTypesMask, spec.maxLightStateMask)
+		if spec.turnLightState == Lights.TURNLIGHT_LEFT then
+			lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.turnLightLeft)
 		end
-		if v124_.turnLightState == Lights.TURNLIGHT_RIGHT then
-			local v128_ = 2 ^ v124_.additionalLightTypes.turnLightRight
-			v125_ = bit32.bor(v125_, v128_)
+		if spec.turnLightState == Lights.TURNLIGHT_RIGHT then
+			lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.turnLightRight)
 		end
-		if v124_.turnLightState == Lights.TURNLIGHT_HAZARD then
-			local v129_ = 2 ^ v124_.additionalLightTypes.turnLightAny
-			v125_ = bit32.bor(v125_, v129_)
+		if spec.turnLightState == Lights.TURNLIGHT_HAZARD then
+			lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.turnLightAny)
 		end
-		local v130_ = 2 ^ Lights.LIGHT_TYPE_DEFAULT
-		if bit32.band(v125_, v130_) ~= 0 then
-			if v124_.topLightsVisibility then
-				local v131_ = 2 ^ v124_.additionalLightTypes.topLight
-				v125_ = bit32.bor(v125_, v131_)
+		if bit32.band(lightsTypesMask, 2 ^ Lights.LIGHT_TYPE_DEFAULT) ~= 0 then
+			if spec.topLightsVisibility then
+				lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.topLight)
 			else
-				local v132_ = 2 ^ v124_.additionalLightTypes.bottomLight
-				v125_ = bit32.bor(v125_, v132_)
+				lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.bottomLight)
 			end
 		end
-		if v124_.brakeLightsVisibility then
-			local v133_ = 2 ^ v124_.additionalLightTypes.brakeLight
-			v125_ = bit32.bor(v125_, v133_)
+		if spec.brakeLightsVisibility then
+			lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.brakeLight)
 		end
-		if v124_.reverseLightsVisibility then
-			local v134_ = 2 ^ v124_.additionalLightTypes.reverseLight
-			v125_ = bit32.bor(v125_, v134_)
+		if spec.reverseLightsVisibility then
+			lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.reverseLight)
 		end
-		if v124_.interiorLightsVisibility then
-			local v135_ = 2 ^ v124_.additionalLightTypes.interiorLight
-			v125_ = bit32.bor(v125_, v135_)
+		if spec.interiorLightsVisibility then
+			lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.interiorLight)
 		end
 	else
-		local v136_ = 2 ^ v124_.additionalLightTypes.topLight
-		local v137_ = bit32.bnot(v136_)
-		local v138_ = bit32.band(lightsTypesMask, v137_)
-		local v139_ = 2 ^ v124_.additionalLightTypes.bottomLight
-		local v140_ = bit32.bnot(v139_)
-		local v141_ = bit32.band(v138_, v140_)
-		local v142_ = 2 ^ Lights.LIGHT_TYPE_DEFAULT
-		if bit32.band(v141_, v142_) ~= 0 then
-			if v124_.topLightsVisibility then
-				local v143_ = 2 ^ v124_.additionalLightTypes.topLight
-				v141_ = bit32.bor(v141_, v143_)
+		lightsTypesMask = bit32.band(lightsTypesMask, bit32.bnot(2 ^ spec.additionalLightTypes.topLight))
+		lightsTypesMask = bit32.band(lightsTypesMask, bit32.bnot(2 ^ spec.additionalLightTypes.bottomLight))
+		if bit32.band(lightsTypesMask, 2 ^ Lights.LIGHT_TYPE_DEFAULT) ~= 0 then
+			if spec.topLightsVisibility then
+				lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.topLight)
 			else
-				local v144_ = 2 ^ v124_.additionalLightTypes.bottomLight
-				v141_ = bit32.bor(v141_, v144_)
+				lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.bottomLight)
 			end
 		end
-		local v145_ = 2 ^ v124_.additionalLightTypes.interiorLight
-		local v146_ = bit32.bnot(v145_)
-		v125_ = bit32.band(v141_, v146_)
-		if v124_.interiorLightsVisibility then
-			local v147_ = 2 ^ v124_.additionalLightTypes.interiorLight
-			v125_ = bit32.bor(v125_, v147_)
+		lightsTypesMask = bit32.band(lightsTypesMask, bit32.bnot(2 ^ spec.additionalLightTypes.interiorLight))
+		if spec.interiorLightsVisibility then
+			lightsTypesMask = bit32.bor(lightsTypesMask, 2 ^ spec.additionalLightTypes.interiorLight)
 		end
 	end
-	if v125_ ~= v124_.lightsTypesMask or force then
+	if lightsTypesMask ~= spec.lightsTypesMask or force then
 		if noEventSend == nil or noEventSend == false then
-			if g_server == nil then
-				g_client:getServerConnection():sendEvent(VehicleSetLightEvent.new(self, v125_, v124_.totalNumLightTypes))
+			if g_server ~= nil then
+				g_server:broadcastEvent(VehicleSetLightEvent.new(self, lightsTypesMask, spec.totalNumLightTypes), nil, nil, self)
 			else
-				g_server:broadcastEvent(VehicleSetLightEvent.new(self, v125_, v124_.totalNumLightTypes), nil, nil, self)
+				g_client:getServerConnection():sendEvent(VehicleSetLightEvent.new(self, lightsTypesMask, spec.totalNumLightTypes))
 			end
 		end
-		local v148_ = v124_.maxLightStateMask
-		local v149_ = bit32.band(v125_, v148_)
-		local v150_ = v124_.lightsTypesMask
-		local v151_ = v124_.maxLightStateMask
-		if v149_ ~= bit32.band(v150_, v151_) and self.isClient then
-			g_soundManager:playSample(v124_.samples.toggleLights)
+		if bit32.band(lightsTypesMask, spec.maxLightStateMask) ~= bit32.band(spec.lightsTypesMask, spec.maxLightStateMask) and self.isClient then
+			g_soundManager:playSample(spec.samples.toggleLights)
 		end
-		local v152_ = v124_.realLights.low
+		local activeLightSetup = spec.realLights.low
 		if self:getUseHighProfile() then
-			v152_ = v124_.realLights.high
+			activeLightSetup = spec.realLights.high
 		end
-		for _, v153_ in pairs(v124_.staticLights) do
-			for _, v154_ in ipairs(v153_) do
-				v154_:setLightTypesMask(v125_)
+		for _, lights in pairs(spec.staticLights) do
+			for _, staticLight in ipairs(lights) do
+				staticLight:setLightTypesMask(lightsTypesMask)
 			end
 		end
-		for _, v155_ in pairs(v124_.realLights) do
-			for _, v156_ in pairs(v155_) do
-				for _, v157_ in ipairs(v156_) do
-					v157_:setLightTypesMask(v155_ == v152_ and v125_ and v125_ or 0)
+		for _, profile in pairs(spec.realLights) do
+			for _, lights in pairs(profile) do
+				for _, realLight in ipairs(lights) do
+					realLight:setLightTypesMask(profile == activeLightSetup and lightsTypesMask or 0)
 				end
 			end
 		end
-		for _, v158_ in pairs(v124_.staticLightCompounds) do
-			v158_:setLightTypesMask(v125_, self)
+		for _, staticLightCompound in pairs(spec.staticLightCompounds) do
+			staticLightCompound:setLightTypesMask(lightsTypesMask, self)
 		end
-		v124_.lightsTypesMask = v125_
+		spec.lightsTypesMask = lightsTypesMask
 		if self.isClient and self.updateDashboardValueType ~= nil then
 			self:updateDashboardValueType("lights.lightState")
 			self:updateDashboardValueType("lights.turnLightLeft")
@@ -736,32 +674,29 @@ function Lights:setLightsTypesMask(lightsTypesMask, force, noEventSend)
 			self:updateDashboardValueType("lights.turnLightHazard")
 			self:updateDashboardValueType("lights.turnLightAny")
 		end
-		SpecializationUtil.raiseEvent(self, "onLightsTypesMaskChanged", v125_)
+		SpecializationUtil.raiseEvent(self, "onLightsTypesMaskChanged", lightsTypesMask)
 	end
 	return true
 end
-
 function Lights:getLightsTypesMask()
 	return self.spec_lights.lightsTypesMask
 end
-
--- Local values: spec, isActiveForInput, _, beaconLight
 function Lights:setBeaconLightsVisibility(visibility, force, noEventSend)
-	local v164_ = self.spec_lights
-	if visibility ~= v164_.beaconLightsActive or force then
+	local spec = self.spec_lights
+	if visibility ~= spec.beaconLightsActive or force then
 		if noEventSend == nil or noEventSend == false then
-			if g_server == nil then
-				g_client:getServerConnection():sendEvent(VehicleSetBeaconLightEvent.new(self, visibility))
-			else
+			if g_server ~= nil then
 				g_server:broadcastEvent(VehicleSetBeaconLightEvent.new(self, visibility), nil, nil, self)
+			else
+				g_client:getServerConnection():sendEvent(VehicleSetBeaconLightEvent.new(self, visibility))
 			end
 		end
-		local v165_ = self:getIsActiveForInput(true)
-		v164_.beaconLightsActive = visibility
-		for _, v166_ in pairs(v164_.beaconLights) do
-			v166_:setIsActive(visibility)
-			if v165_ then
-				v166_:setDeviceIsActive(visibility)
+		local isActiveForInput = self:getIsActiveForInput(true)
+		spec.beaconLightsActive = visibility
+		for _, beaconLight in pairs(spec.beaconLights) do
+			beaconLight:setIsActive(visibility)
+			if isActiveForInput then
+				beaconLight:setDeviceIsActive(visibility)
 			end
 		end
 		if self.isClient and self.updateDashboardValueType ~= nil then
@@ -771,377 +706,327 @@ function Lights:setBeaconLightsVisibility(visibility, force, noEventSend)
 	end
 	return true
 end
-
 function Lights:getBeaconLightsVisibility()
 	return self.spec_lights.beaconLightsActive
 end
-
--- Local values: spec, activeLightSetup
 function Lights:setTurnLightState(state, force, noEventSend)
-	local v172_ = self.spec_lights
-	if state ~= v172_.turnLightState or force then
+	local spec = self.spec_lights
+	if state ~= spec.turnLightState or force then
 		if noEventSend == nil or noEventSend == false then
-			if g_server == nil then
-				g_client:getServerConnection():sendEvent(VehicleSetTurnLightEvent.new(self, state))
-			else
+			if g_server ~= nil then
 				g_server:broadcastEvent(VehicleSetTurnLightEvent.new(self, state), nil, nil, self)
+			else
+				g_client:getServerConnection():sendEvent(VehicleSetTurnLightEvent.new(self, state))
 			end
 		end
-		local v173_ = v172_.realLights.low
-		if self:getUseHighProfile() then
-			v173_ = v172_.realLights.high
+		local activeLightSetup = spec.realLights.low
+		local _v13 = self:getUseHighProfile()
+		if _v13 then
+			activeLightSetup = spec.realLights.high
 		end
-		v172_.activeTurnLightSetup = v173_
-		v172_.turnLightState = state
-		v172_.turnLightTriState = v172_.turnLightState == Lights.TURNLIGHT_LEFT and 0 or (v172_.turnLightState == Lights.TURNLIGHT_RIGHT and 1 or 0.5)
-		v172_.turnLightRepetitionCount = nil
+		spec.activeTurnLightSetup = activeLightSetup
+		spec.turnLightState = state
+		spec.turnLightTriState = _v13
+		spec.turnLightRepetitionCount = nil
 		if self.isServer then
-			self:setLightsTypesMask(v172_.lightsTypesMask, nil)
+			self:setLightsTypesMask(spec.lightsTypesMask, nil)
 		end
 		SpecializationUtil.raiseEvent(self, "onTurnLightStateChanged", state)
 	end
 	return true
 end
-
 function Lights:getTurnLightState()
 	return self.spec_lights.turnLightState
 end
-
--- Local values: spec
 function Lights:setTopLightsVisibility(visibility)
-	local v177_ = self.spec_lights
-	if visibility ~= v177_.topLightsVisibility then
-		v177_.topLightsVisibility = visibility
-		self:setLightsTypesMask(v177_.lightsTypesMask, nil, true)
+	local spec = self.spec_lights
+	if visibility ~= spec.topLightsVisibility then
+		spec.topLightsVisibility = visibility
+		self:setLightsTypesMask(spec.lightsTypesMask, nil, true)
 		SpecializationUtil.raiseEvent(self, "onTopLightsVisibilityChanged", visibility)
 	end
 	return true
 end
-
--- Local values: spec
 function Lights:setBrakeLightsVisibility(visibility)
-	local v180_ = self.spec_lights
-	if visibility ~= v180_.brakeLightsVisibility then
-		v180_.brakeLightsVisibility = visibility
-		self:setLightsTypesMask(v180_.lightsTypesMask)
+	local spec = self.spec_lights
+	if visibility ~= spec.brakeLightsVisibility then
+		spec.brakeLightsVisibility = visibility
+		self:setLightsTypesMask(spec.lightsTypesMask)
 		SpecializationUtil.raiseEvent(self, "onBrakeLightsVisibilityChanged", visibility)
 	end
 	return true
 end
-
--- Local values: spec
 function Lights:setReverseLightsVisibility(visibility)
-	local v183_ = self.spec_lights
-	if visibility ~= v183_.reverseLightsVisibility then
-		v183_.reverseLightsVisibility = visibility
-		self:setLightsTypesMask(v183_.lightsTypesMask)
+	local spec = self.spec_lights
+	if visibility ~= spec.reverseLightsVisibility then
+		spec.reverseLightsVisibility = visibility
+		self:setLightsTypesMask(spec.lightsTypesMask)
 		SpecializationUtil.raiseEvent(self, "onReverseLightsVisibilityChanged", visibility)
 	end
 	return true
 end
-
--- Local values: spec, brightness, hasChanged
 function Lights:setInteriorLightsVisibility(visibility)
-	local v186_ = self.spec_lights
-	local v187_, v188_ = self:getInteriorLightBrightness(true)
-	if v187_ == 0 then
+	local spec = self.spec_lights
+	local brightness, hasChanged = self:getInteriorLightBrightness(true)
+	if brightness == 0 then
 		visibility = false
 	end
-	if visibility ~= v186_.interiorLightsVisibility or v188_ then
-		v186_.interiorLightsVisibility = visibility
-		self:setLightsTypesMask(v186_.lightsTypesMask, true, true)
+	if visibility ~= spec.interiorLightsVisibility or hasChanged then
+		spec.interiorLightsVisibility = visibility
+		self:setLightsTypesMask(spec.lightsTypesMask, true, true)
 	end
 	return true
 end
-
--- Local values: spec, changed, brightness, hour, oldBrightness
 function Lights:getInteriorLightBrightness(updateState)
-	local v191_ = self.spec_lights
-	local v192_
-	if updateState then
-		local v193_ = g_currentMission.environment.currentHour + g_currentMission.environment.currentMinute / 60
-		local v194_ = v193_ >= 10 and 0 or 1 - (v193_ - 8) / 2
-		if v193_ > 16 then
-			v194_ = (v193_ - 16) / 2
-		end
-		local v195_ = v191_.interiorLightsBrightness
-		v191_.interiorLightsBrightness = math.clamp(v194_, 0, 1)
-		v192_ = v191_.interiorLightsBrightness ~= v195_
-	else
-		v192_ = false
+	local spec = self.spec_lights
+	local brightness = 0
+	local _v23 = g_currentMission.environment.currentMinute
+	local hour = g_currentMission.environment.currentHour + _v23 / 60
+	local _v11 = 10
+	brightness = 1 - (hour - 8) / 2
+	brightness = (hour - 16) / 2
+	local oldBrightness = spec.interiorLightsBrightness
+	local _v19 = 0
+	local _v9 = 1
+	local _v24 = brightness
+	local _v4 = math.clamp
+	spec.interiorLightsBrightness = _v4(_v24, _v19, _v9)
+	local changed = updateState and hour < _v11 and 16 < hour and spec.interiorLightsBrightness ~= oldBrightness
+	local changed = false
+	local brightness = 0
+	local hour = g_currentMission.environment.currentHour + _v23 / 60
+	if hour < _v11 then
+		brightness = 1 - (hour - 8) / 2
 	end
-	return v191_.interiorLightsBrightness, v192_
+	if 16 < hour then
+		brightness = (hour - 16) / 2
+	end
+	local oldBrightness = spec.interiorLightsBrightness
+	spec.interiorLightsBrightness = _v4(_v24, _v19, _v9)
+	changed = false
+	return spec.interiorLightsBrightness, changed
 end
-
--- Local values: spec
 function Lights:deactivateLights(keepHazardLightsOn)
-	local v198_ = self.spec_lights
+	local spec = self.spec_lights
 	self:setLightsTypesMask(0, true, true)
 	self:setBeaconLightsVisibility(false, true, true)
-	if not keepHazardLightsOn or v198_.turnLightState ~= Lights.TURNLIGHT_HAZARD then
+	if not keepHazardLightsOn or spec.turnLightState ~= Lights.TURNLIGHT_HAZARD then
 		self:setTurnLightState(Lights.TURNLIGHT_OFF, true, true)
 	end
 	self:setBrakeLightsVisibility(false)
 	self:setReverseLightsVisibility(false)
 	self:setInteriorLightsVisibility(false)
-	v198_.currentLightState = 0
+	spec.currentLightState = 0
 end
-
--- Local values: spec, _, beaconLight
 function Lights:deactivateBeaconLights()
-	local v200_ = self.spec_lights
-	for _, v201_ in pairs(v200_.beaconLights) do
-		v201_:setIsActive(false)
-		v201_:setDeviceIsActive(false)
+	local spec = self.spec_lights
+	for _, beaconLight in pairs(spec.beaconLights) do
+		beaconLight:setIsActive(false)
+		beaconLight:setDeviceIsActive(false)
 	end
 end
-
 function Lights:loadDashboardGroupFromXML(superFunc, xmlFile, key, group)
 	if not superFunc(self, xmlFile, key, group) then
 		return false
+	else
+		group.lightTypes = xmlFile:getValue(key .. "#lightTypes", nil, true)
+		group.excludedLightTypes = xmlFile:getValue(key .. "#excludedLightTypes", nil, true)
+		return true
 	end
-	group.lightTypes = xmlFile:getValue(key .. "#lightTypes", nil, true)
-	group.excludedLightTypes = xmlFile:getValue(key .. "#excludedLightTypes", nil, true)
-	return true
 end
-
--- Local values: spec, lightIsActive, _, lightType, _, excludedLightType
 function Lights:getIsDashboardGroupActive(superFunc, group)
 	if group.lightTypes ~= nil or group.excludedLightTypes ~= nil then
-		local v210_ = self.spec_lights
+		local spec = self.spec_lights
 		if group.lightTypes ~= nil then
-			local v211_ = false
-			for _, v212_ in pairs(group.lightTypes) do
-				local v213_ = v210_.lightsTypesMask
-				local v214_ = 2 ^ v212_
-				if bit32.band(v213_, v214_) ~= 0 then
-					v211_ = true
+			local lightIsActive = false
+			for _, lightType in pairs(group.lightTypes) do
+				if bit32.band(spec.lightsTypesMask, 2 ^ lightType) ~= 0 then
+					lightIsActive = true
 					break
 				end
 			end
-			if not v211_ then
+			if not lightIsActive then
 				return false
 			end
 		end
 		if group.excludedLightTypes ~= nil then
-			for _, v215_ in pairs(group.excludedLightTypes) do
-				local v216_ = v210_.lightsTypesMask
-				local v217_ = 2 ^ v215_
-				if bit32.band(v216_, v217_) ~= 0 then
-					return false
+			for _, excludedLightType in pairs(group.excludedLightTypes) do
+				if bit32.band(spec.lightsTypesMask, 2 ^ excludedLightType) == 0 then
+					continue
 				end
+				return false
 			end
 		end
 	end
 	return superFunc(self, group)
 end
-
 function Lights:getDeactivateLightsOnLeave()
 	return true
 end
-
--- Local values: spec, sharedLight
 function Lights:loadSharedLight(xmlFile, key)
-	local v_u_220_ = self.spec_lights
-	local v_u_221_ = SharedLight.new(self, v_u_220_.staticLights)
-	v_u_221_:loadFromVehicleXML(key, self.baseDirectory, function(p222_)
-		-- upvalues: (copy) v_u_220_, (copy) v_u_221_
-		if p222_ then
-			local v223_ = v_u_220_.sharedLights
-			local v224_ = v_u_221_
-			table.insert(v223_, v224_)
-			if v_u_221_.staticLightCompound ~= nil then
-				local v225_ = v_u_220_.staticLightCompounds
-				local v226_ = v_u_221_.staticLightCompound
-				table.insert(v225_, v226_)
+	local spec = self.spec_lights
+	local sharedLight = SharedLight.new(self, spec.staticLights)
+	sharedLight:loadFromVehicleXML(key, self.baseDirectory, function(success)
+		if success then
+			table.insert(spec.sharedLights, sharedLight)
+			if sharedLight.staticLightCompound ~= nil then
+				table.insert(spec.staticLightCompounds, sharedLight.staticLightCompound)
 			end
 		end
 	end)
 end
-
 function Lights:loadAdditionalLightAttributesFromXML(xmlFile, key, light)
 	light.isTopLight = xmlFile:getValue(key .. "#isTopLight", false)
 	light.isBottomLight = xmlFile:getValue(key .. "#isBottomLight", false)
 	return true
 end
-
 function Lights:getIsLightActive(light)
 	if light.isTopLight then
 		if not self.spec_lights.topLightsVisibility then
 			return false
 		end
-	elseif light.isBottomLight and self.spec_lights.topLightsVisibility then
-		return false
+	elseif light.isBottomLight then
+		if self.spec_lights.topLightsVisibility then
+			return false
+		end
 	end
 	return true
 end
-
--- Local values: spec, _, lights, _, staticLight
 function Lights:getStaticLightFromNode(node)
-	local v234_ = self.spec_lights
-	for _, v235_ in pairs(v234_.staticLights) do
-		for _, v236_ in ipairs(v235_) do
-			if v236_.node == node then
-				return v236_
+	local spec = self.spec_lights
+	for _, lights in pairs(spec.staticLights) do
+		for _, staticLight in ipairs(lights) do
+			if staticLight.node == node then
+				return staticLight
 			end
 		end
 	end
 end
-
--- Local values: spec, _, profile, _, lights, _, realLight
 function Lights:getRealLightFromNode(node)
-	local v239_ = self.spec_lights
-	for _, v240_ in pairs(v239_.realLights) do
-		for _, v241_ in pairs(v240_) do
-			for _, v242_ in ipairs(v241_) do
-				if v242_.node == node then
-					return v242_
+	local spec = self.spec_lights
+	for _, profile in pairs(spec.realLights) do
+		for _, lights in pairs(profile) do
+			for _, realLight in ipairs(lights) do
+				if realLight.node == node then
+					return realLight
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, lightsTypesMask
 function Lights:updateAutomaticLights(isTurnedOn, isWorking)
-	local v246_ = self.spec_lights
+	local spec = self.spec_lights
 	if isTurnedOn then
-		local v247_ = isWorking and v246_.automaticLightsTypesMaskWork or v246_.automaticLightsTypesMask
-		if v246_.lightsTypesMask ~= v247_ then
-			self:setLightsTypesMask(v247_)
-			return
+		local lightsTypesMask = isWorking and spec.automaticLightsTypesMaskWork or spec.automaticLightsTypesMask
+		if spec.lightsTypesMask ~= lightsTypesMask then
+			self:setLightsTypesMask(lightsTypesMask)
 		end
-	elseif v246_.lightsTypesMask ~= 0 then
+	elseif spec.lightsTypesMask ~= 0 then
 		self:setLightsTypesMask(0)
 	end
 end
-
--- Local values: spec
 function Lights:lightsWeatherChanged()
-	local v249_ = self.spec_lights
-	g_inputBinding:setActionEventTextVisibility(v249_.actionEventIdLight, not g_currentMission.environment.isSunOn)
+	local spec = self.spec_lights
+	g_inputBinding:setActionEventTextVisibility(spec.actionEventIdLight, not g_currentMission.environment.isSunOn)
 end
-
--- Local values: spec, _, profile, _, lights, _, realLight
 function Lights:onLightsProfileChanged(lightsProfile)
-	local v252_ = self.spec_lights
-	for _, v253_ in pairs(v252_.realLights) do
-		for _, v254_ in pairs(v253_) do
-			for _, v255_ in ipairs(v254_) do
-				v255_:onLightsProfileChanged(lightsProfile)
+	local spec = self.spec_lights
+	for _, profile in pairs(spec.realLights) do
+		for _, lights in pairs(profile) do
+			for _, realLight in ipairs(lights) do
+				realLight:onLightsProfileChanged(lightsProfile)
 			end
 		end
 	end
-	self:setLightsTypesMask(v252_.lightsTypesMask, true, true)
+	self:setLightsTypesMask(spec.lightsTypesMask, true, true)
 end
-
--- Local values: spec, _, beaconLight
 function Lights:onLightsRealBeaconLightChanged()
-	local v257_ = self.spec_lights
-	for _, v258_ in pairs(v257_.beaconLights) do
-		v258_:onLightsRealBeaconLightChanged()
+	local spec = self.spec_lights
+	for _, beaconLight in pairs(spec.beaconLights) do
+		beaconLight:onLightsRealBeaconLightChanged()
 	end
 end
-
--- Local values: spec, _, _, actionEventIdReverse, _, actionEventIdFront, _, actionEventIdWorkBack, _, actionEventIdWorkFront, _, actionEventIdHighBeam, _, actionEventIdBeacon, _, actionEvent
 function Lights:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient and (self.getIsEntered ~= nil and self:getIsEntered()) then
-		local v261_ = self.spec_lights
-		self:clearActionEventsTable(v261_.actionEvents)
+		local spec = self.spec_lights
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			local _, v262_ = self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_LIGHTS, self, Lights.actionEventToggleLights, false, true, false, true, nil)
-			v261_.actionEventIdLight = v262_
-			local _, v263_ = self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_LIGHTS_BACK, self, Lights.actionEventToggleLightsBack, false, true, false, true, nil)
-			local _, v264_ = self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_LIGHT_FRONT, self, Lights.actionEventToggleLightFront, false, true, false, true, nil)
-			local _, v265_ = self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_WORK_LIGHT_BACK, self, Lights.actionEventToggleWorkLightBack, false, true, false, true, nil)
-			local _, v266_ = self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_WORK_LIGHT_FRONT, self, Lights.actionEventToggleWorkLightFront, false, true, false, true, nil)
-			local _, v267_ = self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_HIGH_BEAM_LIGHT, self, Lights.actionEventToggleHighBeamLight, false, true, false, true, nil)
-			self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_TURNLIGHT_HAZARD, self, Lights.actionEventToggleTurnLightHazard, false, true, false, true, nil)
-			self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_TURNLIGHT_LEFT, self, Lights.actionEventToggleTurnLightLeft, false, true, false, true, nil)
-			self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_TURNLIGHT_RIGHT, self, Lights.actionEventToggleTurnLightRight, false, true, false, true, nil)
-			local _, v268_ = self:addActionEvent(v261_.actionEvents, InputAction.TOGGLE_BEACON_LIGHTS, self, Lights.actionEventToggleBeaconLights, false, true, false, true, nil)
-			v261_.actionEventsActiveChange = {
-				v264_,
-				v265_,
-				v266_,
-				v267_,
-				v268_
-			}
-			for _, v269_ in pairs(v261_.actionEvents) do
-				if v269_.actionEventId ~= nil then
-					g_inputBinding:setActionEventTextVisibility(v269_.actionEventId, false)
-					g_inputBinding:setActionEventTextPriority(v269_.actionEventId, GS_PRIO_LOW)
+			local _ = nil
+			_, spec.actionEventIdLight = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_LIGHTS, self, Lights.actionEventToggleLights, false, true, false, true, nil)
+			local _, actionEventIdReverse = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_LIGHTS_BACK, self, Lights.actionEventToggleLightsBack, false, true, false, true, nil)
+			local _, actionEventIdFront = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_LIGHT_FRONT, self, Lights.actionEventToggleLightFront, false, true, false, true, nil)
+			local _, actionEventIdWorkBack = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_WORK_LIGHT_BACK, self, Lights.actionEventToggleWorkLightBack, false, true, false, true, nil)
+			local _, actionEventIdWorkFront = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_WORK_LIGHT_FRONT, self, Lights.actionEventToggleWorkLightFront, false, true, false, true, nil)
+			local _, actionEventIdHighBeam = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_HIGH_BEAM_LIGHT, self, Lights.actionEventToggleHighBeamLight, false, true, false, true, nil)
+			self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_TURNLIGHT_HAZARD, self, Lights.actionEventToggleTurnLightHazard, false, true, false, true, nil)
+			self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_TURNLIGHT_LEFT, self, Lights.actionEventToggleTurnLightLeft, false, true, false, true, nil)
+			self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_TURNLIGHT_RIGHT, self, Lights.actionEventToggleTurnLightRight, false, true, false, true, nil)
+			local _, actionEventIdBeacon = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_BEACON_LIGHTS, self, Lights.actionEventToggleBeaconLights, false, true, false, true, nil)
+			spec.actionEventsActiveChange = { actionEventIdFront, actionEventIdWorkBack, actionEventIdWorkFront, actionEventIdHighBeam, actionEventIdBeacon }
+			for _, actionEvent in pairs(spec.actionEvents) do
+				if actionEvent.actionEventId == nil then
+					continue
 				end
+				g_inputBinding:setActionEventTextVisibility(actionEvent.actionEventId, false)
+				g_inputBinding:setActionEventTextPriority(actionEvent.actionEventId, GS_PRIO_LOW)
 			end
-			g_inputBinding:setActionEventTextVisibility(v261_.actionEventIdLight, not g_currentMission.environment.isSunOn)
-			g_inputBinding:setActionEventTextVisibility(v263_, false)
+			g_inputBinding:setActionEventTextVisibility(spec.actionEventIdLight, not g_currentMission.environment.isSunOn)
+			g_inputBinding:setActionEventTextVisibility(actionEventIdReverse, false)
 		end
 	end
 end
-
--- Local values: spec
 function Lights:onRegisterExternalActionEvents(trigger, name, xmlFile, key)
-	if name == "lights" and #self.spec_lights.lightStates > 0 then
-		self:registerExternalActionEvent(trigger, name, Lights.externalActionEventRegister, Lights.externalActionEventUpdate)
+	if name == "lights" then
+		local spec = self.spec_lights
+		if 0 < #spec.lightStates then
+			self:registerExternalActionEvent(trigger, name, Lights.externalActionEventRegister, Lights.externalActionEventUpdate)
+		end
 	end
 end
-
--- Local values: spec
 function Lights:onEnterVehicle(isControlling)
-	local v274_ = self.spec_lights
-	self:setLightsTypesMask(v274_.lightsTypesMask, true, true)
-	self:setBeaconLightsVisibility(v274_.beaconLightsActive, true, true)
-	self:setTurnLightState(v274_.turnLightState, true, true)
+	local spec = self.spec_lights
+	self:setLightsTypesMask(spec.lightsTypesMask, true, true)
+	self:setBeaconLightsVisibility(spec.beaconLightsActive, true, true)
+	self:setTurnLightState(spec.turnLightState, true, true)
 end
-
--- Local values: spec, _, beaconLight
 function Lights:onLeaveVehicle()
 	if self:getDeactivateLightsOnLeave() then
 		self:deactivateLights(true)
 		self:deactivateBeaconLights()
 	end
-	local v276_ = self.spec_lights
-	for _, v277_ in pairs(v276_.beaconLights) do
-		v277_:setDeviceIsActive(false)
+	local spec = self.spec_lights
+	for _, beaconLight in pairs(spec.beaconLights) do
+		beaconLight:setDeviceIsActive(false)
 	end
 end
-
 function Lights:onDeactivate()
 	if self:getDeactivateLightsOnLeave() then
 		self:deactivateBeaconLights()
 	end
 end
-
 function Lights:onRequiresTopLightsChanged(requiresTopLights)
 	self:setTopLightsVisibility(requiresTopLights)
 end
-
--- Local values: spec, _, staticLight
 function Lights:onStartMotor()
-	local v282_ = self.spec_lights
-	self:setLightsTypesMask(v282_.lightsTypesMask, true, true)
-	for _, v283_ in ipairs(v282_.staticLights.dayTimeLights) do
-		v283_:setState(true)
+	local spec = self.spec_lights
+	self:setLightsTypesMask(spec.lightsTypesMask, true, true)
+	for _, staticLight in ipairs(spec.staticLights.dayTimeLights) do
+		staticLight:setState(true)
 	end
 end
-
--- Local values: spec, _, staticLight
 function Lights:onStopMotor()
-	local v285_ = self.spec_lights
-	self:setLightsTypesMask(v285_.lightsTypesMask, true, true)
-	for _, v286_ in ipairs(v285_.staticLights.dayTimeLights) do
-		v286_:setState((self:getIsInShowroom()))
+	local spec = self.spec_lights
+	self:setLightsTypesMask(spec.lightsTypesMask, true, true)
+	for _, staticLight in ipairs(spec.staticLights.dayTimeLights) do
+		staticLight:setState(self:getIsInShowroom())
 	end
 end
-
--- Local values: spec
 function Lights:onStartReverseDirectionChange()
-	local v288_ = self.spec_lights
-	if v288_.lightsTypesMask > 0 then
-		self:setLightsTypesMask(v288_.lightsTypesMask, true, true)
+	local spec = self.spec_lights
+	if 0 < spec.lightsTypesMask then
+		self:setLightsTypesMask(spec.lightsTypesMask, true, true)
 	end
 end
-
 function Lights:onPostAttach(attacherVehicle, inputJointDescIndex, jointDescIndex)
 	if attacherVehicle.getLightsTypesMask ~= nil then
 		self:setLightsTypesMask(attacherVehicle:getLightsTypesMask(), true, true)
@@ -1149,67 +1034,50 @@ function Lights:onPostAttach(attacherVehicle, inputJointDescIndex, jointDescInde
 		self:setTurnLightState(attacherVehicle:getTurnLightState(), true, true)
 	end
 end
-
 function Lights:onPostDetach()
 	self:deactivateLights()
 end
-
 function Lights:onAutomatedTrainTravelActive()
 	self:updateAutomaticLights(not g_currentMission.environment.isSunOn, false)
 end
-
 function Lights:onAIDriveableActive()
 	self:updateAutomaticLights(not g_currentMission.environment.isSunOn, false)
 end
-
 function Lights:onAIDriveableEnd()
 	if self.getIsControlled ~= nil and not self:getIsControlled() then
 		self:setLightsTypesMask(0)
 	end
 	self:setBeaconLightsVisibility(false, true, true)
 end
-
 function Lights:onAIFieldWorkerStart()
 	self:setBeaconLightsVisibility(false, true, true)
 end
-
 function Lights:onAIFieldWorkerActive()
 	self:updateAutomaticLights(not g_currentMission.environment.isSunOn, true)
 end
-
 function Lights:onAIJobVehicleBlock()
 	self:setBeaconLightsVisibility(true, true, true)
 end
-
 function Lights:onAIJobVehicleContinue()
 	self:setBeaconLightsVisibility(false, true, true)
 end
-
 function Lights:onAIFieldWorkerEnd()
 	if self.getIsControlled ~= nil and not self:getIsControlled() then
 		self:setLightsTypesMask(0)
 	end
 	self:setBeaconLightsVisibility(false, true, true)
 end
-
--- Local values: reverserDirection
 function Lights:onVehiclePhysicsUpdate(acceleratorPedal, brakePedal, automaticBrake, currentSpeed)
-	local v305_ = not automaticBrake
-	if v305_ then
-		v305_ = math.abs(brakePedal) > 0
+	self:setBrakeLightsVisibility(not automaticBrake and 0 < math.abs(brakePedal))
+	local reverserDirection = 1
+	if self.spec_drivable ~= nil then
+		reverserDirection = self.spec_drivable.reverserDirection
 	end
-	self:setBrakeLightsVisibility(v305_)
-	local v306_ = self.spec_drivable == nil and 1 or self.spec_drivable.reverserDirection
-	local v307_
-	if currentSpeed < -self.spec_lights.reverseLightActivationSpeed or acceleratorPedal < 0 then
-		v307_ = v306_ == 1
-	else
-		v307_ = false
+	if not (currentSpeed < -self.spec_lights.reverseLightActivationSpeed) then
+		local _v14 = 0
 	end
-	self:setReverseLightsVisibility(v307_)
+	self:setReverseLightsVisibility(acceleratorPedal < _v14 and reverserDirection == 1)
 end
-
--- Local values: i, light
 function Lights:loadRealLightSetup(xmlFile, key, lightTable, realLightToLight)
 	lightTable.defaultLights = RealLight.loadLightsFromXML(nil, xmlFile, key .. ".light", self, self.components, self.i3dMappings, true)
 	lightTable.topLights = RealLight.loadLightsFromXML(nil, xmlFile, key .. ".topLight", self, self.components, self.i3dMappings, false)
@@ -1219,173 +1087,140 @@ function Lights:loadRealLightSetup(xmlFile, key, lightTable, realLightToLight)
 	lightTable.turnLightsLeft = RealLight.loadLightsFromXML(nil, xmlFile, key .. ".turnLightLeft", self, self.components, self.i3dMappings, false)
 	lightTable.turnLightsRight = RealLight.loadLightsFromXML(nil, xmlFile, key .. ".turnLightRight", self, self.components, self.i3dMappings, false)
 	lightTable.interiorLights = RealLight.loadLightsFromXML(nil, xmlFile, key .. ".interiorLight", self, self.components, self.i3dMappings, false)
-	for _, v312_ in ipairs(lightTable.interiorLights) do
-		v312_:setChargeFunction(self.getInteriorLightBrightness, self)
+	for i, light in ipairs(lightTable.interiorLights) do
+		light:setChargeFunction(self.getInteriorLightBrightness, self)
 		self.spec_lights.interiorLightsAvailable = true
 	end
 end
-
--- Local values: _, light
 function Lights:applyAdditionalActiveLightType(lights, lightType, isBlinking)
-	for _, v316_ in ipairs(lights) do
-		local v317_ = v316_.lightTypes
-		table.insert(v317_, lightType)
+	for _, light in ipairs(lights) do
+		table.insert(light.lightTypes, lightType)
 		if isBlinking then
-			v316_:setIsBlinking(true)
+			light:setIsBlinking(true)
 		end
 	end
 end
-
--- Local values: spec, lightsTypesMask
 function Lights:actionEventToggleLightFront(actionName, inputValue, callbackState, isAnalog)
-	local v319_ = self.spec_lights
-	if self:getCanToggleLight() and v319_.numLightTypes >= 1 then
-		local v320_ = v319_.lightsTypesMask
-		local v321_ = 2 ^ Lights.LIGHT_TYPE_DEFAULT
-		self:setLightsTypesMask((bit32.bxor(v320_, v321_)))
+	local spec = self.spec_lights
+	if self:getCanToggleLight() and 1 <= spec.numLightTypes then
+		local lightsTypesMask = bit32.bxor(spec.lightsTypesMask, 2 ^ Lights.LIGHT_TYPE_DEFAULT)
+		self:setLightsTypesMask(lightsTypesMask)
 	end
 end
-
 function Lights:actionEventToggleLights(actionName, inputValue, callbackState, isAnalog)
 	if self:getCanToggleLight() then
 		self:setNextLightsState(1)
 	end
 end
-
 function Lights:actionEventToggleLightsBack(actionName, inputValue, callbackState, isAnalog)
 	if self:getCanToggleLight() then
 		self:setNextLightsState(-1)
 	end
 end
-
--- Local values: spec, lightsTypesMask
 function Lights:actionEventToggleWorkLightBack(actionName, inputValue, callbackState, isAnalog)
-	local v325_ = self.spec_lights
+	local spec = self.spec_lights
 	if self:getCanToggleLight() then
-		local v326_ = v325_.lightsTypesMask
-		local v327_ = 2 ^ Lights.LIGHT_TYPE_WORK_BACK
-		self:setLightsTypesMask((bit32.bxor(v326_, v327_)))
+		local lightsTypesMask = bit32.bxor(spec.lightsTypesMask, 2 ^ Lights.LIGHT_TYPE_WORK_BACK)
+		self:setLightsTypesMask(lightsTypesMask)
 	end
 end
-
--- Local values: spec, lightsTypesMask
 function Lights:actionEventToggleWorkLightFront(actionName, inputValue, callbackState, isAnalog)
-	local v329_ = self.spec_lights
+	local spec = self.spec_lights
 	if self:getCanToggleLight() then
-		local v330_ = v329_.lightsTypesMask
-		local v331_ = 2 ^ Lights.LIGHT_TYPE_WORK_FRONT
-		self:setLightsTypesMask((bit32.bxor(v330_, v331_)))
+		local lightsTypesMask = bit32.bxor(spec.lightsTypesMask, 2 ^ Lights.LIGHT_TYPE_WORK_FRONT)
+		self:setLightsTypesMask(lightsTypesMask)
 	end
 end
-
--- Local values: spec, lightsTypesMask
 function Lights:actionEventToggleHighBeamLight(actionName, inputValue, callbackState, isAnalog)
-	local v333_ = self.spec_lights
+	local spec = self.spec_lights
 	if self:getCanToggleLight() then
-		local v334_ = v333_.lightsTypesMask
-		local v335_ = 2 ^ Lights.LIGHT_TYPE_HIGHBEAM
-		self:setLightsTypesMask((bit32.bxor(v334_, v335_)))
+		local lightsTypesMask = bit32.bxor(spec.lightsTypesMask, 2 ^ Lights.LIGHT_TYPE_HIGHBEAM)
+		self:setLightsTypesMask(lightsTypesMask)
 	end
 end
-
--- Local values: spec, state
 function Lights:actionEventToggleTurnLightHazard(actionName, inputValue, callbackState, isAnalog)
-	local v337_ = self.spec_lights
+	local spec = self.spec_lights
 	if self:getCanToggleLight() then
-		local v338_ = Lights.TURNLIGHT_OFF
-		if v337_.turnLightState ~= Lights.TURNLIGHT_HAZARD then
-			v338_ = Lights.TURNLIGHT_HAZARD
+		local state = Lights.TURNLIGHT_OFF
+		if spec.turnLightState ~= Lights.TURNLIGHT_HAZARD then
+			state = Lights.TURNLIGHT_HAZARD
 		end
-		self:setTurnLightState(v338_)
+		self:setTurnLightState(state)
 	end
 end
-
--- Local values: spec, state
 function Lights:actionEventToggleTurnLightLeft(actionName, inputValue, callbackState, isAnalog)
-	local v340_ = self.spec_lights
+	local spec = self.spec_lights
 	if self:getCanToggleLight() then
-		local v341_ = Lights.TURNLIGHT_OFF
-		if v340_.turnLightState ~= Lights.TURNLIGHT_LEFT then
-			v341_ = Lights.TURNLIGHT_LEFT
+		local state = Lights.TURNLIGHT_OFF
+		if spec.turnLightState ~= Lights.TURNLIGHT_LEFT then
+			state = Lights.TURNLIGHT_LEFT
 		end
-		self:setTurnLightState(v341_)
+		self:setTurnLightState(state)
 	end
 end
-
--- Local values: spec, state
 function Lights:actionEventToggleTurnLightRight(actionName, inputValue, callbackState, isAnalog)
-	local v343_ = self.spec_lights
+	local spec = self.spec_lights
 	if self:getCanToggleLight() then
-		local v344_ = Lights.TURNLIGHT_OFF
-		if v343_.turnLightState ~= Lights.TURNLIGHT_RIGHT then
-			v344_ = Lights.TURNLIGHT_RIGHT
+		local state = Lights.TURNLIGHT_OFF
+		if spec.turnLightState ~= Lights.TURNLIGHT_RIGHT then
+			state = Lights.TURNLIGHT_RIGHT
 		end
-		self:setTurnLightState(v344_)
+		self:setTurnLightState(state)
 	end
 end
-
--- Local values: spec
 function Lights:actionEventToggleBeaconLights(actionName, inputValue, callbackState, isAnalog)
-	local v346_ = self.spec_lights
+	local spec = self.spec_lights
 	if self:getCanToggleLight() then
-		self:setBeaconLightsVisibility(not v346_.beaconLightsActive)
+		self:setBeaconLightsVisibility(not spec.beaconLightsActive)
 	end
 end
-
--- Local values: actionEvent, _
 function Lights.externalActionEventRegister(data, vehicle)
-	local _, v349_ = g_inputBinding:registerActionEvent(InputAction.TOGGLE_LIGHTS_EXTERNAL, data, function(_, _, _, _, _)
-		-- upvalues: (copy) vehicle
+	local actionEvent = function(_, actionName, inputValue, callbackState, isAnalog)
 		vehicle:setNextLightsState(1)
-	end, false, true, false, true)
-	data.actionEventId = v349_
+	end
+	local _ = nil
+	_, data.actionEventId = g_inputBinding:registerActionEvent(InputAction.TOGGLE_LIGHTS_EXTERNAL, data, actionEvent, false, true, false, true)
 	g_inputBinding:setActionEventTextPriority(data.actionEventId, GS_PRIO_HIGH)
 	g_inputBinding:setActionEventText(data.actionEventId, g_i18n:getText("input_TOGGLE_LIGHTS"))
 end
-
 function Lights.externalActionEventUpdate(data, vehicle) end
-
--- Local values: i
 function Lights:dashboardLightAttributes(xmlFile, key, dashboard, isActive)
 	dashboard.lightTypes = xmlFile:getValue(key .. "#lightTypes", nil, true)
 	dashboard.excludedLightTypes = xmlFile:getValue(key .. "#excludedLightTypes", nil, true)
 	dashboard.lightStates = {}
-	for v354_ = 0, self.spec_lights.maxLightState do
-		dashboard.lightStates[v354_] = false
+	for i = 0, self.spec_lights.maxLightState do
+		dashboard.lightStates[i] = false
 	end
 	return true
 end
-
--- Local values: lightsTypesMask, anyLightActive, i
 function Lights:dashboardLightState(dashboard, newValue, minValue, maxValue, isActive)
-	local v361_ = self.spec_lights.lightsTypesMask
+	local lightsTypesMask = self.spec_lights.lightsTypesMask
 	if dashboard.displayTypeIndex == Dashboard.TYPES.MULTI_STATE then
-		local v362_ = false
-		for v363_ = 0, self.spec_lights.maxLightState do
-			local v364_ = dashboard.lightStates
-			local v365_ = 2 ^ v363_
-			v364_[v363_] = bit32.band(v361_, v365_) ~= 0
-			v362_ = v362_ or dashboard.lightStates[v363_]
+		local anyLightActive = false
+		for i = 0, self.spec_lights.maxLightState do
+			dashboard.lightStates[i] = bit32.band(lightsTypesMask, 2 ^ i) ~= 0
+			anyLightActive = anyLightActive or dashboard.lightStates[i]
 		end
-		if v362_ then
+		if anyLightActive then
 			Dashboard.defaultDashboardStateFunc(self, dashboard, dashboard.lightStates, minValue, maxValue, isActive)
+			return
 		else
 			Dashboard.defaultDashboardStateFunc(self, dashboard, -1, minValue, maxValue, isActive)
+			return
 		end
-	else
-		Dashboard.defaultDashboardStateFunc(self, dashboard, newValue, minValue, maxValue, isActive)
-		return
 	end
+	Dashboard.defaultDashboardStateFunc(self, dashboard, newValue, minValue, maxValue, isActive)
 end
 function Lights.consoleCommandTopLights()
-	local v366_ = g_localPlayer:getCurrentVehicle()
-	if v366_ ~= nil and v366_.setTopLightsVisibility ~= nil then
-		v366_:setTopLightsVisibility(not v366_.spec_lights.topLightsVisibility)
+	local vehicle = g_localPlayer:getCurrentVehicle()
+	if vehicle ~= nil and vehicle.setTopLightsVisibility ~= nil then
+		vehicle:setTopLightsVisibility(not vehicle.spec_lights.topLightsVisibility)
 	end
 end
 addConsoleCommand("gsVehicleDebugTopLights", "Toggles between top and bottom lights", "Lights.consoleCommandTopLights", nil)
 function Lights.consoleCommandProfile()
-	if g_gameSettings:getValue(GameSettings.SETTING.LIGHTS_PROFILE) >= GS_PROFILE_HIGH then
+	local profile = g_gameSettings:getValue(GameSettings.SETTING.LIGHTS_PROFILE)
+	if GS_PROFILE_HIGH <= profile then
 		g_gameSettings:setValue(GameSettings.SETTING.LIGHTS_PROFILE, GS_PROFILE_LOW)
 		Logging.info("Activated LOW light setup.")
 	else

@@ -1,44 +1,30 @@
--- Local values: InputHelpElement_mt
 InputHelpElement = {}
 local InputHelpElement_mt = Class(InputHelpElement)
-InputHelpElement.SEPARATOR = {
-	["NONE"] = 1,
-	["COMBO_INPUT"] = 2,
-	["ANY_INPUT"] = 3
-}
+InputHelpElement.SEPARATOR = { NONE = 1, COMBO_INPUT = 2, ANY_INPUT = 3 }
 InputHelpElement.NO_DATA = {}
-
--- Upvalues: InputHelpElement_mt
--- Local values: self
 function InputHelpElement.new(actionName, actionName2, buttonOverlays, keyLabels, separators, isComboButtonMapping, text, inlineModifierButtons, iconOverlay, priority)
-	-- upvalues: (copy) InputHelpElement_mt
-	local v12_ = InputHelpElement_mt
-	local v13_ = setmetatable({}, v12_)
-	v13_.actionName = actionName or ""
-	v13_.actionName2 = actionName2 or ""
-	v13_.buttons = buttonOverlays or InputHelpElement.NO_DATA
-	v13_.separators = separators or InputHelpElement.NO_DATA
-	v13_.isComboButtonMapping = isComboButtonMapping or InputHelpElement.NO_DATA
-	v13_.keys = keyLabels or InputHelpElement.NO_DATA
-	v13_.text = text or ""
-	v13_.inlineModifierButtons = inlineModifierButtons
-	v13_.iconOverlay = iconOverlay
-	v13_.priority = priority or GS_PRIO_NORMAL
-	return v13_
+	local self = setmetatable({}, InputHelpElement_mt)
+	self.actionName = actionName or ""
+	self.actionName2 = actionName2 or ""
+	self.buttons = buttonOverlays or InputHelpElement.NO_DATA
+	self.separators = separators or InputHelpElement.NO_DATA
+	self.isComboButtonMapping = isComboButtonMapping or InputHelpElement.NO_DATA
+	self.keys = keyLabels or InputHelpElement.NO_DATA
+	self.text = text or ""
+	self.inlineModifierButtons = inlineModifierButtons
+	self.iconOverlay = iconOverlay
+	self.priority = priority or GS_PRIO_NORMAL
+	return self
 end
-
--- Local values: actionNames
 function InputHelpElement:getActionNames()
-	local v15_ = {}
+	local actionNames = {}
 	if self.actionName ~= "" then
-		local v16_ = self.actionName
-		table.insert(v15_, v16_)
+		table.insert(actionNames, self.actionName)
 	end
 	if self.actionName2 ~= "" then
-		local v17_ = self.actionName2
-		table.insert(v15_, v17_)
+		table.insert(actionNames, self.actionName2)
 	end
-	return v15_
+	return actionNames
 end
 InputHelpElement.AXIS_ICON = {}
 InputHelpElement.AXIS_ICON.CRANE_ARM1_ROTATE_X = "CRANE_ARM1_ROTATE_X"

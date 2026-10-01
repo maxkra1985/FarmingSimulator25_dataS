@@ -39,67 +39,28 @@ HTMLUtil.encodeEntities = {
 	["\195\166"] = "&aelig;",
 	["\195\134"] = "&AElig;",
 	["\197\146"] = "&OElig;",
-	["\197\147"] = "&oelig;"
+	["\197\147"] = "&oelig;",
 }
-HTMLUtil.decodeEntities = {
-	["amp"] = "&",
-	["auml"] = "\195\164",
-	["agrave"] = "\195\160",
-	["acirc"] = "\195\162",
-	["eacute"] = "\195\169",
-	["egrave"] = "\195\168",
-	["ecirc"] = "\195\170",
-	["euml"] = "\195\171",
-	["icirc"] = "\195\174",
-	["iuml"] = "\195\175",
-	["ocirc"] = "\195\180",
-	["ouml"] = "\195\182",
-	["ugrave"] = "\195\185",
-	["ucirc"] = "\195\187",
-	["uuml"] = "\195\188",
-	["yuml"] = "\195\191",
-	["Agrave"] = "\195\128",
-	["Acirc"] = "\195\130",
-	["Eacute"] = "\195\137",
-	["Egrave"] = "\195\136",
-	["Ecirc"] = "\195\138",
-	["Euml"] = "\195\139",
-	["Icirc"] = "\195\142",
-	["Iuml"] = "\195\143",
-	["Ocirc"] = "\195\148",
-	["Ouml"] = "\195\150",
-	["Ugrave"] = "\195\153",
-	["Ucirc"] = "\195\155",
-	["ccedil"] = "\195\167",
-	["Ccedil"] = "\195\135",
-	["Yuml"] = "\197\184",
-	["laquo"] = "\194\171",
-	["raquo"] = "\194\187",
-	["copy"] = "\194\169",
-	["reg"] = "\194\174",
-	["aelig"] = "\195\166",
-	["AElig"] = "\195\134",
-	["OElig"] = "\197\146",
-	["oelig"] = "\197\147"
-}
-
--- Local values: encodedString
+HTMLUtil.decodeEntities = { ["amp"] = "&", ["auml"] = "\195\164", ["agrave"] = "\195\160", ["acirc"] = "\195\162", ["eacute"] = "\195\169", ["egrave"] = "\195\168", ["ecirc"] = "\195\170", ["euml"] = "\195\171", ["icirc"] = "\195\174", ["iuml"] = "\195\175", ["ocirc"] = "\195\180", ["ouml"] = "\195\182", ["ugrave"] = "\195\185", ["ucirc"] = "\195\187", ["uuml"] = "\195\188", ["yuml"] = "\195\191", ["Agrave"] = "\195\128", ["Acirc"] = "\195\130", ["Eacute"] = "\195\137", ["Egrave"] = "\195\136", ["Ecirc"] = "\195\138", ["Euml"] = "\195\139", ["Icirc"] = "\195\142", ["Iuml"] = "\195\143", ["Ocirc"] = "\195\148", ["Ouml"] = "\195\150", ["Ugrave"] = "\195\153", ["Ucirc"] = "\195\155", ["ccedil"] = "\195\167", ["Ccedil"] = "\195\135", ["Yuml"] = "\197\184", ["laquo"] = "\194\171", ["raquo"] = "\194\187", ["copy"] = "\194\169", ["reg"] = "\194\174", ["aelig"] = "\195\166", ["AElig"] = "\195\134", ["OElig"] = "\197\146", ["oelig"] = "\197\147" }
 function HTMLUtil.encodeToHTML(str, inCData)
+	local encodedString = str
 	if inCData then
-		return string.gsub(str, "]]>", "]]]]><![CDATA[>")
+		encodedString = string.gsub(encodedString, "]]>", "]]]]><![CDATA[>")
+		return encodedString
+	else
+		encodedString = string.gsub(encodedString, "&", "&amp;")
+		encodedString = string.gsub(encodedString, '"', "&quot;")
+		encodedString = string.gsub(encodedString, "]", "&#93;")
+		encodedString = string.gsub(encodedString, "<", "&lt;")
+		encodedString = string.gsub(encodedString, ">", "&gt;")
+		encodedString = string.gsub(encodedString, "\n", "&#10;")
+		encodedString = string.gsub(encodedString, "\r", "&#13;")
+		return encodedString
 	end
-	local v3_ = string.gsub(str, "&", "&amp;")
-	local v4_ = string.gsub(v3_, "\"", "&quot;")
-	local v5_ = string.gsub(v4_, "]", "&#93;")
-	local v6_ = string.gsub(v5_, "<", "&lt;")
-	local v7_ = string.gsub(v6_, ">", "&gt;")
-	local v8_ = string.gsub(v7_, "\n", "&#10;")
-	return string.gsub(v8_, "\r", "&#13;")
 end
-
--- Local values: ReplaceEntity
 function HTMLUtil.decodeFromHTML(str)
-	return string.gsub(str, "&%a+;", function(p10_)
-		return HTMLUtil.decodeEntities[string.sub(p10_, 2, -2)] or p10_
-	end)
+	local ReplaceEntity = function(entity)
+		return HTMLUtil.decodeEntities[string.sub(entity, 2, -2)] or entity
+	end
+	return string.gsub(str, "&%a+;", ReplaceEntity)
 end

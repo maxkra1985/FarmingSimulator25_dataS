@@ -1,84 +1,68 @@
--- Local values: RoundCornerElement_mt
 RoundCornerElement = {}
 local RoundCornerElement_mt = Class(RoundCornerElement, GuiElement)
 Gui.registerGuiElement("RoundCorner", RoundCornerElement)
-
--- Upvalues: RoundCornerElement_mt
--- Local values: self
 function RoundCornerElement.new(target, custom_mt)
-	-- upvalues: (copy) RoundCornerElement_mt
-	local v4_ = GuiElement.new(target, custom_mt or RoundCornerElement_mt)
-	v4_.color = {
-		1,
-		1,
-		1,
-		1
-	}
-	v4_.cornerSize = 1
-	return v4_
+	local self = GuiElement.new(target, custom_mt or RoundCornerElement_mt)
+	self.color = { 1, 1, 1, 1 }
+	self.cornerSize = 1
+	return self
 end
-
--- Local values: color
 function RoundCornerElement:loadFromXML(xmlFile, key)
 	RoundCornerElement:superClass().loadFromXML(self, xmlFile, key)
-	local v8_ = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#color"))
-	if v8_ ~= nil then
-		self.color = v8_
+	local color = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#color"))
+	if color ~= nil then
+		self.color = color
 	end
-	local v9_ = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorDisabled"))
-	if v9_ ~= nil then
-		self.colorDisabled = v9_
+	color = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorDisabled"))
+	if color ~= nil then
+		self.colorDisabled = color
 	end
-	local v10_ = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorHighlighted"))
-	if v10_ ~= nil then
-		self.colorHighlighted = v10_
+	color = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorHighlighted"))
+	if color ~= nil then
+		self.colorHighlighted = color
 	end
-	local v11_ = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorSelected"))
-	if v11_ ~= nil then
-		self.colorSelected = v11_
+	color = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorSelected"))
+	if color ~= nil then
+		self.colorSelected = color
 	end
-	local v12_ = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorFocused"))
-	if v12_ ~= nil then
-		self.colorFocused = v12_
+	color = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorFocused"))
+	if color ~= nil then
+		self.colorFocused = color
 	end
-	local v13_ = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorPressed"))
-	if v13_ ~= nil then
-		self.colorPressed = v13_
+	color = GuiUtils.getColorArray(getXMLString(xmlFile, key .. "#colorPressed"))
+	if color ~= nil then
+		self.colorPressed = color
 	end
 	self.cornerSize = getXMLFloat(xmlFile, key .. "#cornerSize") or self.cornerSize
 end
-
--- Local values: color
 function RoundCornerElement:loadProfile(profile, applyProfile)
 	RoundCornerElement:superClass().loadProfile(self, profile, applyProfile)
-	local v17_ = GuiUtils.getColorGradientArray(profile:getValue("color"))
-	if v17_ ~= nil then
-		self.color = v17_
+	local color = GuiUtils.getColorGradientArray(profile:getValue("color"))
+	if color ~= nil then
+		self.color = color
 	end
-	local v18_ = GuiUtils.getColorGradientArray(profile:getValue("colorDisabled"))
-	if v18_ ~= nil then
-		self.colorDisabled = v18_
+	color = GuiUtils.getColorGradientArray(profile:getValue("colorDisabled"))
+	if color ~= nil then
+		self.colorDisabled = color
 	end
-	local v19_ = GuiUtils.getColorGradientArray(profile:getValue("colorFocused"))
-	if v19_ ~= nil then
-		self.colorFocused = v19_
+	color = GuiUtils.getColorGradientArray(profile:getValue("colorFocused"))
+	if color ~= nil then
+		self.colorFocused = color
 	end
-	local v20_ = GuiUtils.getColorGradientArray(profile:getValue("colorSelected"))
-	if v20_ ~= nil then
-		self.colorSelected = v20_
+	color = GuiUtils.getColorGradientArray(profile:getValue("colorSelected"))
+	if color ~= nil then
+		self.colorSelected = color
 	end
-	local v21_ = GuiUtils.getColorGradientArray(profile:getValue("colorHighlighted"))
-	if v21_ ~= nil then
-		self.colorHighlighted = v21_
+	color = GuiUtils.getColorGradientArray(profile:getValue("colorHighlighted"))
+	if color ~= nil then
+		self.colorHighlighted = color
 	end
-	local v22_ = GuiUtils.getColorGradientArray(profile:getValue("colorPressed"))
-	if v22_ ~= nil then
-		self.colorPressed = v22_
+	color = GuiUtils.getColorGradientArray(profile:getValue("colorPressed"))
+	if color ~= nil then
+		self.colorPressed = color
 	end
-	local v23_ = self.cornerSize
-	self.cornerSize = tonumber(profile:getValue("cornerSize", v23_))
+	self.cornerSize = tonumber(profile:getValue("cornerSize", self.cornerSize))
 end
-
 function RoundCornerElement:copyAttributes(src)
 	RoundCornerElement:superClass().copyAttributes(self, src)
 	self.color = table.copyIndex(src.color)
@@ -99,29 +83,25 @@ function RoundCornerElement:copyAttributes(src)
 	end
 	self.cornerSize = src.cornerSize
 end
-
--- Local values: returnColor
 function RoundCornerElement:getColor()
-	local v27_ = nil
+	local returnColor = nil
 	if self:getIsDisabled() then
-		v27_ = self.colorDisabled
-	elseif self.getIsPressed == nil or not self:getIsPressed() then
-		if self:getIsSelected() then
-			v27_ = self.colorSelected
+		returnColor = self.colorDisabled
+	elseif self.getIsPressed ~= nil then
+		if self:getIsPressed() then
+			returnColor = self.colorPressed
+		elseif self:getIsSelected() then
+			returnColor = self.colorSelected
 		elseif self:getIsFocused() then
-			v27_ = self.colorFocused
+			returnColor = self.colorFocused
 		elseif self:getIsHighlighted() then
-			v27_ = self.colorHighlighted
+			returnColor = self.colorHighlighted
 		end
-	else
-		v27_ = self.colorPressed
 	end
-	return v27_ or self.color
+	return returnColor or self.color
 end
-
--- Local values: color
 function RoundCornerElement:draw(clipX1, clipY1, clipX2, clipY2)
-	local v33_ = self:getColor()
-	drawFilledRectRound(self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], self.cornerSize, v33_[1], v33_[2], v33_[3], v33_[4], clipX1, clipY1, clipX2, clipY2)
+	local color = self:getColor()
+	drawFilledRectRound(self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], self.cornerSize, color[1], color[2], color[3], color[4], clipX1, clipY1, clipX2, clipY2)
 	RoundCornerElement:superClass().draw(self, clipX1, clipY1, clipX2, clipY2)
 end

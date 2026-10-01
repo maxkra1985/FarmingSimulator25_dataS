@@ -1,15 +1,13 @@
 AIVehicle = {}
-
-function AIVehicle.prerequisitesPresent(self)
+function AIVehicle.prerequisitesPresent(specializations)
 	return true
 end
 function AIVehicle.initSpecialization()
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("AIVehicle")
-	AIVehicle.registerAgentAttachmentPaths(v1_, "vehicle.ai", true)
-	v1_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("AIVehicle")
+	AIVehicle.registerAgentAttachmentPaths(schema, "vehicle.ai", true)
+	schema:setXMLSpecializationType()
 end
-
 function AIVehicle.registerAgentAttachmentPaths(schema, basePath, includeSubAttachments)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".agentAttachment(?)#jointNode", "Custom joint node (if not defined the current attacher joint is used)")
 	schema:register(XMLValueType.VECTOR_N, basePath .. ".agentAttachment(?)#rotCenterWheelIndices", "The center of these wheel indices define the steering center")
@@ -26,13 +24,11 @@ function AIVehicle.registerAgentAttachmentPaths(schema, basePath, includeSubAtta
 		AIVehicle.registerAgentAttachmentPaths(schema, basePath .. ".agentAttachment(?)", false)
 	end
 end
-
-function AIVehicle.registerEvents(self)
+function AIVehicle.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onAIFieldCourseSettingsInitialized")
 	SpecializationUtil.registerEvent(vehicleType, "onPostAIFieldCourseSettingsInitialized")
 end
-
-function AIVehicle.registerFunctions(self)
+function AIVehicle.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "collectAIAgentAttachments", AIVehicle.collectAIAgentAttachments)
 	SpecializationUtil.registerFunction(vehicleType, "registerAIAgentAttachment", AIVehicle.registerAIAgentAttachment)
 	SpecializationUtil.registerFunction(vehicleType, "loadAIAgentAttachmentsFromXML", AIVehicle.loadAIAgentAttachmentsFromXML)
@@ -43,259 +39,244 @@ function AIVehicle.registerFunctions(self)
 	SpecializationUtil.registerFunction(vehicleType, "getIsAIReadyToDrive", AIVehicle.getIsAIReadyToDrive)
 	SpecializationUtil.registerFunction(vehicleType, "getIsAIPreparingToDrive", AIVehicle.getIsAIPreparingToDrive)
 end
-
-function AIVehicle.registerOverwrittenFunctions(self) end
-
-function AIVehicle.registerEventListeners(self)
+function AIVehicle.registerOverwrittenFunctions(vehicleType) end
+function AIVehicle.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AIVehicle)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", AIVehicle)
 end
-
--- Local values: spec, baseName
 function AIVehicle:onLoad(savegame)
-	local v9_ = self.spec_aiVehicle
-	v9_.agentAttachments = {}
+	local spec = self.spec_aiVehicle
+	local baseName = "vehicle.ai"
+	spec.agentAttachments = {}
 	if self.getInputAttacherJoints ~= nil then
-		self:loadAIAgentAttachmentsFromXML(self.xmlFile, "vehicle.ai.agentAttachment", v9_.agentAttachments)
+		self:loadAIAgentAttachmentsFromXML(self.xmlFile, "vehicle.ai" .. ".agentAttachment", spec.agentAttachments)
 	end
-	v9_.debugSizeBox = DebugBox.new()
-	v9_.debugSizeBox:setColorRGBA(0, 1, 1)
-	v9_.debugSizeBox:setText("aiAgentAttachment")
+	spec.debugSizeBox = DebugBox.new()
+	spec.debugSizeBox:setColorRGBA(0, 1, 1)
+	spec.debugSizeBox:setText("aiAgentAttachment")
 end
-
--- Local values: spec, inputAttacherJoints
 function AIVehicle:onPostLoad(savegame)
-	local v11_ = self.spec_aiVehicle
-	if #v11_.agentAttachments > 0 then
-		local v12_ = self:getInputAttacherJoints()
-		self:validateAIAgentAttachments(v11_.agentAttachments, v12_)
+	local spec = self.spec_aiVehicle
+	if 0 < #spec.agentAttachments then
+		local inputAttacherJoints = self:getInputAttacherJoints()
+		self:validateAIAgentAttachments(spec.agentAttachments, inputAttacherJoints)
 	end
 end
-
--- Local values: spec, inputAttacherJointDesc, jointDesc, usedExplicitAttachment, i, agentAttachment, i, agentAttachment, i, agentAttachment
 function AIVehicle:collectAIAgentAttachments(aiDrivableVehicle)
-	local v15_ = self.spec_aiVehicle
-	if #v15_.agentAttachments > 0 then
-		local v16_ = self:getActiveInputAttacherJoint()
-		if v16_ ~= nil then
-			local v17_ = self:getAttacherVehicle():getAttacherJointDescFromObject(self)
-			local v18_ = false
-			for v19_ = 1, #v15_.agentAttachments do
-				local v20_ = v15_.agentAttachments[v19_]
-				if v20_.jointNode == v16_.node then
-					v20_.attacherVehicleJointNode = v17_.jointTransform
-					self:registerAIAgentAttachment(aiDrivableVehicle, v20_)
-					v18_ = true
+	local spec = self.spec_aiVehicle
+	if 0 < #spec.agentAttachments then
+		local inputAttacherJointDesc = self:getActiveInputAttacherJoint()
+		if inputAttacherJointDesc ~= nil then
+			local jointDesc = self:getAttacherVehicle():getAttacherJointDescFromObject(self)
+			local usedExplicitAttachment = false
+			for i = 1, #spec.agentAttachments do
+				local agentAttachment = spec.agentAttachments[i]
+				if agentAttachment.jointNode == inputAttacherJointDesc.node then
+					agentAttachment.attacherVehicleJointNode = jointDesc.jointTransform
+					self:registerAIAgentAttachment(aiDrivableVehicle, agentAttachment)
+					usedExplicitAttachment = true
 				end
 			end
-			if not v18_ then
-				for v21_ = 1, #v15_.agentAttachments do
-					local v22_ = v15_.agentAttachments[v21_]
-					if v22_.isDirectAttachment then
-						v22_.attacherVehicleJointNode = v17_.jointTransform
-						v22_.jointNodeDynamic = v16_.node
-						self:registerAIAgentAttachment(aiDrivableVehicle, v22_)
+			if not usedExplicitAttachment then
+				for i = 1, #spec.agentAttachments do
+					local agentAttachment = spec.agentAttachments[i]
+					if agentAttachment.isDirectAttachment then
+						agentAttachment.attacherVehicleJointNode = jointDesc.jointTransform
+						agentAttachment.jointNodeDynamic = inputAttacherJointDesc.node
+						self:registerAIAgentAttachment(aiDrivableVehicle, agentAttachment)
 						break
 					end
 				end
 			end
-			for v23_ = 1, #v15_.agentAttachments do
-				local v24_ = v15_.agentAttachments[v23_]
-				if not v24_.isDirectAttachment then
-					self:registerAIAgentAttachment(aiDrivableVehicle, v24_)
+			for i = 1, #spec.agentAttachments do
+				local agentAttachment = spec.agentAttachments[i]
+				if agentAttachment.isDirectAttachment then
+					continue
 				end
+				self:registerAIAgentAttachment(aiDrivableVehicle, agentAttachment)
 			end
 		end
 	end
 end
-
--- Local values: i, subAgentAttachment
 function AIVehicle:registerAIAgentAttachment(aiDrivableVehicle, agentAttachment)
 	aiDrivableVehicle:addAIAgentAttachment(agentAttachment)
-	for v27_ = 1, #agentAttachment.agentAttachments do
-		aiDrivableVehicle:addAIAgentAttachment(agentAttachment.agentAttachments[v27_])
+	for i = 1, #agentAttachment.agentAttachments do
+		local subAgentAttachment = agentAttachment.agentAttachments[i]
+		aiDrivableVehicle:addAIAgentAttachment(subAgentAttachment)
 	end
 end
-
 function AIVehicle:loadAIAgentAttachmentsFromXML(xmlFile, baseKey, agentAttachments, loadSubAttachments, requiresJointNode)
-	xmlFile:iterate(baseKey, function(_, p34_)
-		-- upvalues: (copy) xmlFile, (copy) self, (copy) loadSubAttachments, (copy) requiresJointNode, (copy) agentAttachments
-		local v35_ = {
-			["jointNode"] = xmlFile:getValue(p34_ .. "#jointNode", nil, self.components, self.i3dMappings),
-			["jointNodeDynamic"] = nil,
-			["rotCenterNode"] = xmlFile:getValue(p34_ .. "#rotCenterNode", nil, self.components, self.i3dMappings),
-			["rotCenterWheelIndices"] = xmlFile:getValue(p34_ .. "#rotCenterWheelIndices", nil, true),
-			["rotCenterPosition"] = xmlFile:getValue(p34_ .. "#rotCenterPosition", nil, true),
-			["useSize"] = xmlFile:getValue(p34_ .. "#useSize", false)
-		}
-		if v35_.useSize then
-			v35_.width = self.size.width
-			v35_.height = self.size.height
-			v35_.heightOffset = self.size.heightOffset
-			v35_.length = self.size.length
-			v35_.lengthOffset = self.size.lengthOffset
+	xmlFile:iterate(baseKey, function(index, key)
+		local agentAttachment = {}
+		agentAttachment.jointNode = xmlFile:getValue(key .. "#jointNode", nil, self.components, self.i3dMappings)
+		agentAttachment.jointNodeDynamic = nil
+		agentAttachment.rotCenterNode = xmlFile:getValue(key .. "#rotCenterNode", nil, self.components, self.i3dMappings)
+		agentAttachment.rotCenterWheelIndices = xmlFile:getValue(key .. "#rotCenterWheelIndices", nil, true)
+		agentAttachment.rotCenterPosition = xmlFile:getValue(key .. "#rotCenterPosition", nil, true)
+		agentAttachment.useSize = xmlFile:getValue(key .. "#useSize", false)
+		if agentAttachment.useSize then
+			agentAttachment.width = self.size.width
+			agentAttachment.height = self.size.height
+			agentAttachment.heightOffset = self.size.heightOffset
+			agentAttachment.length = self.size.length
+			agentAttachment.lengthOffset = self.size.lengthOffset
 		else
-			v35_.width = 3
-			v35_.height = 3
-			v35_.heightOffset = 0
-			v35_.length = 3
-			v35_.lengthOffset = 0
+			agentAttachment.width = 3
+			agentAttachment.height = 3
+			agentAttachment.heightOffset = 0
+			agentAttachment.length = 3
+			agentAttachment.lengthOffset = 0
 		end
-		v35_.width = xmlFile:getValue(p34_ .. "#width", v35_.width)
-		v35_.height = xmlFile:getValue(p34_ .. "#height", v35_.height)
-		v35_.heightOffset = xmlFile:getValue(p34_ .. "#heightOffset", v35_.heightOffset)
-		v35_.length = xmlFile:getValue(p34_ .. "#length", v35_.length)
-		v35_.lengthOffset = xmlFile:getValue(p34_ .. "#lengthOffset", v35_.lengthOffset)
-		v35_.hasCollision = xmlFile:getValue(p34_ .. "#hasCollision", true)
-		v35_.isDirectAttachment = false
-		v35_.agentAttachments = {}
+		agentAttachment.width = xmlFile:getValue(key .. "#width", agentAttachment.width)
+		agentAttachment.height = xmlFile:getValue(key .. "#height", agentAttachment.height)
+		agentAttachment.heightOffset = xmlFile:getValue(key .. "#heightOffset", agentAttachment.heightOffset)
+		agentAttachment.length = xmlFile:getValue(key .. "#length", agentAttachment.length)
+		agentAttachment.lengthOffset = xmlFile:getValue(key .. "#lengthOffset", agentAttachment.lengthOffset)
+		agentAttachment.hasCollision = xmlFile:getValue(key .. "#hasCollision", true)
+		agentAttachment.isDirectAttachment = false
+		agentAttachment.agentAttachments = {}
 		if loadSubAttachments ~= false then
-			self:loadAIAgentAttachmentsFromXML(xmlFile, p34_ .. ".agentAttachment", v35_.agentAttachments, false, true)
+			self:loadAIAgentAttachmentsFromXML(xmlFile, key .. ".agentAttachment", agentAttachment.agentAttachments, false, true)
 		end
-		if requiresJointNode == true and v35_.jointNode == nil then
-			Logging.xmlWarning(xmlFile, "No joint node defined for ai agent sub attachable \'%s\'!", p34_)
-		else
-			local v36_ = agentAttachments
-			table.insert(v36_, v35_)
+		if requiresJointNode == true and agentAttachment.jointNode == nil then
+			Logging.xmlWarning(xmlFile, "No joint node defined for ai agent sub attachable '%s'!", key)
+			return
 		end
+		table.insert(agentAttachments, agentAttachment)
 	end)
 	if loadSubAttachments == nil and #agentAttachments == 0 then
 		Logging.xmlWarning(xmlFile, "Missing ai agent attachment definition for attachable vehicle")
 	end
 end
-
--- Local values: i, agentAttachment, j, rotCenterNode, wheels, x, y, z, dirX, dirY, dirZ, numWheels, component, j, wheelIndex, wheel, wx, wy, wz, dx, dy, dz, rotCenterNode, j, _, _, z, _
 function AIVehicle:validateAIAgentAttachments(agentAttachments, inputAttacherJoints)
-	for v40_ = 1, #agentAttachments do
-		local v41_ = agentAttachments[v40_]
-		for v42_ = 1, #inputAttacherJoints do
-			if v41_.jointNode == nil or v41_.jointNode == inputAttacherJoints[v42_].node then
-				v41_.isDirectAttachment = true
+	for i = 1, #agentAttachments do
+		local agentAttachment = agentAttachments[i]
+		for j = 1, #inputAttacherJoints do
+			if agentAttachment.jointNode == nil or agentAttachment.jointNode == inputAttacherJoints[j].node then
+				agentAttachment.isDirectAttachment = true
 			end
 		end
-		if v41_.rotCenterNode == nil then
-			if v41_.rotCenterPosition == nil or #v41_.rotCenterPosition ~= 2 then
-				if v41_.rotCenterWheelIndices ~= nil and (#v41_.rotCenterWheelIndices > 0 and self.getWheels ~= nil) then
-					local v43_ = self:getWheels()
-					local v44_ = nil
-					local v45_ = 0
-					local v46_ = 0
-					local v47_ = 0
-					local v48_ = 0
-					local v49_ = 0
-					local v50_ = 0
-					local v51_ = 0
-					for v52_ = 1, #v41_.rotCenterWheelIndices do
-						local v53_ = v41_.rotCenterWheelIndices[v52_]
-						local v54_ = v43_[v53_]
-						if v54_ == nil then
-							Logging.xmlWarning(self.xmlFile, "Unknown wheel index \'%d\' ground in ai agent attachment entry \'vehicle.ai.agentAttachment(%d)\'!", v53_, v40_ - 1)
+		if agentAttachment.rotCenterNode == nil and agentAttachment.rotCenterPosition ~= nil then
+			if #agentAttachment.rotCenterPosition == 2 then
+				local rotCenterNode = createTransformGroup("aiAgentAttachmentRotCenter" .. i)
+				link(self.components[1].node, rotCenterNode)
+				setTranslation(rotCenterNode, agentAttachment.rotCenterPosition[1], 0, agentAttachment.rotCenterPosition[2])
+				agentAttachment.rotCenterNode = rotCenterNode
+			elseif agentAttachment.rotCenterWheelIndices ~= nil then
+				if 0 < #agentAttachment.rotCenterWheelIndices and self.getWheels ~= nil then
+					local wheels = self:getWheels()
+					local x = 0
+					local y = 0
+					local z = 0
+					local dirX = 0
+					local dirY = 0
+					local dirZ = 0
+					local numWheels = 0
+					local component = nil
+					for j = 1, #agentAttachment.rotCenterWheelIndices do
+						local wheelIndex = agentAttachment.rotCenterWheelIndices[j]
+						local wheel = wheels[wheelIndex]
+						if wheel ~= nil then
+							component = component or wheel.node
+							local wx, wy, wz = localToLocal(wheel.repr, component, 0, -wheel.physics.radius, 0)
+							local dx, dy, dz = localDirectionToLocal(wheel.driveNode, component, 0, 0, 1)
+							x = x + wx
+							y = y + wy
+							z = z + wz
+							dirX = dirX + dx
+							dirY = dirY + dy
+							dirZ = dirZ + dz
+							numWheels = numWheels + 1
 						else
-							v44_ = v44_ or v54_.node
-							local v55_, v56_, v57_ = localToLocal(v54_.repr, v44_, 0, -v54_.physics.radius, 0)
-							local v58_, v59_, v60_ = localDirectionToLocal(v54_.driveNode, v44_, 0, 0, 1)
-							v45_ = v45_ + v55_
-							v46_ = v46_ + v56_
-							v47_ = v47_ + v57_
-							v48_ = v48_ + v58_
-							v49_ = v49_ + v59_
-							v51_ = v51_ + v60_
-							v50_ = v50_ + 1
+							Logging.xmlWarning(self.xmlFile, "Unknown wheel index '%d' ground in ai agent attachment entry 'vehicle.ai.agentAttachment(%d)'!", wheelIndex, i - 1)
 						end
 					end
-					if v50_ > 0 then
-						v45_ = v45_ / v50_
-						v46_ = v46_ / v50_
-						v47_ = v47_ / v50_
-						v48_ = v48_ / v50_
-						v49_ = v49_ / v50_
-						v51_ = v51_ / v50_
+					if 0 < numWheels then
+						x = x / numWheels
+						y = y / numWheels
+						z = z / numWheels
+						dirX = dirX / numWheels
+						dirY = dirY / numWheels
+						dirZ = dirZ / numWheels
 					end
-					local v61_, v62_, v63_ = MathUtil.vector3Normalize(v48_, v49_, v51_)
-					if v41_.useSize then
-						v41_.lengthOffset = self.size.lengthOffset - v47_
+					dirX, dirY, dirZ = MathUtil.vector3Normalize(dirX, dirY, dirZ)
+					if agentAttachment.useSize then
+						agentAttachment.lengthOffset = self.size.lengthOffset - z
 					end
-					local v64_ = createTransformGroup("aiAgentAttachmentRotCenter" .. v40_)
-					link(v44_, v64_)
-					setTranslation(v64_, v45_, v46_, v47_)
-					v41_.rotCenterNode = v64_
-					if v50_ > 0 and MathUtil.vector3Length(v61_, v62_, v63_) > 0 then
-						setDirection(v64_, v61_, v62_, v63_, 0, 1, 0)
+					local rotCenterNode = createTransformGroup("aiAgentAttachmentRotCenter" .. i)
+					link(component, rotCenterNode)
+					setTranslation(rotCenterNode, x, y, z)
+					agentAttachment.rotCenterNode = rotCenterNode
+					if 0 < numWheels and 0 < MathUtil.vector3Length(dirX, dirY, dirZ) then
+						setDirection(rotCenterNode, dirX, dirY, dirZ, 0, 1, 0)
 					end
 				end
-			else
-				local v65_ = createTransformGroup("aiAgentAttachmentRotCenter" .. v40_)
-				link(self.components[1].node, v65_)
-				setTranslation(v65_, v41_.rotCenterPosition[1], 0, v41_.rotCenterPosition[2])
-				v41_.rotCenterNode = v65_
 			end
 		end
-		if v41_.rotCenterNode == nil then
-			v41_.rootNode = self.rootNode
+		if agentAttachment.rotCenterNode == nil then
+			agentAttachment.rootNode = self.rootNode
 		end
-		if v41_.rotCenterNode ~= nil then
-			if v41_.jointNode == nil then
-				v41_.jointNodeToHitchOffset = {}
-				for v66_ = 1, #inputAttacherJoints do
-					local _, _, v67_ = localToLocal(inputAttacherJoints[v66_].node, v41_.rotCenterNode, 0, 0, 0)
-					v41_.jointNodeToHitchOffset[inputAttacherJoints[v66_].node] = v67_
+		if agentAttachment.rotCenterNode ~= nil then
+			if agentAttachment.jointNode == nil then
+				agentAttachment.jointNodeToHitchOffset = {}
+				for j = 1, #inputAttacherJoints do
+					local _, _, z = localToLocal(inputAttacherJoints[j].node, agentAttachment.rotCenterNode, 0, 0, 0)
+					agentAttachment.jointNodeToHitchOffset[inputAttacherJoints[j].node] = z
 				end
 			else
-				local _, _, v68_ = localToLocal(v41_.jointNode, v41_.rotCenterNode, 0, 0, 0)
-				v41_.trailerHitchOffset = v68_
+				local _ = nil
+				_, _, agentAttachment.trailerHitchOffset = localToLocal(agentAttachment.jointNode, agentAttachment.rotCenterNode, 0, 0, 0)
 			end
 		end
-		self:validateAIAgentAttachments(v41_.agentAttachments, inputAttacherJoints)
+		self:validateAIAgentAttachments(agentAttachment.agentAttachments, inputAttacherJoints)
 	end
 end
-
--- Local values: spec, i, agentAttachment
 function AIVehicle:drawAIAgentAttachments(agentAttachments)
-	local v71_ = self.spec_aiVehicle
-	local v72_ = agentAttachments or v71_.agentAttachments
-	for v73_ = 1, #v72_ do
-		local v74_ = v72_[v73_]
-		if v74_.rotCenterNode == nil then
-			v71_.debugSizeBox:setColorRGBA(0, 0.15, 1)
-			v71_.debugSizeBox:createWithNode(v74_.rootNode, v74_.width, v74_.height, v74_.length, 0, v74_.height * 0.5 + v74_.heightOffset, v74_.lengthOffset)
-			v71_.debugSizeBox:draw()
+	local spec = self.spec_aiVehicle
+	agentAttachments = agentAttachments or spec.agentAttachments
+	for i = 1, #agentAttachments do
+		local agentAttachment = agentAttachments[i]
+		if agentAttachment.rotCenterNode ~= nil then
+			spec.debugSizeBox:setColorRGBA(0, 1, 0.25)
+			spec.debugSizeBox:createWithNode(agentAttachment.rotCenterNode, agentAttachment.width, agentAttachment.height, agentAttachment.length, 0, agentAttachment.height * 0.5 + agentAttachment.heightOffset, agentAttachment.lengthOffset)
+			spec.debugSizeBox:draw()
 		else
-			v71_.debugSizeBox:setColorRGBA(0, 1, 0.25)
-			v71_.debugSizeBox:createWithNode(v74_.rotCenterNode, v74_.width, v74_.height, v74_.length, 0, v74_.height * 0.5 + v74_.heightOffset, v74_.lengthOffset)
-			v71_.debugSizeBox:draw()
+			spec.debugSizeBox:setColorRGBA(0, 0.15, 1)
+			spec.debugSizeBox:createWithNode(agentAttachment.rootNode, agentAttachment.width, agentAttachment.height, agentAttachment.length, 0, agentAttachment.height * 0.5 + agentAttachment.heightOffset, agentAttachment.lengthOffset)
+			spec.debugSizeBox:draw()
 		end
-		self:drawAIAgentAttachments(v74_.agentAttachments)
+		self:drawAIAgentAttachments(agentAttachment.agentAttachments)
 	end
 end
-function AIVehicle.raiseAIEvent(p75_, p76_, p77_, ...)
-	local v78_ = p75_.rootVehicle.actionController
-	for _, v79_ in ipairs(p75_.rootVehicle.childVehicles) do
-		if v79_ ~= p75_ then
-			p75_:safeRaiseAIEvent(v79_, p77_, ...)
-			if v78_ ~= nil then
-				v78_:onAIEvent(v79_, p77_)
-			end
+function AIVehicle:raiseAIEvent(eventName, implementName, ...)
+	local actionController = self.rootVehicle.actionController
+	for _, vehicle in ipairs(self.rootVehicle.childVehicles) do
+		if vehicle == self then
+			continue
 		end
+		self:safeRaiseAIEvent(vehicle, implementName, ...)
+		if actionController == nil then
+			continue
+		end
+		actionController:onAIEvent(vehicle, implementName)
 	end
-	p75_:safeRaiseAIEvent(p75_, p77_, ...)
-	if v78_ ~= nil then
-		v78_:onAIEvent(p75_, p77_)
+	self:safeRaiseAIEvent(self, implementName, ...)
+	if actionController ~= nil then
+		actionController:onAIEvent(self, implementName)
 	end
-	p75_:safeRaiseAIEvent(p75_, p76_, ...)
-	if v78_ ~= nil then
-		v78_:onAIEvent(p75_, p76_)
+	self:safeRaiseAIEvent(self, eventName, ...)
+	if actionController ~= nil then
+		actionController:onAIEvent(self, eventName)
 	end
 end
-function AIVehicle.safeRaiseAIEvent(_, p80_, p81_, ...)
-	if p80_.eventListeners[p81_] ~= nil then
-		SpecializationUtil.raiseEvent(p80_, p81_, ...)
+function AIVehicle:safeRaiseAIEvent(vehicle, eventName, ...)
+	if vehicle.eventListeners[eventName] ~= nil then
+		SpecializationUtil.raiseEvent(vehicle, eventName, ...)
 	end
 end
-
-function AIVehicle.getIsAIReadyToDrive(self)
+function AIVehicle:getIsAIReadyToDrive()
 	return true
 end
-
 function AIVehicle:getIsAIPreparingToDrive()
 	return false
 end

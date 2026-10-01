@@ -1,8 +1,6 @@
--- Local values: LoadTrigger_mt, LoadTriggerActivatable_mt
 LoadTrigger = {}
 local LoadTrigger_mt = Class(LoadTrigger, Object)
 InitStaticObjectClass(LoadTrigger, "LoadTrigger")
-
 function LoadTrigger.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#triggerNode", "Trigger node")
 	schema:register(XMLValueType.FLOAT, basePath .. "#fillLitersPerSecond", "Fill liters per second")
@@ -26,21 +24,15 @@ function LoadTrigger.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#stopFillText", "Stop fill text")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#aiNode", "AI target node, required for the station to support AI. AI drives to the node in positive Z direction. Height is not relevant.")
 end
-
--- Upvalues: LoadTrigger_mt
--- Local values: self
 function LoadTrigger.new(isServer, isClient, customMt)
-	-- upvalues: (copy) LoadTrigger_mt
-	local v7_ = Object.new(isServer, isClient, customMt or LoadTrigger_mt)
-	v7_.fillableObjects = {}
-	return v7_
+	local self = Object.new(isServer, isClient, customMt or LoadTrigger_mt)
+	self.fillableObjects = {}
+	return self
 end
-
--- Local values: triggerNode, dischargeNode, width, length, directory, modName, baseDirectory, fillSoundIdentifier, fillSoundNode, xmlSoundFile, fillTypeCategories, fillTypeNames, fillTypes, _, fillType
 function LoadTrigger:load(components, xmlFile, xmlNode, i3dMappings, rootNode)
 	self.rootNode = rootNode or xmlFile:getValue(xmlNode .. "#node", nil, components, i3dMappings)
 	if self.rootNode == nil then
-		Logging.xmlError(xmlFile, "Missing node \'%s#node\'", xmlNode)
+		Logging.xmlError(xmlFile, "Missing node '%s#node'", xmlNode)
 		return false
 	end
 	self.objectsInTriggers = {}
@@ -58,111 +50,105 @@ function LoadTrigger:load(components, xmlFile, xmlNode, i3dMappings, rootNode)
 	XMLUtil.checkDeprecatedUserAttribute(self.rootNode, "fillTypes", xmlFile, xmlNode .. "#fillTypes")
 	XMLUtil.checkDeprecatedUserAttribute(self.rootNode, "autoStart", xmlFile, xmlNode .. "#autoStart")
 	XMLUtil.checkDeprecatedUserAttribute(self.rootNode, "infiniteCapacity", xmlFile, xmlNode .. "#infiniteCapacity")
-	local v14_ = xmlFile:getValue(xmlNode .. "#triggerNode", nil, components, i3dMappings)
-	if v14_ == nil then
-		Logging.xmlError(xmlFile, "Missing triggerNode defined in \'%s\'", xmlNode)
+	local triggerNode = xmlFile:getValue(xmlNode .. "#triggerNode", nil, components, i3dMappings)
+	if triggerNode == nil then
+		Logging.xmlError(xmlFile, "Missing triggerNode defined in '%s'", xmlNode)
 		return false
-	end
-	self.triggerNode = v14_
-	addTrigger(v14_, "loadTriggerCallback", self)
-	g_currentMission:addNodeObject(v14_, self)
-	self.fillLitersPerMS = xmlFile:getValue(xmlNode .. "#fillLitersPerSecond", 1000) / 1000
-	self.useTimeScale = xmlFile:getValue(xmlNode .. "#useTimeScale", false)
-	self.aiNode = xmlFile:getValue(xmlNode .. "#aiNode", nil, components, i3dMappings)
-	self.supportsAILoading = self.aiNode ~= nil
-	local v15_ = xmlFile:getValue(xmlNode .. "#dischargeNode", nil, components, i3dMappings)
-	if v15_ ~= nil then
-		XMLUtil.checkDeprecatedUserAttribute(v15_, "width", xmlFile, xmlNode .. "#dischargeWidth")
-		XMLUtil.checkDeprecatedUserAttribute(v15_, "length", xmlFile, xmlNode .. "#dischargeLength")
-		self.dischargeInfo = {}
-		self.dischargeInfo.name = "fillVolumeDischargeInfo"
-		self.dischargeInfo.nodes = {}
-		local v16_ = xmlFile:getValue(xmlNode .. "#dischargeWidth", 0.5)
-		local v17_ = xmlFile:getValue(xmlNode .. "#dischargeLength", 0.5)
-		local v18_ = self.dischargeInfo.nodes
-		table.insert(v18_, {
-			["node"] = v15_,
-			["width"] = v16_,
-			["length"] = v17_,
-			["priority"] = 1
-		})
-	end
-	self.soundNode = createTransformGroup("loadTriggerSoundNode")
-	link(v15_ or self.triggerNode, self.soundNode)
-	if self.isClient then
-		self.effects = g_effectManager:loadEffect(xmlFile, xmlNode, components, self, i3dMappings)
-		local v19_ = g_currentMission.baseDirectory
-		local v20_, v21_ = Utils.getModNameAndBaseDirectory(g_currentMission.missionInfo.mapSoundXmlFilename)
-		if v20_ ~= nil then
-			v19_ = v21_ .. v20_
+	else
+		self.triggerNode = triggerNode
+		addTrigger(triggerNode, "loadTriggerCallback", self)
+		g_currentMission:addNodeObject(triggerNode, self)
+		self.fillLitersPerMS = xmlFile:getValue(xmlNode .. "#fillLitersPerSecond", 1000) / 1000
+		self.useTimeScale = xmlFile:getValue(xmlNode .. "#useTimeScale", false)
+		self.aiNode = xmlFile:getValue(xmlNode .. "#aiNode", nil, components, i3dMappings)
+		self.supportsAILoading = self.aiNode ~= nil
+		local dischargeNode = xmlFile:getValue(xmlNode .. "#dischargeNode", nil, components, i3dMappings)
+		if dischargeNode ~= nil then
+			XMLUtil.checkDeprecatedUserAttribute(dischargeNode, "width", xmlFile, xmlNode .. "#dischargeWidth")
+			XMLUtil.checkDeprecatedUserAttribute(dischargeNode, "length", xmlFile, xmlNode .. "#dischargeLength")
+			self.dischargeInfo = {}
+			self.dischargeInfo.name = "fillVolumeDischargeInfo"
+			self.dischargeInfo.nodes = {}
+			local width = xmlFile:getValue(xmlNode .. "#dischargeWidth", 0.5)
+			local length = xmlFile:getValue(xmlNode .. "#dischargeLength", 0.5)
+			table.insert(self.dischargeInfo.nodes, { node = dischargeNode, width = width, length = length, priority = 1 })
 		end
-		self.samples = {}
-		self.samples.loading = g_soundManager:loadSampleFromXML(xmlFile, xmlNode .. ".sounds", "loading", v19_, components, 1, AudioGroup.VEHICLE, i3dMappings, self)
-		local v22_ = xmlFile:getValue(xmlNode .. "#fillSoundIdentifier")
-		local v23_ = xmlFile:getValue(xmlNode .. "#fillSoundNode", nil, components, i3dMappings)
-		if v23_ == nil then
-			v23_ = self.rootNode
+		self.soundNode = createTransformGroup("loadTriggerSoundNode")
+		link(dischargeNode or self.triggerNode, self.soundNode)
+		if self.isClient then
+			self.effects = g_effectManager:loadEffect(xmlFile, xmlNode, components, self, i3dMappings)
+			local directory = g_currentMission.baseDirectory
+			local modName, baseDirectory = Utils.getModNameAndBaseDirectory(g_currentMission.missionInfo.mapSoundXmlFilename)
+			if modName ~= nil then
+				directory = baseDirectory .. modName
+			end
+			self.samples = {}
+			self.samples.loading = g_soundManager:loadSampleFromXML(xmlFile, xmlNode .. ".sounds", "loading", directory, components, 1, AudioGroup.VEHICLE, i3dMappings, self)
+			local fillSoundIdentifier = xmlFile:getValue(xmlNode .. "#fillSoundIdentifier")
+			local fillSoundNode = xmlFile:getValue(xmlNode .. "#fillSoundNode", nil, components, i3dMappings)
+			if fillSoundNode == nil then
+				fillSoundNode = self.rootNode
+			end
+			local xmlSoundFile = loadXMLFile("mapXML", g_currentMission.missionInfo.mapSoundXmlFilename)
+			if xmlSoundFile ~= nil and xmlSoundFile ~= 0 then
+				if fillSoundIdentifier ~= nil then
+					self.samples.load = g_soundManager:loadSampleFromXML(xmlSoundFile, "sound.object", fillSoundIdentifier, directory, getRootNode(), 0, AudioGroup.ENVIRONMENT, nil, nil)
+					if self.samples.load ~= nil then
+						link(fillSoundNode, self.samples.load.soundNode)
+						setTranslation(self.samples.load.soundNode, 0, 0, 0)
+					end
+				end
+				delete(xmlSoundFile)
+			end
+			self.scroller = xmlFile:getValue(xmlNode .. "#scrollerNode", nil, components, i3dMappings)
+			if self.scroller ~= nil then
+				self.scrollerShaderParameterName = xmlFile:getValue(xmlNode .. "#shaderParameterName", "uvScrollSpeed")
+				self.scrollerSpeedX, self.scrollerSpeedY = xmlFile:getValue(xmlNode .. "#scrollerScrollSpeed", "0 -0.75")
+				setShaderParameter(self.scroller, self.scrollerShaderParameterName, 0, 0, 0, 0, false)
+			end
 		end
-		local v24_ = loadXMLFile("mapXML", g_currentMission.missionInfo.mapSoundXmlFilename)
-		if v24_ ~= nil and v24_ ~= 0 then
-			if v22_ ~= nil then
-				self.samples.load = g_soundManager:loadSampleFromXML(v24_, "sound.object", v22_, v19_, getRootNode(), 0, AudioGroup.ENVIRONMENT, nil, nil)
-				if self.samples.load ~= nil then
-					link(v23_, self.samples.load.soundNode)
-					setTranslation(self.samples.load.soundNode, 0, 0, 0)
+		self.fillTypes = {}
+		local fillTypeCategories = XMLUtil.getValueFromXMLFileOrUserAttribute(xmlFile, xmlNode, "fillTypeCategories", self.rootNode)
+		local fillTypeNames = XMLUtil.getValueFromXMLFileOrUserAttribute(xmlFile, xmlNode, "fillTypes", self.rootNode)
+		local fillTypes = nil
+		if fillTypeCategories ~= nil then
+			if fillTypeNames == nil then
+				fillTypes = g_fillTypeManager:getFillTypesByCategoryNames(fillTypeCategories, "Warning: UnloadTrigger has invalid fillTypeCategory '%s'.")
+			elseif fillTypeCategories == nil then
+				if fillTypeNames ~= nil then
+					fillTypes = g_fillTypeManager:getFillTypesByNames(fillTypeNames, "Warning: UnloadTrigger has invalid fillType '%s'.")
 				end
 			end
-			delete(v24_)
 		end
-		self.scroller = xmlFile:getValue(xmlNode .. "#scrollerNode", nil, components, i3dMappings)
-		if self.scroller ~= nil then
-			self.scrollerShaderParameterName = xmlFile:getValue(xmlNode .. "#shaderParameterName", "uvScrollSpeed")
-			local v25_, v26_ = xmlFile:getValue(xmlNode .. "#scrollerScrollSpeed", "0 -0.75")
-			self.scrollerSpeedX = v25_
-			self.scrollerSpeedY = v26_
-			setShaderParameter(self.scroller, self.scrollerShaderParameterName, 0, 0, 0, 0, false)
+		if fillTypes ~= nil then
+			for _, fillType in pairs(fillTypes) do
+				self.fillTypes[fillType] = true
+			end
+		else
+			self.fillTypes = nil
 		end
+		self.autoStart = xmlFile:getValue(xmlNode .. "#autoStart", false)
+		self.hasInfiniteCapacity = xmlFile:getValue(xmlNode .. "#infiniteCapacity", false)
+		self.requiresExactFillRootNode = xmlFile:getValue(xmlNode .. "#requiresExactFillRootNode", true)
+		self.startFillText = g_i18n:convertText(xmlFile:getValue(xmlNode .. "#startFillText", "$l10n_action_siloStartFilling"))
+		self.stopFillText = g_i18n:convertText(xmlFile:getValue(xmlNode .. "#stopFillText", "$l10n_action_siloStopFilling"))
+		self.activatable = LoadTriggerActivatable.new(self)
+		self.activatable:setText(self.startFillText)
+		self.isLoading = false
+		self.selectedFillType = FillType.UNKNOWN
+		self.automaticFilling = Platform.gameplay.automaticFilling
+		self.requiresActiveVehicle = not self.automaticFilling
+		self.automaticFillingTimer = 0
+		return true
 	end
-	self.fillTypes = {}
-	local v27_ = XMLUtil.getValueFromXMLFileOrUserAttribute(xmlFile, xmlNode, "fillTypeCategories", self.rootNode)
-	local v28_ = XMLUtil.getValueFromXMLFileOrUserAttribute(xmlFile, xmlNode, "fillTypes", self.rootNode)
-	local v29_ = nil
-	if v27_ == nil or v28_ ~= nil then
-		if v27_ == nil and v28_ ~= nil then
-			v29_ = g_fillTypeManager:getFillTypesByNames(v28_, "Warning: UnloadTrigger has invalid fillType \'%s\'.")
-		end
-	else
-		v29_ = g_fillTypeManager:getFillTypesByCategoryNames(v27_, "Warning: UnloadTrigger has invalid fillTypeCategory \'%s\'.")
-	end
-	if v29_ == nil then
-		self.fillTypes = nil
-	else
-		for _, v30_ in pairs(v29_) do
-			self.fillTypes[v30_] = true
-		end
-	end
-	self.autoStart = xmlFile:getValue(xmlNode .. "#autoStart", false)
-	self.hasInfiniteCapacity = xmlFile:getValue(xmlNode .. "#infiniteCapacity", false)
-	self.requiresExactFillRootNode = xmlFile:getValue(xmlNode .. "#requiresExactFillRootNode", true)
-	self.startFillText = g_i18n:convertText(xmlFile:getValue(xmlNode .. "#startFillText", "$l10n_action_siloStartFilling"))
-	self.stopFillText = g_i18n:convertText(xmlFile:getValue(xmlNode .. "#stopFillText", "$l10n_action_siloStopFilling"))
-	self.activatable = LoadTriggerActivatable.new(self)
-	self.activatable:setText(self.startFillText)
-	self.isLoading = false
-	self.selectedFillType = FillType.UNKNOWN
-	self.automaticFilling = Platform.gameplay.automaticFilling
-	self.requiresActiveVehicle = not self.automaticFilling
-	self.automaticFillingTimer = 0
-	return true
 end
-
--- Local values: objectId, data
 function LoadTrigger:delete()
 	if self.fillableObjects ~= nil then
-		for _, v32_ in pairs(self.fillableObjects) do
-			if v32_.object.removeDeleteListener ~= nil then
-				v32_.object:removeDeleteListener(self)
+		for objectId, data in pairs(self.fillableObjects) do
+			if data.object.removeDeleteListener == nil then
+				continue
 			end
+			data.object:removeDeleteListener(self)
 		end
 		table.clear(self.fillableObjects)
 	end
@@ -182,30 +168,22 @@ function LoadTrigger:delete()
 	g_currentMission.activatableObjectsSystem:removeActivatable(self.activatable)
 	LoadTrigger:superClass().delete(self)
 end
-
 function LoadTrigger:setSource(object)
-	local v35_ = object.getSupportedFillTypes ~= nil
-	assert(v35_)
-	local v36_ = object.getAllFillLevels ~= nil
-	assert(v36_)
-	local v37_ = object.addFillLevelToFillableObject ~= nil
-	assert(v37_)
-	local v38_ = object.getIsFillAllowedToFarm ~= nil
-	assert(v38_)
+	assert(object.getSupportedFillTypes ~= nil)
+	assert(object.getAllFillLevels ~= nil)
+	assert(object.addFillLevelToFillableObject ~= nil)
+	assert(object.getIsFillAllowedToFarm ~= nil)
 	self.source = object
 end
-
 function LoadTrigger:raiseActive()
 	LoadTrigger:superClass().raiseActive(self)
 	if self.source ~= nil and self.source.raiseActive ~= nil then
 		self.source:raiseActive()
 	end
 end
-
--- Local values: fillableObject, fillTypes, foundFillUnitIndex, found, fillTypeIndex, state, fillTypeIndex, state, fillUnits, fillUnitIndex, fillUnit
 function LoadTrigger:loadTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay, otherShapeId)
-	local v44_ = g_currentMission:getNodeObject(otherId)
-	if v44_ == nil then
+	local fillableObject = g_currentMission:getNodeObject(otherId)
+	if fillableObject == nil then
 		return
 	end
 	if not entityExists(otherId) then
@@ -214,170 +192,162 @@ function LoadTrigger:loadTriggerCallback(triggerId, otherId, onEnter, onLeave, o
 	if self.requiresExactFillRootNode and not CollisionFlag.getHasGroupFlagSet(otherId, CollisionFlag.FILLABLE) then
 		return
 	end
-	if v44_ == self.source then
+	if fillableObject == self.source then
 		return
-	end
-	if v44_.getRootVehicle ~= nil and v44_.getFillUnitIndexFromNode ~= nil then
-		local v45_ = self.source:getSupportedFillTypes()
-		if v45_ ~= nil then
-			local v46_ = v44_:getFillUnitIndexFromNode(otherId)
-			if v46_ ~= nil then
-				local v47_ = false
-				for v48_, v49_ in pairs(v45_) do
-					if v49_ and (self.fillTypes == nil or self.fillTypes[v48_]) and (v44_:getFillUnitSupportsFillType(v46_, v48_) and v44_:getFillUnitAllowsFillType(v46_, v48_)) then
-						v47_ = true
-						break
+	else
+		if fillableObject.getRootVehicle ~= nil and fillableObject.getFillUnitIndexFromNode ~= nil then
+			local fillTypes = self.source:getSupportedFillTypes()
+			if fillTypes ~= nil then
+				local foundFillUnitIndex = fillableObject:getFillUnitIndexFromNode(otherId)
+				if foundFillUnitIndex ~= nil then
+					local found = false
+					for fillTypeIndex, state in pairs(fillTypes) do
+						if state and (fillableObject:getFillUnitSupportsFillType(foundFillUnitIndex, fillTypeIndex) and fillableObject:getFillUnitAllowsFillType(foundFillUnitIndex, fillTypeIndex)) then
+							found = true
+							break
+						end
+					end
+					if not found then
+						foundFillUnitIndex = nil
 					end
 				end
-				if not v47_ then
-					v46_ = nil
-				end
-			end
-			if v46_ == nil then
-				for v50_, v51_ in pairs(v45_) do
-					if v51_ and (self.fillTypes == nil or self.fillTypes[v50_]) then
-						local v52_ = v44_:getFillUnits()
-						for v53_, v54_ in ipairs(v52_) do
-							if v54_.exactFillRootNode == nil and (v44_:getFillUnitSupportsFillType(v53_, v50_) and v44_:getFillUnitAllowsFillType(v53_, v50_)) then
-								v46_ = v53_
-								break
+				if foundFillUnitIndex == nil then
+					for fillTypeIndex, state in pairs(fillTypes) do
+						if state and (self.fillTypes == nil or self.fillTypes[fillTypeIndex]) then
+							local fillUnits = fillableObject:getFillUnits()
+							for fillUnitIndex, fillUnit in ipairs(fillUnits) do
+								if fillUnit.exactFillRootNode == nil and (fillableObject:getFillUnitSupportsFillType(fillUnitIndex, fillTypeIndex) and fillableObject:getFillUnitAllowsFillType(fillUnitIndex, fillTypeIndex)) then
+									foundFillUnitIndex = fillUnitIndex
+									break
+								end
 							end
 						end
 					end
 				end
-			end
-			if v46_ ~= nil then
-				if onEnter then
-					self.fillableObjects[otherId] = {
-						["object"] = v44_,
-						["fillUnitIndex"] = v46_
-					}
-					v44_:addDeleteListener(self)
-					v44_:setFillUnitInTriggerRange(v46_, true)
-					self:raiseActive()
-				elseif onLeave then
-					self.fillableObjects[otherId] = nil
-					v44_:removeDeleteListener(self)
-					v44_:setFillUnitInTriggerRange(v46_, false)
-					if self.isLoading and self.currentFillableObject == v44_ then
-						self:setIsLoading(false)
+				if foundFillUnitIndex ~= nil then
+					if onEnter then
+						self.fillableObjects[otherId] = { object = fillableObject, fillUnitIndex = foundFillUnitIndex }
+						fillableObject:addDeleteListener(self)
+						fillableObject:setFillUnitInTriggerRange(foundFillUnitIndex, true)
+						self:raiseActive()
+					elseif onLeave then
+						self.fillableObjects[otherId] = nil
+						fillableObject:removeDeleteListener(self)
+						fillableObject:setFillUnitInTriggerRange(foundFillUnitIndex, false)
+						if self.isLoading and self.currentFillableObject == fillableObject then
+							self:setIsLoading(false)
+						end
+						if fillableObject == self.validFillableObject then
+							self.validFillableObject = nil
+							self.validFillableFillUnitIndex = nil
+						end
 					end
-					if v44_ == self.validFillableObject then
-						self.validFillableObject = nil
-						self.validFillableFillUnitIndex = nil
+					if self.automaticFilling then
+						if not self.isLoading and (next(self.fillableObjects) ~= nil and self:getIsFillableObjectAvailable()) then
+							self:toggleLoading()
+						end
+					else
+						if next(self.fillableObjects) ~= nil then
+							g_currentMission.activatableObjectsSystem:addActivatable(self.activatable)
+							return
+						end
+						g_currentMission.activatableObjectsSystem:removeActivatable(self.activatable)
 					end
-				end
-				if self.automaticFilling then
-					if not self.isLoading and (next(self.fillableObjects) ~= nil and self:getIsFillableObjectAvailable()) then
-						self:toggleLoading()
-						return
-					end
-				else
-					if next(self.fillableObjects) ~= nil then
-						g_currentMission.activatableObjectsSystem:addActivatable(self.activatable)
-						return
-					end
-					g_currentMission.activatableObjectsSystem:removeActivatable(self.activatable)
 				end
 			end
 		end
 	end
 end
-
--- Local values: objectFarmId
 function LoadTrigger:farmIdForFillableObject(fillableObject)
-	local v56_ = fillableObject:getOwnerFarmId()
+	local objectFarmId = fillableObject:getOwnerFarmId()
 	if fillableObject.getActiveFarm ~= nil then
-		v56_ = fillableObject:getActiveFarm()
+		objectFarmId = fillableObject:getActiveFarm()
 	end
-	if v56_ == nil then
-		v56_ = FarmManager.SPECTATOR_FARM_ID
+	if objectFarmId == nil then
+		objectFarmId = FarmManager.SPECTATOR_FARM_ID
 	end
-	return v56_
+	return objectFarmId
 end
-
--- Local values: hasLowPrioObject, numOfObjects, _, fillableObject, _, fillableObject
 function LoadTrigger:getIsFillableObjectAvailable()
 	if next(self.fillableObjects) == nil then
 		return false
-	end
-	if self.isLoading then
-		if self.currentFillableObject ~= nil and self:getAllowsActivation(self.currentFillableObject) then
-			return true
-		end
 	else
-		self.validFillableObject = nil
-		self.validFillableFillUnitIndex = nil
-		local v58_ = 0
-		local v59_ = false
-		for _, v60_ in pairs(self.fillableObjects) do
-			v59_ = v60_.lastWasFilled and true or v59_
-			v58_ = v58_ + 1
-		end
-		if v59_ then
-			v59_ = v58_ > 1
-		end
-		for _, v61_ in pairs(self.fillableObjects) do
-			if not (v61_.lastWasFilled and v59_) and (self:getAllowsActivation(v61_.object) and (v61_.object:getFillUnitSupportsToolType(v61_.fillUnitIndex, ToolType.TRIGGER) and (v61_.object:getFillUnitFreeCapacity(v61_.fillUnitIndex, nil, nil) > 0 and self.source:getIsFillAllowedToFarm(self:farmIdForFillableObject(v61_.object))))) then
-				self.validFillableObject = v61_.object
-				self.validFillableFillUnitIndex = v61_.fillUnitIndex
+		if self.isLoading then
+			if self.currentFillableObject ~= nil and self:getAllowsActivation(self.currentFillableObject) then
 				return true
 			end
-		end
-	end
-	return false
-end
-
--- Local values: fillLevels, fillableObject, fillUnitIndex, firstFillType, validFillLevels, numFillTypes, fillTypeIndex, fillLevel, startAllowed, controlledVehicle, title, rootVehicle
-function LoadTrigger:toggleLoading()
-	if self.isLoading then
-		self:setIsLoading(false)
-	else
-		local v63_ = self.source:getAllFillLevels(g_currentMission:getFarmId())
-		local v64_ = self.validFillableObject
-		local v65_ = self.validFillableFillUnitIndex
-		local v66_ = {}
-		local v67_ = nil
-		local v68_ = 0
-		for v71_, v70_ in pairs(v63_) do
-			if (self.fillTypes == nil or self.fillTypes[v71_]) and v64_:getFillUnitAllowsFillType(v65_, v71_) then
-				v66_[v71_] = v70_
-				if v67_ ~= nil then
-					local v71_ = v67_
+		else
+			self.validFillableObject = nil
+			self.validFillableFillUnitIndex = nil
+			local hasLowPrioObject = false
+			local numOfObjects = 0
+			for _, fillableObject in pairs(self.fillableObjects) do
+				if fillableObject.lastWasFilled then
+					hasLowPrioObject = true
 				end
-				v68_ = v68_ + 1
-				v67_ = v71_
+				numOfObjects = numOfObjects + 1
+			end
+			hasLowPrioObject = hasLowPrioObject and 1 < numOfObjects
+			for _, fillableObject in pairs(self.fillableObjects) do
+				if (not fillableObject.lastWasFilled or not hasLowPrioObject) and (self:getAllowsActivation(fillableObject.object) and (fillableObject.object:getFillUnitSupportsToolType(fillableObject.fillUnitIndex, ToolType.TRIGGER) and (0 < fillableObject.object:getFillUnitFreeCapacity(fillableObject.fillUnitIndex, nil, nil) and self.source:getIsFillAllowedToFarm(self:farmIdForFillableObject(fillableObject.object))))) then
+					self.validFillableObject = fillableObject.object
+					self.validFillableFillUnitIndex = fillableObject.fillUnitIndex
+					return true
+				end
 			end
 		end
-		if self.autoStart or v68_ <= 0 then
-			self:onFillTypeSelection(v67_)
+		return false
+	end
+end
+function LoadTrigger:toggleLoading()
+	if not self.isLoading then
+		local fillLevels = self.source:getAllFillLevels(g_currentMission:getFarmId())
+		local fillableObject = self.validFillableObject
+		local fillUnitIndex = self.validFillableFillUnitIndex
+		local firstFillType = nil
+		local validFillLevels = {}
+		local numFillTypes = 0
+		for fillTypeIndex, fillLevel in pairs(fillLevels) do
+			if (self.fillTypes == nil or self.fillTypes[fillTypeIndex]) and fillableObject:getFillUnitAllowsFillType(fillUnitIndex, fillTypeIndex) then
+				validFillLevels[fillTypeIndex] = fillLevel
+				if firstFillType == nil then
+					firstFillType = fillTypeIndex
+				end
+				numFillTypes = numFillTypes + 1
+			end
+		end
+		if not self.autoStart and 0 < numFillTypes then
+			local startAllowed = true
+			local controlledVehicle = g_localPlayer:getCurrentVehicle()
+			if controlledVehicle.getIsActiveForInput ~= nil then
+				startAllowed = controlledVehicle:getIsActiveForInput(true)
+			end
+			if startAllowed then
+				local title = string.format("%s", self.source:getName())
+				SiloDialog.show(self.onFillTypeSelection, self, title, validFillLevels, self.hasInfiniteCapacity)
+				if self.automaticFilling then
+					local rootVehicle = fillableObject.rootVehicle
+					if rootVehicle.brakeToStop ~= nil then
+						rootVehicle:brakeToStop()
+					end
+				end
+			end
 			return
 		end
-		local v72_ = g_localPlayer:getCurrentVehicle()
-		if v72_.getIsActiveForInput == nil and true or v72_:getIsActiveForInput(true) then
-			local v73_ = string.format("%s", self.source:getName())
-			SiloDialog.show(self.onFillTypeSelection, self, v73_, v66_, self.hasInfiniteCapacity)
-			if self.automaticFilling then
-				local v74_ = v64_.rootVehicle
-				if v74_.brakeToStop ~= nil then
-					v74_:brakeToStop()
-					return
-				end
-			end
-		end
+		self:onFillTypeSelection(firstFillType)
+	else
+		self:setIsLoading(false)
 	end
 end
-
--- Local values: validFillableObject, fillUnitIndex
 function LoadTrigger:onFillTypeSelection(fillType)
 	if fillType ~= nil and fillType ~= FillType.UNKNOWN then
-		local v77_ = self.validFillableObject
-		if v77_ ~= nil and self:getAllowsActivation(v77_) then
-			self:setIsLoading(true, v77_, self.validFillableFillUnitIndex, fillType)
+		local validFillableObject = self.validFillableObject
+		if validFillableObject ~= nil and self:getAllowsActivation(validFillableObject) then
+			local fillUnitIndex = self.validFillableFillUnitIndex
+			self:setIsLoading(true, validFillableObject, fillUnitIndex, fillType)
 		end
 	end
 end
-
 function LoadTrigger:setIsLoading(isLoading, targetObject, fillUnitIndex, fillType, noEventSend)
 	LoadTriggerSetIsLoadingEvent.sendEvent(self, isLoading, targetObject, fillUnitIndex, fillType, noEventSend)
 	if isLoading then
@@ -388,11 +358,15 @@ function LoadTrigger:setIsLoading(isLoading, targetObject, fillUnitIndex, fillTy
 		self:stopLoading()
 	end
 end
-
 function LoadTrigger:getAllowsActivation(fillableObject)
-	return not self.requiresActiveVehicle and true or (fillableObject.getAllowLoadTriggerActivation ~= nil and fillableObject:getAllowLoadTriggerActivation(fillableObject) and true or false)
+	if not self.requiresActiveVehicle then
+		return true
+	elseif fillableObject.getAllowLoadTriggerActivation ~= nil and fillableObject:getAllowLoadTriggerActivation(fillableObject) then
+		return true
+	else
+		return false
+	end
 end
-
 function LoadTrigger:startLoading(fillType, fillableObject, fillUnitIndex)
 	if not self.isLoading then
 		self:raiseActive()
@@ -412,8 +386,6 @@ function LoadTrigger:startLoading(fillType, fillableObject, fillUnitIndex)
 		end
 	end
 end
-
--- Local values: _, fillableObject
 function LoadTrigger:stopLoading()
 	if self.isLoading then
 		self:raiseActive()
@@ -424,14 +396,8 @@ function LoadTrigger:stopLoading()
 			self.currentFillableObject:aiStoppedLoadingFromTrigger()
 		end
 		self.currentFillableObject = nil
-		for _, v91_ in pairs(self.fillableObjects) do
-			local v92_
-			if v91_.object == self.validFillableObject then
-				v92_ = v91_.fillUnitIndex == self.fillUnitIndex
-			else
-				v92_ = false
-			end
-			v91_.lastWasFilled = v92_
+		for _, fillableObject in pairs(self.fillableObjects) do
+			fillableObject.lastWasFilled = fillableObject.object == self.validFillableObject and fillableObject.fillUnitIndex == self.fillUnitIndex
 		end
 		if self.isClient then
 			g_effectManager:stopEffects(self.effects)
@@ -443,36 +409,30 @@ function LoadTrigger:stopLoading()
 		end
 	end
 end
-
--- Local values: fillSpeed, delta, fillDelta
 function LoadTrigger:update(dt)
 	if self.isServer then
 		if self.isLoading then
-			if self.currentFillableObject == nil then
-				if self.isLoading then
-					self:setIsLoading(false)
-				end
-			else
-				local v95_ = self.fillLitersPerMS
+			if self.currentFillableObject ~= nil then
+				local fillSpeed = self.fillLitersPerMS
 				if self.currentFillableObject.getLoadTriggerMaxFillSpeed ~= nil then
-					local v96_ = self.currentFillableObject
-					v95_ = math.min(v95_, v96_:getLoadTriggerMaxFillSpeed())
+					fillSpeed = math.min(fillSpeed, self.currentFillableObject:getLoadTriggerMaxFillSpeed())
 				end
-				local v97_ = v95_ * dt
+				local delta = fillSpeed * dt
 				if self.useTimeScale then
-					v97_ = v97_ * g_currentMission:getEffectiveTimeScale()
+					delta = delta * g_currentMission:getEffectiveTimeScale()
 				end
-				local v98_ = self.source:addFillLevelToFillableObject(self.currentFillableObject, self.fillUnitIndex, self.selectedFillType, v97_, self.dischargeInfo, ToolType.TRIGGER)
-				if v98_ == nil or math.abs(v98_) < 0.0001 then
+				local fillDelta = self.source:addFillLevelToFillableObject(self.currentFillableObject, self.fillUnitIndex, self.selectedFillType, delta, self.dischargeInfo, ToolType.TRIGGER)
+				if fillDelta == nil or math.abs(fillDelta) < 0.0001 then
 					self:setIsLoading(false)
 				end
+			elseif self.isLoading then
+				self:setIsLoading(false)
 			end
 			self:raiseActive()
 			return
 		end
 		if self.automaticFilling and next(self.fillableObjects) ~= nil then
-			local v99_ = self.automaticFillingTimer - dt
-			self.automaticFillingTimer = math.max(v99_, 0)
+			self.automaticFillingTimer = math.max(self.automaticFillingTimer - dt, 0)
 			if self.automaticFillingTimer == 0 and self:getIsFillableObjectAvailable() then
 				self:toggleLoading()
 				self.automaticFillingTimer = 10000
@@ -481,26 +441,22 @@ function LoadTrigger:update(dt)
 		end
 	end
 end
-
 function LoadTrigger:getCurrentFillType()
 	return self.selectedFillType
 end
-
 function LoadTrigger:getFillTargetNode()
-	if self.currentFillableObject == nil then
-		return nil
-	else
+	if self.currentFillableObject ~= nil then
 		return self.currentFillableObject:getFillUnitRootNode(self.fillUnitIndex)
+	else
+		return nil
 	end
 end
-
--- Local values: target, x, y, z
 function LoadTrigger:setFillSoundIsPlaying(state)
 	if self.dischargeInfo == nil and state then
-		local v104_ = self:getFillTargetNode()
-		if v104_ ~= nil then
-			local v105_, v106_, v107_ = getWorldTranslation(v104_)
-			setWorldTranslation(self.soundNode, v105_, v106_, v107_)
+		local target = self:getFillTargetNode()
+		if target ~= nil then
+			local x, y, z = getWorldTranslation(target)
+			setWorldTranslation(self.soundNode, x, y, z)
 		end
 	end
 	if self.samples.load == nil then
@@ -510,52 +466,41 @@ function LoadTrigger:setFillSoundIsPlaying(state)
 		self.currentFillableObject:setFillSoundIsPlaying(state)
 	end
 end
-
--- Local values: k, fillableObject
 function LoadTrigger:onDeleteObject(vehicle)
-	for v110_, v111_ in pairs(self.fillableObjects) do
-		if v111_.object == vehicle then
-			self.fillableObjects[v110_] = nil
+	for k, fillableObject in pairs(self.fillableObjects) do
+		if fillableObject.object == vehicle then
+			self.fillableObjects[k] = nil
 			if self.isLoading and self.currentFillableObject == vehicle then
 				self:stopLoading()
 			end
 		end
 	end
 end
-
 function LoadTrigger:getIsFillTypeSupported(fillType)
 	return self.fillTypes[fillType] ~= nil
 end
-
 function LoadTrigger:getSupportAILoading()
 	return self.supportsAILoading
 end
-
--- Local values: x, _, z, xDir, _, zDir
 function LoadTrigger:getAITargetPositionAndDirection()
-	local v116_, _, v117_ = getWorldTranslation(self.aiNode)
-	local v118_, _, v119_ = localDirectionToWorld(self.aiNode, 0, 0, 1)
-	return v116_, v117_, v118_, v119_
+	local x, _, z = getWorldTranslation(self.aiNode)
+	local xDir, _, zDir = localDirectionToWorld(self.aiNode, 0, 0, 1)
+	return x, z, xDir, zDir
 end
 LoadTriggerActivatable = {}
-local v_u_120_ = Class(LoadTriggerActivatable)
-function LoadTriggerActivatable.new(p121_)
-	-- upvalues: (copy) v_u_120_
-	local v122_ = v_u_120_
-	local v123_ = setmetatable({}, v122_)
-	v123_.loadTrigger = p121_
-	v123_.activateText = ""
-	return v123_
+local LoadTriggerActivatable_mt = Class(LoadTriggerActivatable)
+function LoadTriggerActivatable.new(loadTrigger)
+	local self = setmetatable({}, LoadTriggerActivatable_mt)
+	self.loadTrigger = loadTrigger
+	self.activateText = ""
+	return self
 end
-
 function LoadTriggerActivatable:setText(text)
 	self.activateText = text
 end
-
 function LoadTriggerActivatable:getIsActivatable()
 	return self.loadTrigger:getIsFillableObjectAvailable()
 end
-
 function LoadTriggerActivatable:run()
 	self.loadTrigger:toggleLoading()
 end

@@ -1,109 +1,86 @@
--- Local values: TweenSequence_mt
 TweenSequence = {}
 local TweenSequence_mt = Class(TweenSequence, Tween)
-
--- Upvalues: TweenSequence_mt
--- Local values: self
 function TweenSequence.new(functionTarget)
-	-- upvalues: (copy) TweenSequence_mt
-	local v3_ = Tween.new(nil, nil, nil, nil, TweenSequence_mt)
-	v3_.functionTarget = functionTarget
-	v3_.callbackStates = {}
-	v3_.callbacksCalled = {}
-	v3_.tweenUpdateRanges = {}
-	v3_.callbackInstants = {}
-	v3_.isLooping = false
-	v3_.totalDuration = 0
-	v3_.isFinished = true
-	return v3_
+	local self = Tween.new(nil, nil, nil, nil, TweenSequence_mt)
+	self.functionTarget = functionTarget
+	self.callbackStates = {}
+	self.callbacksCalled = {}
+	self.tweenUpdateRanges = {}
+	self.callbackInstants = {}
+	self.isLooping = false
+	self.totalDuration = 0
+	self.isFinished = true
+	return self
 end
-
 function TweenSequence:insertTween(tween, instant)
 	self.tweenUpdateRanges[tween] = { instant, instant + tween:getDuration() }
-	local v7_ = instant + tween:getDuration()
-	local v8_ = self.totalDuration
-	self.totalDuration = math.max(v7_, v8_)
+	self.totalDuration = math.max(instant + tween:getDuration(), self.totalDuration)
 	if self.functionTarget ~= nil then
 		tween:setTarget(self.functionTarget)
 	end
 end
-
 function TweenSequence:addTween(tween)
 	self:insertTween(tween, self.totalDuration)
 end
-
--- Local values: tween, range, tweenStartInstant, tweenEndInstant, callback, callbackInstant
 function TweenSequence:insertInterval(interval, instant)
-	for v14_, v15_ in pairs(self.tweenUpdateRanges) do
-		local v16_ = v15_[1]
-		local v17_ = v15_[2]
-		if instant <= v16_ then
-			self.tweenUpdateRanges[v14_][1] = v16_ + interval
-			self.tweenUpdateRanges[v14_][2] = v17_ + interval
+	for tween, range in pairs(self.tweenUpdateRanges) do
+		local tweenStartInstant = range[1]
+		local tweenEndInstant = range[2]
+		if instant <= tweenStartInstant then
+			self.tweenUpdateRanges[tween][1] = tweenStartInstant + interval
+			self.tweenUpdateRanges[tween][2] = tweenEndInstant + interval
 		end
 	end
-	for v18_, v19_ in pairs(self.callbackInstants) do
-		if instant <= v19_ then
-			self.callbackInstants[v18_] = v19_ + interval
+	for callback, callbackInstant in pairs(self.callbackInstants) do
+		if instant <= callbackInstant then
+			self.callbackInstants[callback] = callbackInstant + interval
 		end
 	end
 	self.totalDuration = self.totalDuration + interval
 end
-
 function TweenSequence:addInterval(interval)
 	self:insertInterval(interval, self.totalDuration)
 end
-
 function TweenSequence:insertCallback(callback, callbackState, instant)
 	self.callbackInstants[callback] = instant
 	self.callbackStates[callback] = callbackState
 	self.callbacksCalled[callback] = false
 end
-
 function TweenSequence:addCallback(callback, callbackState)
 	self:insertCallback(callback, callbackState, self.totalDuration)
 end
-
 function TweenSequence:getDuration()
 	return self.totalDuration
 end
-
 function TweenSequence:setTarget(target)
 	self.functionTarget = target
 end
-
 function TweenSequence:setLooping(isLooping)
 	self.isLooping = isLooping
 end
-
 function TweenSequence:start()
 	self.isFinished = false
 end
-
 function TweenSequence:stop()
 	self.isFinished = true
 end
-
--- Local values: tween, callback
 function TweenSequence:reset()
 	self.elapsedTime = 0
 	self.isFinished = true
-	for v37_ in pairs(self.tweenUpdateRanges) do
-		v37_:reset()
+	for tween in pairs(self.tweenUpdateRanges) do
+		tween:reset()
 	end
-	for v38_ in pairs(self.callbacksCalled) do
-		self.callbacksCalled[v38_] = false
+	for callback in pairs(self.callbacksCalled) do
+		self.callbacksCalled[callback] = false
 	end
 end
-
--- Local values: lastUpdateInstant, allFinished
 function TweenSequence:update(dt)
 	if not self.isFinished then
-		local v41_ = self.elapsedTime
+		local lastUpdateInstant = self.elapsedTime
 		self.elapsedTime = self.elapsedTime + dt
-		local v42_ = self:updateTweens(v41_, dt)
+		local allFinished = self:updateTweens(lastUpdateInstant, dt)
 		self:updateCallbacks()
-		if self.elapsedTime >= self.totalDuration and v42_ then
+		if self.totalDuration <= self.elapsedTime and allFinished then
 			if self.isLooping then
 				self:reset()
 				self:start()
@@ -113,33 +90,33 @@ function TweenSequence:update(dt)
 		end
 	end
 end
-
--- Local values: allFinished, tween, range, tweenStart, maxDt
 function TweenSequence:updateTweens(lastInstant, dt)
-	local v45_ = true
-	for v46_, v47_ in pairs(self.tweenUpdateRanges) do
-		local v48_ = v47_[1]
-		if not v46_:getFinished() and v48_ <= self.elapsedTime then
-			local v49_ = self.elapsedTime - v48_
-			v46_:update((math.min(v49_, dt)))
-			if v45_ then
-				v45_ = v46_:getFinished()
-			end
+	local allFinished = true
+	for tween, range in pairs(self.tweenUpdateRanges) do
+		local tweenStart = range[1]
+		if tween:getFinished() then
+			continue
+		end
+		if tweenStart <= self.elapsedTime then
+			local maxDt = math.min(self.elapsedTime - tweenStart, dt)
+			tween:update(maxDt)
+			allFinished = allFinished and tween:getFinished()
 		end
 	end
-	return v45_
+	return allFinished
 end
-
--- Local values: callback, instant
 function TweenSequence:updateCallbacks()
-	for v51_, v52_ in pairs(self.callbackInstants) do
-		if not self.callbacksCalled[v51_] and v52_ <= self.elapsedTime then
-			if self.functionTarget == nil then
-				v51_(self.callbackStates[v51_])
+	for callback, instant in pairs(self.callbackInstants) do
+		if self.callbacksCalled[callback] then
+			continue
+		end
+		if instant <= self.elapsedTime then
+			if self.functionTarget ~= nil then
+				callback(self.functionTarget, self.callbackStates[callback])
 			else
-				v51_(self.functionTarget, self.callbackStates[v51_])
+				callback(self.callbackStates[callback])
 			end
-			self.callbacksCalled[v51_] = true
+			self.callbacksCalled[callback] = true
 		end
 	end
 end

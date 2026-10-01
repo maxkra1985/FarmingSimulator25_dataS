@@ -1,11 +1,9 @@
--- Local values: WildlifeManager_mt
 WildlifeManager = {}
 local WildlifeManager_mt = Class(WildlifeManager)
 g_xmlManager:addCreateSchemaFunction(function()
 	WildlifeManager.xmlSchema = XMLSchema.new("wildlife")
 	WildlifeManager.registerXMLPaths(WildlifeManager.xmlSchema)
 end)
-
 function WildlifeManager.registerXMLPaths(xmlSchema)
 	xmlSchema:register(XMLValueType.STRING, "wildlife.annotation", "Copyright annotation")
 	xmlSchema:register(XMLValueType.STRING, "wildlife.groups.group(?)#name", "Name of the wildlife group", nil, true)
@@ -14,34 +12,24 @@ function WildlifeManager.registerXMLPaths(xmlSchema)
 	xmlSchema:register(XMLValueType.STRING_LIST, "wildlife.species.species(?)#groups", "List of group names this wildlife species belongs to", nil, true)
 end
 function WildlifeManager.new()
-	-- upvalues: (copy) WildlifeManager_mt
-	local v3_ = WildlifeManager_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.nameToGroup = {}
-	v4_.speciesToGroups = {}
-	v4_.species = {}
-	v4_.nameToSpecies = {}
-	v4_.modSpecies = {}
-	v4_.usedBudget = 0
-	v4_.maximumBudget = 100
-	v4_.speciesSpawnPending = false
-	v4_.debugDrawActive = false
-	return v4_
+	local self = setmetatable({}, WildlifeManager_mt)
+	self.nameToGroup = {}
+	self.speciesToGroups = {}
+	self.species = {}
+	self.nameToSpecies = {}
+	self.modSpecies = {}
+	self.usedBudget = 0
+	self.maximumBudget = 100
+	self.speciesSpawnPending = false
+	self.debugDrawActive = false
+	return self
 end
-
 function WildlifeManager:registerModWildlifeFile(filename, baseDirectory, groupNames)
-	local v9_ = self.modSpecies
-	table.insert(v9_, {
-		["filename"] = filename,
-		["baseDirectory"] = baseDirectory,
-		["groupNames"] = groupNames
-	})
+	table.insert(self.modSpecies, { filename = filename, baseDirectory = baseDirectory, groupNames = groupNames })
 end
-
--- Local values: _, species
 function WildlifeManager:unloadMapData()
-	for _, v11_ in pairs(self.species) do
-		v11_:delete()
+	for _, species in pairs(self.species) do
+		species:delete()
 	end
 	table.clear(self.species)
 	table.clear(self.nameToGroup)
@@ -50,170 +38,167 @@ function WildlifeManager:unloadMapData()
 	removeConsoleCommand("gsWildlifeSpawn")
 	removeConsoleCommand("gsWildlifeDebugToggle")
 end
-
--- Local values: filename, wildlifeXMLFile, _, groupKey, name, maxNumInstances, _, speciesKey, speciesFilename, groupNames, species, _, groupName, group, _, modSpecies, speciesFilename, species, _, groupName, group
 function WildlifeManager:loadMapData(xmlFile, baseDirectory)
-	local v15_ = getXMLString(xmlFile, "map.wildlife#filename")
-	if v15_ == nil then
+	local filename = getXMLString(xmlFile, "map.wildlife#filename")
+	if filename == nil then
 		Logging.info("No wildlife file defined in map, skipping")
 		return
 	end
-	local v16_ = Utils.getFilename(v15_, baseDirectory)
-	local v17_ = XMLFile.load("wildlife", v16_, WildlifeManager.xmlSchema)
-	if v17_ == nil then
-		Logging.error("Could not load wildlife file at %s. Note that default wildlife is now stored under data/animals/wildlife.", v16_)
-		return
-	end
-	for _, v18_ in v17_:iterator("wildlife.groups.group") do
-		local v19_ = v17_:getValue(v18_ .. "#name")
-		if v19_ == nil then
-			Logging.xmlWarning(v17_, "Missing group name for \'%s\'", v18_)
-			break
+	filename = Utils.getFilename(filename, baseDirectory)
+	local wildlifeXMLFile = XMLFile.load("wildlife", filename, WildlifeManager.xmlSchema)
+	if wildlifeXMLFile == nil then
+		Logging.error("Could not load wildlife file at %s. Note that default wildlife is now stored under data/animals/wildlife.", filename)
+	else
+		for _, groupKey in wildlifeXMLFile:iterator("wildlife.groups.group") do
+			local name = wildlifeXMLFile:getValue(groupKey .. "#name")
+			if name == nil then
+				Logging.xmlWarning(wildlifeXMLFile, "Missing group name for '%s'", groupKey)
+				break
+			end
+			local maxNumInstances = wildlifeXMLFile:getValue(groupKey .. "#maxNumInstances")
+			self:addGroup(name, maxNumInstances)
 		end
-		self:addGroup(v19_, (v17_:getValue(v18_ .. "#maxNumInstances")))
-	end
-	for _, v20_ in v17_:iterator("wildlife.species.species") do
-		local v21_ = v17_:getValue(v20_ .. "#filename")
-		if v21_ == nil then
-			Logging.xmlWarning(v17_, "Missing filename for wildlife species \'%s\'", v20_)
-		else
-			local v22_ = v17_:getValue(v20_ .. "#groups")
-			local v23_ = self:loadSpecies(Utils.getFilename(v21_, baseDirectory), baseDirectory)
-			if v23_ ~= nil then
-				self.speciesToGroups[v23_] = {}
-				for _, v24_ in ipairs(v22_) do
-					local v25_ = self:addGroup(v24_, nil)
-					table.addElement(v25_.species, v23_)
-					table.addElement(self.speciesToGroups[v23_], v25_)
+		for _, speciesKey in wildlifeXMLFile:iterator("wildlife.species.species") do
+			local speciesFilename = wildlifeXMLFile:getValue(speciesKey .. "#filename")
+			if speciesFilename == nil then
+				Logging.xmlWarning(wildlifeXMLFile, "Missing filename for wildlife species '%s'", speciesKey)
+			else
+				local groupNames = wildlifeXMLFile:getValue(speciesKey .. "#groups")
+				speciesFilename = Utils.getFilename(speciesFilename, baseDirectory)
+				local species = self:loadSpecies(speciesFilename, baseDirectory)
+				if species == nil then
+					continue
+				end
+				self.speciesToGroups[species] = {}
+				for _, groupName in ipairs(groupNames) do
+					local group = self:addGroup(groupName, nil)
+					table.addElement(group.species, species)
+					table.addElement(self.speciesToGroups[species], group)
 				end
 			end
 		end
-	end
-	v17_:delete()
-	for _, v26_ in ipairs(self.modSpecies) do
-		local v27_ = self:loadSpecies(Utils.getFilename(v26_.filename, v26_.baseDirectory), v26_.baseDirectory)
-		if v27_ ~= nil then
-			self.speciesToGroups[v27_] = self.speciesToGroups[v27_] or {}
-			for _, v28_ in ipairs(v26_.groupNames) do
-				local v29_ = self:addGroup(v28_, nil)
-				table.addElement(v29_.species, v27_)
-				table.addElement(self.speciesToGroups[v27_], v29_)
+		wildlifeXMLFile:delete()
+		for _, modSpecies in ipairs(self.modSpecies) do
+			local speciesFilename = Utils.getFilename(modSpecies.filename, modSpecies.baseDirectory)
+			local species = self:loadSpecies(speciesFilename, modSpecies.baseDirectory)
+			if species == nil then
+				continue
+			end
+			self.speciesToGroups[species] = self.speciesToGroups[species] or {}
+			for _, groupName in ipairs(modSpecies.groupNames) do
+				local group = self:addGroup(groupName, nil)
+				table.addElement(group.species, species)
+				table.addElement(self.speciesToGroups[species], group)
 			end
 		end
-	end
-	table.clear(self.modSpecies)
-	self:initialise()
-	if g_isDevelopmentVersion then
-		addConsoleCommand("gsWildlifeSpawn", "Spawns a species instance", "consoleCommandSpawnSpecies", self, "speciesName;distance;numInstances;rotation", false)
-		addConsoleCommand("gsWildlifeDebugToggle", "Toggles debug draw", "consoleCommandToggleDebugDraw", self)
+		table.clear(self.modSpecies)
+		self:initialise()
+		if g_isDevelopmentVersion then
+			addConsoleCommand("gsWildlifeSpawn", "Spawns a species instance", "consoleCommandSpawnSpecies", self, "speciesName;distance;numInstances;rotation", false)
+			addConsoleCommand("gsWildlifeDebugToggle", "Toggles debug draw", "consoleCommandToggleDebugDraw", self)
+		end
 	end
 end
-
--- Local values: groupNameUpper, group
 function WildlifeManager:addGroup(groupName, maxNumInstances)
-	local v33_ = string.upper(groupName)
-	if self.nameToGroup[v33_] ~= nil then
-		return self.nameToGroup[v33_]
+	local groupNameUpper = string.upper(groupName)
+	if self.nameToGroup[groupNameUpper] ~= nil then
+		return self.nameToGroup[groupNameUpper]
+	else
+		local group = { name = groupName, maxNumInstances = maxNumInstances }
+		group.species = {}
+		group.numInstances = 0
+		self.nameToGroup[groupNameUpper] = group
+		return group
 	end
-	local v34_ = {
-		["name"] = groupName,
-		["species"] = {},
-		["maxNumInstances"] = maxNumInstances,
-		["numInstances"] = 0
-	}
-	self.nameToGroup[v33_] = v34_
-	return v34_
 end
-
--- Local values: species, name
 function WildlifeManager:loadSpecies(filename, baseDirectory)
-	local v38_ = WildlifeUtil.createFromXMLFilename(filename, baseDirectory)
-	if v38_ == nil then
+	local species = WildlifeUtil.createFromXMLFilename(filename, baseDirectory)
+	if species == nil then
 		return nil
 	end
-	local v39_ = string.upper(v38_.name)
-	if self.nameToSpecies[v39_] ~= nil then
-		Logging.warning("Wildlife species \'%s\' already defined", v38_.name)
-		v38_:delete()
+	local name = string.upper(species.name)
+	if self.nameToSpecies[name] ~= nil then
+		Logging.warning("Wildlife species '%s' already defined", species.name)
+		species:delete()
 		return nil
+	else
+		self.nameToSpecies[name] = species
+		table.insert(self.species, species)
+		return species
 	end
-	self.nameToSpecies[v39_] = v38_
-	local v40_ = self.species
-	table.insert(v40_, v38_)
-	return v38_
 end
-
--- Local values: i, species
 function WildlifeManager:initialise()
-	for _, v42_ in ipairs(self.species) do
-		v42_:initialise()
+	for i, species in ipairs(self.species) do
+		species:initialise()
 	end
 end
-
--- Local values: _, group, _, species, groups, numInstances, _, group
 function WildlifeManager:update(dt)
-	if g_localPlayer then
-		for _, v45_ in pairs(self.nameToGroup) do
-			v45_.numInstances = 0
+	if not g_localPlayer then
+		return
+	else
+		for _, group in pairs(self.nameToGroup) do
+			group.numInstances = 0
 		end
 		self.usedBudget = 0
-		for _, v46_ in ipairs(self.species) do
-			v46_:update(dt)
-			v46_.canBeSpawned = true
-			self.usedBudget = self.usedBudget + v46_:getCosts()
-			local v47_ = self.speciesToGroups[v46_]
-			if v47_ ~= nil then
-				local v48_ = v46_:getNumInstances()
-				for _, v49_ in ipairs(v47_) do
-					v49_.numInstances = v49_.numInstances + v48_
-					if v49_.maxNumInstances ~= nil and v49_.numInstances >= v49_.maxNumInstances then
-						v46_.canBeSpawned = false
-					end
+		for _, species in ipairs(self.species) do
+			species:update(dt)
+			species.canBeSpawned = true
+			self.usedBudget = self.usedBudget + species:getCosts()
+			local groups = self.speciesToGroups[species]
+			if groups == nil then
+				continue
+			end
+			local numInstances = species:getNumInstances()
+			for _, group in ipairs(groups) do
+				group.numInstances = group.numInstances + numInstances
+				if group.maxNumInstances == nil then
+					continue
+				end
+				if group.maxNumInstances <= group.numInstances then
+					species.canBeSpawned = false
 				end
 			end
 		end
 		self:trySpawnWildlife()
 	end
 end
-
--- Local values: i, x, y, groupName, group, _, species
 function WildlifeManager:drawDebug()
-	local v51_ = 0.8
+	local i = 0
+	local x = 0.8
+	local y = 0.8
 	setTextAlignment(RenderText.ALIGN_CENTER)
 	setTextBold(true)
-	renderText(0.8, v51_, 0.012, "Wildlife Groups")
+	renderText(0.8, y, 0.012, "Wildlife Groups")
 	setTextBold(false)
-	for v52_, v53_ in pairs(self.nameToGroup) do
-		v51_ = v51_ - 0.015
+	for groupName, group in pairs(self.nameToGroup) do
+		y = y - 0.015
 		setTextAlignment(RenderText.ALIGN_RIGHT)
-		renderText(0.8, v51_, 0.012, string.format("%s : ", v52_))
+		renderText(0.8, y, 0.012, string.format("%s : ", groupName))
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		if v53_.maxNumInstances ~= nil and v53_.numInstances >= v53_.maxNumInstances then
+		if group.maxNumInstances ~= nil and group.maxNumInstances <= group.numInstances then
 			setTextColor(1, 0, 0, 1)
 		end
-		renderText(0.8, v51_, 0.012, string.format("%d / %d", v53_.numInstances, v53_.maxNumInstances or -1))
+		renderText(0.8, y, 0.012, string.format("%d / %d", group.numInstances, group.maxNumInstances or -1))
 		setTextColor(1, 1, 1, 1)
 	end
-	local v54_ = v51_ - 0.025
+	y = y - 0.025
 	setTextAlignment(RenderText.ALIGN_CENTER)
 	setTextBold(true)
-	renderText(0.8, v54_, 0.012, "Wildlife Species")
+	renderText(0.8, y, 0.012, "Wildlife Species")
 	setTextBold(false)
-	for _, v55_ in pairs(self.species) do
-		v54_ = v54_ - 0.015
+	for _, species in pairs(self.species) do
+		y = y - 0.015
 		setTextAlignment(RenderText.ALIGN_RIGHT)
-		renderText(0.8, v54_, 0.012, string.format("%s : ", v55_.name))
+		renderText(0.8, y, 0.012, string.format("%s : ", species.name))
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		if v55_.canBeSpawned == false then
+		if species.canBeSpawned == false then
 			setTextColor(1, 0, 0, 1)
 		end
-		renderText(0.8, v54_, 0.012, string.format("%d => %d", v55_:getNumInstances(), v55_:getCosts()))
+		renderText(0.8, y, 0.012, string.format("%d => %d", species:getNumInstances(), species:getCosts()))
 		setTextColor(1, 1, 1, 1)
-		v55_:drawDebug()
+		species:drawDebug()
 	end
 end
-
--- Local values: species, _, s, playerX, playerZ, playerRotY, cameraFovY, canSpawn, spawnCallback
 function WildlifeManager:trySpawnWildlife()
 	if g_localPlayer == nil or g_localPlayer:getCurrentRootNode() == nil then
 		return
@@ -221,56 +206,54 @@ function WildlifeManager:trySpawnWildlife()
 	if self.speciesSpawnPending then
 		return
 	end
-	if self.usedBudget >= self.maximumBudget then
+	if self.maximumBudget <= self.usedBudget then
 		return
 	end
-	local v_u_57_ = nil
-	for _, v58_ in ipairs_randomStart(self.species) do
-		if v58_.canBeSpawned then
-			v_u_57_ = v58_
+	local species = nil
+	for _, s in ipairs_randomStart(self.species) do
+		if s.canBeSpawned then
+			species = s
 			break
 		end
 	end
-	if v_u_57_ == nil then
+	if species == nil then
 		return
+	end
+	local playerX, playerZ, playerRotY = g_localPlayer:getMapPositionAndLookYaw()
+	local cameraFovY = getFovY(g_cameraManager:getActiveCamera())
+	local canSpawn = species:getCanSpawnInstance()
+	if not canSpawn then
 	else
-		local v59_, v60_, v61_ = g_localPlayer:getMapPositionAndLookYaw()
-		local v62_ = getFovY(g_cameraManager:getActiveCamera())
-		if v_u_57_:getCanSpawnInstance() then
-			self.speciesSpawnPending = true
-			v_u_57_:trySpawnAt(v59_, v60_, v61_, v62_, function(p63_)
-				-- upvalues: (copy) self, (ref) v_u_57_
-				self.speciesSpawnPending = false
-				v_u_57_:resetSpawnTimer(p63_)
-			end)
+		self.speciesSpawnPending = true
+		local spawnCallback = function(success)
+			self.speciesSpawnPending = false
+			species:resetSpawnTimer(success)
 		end
+		species:trySpawnAt(playerX, playerZ, playerRotY, cameraFovY, spawnCallback)
 	end
 end
-
--- Local values: species, x, z, rotY, dirX, dirZ, y
 function WildlifeManager:consoleCommandSpawnSpecies(speciesName, distance, numInstances, rot)
 	if speciesName == nil then
 		printError("Missing species name")
 		return string.format("Available species: %s", table.concatKeys(self.nameToSpecies, ", "))
 	end
-	local v69_ = tonumber(distance) or 50
-	local v70_ = tonumber(numInstances) or 1
-	local v71_ = math.clamp(v70_, 1, 100)
-	local v72_ = tonumber(rot) or 0
-	local v73_ = math.rad(v72_)
-	local v74_ = self.nameToSpecies[string.upper(speciesName)]
-	if v74_ == nil then
-		printError(string.format("Species \'%s\' not defined for map", speciesName))
+	distance = tonumber(distance) or 50
+	numInstances = math.clamp(tonumber(numInstances) or 1, 1, 100)
+	rot = math.rad(tonumber(rot) or 0)
+	local species = self.nameToSpecies[string.upper(speciesName)]
+	if species == nil then
+		printError(string.format("Species '%s' not defined for map", speciesName))
 		return string.format("Available species: %s", table.concatKeys(self.nameToSpecies, ", "))
+	else
+		local x, z, rotY = g_localPlayer:getMapPositionAndLookYaw()
+		local dirX, dirZ = MathUtil.getDirectionFromYRotation(rotY)
+		x = x + dirX * distance
+		z = z + dirZ * distance
+		local y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z)
+		species:debugSpawn(x, y, z, numInstances, rot)
+		return "Spawned species instances"
 	end
-	local v75_, v76_, v77_ = g_localPlayer:getMapPositionAndLookYaw()
-	local v78_, v79_ = MathUtil.getDirectionFromYRotation(v77_)
-	local v80_ = v75_ + v78_ * v69_
-	local v81_ = v76_ + v79_ * v69_
-	v74_:debugSpawn(v80_, getTerrainHeightAtWorldPos(g_terrainNode, v80_, 0, v81_), v81_, v71_, v73_)
-	return "Spawned species instances"
 end
-
 function WildlifeManager:consoleCommandToggleDebugDraw()
 	self.debugDrawActive = not self.debugDrawActive
 	if self.debugDrawActive then

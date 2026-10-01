@@ -1,29 +1,22 @@
--- Local values: BeaconLight_mt
 BeaconLight = {}
 BeaconLight.LIGHT_TYPE_BITMASK = 8
 local BeaconLight_mt = Class(BeaconLight)
-
--- Upvalues: BeaconLight_mt
--- Local values: self
 function BeaconLight.new(vehicle, customMt)
-	-- upvalues: (copy) BeaconLight_mt
-	local v4_ = customMt or BeaconLight_mt
-	local v5_ = setmetatable({}, v4_)
-	v5_.vehicle = vehicle
-	v5_.components = {}
-	v5_.i3dMappings = {}
-	v5_.staticLights = {}
-	v5_.speed = 1
-	v5_.realLightRangeScale = 1
-	v5_.intensity = 1
-	v5_.lastCameraDistance = 0
-	v5_.requiresDirtyUpdate = false
-	v5_.hasDynamicStaticLights = false
-	v5_.isActive = false
-	v5_.realLightActive = false
-	return v5_
+	local self = setmetatable({}, customMt or BeaconLight_mt)
+	self.vehicle = vehicle
+	self.components = {}
+	self.i3dMappings = {}
+	self.staticLights = {}
+	self.speed = 1
+	self.realLightRangeScale = 1
+	self.intensity = 1
+	self.lastCameraDistance = 0
+	self.requiresDirtyUpdate = false
+	self.hasDynamicStaticLights = false
+	self.isActive = false
+	self.realLightActive = false
+	return self
 end
-
 function BeaconLight:delete()
 	if self.node ~= nil then
 		delete(self.node)
@@ -35,220 +28,208 @@ function BeaconLight:delete()
 	end
 	g_currentMission:removeUpdateable(self)
 end
-
 function BeaconLight:setCallback(callback, callbackTarget)
 	self.callback = callback
 	self.callbackTarget = callbackTarget
 end
-
--- Local values: xmlFilename, linkNode, isReference, _, runtimeLoaded, speed, realLight, useRealLights, realLightRangeScale, intensity, mountType, variationName, beaconLight, hasDynamicStaticLights, staticLights, _, staticLightKey, staticLight, speed, intensity, realLight, realLightRangeScale, beaconLight
 function BeaconLight.loadFromVehicleXML(targetTable, xmlFile, key, vehicle)
-	local v14_ = xmlFile:getValue(key .. "#filename", nil, vehicle.baseDirectory)
-	if v14_ == nil then
-		local v15_ = false
-		local v16_ = {}
-		for _, v17_ in xmlFile:iterator(key .. ".staticLight") do
-			local v18_ = {
-				["node"] = xmlFile:getValue(v17_ .. "#node", nil, vehicle.components, vehicle.i3dMappings)
-			}
-			if v18_.node ~= nil then
-				v18_.intensity = xmlFile:getValue(v17_ .. "#intensity", 1)
-				v18_.multiBlink = xmlFile:getValue(v17_ .. "#multiBlink", false)
-				v18_.multiBlinkParameters = xmlFile:getValue(v17_ .. "#multiBlinkParameters", "2 5 50 0", true)
-				v18_.uvOffsetParameter = xmlFile:getValue(v17_ .. "#uvOffsetParameter", 0)
-				v18_.minDistance = xmlFile:getValue(v17_ .. "#minDistance", 0)
-				v18_.intensityScaleMinDistance = xmlFile:getValue(v17_ .. ".intensityScale#minDistance")
-				v18_.intensityScaleMinIntensity = xmlFile:getValue(v17_ .. ".intensityScale#minIntensity")
-				v18_.intensityScaleMaxDistance = xmlFile:getValue(v17_ .. ".intensityScale#maxDistance")
-				v18_.intensityScaleMaxIntensity = xmlFile:getValue(v17_ .. ".intensityScale#maxIntensity")
-				local v19_
-				if v18_.intensityScaleMinDistance == nil or (v18_.intensityScaleMinIntensity == nil or v18_.intensityScaleMaxDistance == nil) then
-					v19_ = false
-				else
-					v19_ = v18_.intensityScaleMaxIntensity ~= nil
+	local xmlFilename = xmlFile:getValue(key .. "#filename", nil, vehicle.baseDirectory)
+	if xmlFilename ~= nil then
+		local linkNode = xmlFile:getValue(key .. "#node", nil, vehicle.components, vehicle.i3dMappings)
+		if linkNode ~= nil then
+			local isReference, _, runtimeLoaded = getReferenceInfo(linkNode)
+			if isReference and runtimeLoaded then
+				Logging.xmlWarning(xmlFile, "Beacon light link node '%s' is a runtime loaded reference, please load beacon lights only via XML!", getName(linkNode))
+				return
+			end
+			local speed = xmlFile:getValue(key .. "#speed")
+			local realLight = xmlFile:getValue(key .. "#realLight", nil, vehicle.components, vehicle.i3dMappings)
+			local useRealLights = xmlFile:getValue(key .. "#useRealLights", realLight == nil)
+			local realLightRangeScale = xmlFile:getValue(key .. "#realLightRange", 1)
+			local intensity = xmlFile:getValue(key .. "#intensity", 1)
+			local mountType = xmlFile:getValue(key .. "#mountType")
+			local variationName = xmlFile:getValue(key .. "#variationName")
+			local beaconLight = BeaconLight.new(vehicle)
+			beaconLight:setXMLSettings(speed, intensity, mountType, variationName)
+			beaconLight:setRealLight(useRealLights, realLight, realLightRangeScale)
+			beaconLight:setCallback(function(success)
+				if success then
+					table.insert(targetTable, beaconLight)
 				end
-				v18_.hasDynamicIntensity = v19_
-				v15_ = v15_ or (v18_.hasDynamicIntensity or v18_.minDistance > 0)
-				table.insert(v16_, v18_)
-			end
+			end)
+			beaconLight:loadFromXML(linkNode, xmlFilename, vehicle.baseDirectory)
+			return beaconLight
 		end
-		if v16_ ~= nil and #v16_ > 0 then
-			local v20_ = xmlFile:getValue(key .. "#speed")
-			local v21_ = xmlFile:getValue(key .. "#intensity", 1)
-			local v22_ = xmlFile:getValue(key .. "#realLight", nil, vehicle.components, vehicle.i3dMappings)
-			local v23_ = xmlFile:getValue(key .. "#realLightRange", 1)
-			local v24_ = BeaconLight.new(vehicle)
-			v24_:setXMLSettings(v20_, v21_, nil, nil)
-			v24_:setRealLight(true, v22_, v23_)
-			v24_.staticLights = v16_
-			v24_.hasStaticLights = true
-			v24_.hasDynamicStaticLights = v15_
-			v24_:onFinished(true)
-			table.insert(targetTable, v24_)
-			return v24_
-		end
+		Logging.xmlWarning(xmlFile, "Missing link node for beacon light in '%s'", key)
 	else
-		local v25_ = xmlFile:getValue(key .. "#node", nil, vehicle.components, vehicle.i3dMappings)
-		if v25_ ~= nil then
-			local v26_, _, v27_ = getReferenceInfo(v25_)
-			if not (v26_ and v27_) then
-				local v28_ = xmlFile:getValue(key .. "#speed")
-				local v29_ = xmlFile:getValue(key .. "#realLight", nil, vehicle.components, vehicle.i3dMappings)
-				local v30_ = xmlFile:getValue(key .. "#useRealLights", v29_ == nil)
-				local v31_ = xmlFile:getValue(key .. "#realLightRange", 1)
-				local v32_ = xmlFile:getValue(key .. "#intensity", 1)
-				local v33_ = xmlFile:getValue(key .. "#mountType")
-				local v34_ = xmlFile:getValue(key .. "#variationName")
-				local v_u_35_ = BeaconLight.new(vehicle)
-				v_u_35_:setXMLSettings(v28_, v32_, v33_, v34_)
-				v_u_35_:setRealLight(v30_, v29_, v31_)
-				v_u_35_:setCallback(function(p36_)
-					-- upvalues: (copy) targetTable, (copy) v_u_35_
-					if p36_ then
-						local v37_ = targetTable
-						local v38_ = v_u_35_
-						table.insert(v37_, v38_)
-					end
-				end)
-				v_u_35_:loadFromXML(v25_, v14_, vehicle.baseDirectory)
-				return v_u_35_
+		local hasDynamicStaticLights = false
+		local staticLights = {}
+		for _, staticLightKey in xmlFile:iterator(key .. ".staticLight") do
+			local staticLight = {}
+			staticLight.node = xmlFile:getValue(staticLightKey .. "#node", nil, vehicle.components, vehicle.i3dMappings)
+			if staticLight.node == nil then
+				continue
 			end
-			Logging.xmlWarning(xmlFile, "Beacon light link node \'%s\' is a runtime loaded reference, please load beacon lights only via XML!", getName(v25_))
-			return
+			staticLight.intensity = xmlFile:getValue(staticLightKey .. "#intensity", 1)
+			staticLight.multiBlink = xmlFile:getValue(staticLightKey .. "#multiBlink", false)
+			staticLight.multiBlinkParameters = xmlFile:getValue(staticLightKey .. "#multiBlinkParameters", "2 5 50 0", true)
+			staticLight.uvOffsetParameter = xmlFile:getValue(staticLightKey .. "#uvOffsetParameter", 0)
+			staticLight.minDistance = xmlFile:getValue(staticLightKey .. "#minDistance", 0)
+			staticLight.intensityScaleMinDistance = xmlFile:getValue(staticLightKey .. ".intensityScale#minDistance")
+			staticLight.intensityScaleMinIntensity = xmlFile:getValue(staticLightKey .. ".intensityScale#minIntensity")
+			staticLight.intensityScaleMaxDistance = xmlFile:getValue(staticLightKey .. ".intensityScale#maxDistance")
+			staticLight.intensityScaleMaxIntensity = xmlFile:getValue(staticLightKey .. ".intensityScale#maxIntensity")
+			staticLight.hasDynamicIntensity = staticLight.intensityScaleMinDistance ~= nil and staticLight.intensityScaleMinIntensity ~= nil and staticLight.intensityScaleMaxDistance ~= nil and staticLight.intensityScaleMaxIntensity ~= nil
+			hasDynamicStaticLights = hasDynamicStaticLights or staticLight.hasDynamicIntensity or 0 < staticLight.minDistance
+			table.insert(staticLights, staticLight)
 		end
-		Logging.xmlWarning(xmlFile, "Missing link node for beacon light in \'%s\'", key)
+		if staticLights ~= nil and 0 < #staticLights then
+			local speed = xmlFile:getValue(key .. "#speed")
+			local intensity = xmlFile:getValue(key .. "#intensity", 1)
+			local realLight = xmlFile:getValue(key .. "#realLight", nil, vehicle.components, vehicle.i3dMappings)
+			local realLightRangeScale = xmlFile:getValue(key .. "#realLightRange", 1)
+			local beaconLight = BeaconLight.new(vehicle)
+			beaconLight:setXMLSettings(speed, intensity, nil, nil)
+			beaconLight:setRealLight(true, realLight, realLightRangeScale)
+			beaconLight.staticLights = staticLights
+			beaconLight.hasStaticLights = true
+			beaconLight.hasDynamicStaticLights = hasDynamicStaticLights
+			beaconLight:onFinished(true)
+			table.insert(targetTable, beaconLight)
+			return beaconLight
+		end
 	end
 	return nil
 end
-
 function BeaconLight:setXMLSettings(speed, intensity, mountType, variationName)
 	self.speed = speed or self.speed
 	self.intensity = intensity or self.intensity
 	self.mountType = mountType
 	self.variationName = variationName
 end
-
 function BeaconLight:setRealLight(useRealLights, customRealLight, realLightRangeScale)
 	self.useRealLights = Utils.getNoNil(useRealLights, self.useRealLights)
 	self.customRealLight = customRealLight
 	self.realLightRangeScale = realLightRangeScale or self.realLightRangeScale
 end
-
--- Local values: filename
 function BeaconLight:loadFromXML(linkNode, xmlFilename, baseDirectory)
 	self.xmlFile = XMLFile.loadIfExists("BeaconLight", xmlFilename, BeaconLight.xmlSchema)
 	if self.xmlFile == nil then
-		if self.vehicle == nil then
-			Logging.warning("Unable to load shared lights from xml \'%s\'", xmlFilename)
+		if self.vehicle ~= nil then
+			Logging.xmlWarning(self.vehicle.xmlFile, "Unable to load shared lights from xml '%s'", xmlFilename)
 		else
-			Logging.xmlWarning(self.vehicle.xmlFile, "Unable to load shared lights from xml \'%s\'", xmlFilename)
+			Logging.warning("Unable to load shared lights from xml '%s'", xmlFilename)
 		end
 		self:onFinished(false)
 		return false
 	end
-	local v52_ = self.xmlFile:getValue("beaconLight.filename")
-	if v52_ ~= nil then
-		self.filename = Utils.getFilename(v52_, baseDirectory)
+	local filename = self.xmlFile:getValue("beaconLight.filename")
+	if filename == nil then
+		Logging.xmlWarning(self.xmlFile, "Missing light i3d filename!")
+		self.xmlFile:delete()
+		self.xmlFile = nil
+		self:onFinished(false)
+		return false
+	else
+		self.filename = Utils.getFilename(filename, baseDirectory)
 		self.linkNode = linkNode
-		if self.vehicle == nil then
-			self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(self.filename, false, false, self.onI3DLoaded, self, nil)
-		else
+		if self.vehicle ~= nil then
 			self.sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(self.filename, false, false, self.onI3DLoaded, self, nil)
+		else
+			self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(self.filename, false, false, self.onI3DLoaded, self, nil)
 		end
 		return true
 	end
-	Logging.xmlWarning(self.xmlFile, "Missing light i3d filename!")
+end
+function BeaconLight:onI3DLoaded(i3dNode, failedReason, args)
+	if self.vehicle ~= nil and self.vehicle.isDeleted then
+		return
+	end
+	if i3dNode ~= 0 then
+		I3DUtil.loadI3DComponents(i3dNode, self.components)
+		I3DUtil.loadI3DMapping(self.xmlFile, "beaconLight", self.components, self.i3dMappings)
+		self.node = self.xmlFile:getValue("beaconLight.rootNode#node", "0", self.components, self.i3dMappings)
+		if self.node ~= nil then
+			self.nodesToRemove = {}
+			self.variationRootNode = nil
+			local variationKey = nil
+			for _variationIndex, _variationKey in self.xmlFile:iterator("beaconLight.variations.variation") do
+				local name = self.xmlFile:getValue(_variationKey .. "#name")
+				if name == nil then
+					continue
+				end
+				if self.variationName == nil then
+					if _variationIndex == 1 or self.variationName ~= nil and string.lower(name) == string.lower(self.variationName) then
+						variationKey = _variationKey
+						self.variationRootNode = self.xmlFile:getValue(_variationKey .. "#rootNode", nil, self.components, self.i3dMappings)
+					else
+						local node = self.xmlFile:getValue(_variationKey .. "#rootNode", nil, self.components, self.i3dMappings)
+						if node == nil then
+							continue
+						end
+						self.nodesToRemove[node] = true
+					end
+				end
+			end
+			self:loadVariationFromXML(self.xmlFile, "beaconLight")
+			if variationKey ~= nil then
+				self:loadVariationFromXML(self.xmlFile, variationKey)
+			end
+			local yOffset = 0
+			for mountTypeIndex, mountTypeKey in self.xmlFile:iterator("beaconLight.mountTypes.mountType") do
+				local name = self.xmlFile:getValue(mountTypeKey .. "#name")
+				if name == nil then
+					continue
+				end
+				local node = self.xmlFile:getValue(mountTypeKey .. "#node", nil, self.components, self.i3dMappings)
+				if self.mountType == nil and (mountTypeIndex ~= 1 and self.mountType ~= nil) then
+					if string.lower(name) == string.lower(self.mountType) then
+						yOffset = self.xmlFile:getValue(mountTypeKey .. "#yOffset", 0)
+						if node == nil then
+							continue
+						end
+						setVisibility(node, true)
+					else
+						if node == nil then
+							continue
+						end
+						self.nodesToRemove[node] = true
+					end
+				end
+			end
+			for node, _ in pairs(self.nodesToRemove) do
+				if node == self.variationRootNode then
+					continue
+				end
+				delete(node)
+			end
+			self.nodesToRemove = nil
+			link(self.linkNode, self.node)
+			setTranslation(self.node, 0, yOffset, 0)
+		end
+		delete(i3dNode)
+	end
 	self.xmlFile:delete()
 	self.xmlFile = nil
 	self:onFinished(false)
-	return false
 end
-
--- Local values: variationKey, _variationIndex, _variationKey, name, node, yOffset, mountTypeIndex, mountTypeKey, name, node, node, _
-function BeaconLight:onI3DLoaded(i3dNode, failedReason, args)
-	if self.vehicle == nil or not self.vehicle.isDeleted then
-		if i3dNode ~= 0 then
-			I3DUtil.loadI3DComponents(i3dNode, self.components)
-			I3DUtil.loadI3DMapping(self.xmlFile, "beaconLight", self.components, self.i3dMappings)
-			self.node = self.xmlFile:getValue("beaconLight.rootNode#node", "0", self.components, self.i3dMappings)
-			if self.node ~= nil then
-				self.nodesToRemove = {}
-				self.variationRootNode = nil
-				local v55_ = nil
-				for v56_, v57_ in self.xmlFile:iterator("beaconLight.variations.variation") do
-					local v58_ = self.xmlFile:getValue(v57_ .. "#name")
-					if v58_ ~= nil then
-						if self.variationName == nil and v56_ == 1 or self.variationName ~= nil and string.lower(v58_) == string.lower(self.variationName) then
-							self.variationRootNode = self.xmlFile:getValue(v57_ .. "#rootNode", nil, self.components, self.i3dMappings)
-							v55_ = v57_
-						else
-							local v59_ = self.xmlFile:getValue(v57_ .. "#rootNode", nil, self.components, self.i3dMappings)
-							if v59_ ~= nil then
-								self.nodesToRemove[v59_] = true
-							end
-						end
-					end
-				end
-				self:loadVariationFromXML(self.xmlFile, "beaconLight")
-				if v55_ ~= nil then
-					self:loadVariationFromXML(self.xmlFile, v55_)
-				end
-				local v60_ = 0
-				for v61_, v62_ in self.xmlFile:iterator("beaconLight.mountTypes.mountType") do
-					local v63_ = self.xmlFile:getValue(v62_ .. "#name")
-					if v63_ ~= nil then
-						local v64_ = self.xmlFile:getValue(v62_ .. "#node", nil, self.components, self.i3dMappings)
-						if self.mountType == nil and v61_ == 1 or self.mountType ~= nil and string.lower(v63_) == string.lower(self.mountType) then
-							v60_ = self.xmlFile:getValue(v62_ .. "#yOffset", 0)
-							if v64_ ~= nil then
-								setVisibility(v64_, true)
-							end
-						elseif v64_ ~= nil then
-							self.nodesToRemove[v64_] = true
-						end
-					end
-				end
-				for v65_, _ in pairs(self.nodesToRemove) do
-					if v65_ ~= self.variationRootNode then
-						delete(v65_)
-					end
-				end
-				self.nodesToRemove = nil
-				link(self.linkNode, self.node)
-				setTranslation(self.node, 0, v60_, 0)
-			end
-			delete(i3dNode)
-		end
-		self.xmlFile:delete()
-		self.xmlFile = nil
-		local v66_
-		if self.node == nil then
-			v66_ = false
-		else
-			v66_ = self.hasStaticLights
-		end
-		self:onFinished(v66_)
-	end
-end
-
--- Local values: _, staticLight
 function BeaconLight:onFinished(success)
-	for _, v69_ in ipairs(self.staticLights) do
-		v69_.useLightControlShaderParameter = getHasShaderParameter(v69_.node, "lightControl")
-		if v69_.useLightControlShaderParameter then
-			setShaderParameter(v69_.node, "lightControl", 0, nil, nil, nil, false)
+	for _, staticLight in ipairs(self.staticLights) do
+		staticLight.useLightControlShaderParameter = getHasShaderParameter(staticLight.node, "lightControl")
+		if staticLight.useLightControlShaderParameter then
+			setShaderParameter(staticLight.node, "lightControl", 0, nil, nil, nil, false)
 		else
-			setShaderParameter(v69_.node, "lightIds0", 0, 0, 0, 0, false)
-			setShaderParameter(v69_.node, "lightIds1", 0, 0, 0, 0, false)
-			setShaderParameter(v69_.node, "lightTypeBitMask", BeaconLight.LIGHT_TYPE_BITMASK, 0, 0, 0, false)
-			setShaderParameter(v69_.node, "lightUvOffsetBitMask", v69_.uvOffsetParameter, 0, 0, 0, false)
+			setShaderParameter(staticLight.node, "lightIds0", 0, 0, 0, 0, false)
+			setShaderParameter(staticLight.node, "lightIds1", 0, 0, 0, 0, false)
+			setShaderParameter(staticLight.node, "lightTypeBitMask", BeaconLight.LIGHT_TYPE_BITMASK, 0, 0, 0, false)
+			setShaderParameter(staticLight.node, "lightUvOffsetBitMask", staticLight.uvOffsetParameter, 0, 0, 0, false)
 		end
-		setShaderParameter(v69_.node, "blinkMulti", v69_.multiBlinkParameters[1], v69_.multiBlinkParameters[2], v69_.multiBlinkParameters[3], v69_.multiBlinkParameters[4], false)
-		if v69_.multiBlink or (v69_.minDistance > 0 or v69_.hasDynamicIntensity) then
+		setShaderParameter(staticLight.node, "blinkMulti", staticLight.multiBlinkParameters[1], staticLight.multiBlinkParameters[2], staticLight.multiBlinkParameters[3], staticLight.multiBlinkParameters[4], false)
+		if staticLight.multiBlink or 0 < staticLight.minDistance or staticLight.hasDynamicIntensity then
 			self.requiresDirtyUpdate = true
 		end
 	end
-	if self.speed > 0 and self.rotatorNode ~= nil then
+	if 0 < self.speed and self.rotatorNode ~= nil then
 		setRotation(self.rotatorNode, 0, math.random(0, 6.283185307179586), 0)
 		self.requiresDirtyUpdate = true
 	end
@@ -274,118 +255,104 @@ function BeaconLight:onFinished(success)
 		self.callback(success)
 	end
 end
-
--- Local values: _, staticLightKey, staticLight, baseDirectory, customEnvironment, material
 function BeaconLight:loadVariationFromXML(xmlFile, key)
 	self.rotatorNode = xmlFile:getValue(key .. ".rotator#node", self.rotatorNode, self.components, self.i3dMappings)
 	self.speed = xmlFile:getValue(key .. ".rotator#speed", self.speed or 0.015)
 	self.realLightNode = xmlFile:getValue(key .. ".realLight#node", self.realLightNode, self.components, self.i3dMappings)
 	if self.realLightNode ~= nil and not getHasClassId(self.realLightNode, ClassIds.LIGHT_SOURCE) then
-		Logging.xmlWarning(xmlFile, "Node \'%s\' defined as light source for beacon light, but is not a light source!", getName(self.realLightNode))
+		Logging.xmlWarning(xmlFile, "Node '%s' defined as light source for beacon light, but is not a light source!", getName(self.realLightNode))
 		self.realLightNode = nil
 	end
 	if not xmlFile:getValue(key .. ".realLight#useRealLight", true) and self.realLightNode ~= nil then
 		delete(self.realLightNode)
 		self.realLightNode = nil
 	end
-	for _, v73_ in xmlFile:iterator(key .. ".staticLight") do
-		local v74_ = {
-			["node"] = xmlFile:getValue(v73_ .. "#node", nil, self.components, self.i3dMappings)
-		}
-		if v74_.node ~= nil then
-			if v74_.node == nil or getHasClassId(v74_.node, ClassIds.SHAPE) then
-				v74_.intensity = xmlFile:getValue(v73_ .. "#intensity", 1)
-				v74_.multiBlink = xmlFile:getValue(v73_ .. "#multiBlink", false)
-				v74_.multiBlinkParameters = xmlFile:getValue(v73_ .. "#multiBlinkParameters", "2 5 50 0", true)
-				v74_.uvOffsetParameter = xmlFile:getValue(v73_ .. "#uvOffsetParameter", 0)
-				v74_.minDistance = xmlFile:getValue(v73_ .. "#minDistance", 0)
-				v74_.intensityScaleMinDistance = xmlFile:getValue(v73_ .. ".intensityScale#minDistance")
-				v74_.intensityScaleMinIntensity = xmlFile:getValue(v73_ .. ".intensityScale#minIntensity")
-				v74_.intensityScaleMaxDistance = xmlFile:getValue(v73_ .. ".intensityScale#maxDistance")
-				v74_.intensityScaleMaxIntensity = xmlFile:getValue(v73_ .. ".intensityScale#maxIntensity")
-				local v75_
-				if v74_.intensityScaleMinDistance == nil or (v74_.intensityScaleMinIntensity == nil or v74_.intensityScaleMaxDistance == nil) then
-					v75_ = false
-				else
-					v75_ = v74_.intensityScaleMaxIntensity ~= nil
-				end
-				v74_.hasDynamicIntensity = v75_
-				self.hasDynamicStaticLights = self.hasDynamicStaticLights or (v74_.hasDynamicIntensity or v74_.minDistance > 0)
-				local v76_ = self.staticLights
-				table.insert(v76_, v74_)
+	for _, staticLightKey in xmlFile:iterator(key .. ".staticLight") do
+		local staticLight = {}
+		staticLight.node = xmlFile:getValue(staticLightKey .. "#node", nil, self.components, self.i3dMappings)
+		if staticLight.node == nil then
+			continue
+		end
+		if staticLight.node ~= nil then
+			if not getHasClassId(staticLight.node, ClassIds.SHAPE) then
+				Logging.xmlWarning(xmlFile, "Node '%s' defined as shader node for beacon light, but is not a shape!", getName(staticLight.node))
 			else
-				Logging.xmlWarning(xmlFile, "Node \'%s\' defined as shader node for beacon light, but is not a shape!", getName(v74_.node))
+				staticLight.intensity = xmlFile:getValue(staticLightKey .. "#intensity", 1)
+				staticLight.multiBlink = xmlFile:getValue(staticLightKey .. "#multiBlink", false)
+				staticLight.multiBlinkParameters = xmlFile:getValue(staticLightKey .. "#multiBlinkParameters", "2 5 50 0", true)
+				staticLight.uvOffsetParameter = xmlFile:getValue(staticLightKey .. "#uvOffsetParameter", 0)
+				staticLight.minDistance = xmlFile:getValue(staticLightKey .. "#minDistance", 0)
+				staticLight.intensityScaleMinDistance = xmlFile:getValue(staticLightKey .. ".intensityScale#minDistance")
+				staticLight.intensityScaleMinIntensity = xmlFile:getValue(staticLightKey .. ".intensityScale#minIntensity")
+				staticLight.intensityScaleMaxDistance = xmlFile:getValue(staticLightKey .. ".intensityScale#maxDistance")
+				staticLight.intensityScaleMaxIntensity = xmlFile:getValue(staticLightKey .. ".intensityScale#maxIntensity")
+				staticLight.hasDynamicIntensity = staticLight.intensityScaleMinDistance ~= nil and staticLight.intensityScaleMinIntensity ~= nil and staticLight.intensityScaleMaxDistance ~= nil and staticLight.intensityScaleMaxIntensity ~= nil
+				self.hasDynamicStaticLights = self.hasDynamicStaticLights or staticLight.hasDynamicIntensity or 0 < staticLight.minDistance
+				table.insert(self.staticLights, staticLight)
 			end
 		end
 	end
-	self.hasStaticLights = #self.staticLights > 0
+	self.hasStaticLights = 0 < #self.staticLights
 	self.device = BeaconLightManager.loadDeviceFromXML(xmlFile, key .. ".device") or self.device
 	if xmlFile:hasProperty(key .. ".material") then
-		local v77_, v78_
-		if self.vehicle == nil then
-			v77_ = ""
-			v78_ = ""
-		else
-			v77_ = self.vehicle.baseDirectory
-			v78_ = self.vehicle.customEnvironment
+		local baseDirectory = ""
+		local customEnvironment = ""
+		if self.vehicle ~= nil then
+			baseDirectory = self.vehicle.baseDirectory
+			customEnvironment = self.vehicle.customEnvironment
 		end
-		local v79_ = VehicleMaterial.new(v77_)
-		if v79_:loadFromXML(xmlFile, key .. ".material", v78_) then
-			v79_:apply(self.node)
+		local material = VehicleMaterial.new(baseDirectory)
+		if material:loadFromXML(xmlFile, key .. ".material", customEnvironment) then
+			material:apply(self.node)
 		end
 	end
 end
-
--- Local values: staticLight, blink, pause, freq, timeOffset, mTime, alpha, r, g, b, numChildren, i, cameraDistance, _, staticLight, alpha, value
 function BeaconLight:update(dt)
 	if self.rotatorNode ~= nil then
 		rotate(self.rotatorNode, 0, self.speed * dt, 0)
 	end
 	if self.realLightActive and (self.hasStaticLights and self.staticLights[1].multiBlink) then
-		local v82_ = self.staticLights[1]
-		local v83_ = v82_.multiBlinkParameters[1]
-		local v84_ = v82_.multiBlinkParameters[2]
-		local v85_ = v82_.multiBlinkParameters[3]
-		local v86_ = v82_.multiBlinkParameters[4]
-		local v87_ = getShaderTimeSec() * v85_ + v86_
-		local v88_ = math.sin(v87_)
-		local v89_ = v87_ % ((v83_ * 2 + v84_ * 2) * 3.141592653589793) - (v83_ * 2 - 1) * 3.141592653589793
-		local v90_ = v88_ - math.max(v89_, 0) + 0.2
-		local v91_ = math.clamp(v90_, 0, 1)
-		local v92_ = self.defaultColor[1]
-		local v93_ = self.defaultColor[2]
-		local v94_ = self.defaultColor[3]
-		setLightColor(self.realLightNode, v92_ * v91_, v93_ * v91_, v94_ * v91_)
-		for v95_ = 0, getNumOfChildren(self.realLightNode) - 1 do
-			setLightColor(getChildAt(self.realLightNode, v95_), v92_ * v91_, v93_ * v91_, v94_ * v91_)
+		local staticLight = self.staticLights[1]
+		local blink = staticLight.multiBlinkParameters[1]
+		local pause = staticLight.multiBlinkParameters[2]
+		local freq = staticLight.multiBlinkParameters[3]
+		local timeOffset = staticLight.multiBlinkParameters[4]
+		local mTime = getShaderTimeSec() * freq + timeOffset
+		local alpha = math.clamp(math.sin(mTime) - math.max(mTime % ((blink * 2 + pause * 2) * 3.141592653589793) - (blink * 2 - 1) * 3.141592653589793, 0) + 0.2, 0, 1)
+		local r = self.defaultColor[1]
+		local g = self.defaultColor[2]
+		local b = self.defaultColor[3]
+		setLightColor(self.realLightNode, r * alpha, g * alpha, b * alpha)
+		local numChildren = getNumOfChildren(self.realLightNode)
+		for i = 0, numChildren - 1 do
+			setLightColor(getChildAt(self.realLightNode, i), r * alpha, g * alpha, b * alpha)
 		end
 	end
 	if self.hasDynamicStaticLights then
-		local v96_ = self.node == nil and 0 or calcDistanceFrom(self.node, g_cameraManager:getActiveCamera())
-		local v97_ = self.lastCameraDistance - v96_
-		if math.abs(v97_) > 1 then
-			for _, v98_ in ipairs(self.staticLights) do
-				if v98_.hasDynamicIntensity then
-					local v99_ = (v96_ - v98_.intensityScaleMinDistance) / (v98_.intensityScaleMaxDistance - v98_.intensityScaleMinDistance)
-					local v100_ = math.max(v99_, 0)
-					local v101_ = math.min(v100_, 1)
-					local v102_ = (v98_.intensityScaleMinIntensity + (v98_.intensityScaleMaxIntensity - v98_.intensityScaleMinIntensity) * v101_) * self.intensity
-					if v98_.useLightControlShaderParameter then
-						setShaderParameter(v98_.node, "lightControl", v102_, nil, nil, nil, false)
+		local cameraDistance = 0
+		if self.node ~= nil then
+			cameraDistance = calcDistanceFrom(self.node, g_cameraManager:getActiveCamera())
+		end
+		if 1 < math.abs(self.lastCameraDistance - cameraDistance) then
+			for _, staticLight in ipairs(self.staticLights) do
+				if staticLight.hasDynamicIntensity then
+					local alpha = math.min(math.max((cameraDistance - staticLight.intensityScaleMinDistance) / (staticLight.intensityScaleMaxDistance - staticLight.intensityScaleMinDistance), 0), 1)
+					local value = staticLight.intensityScaleMinIntensity + (staticLight.intensityScaleMaxIntensity - staticLight.intensityScaleMinIntensity) * alpha
+					value = value * self.intensity
+					if staticLight.useLightControlShaderParameter then
+						setShaderParameter(staticLight.node, "lightControl", value, nil, nil, nil, false)
 					else
-						setShaderParameter(v98_.node, "lightIds0", v102_, v102_, 0, 0, false)
+						setShaderParameter(staticLight.node, "lightIds0", value, value, 0, 0, false)
 					end
 				end
-				if v98_.minDistance > 0 then
-					setVisibility(v98_.node, v98_.minDistance <= v96_)
+				if 0 < staticLight.minDistance then
+					setVisibility(staticLight.node, staticLight.minDistance <= cameraDistance)
 				end
 			end
-			self.lastCameraDistance = v96_
+			self.lastCameraDistance = cameraDistance
 		end
 	end
 end
-
--- Local values: _, staticLight, value, alpha
 function BeaconLight:setIsActive(isActive)
 	if self.requiresDirtyUpdate then
 		if isActive then
@@ -405,134 +372,123 @@ function BeaconLight:setIsActive(isActive)
 	if self.node ~= nil and isActive then
 		self.lastCameraDistance = calcDistanceFrom(self.node, g_cameraManager:getActiveCamera())
 	end
-	for _, v105_ in ipairs(self.staticLights) do
-		local v106_ = isActive and (v105_.intensity or 0) or 0
-		if isActive and v105_.hasDynamicIntensity then
-			local v107_ = (self.lastCameraDistance - v105_.intensityScaleMinDistance) / (v105_.intensityScaleMaxDistance - v105_.intensityScaleMinDistance)
-			local v108_ = math.max(v107_, 0)
-			local v109_ = math.min(v108_, 1)
-			v106_ = v105_.intensityScaleMinIntensity + (v105_.intensityScaleMaxIntensity - v105_.intensityScaleMinIntensity) * v109_
+	for _, staticLight in ipairs(self.staticLights) do
+		local value = isActive and staticLight.intensity or 0
+		if isActive and staticLight.hasDynamicIntensity then
+			local alpha = math.min(math.max((self.lastCameraDistance - staticLight.intensityScaleMinDistance) / (staticLight.intensityScaleMaxDistance - staticLight.intensityScaleMinDistance), 0), 1)
+			value = staticLight.intensityScaleMinIntensity + (staticLight.intensityScaleMaxIntensity - staticLight.intensityScaleMinIntensity) * alpha
 		end
-		local v110_ = v106_ * self.intensity
-		if v105_.useLightControlShaderParameter then
-			setShaderParameter(v105_.node, "lightControl", v110_, nil, nil, nil, false)
+		value = value * self.intensity
+		if staticLight.useLightControlShaderParameter then
+			setShaderParameter(staticLight.node, "lightControl", value, nil, nil, nil, false)
 		else
-			setShaderParameter(v105_.node, "lightIds0", v110_, v110_, 0, 0, false)
+			setShaderParameter(staticLight.node, "lightIds0", value, value, 0, 0, false)
 		end
-		if v105_.minDistance > 0 then
+		if 0 < staticLight.minDistance then
 			if isActive then
-				setVisibility(v105_.node, self.lastCameraDistance >= v105_.minDistance)
+				setVisibility(staticLight.node, staticLight.minDistance <= self.lastCameraDistance)
 			else
-				setVisibility(v105_.node, false)
+				setVisibility(staticLight.node, false)
 			end
 		end
 	end
 	self.isActive = isActive
 end
-
--- Local values: device
 function BeaconLight:setDeviceIsActive(isActive)
-	local v113_ = self.device
-	if v113_ ~= nil then
+	local device = self.device
+	if device ~= nil then
 		if isActive then
-			if v113_.deviceId == nil then
-				v113_.deviceId = g_beaconLightManager:activateBeaconLight(v113_.mode, v113_.numLEDScale, v113_.rpm, v113_.brightnessScale)
-				return
+			if device.deviceId == nil then
+				device.deviceId = g_beaconLightManager:activateBeaconLight(device.mode, device.numLEDScale, device.rpm, device.brightnessScale)
 			end
-		elseif v113_.deviceId ~= nil then
-			g_beaconLightManager:deactivateBeaconLight(v113_.deviceId)
-			v113_.deviceId = nil
+		elseif device.deviceId ~= nil then
+			g_beaconLightManager:deactivateBeaconLight(device.deviceId)
+			device.deviceId = nil
 		end
 	end
 end
-
 function BeaconLight:onLightsRealBeaconLightChanged()
 	if self.realLightNode ~= nil then
-		if self.isActive and not g_gameSettings:getValue(GameSettings.SETTING.REAL_BEACON_LIGHTS) then
-			self.realLightActive = false
-		else
+		if not self.isActive or g_gameSettings:getValue(GameSettings.SETTING.REAL_BEACON_LIGHTS) then
 			self.realLightActive = self.isActive
+		else
+			self.realLightActive = false
 		end
 		setVisibility(self.realLightNode, self.realLightActive)
 	end
 end
-
--- Local values: files, _, beaconLight, x, y, z, numLightsToLoad, numLightsToLoadTotal, numLightsSuccess, numLightsFailed, _, file, filename, tempXMLFile, _, mountTypeKey, mountType, _, variationKey, variationName, linkNode, beaconLight, wx, wy, wz, rx, ry, rz
 function BeaconLight.spawnDebugBeacons(rootNode)
-	local v116_ = Files.getFilesRecursive("data/shared/assets/beaconLights")
-	table.sort(v116_, function(p117_, p118_)
-		return p117_.path < p118_.path
+	local files = Files.getFilesRecursive("data/shared/assets/beaconLights")
+	table.sort(files, function(a, b)
+		return a.path < b.path
 	end)
 	if BeaconLight.debugBeaconLights ~= nil then
-		for _, v119_ in ipairs(BeaconLight.debugBeaconLights) do
-			v119_:delete()
+		for _, beaconLight in ipairs(BeaconLight.debugBeaconLights) do
+			beaconLight:delete()
 		end
 	end
 	BeaconLight.debugBeaconLights = {}
-	local v120_ = -1
-	local v121_ = 0
-	local v122_ = 0
-	local v_u_123_ = 0
-	local v_u_124_ = 0
-	for _, v125_ in ipairs(v116_) do
-		if not v125_.isDirectory and v125_.filename:contains(".xml") then
-			v120_ = v120_ - 2
-			local v126_ = 0
-			local v127_ = string.gsub(v125_.path, getAppBasePath(), "")
-			local v128_ = XMLFile.loadIfExists("BeaconLight", v127_, BeaconLight.xmlSchema)
-			if v128_ ~= nil then
-				for _, v129_ in v128_:iterator("beaconLight.mountTypes.mountType") do
-					local v130_ = v128_:getValue(v129_ .. "#name")
-					for _, v131_ in v128_:iterator("beaconLight.variations.variation") do
-						local v132_ = v128_:getValue(v131_ .. "#name")
-						local v_u_133_ = v121_ + 1
-						local v_u_134_ = v122_ + 1
-						v126_ = v126_ + 1
-						local v135_ = createTransformGroup("linkNode")
-						link(rootNode, v135_)
-						setTranslation(v135_, v120_, 1, v126_)
-						setRotation(v135_, 0, 3.141592653589793, 0)
-						local v_u_136_ = BeaconLight.new(nil)
-						v_u_136_:setXMLSettings(nil, nil, v130_, v132_)
-						v_u_136_:setRealLight(false)
-						v_u_136_:setCallback(function(p137_)
-							-- upvalues: (ref) v_u_133_, (ref) v_u_123_, (copy) v_u_136_, (ref) v_u_124_, (ref) v_u_134_
-							v_u_133_ = v_u_133_ - 1
-							if p137_ then
-								v_u_123_ = v_u_123_ + 1
-								local v138_ = BeaconLight.debugBeaconLights
-								local v139_ = v_u_136_
-								table.insert(v138_, v139_)
-							else
-								v_u_136_:delete()
-								v_u_124_ = v_u_124_ + 1
-							end
-							if v_u_133_ == 0 then
-								for _, v140_ in ipairs(BeaconLight.debugBeaconLights) do
-									v140_:setIsActive(true)
-								end
-								Logging.info("%d Beacon lights: %d loaded, %d failed to load", v_u_134_, v_u_123_, v_u_124_)
-							end
-						end)
-						if v_u_136_:loadFromXML(v135_, v127_, "") then
-							local v141_, v142_, v143_ = localToWorld(v135_, 0, 0, -0.2)
-							local v144_, v145_, v146_ = localRotationToWorld(v135_, -1.5707963267948966, 0, 0)
-							g_debugManager:addElement(DebugText3D.new():createWithWorldPos(v141_, v142_, v143_, v144_, v145_, v146_, string.format("%s (%s, %s)", v125_.filename, v130_, v132_), 0.07), nil, nil, math.huge)
-							g_debugManager:addElement(DebugGizmo.new():createWithNode(v135_, "", nil, nil, 0.1), nil, nil, math.huge)
-							v122_ = v_u_134_
-							v121_ = v_u_133_
+	local x = -1
+	local y = 1
+	local z = 0
+	local numLightsToLoad = 0
+	local numLightsToLoadTotal = 0
+	local numLightsSuccess = 0
+	local numLightsFailed = 0
+	for _, file in ipairs(files) do
+		if file.isDirectory then
+			continue
+		end
+		if file.filename:contains(".xml") then
+			x = x - 2
+			z = 0
+			local filename = string.gsub(file.path, getAppBasePath(), "")
+			local tempXMLFile = XMLFile.loadIfExists("BeaconLight", filename, BeaconLight.xmlSchema)
+			if tempXMLFile == nil then
+				continue
+			end
+			for _, mountTypeKey in tempXMLFile:iterator("beaconLight.mountTypes.mountType") do
+				local mountType = tempXMLFile:getValue(mountTypeKey .. "#name")
+				for _, variationKey in tempXMLFile:iterator("beaconLight.variations.variation") do
+					local variationName = tempXMLFile:getValue(variationKey .. "#name")
+					numLightsToLoad = numLightsToLoad + 1
+					numLightsToLoadTotal = numLightsToLoadTotal + 1
+					z = z + 1
+					local linkNode = createTransformGroup("linkNode")
+					link(rootNode, linkNode)
+					setTranslation(linkNode, x, 1, z)
+					setRotation(linkNode, 0, 3.141592653589793, 0)
+					local beaconLight = BeaconLight.new(nil)
+					beaconLight:setXMLSettings(nil, nil, mountType, variationName)
+					beaconLight:setRealLight(false)
+					beaconLight:setCallback(function(success)
+						numLightsToLoad = numLightsToLoad - 1
+						if success then
+							numLightsSuccess = numLightsSuccess + 1
+							table.insert(BeaconLight.debugBeaconLights, beaconLight)
 						else
-							v122_ = v_u_134_
-							v121_ = v_u_133_
+							beaconLight:delete()
+							numLightsFailed = numLightsFailed + 1
 						end
+						if numLightsToLoad == 0 then
+							for _, light in ipairs(BeaconLight.debugBeaconLights) do
+								light:setIsActive(true)
+							end
+							Logging.info("%d Beacon lights: %d loaded, %d failed to load", numLightsToLoadTotal, numLightsSuccess, numLightsFailed)
+						end
+					end)
+					if beaconLight:loadFromXML(linkNode, filename, "") then
+						local wx, wy, wz = localToWorld(linkNode, 0, 0, -0.2)
+						local rx, ry, rz = localRotationToWorld(linkNode, -1.5707963267948966, 0, 0)
+						g_debugManager:addElement(DebugText3D.new():createWithWorldPos(wx, wy, wz, rx, ry, rz, string.format("%s (%s, %s)", file.filename, mountType, variationName), 0.07), nil, nil, math.huge)
+						g_debugManager:addElement(DebugGizmo.new():createWithNode(linkNode, "", nil, nil, 0.1), nil, nil, math.huge)
 					end
 				end
-				v128_:delete()
 			end
+			tempXMLFile:delete()
 		end
 	end
 end
-
 function BeaconLight.registerXMLPaths(schema)
 	schema:register(XMLValueType.STRING, "beaconLight.filename", "Path to i3d file", nil, true)
 	schema:register(XMLValueType.NODE_INDEX, "beaconLight.rootNode#node", "Root node")
@@ -545,7 +501,6 @@ function BeaconLight.registerXMLPaths(schema)
 	BeaconLight.registerVariationPaths(schema, "beaconLight.variations.variation(?)")
 	I3DUtil.registerI3dMappingXMLPaths(schema, "beaconLight")
 end
-
 function BeaconLight.registerVariationPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".rotator#node", "Node that is rotating")
 	schema:register(XMLValueType.FLOAT, basePath .. ".rotator#speed", "Rotating speed", 0.015)
@@ -564,7 +519,6 @@ function BeaconLight.registerVariationPaths(schema, basePath)
 	VehicleMaterial.registerXMLPaths(schema, basePath .. ".material")
 	BeaconLightManager.registerXMLPaths(schema, basePath .. ".device")
 end
-
 function BeaconLight.registerVehicleXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#node", "Link node")
 	schema:register(XMLValueType.FILENAME, basePath .. "#filename", "Beacon light xml file")

@@ -1,7 +1,5 @@
--- Local values: ConstructibleStateBuilding_mt
 ConstructibleStateBuilding = {}
 local ConstructibleStateBuilding_mt = Class(ConstructibleStateBuilding, ConstructibleState)
-
 function ConstructibleStateBuilding.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".mesh(?)#node", "")
 	schema:register(XMLValueType.INT, basePath .. ".mesh(?)#indexMin", "")
@@ -11,269 +9,210 @@ function ConstructibleStateBuilding.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".input(?)#amount", "")
 	schema:register(XMLValueType.FLOAT, basePath .. ".input(?)#usagePerHour", "")
 end
-
 function ConstructibleStateBuilding.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. ".state.input(?)#fillType", "")
 	schema:register(XMLValueType.FLOAT, basePath .. ".state.input(?)#remainingAmount", "")
 end
-
--- Upvalues: ConstructibleStateBuilding_mt
--- Local values: self
 function ConstructibleStateBuilding.new(constructible, dirtyFlag, customMt)
-	-- upvalues: (copy) ConstructibleStateBuilding_mt
-	return ConstructibleState.new(constructible, dirtyFlag, customMt or ConstructibleStateBuilding_mt)
+	local self = ConstructibleState.new(constructible, dirtyFlag, customMt or ConstructibleStateBuilding_mt)
+	return self
 end
-
--- Local values: _, inputKey, fillTypeStr, fillType, amount, usagePerSecond, _, nodeKey, node, indexMin, indexMax, direction, mesh
 function ConstructibleStateBuilding:load(xmlFile, key)
 	ConstructibleStateBuilding:superClass().load(self, xmlFile, key)
 	self.totalAmount = 0
 	self.inputs = {}
 	self.hasInputMaterials = true
-	for _, v12_ in xmlFile:iterator(key .. ".input") do
-		local v13_ = xmlFile:getValue(v12_ .. "#fillType")
-		local v14_ = g_fillTypeManager:getFillTypeByName(v13_)
-		if v14_ == nil then
-			Logging.xmlWarning(xmlFile, "Unknown fillType \'%s\' in \'%s\'", v13_, v12_)
+	for _, inputKey in xmlFile:iterator(key .. ".input") do
+		local fillTypeStr = xmlFile:getValue(inputKey .. "#fillType")
+		local fillType = g_fillTypeManager:getFillTypeByName(fillTypeStr)
+		if fillType == nil then
+			Logging.xmlWarning(xmlFile, "Unknown fillType '%s' in '%s'", fillTypeStr, inputKey)
 			break
 		end
-		if not self.constructible:getConstructibleSupportsFillType(v14_.index) then
-			Logging.xmlWarning(xmlFile, "Filltype \'%s\' in \'%s\' not supported by storage", v14_.name, v12_)
+		if not self.constructible:getConstructibleSupportsFillType(fillType.index) then
+			Logging.xmlWarning(xmlFile, "Filltype '%s' in '%s' not supported by storage", fillType.name, inputKey)
 			break
 		end
-		local v15_ = xmlFile:getValue(v12_ .. "#amount")
-		local v16_ = xmlFile:getValue(v12_ .. "#usagePerHour") / 60 / 60
-		self.totalAmount = self.totalAmount + v15_
-		local v17_ = self.inputs
-		local v18_ = {
-			["fillType"] = v14_,
-			["amount"] = v15_,
-			["remainingAmount"] = v15_,
-			["lastSyncedAmount"] = v15_,
-			["usagePerSecond"] = v16_,
-			["infoTableEntry"] = {
-				["title"] = v14_.title,
-				["text"] = g_i18n:formatVolume(v15_)
-			}
-		}
-		table.insert(v17_, v18_)
+		local amount = xmlFile:getValue(inputKey .. "#amount")
+		local usagePerSecond = xmlFile:getValue(inputKey .. "#usagePerHour") / 60 / 60
+		self.totalAmount = self.totalAmount + amount
+		table.insert(self.inputs, { fillType = fillType, amount = amount, remainingAmount = amount, lastSyncedAmount = amount, usagePerSecond = usagePerSecond, infoTableEntry = { title = fillType.title, text = g_i18n:formatVolume(amount) } })
 	end
 	self.meshes = {}
-	for _, v19_ in xmlFile:iterator(key .. ".mesh") do
-		local v20_ = xmlFile:getValue(v19_ .. "#node", nil, self.constructible.components, self.constructible.i3dMappings)
-		if v20_ == nil then
+	for _, nodeKey in xmlFile:iterator(key .. ".mesh") do
+		local node = xmlFile:getValue(nodeKey .. "#node", nil, self.constructible.components, self.constructible.i3dMappings)
+		if node == nil then
 			break
 		end
-		if not getHasClassId(v20_, ClassIds.SHAPE) then
-			Logging.xmlError(xmlFile, "node \'%s\' at \'%s\' is not a shape", getName(v20_), v19_)
+		if not getHasClassId(node, ClassIds.SHAPE) then
+			Logging.xmlError(xmlFile, "node '%s' at '%s' is not a shape", getName(node), nodeKey)
 			break
 		end
-		if not getHasShaderParameter(v20_, "hideByIndex") then
-			Logging.xmlError(xmlFile, "mesh \'%s\' at \'%s\' does not have required shader parameter \'hideByIndex\'", getName(v20_), v19_)
+		if not getHasShaderParameter(node, "hideByIndex") then
+			Logging.xmlError(xmlFile, "mesh '%s' at '%s' does not have required shader parameter 'hideByIndex'", getName(node), nodeKey)
 			break
 		end
-		local v21_ = xmlFile:getValue(v19_ .. "#indexMin", 0)
-		local v22_ = xmlFile:getValue(v19_ .. "#indexMax")
-		if v22_ == nil then
-			v22_ = getUserAttribute(v20_, "hideByIndexMaxIndex")
-			if v21_ == nil then
-				Logging.xmlError(xmlFile, "Cannot retrieve indexMax from shape material and value is also not set in xml at \'%s\'", getName(v20_), v19_)
+		local indexMin = xmlFile:getValue(nodeKey .. "#indexMin", 0)
+		local indexMax = xmlFile:getValue(nodeKey .. "#indexMax")
+		if indexMax == nil then
+			indexMax = getUserAttribute(node, "hideByIndexMaxIndex")
+			if indexMin == nil then
+				Logging.xmlError(xmlFile, "Cannot retrieve indexMax from shape material and value is also not set in xml at '%s'", getName(node), nodeKey)
 				break
 			end
 		end
-		local v23_ = xmlFile:getValue(v19_ .. "#direction", 1)
-		local v24_ = {
-			["node"] = v20_,
-			["childIndex"] = getChildIndex(v20_),
-			["index"] = #self.meshes + 1,
-			["indexMin"] = v21_,
-			["indexMax"] = v22_,
-			["direction"] = v23_,
-			["lastValue"] = -1,
-			["numBits"] = MathUtil.getNumRequiredBits(v22_)
-		}
-		self:setMeshProgress(v24_, 0)
-		local v25_ = self.meshes
-		table.insert(v25_, v24_)
+		local direction = xmlFile:getValue(nodeKey .. "#direction", 1)
+		local mesh = { node = node, indexMin = indexMin, indexMax = indexMax, direction = direction }
+		mesh.childIndex = getChildIndex(node)
+		mesh.index = #self.meshes + 1
+		mesh.lastValue = -1
+		mesh.numBits = MathUtil.getNumRequiredBits(indexMax)
+		self:setMeshProgress(mesh, 0)
+		table.insert(self.meshes, mesh)
 	end
-	self.infoBoxRequiredGoods = {
-		["title"] = g_i18n:getText("infohud_requiredMaterialsNextStep"),
-		["accentuate"] = true
-	}
+	self.infoBoxRequiredGoods = { title = g_i18n:getText("infohud_requiredMaterialsNextStep"), accentuate = true }
 end
-
--- Local values: k, input, inputKey
 function ConstructibleStateBuilding:saveToXMLFile(xmlFile, key, usedModNames)
-	for v29_, v30_ in ipairs(self.inputs) do
-		local v31_ = string.format("%s.state.input(%d)", key, v29_ - 1)
-		xmlFile:setValue(v31_ .. "#fillType", v30_.fillType.name)
-		xmlFile:setValue(v31_ .. "#remainingAmount", v30_.remainingAmount)
+	for k, input in ipairs(self.inputs) do
+		local inputKey = string.format("%s.state.input(%d)", key, k - 1)
+		xmlFile:setValue(inputKey .. "#fillType", input.fillType.name)
+		xmlFile:setValue(inputKey .. "#remainingAmount", input.remainingAmount)
 	end
 end
-
--- Local values: _, inputKey, fillType, remainingAmount, _, input
 function ConstructibleStateBuilding:loadFromXMLFile(xmlFile, key)
-	for _, v35_ in xmlFile:iterator(key .. ".state.input") do
-		local v36_ = g_fillTypeManager:getFillTypeByName(xmlFile:getValue(v35_ .. "#fillType"))
-		local v37_ = xmlFile:getValue(v35_ .. "#remainingAmount")
-		for _, v38_ in ipairs(self.inputs) do
-			if v38_.fillType == v36_ then
-				self:updateRemainingAmount(v38_, v37_)
+	for _, inputKey in xmlFile:iterator(key .. ".state.input") do
+		local fillType = g_fillTypeManager:getFillTypeByName(xmlFile:getValue(inputKey .. "#fillType"))
+		local remainingAmount = xmlFile:getValue(inputKey .. "#remainingAmount")
+		for _, input in ipairs(self.inputs) do
+			if input.fillType == fillType then
+				self:updateRemainingAmount(input, remainingAmount)
 			end
 		end
 	end
 end
-
--- Local values: _, input
 function ConstructibleStateBuilding:isDone()
-	for _, v40_ in ipairs(self.inputs) do
-		if v40_.remainingAmount > 0 then
+	for _, input in ipairs(self.inputs) do
+		if 0 < input.remainingAmount then
 			return false
 		end
 	end
 	return true
 end
-
--- Local values: i, input, meshIndex, mesh, hideByIndexValue, progress
 function ConstructibleStateBuilding:onReadStream(streamId, connection)
-	for _, v43_ in ipairs(self.inputs) do
-		self:updateRemainingAmount(v43_, streamReadFloat32(streamId))
+	for i, input in ipairs(self.inputs) do
+		self:updateRemainingAmount(input, streamReadFloat32(streamId))
 	end
-	for _, v44_ in ipairs(self.meshes) do
-		local v45_ = streamReadUIntN(streamId, v44_.numBits)
-		local v46_ = MathUtil.inverseLerp(v44_.indexMax, v44_.indexMin, v45_)
-		if v44_.direction == -1 then
-			v46_ = 1 - v46_
+	for meshIndex, mesh in ipairs(self.meshes) do
+		local hideByIndexValue = streamReadUIntN(streamId, mesh.numBits)
+		local progress = MathUtil.inverseLerp(mesh.indexMax, mesh.indexMin, hideByIndexValue)
+		if mesh.direction == -1 then
+			progress = 1 - progress
 		end
-		self:setMeshProgress(v44_, v46_)
+		self:setMeshProgress(mesh, progress)
 	end
 end
-
--- Local values: i, input, meshIndex, mesh
 function ConstructibleStateBuilding:onWriteStream(streamId, connection)
-	for _, v49_ in ipairs(self.inputs) do
-		streamWriteFloat32(streamId, v49_.remainingAmount)
+	for i, input in ipairs(self.inputs) do
+		streamWriteFloat32(streamId, input.remainingAmount)
 	end
-	for _, v50_ in ipairs(self.meshes) do
-		streamWriteUIntN(streamId, v50_.lastValue, v50_.numBits)
+	for meshIndex, mesh in ipairs(self.meshes) do
+		streamWriteUIntN(streamId, mesh.lastValue, mesh.numBits)
 	end
 end
-
--- Local values: i, input, meshIndex, mesh, hideByIndexValue, progress
 function ConstructibleStateBuilding:onReadUpdateStream(streamId, timestamp, connection)
-	for _, v53_ in ipairs(self.inputs) do
-		self:updateRemainingAmount(v53_, streamReadFloat32(streamId))
+	for i, input in ipairs(self.inputs) do
+		self:updateRemainingAmount(input, streamReadFloat32(streamId))
 	end
-	for _, v54_ in ipairs(self.meshes) do
-		local v55_ = streamReadUIntN(streamId, v54_.numBits)
-		local v56_ = MathUtil.inverseLerp(v54_.indexMax, v54_.indexMin, v55_)
-		if v54_.direction == -1 then
-			v56_ = 1 - v56_
+	for meshIndex, mesh in ipairs(self.meshes) do
+		local hideByIndexValue = streamReadUIntN(streamId, mesh.numBits)
+		local progress = MathUtil.inverseLerp(mesh.indexMax, mesh.indexMin, hideByIndexValue)
+		if mesh.direction == -1 then
+			progress = 1 - progress
 		end
-		self:setMeshProgress(v54_, v56_)
+		self:setMeshProgress(mesh, progress)
 	end
 end
-
--- Local values: i, input, _, mesh
 function ConstructibleStateBuilding:onWriteUpdateStream(streamId, connection, dirtyMask)
-	for _, v59_ in ipairs(self.inputs) do
-		streamWriteFloat32(streamId, v59_.remainingAmount)
+	for i, input in ipairs(self.inputs) do
+		streamWriteFloat32(streamId, input.remainingAmount)
 	end
-	for _, v60_ in ipairs(self.meshes) do
-		streamWriteUIntN(streamId, v60_.lastValue, v60_.numBits)
+	for _, mesh in ipairs(self.meshes) do
+		streamWriteUIntN(streamId, mesh.lastValue, mesh.numBits)
 	end
 end
-
 function ConstructibleStateBuilding:raiseActive()
 	return self.hasInputMaterials
 end
-
 function ConstructibleStateBuilding:getPlaySound()
 	return self.hasInputMaterials
 end
-
--- Local values: usedAmount, i, input, amount, delta, _, mesh
 function ConstructibleStateBuilding:update(dt)
+	local usedAmount = 0
 	self.hasInputMaterials = false
-	local v65_ = 0
-	for _, v66_ in ipairs(self.inputs) do
-		v65_ = v65_ + (v66_.amount - v66_.remainingAmount)
-		if v66_.remainingAmount > 0 then
-			local v67_ = v66_.usagePerSecond / 1000 * (dt * g_currentMission.missionInfo.timeScale)
-			local v68_ = self.constructible:removeConstructibleFillLevel(v66_.fillType.index, v67_)
-			if v68_ > 0 then
+	for i, input in ipairs(self.inputs) do
+		usedAmount = usedAmount + (input.amount - input.remainingAmount)
+		if 0 < input.remainingAmount then
+			local amount = input.usagePerSecond / 1000 * (dt * g_currentMission.missionInfo.timeScale)
+			local delta = self.constructible:removeConstructibleFillLevel(input.fillType.index, amount)
+			if 0 < delta then
 				self.hasInputMaterials = true
-				self:updateRemainingAmount(v66_, v66_.remainingAmount - v68_)
-				local v69_ = v66_.remainingAmount - v66_.lastSyncedAmount
-				if math.abs(v69_) > v66_.amount / 100 or (v66_.remainingAmount <= 0.01 or v66_.remainingAmount == v66_.amount) then
+				self:updateRemainingAmount(input, input.remainingAmount - delta)
+				if input.amount / 100 < math.abs(input.remainingAmount - input.lastSyncedAmount) or input.remainingAmount <= 0.01 or input.remainingAmount == input.amount then
 					self.constructible:raiseDirtyFlags(self.dirtyFlag)
-					v66_.lastSyncedAmount = v66_.remainingAmount
+					input.lastSyncedAmount = input.remainingAmount
 				end
 			end
 		end
 	end
-	for _, v70_ in ipairs(self.meshes) do
-		self:setMeshProgress(v70_, v65_ / self.totalAmount)
+	for _, mesh in ipairs(self.meshes) do
+		self:setMeshProgress(mesh, usedAmount / self.totalAmount)
 	end
 	ConstructibleStateBuilding:superClass().update(self, dt)
 end
-
--- Local values: i, input, _, mesh
 function ConstructibleStateBuilding:deactivate()
-	for _, v72_ in ipairs(self.inputs) do
-		self:updateRemainingAmount(v72_, v72_.amount)
+	for i, input in ipairs(self.inputs) do
+		self:updateRemainingAmount(input, input.amount)
 	end
-	for _, v73_ in ipairs(self.meshes) do
-		self:setMeshProgress(v73_, 1)
+	for _, mesh in ipairs(self.meshes) do
+		self:setMeshProgress(mesh, 1)
 	end
 	ConstructibleStateBuilding:superClass().deactivate(self)
 end
-
--- Local values: i, input, _, mesh
 function ConstructibleStateBuilding:reset()
-	for _, v75_ in ipairs(self.inputs) do
-		self:updateRemainingAmount(v75_, v75_.amount)
+	for i, input in ipairs(self.inputs) do
+		self:updateRemainingAmount(input, input.amount)
 	end
-	for _, v76_ in ipairs(self.meshes) do
-		self:setMeshProgress(v76_, 0)
+	for _, mesh in ipairs(self.meshes) do
+		self:setMeshProgress(mesh, 0)
 	end
 	ConstructibleStateBuilding:superClass().reset(self)
 end
-
--- Local values: i, input
 function ConstructibleStateBuilding:updateInfo(infoTable)
-	local v79_ = self.infoBoxRequiredGoods
-	table.insert(infoTable, v79_)
-	for _, v80_ in ipairs(self.inputs) do
-		if v80_.remainingAmount > 0.01 then
-			local v81_ = v80_.infoTableEntry
-			table.insert(infoTable, v81_)
+	table.insert(infoTable, self.infoBoxRequiredGoods)
+	for i, input in ipairs(self.inputs) do
+		if 0.01 < input.remainingAmount then
+			table.insert(infoTable, input.infoTableEntry)
 		end
 	end
 end
-
 function ConstructibleStateBuilding:updateRemainingAmount(input, amount)
-	local v84_ = amount < 0.01 and 0 or amount
-	input.remainingAmount = math.max(0, v84_)
-	local v85_ = input.infoTableEntry
-	local v86_ = g_i18n
-	local v87_ = input.remainingAmount
-	v85_.text = v86_:formatVolume((math.ceil(v87_)))
+	if amount < 0.01 then
+		amount = 0
+	end
+	input.remainingAmount = math.max(0, amount)
+	input.infoTableEntry.text = g_i18n:formatVolume(math.ceil(input.remainingAmount))
 end
-
--- Local values: hideByIndexValue, node
 function ConstructibleStateBuilding:setMeshProgress(mesh, percentage)
 	if mesh ~= nil then
 		if mesh.direction == -1 then
 			percentage = 1 - percentage
 		end
-		local v91_ = MathUtil.lerp(mesh.indexMax, mesh.indexMin, percentage)
-		local v92_ = math.round(v91_)
-		if v92_ ~= mesh.lastValue then
-			local v93_ = mesh.node
-			setVisibility(v93_, percentage ~= 0)
-			mesh.lastValue = v92_
-			setShaderParameter(v93_, "hideByIndex", v92_, 0, 0, 0, false)
+		local hideByIndexValue = math.round(MathUtil.lerp(mesh.indexMax, mesh.indexMin, percentage))
+		if hideByIndexValue ~= mesh.lastValue then
+			local node = mesh.node
+			setVisibility(node, percentage ~= 0)
+			mesh.lastValue = hideByIndexValue
+			setShaderParameter(node, "hideByIndex", hideByIndexValue, 0, 0, 0, false)
 			if self.constructible.isServer then
 				self.constructible:raiseDirtyFlags(self.dirtyFlag)
 			end

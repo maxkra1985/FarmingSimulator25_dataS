@@ -12,17 +12,18 @@ SeasonPeriod.EARLY_WINTER = 10
 SeasonPeriod.MID_WINTER = 11
 SeasonPeriod.LATE_WINTER = 12
 Enum(SeasonPeriod)
-
 function SeasonPeriod.getSeason(period)
 	if SeasonPeriod.EARLY_SPRING <= period and period <= SeasonPeriod.LATE_SPRING then
 		return Season.SPRING
-	elseif SeasonPeriod.EARLY_SUMMER <= period and period <= SeasonPeriod.LATE_SUMMER then
-		return Season.SUMMER
-	elseif SeasonPeriod.EARLY_AUTUMN <= period and period <= SeasonPeriod.LATE_AUTUMN then
-		return Season.AUTUMN
-	elseif SeasonPeriod.EARLY_WINTER <= period and period <= SeasonPeriod.LATE_WINTER then
-		return Season.WINTER
-	else
-		return nil
 	end
+	if SeasonPeriod.EARLY_SUMMER <= period and period <= SeasonPeriod.LATE_SUMMER then
+		return Season.SUMMER
+	end
+	if SeasonPeriod.EARLY_AUTUMN <= period and period <= SeasonPeriod.LATE_AUTUMN then
+		return Season.AUTUMN
+	end
+	if SeasonPeriod.EARLY_WINTER <= period and period <= SeasonPeriod.LATE_WINTER then
+		return Season.WINTER
+	end
+	return nil
 end

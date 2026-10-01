@@ -1,73 +1,47 @@
--- Local values: ConstructionBrushNewFence_mt
 ConstructionBrushNewFence = {}
 local ConstructionBrushNewFence_mt = Class(ConstructionBrushNewFence, ConstructionBrush)
-ConstructionBrushNewFence.ERROR = {
-	["MININUM_LENGTH"] = 100,
-	["MINIMUM_ANGLE"] = 101,
-	["MAXIMUM_ANGLE"] = 102,
-	["COLLISION"] = 103,
-	["NOT_ENOUGH_MONEY"] = 104,
-	["CANNOT_BE_PLACED_HERE"] = 105
-}
-ConstructionBrushNewFence.ERROR_MESSAGES = {
-	[ConstructionBrushNewFence.ERROR.MININUM_LENGTH] = "ui_construction_distanceTooShort",
-	[ConstructionBrushNewFence.ERROR.MINIMUM_ANGLE] = "ui_construction_cornerAngleTooLarge",
-	[ConstructionBrushNewFence.ERROR.MAXIMUM_ANGLE] = "ui_construction_terrainTooSteep",
-	[ConstructionBrushNewFence.ERROR.COLLISION] = "ui_construction_collidesWithItem",
-	[ConstructionBrushNewFence.ERROR.NOT_ENOUGH_MONEY] = "ui_construction_notEnoughMoney",
-	[ConstructionBrushNewFence.ERROR.CANNOT_BE_PLACED_HERE] = "ui_construction_cannotBePlacedHere"
-}
-ConstructionBrushNewFence.SEGMENT_ERROR_TO_MESSAGE = {
-	[FenceSegment.ERROR_TOO_SHORT] = "ui_construction_distanceTooShort",
-	[FenceSegment.ERROR_TOO_STEEP] = "ui_construction_terrainTooSteep"
-}
-ConstructionBrushNewFence.STATUS = {
-	["SUCCESS"] = 0,
-	["CANCELLED"] = 1
-}
+ConstructionBrushNewFence.ERROR = { MININUM_LENGTH = 100, MINIMUM_ANGLE = 101, MAXIMUM_ANGLE = 102, COLLISION = 103, NOT_ENOUGH_MONEY = 104, CANNOT_BE_PLACED_HERE = 105 }
+ConstructionBrushNewFence.ERROR_MESSAGES = { [ConstructionBrushNewFence.ERROR.MININUM_LENGTH] = "ui_construction_distanceTooShort", [ConstructionBrushNewFence.ERROR.MINIMUM_ANGLE] = "ui_construction_cornerAngleTooLarge", [ConstructionBrushNewFence.ERROR.MAXIMUM_ANGLE] = "ui_construction_terrainTooSteep", [ConstructionBrushNewFence.ERROR.COLLISION] = "ui_construction_collidesWithItem", [ConstructionBrushNewFence.ERROR.NOT_ENOUGH_MONEY] = "ui_construction_notEnoughMoney", [ConstructionBrushNewFence.ERROR.CANNOT_BE_PLACED_HERE] = "ui_construction_cannotBePlacedHere" }
+ConstructionBrushNewFence.SEGMENT_ERROR_TO_MESSAGE = { [FenceSegment.ERROR_TOO_SHORT] = "ui_construction_distanceTooShort", [FenceSegment.ERROR_TOO_STEEP] = "ui_construction_terrainTooSteep" }
+ConstructionBrushNewFence.STATUS = { SUCCESS = 0, CANCELLED = 1 }
 ConstructionBrushNewFence.MINIMUM_LENGTH = 0.5
 ConstructionBrushNewFence.MINIMUM_ANGLE = 0.5235987755982988
 ConstructionBrushNewFence.SNAP_DISTANCE = 0.4
 ConstructionBrushNewFence.LAST_SNAPPING_STATE = false
-
--- Upvalues: ConstructionBrushNewFence_mt
--- Local values: self, i3dNode
 function ConstructionBrushNewFence.new(subclass_mt, cursor)
-	-- upvalues: (copy) ConstructionBrushNewFence_mt
-	local v4_ = ConstructionBrushNewFence:superClass().new(subclass_mt or ConstructionBrushNewFence_mt, cursor)
-	v4_.supportsPrimaryButton = true
-	v4_.supportsSecondaryButton = true
-	v4_.supportsTertiaryButton = true
-	v4_.supportsFourthButton = true
-	v4_.supportsPrimaryAxis = true
-	v4_.supportsSecondaryAxis = true
-	v4_.needsOverlayReset = {}
-	v4_.segmentIds = {}
-	v4_.requiredPermission = Farm.PERMISSION.BUY_PLACEABLE
-	v4_.isValidating = false
-	v4_.canToggleParallelSnapping = false
-	v4_.parallelSnappingEnabled = false
-	v4_.doFindPlaceable = false
-	v4_.supportsSnapping = true
-	v4_.snappingActive = ConstructionBrushNewFence.LAST_SNAPPING_STATE
-	v4_.snappingAngleDeg = 7.5
-	v4_.snappingSize = 0.25
-	v4_.overlappingNodes = {}
-	local v5_ = g_i3DManager:loadI3DFile("data/shared/visualization/fenceSnapMarker.i3d", false, false)
-	if v5_ ~= 0 then
-		v4_.snapMarkerStart = getChildAt(v5_, 0)
-		v4_.snapMarkerEnd = clone(v4_.snapMarkerStart, false, false, false)
-		link(getRootNode(), v4_.snapMarkerStart)
-		link(getRootNode(), v4_.snapMarkerEnd)
-		setShaderParameter(v4_.snapMarkerStart, "emitColor", 0, 1, 0, 1, false)
-		setShaderParameter(v4_.snapMarkerEnd, "emitColor", 0, 1, 0, 1, false)
-		setVisibility(v4_.snapMarkerStart, false)
-		setVisibility(v4_.snapMarkerEnd, false)
-		delete(v5_)
+	local self = ConstructionBrushNewFence:superClass().new(subclass_mt or ConstructionBrushNewFence_mt, cursor)
+	self.supportsPrimaryButton = true
+	self.supportsSecondaryButton = true
+	self.supportsTertiaryButton = true
+	self.supportsFourthButton = true
+	self.supportsPrimaryAxis = true
+	self.supportsSecondaryAxis = true
+	self.needsOverlayReset = {}
+	self.segmentIds = {}
+	self.requiredPermission = Farm.PERMISSION.BUY_PLACEABLE
+	self.isValidating = false
+	self.canToggleParallelSnapping = false
+	self.parallelSnappingEnabled = false
+	self.doFindPlaceable = false
+	self.supportsSnapping = true
+	self.snappingActive = ConstructionBrushNewFence.LAST_SNAPPING_STATE
+	self.snappingAngleDeg = 7.5
+	self.snappingSize = 0.25
+	self.overlappingNodes = {}
+	local i3dNode = g_i3DManager:loadI3DFile("data/shared/visualization/fenceSnapMarker.i3d", false, false)
+	if i3dNode ~= 0 then
+		self.snapMarkerStart = getChildAt(i3dNode, 0)
+		self.snapMarkerEnd = clone(self.snapMarkerStart, false, false, false)
+		link(getRootNode(), self.snapMarkerStart)
+		link(getRootNode(), self.snapMarkerEnd)
+		setShaderParameter(self.snapMarkerStart, "emitColor", 0, 1, 0, 1, false)
+		setShaderParameter(self.snapMarkerEnd, "emitColor", 0, 1, 0, 1, false)
+		setVisibility(self.snapMarkerStart, false)
+		setVisibility(self.snapMarkerEnd, false)
+		delete(i3dNode)
 	end
-	return v4_
+	return self
 end
-
 function ConstructionBrushNewFence:delete()
 	ConstructionBrushNewFence:superClass().delete(self)
 	self.doFindPlaceable = false
@@ -76,16 +50,14 @@ function ConstructionBrushNewFence:delete()
 		delete(self.snapMarkerEnd)
 	end
 end
-
 function ConstructionBrushNewFence:setFenceParentObject(parentObject)
 	if parentObject.getFence == nil then
-		Logging.error("ConstructionBrushNewFence:setFenceParentObject(): parent object does not have a \'getFence\' function")
+		Logging.error("ConstructionBrushNewFence:setFenceParentObject(): parent object does not have a 'getFence' function")
 	else
 		self.fenceParentObject = parentObject
 		self:initFence()
 	end
 end
-
 function ConstructionBrushNewFence:activate()
 	ConstructionBrushNewFence:superClass().activate(self)
 	self.cursor:setRotationEnabled(false)
@@ -97,7 +69,6 @@ function ConstructionBrushNewFence:activate()
 		self:acquirePlaceable()
 	end
 end
-
 function ConstructionBrushNewFence:deactivate()
 	if self.currentSegment ~= nil then
 		self.currentSegment:delete()
@@ -121,102 +92,84 @@ function ConstructionBrushNewFence:deactivate()
 	self.cursor:setTerrainOnly(false)
 	ConstructionBrushNewFence:superClass().deactivate(self)
 end
-
 function ConstructionBrushNewFence:setSnapStartAndEndPositions(startX, startY, startZ, endX, endY, endZ)
 	if startX == nil or endX == nil then
 		Logging.devError("ConstructionBrushNewFence:setSnapStartAndEndPositions(): Trying to set nil snapping positions")
-	else
-		self.snapStart = { startX, startY, startZ }
-		self.snapEnd = { endX, endY, endZ }
-		self.hasSnapPositions = true
-		if self.snapMarkerStart ~= nil then
-			setWorldTranslation(self.snapMarkerStart, startX, startY, startZ)
-			setWorldTranslation(self.snapMarkerEnd, endX, endY, endZ)
-			setVisibility(self.snapMarkerStart, true)
-			setVisibility(self.snapMarkerEnd, true)
-		end
+		return
+	end
+	self.snapStart = { startX, startY, startZ }
+	self.snapEnd = { endX, endY, endZ }
+	self.hasSnapPositions = true
+	if self.snapMarkerStart ~= nil then
+		setWorldTranslation(self.snapMarkerStart, startX, startY, startZ)
+		setWorldTranslation(self.snapMarkerEnd, endX, endY, endZ)
+		setVisibility(self.snapMarkerStart, true)
+		setVisibility(self.snapMarkerEnd, true)
 	end
 end
-
 function ConstructionBrushNewFence:setFinishCallback(func)
 	self.finishCallbackFunc = func
 end
-
 function ConstructionBrushNewFence:setValidateCallback(func)
 	self.validateCallbackFunc = func
 end
-
--- Local values: metadata, sx, sy, sz
 function ConstructionBrushNewFence:setSegmentTemplate(id)
 	self.templateId = id
 	self.parallelSnappingEnabled = false
 	self.canToggleParallelSnapping = false
-	local v24_ = self.fence:getSegmentTemplateById(self.templateId)
-	if v24_.parallelSnapping ~= nil then
-		self.canToggleParallelSnapping = v24_.parallelSnapping.canToggle
+	local metadata = self.fence:getSegmentTemplateById(self.templateId)
+	if metadata.parallelSnapping ~= nil then
+		self.canToggleParallelSnapping = metadata.parallelSnapping.canToggle
 		if not self.canToggleParallelSnapping then
 			self.parallelSnappingEnabled = true
 		end
 	end
 	self:setInputTextDirty()
-	local v25_, v26_, v27_
-	if self.currentSegment == nil then
-		v25_ = nil
-		v26_ = nil
-		v27_ = nil
-	else
-		v25_, v26_, v27_ = self.currentSegment:getStartPos()
+	local sx = nil
+	local sy = nil
+	local sz = nil
+	if self.currentSegment ~= nil then
+		sx, sy, sz = self.currentSegment:getStartPos()
 		self.currentSegment:delete()
 		self.currentSegment = nil
 	end
 	self.currentSegment = self.fence:createNewSegment(self.templateId)
 	self.currentSegment:setParallelSnappingSegment(self.parallelSnappingSegment)
-	if v25_ ~= nil then
-		self.currentSegment:setStartPos(v25_, v26_, v27_)
+	if sx ~= nil then
+		self.currentSegment:setStartPos(sx, sy, sz)
 	end
 end
-
 function ConstructionBrushNewFence:canCancel()
-	local v29_
-	if self.fenceParentObject == nil then
-		v29_ = false
-	else
-		v29_ = self.currentSegment ~= nil
-	end
-	return v29_
+	return self.fenceParentObject ~= nil and self.currentSegment ~= nil
 end
-
--- Local values: data
 function ConstructionBrushNewFence:acquirePlaceable()
 	if self.storeItem == nil then
 		Logging.warning("ConstructionBrushNewFence has no store item set")
 	else
 		self.fenceParentObject = self:findPlaceable()
-		if self.fenceParentObject == nil then
-			local v31_ = BuyPlaceableData.new()
-			v31_:setStoreItem(self.storeItem)
-			v31_:setPosition(0, PlacementUtil.NETHER_HEIGHT - 1, 0)
-			v31_:setRotation(0, 0, 0)
-			v31_:setConfigurations({})
-			v31_:setOwnerFarmId(AccessHandler.EVERYONE)
-			v31_:setDisplacementCosts(0)
-			v31_:setModifyTerrain(false)
-			v31_:setIsFreeOfCharge(true)
-			g_messageCenter:subscribe(BuyPlaceableEvent, self.onPlaceableCreated, self)
-			g_client:getServerConnection():sendEvent(BuyPlaceableEvent.new(v31_))
-		else
+		if self.fenceParentObject ~= nil then
 			self:initFence()
+		else
+			local data = BuyPlaceableData.new()
+			data:setStoreItem(self.storeItem)
+			data:setPosition(0, PlacementUtil.NETHER_HEIGHT - 1, 0)
+			data:setRotation(0, 0, 0)
+			data:setConfigurations({})
+			data:setOwnerFarmId(AccessHandler.EVERYONE)
+			data:setDisplacementCosts(0)
+			data:setModifyTerrain(false)
+			data:setIsFreeOfCharge(true)
+			g_messageCenter:subscribe(BuyPlaceableEvent, self.onPlaceableCreated, self)
+			g_client:getServerConnection():sendEvent(BuyPlaceableEvent.new(data))
 		end
 		self:setInputTextDirty()
 	end
 end
-
--- Local values: configXMLFilename, existingPlaceableInstance
 function ConstructionBrushNewFence:findPlaceable()
-	local v33_ = self.storeItem.xmlFilename
-	return g_currentMission.placeableSystem:getExistingPlaceableByXMLFilename(v33_)
+	local configXMLFilename = self.storeItem.xmlFilename
+	local existingPlaceableInstance = g_currentMission.placeableSystem:getExistingPlaceableByXMLFilename(configXMLFilename)
+	return existingPlaceableInstance
 end
-
 function ConstructionBrushNewFence:onPlaceableCreated(errorCode, price, serverObjectId)
 	g_messageCenter:unsubscribe(BuyPlaceableEvent, self)
 	if errorCode == BuyPlaceableEvent.STATE_FAILED_TO_LOAD then
@@ -225,17 +178,15 @@ function ConstructionBrushNewFence:onPlaceableCreated(errorCode, price, serverOb
 		self.doFindPlaceable = true
 	end
 end
-
 function ConstructionBrushNewFence:initFence()
 	if self.fenceParentObject.getFence == nil then
-		Logging.xmlError(self.fenceParentObject.configFileName, "Fence parent object is missing \'getFence\' function, check placeableType")
+		Logging.xmlError(self.fenceParentObject.configFileName, "Fence parent object is missing 'getFence' function, check placeableType")
 	else
 		self.fence = self.fenceParentObject:getFence()
 		self:setSegmentTemplate(self.fence:getSegmentTemplates()[1])
 		self:setInputTextDirty()
 	end
 end
-
 function ConstructionBrushNewFence:releasePlaceable()
 	if self.storeItem ~= nil and self.fenceParentObject ~= nil then
 		if self.fence == nil or self.fence:getNumSegments() == 0 then
@@ -247,177 +198,180 @@ function ConstructionBrushNewFence:releasePlaceable()
 		self:setInputTextDirty()
 	end
 end
-
 function ConstructionBrushNewFence:onPlaceableDestroyed()
 	g_messageCenter:unsubscribe(SellPlaceableEvent, self)
 end
-
--- Local values: x, y, z, metadata, snapDistance, allowExtendingOnly, maxCornerAngle, currentSegmentStartX, currentSegmentStartY, currentSegmentStartZ, hasStartPosition, endPos, pole, _distance, px, py, pz, _segmentId, isStartPole, isEndPole, ignore, snappedTargetSegment, ex, ez, lastPole, _distance, _px, _py, _pz, lastSegmentId, _isStartPole, _isEndPole, segment, segmentStartX, _, segmentStartZ, segmentEndX, _, segmentEndZ, distance, currentSegmentDirX, currentSegmentDirZ, lastSegmentDirX, lastSegmentDirZ, cosMax, forwardDot, backwardDot, forwardOK, backwardOK, allowed, ax, az, _, crossY, _, dot, angle, clampedAngle, cos, sin, cx, cz, clampedNewX, clampedNewZ, clampedNewY, parallelSnapCheckDistance, parallelSnapDistance, snappedPole, _distance, snappedPoleX, snappedPoleY, snappedPoleZ, snappedSegment, startX, _, startZ, endX, _, endZ, dx, dz, snapLineX, snapLineZ, x1, z1, x2, z2, distance1, distance2, distancePole, snapX, snapZ, snapY, otherRowPole, _distance, otherRowPoleX, otherRowPoleY, otherRowPoleZ, alignSegment, startX, _, startZ, endX, _, endZ, dx, dz, targetX, targetZ, targetY
 function ConstructionBrushNewFence:getSnappedCursorPosition()
-	local v40_, v41_, v42_ = self.cursor:getHitTerrainPosition()
-	if v40_ == nil then
-		return v40_, v41_, v42_, false
-	else
-		local v43_ = self.fence:getSegmentTemplateById(self.templateId)
-		local v44_ = v43_.snapDistance or (self.currentSegment == nil and 2 or (self.currentSegment:getMinimumPanelLength() or 2))
-		local v45_
-		if v43_.extending == nil then
-			v45_ = nil
-		else
-			v45_ = v43_.extending.allowExtendingOnly or nil
+	local x, y, z = self.cursor:getHitTerrainPosition()
+	if x == nil then
+		return x, y, z, false
+	end
+	local metadata = self.fence:getSegmentTemplateById(self.templateId)
+	if not metadata.snapDistance then
+		local snapDistance = self.currentSegment ~= nil and self.currentSegment:getMinimumPanelLength() or 2
+	end
+	local allowExtendingOnly = metadata.extending ~= nil and metadata.extending.allowExtendingOnly or nil
+	local maxCornerAngle = metadata.extending ~= nil and metadata.extending.maxCornerAngle or nil
+	local currentSegmentStartX = nil
+	local currentSegmentStartY = nil
+	local currentSegmentStartZ = nil
+	if self.currentSegment ~= nil then
+		currentSegmentStartX, currentSegmentStartY, currentSegmentStartZ = self.currentSegment:getStartPos()
+	end
+	local hasStartPosition = currentSegmentStartX ~= nil
+	if self.hasSnapPositions and hasStartPosition then
+		local endPos = self.snapEnd
+		if MathUtil.vector3Length(endPos[1] - x, endPos[2] - y, endPos[3] - z) < snapDistance then
+			return endPos[1], endPos[2], endPos[3], true
 		end
-		local v46_
-		if v43_.extending == nil then
-			v46_ = nil
-		else
-			v46_ = v43_.extending.maxCornerAngle or nil
+	end
+	local pole, _distance, px, py, pz, _segmentId, isStartPole, isEndPole = self.fence:getPoleNear(x, y, z, snapDistance)
+	if pole ~= nil and (not hasStartPosition or self.parallelSnappingSegment == nil) then
+		local ignore = false
+		if hasStartPosition and MathUtil.vector2Length(px - currentSegmentStartX, pz - currentSegmentStartZ) < 0.1 then
+			ignore = true
 		end
-		local v47_, v48_, v49_
-		if self.currentSegment == nil then
-			v47_ = nil
-			v48_ = nil
-			v49_ = nil
-		else
-			v48_, v49_, v47_ = self.currentSegment:getStartPos()
-		end
-		local v50_ = v48_ ~= nil
-		if self.hasSnapPositions and v50_ then
-			local v51_ = self.snapEnd
-			if MathUtil.vector3Length(v51_[1] - v40_, v51_[2] - v41_, v51_[3] - v42_) < v44_ then
-				return v51_[1], v51_[2], v51_[3], true
+		if not ignore then
+			local snappedTargetSegment = self.fence:getSegmentFromNode(pole)
+			if not allowExtendingOnly or isStartPole or isEndPole then
+				return px, py, pz, true, snappedTargetSegment
 			end
 		end
-		local v52_, _, v53_, v54_, v55_, _, v56_, v57_ = self.fence:getPoleNear(v40_, v41_, v42_, v44_)
-		if v52_ ~= nil and (not v50_ or self.parallelSnappingSegment == nil) and (not v50_ or MathUtil.vector2Length(v53_ - v48_, v55_ - v47_) >= 0.1) then
-			local v58_ = self.fence:getSegmentFromNode(v52_)
-			if not v45_ or (v56_ or v57_) then
-				return v53_, v54_, v55_, true, v58_
-			end
-		end
-		if v46_ ~= nil and (self.currentSegment ~= nil and (v50_ and v40_ ~= nil)) then
-			local v59_, _, _, _, _, v60_, _, _ = self.fence:getPoleNear(v48_, v49_, v47_, 0.5)
-			if v59_ ~= nil then
-				local v61_ = self.fence:getSegmentById(v60_)
-				if v61_ ~= nil then
-					local v62_, _, v63_ = v61_:getStartPos()
-					local v64_, _, v65_ = v61_:getEndPos()
-					local v66_ = MathUtil.vector2Length(v40_ - v48_, v42_ - v47_)
-					local v67_, v68_ = MathUtil.vector2Normalize(v40_ - v48_, v42_ - v47_)
-					local v69_, v70_ = MathUtil.vector2Normalize(v64_ - v62_, v65_ - v63_)
-					local v71_ = math.cos(v46_)
-					local v72_ = MathUtil.dotProduct(v69_, 0, v70_, v67_, 0, v68_)
-					local v73_ = MathUtil.dotProduct(v69_, 0, v70_, -v67_, 0, -v68_)
-					if v71_ > v72_ and v71_ > v73_ then
-						if v72_ < 0 then
-							v67_ = -v67_
-							v68_ = -v68_
+	end
+	if maxCornerAngle ~= nil and self.currentSegment ~= nil then
+		local ex = x
+		local ez = z
+		if hasStartPosition and ex ~= nil then
+			local lastPole, _distance, _px, _py, _pz, lastSegmentId, _isStartPole, _isEndPole = self.fence:getPoleNear(currentSegmentStartX, currentSegmentStartY, currentSegmentStartZ, 0.5)
+			if lastPole ~= nil then
+				local segment = self.fence:getSegmentById(lastSegmentId)
+				if segment ~= nil then
+					local segmentStartX, _, segmentStartZ = segment:getStartPos()
+					local segmentEndX, _, segmentEndZ = segment:getEndPos()
+					local distance = MathUtil.vector2Length(ex - currentSegmentStartX, ez - currentSegmentStartZ)
+					local currentSegmentDirX, currentSegmentDirZ = MathUtil.vector2Normalize(ex - currentSegmentStartX, ez - currentSegmentStartZ)
+					local lastSegmentDirX, lastSegmentDirZ = MathUtil.vector2Normalize(segmentEndX - segmentStartX, segmentEndZ - segmentStartZ)
+					local cosMax = math.cos(maxCornerAngle)
+					local forwardDot = MathUtil.dotProduct(lastSegmentDirX, 0, lastSegmentDirZ, currentSegmentDirX, 0, currentSegmentDirZ)
+					local backwardDot = MathUtil.dotProduct(lastSegmentDirX, 0, lastSegmentDirZ, -currentSegmentDirX, 0, -currentSegmentDirZ)
+					local forwardOK = cosMax <= forwardDot
+					local backwardOK = cosMax <= backwardDot
+					local allowed = forwardOK or backwardOK
+					if not allowed then
+						local ax = currentSegmentDirX
+						local az = currentSegmentDirZ
+						if forwardDot < 0 then
+							ax = -currentSegmentDirX
+							az = -currentSegmentDirZ
 						end
-						local _, v74_, _ = MathUtil.crossProduct(v67_, 0, v68_, v69_, 0, v70_)
-						local v75_ = MathUtil.dotProduct(v67_, 0, v68_, v69_, 0, v70_)
-						local v76_ = math.atan2(v74_, v75_)
-						local v77_ = -v46_
-						local v78_ = math.clamp(v76_, v77_, v46_)
-						if v73_ > 0 then
-							v78_ = v78_ + 3.141592653589793
+						local _, crossY, _ = MathUtil.crossProduct(ax, 0, az, lastSegmentDirX, 0, lastSegmentDirZ)
+						local dot = MathUtil.dotProduct(ax, 0, az, lastSegmentDirX, 0, lastSegmentDirZ)
+						local angle = math.atan2(crossY, dot)
+						local clampedAngle = math.clamp(angle, -maxCornerAngle, maxCornerAngle)
+						if 0 < backwardDot then
+							clampedAngle = clampedAngle + 3.141592653589793
 						end
-						local v79_ = math.cos(v78_)
-						local v80_ = math.sin(v78_)
-						local v81_ = v69_ * v79_ - v70_ * v80_
-						local v82_ = v69_ * v80_ + v70_ * v79_
-						local v83_, v84_ = MathUtil.vector2Normalize(v81_, v82_)
-						local v85_ = v48_ + v83_ * v66_
-						local v86_ = v47_ + v84_ * v66_
-						return v85_, getTerrainHeightAtWorldPos(g_terrainNode, v85_, 0, v86_), v86_, true
+						local cos = math.cos(clampedAngle)
+						local sin = math.sin(clampedAngle)
+						local cx = lastSegmentDirX * cos - lastSegmentDirZ * sin
+						local cz = lastSegmentDirX * sin + lastSegmentDirZ * cos
+						cx, cz = MathUtil.vector2Normalize(cx, cz)
+						local clampedNewX = currentSegmentStartX + cx * distance
+						local clampedNewZ = currentSegmentStartZ + cz * distance
+						local clampedNewY = getTerrainHeightAtWorldPos(g_terrainNode, clampedNewX, 0, clampedNewZ)
+						return clampedNewX, clampedNewY, clampedNewZ, true
 					end
 				end
 			end
 		end
-		if self.parallelSnappingEnabled then
-			local v87_ = v43_.parallelSnapping.checkDistance
-			local v88_ = v43_.parallelSnapping.snapDistance
-			local v89_, _, v90_, v91_, v92_ = self.fence:getPoleNear(v40_, v41_, v42_, v87_)
-			if v89_ ~= nil and not v50_ then
-				local v93_ = self.fence:getSegmentFromNode(v89_)
-				self.parallelSnappingSegment = v93_
-				if self.currentSegment ~= nil then
-					self.currentSegment:setParallelSnappingSegment(v93_)
-				end
-				local v94_, _, v95_ = v93_:getStartPos()
-				local v96_, _, v97_ = v93_:getEndPos()
-				local v98_, v99_ = MathUtil.vector2Normalize(v96_ - v94_, v97_ - v95_)
-				local v100_, v101_
-				if self.snappingActive then
-					v100_ = v92_
-					v101_ = v90_
-				else
-					v101_, v100_ = MathUtil.projectOnLine(v40_, v42_, v90_, v92_, v98_, v99_)
-				end
-				local v102_ = -v99_ * v88_ + v101_
-				local v103_ = v98_ * v88_ + v100_
-				local v104_ = v99_ * v88_ + v101_
-				local v105_ = -v98_ * v88_ + v100_
-				local v106_ = MathUtil.vector2Length(v102_ - v40_, v103_ - v42_)
-				local v107_ = MathUtil.vector2Length(v104_ - v40_, v105_ - v42_)
-				local v108_ = MathUtil.vector2Length(v90_ - v40_, v92_ - v42_)
-				if v106_ < v107_ then
-					v105_ = v103_
-					v104_ = v102_
-				end
-				local v109_ = getTerrainHeightAtWorldPos(g_terrainNode, v104_, 0, v105_)
-				if v46_ == 0 and (v108_ < v44_ and (v56_ or v57_)) then
-					return v90_, v91_, v92_, true, v93_
-				else
-					local v110_, _, v111_, v112_, v113_ = self.fence:getPoleNear(v104_, v109_, v105_, v44_)
-					if v110_ then
-						return v111_, v112_, v113_, true
-					else
-						return v104_, v109_, v105_, true
-					end
-				end
-			end
-			if self.parallelSnappingSegment ~= nil and v50_ then
-				local v114_ = self.parallelSnappingSegment
-				local v115_, _, v116_ = v114_:getStartPos()
-				local v117_, _, v118_ = v114_:getEndPos()
-				local v119_, v120_ = MathUtil.vector2Normalize(v117_ - v115_, v118_ - v116_)
-				local v121_, v122_ = MathUtil.projectOnLine(v40_, v42_, v48_, v47_, v119_, v120_)
-				return v121_, getTerrainHeightAtWorldPos(g_terrainNode, v121_, 0, v122_), v122_, true
-			end
-			self.parallelSnappingSegment = nil
+	end
+	if self.parallelSnappingEnabled then
+		local parallelSnapCheckDistance = metadata.parallelSnapping.checkDistance
+		local parallelSnapDistance = metadata.parallelSnapping.snapDistance
+		local snappedPole, _distance, snappedPoleX, snappedPoleY, snappedPoleZ = self.fence:getPoleNear(x, y, z, parallelSnapCheckDistance)
+		if snappedPole ~= nil and not hasStartPosition then
+			local snappedSegment = self.fence:getSegmentFromNode(snappedPole)
+			self.parallelSnappingSegment = snappedSegment
 			if self.currentSegment ~= nil then
-				self.currentSegment:setParallelSnappingSegment(nil)
+				self.currentSegment:setParallelSnappingSegment(snappedSegment)
+			end
+			local startX, _, startZ = snappedSegment:getStartPos()
+			local endX, _, endZ = snappedSegment:getEndPos()
+			local dx, dz = MathUtil.vector2Normalize(endX - startX, endZ - startZ)
+			local snapLineX = snappedPoleX
+			local snapLineZ = snappedPoleZ
+			if not self.snappingActive then
+				snapLineX, snapLineZ = MathUtil.projectOnLine(x, z, snappedPoleX, snappedPoleZ, dx, dz)
+			end
+			local x1 = -dz * parallelSnapDistance + snapLineX
+			local z1 = dx * parallelSnapDistance + snapLineZ
+			local x2 = dz * parallelSnapDistance + snapLineX
+			local z2 = -dx * parallelSnapDistance + snapLineZ
+			local distance1 = MathUtil.vector2Length(x1 - x, z1 - z)
+			local distance2 = MathUtil.vector2Length(x2 - x, z2 - z)
+			local distancePole = MathUtil.vector2Length(snappedPoleX - x, snappedPoleZ - z)
+			local snapX = nil
+			local snapZ = nil
+			if distance1 < distance2 then
+				snapX = x1
+				snapZ = z1
+			else
+				snapX = x2
+				snapZ = z2
+			end
+			local snapY = getTerrainHeightAtWorldPos(g_terrainNode, snapX, 0, snapZ)
+			if maxCornerAngle == 0 and (distancePole < snapDistance and (isStartPole or isEndPole)) then
+				return snappedPoleX, snappedPoleY, snappedPoleZ, true, snappedSegment
+			end
+			local otherRowPole, _distance, otherRowPoleX, otherRowPoleY, otherRowPoleZ = self.fence:getPoleNear(snapX, snapY, snapZ, snapDistance)
+			if otherRowPole then
+				return otherRowPoleX, otherRowPoleY, otherRowPoleZ, true
+			else
+				return snapX, snapY, snapZ, true
 			end
 		end
-		if self.snappingActive then
-			return MathUtil.snapValue(v40_, self.snappingSize), v41_, MathUtil.snapValue(v42_, self.snappingSize), true
-		else
-			return v40_, v41_, v42_, false
+		if self.parallelSnappingSegment ~= nil and hasStartPosition then
+			local alignSegment = self.parallelSnappingSegment
+			local startX, _, startZ = alignSegment:getStartPos()
+			local endX, _, endZ = alignSegment:getEndPos()
+			local dx, dz = MathUtil.vector2Normalize(endX - startX, endZ - startZ)
+			local targetX, targetZ = MathUtil.projectOnLine(x, z, currentSegmentStartX, currentSegmentStartZ, dx, dz)
+			local targetY = getTerrainHeightAtWorldPos(g_terrainNode, targetX, 0, targetZ)
+			return targetX, targetY, targetZ, true
+		end
+		self.parallelSnappingSegment = nil
+		if self.currentSegment ~= nil then
+			self.currentSegment:setParallelSnappingSegment(nil)
 		end
 	end
+	if self.snappingActive then
+		x = MathUtil.snapValue(x, self.snappingSize)
+		z = MathUtil.snapValue(z, self.snappingSize)
+		return x, y, z, true
+	else
+		return x, y, z, false
+	end
 end
-
--- Local values: x, y, z, snapped, segment
 function ConstructionBrushNewFence:getLimitedSnappedCursorPosition()
-	local v124_, v125_, v126_, v127_, v128_ = self:getSnappedCursorPosition()
-	return v124_, v125_, v126_, v127_, v128_
+	local x, y, z, snapped, segment = self:getSnappedCursorPosition()
+	return x, y, z, snapped, segment
 end
-
--- Local values: price
 function ConstructionBrushNewFence:getPrice(length)
+	local price = nil
 	if self.gateIndex ~= nil then
-		return self.storeItem.price
+		price = self.storeItem.price
+		return price
+	else
+		if length == nil then
+			length = self.fenceParentObject:getSegmentLength(self.fenceParentObject:getPreviewSegment())
+		end
+		price = length * self.storeItem.price
+		return price
 	end
-	if length == nil then
-		length = self.fenceParentObject:getSegmentLength(self.fenceParentObject:getPreviewSegment())
-	end
-	return length * self.storeItem.price
 end
-
 function ConstructionBrushNewFence:verifyPreview()
 	return nil
 end
-
--- Local values: x, y, z, isSnapped, _snappedSegment, err, overlappingNode, segment, segmentPart, segmentError
 function ConstructionBrushNewFence:update(dt)
 	ConstructionBrushNewFence:superClass().update(self, dt)
 	if self.doFindPlaceable then
@@ -434,147 +388,143 @@ function ConstructionBrushNewFence:update(dt)
 			self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrush.ERROR_MESSAGES[ConstructionBrush.ERROR.NO_PERMISSION]))
 		end
 		return
-	elseif self.fence == nil then
+	end
+	if self.fence == nil then
 		return
+	end
+	self.cursor:setColorMode(GuiTopDownCursor.SHAPES_COLORS.SUCCESS)
+	local x, y, z, isSnapped, _snappedSegment = self:getLimitedSnappedCursorPosition()
+	if self.currentSegment == nil then
+		if isSnapped then
+			self.cursor:setPosition(x, y, z)
+		end
+		return
+	end
+	self.currentSegment:draw()
+	if self.hasSnapPositions and self.currentSegment:getStartPos() == nil then
+		self.currentSegment:setStartPos(self.snapStart[1], self.snapStart[2], self.snapStart[3])
+	end
+	if x == nil then
+		return
+	end
+	local err = self:verifyAccess(x, y, z)
+	if err ~= nil then
+		self.cursor:setColorMode(GuiTopDownCursor.SHAPES_COLORS.ERROR)
+		self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrushNewFence.ERROR_MESSAGES[err] or ConstructionBrush.ERROR_MESSAGES[err]))
 	else
-		self.cursor:setColorMode(GuiTopDownCursor.SHAPES_COLORS.SUCCESS)
-		local v133_, v134_, v135_, v136_, _ = self:getLimitedSnappedCursorPosition()
-		if self.currentSegment == nil then
-			if v136_ then
-				self.cursor:setPosition(v133_, v134_, v135_)
-			end
-			return
-		else
-			self.currentSegment:draw()
-			if self.hasSnapPositions and self.currentSegment:getStartPos() == nil then
-				self.currentSegment:setStartPos(self.snapStart[1], self.snapStart[2], self.snapStart[3])
-			end
-			if v133_ == nil then
-				return
-			else
-				local v137_ = self:verifyAccess(v133_, v134_, v135_)
-				if v137_ == nil then
-					if v136_ and self.currentSegment:getStartPos() == nil then
-						self.cursor:setPosition(v133_, v134_, v135_)
+		if isSnapped and self.currentSegment:getStartPos() == nil then
+			self.cursor:setPosition(x, y, z)
+		end
+		if self:validateCurrentSegment(x, z) then
+			self.currentSegment:setEndPos(x, y, z)
+			if self.currentSegment:updateMeshes() then
+				self.currentSegment:update()
+				table.clear(self.overlappingNodes)
+				self.currentSegment:checkOverlap(self.overlappingNodes)
+				for overlappingNode in pairs(self.overlappingNodes) do
+					local segment = self.fence:getSegmentFromNode(overlappingNode)
+					if segment == nil then
+						continue
 					end
-					if self:validateCurrentSegment(v133_, v135_) then
-						self.currentSegment:setEndPos(v133_, v134_, v135_)
-						if self.currentSegment:updateMeshes() then
-							self.currentSegment:update()
-							table.clear(self.overlappingNodes)
-							self.currentSegment:checkOverlap(self.overlappingNodes)
-							for v138_ in pairs(self.overlappingNodes) do
-								local v139_ = self.fence:getSegmentFromNode(v138_)
-								if v139_ ~= nil then
-									local v140_ = v139_:getSegmentPartFromNode(v138_)
-									if v140_ ~= nil then
-										renderShapeOutline(v140_, true)
-									end
-								end
-							end
-							if next(self.overlappingNodes) ~= nil then
-								self.cursor:setColorMode(GuiTopDownCursor.SHAPES_COLORS.ERROR)
-								self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrushNewFence.ERROR_MESSAGES[ConstructionBrushNewFence.ERROR.COLLISION]))
-								return
-							end
-						else
-							local v141_ = self.currentSegment:getLastError()
-							if v141_ ~= nil then
-								self.cursor:setColorMode(GuiTopDownCursor.SHAPES_COLORS.ERROR)
-								self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrushNewFence.SEGMENT_ERROR_TO_MESSAGE[v141_]))
-							end
-						end
+					local segmentPart = segment:getSegmentPartFromNode(overlappingNode)
+					if segmentPart == nil then
+						continue
 					end
-				else
+					renderShapeOutline(segmentPart, true)
+				end
+				if next(self.overlappingNodes) ~= nil then
 					self.cursor:setColorMode(GuiTopDownCursor.SHAPES_COLORS.ERROR)
-					self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrushNewFence.ERROR_MESSAGES[v137_] or ConstructionBrush.ERROR_MESSAGES[v137_]))
+					self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrushNewFence.ERROR_MESSAGES[ConstructionBrushNewFence.ERROR.COLLISION]))
+				end
+			else
+				local segmentError = self.currentSegment:getLastError()
+				if segmentError ~= nil then
+					self.cursor:setColorMode(GuiTopDownCursor.SHAPES_COLORS.ERROR)
+					self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrushNewFence.SEGMENT_ERROR_TO_MESSAGE[segmentError]))
 				end
 			end
 		end
 	end
 end
-
--- Local values: storeItemNameCleaned
 function ConstructionBrushNewFence:draw()
 	if g_isDevelopmentVersion and (self.fenceParentObject ~= nil and self.fenceParentObject.configFileName ~= nil) then
-		local v143_ = string.gsub(self.fenceParentObject.configFileName, getUserProfileAppPath(), "")
-		renderText(ConstructionBrush.DEBUG_TEXT_ATTR.x, ConstructionBrush.DEBUG_TEXT_ATTR.y, ConstructionBrush.DEBUG_TEXT_ATTR.z, v143_)
+		local storeItemNameCleaned = string.gsub(self.fenceParentObject.configFileName, getUserProfileAppPath(), "")
+		renderText(ConstructionBrush.DEBUG_TEXT_ATTR.x, ConstructionBrush.DEBUG_TEXT_ATTR.y, ConstructionBrush.DEBUG_TEXT_ATTR.z, storeItemNameCleaned)
 	end
 end
-
--- Local values: sx, _, sz, price
 function ConstructionBrushNewFence:validateCurrentSegment(x, z)
 	if self.currentSegment == nil then
 		return false
+	end
+	local sx, _, sz = self.currentSegment:getStartPos()
+	if sx == nil then
+		return false
+	end
+	if not g_farmlandManager:getIsOwnedByFarmAlongLine(g_localPlayer.farmId, sx, sz, x, z) then
+		self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrush.ERROR_MESSAGES[ConstructionBrush.ERROR.LAND_UNOWNED]))
+		return false
+	end
+	local price = self.currentSegment:getPrice()
+	if g_currentMission:getMoney(g_localPlayer.farmId) < price then
+		self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrushNewFence.ERROR_MESSAGES[ConstructionBrushNewFence.ERROR.NOT_ENOUGH_MONEY]))
+		return false
 	else
-		local v147_, _, v148_ = self.currentSegment:getStartPos()
-		if v147_ == nil then
-			return false
-		elseif g_farmlandManager:getIsOwnedByFarmAlongLine(g_localPlayer.farmId, v147_, v148_, x, z) then
-			local v149_ = self.currentSegment:getPrice()
-			if g_currentMission:getMoney(g_localPlayer.farmId) < v149_ then
-				self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrushNewFence.ERROR_MESSAGES[ConstructionBrushNewFence.ERROR.NOT_ENOUGH_MONEY]))
-				return false
-			else
-				if v149_ ~= 0 then
-					self.cursor:setMessage(g_i18n:formatMoney(v149_))
-				end
-				return true
-			end
-		else
-			self.cursor:setErrorMessage(g_i18n:getText(ConstructionBrush.ERROR_MESSAGES[ConstructionBrush.ERROR.LAND_UNOWNED]))
-			return false
+		if price ~= 0 then
+			self.cursor:setMessage(g_i18n:formatMoney(price))
 		end
+		return true
 	end
 end
-
--- Local values: x, y, z, _snapped, _segment, err
 function ConstructionBrushNewFence:onButtonPrimary()
 	if self.isValidating then
 		return
-	elseif self.fenceParentObject == nil then
+	end
+	if self.fenceParentObject == nil then
 		return
-	elseif self.fence == nil then
+	end
+	if self.fence == nil then
+		return
+	end
+	if self.currentSegment == nil then
+		self.currentSegment = self.fence:createNewSegment(self.templateId)
+		self.currentSegment:setParallelSnappingSegment(self.parallelSnappingSegment)
+	end
+	local x, y, z, _snapped, _segment = self:getLimitedSnappedCursorPosition()
+	if x == nil then
+		return
+	end
+	local err = self:verifyAccess(x, y, z)
+	if err ~= nil then
 		return
 	else
-		if self.currentSegment == nil then
-			self.currentSegment = self.fence:createNewSegment(self.templateId)
-			self.currentSegment:setParallelSnappingSegment(self.parallelSnappingSegment)
-		end
-		local v151_, v152_, v153_, _, _ = self:getLimitedSnappedCursorPosition()
-		if v151_ == nil then
-			return
-		elseif self:verifyAccess(v151_, v152_, v153_) == nil then
-			if self.currentSegment:getStartPos() == nil then
-				self.currentSegment:setStartPos(v151_, v152_, v153_)
-			else
-				if not self:validateCurrentSegment(v151_, v153_) then
-					return
-				end
-				if next(self.overlappingNodes) ~= nil then
-					return
-				end
-				g_messageCenter:subscribeOneshot(FenceNewSegmentEvent, self.onServerCreatedFenceCallback, self)
-				g_client:getServerConnection():sendEvent(FenceNewSegmentEvent.newClientToServer(self.fenceParentObject, self.currentSegment))
+		if self.currentSegment:getStartPos() == nil then
+			self.currentSegment:setStartPos(x, y, z)
+		else
+			if not self:validateCurrentSegment(x, z) then
+				return
 			end
-			self:setInputTextDirty()
+			if next(self.overlappingNodes) ~= nil then
+				return
+			end
+			g_messageCenter:subscribeOneshot(FenceNewSegmentEvent, self.onServerCreatedFenceCallback, self)
+			g_client:getServerConnection():sendEvent(FenceNewSegmentEvent.newClientToServer(self.fenceParentObject, self.currentSegment))
 		end
+		self:setInputTextDirty()
 	end
 end
-
--- Local values: callback
 function ConstructionBrushNewFence:finish(status)
 	self.currentSegment = nil
 	self.parallelSnappingSegment = nil
 	if self.finishCallbackFunc ~= nil then
-		local v156_ = self.finishCallbackFunc
+		local callback = self.finishCallbackFunc
 		self.finishCallbackFunc = nil
-		v156_(status)
+		callback(status)
 	end
 end
-
 function ConstructionBrushNewFence:onServerCreatedFenceCallback(statusCode, segmentId, endX, endY, endZ)
-	if statusCode == FenceNewSegmentEvent.STATUS_CODE.SUCCESS then
+	if statusCode ~= FenceNewSegmentEvent.STATUS_CODE.SUCCESS then
+		return
+	else
 		if self.fenceParentObject.playPlaceSound ~= nil then
 			self.fenceParentObject:playPlaceSound()
 		end
@@ -585,53 +535,48 @@ function ConstructionBrushNewFence:onServerCreatedFenceCallback(statusCode, segm
 		table.addElement(self.segmentIds, segmentId)
 		if self.hasSnapPositions and MathUtil.vector3Length(self.snapEnd[1] - endX, self.snapEnd[2] - endY, self.snapEnd[3] - endZ) < 0.1 then
 			self.currentSegment = nil
-			if self.validateCallbackFunc == nil then
-				self:finish(ConstructionBrushNewFence.STATUS.SUCCESS)
-			else
+			if self.validateCallbackFunc ~= nil then
 				self.isValidating = true
-				self.validateCallbackFunc(function(p163_)
-					-- upvalues: (copy) self
+				self.validateCallbackFunc(function(success)
 					self.isValidating = false
-					if p163_ then
+					if success then
 						self:finish(ConstructionBrushNewFence.STATUS.SUCCESS)
 					else
 						self:deleteLastSeqment()
 					end
 				end)
+				return
+			else
+				self:finish(ConstructionBrushNewFence.STATUS.SUCCESS)
+				return
 			end
-		else
-			self:createNextSegment(endX, endY, endZ)
-			return
 		end
-	else
-		return
+		self:createNextSegment(endX, endY, endZ)
 	end
 end
-
--- Local values: lastSegmentId, lastSegment, x, y, z
 function ConstructionBrushNewFence:deleteLastSeqment()
-	if self.fence ~= nil then
-		local v_u_165_ = self.segmentIds[#self.segmentIds]
-		local v_u_166_ = self.fence:getSegmentById(v_u_165_)
-		if v_u_166_ ~= nil then
-			local v_u_167_, v_u_168_, v_u_169_ = v_u_166_:getStartPos()
-			g_messageCenter:subscribeOneshot(FenceRequestDeleteSegmentEvent, function(self)
-				-- upvalues: (copy) self, (copy) v_u_166_, (copy) v_u_165_, (copy) v_u_167_, (copy) v_u_168_, (copy) v_u_169_
+	if self.fence == nil then
+		return
+	else
+		local lastSegmentId = self.segmentIds[#self.segmentIds]
+		local lastSegment = self.fence:getSegmentById(lastSegmentId)
+		if lastSegment ~= nil then
+			local x, y, z = lastSegment:getStartPos()
+			g_messageCenter:subscribeOneshot(FenceRequestDeleteSegmentEvent, function(success)
 				if self.currentSegment ~= nil then
 					self.currentSegment:delete()
 					self.currentSegment = nil
 				end
 				if g_server == nil then
-					v_u_166_:delete()
+					lastSegment:delete()
 				end
-				table.removeElement(self.segmentIds, v_u_165_)
-				self:createNextSegment(v_u_167_, v_u_168_, v_u_169_)
+				table.removeElement(self.segmentIds, lastSegmentId)
+				self:createNextSegment(x, y, z)
 			end)
-			g_client:getServerConnection():sendEvent(FenceRequestDeleteSegmentEvent.new(self.fenceParentObject, v_u_165_))
+			g_client:getServerConnection():sendEvent(FenceRequestDeleteSegmentEvent.new(self.fenceParentObject, lastSegmentId))
 		end
 	end
 end
-
 function ConstructionBrushNewFence:createNextSegment(startX, startY, startZ)
 	if self.fence ~= nil then
 		self.currentSegment = self.fence:createNewSegment(self.templateId)
@@ -639,103 +584,100 @@ function ConstructionBrushNewFence:createNextSegment(startX, startY, startZ)
 		self.currentSegment:setStartPos(startX, startY, startZ)
 	end
 end
-
 function ConstructionBrushNewFence:onButtonSecondary()
-	if self.snapEnd == nil then
+	if self.snapEnd ~= nil then
+		YesNoDialog.show(function(yes)
+			if yes then
+				self:deactivate()
+			end
+		end, nil, g_i18n:getText("ui_construction_cancelCustomFence"))
+	else
 		if self.currentSegment ~= nil then
 			self.currentSegment:delete()
 			self.currentSegment = nil
 			self.parallelSnappingSegment = nil
 			self:setInputTextDirty()
 		end
-	else
-		YesNoDialog.show(function(p175_)
-			-- upvalues: (copy) self
-			if p175_ then
-				self:deactivate()
-			end
-		end, nil, g_i18n:getText("ui_construction_cancelCustomFence"))
 	end
 end
-
 function ConstructionBrushNewFence:onButtonTertiary()
-	if self.canToggleParallelSnapping then
+	if not self.canToggleParallelSnapping then
+		return
+	else
 		self.parallelSnappingEnabled = not self.parallelSnappingEnabled
 		self:setInputTextDirty()
 	end
 end
-
 function ConstructionBrushNewFence:onButtonSnapping()
 	self.snappingActive = not self.snappingActive
 	ConstructionBrushNewFence.LAST_SNAPPING_STATE = self.snappingActive
 	self:setInputTextDirty()
 end
-
 function ConstructionBrushNewFence:onButtonFourth()
 	self:deleteLastSeqment()
 end
-
--- Local values: templates, currentIndex, newIndex, newTemplateId
 function ConstructionBrushNewFence:onAxisPrimary(inputValue)
 	if self.fence == nil then
 		return
+	end
+	local templates = self.fence:getSegmentTemplates()
+	if #templates == 1 then
+		return
 	else
-		local v181_ = self.fence:getSegmentTemplates()
-		if #v181_ ~= 1 then
-			self:setSegmentTemplate(v181_[1 + (table.find(v181_, self.templateId) - 1 + inputValue) % #v181_])
-			self:setInputTextDirty()
-		end
+		local currentIndex = table.find(templates, self.templateId)
+		local newIndex = 1 + (currentIndex - 1 + inputValue) % #templates
+		local newTemplateId = templates[newIndex]
+		self:setSegmentTemplate(newTemplateId)
+		self:setInputTextDirty()
 	end
 end
-
--- Local values: templates, currentIndex
 function ConstructionBrushNewFence:getAxisPrimaryText()
-	if self.fence ~= nil then
-		local v183_ = self.fence:getSegmentTemplates()
-		if #v183_ <= 1 then
-			return nil
-		end
-		local v184_ = table.find(v183_, self.templateId)
-		return string.format("%s (%d/%d)", g_i18n:getText("action_fenceSwitchSegmentType"), v184_, #v183_)
+	if self.fence == nil then
+		return
+	end
+	local templates = self.fence:getSegmentTemplates()
+	if 1 < #templates then
+		local currentIndex = table.find(templates, self.templateId)
+		return string.format("%s (%d/%d)", g_i18n:getText("action_fenceSwitchSegmentType"), currentIndex, #templates)
+	else
+		return nil
 	end
 end
-
 function ConstructionBrushNewFence:onAxisSecondary(inputValue)
 	if self.currentSegment ~= nil and self.currentSegment.setIsReversed ~= nil then
 		self.currentSegment:setIsReversed(not self.currentSegment:getIsReversed())
 	end
 end
-
 function ConstructionBrushNewFence:getAxisSecondaryText()
-	if self.currentSegment == nil or self.currentSegment.setIsReversed == nil then
-		return nil
-	else
+	if self.currentSegment ~= nil and self.currentSegment.setIsReversed ~= nil then
 		return g_i18n:getText("action_fenceReverse")
 	end
+	return nil
 end
-
 function ConstructionBrushNewFence:cancel()
 	self:onButtonSecondary()
 end
-
 function ConstructionBrushNewFence:getButtonPrimaryText()
 	if self.fence == nil then
 		return nil
+	elseif self.currentSegment ~= nil and self.currentSegment:getStartPos() == nil then
+		return "$l10n_input_CONSTRUCTION_PLACE_POLE"
 	else
-		return self.currentSegment ~= nil and self.currentSegment:getStartPos() == nil and "$l10n_input_CONSTRUCTION_PLACE_POLE" or g_i18n:getText("action_fencePlaceSegment")
+		return g_i18n:getText("action_fencePlaceSegment")
 	end
 end
-
 function ConstructionBrushNewFence:getButtonSecondaryText()
 	if self.fence == nil then
 		return nil
 	elseif self.snapEnd == nil then
-		return self.currentSegment ~= nil and self.currentSegment:getStartPos() ~= nil and "$l10n_input_CONSTRUCTION_FINISH" or nil
+		if self.currentSegment ~= nil and self.currentSegment:getStartPos() ~= nil then
+			return "$l10n_input_CONSTRUCTION_FINISH"
+		end
+		return nil
 	else
 		return nil
 	end
 end
-
 function ConstructionBrushNewFence:getButtonTertiaryText()
 	if self.fence == nil then
 		return nil
@@ -745,7 +687,6 @@ function ConstructionBrushNewFence:getButtonTertiaryText()
 		return nil
 	end
 end
-
 function ConstructionBrushNewFence:getButtonSnappingText()
 	if self.fence == nil then
 		return nil
@@ -753,7 +694,10 @@ function ConstructionBrushNewFence:getButtonSnappingText()
 		return string.format("%s (%s)", g_i18n:getText("input_CONSTRUCTION_ACTION_SNAPPING"), g_i18n:getText(self.snappingActive and "ui_on" or "ui_off"))
 	end
 end
-
 function ConstructionBrushNewFence:getButtonFourthText()
-	return #self.segmentIds > 0 and "$l10n_action_deleteLastSegment" or nil
+	if 0 < #self.segmentIds then
+		return "$l10n_action_deleteLastSegment"
+	else
+		return nil
+	end
 end

@@ -1,16 +1,11 @@
--- Local values: DebugManager_mt
 DebugManager = {}
 DebugManager.DEFAULT_GROUP = "default"
 DebugManager.DEFAULT_GROUP_ELEMENT_LIMIT = 250
 local DebugManager_mt = Class(DebugManager, AbstractManager)
-
--- Upvalues: DebugManager_mt
--- Local values: self
 function DebugManager.new(customMt)
-	-- upvalues: (copy) DebugManager_mt
-	return AbstractManager.new(customMt or DebugManager_mt)
+	local self = AbstractManager.new(customMt or DebugManager_mt)
+	return self
 end
-
 function DebugManager:initDataStructures()
 	self.drawables = {}
 	self.frameElements = {}
@@ -37,378 +32,355 @@ function DebugManager:initDataStructures()
 		self.initialized = true
 	end
 end
-
--- Local values: debugMatI3d
 function DebugManager:getDebugMat()
 	if self.debugMaterial == nil then
-		local v5_ = loadI3DFile("data/shared/materialHolders/debugMaterialHolder.i3d", false, false, false)
-		self.debugMaterialNode = getChildAt(v5_, 0)
+		local debugMatI3d = loadI3DFile("data/shared/materialHolders/debugMaterialHolder.i3d", false, false, false)
+		self.debugMaterialNode = getChildAt(debugMatI3d, 0)
 		unlink(self.debugMaterialNode)
 		self.debugMaterial = getMaterial(self.debugMaterialNode, 0)
-		delete(v5_)
+		delete(debugMatI3d)
 	end
 	return self.debugMaterial
 end
-
 function DebugManager:unloadMapData()
 	self.loadedMapData = false
 	self:initDataStructures()
 end
-
--- Local values: elementId, elementToRemove
 function DebugManager:addElement(debugElement, groupId, lifetime, maxCount)
-	if debugElement ~= nil then
-		local v12_ = groupId or DebugManager.DEFAULT_GROUP
-		if self.elementToElementId[debugElement] == nil then
-			local v13_ = Utils.getUniqueId(debugElement, self.elementIdToElement, "debugElement", 10)
-			self.elementIdToElement[v13_] = debugElement
-			self.elementToElementId[debugElement] = v13_
-			self.groupIdToElements[v12_] = self.groupIdToElements[v12_] or {}
-			local v14_ = self.groupIdToElements[v12_]
-			table.insert(v14_, debugElement)
-			if maxCount == nil then
-				maxCount = v12_ ~= DebugManager.DEFAULT_GROUP and math.huge or DebugManager.DEFAULT_GROUP_ELEMENT_LIMIT
+	if debugElement == nil then
+		return
+	end
+	groupId = groupId or DebugManager.DEFAULT_GROUP
+	if self.elementToElementId[debugElement] ~= nil then
+		return
+	else
+		local elementId = Utils.getUniqueId(debugElement, self.elementIdToElement, "debugElement", 10)
+		self.elementIdToElement[elementId] = debugElement
+		self.elementToElementId[debugElement] = elementId
+		self.groupIdToElements[groupId] = self.groupIdToElements[groupId] or {}
+		table.insert(self.groupIdToElements[groupId], debugElement)
+		if maxCount == nil then
+			if groupId == DebugManager.DEFAULT_GROUP then
+				maxCount = DebugManager.DEFAULT_GROUP_ELEMENT_LIMIT
+			else
+				maxCount = math.huge
 			end
-			if maxCount < #self.groupIdToElements[v12_] then
-				self:removeElement(self.groupIdToElements[v12_][1])
-			end
-			if lifetime ~= nil then
-				debugElement.removeTime = g_time + lifetime
-				local v15_ = self.elementsWithLifetime
-				table.insert(v15_, debugElement)
-				table.sort(self.elementsWithLifetime, function(p16_, p17_)
-					return p16_.removeTime > p17_.removeTime
-				end)
-			end
-			return v13_
 		end
+		if maxCount < #self.groupIdToElements[groupId] then
+			local elementToRemove = self.groupIdToElements[groupId][1]
+			self:removeElement(elementToRemove)
+		end
+		if lifetime ~= nil then
+			debugElement.removeTime = g_time + lifetime
+			table.insert(self.elementsWithLifetime, debugElement)
+			table.sort(self.elementsWithLifetime, function(a, b)
+				return b.removeTime < a.removeTime
+			end)
+		end
+		return elementId
 	end
 end
-
--- Local values: elementId, groupId, groupElements, index
 function DebugManager:removeElement(debugElement)
-	if debugElement ~= nil then
-		local v20_ = self.elementToElementId[debugElement]
-		for v21_, v22_ in pairs(self.groupIdToElements) do
-			local v23_ = table.find(v22_, debugElement)
-			if v23_ then
-				table.remove(v22_, v23_)
-				if #v22_ == 0 then
-					self.groupIdToElements[v21_] = nil
+	if debugElement == nil then
+		return
+	else
+		local elementId = self.elementToElementId[debugElement]
+		for groupId, groupElements in pairs(self.groupIdToElements) do
+			local index = table.find(groupElements, debugElement)
+			if index then
+				table.remove(groupElements, index)
+				if #groupElements == 0 then
+					self.groupIdToElements[groupId] = nil
 				end
-				self.elementIdToElement[v20_] = nil
+				self.elementIdToElement[elementId] = nil
 				self.elementToElementId[debugElement] = nil
 				table.removeElement(self.elementsWithLifetime, debugElement)
 				return
 			end
 		end
-		Logging.warning("Unable to remove debug element \'%s\', not found", v20_)
+		Logging.warning("Unable to remove debug element '%s', not found", elementId)
 		printCallstack()
 	end
 end
-
--- Local values: element
 function DebugManager:removeElementById(elementId)
-	self:removeElement(self.elementIdToElement[elementId])
+	local element = self.elementIdToElement[elementId]
+	self:removeElement(element)
 end
-
 function DebugManager:getElement(elementId)
 	return self.elementIdToElement[elementId]
 end
-
--- Local values: elementIndex
 function DebugManager:removeGroup(groupId)
-	if self.groupIdToElements[groupId] ~= nil then
-		for v30_ = #self.groupIdToElements[groupId], 1, -1 do
-			self:removeElement(self.groupIdToElements[groupId][v30_])
+	if self.groupIdToElements[groupId] == nil then
+		return
+	else
+		for elementIndex = #self.groupIdToElements[groupId], 1, -1 do
+			self:removeElement(self.groupIdToElements[groupId][elementIndex])
 		end
 	end
 end
-
 function DebugManager:setGroupVisibility(groupId, isVisible)
 	self.hiddenGroups[groupId] = not isVisible or nil
 end
-
--- Local values: groupId, elements
 function DebugManager:listGroups(groupId)
 	print("Currently available debug groups:")
 	if next(self.groupIdToElements) == nil then
 		print("no non-empty groups")
 	end
-	for v35_, v36_ in pairs(self.groupIdToElements) do
-		print(string.format("  %s%s (%d elements)", self.hiddenGroups[v35_] and "[hidden] " or "", v35_, #v36_))
+	for groupId, elements in pairs(self.groupIdToElements) do
+		print(string.format("  %s%s (%d elements)", self.hiddenGroups[groupId] and "[hidden] " or "", groupId, #elements))
 	end
 end
-
--- Local values: match, groupId
 function DebugManager:getGroupIdFromSubstring(groupIdSubstring)
 	if next(self.groupIdToElements) == nil then
 		return groupIdSubstring
-	end
-	if self.groupIdToElements[groupIdSubstring] ~= nil then
+	elseif self.groupIdToElements[groupIdSubstring] ~= nil then
 		return groupIdSubstring
-	end
-	local v39_ = nil
-	for v40_ in pairs(self.groupIdToElements) do
-		if string.contains(string.upper(v40_), string.upper(groupIdSubstring)) then
-			if v39_ ~= nil then
-				return groupIdSubstring
+	else
+		local match = nil
+		for groupId in pairs(self.groupIdToElements) do
+			if string.contains(string.upper(groupId), string.upper(groupIdSubstring)) then
+				if match == nil then
+					match = groupId
+				else
+					return groupIdSubstring
+				end
 			end
-			v39_ = v40_
 		end
+		return match
 	end
-	return v39_
 end
-
--- Local values: index, element, elementId, groupId, groupElements, _, element
 function DebugManager:update(dt)
-	for v43_ = #self.elementsWithLifetime, 1, -1 do
-		local v44_ = self.elementsWithLifetime[v43_]
-		if v44_.removeTime == nil then
-			local v45_ = table.find(self.elementIds, v44_)
-			Logging.error("Element without \'removeTime\' found in \'elementsWithLifetime\' array: %s %s", v44_, v45_)
+	for index = #self.elementsWithLifetime, 1, -1 do
+		local element = self.elementsWithLifetime[index]
+		if element.removeTime == nil then
+			local elementId = table.find(self.elementIds, element)
+			Logging.error("Element without 'removeTime' found in 'elementsWithLifetime' array: %s %s", element, elementId)
 		end
-		if v44_.removeTime >= g_time then
-			break
+		if element.removeTime < g_time then
+			self:removeElement(element)
 		end
-		self:removeElement(v44_)
 	end
-	for v46_, v47_ in pairs(self.groupIdToElements) do
-		if self.hiddenGroups[v46_] == nil then
-			for _, v48_ in ipairs(v47_) do
-				if v48_.update ~= nil and (v48_.getShouldBeUpdated == nil or v48_:getShouldBeUpdated()) then
-					v48_:update(dt)
+	for groupId, groupElements in pairs(self.groupIdToElements) do
+		if self.hiddenGroups[groupId] == nil then
+			for _, element in ipairs(groupElements) do
+				if element.update == nil then
+					continue
+				end
+				if element.getShouldBeUpdated == nil or element:getShouldBeUpdated() then
+					element:update(dt)
 				end
 			end
 		end
 	end
 end
-
--- Local values: groupId, groupElements, _, element, i
 function DebugManager:drawPreUI()
-	for v50_, v51_ in pairs(self.groupIdToElements) do
-		if self.hiddenGroups[v50_] == nil then
-			for _, v52_ in ipairs(v51_) do
-				if v52_.draw ~= nil and (v52_.getShouldBeDrawn == nil or v52_:getShouldBeDrawn()) then
-					v52_:draw()
+	for groupId, groupElements in pairs(self.groupIdToElements) do
+		if self.hiddenGroups[groupId] == nil then
+			for _, element in ipairs(groupElements) do
+				if element.draw == nil then
+					continue
+				end
+				if element.getShouldBeDrawn == nil or element:getShouldBeDrawn() then
+					element:draw()
 				end
 			end
 		end
 	end
-	for v53_ = #self.frameElements, 1, -1 do
-		self.frameElements[v53_]:draw()
-		table.remove(self.frameElements, v53_)
+	for i = #self.frameElements, 1, -1 do
+		self.frameElements[i]:draw()
+		table.remove(self.frameElements, i)
 	end
 end
-
--- Local values: _, drawable
 function DebugManager:drawPostUI()
-	for _, v55_ in pairs(self.drawables) do
-		v55_:drawDebug()
+	for _, drawable in pairs(self.drawables) do
+		drawable:drawDebug()
 	end
 end
-
 function DebugManager:addDrawable(drawable, key)
 	if drawable.drawDebug == nil then
-		Logging.error("DebugManager:addDrawable(): Provided drawable does not have a \'drawDebug\' function")
+		Logging.error("DebugManager:addDrawable(): Provided drawable does not have a 'drawDebug' function")
 		printCallstack()
 	else
 		if key ~= nil and (self.drawables[key] ~= nil and self.drawables[key] ~= drawable) then
-			Logging.warning("DebugManager:addDrawable(): Key \'%s\' already has a different drawable registered", key)
+			Logging.warning("DebugManager:addDrawable(): Key '%s' already has a different drawable registered", key)
 		end
 		self.drawables[key or drawable] = drawable
 	end
 end
-
 function DebugManager:removeDrawable(drawableOrKey)
 	self.drawables[drawableOrKey] = nil
 end
-
 function DebugManager:hasDrawable(drawableOrKey)
 	return self.drawables[drawableOrKey] ~= nil
 end
-
 function DebugManager:addPermanentElement(element)
-	Logging.error("\'DebugManager:addPermanentElement\' is deprected, use addElement instead")
+	Logging.error("'DebugManager:addPermanentElement' is deprected, use addElement instead")
 	printCallstack()
 end
-
 function DebugManager:removePermanentElement(element)
-	Logging.error("\'DebugManager:removePermanentElement\' is deprected, use removeElement or removeElementById instead")
+	Logging.error("'DebugManager:removePermanentElement' is deprected, use removeElement or removeElementById instead")
 	printCallstack()
 end
-
 function DebugManager:addFrameElement(element)
 	table.addElement(self.frameElements, element)
 end
-
 function DebugManager:addPermanentFunction(funcAndParams)
-	Logging.error("\'DebugManager:addPermanentFunction\' is deprected, use DebugFunction instance and addElement instead")
+	Logging.error("'DebugManager:addPermanentFunction' is deprected, use DebugFunction instance and addElement instead")
 	printCallstack()
 end
-
 function DebugManager:removePermanentFunction(funcAndParams)
-	Logging.error("\'DebugManager:removePermanentFunction\' is deprected, use DebugFunction instance and addElement instead")
+	Logging.error("'DebugManager:removePermanentFunction' is deprected, use DebugFunction instance and addElement instead")
 	printCallstack()
 end
-
--- Local values: element
 function DebugManager:consoleCommandRemoveElements()
-	for v66_ in pairs(self.funcAndParamsToElementId) do
-		if v66_.delete ~= nil then
-			v66_:delete()
+	for element in pairs(self.elementToElementId) do
+		if element.delete == nil then
+			continue
 		end
+		element:delete()
 	end
-	self.funcAndParamsIdToElement = {}
-	self.funcAndParamsToElementId = {}
+	self.elementIdToElement = {}
+	self.elementToElementId = {}
 	self.groupIdToElements = {}
-	self.funcAndParamssWithLifetime = {}
-	return "Cleared all debug funcAndParamss"
+	self.elementsWithLifetime = {}
+	return "Cleared all debug elements"
 end
-
 function DebugManager:consoleCommandGroupsList()
 	self:listGroups()
 end
-
--- Local values: usage, groupId, visibility
 function DebugManager:consoleCommandGroupVisibilitySet(groupIdInput, visibilityStr)
+	local usage = "Usage: gsDebugManagerGroupVisibilitySet groupId <visibility>"
 	if groupIdInput == nil then
 		Logging.error("No groupId given")
 		print("Usage: gsDebugManagerGroupVisibilitySet groupId <visibility>")
 		self:listGroups()
+		return
 	else
-		local v71_ = self:getGroupIdFromSubstring(groupIdInput)
-		if self.groupIdToElements[v71_] ~= nil then
-			local v72_
+		local groupId = self:getGroupIdFromSubstring(groupIdInput)
+		if self.groupIdToElements[groupId] == nil then
+			Logging.error("No group '%s' with active elements", groupIdInput)
+			return
+		else
+			local visibility = nil
 			if visibilityStr == nil then
-				v72_ = self.hiddenGroups[v71_] ~= nil
+				visibility = self.hiddenGroups[groupId] ~= nil
 			else
-				v72_ = Utils.stringToBoolean(visibilityStr)
+				visibility = Utils.stringToBoolean(visibilityStr)
 			end
-			self:setGroupVisibility(v71_, v72_)
-			return string.format("Debug funcAndParams group \'%s\' now %s", v71_, v72_ and "visible" or "hidden")
+			self:setGroupVisibility(groupId, visibility)
+			return string.format("Debug element group '%s' now %s", groupId, visibility and "visible" or "hidden")
 		end
-		Logging.error("No group \'%s\' with active funcAndParamss", groupIdInput)
 	end
 end
-
--- Local values: usage, groupId
 function DebugManager:consoleCommandGroupRemove(groupIdInput)
+	local usage = "Usage: gsDebugManagerGroupRemove groupId"
 	if groupIdInput == nil then
 		Logging.error("No groupId given")
 		print("Usage: gsDebugManagerGroupRemove groupId")
 		self:listGroups()
+		return
 	else
-		local v75_ = self:getGroupIdFromSubstring(groupIdInput)
-		if self.groupIdToElements[v75_] ~= nil then
-			self:removeGroup(v75_)
-			return string.format("Removed debug funcAndParams group \'%s", v75_)
+		local groupId = self:getGroupIdFromSubstring(groupIdInput)
+		if self.groupIdToElements[groupId] == nil then
+			Logging.error("No group '%s' with active elements", groupIdInput)
+			return
+		else
+			self:removeGroup(groupId)
+			return string.format("Removed debug element group '%s", groupId)
 		end
-		Logging.error("No group \'%s\' with active funcAndParamss", groupIdInput)
 	end
 end
-
--- Local values: displayEPs, debugMat, numAffectedNodes, checkNode
 function DebugManager:consoleCommandSplineToggleDebug(displayEPsStr)
 	self.splineDebugEnabled = not self.splineDebugEnabled
-	if not self.splineDebugEnabled then
-		g_debugManager:removeGroup("splineDebug")
-		return string.format("Removed spline debug funcAndParamss")
-	end
-	local v_u_78_ = Utils.stringToBoolean(displayEPsStr)
-	local v_u_79_ = self:getDebugMat()
-	local v_u_80_ = 0
-	local function v86_(p81_)
-		-- upvalues: (copy) v_u_79_, (copy) v_u_78_, (ref) v_u_80_
-		if I3DUtil.getIsSpline(p81_) then
-			DebugUtil.setNodeEffectivelyVisible(p81_)
-			local v82_, v83_, v84_ = DebugUtil.getDebugColor(p81_):unpack()
-			setMaterial(p81_, v_u_79_, 0)
-			setShaderParameter(p81_, "color", v82_, v83_, v84_, 0, false)
-			setShaderParameter(p81_, "alpha", 1, 0, 0, 0, false)
-			local v85_ = DebugSpline.new()
-			v85_:createWithNode(p81_, nil, nil, v_u_78_):setColorRGBA(v82_, v83_, v84_):setClipDistance(500)
-			g_debugManager:addElement(v85_, "splineDebug")
-			v_u_80_ = v_u_80_ + 1
+	if self.splineDebugEnabled then
+		local displayEPs = Utils.stringToBoolean(displayEPsStr)
+		local debugMat = self:getDebugMat()
+		local numAffectedNodes = 0
+		local checkNode = function(node)
+			if I3DUtil.getIsSpline(node) then
+				DebugUtil.setNodeEffectivelyVisible(node)
+				local color = DebugUtil.getDebugColor(node)
+				local r, g, b = color:unpack()
+				setMaterial(node, debugMat, 0)
+				setShaderParameter(node, "color", r, g, b, 0, false)
+				setShaderParameter(node, "alpha", 1, 0, 0, 0, false)
+				local debugSpline = DebugSpline.new()
+				debugSpline:createWithNode(node, nil, nil, displayEPs):setColorRGBA(r, g, b):setClipDistance(500)
+				g_debugManager:addElement(debugSpline, "splineDebug")
+				numAffectedNodes = numAffectedNodes + 1
+			end
 		end
+		I3DUtil.iterateRecursively(getRootNode(), checkNode)
+		return string.format("Added debug visualization to %d splines", numAffectedNodes)
+	else
+		g_debugManager:removeGroup("splineDebug")
+		return string.format("Removed spline debug elements")
 	end
-	I3DUtil.iterateRecursively(getRootNode(), v86_)
-	return string.format("Added debug visualization to %d splines", v_u_80_)
 end
-
--- Local values: cellSize, radius, cellColor, layerAttributeNames, layerIndexToAttributes, numLayers, layerIndex, layerAttributes, _, layerAttributeName, text, textColor, cellValueToVisualize
 function DebugManager:consoleCommandLayerDebug(visualizeAttributeName)
 	self.layerDebug = not self.layerDebug
-	if not self.layerDebug then
+	if self.layerDebug then
+		local cellSize = 1
+		local radius = 6
+		self.layerDebugBitVectorMap = DebugBitVectorMap.newSimple(6, 1, false, 0.1, nil, nil, nil, false)
+		local cellColor = Color.new(0, 0, 0, 1)
+		function self.layerDebugBitVectorMap.getColorForValue(_, value)
+			cellColor.r, cellColor.g, cellColor.b = Utils.getGreenRedBlendedColor(value)
+			return cellColor
+		end
+		local layerAttributeNames = { "viscosity", "firmness", "firmnessWet", "porosityAtZeroRoughness", "porosityAtFullRoughness" }
+		local layerIndexToAttributes = {}
+		local numLayers = getTerrainNumOfLayers(g_terrainNode)
+		for layerIndex = 0, numLayers do
+			local layerAttributes = {}
+			layerIndexToAttributes[layerIndex] = layerAttributes
+			for _, layerAttributeName in ipairs(layerAttributeNames) do
+				layerAttributes[layerAttributeName] = getTerrainLayerXmlAttribute(g_terrainNode, layerIndex, layerAttributeName)
+			end
+		end
+		local text = ""
+		local textColor = nil
+		local cellValueToVisualize = nil
+		self.layerDebugBitVectorMap:createWithCustomFunc(function(instance, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+			text = ""
+			local centerX = (startWorldX + widthWorldX) * 0.5
+			local centerZ = (startWorldZ + heightWorldZ) * 0.5
+			for layerIndex = 0, numLayers do
+				local layerWeight = getTerrainLayerAtWorldPos(g_terrainNode, layerIndex, centerX, 0, centerZ)
+				if 0 < layerWeight then
+					text = getTerrainLayerName(g_terrainNode, layerIndex)
+					textColor = DebugUtil.getDebugColor(layerIndex)
+					for attributeName, attributeValue in pairs(layerIndexToAttributes[layerIndex]) do
+						text = text .. string.format("\n %s %.3f", attributeName, attributeValue)
+						if attributeName == visualizeAttributeName then
+							cellValueToVisualize = attributeValue
+						end
+					end
+					local r, g, b, softness, materialId = getTerrainAttributesAtWorldPos(g_terrainNode, centerX, 0, centerZ, true, true, true, true, true)
+					text = text .. string.format("\n rgb %.2f %.2f %.2f", r, g, b)
+					text = text .. string.format("\n softness %.3f", softness)
+					if visualizeAttributeName == "softness" then
+						cellValueToVisualize = softness
+						text = text .. string.format("\n materialId %d", materialId)
+						break
+					else
+						break
+					end
+				end
+			end
+			local y = getTerrainHeightAtWorldPos(g_terrainNode, centerX, 0, centerZ)
+			local cx, cy, cz = getWorldTranslation(g_cameraManager:getActiveCamera())
+			local distanceToCam = MathUtil.vector3Length(cx - centerX, cy - y, cz - centerZ)
+			local textSize = math.clamp(0.03 / distanceToCam, 0.001, 0.02)
+			Utils.renderTextAtWorldPosition(centerX, y, centerZ, text, textSize, 0, textColor:unpack())
+			return cellValueToVisualize
+		end)
+		g_debugManager:addElement(self.layerDebugBitVectorMap)
+		return "Enabled terrain layer debug, " .. (visualizeAttributeName ~= nil and string.format("visualizing layer %q as color gradient in F5 debug", visualizeAttributeName) or "no layer attribute name given to visualize")
+	else
 		g_debugManager:removeElement(self.layerDebugBitVectorMap)
 		self.layerDebugBitVectorMap = nil
 		return "Disabled terrain layer debug"
 	end
-	self.layerDebugBitVectorMap = DebugBitVectorMap.newSimple(6, 1, false, 0.1, nil, nil, nil, false)
-	local v_u_89_ = Color.new(0, 0, 0, 1)
-	function self.layerDebugBitVectorMap.getColorForValue(_, p90_)
-		-- upvalues: (copy) v_u_89_
-		local v91_ = v_u_89_
-		local v92_ = v_u_89_
-		local v93_ = v_u_89_
-		local v94_, v95_, v96_ = Utils.getGreenRedBlendedColor(p90_)
-		v91_.r = v94_
-		v92_.g = v95_
-		v93_.b = v96_
-		return v_u_89_
-	end
-	local v_u_97_ = getTerrainNumOfLayers(g_terrainNode)
-	local v_u_98_ = {}
-	local v99_ = {
-		"viscosity",
-		"firmness",
-		"firmnessWet",
-		"porosityAtZeroRoughness",
-		"porosityAtFullRoughness"
-	}
-	for v100_ = 0, v_u_97_ do
-		local v101_ = {}
-		v_u_98_[v100_] = v101_
-		for _, v102_ in ipairs(v99_) do
-			v101_[v102_] = getTerrainLayerXmlAttribute(g_terrainNode, v100_, v102_)
-		end
-	end
-	local v_u_103_ = ""
-	local v_u_104_ = nil
-	local v_u_105_ = nil
-	self.layerDebugBitVectorMap:createWithCustomFunc(function(_, p106_, p107_, p108_, _, _, p109_)
-		-- upvalues: (ref) v_u_103_, (copy) v_u_97_, (ref) v_u_104_, (copy) v_u_98_, (copy) visualizeAttributeName, (ref) v_u_105_
-		v_u_103_ = ""
-		local v110_ = (p106_ + p108_) * 0.5
-		local v111_ = (p107_ + p109_) * 0.5
-		for v112_ = 0, v_u_97_ do
-			if getTerrainLayerAtWorldPos(g_terrainNode, v112_, v110_, 0, v111_) > 0 then
-				v_u_103_ = getTerrainLayerName(g_terrainNode, v112_)
-				v_u_104_ = DebugUtil.getDebugColor(v112_)
-				for v113_, v114_ in pairs(v_u_98_[v112_]) do
-					v_u_103_ = v_u_103_ .. string.format("\n %s %.3f", v113_, v114_)
-					if v113_ == visualizeAttributeName then
-						v_u_105_ = v114_
-					end
-				end
-				local v115_, v116_, v117_, v118_, v119_ = getTerrainAttributesAtWorldPos(g_terrainNode, v110_, 0, v111_, true, true, true, true, true)
-				v_u_103_ = v_u_103_ .. string.format("\n rgb %.2f %.2f %.2f", v115_, v116_, v117_)
-				v_u_103_ = v_u_103_ .. string.format("\n softness %.3f", v118_)
-				if visualizeAttributeName == "softness" then
-					v_u_105_ = v118_
-				end
-				v_u_103_ = v_u_103_ .. string.format("\n materialId %d", v119_)
-				break
-			end
-		end
-		local v120_ = getTerrainHeightAtWorldPos(g_terrainNode, v110_, 0, v111_)
-		local v121_, v122_, v123_ = getWorldTranslation(g_cameraManager:getActiveCamera())
-		local v124_ = 0.03 / MathUtil.vector3Length(v121_ - v110_, v122_ - v120_, v123_ - v111_)
-		local v125_ = math.clamp(v124_, 0.001, 0.02)
-		Utils.renderTextAtWorldPosition(v110_, v120_, v111_, v_u_103_, v125_, 0, v_u_104_:unpack())
-		return v_u_105_
-	end)
-	g_debugManager:addElement(self.layerDebugBitVectorMap)
-	return "Enabled terrain layer debug, " .. (visualizeAttributeName == nil and "no layer attribute name given to visualize" or (string.format("visualizing layer %q as color gradient in F5 debug", visualizeAttributeName) or "no layer attribute name given to visualize"))
 end
 g_debugManager = DebugManager.new()

@@ -1,43 +1,37 @@
--- Local values: UserDataEvent_mt
 UserDataEvent = {}
 UserDataEvent.SEND_NUM_BITS = 5
 local UserDataEvent_mt = Class(UserDataEvent, Event)
 InitStaticEventClass(UserDataEvent, "UserDataEvent")
 function UserDataEvent.emptyNew()
-	-- upvalues: (copy) UserDataEvent_mt
-	return Event.new(UserDataEvent_mt)
+	local self = Event.new(UserDataEvent_mt)
+	return self
 end
-
--- Local values: self
 function UserDataEvent.new(changedUsers)
-	local v3_ = UserDataEvent.emptyNew()
-	v3_.changedUsers = changedUsers
-	return v3_
+	local self = UserDataEvent.emptyNew()
+	self.changedUsers = changedUsers
+	return self
 end
-
--- Local values: numUsers, _, userId, user
 function UserDataEvent:readStream(streamId, connection)
 	self.changedUsers = {}
-	for _ = 1, streamReadUIntN(streamId, UserDataEvent.SEND_NUM_BITS) do
-		local v7_ = User.streamReadUserId(streamId)
-		local v8_ = g_currentMission.userManager:getUserByUserId(v7_)
-		if v8_ == nil then
-			Logging.error("UserDataEvent: Could not resolve user id \'%s\'", v7_)
+	local numUsers = streamReadUIntN(streamId, UserDataEvent.SEND_NUM_BITS)
+	for _ = 1, numUsers do
+		local userId = User.streamReadUserId(streamId)
+		local user = g_currentMission.userManager:getUserByUserId(userId)
+		if user == nil then
+			Logging.error("UserDataEvent: Could not resolve user id '%s'", userId)
 			return
 		end
-		v8_:readStream(streamId, connection)
-		if v8_:getIsMasterUser() then
-			g_currentMission.userManager:addMasterUser(v8_)
+		user:readStream(streamId, connection)
+		if user:getIsMasterUser() then
+			g_currentMission.userManager:addMasterUser(user)
 		end
 	end
 end
-
--- Local values: numUsers, _, user
 function UserDataEvent:writeStream(streamId, connection)
-	local v12_ = #self.changedUsers
-	streamWriteUIntN(streamId, v12_, UserDataEvent.SEND_NUM_BITS)
-	for _, v13_ in ipairs(self.changedUsers) do
-		User.streamWriteUserId(streamId, v13_:getId())
-		v13_:writeStream(streamId, connection)
+	local numUsers = #self.changedUsers
+	streamWriteUIntN(streamId, numUsers, UserDataEvent.SEND_NUM_BITS)
+	for _, user in ipairs(self.changedUsers) do
+		User.streamWriteUserId(streamId, user:getId())
+		user:writeStream(streamId, connection)
 	end
 end

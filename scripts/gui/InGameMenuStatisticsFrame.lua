@@ -1,4 +1,3 @@
--- Local values: InGameMenuStatisticsFrame_mt
 InGameMenuStatisticsFrame = {}
 local InGameMenuStatisticsFrame_mt = Class(InGameMenuStatisticsFrame, TabbedMenuFrameElement)
 InGameMenuStatisticsFrame.COLUMN_NAME = 1
@@ -10,112 +9,91 @@ InGameMenuStatisticsFrame.COLUMN_LEASING = 5
 InGameMenuStatisticsFrame.COLUMN_VALUE = 6
 InGameMenuStatisticsFrame.SORT_ORDER_DESC = 1
 InGameMenuStatisticsFrame.SORT_ORDER_ASC = 2
-InGameMenuStatisticsFrame.FINANCES = {
-	["PAST_PERIOD_COUNT"] = GS_IS_MOBILE_VERSION and 3 or 4,
-	["LOAN_STEP"] = 5000
-}
-InGameMenuStatisticsFrame.SUB_CATEGORY = {
-	["PRICES"] = 1,
-	["VEHICLE_OVERVIEW"] = 2,
-	["HANDTOOLS"] = 3,
-	["FINANCES"] = 4,
-	["STATISTICS"] = 5
-}
+InGameMenuStatisticsFrame.FINANCES = { PAST_PERIOD_COUNT = GS_IS_MOBILE_VERSION and 3 or 4, LOAN_STEP = 5000 }
+InGameMenuStatisticsFrame.SUB_CATEGORY = { PRICES = 1, VEHICLE_OVERVIEW = 2, HANDTOOLS = 3, FINANCES = 4, STATISTICS = 5 }
 InGameMenuStatisticsFrame.CELL_NAME_DETAIL = "detailTemplate"
 InGameMenuStatisticsFrame.CELL_NAME_VALUE = "valueTemplate"
 InGameMenuStatisticsFrame.CELL_NAME_FILL_TYPES = "fillTypesTemplate"
 InGameMenuStatisticsFrame.CELL_NAME_PRODUCT = "fillTypeCell"
 InGameMenuStatisticsFrame.CELL_NAME_STATION = "sellingStationCell"
 function InGameMenuStatisticsFrame.register()
-	local v2_ = InGameMenuStatisticsFrame.new()
-	g_gui:loadGui("dataS/gui/InGameMenuStatisticsFrame.xml", "StatisticsFrame", v2_, true)
+	local inGameMenuStatisticsFrame = InGameMenuStatisticsFrame.new()
+	g_gui:loadGui("dataS/gui/InGameMenuStatisticsFrame.xml", "StatisticsFrame", inGameMenuStatisticsFrame, true)
 end
-
--- Upvalues: InGameMenuStatisticsFrame_mt
--- Local values: self
 function InGameMenuStatisticsFrame.new(target, custom_mt)
-	-- upvalues: (copy) InGameMenuStatisticsFrame_mt
-	local v5_ = TabbedMenuFrameElement.new(target, custom_mt or InGameMenuStatisticsFrame_mt)
-	v5_.isInitialized = false
-	v5_.statsIndices = {}
-	v5_.statisticsLists = {}
-	v5_.client = nil
-	v5_.environment = nil
-	v5_.playerFarm = nil
-	v5_.currentMoneyUnitText = ""
-	v5_.updateTimeFinancesStats = 0
-	v5_.menuButtonInfo = {}
-	v5_.hasCustomMenuButtons = true
-	v5_.fillTypes = {}
-	v5_.currentStationData = {}
-	v5_.currentAcceptedFillTypes = {}
-	v5_.clonedPricesElements = {}
-	v5_.monthTexts = {}
-	v5_.fluctuationPoints = {}
-	v5_.sellingStationMode = false
-	v5_.vehicles = {}
-	v5_.sortByColumn = InGameMenuStatisticsFrame.COLUMN_NAME
-	v5_.sortOrder = InGameMenuStatisticsFrame.SORT_ORDER_ASC
-	v5_.sortIcons = {}
-	v5_.detailsCache = {}
-	v5_.detailsTemplates = {}
-	v5_.clonedElements = {}
-	v5_.marqueeBoxes = {}
-	v5_.handTools = {}
-	v5_.sortByColumnHandTools = InGameMenuStatisticsFrame.COLUMN_NAME
-	v5_.sortOrderHandTools = InGameMenuStatisticsFrame.SORT_ORDER_ASC
-	v5_.sortIconsHandTools = {}
-	return v5_
+	local self = TabbedMenuFrameElement.new(target, custom_mt or InGameMenuStatisticsFrame_mt)
+	self.isInitialized = false
+	self.statsIndices = {}
+	self.statisticsLists = {}
+	self.client = nil
+	self.environment = nil
+	self.playerFarm = nil
+	self.currentMoneyUnitText = ""
+	self.updateTimeFinancesStats = 0
+	self.menuButtonInfo = {}
+	self.hasCustomMenuButtons = true
+	self.fillTypes = {}
+	self.currentStationData = {}
+	self.currentAcceptedFillTypes = {}
+	self.clonedPricesElements = {}
+	self.monthTexts = {}
+	self.fluctuationPoints = {}
+	self.sellingStationMode = false
+	self.vehicles = {}
+	self.sortByColumn = InGameMenuStatisticsFrame.COLUMN_NAME
+	self.sortOrder = InGameMenuStatisticsFrame.SORT_ORDER_ASC
+	self.sortIcons = {}
+	self.detailsCache = {}
+	self.detailsTemplates = {}
+	self.clonedElements = {}
+	self.marqueeBoxes = {}
+	self.handTools = {}
+	self.sortByColumnHandTools = InGameMenuStatisticsFrame.COLUMN_NAME
+	self.sortOrderHandTools = InGameMenuStatisticsFrame.SORT_ORDER_ASC
+	self.sortIconsHandTools = {}
+	return self
 end
-
--- Local values: newGui
 function InGameMenuStatisticsFrame.createFromExistingGui(gui, guiName)
-	local v8_ = InGameMenuStatisticsFrame.new()
+	local newGui = InGameMenuStatisticsFrame.new()
 	g_gui.frames[gui.name].target:delete()
 	g_gui.frames[gui.name]:delete()
-	g_gui:loadGui(gui.xmlFilename, guiName, v8_, true)
-	return v8_
+	g_gui:loadGui(gui.xmlFilename, guiName, newGui, true)
+	return newGui
 end
-
--- Local values: k, clonedElement, k, clone, k, clone, k, cell, l, clone
 function InGameMenuStatisticsFrame:delete()
 	self.separatorTemplate:delete()
 	self.monthTextTemplate:delete()
-	for v10_, v11_ in pairs(self.clonedPricesElements) do
-		v11_:delete()
-		self.clonedPricesElements[v10_] = nil
+	for k, clonedElement in pairs(self.clonedPricesElements) do
+		clonedElement:delete()
+		self.clonedPricesElements[k] = nil
 	end
-	for v12_, v13_ in pairs(self.clonedElements) do
-		v13_:delete()
-		self.clonedElements[v12_] = nil
+	for k, clone in pairs(self.clonedElements) do
+		clone:delete()
+		self.clonedElements[k] = nil
 	end
-	for v14_, v15_ in pairs(self.detailsTemplates) do
-		v15_:delete()
-		self.detailsTemplates[v14_] = nil
+	for k, clone in pairs(self.detailsTemplates) do
+		clone:delete()
+		self.detailsTemplates[k] = nil
 	end
-	for v16_, v17_ in pairs(self.detailsCache) do
-		for v18_, v19_ in pairs(v17_) do
-			v19_:delete()
-			self.detailsCache[v16_][v18_] = nil
+	for k, cell in pairs(self.detailsCache) do
+		for l, clone in pairs(cell) do
+			clone:delete()
+			self.detailsCache[k][l] = nil
 		end
-		self.detailsCache[v16_] = nil
+		self.detailsCache[k] = nil
 	end
 	self.vehicles = {}
 	self.handTools = {}
 	InGameMenuStatisticsFrame:superClass().delete(self)
 end
-
--- Local values: index, button, clonedText, clonedSeparator, i, oldSmoothScrollTo, oldSliderValueChanged
 function InGameMenuStatisticsFrame:initialize()
 	InGameMenuStatisticsFrame:superClass().initialize(self)
-	for v_u_21_, v22_ in pairs(self.subCategoryTabs) do
-		v22_:getDescendantByName("background").getIsSelected = function()
-			-- upvalues: (copy) v_u_21_, (copy) self
-			return v_u_21_ == self.subCategoryPaging:getState()
+	for index, button in pairs(self.subCategoryTabs) do
+		button:getDescendantByName("background").getIsSelected = function()
+			return index == self.subCategoryPaging:getState()
 		end
-		function v22_.getIsSelected()
-			-- upvalues: (copy) v_u_21_, (copy) self
-			return v_u_21_ == self.subCategoryPaging:getState()
+		function button.getIsSelected()
+			return index == self.subCategoryPaging:getState()
 		end
 	end
 	self.separatorTemplate:unlinkElement()
@@ -123,245 +101,188 @@ function InGameMenuStatisticsFrame:initialize()
 	FocusManager:removeElement(self.separatorTemplate)
 	FocusManager:removeElement(self.monthTextTemplate)
 	self.separatorTemplate:clone(self.fluctuationsLayoutBg)
-	for v23_ = 1, 12 do
-		local v24_ = self.monthTextTemplate:clone(self.fluctuationsLayoutBg)
-		v24_:setText(g_i18n:formatPeriod(v23_, true))
-		local v25_ = self.clonedPricesElements
-		table.insert(v25_, v24_)
-		local v26_ = self.monthTexts
-		table.insert(v26_, v24_)
-		local v27_ = self.separatorTemplate:clone(self.fluctuationsLayoutBg)
-		local v28_ = self.clonedPricesElements
-		table.insert(v28_, v27_)
+	local clonedText = nil
+	local clonedSeparator = nil
+	for i = 1, 12 do
+		clonedText = self.monthTextTemplate:clone(self.fluctuationsLayoutBg)
+		clonedText:setText(g_i18n:formatPeriod(i, true))
+		table.insert(self.clonedPricesElements, clonedText)
+		table.insert(self.monthTexts, clonedText)
+		clonedSeparator = self.separatorTemplate:clone(self.fluctuationsLayoutBg)
+		table.insert(self.clonedPricesElements, clonedSeparator)
 	end
 	self.fluctuationsLayoutBg:invalidateLayout()
-	self.backButtonInfo = {
-		["inputAction"] = InputAction.MENU_BACK
-	}
-	self.nextPageButtonInfo = {
-		["inputAction"] = InputAction.MENU_PAGE_NEXT,
-		["text"] = g_i18n:getText("ui_ingameMenuNext"),
-		["callback"] = self.onPageNext
-	}
-	self.prevPageButtonInfo = {
-		["inputAction"] = InputAction.MENU_PAGE_PREV,
-		["text"] = g_i18n:getText("ui_ingameMenuPrev"),
-		["callback"] = self.onPagePrevious
-	}
+	self.backButtonInfo = { inputAction = InputAction.MENU_BACK }
+	self.nextPageButtonInfo = { inputAction = InputAction.MENU_PAGE_NEXT, text = g_i18n:getText("ui_ingameMenuNext"), callback = self.onPageNext }
+	self.prevPageButtonInfo = { inputAction = InputAction.MENU_PAGE_PREV, text = g_i18n:getText("ui_ingameMenuPrev"), callback = self.onPagePrevious }
 	self.menuButtonInfoDefault = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo }
 	self.hotspotButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACCEPT,
-		["text"] = InGameMenuStatisticsFrame.L10N_SYMBOL.SET_MARKER,
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACCEPT,
+		text = InGameMenuStatisticsFrame.L10N_SYMBOL.SET_MARKER,
+		callback = function()
 			self:onButtonHotspot()
-		end
+		end,
 	}
 	self.sellingStationModeButtonInfo = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = InGameMenuStatisticsFrame.L10N_SYMBOL.LIST_STATIONS,
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_CANCEL,
+		text = InGameMenuStatisticsFrame.L10N_SYMBOL.LIST_STATIONS,
+		callback = function()
 			self:onButtonChangeSellingStationMode()
-		end
+		end,
 	}
-	self.menuButtonInfoPrices = {
-		self.backButtonInfo,
-		self.nextPageButtonInfo,
-		self.prevPageButtonInfo,
-		self.sellingStationModeButtonInfo
-	}
-	self.menuButtonInfoPricesWithHotspot = {
-		self.backButtonInfo,
-		self.nextPageButtonInfo,
-		self.prevPageButtonInfo,
-		self.sellingStationModeButtonInfo,
-		self.hotspotButtonInfo
-	}
+	self.menuButtonInfoPrices = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.sellingStationModeButtonInfo }
+	self.menuButtonInfoPricesWithHotspot = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.sellingStationModeButtonInfo, self.hotspotButtonInfo }
 	self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = self.menuButtonInfoDefault
 	self.sellVehicleButtonInfo = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = g_i18n:getText("button_sell"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_CANCEL,
+		text = g_i18n:getText("button_sell"),
+		callback = function()
 			self:onButtonSell()
-		end
+		end,
 	}
 	self.returnVehicleButtonInfo = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = g_i18n:getText("button_return"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_CANCEL,
+		text = g_i18n:getText("button_return"),
+		callback = function()
 			self:onButtonSell()
-		end
+		end,
 	}
 	self.viewVehicleOnMapButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText("button_viewOnMap"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACTIVATE,
+		text = g_i18n:getText("button_viewOnMap"),
+		callback = function()
 			self:onVehicleViewOnMap()
-		end
+		end,
 	}
-	self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW] = {
-		self.backButtonInfo,
-		self.nextPageButtonInfo,
-		self.prevPageButtonInfo,
-		self.viewVehicleOnMapButtonInfo,
-		self.sellVehicleButtonInfo
-	}
+	self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW] = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.viewVehicleOnMapButtonInfo, self.sellVehicleButtonInfo }
 	self:buildCellDatabase()
 	self.sellHandToolButtonInfo = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = g_i18n:getText("button_sell"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_CANCEL,
+		text = g_i18n:getText("button_sell"),
+		callback = function()
 			self:onButtonSellHandTool()
-		end
+		end,
 	}
 	self.storeHandToolButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText("button_store"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACTIVATE,
+		text = g_i18n:getText("button_store"),
+		callback = function()
 			self:onStoreHandTool()
-		end
+		end,
 	}
 	self.pickUpHandToolButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText("button_pickUp"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACTIVATE,
+		text = g_i18n:getText("button_pickUp"),
+		callback = function()
 			self:onPickUpHandTool()
-		end
+		end,
 	}
 	self.borrowButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = "",
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACTIVATE,
+		text = "",
+		callback = function()
 			self:onButtonBorrow()
-		end
+		end,
 	}
 	self.repayButtonInfo = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = "",
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_CANCEL,
+		text = "",
+		callback = function()
 			self:onButtonRepay()
-		end
+		end,
 	}
-	self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES] = {
-		self.backButtonInfo,
-		self.nextPageButtonInfo,
-		self.prevPageButtonInfo,
-		self.borrowButtonInfo,
-		self.repayButtonInfo
-	}
+	self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES] = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo, self.borrowButtonInfo, self.repayButtonInfo }
 	self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.STATISTICS] = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo }
-	local v_u_29_ = self.statisticsList1.smoothScrollTo
-	function self.statisticsList1.smoothScrollTo(_, p30_)
-		-- upvalues: (copy) v_u_29_, (copy) self
-		v_u_29_(self.statisticsList1, p30_)
-		v_u_29_(self.statisticsList2, p30_)
+	local oldSmoothScrollTo = self.statisticsList1.smoothScrollTo
+	function self.statisticsList1.smoothScrollTo(elem, offset)
+		oldSmoothScrollTo(self.statisticsList1, offset)
+		oldSmoothScrollTo(self.statisticsList2, offset)
 	end
-	function self.statisticsList2.smoothScrollTo(_, p31_)
-		-- upvalues: (copy) v_u_29_, (copy) self
-		v_u_29_(self.statisticsList1, p31_)
-		v_u_29_(self.statisticsList2, p31_)
+	function self.statisticsList2.smoothScrollTo(element, offset)
+		oldSmoothScrollTo(self.statisticsList1, offset)
+		oldSmoothScrollTo(self.statisticsList2, offset)
 	end
-	local v_u_32_ = self.statisticsList1.onSliderValueChanged
-	function self.statisticsList1.onSliderValueChanged(_, p33_, p34_, p35_)
-		-- upvalues: (copy) v_u_32_, (copy) self
-		v_u_32_(self.statisticsList1, p33_, p34_, p35_)
-		v_u_32_(self.statisticsList2, p33_, p34_, p35_)
+	local oldSliderValueChanged = self.statisticsList1.onSliderValueChanged
+	function self.statisticsList1.onSliderValueChanged(elem, slider, newValue, immediateMode)
+		oldSliderValueChanged(self.statisticsList1, slider, newValue, immediateMode)
+		oldSliderValueChanged(self.statisticsList2, slider, newValue, immediateMode)
 	end
 	self.subCategoryPaging:setState(1)
 end
-
--- Local values: previousButton, _, icon, button
 function InGameMenuStatisticsFrame:onGuiSetupFinished()
 	InGameMenuStatisticsFrame:superClass().onGuiSetupFinished(self)
-	local v37_ = nil
-	for _, v38_ in pairs(self.sortIcons) do
-		local v39_ = v38_[InGameMenuStatisticsFrame.SORT_ORDER_ASC].parent
-		if v37_ == nil then
-			FocusManager:linkElements(self.vehiclesList, FocusManager.TOP, v39_)
-			FocusManager:linkElements(self.vehiclesList, FocusManager.LEFT, v39_)
+	local previousButton = nil
+	for _, icon in pairs(self.sortIcons) do
+		local button = icon[InGameMenuStatisticsFrame.SORT_ORDER_ASC].parent
+		if previousButton == nil then
+			FocusManager:linkElements(self.vehiclesList, FocusManager.TOP, button)
+			FocusManager:linkElements(self.vehiclesList, FocusManager.LEFT, button)
 		else
-			FocusManager:linkElements(v39_, FocusManager.LEFT, v37_)
-			FocusManager:linkElements(v37_, FocusManager.RIGHT, v39_)
+			FocusManager:linkElements(button, FocusManager.LEFT, previousButton)
+			FocusManager:linkElements(previousButton, FocusManager.RIGHT, button)
 		end
-		v37_ = v39_
+		previousButton = button
 	end
-	FocusManager:linkElements(self.vehiclesList, FocusManager.RIGHT, v37_)
+	FocusManager:linkElements(self.vehiclesList, FocusManager.RIGHT, previousButton)
 end
-
--- Local values: listIndex, list, statsPerList, k, _
 function InGameMenuStatisticsFrame:initializeLists()
 	if not self.isInitialized then
-		local v41_ = self.statisticsLists
-		local v42_ = self.statisticsList1
-		table.insert(v41_, v42_)
+		table.insert(self.statisticsLists, self.statisticsList1)
 		if self.statisticsList2 ~= nil then
-			if GS_IS_MOBILE_VERSION then
-				self.statisticsList2:delete()
+			if not GS_IS_MOBILE_VERSION then
+				table.insert(self.statisticsLists, self.statisticsList2)
 			else
-				local v43_ = self.statisticsLists
-				local v44_ = self.statisticsList2
-				table.insert(v43_, v44_)
+				self.statisticsList2:delete()
 			end
 		end
+		local listIndex = 0
+		local list = nil
 		self.statsData = self.playerFarm.stats:getStatisticData()
-		local v45_ = #self.statsData / 2
-		local v46_ = math.ceil(v45_)
-		local v47_ = nil
-		local v48_ = 0
-		for v49_, _ in ipairs(self.statsData) do
-			if v47_ == nil or v46_ <= #self.statsIndices[v47_] then
-				v48_ = v48_ + 1
-				v47_ = self.statisticsLists[v48_]
-				if v47_ == nil then
-					break
+		local statsPerList = math.ceil(#self.statsData / 2)
+		for k, _ in ipairs(self.statsData) do
+			if list ~= nil then
+				if statsPerList <= #self.statsIndices[list] then
+				else
+					table.insert(self.statsIndices[list], k)
+					continue
 				end
-				self.statsIndices[v47_] = {}
 			end
-			local v50_ = self.statsIndices[v47_]
-			table.insert(v50_, v49_)
+			listIndex = listIndex + 1
+			list = self.statisticsLists[listIndex]
+			if list == nil then
+				break
+			end
+			self.statsIndices[list] = {}
 		end
 		self.isInitialized = true
 	end
 end
-
 function InGameMenuStatisticsFrame:getMenuButtonInfo()
 	return self.menuButtonInfo[self.subCategoryPaging:getState()]
 end
-
--- Local values: mission, isMultiplayer, isSingleplayerOrIsInFarm, subCategories, index, button, subCategoryIndex
 function InGameMenuStatisticsFrame:onFrameOpen(element)
-	local v53_ = g_currentMission
-	self.itemDetailsMap:setIngameMap(v53_.hud:getIngameMap())
+	local mission = g_currentMission
+	self.itemDetailsMap:setIngameMap(mission.hud:getIngameMap())
 	InGameMenuStatisticsFrame:superClass().onFrameOpen(self)
-	local v54_ = v53_.missionDynamicInfo.isMultiplayer
-	local v55_ = not v54_ or g_localPlayer.farmId ~= FarmManager.SPECTATOR_FARM_ID
-	local v56_ = {}
-	for v57_, v58_ in pairs(self.subCategoryTabs) do
-		if v57_ == InGameMenuStatisticsFrame.SUB_CATEGORY.STATISTICS then
-			v58_:setVisible(not v54_)
-			if not v54_ then
-				local v59_ = tostring(v57_)
-				table.insert(v56_, v59_)
+	local isMultiplayer = mission.missionDynamicInfo.isMultiplayer
+	local isSingleplayerOrIsInFarm = not isMultiplayer or g_localPlayer.farmId ~= FarmManager.SPECTATOR_FARM_ID
+	local subCategories = {}
+	for index, button in pairs(self.subCategoryTabs) do
+		if index == InGameMenuStatisticsFrame.SUB_CATEGORY.STATISTICS then
+			button:setVisible(not isMultiplayer)
+			if isMultiplayer then
+				continue
 			end
+			table.insert(subCategories, tostring(index))
 		else
-			v58_:setVisible(v55_)
-			if v55_ then
-				local v60_ = tostring(v57_)
-				table.insert(v56_, v60_)
+			button:setVisible(isSingleplayerOrIsInFarm)
+			if isSingleplayerOrIsInFarm then
+				table.insert(subCategories, tostring(index))
 			end
 		end
 	end
 	self.subCategoryBox:invalidateLayout()
-	self.subCategoryPaging:setTexts(v56_)
+	self.subCategoryPaging:setTexts(subCategories)
 	self.subCategoryPaging:setSize(self.subCategoryBox.maxFlowSize + 140 * g_pixelSizeScaledX)
 	self:onMoneyChange()
 	g_messageCenter:subscribe(MessageType.MONEY_CHANGED, self.onMoneyChange, self)
@@ -373,7 +294,7 @@ function InGameMenuStatisticsFrame:onFrameOpen(element)
 	self:initializeLists()
 	self:updateStatistics()
 	self:updateVehicles()
-	self.detailBox:setVisible(#self.vehicles > 0)
+	self.detailBox:setVisible(0 < #self.vehicles)
 	g_messageCenter:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.MONEY_UNIT], self.updateVehicles, self)
 	g_messageCenter:subscribe(MessageType.VEHICLE_REMOVED, self.onVehicleSellEvent, self)
 	g_messageCenter:subscribe(MessageType.VEHICLE_ADDED, self.onVehicleBuyEvent, self)
@@ -388,29 +309,25 @@ function InGameMenuStatisticsFrame:onFrameOpen(element)
 	self:rebuildTable()
 	self:updateTodayBar()
 	g_messageCenter:subscribe(MessageType.HOUR_CHANGED, self.onHourChanged, self)
-	local v61_ = self.subCategoryPaging:getState()
-	self:updateSubCategoryPages(v61_)
-	if v61_ == InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES then
+	local subCategoryIndex = self.subCategoryPaging:getState()
+	self:updateSubCategoryPages(subCategoryIndex)
+	if subCategoryIndex == InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES then
 		FocusManager:setFocus(self.productList)
-		return
-	elseif v61_ == InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW then
+	elseif subCategoryIndex == InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW then
 		FocusManager:setFocus(self.vehiclesList)
-		return
-	elseif v61_ == InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES then
+	elseif subCategoryIndex == InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES then
 		FocusManager:setFocus(self.financesList)
 	end
 end
-
--- Local values: mission
 function InGameMenuStatisticsFrame:onFrameClose()
 	InGameMenuStatisticsFrame:superClass().onFrameClose(self)
 	g_messageCenter:unsubscribeAll(self)
-	g_currentMission:showMoneyChange(MoneyType.LOAN)
+	local mission = g_currentMission
+	mission:showMoneyChange(MoneyType.LOAN)
 	self.itemDetailsMap:onClose()
 	self.ingameMapBase:restoreDefaultFilter()
 	self.currentStationData = {}
 end
-
 function InGameMenuStatisticsFrame:setInGameMap(ingameMap)
 	self.itemDetailsMap:setIngameMap(ingameMap)
 	self.ingameMapBase = ingameMap
@@ -418,447 +335,359 @@ function InGameMenuStatisticsFrame:setInGameMap(ingameMap)
 		self.customFilter = ingameMap:createCustomFilter(true)
 	end
 end
-
--- Local values: mission, farm, i
 function InGameMenuStatisticsFrame:update(dt)
 	InGameMenuStatisticsFrame:superClass().update(self, dt)
 	self:updateMarqueeAnimation(dt)
-	local v67_ = g_currentMission
-	if not v67_:getIsServer() and self.updateTimeFinancesStats < v67_.time then
-		self.updateTimeFinancesStats = v67_.time + 5000
-		local v68_ = g_farmManager:getFarmById(g_localPlayer.farmId)
-		if v68_.stats.financesHistoryVersionCounter ~= v68_.stats.financesHistoryVersionCounterLocal then
-			v68_.stats.financesHistoryVersionCounterLocal = v68_.stats.financesHistoryVersionCounter
-			for v69_ = 1, InGameMenuStatisticsFrame.FINANCES.PAST_PERIOD_COUNT do
-				self.client:getServerConnection():sendEvent(FinanceStatsEvent.new(v69_, v68_.farmId))
+	local mission = g_currentMission
+	if not mission:getIsServer() and self.updateTimeFinancesStats < mission.time then
+		self.updateTimeFinancesStats = mission.time + 5000
+		local farm = g_farmManager:getFarmById(g_localPlayer.farmId)
+		if farm.stats.financesHistoryVersionCounter ~= farm.stats.financesHistoryVersionCounterLocal then
+			farm.stats.financesHistoryVersionCounterLocal = farm.stats.financesHistoryVersionCounter
+			for i = 1, InGameMenuStatisticsFrame.FINANCES.PAST_PERIOD_COUNT do
+				self.client:getServerConnection():sendEvent(FinanceStatsEvent.new(i, farm.farmId))
 			end
 		end
 	end
 end
-
--- Local values: isPricesFrame, i, yPos, yPosEnd, xPos, xPosEnd
 function InGameMenuStatisticsFrame:draw()
-	local v71_ = self.subCategoryPaging:getState() == InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES
-	if v71_ and (self.hasAnyFluctuations and not self.sellingStationMode) then
+	local isPricesFrame = self.subCategoryPaging:getState() == InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES
+	if isPricesFrame and (self.hasAnyFluctuations and not self.sellingStationMode) then
 		drawDashedLine(self.todayBar.absPosition[1], self.todayBar.absPosition[2] + self.todayBar.absSize[2], self.todayBar.absSize[1], self.todayBar.absSize[2], -7 * g_pixelSizeY, -6 * g_pixelSizeY, 1, 1, 1, 1, false)
 	end
 	InGameMenuStatisticsFrame:superClass().draw(self)
-	if v71_ and (self.hasAnyFluctuations and not self.sellingStationMode) then
-		for v72_, v73_ in pairs(self.fluctuationPoints) do
-			local v74_ = self.fluctuationPoints[v72_ + 1]
-			if v74_ ~= nil then
-				local v75_ = self.monthTexts[v72_].absPosition[1] + self.monthTexts[v72_].absSize[1] * 0.5
-				local v76_ = self.monthTexts[v72_ + 1].absPosition[1] + self.monthTexts[v72_ + 1].absSize[1] * 0.5
-				drawLine2D(v75_, v73_ + self.fluctuationsContainer.absPosition[2], v76_, v74_ + self.fluctuationsContainer.absPosition[2], g_pixelSizeX * 4, 1, 1, 1, 1)
+	if isPricesFrame and (self.hasAnyFluctuations and not self.sellingStationMode) then
+		for i, yPos in pairs(self.fluctuationPoints) do
+			local yPosEnd = self.fluctuationPoints[i + 1]
+			if yPosEnd == nil then
+				continue
 			end
+			local xPos = self.monthTexts[i].absPosition[1] + self.monthTexts[i].absSize[1] * 0.5
+			local xPosEnd = self.monthTexts[i + 1].absPosition[1] + self.monthTexts[i + 1].absSize[1] * 0.5
+			drawLine2D(xPos, yPos + self.fluctuationsContainer.absPosition[2], xPosEnd, yPosEnd + self.fluctuationsContainer.absPosition[2], g_pixelSizeX * 4, 1, 1, 1, 1)
 		end
 	end
 end
-
--- Local values: box, time, contentWidth, visibleWidth, scrollAmount, scrollLengthFactor, scrollDuration, alpha, offset
 function InGameMenuStatisticsFrame:updateMarqueeAnimation(dt)
-	for v79_, v80_ in pairs(self.marqueeBoxes) do
-		local v81_ = v79_.absSize[1]
-		local v82_ = v79_.parent.absSize[1]
-		local v83_ = v81_ - v82_
-		local v84_ = 5000 * (v81_ / v82_)
-		local v85_ = v80_ + dt
-		if v84_ <= v85_ then
-			v85_ = -v84_
+	for box, time in pairs(self.marqueeBoxes) do
+		local contentWidth = box.absSize[1]
+		local visibleWidth = box.parent.absSize[1]
+		local scrollAmount = contentWidth - visibleWidth
+		local scrollLengthFactor = contentWidth / visibleWidth
+		local scrollDuration = 5000 * scrollLengthFactor
+		local time = time + dt
+		if scrollDuration <= time then
+			time = -scrollDuration
 		end
-		v79_:setPosition(-(v83_ * MathUtil.smoothstep(0.1, 0.9, math.abs(v85_) / v84_)))
-		self.marqueeBoxes[v79_] = v85_
+		local alpha = MathUtil.smoothstep(0.1, 0.9, math.abs(time) / scrollDuration)
+		local offset = scrollAmount * alpha
+		box:setPosition(-offset)
+		self.marqueeBoxes[box] = time
 	end
 end
-
 function InGameMenuStatisticsFrame:getData()
 	return self.playerFarm.stats:getStatisticData()
 end
-
--- Local values: mission, accessHandler, _, vehicle, item, name, text, value, opHoursText, opHoursValue, damageText, damageValue, leasingText, leasingValue, sellValueText, sellValue
 function InGameMenuStatisticsFrame:updateVehicles()
 	self.vehicles = {}
 	if g_localPlayer ~= nil then
-		local v88_ = g_currentMission
-		local v89_ = v88_.accessHandler
-		for _, v90_ in ipairs(v88_.vehicleSystem.vehicles) do
-			if v89_:canPlayerAccess(v90_) and (v90_:getShowInVehiclesOverview() and g_localPlayer.farmId == v90_:getOwnerFarmId()) then
-				local v91_ = {
-					["vehicle"] = v90_,
-					["columns"] = {}
-				}
-				local v92_ = v90_:getFullName()
-				v91_.columns[InGameMenuStatisticsFrame.COLUMN_NAME] = {
-					["text"] = v92_,
-					["value"] = v92_
-				}
-				local v93_ = {
-					["text"] = Vehicle.getSpecValueAge(nil, v90_),
-					["value"] = v90_.age
-				}
-				v91_.columns[InGameMenuStatisticsFrame.COLUMN_AGE] = v93_
-				local v94_, v95_
-				if v90_.getOperatingTime == nil then
-					v94_ = "-"
-					v95_ = 0
-				else
-					v94_ = Vehicle.getSpecValueOperatingTime(nil, v90_)
-					v95_ = v90_:getOperatingTime()
+		local mission = g_currentMission
+		local accessHandler = mission.accessHandler
+		for _, vehicle in ipairs(mission.vehicleSystem.vehicles) do
+			if accessHandler:canPlayerAccess(vehicle) and (vehicle:getShowInVehiclesOverview() and g_localPlayer.farmId == vehicle:getOwnerFarmId()) then
+				local item = {}
+				item.vehicle = vehicle
+				item.columns = {}
+				local name = vehicle:getFullName()
+				item.columns[InGameMenuStatisticsFrame.COLUMN_NAME] = { text = name, value = name }
+				local text = Vehicle.getSpecValueAge(nil, vehicle)
+				local value = vehicle.age
+				item.columns[InGameMenuStatisticsFrame.COLUMN_AGE] = { text = text, value = value }
+				local opHoursText = "-"
+				local opHoursValue = 0
+				if vehicle.getOperatingTime ~= nil then
+					opHoursText = Vehicle.getSpecValueOperatingTime(nil, vehicle)
+					opHoursValue = vehicle:getOperatingTime()
 				end
-				v91_.columns[InGameMenuStatisticsFrame.COLUMN_HOURS] = {
-					["text"] = v94_,
-					["value"] = v95_
-				}
-				local v96_, v97_
-				if SpecializationUtil.hasSpecialization(Wearable, v90_.specializations) then
-					v96_ = v90_:getDamageAmount()
-					local v98_ = g_i18n
-					local v99_ = (1 - v96_) * 100
-					v97_ = v98_:formatNumber(math.ceil(v99_), 0) .. " %"
-				else
-					v97_ = "-"
-					v96_ = 0
+				item.columns[InGameMenuStatisticsFrame.COLUMN_HOURS] = { text = opHoursText, value = opHoursValue }
+				local damageText = "-"
+				local damageValue = 0
+				if SpecializationUtil.hasSpecialization(Wearable, vehicle.specializations) then
+					damageValue = vehicle:getDamageAmount()
+					damageText = g_i18n:formatNumber(math.ceil((1 - damageValue) * 100), 0) .. " %"
 				end
-				v91_.columns[InGameMenuStatisticsFrame.COLUMN_DAMAGE] = {
-					["text"] = v97_,
-					["value"] = v96_
-				}
-				local v100_, v101_
-				if v90_.propertyState == VehiclePropertyState.LEASED then
-					v100_ = v90_.price * (EconomyManager.DEFAULT_RUNNING_LEASING_FACTOR + EconomyManager.PER_DAY_LEASING_FACTOR)
-					v101_ = g_i18n:formatMoney(v100_)
-				else
-					v101_ = "-"
-					v100_ = 0
+				item.columns[InGameMenuStatisticsFrame.COLUMN_DAMAGE] = { text = damageText, value = damageValue }
+				local leasingText = "-"
+				local leasingValue = 0
+				if vehicle.propertyState == VehiclePropertyState.LEASED then
+					leasingValue = vehicle.price * (EconomyManager.DEFAULT_RUNNING_LEASING_FACTOR + EconomyManager.PER_DAY_LEASING_FACTOR)
+					leasingText = g_i18n:formatMoney(leasingValue)
 				end
-				v91_.columns[InGameMenuStatisticsFrame.COLUMN_LEASING] = {
-					["text"] = v101_,
-					["value"] = v100_
-				}
-				local v102_, v103_
-				if v90_.propertyState == VehiclePropertyState.OWNED then
-					v102_ = v90_:getSellPrice()
-					v103_ = g_i18n:formatMoney(v102_)
-				else
-					v103_ = "-"
-					v102_ = 0
+				item.columns[InGameMenuStatisticsFrame.COLUMN_LEASING] = { text = leasingText, value = leasingValue }
+				local sellValueText = "-"
+				local sellValue = 0
+				if vehicle.propertyState == VehiclePropertyState.OWNED then
+					sellValue = vehicle:getSellPrice()
+					sellValueText = g_i18n:formatMoney(sellValue)
 				end
-				v91_.columns[InGameMenuStatisticsFrame.COLUMN_VALUE] = {
-					["text"] = v103_,
-					["value"] = v102_
-				}
-				local v104_ = self.vehicles
-				table.insert(v104_, v91_)
+				item.columns[InGameMenuStatisticsFrame.COLUMN_VALUE] = { text = sellValueText, value = sellValue }
+				table.insert(self.vehicles, item)
 			end
 		end
 	end
 	self:updateView()
 end
-
--- Local values: sortByColumn, sortOrder, column, icons, isSortedByColumn
 function InGameMenuStatisticsFrame:updateView()
-	local v_u_106_ = self.sortByColumn
-	local v_u_107_ = self.sortOrder
-	for v108_, v109_ in pairs(self.sortIcons) do
-		local v110_ = v108_ == v_u_106_
-		local v111_ = v109_[InGameMenuStatisticsFrame.SORT_ORDER_DESC]
-		local v112_
-		if v110_ then
-			v112_ = v_u_107_ == InGameMenuStatisticsFrame.SORT_ORDER_DESC
-		else
-			v112_ = v110_
-		end
-		v111_:setVisible(v112_)
-		local v113_ = v109_[InGameMenuStatisticsFrame.SORT_ORDER_ASC]
-		if v110_ then
-			v110_ = v_u_107_ == InGameMenuStatisticsFrame.SORT_ORDER_ASC
-		end
-		v113_:setVisible(v110_)
+	local sortByColumn = self.sortByColumn
+	local sortOrder = self.sortOrder
+	for column, icons in pairs(self.sortIcons) do
+		local isSortedByColumn = column == sortByColumn
+		icons[InGameMenuStatisticsFrame.SORT_ORDER_DESC]:setVisible(isSortedByColumn and sortOrder == InGameMenuStatisticsFrame.SORT_ORDER_DESC)
+		icons[InGameMenuStatisticsFrame.SORT_ORDER_ASC]:setVisible(isSortedByColumn and sortOrder == InGameMenuStatisticsFrame.SORT_ORDER_ASC)
 	end
-	table.sort(self.vehicles, function(p114_, p115_)
-		-- upvalues: (copy) v_u_106_, (copy) v_u_107_
-		local v116_ = p114_.columns[v_u_106_].value
-		local v117_ = p115_.columns[v_u_106_].value
-		if v116_ == v117_ then
-			v116_ = p114_.columns[InGameMenuStatisticsFrame.COLUMN_NAME].value
-			v117_ = p115_.columns[InGameMenuStatisticsFrame.COLUMN_NAME].value
-			if v116_ == v117_ then
-				v116_ = p114_.columns[InGameMenuStatisticsFrame.COLUMN_VALUE].value
-				v117_ = p115_.columns[InGameMenuStatisticsFrame.COLUMN_VALUE].value
+	table.sort(self.vehicles, function(itemA, itemB)
+		local valueA = itemA.columns[sortByColumn].value
+		local valueB = itemB.columns[sortByColumn].value
+		if valueA == valueB then
+			valueA = itemA.columns[InGameMenuStatisticsFrame.COLUMN_NAME].value
+			valueB = itemB.columns[InGameMenuStatisticsFrame.COLUMN_NAME].value
+			if valueA == valueB then
+				valueA = itemA.columns[InGameMenuStatisticsFrame.COLUMN_VALUE].value
+				valueB = itemB.columns[InGameMenuStatisticsFrame.COLUMN_VALUE].value
 			end
 		end
-		if v_u_107_ == InGameMenuStatisticsFrame.SORT_ORDER_DESC then
-			return v117_ < v116_
+		if sortOrder == InGameMenuStatisticsFrame.SORT_ORDER_DESC then
+			return valueB < valueA
 		else
-			return v116_ < v117_
+			return valueA < valueB
 		end
 	end)
 	self.vehiclesList:reloadData()
-	self.detailBox:setVisible(self.vehiclesList:getItemCount() > 0)
+	self.detailBox:setVisible(0 < self.vehiclesList:getItemCount())
 	self:updateMenuButtons()
 end
-
--- Local values: priceStr, defaultPrice, discount, price
 function InGameMenuStatisticsFrame:getStoreItemDisplayPrice(storeItem, saleItem)
-	if saleItem == nil then
-		if storeItem.isInAppPurchase then
-			return storeItem.price
+	local priceStr = "-"
+	if saleItem ~= nil then
+		local defaultPrice = StoreItemUtil.getPriceWithBoughtConfigurations(storeItem, saleItem.boughtConfigurations, "price")
+		local discount = 0
+		if 0 < defaultPrice then
+			discount = -(1 - saleItem.price / defaultPrice) * 100
 		end
-		local v120_ = g_currentMission.economyManager:getBuyPrice(storeItem)
-		return g_i18n:formatMoney(v120_, 0, true, true)
+		priceStr = string.format("%s (%d%%)", g_i18n:formatMoney(saleItem.price, 0, true, true), discount)
+		return priceStr
+	elseif storeItem.isInAppPurchase then
+		priceStr = storeItem.price
+		return priceStr
 	else
-		local v121_ = StoreItemUtil.getPriceWithBoughtConfigurations(storeItem, saleItem.boughtConfigurations, "price")
-		local v122_ = v121_ <= 0 and 0 or -(1 - saleItem.price / v121_) * 100
-		return string.format("%s (%d%%)", g_i18n:formatMoney(saleItem.price, 0, true, true), v122_)
+		local price = g_currentMission.economyManager:getBuyPrice(storeItem)
+		priceStr = g_i18n:formatMoney(price, 0, true, true)
+		return priceStr
 	end
 end
-
--- Local values: layoutsToInvalidate, k, clone, layout, _, k, _, i, name, brand
 function InGameMenuStatisticsFrame:assignItemAttributeData(displayItem)
-	local v125_ = {}
-	for v126_, v127_ in pairs(self.clonedElements) do
-		if v125_[v127_.parent] == nil then
-			v125_[v127_.parent] = true
+	local layoutsToInvalidate = {}
+	for k, clone in pairs(self.clonedElements) do
+		if layoutsToInvalidate[clone.parent] == nil then
+			layoutsToInvalidate[clone.parent] = true
 		end
-		v127_:delete()
-		self.clonedElements[v126_] = nil
+		clone:delete()
+		self.clonedElements[k] = nil
 	end
-	for v128_, _ in pairs(v125_) do
-		v128_:invalidateLayout()
+	for layout, _ in pairs(layoutsToInvalidate) do
+		layout:invalidateLayout()
 	end
-	for v129_, _ in pairs(self.marqueeBoxes) do
-		self.marqueeBoxes[v129_] = nil
+	for k, _ in pairs(self.marqueeBoxes) do
+		self.marqueeBoxes[k] = nil
 	end
-	for v130_ = #self.attributesLayout.elements, 1, -1 do
-		self:queueDetailsCell(self.attributesLayout.elements[v130_])
+	for i = #self.attributesLayout.elements, 1, -1 do
+		self:queueDetailsCell(self.attributesLayout.elements[i])
 	end
 	self:assignItemTextData(displayItem)
 	self:assignItemFillTypesData(InGameMenuStatisticsFrame.PROFILE.ICON_FILL_TYPES, displayItem.fillTypeIconFilenames)
 	self:assignItemFillTypesData(InGameMenuStatisticsFrame.PROFILE.ICON_FILL_TYPES, displayItem.foodFillTypeIconFilenames)
 	self:assignItemFillTypesData(InGameMenuStatisticsFrame.PROFILE.ICON_SEED_FILL_TYPES, displayItem.seedTypeIconFilenames)
-	local v131_ = displayItem.storeItem.name
+	local name = displayItem.storeItem.name
 	if displayItem.concreteItem ~= nil and displayItem.concreteItem.getName ~= nil then
-		v131_ = displayItem.concreteItem:getName()
+		name = displayItem.concreteItem:getName()
 	end
-	local v132_ = g_brandManager:getBrandByIndex(displayItem.storeItem.brandIndex)
+	local brand = g_brandManager:getBrandByIndex(displayItem.storeItem.brandIndex)
 	if displayItem.concreteItem ~= nil and displayItem.concreteItem.getBrand ~= nil then
-		v132_ = g_brandManager:getBrandByIndex(displayItem.concreteItem:getBrand())
+		brand = g_brandManager:getBrandByIndex(displayItem.concreteItem:getBrand())
 	end
-	if v132_ ~= nil and v132_.name ~= "NONE" then
-		v131_ = v132_.title .. " " .. v131_
+	if brand ~= nil and brand.name ~= "NONE" then
+		name = brand.title .. " " .. name
 	end
-	self.itemDetailsName:setText(v131_)
+	self.itemDetailsName:setText(name)
 	self.itemDetailsImage:setVisible(displayItem.storeItem ~= nil)
 	if displayItem.concreteItem ~= nil then
 		self.itemDetailsImage:setImageFilename(displayItem.concreteItem:getImageFilename())
 	end
 	self.attributesLayout:invalidateLayout()
 end
-
--- Local values: storeItem, i, value, cell, icon, text, profile
 function InGameMenuStatisticsFrame:assignItemTextData(displayItem)
 	if Platform.isMobile and self.attrVehicleValue ~= nil then
-		local v135_ = displayItem.storeItem
-		self.attrVehicleValue:setText(self:getStoreItemDisplayPrice(v135_))
-		self.attrVehicleValue:setVisible(not v135_.isInAppPurchase)
-		self.attrVehicleValueIcon:setVisible(not v135_.isInAppPurchase)
+		local storeItem = displayItem.storeItem
+		self.attrVehicleValue:setText(self:getStoreItemDisplayPrice(storeItem))
+		self.attrVehicleValue:setVisible(not storeItem.isInAppPurchase)
+		self.attrVehicleValueIcon:setVisible(not storeItem.isInAppPurchase)
 	end
-	for v136_, v137_ in pairs(displayItem.attributeValues) do
-		local v138_ = self:dequeueDetailsCell(InGameMenuStatisticsFrame.CELL_NAME_DETAIL)
-		local v139_ = v138_:getDescendantByName("icon")
-		local v140_ = v138_:getDescendantByName("text")
-		local v141_ = displayItem.attributeIconProfiles[v136_]
-		if v141_ ~= nil and v141_ ~= "" then
-			v140_:setText(v137_)
-			v139_:applyProfile(v141_)
+	for i, value in pairs(displayItem.attributeValues) do
+		local cell = self:dequeueDetailsCell(InGameMenuStatisticsFrame.CELL_NAME_DETAIL)
+		local icon = cell:getDescendantByName("icon")
+		local text = cell:getDescendantByName("text")
+		local profile = displayItem.attributeIconProfiles[i]
+		if profile ~= nil and profile ~= "" then
+			text:setText(value)
+			icon:applyProfile(profile)
 		end
-		v138_:setSize(v139_.absSize[1] + v139_.margin[1] + v140_.absSize[1], nil)
+		cell:setSize(icon.absSize[1] + icon.margin[1] + text.absSize[1], nil)
 	end
 end
-
--- Local values: totalWidth, cell, cellIcon, iconsLayout, _, iconFilename, icon, maxWidth, parentSize, iconsLayoutSize
 function InGameMenuStatisticsFrame:assignItemFillTypesData(baseIconProfile, iconFilenames)
-	if #iconFilenames > 0 then
-		local v145_ = self:dequeueDetailsCell(InGameMenuStatisticsFrame.CELL_NAME_FILL_TYPES)
-		local v146_ = v145_:getDescendantByName("icon")
-		local v147_ = v145_:getDescendantByName("iconsLayout")
-		v146_:applyProfile(baseIconProfile)
-		local v148_ = 0
-		for _, v149_ in pairs(iconFilenames) do
-			local v150_ = self.fruitIconTemplate:clone(v147_)
-			v150_:setVisible(true)
-			local v151_ = self.clonedElements
-			table.insert(v151_, v150_)
-			v150_:applyProfile(InGameMenuStatisticsFrame.PROFILE.ICON_FRUIT_TYPE)
-			v150_:setImageFilename(v149_)
-			v148_ = v148_ + v150_.absSize[1] + v150_.margin[1] + v150_.margin[3]
+	if 0 < #iconFilenames then
+		local totalWidth = 0
+		local cell = self:dequeueDetailsCell(InGameMenuStatisticsFrame.CELL_NAME_FILL_TYPES)
+		local cellIcon = cell:getDescendantByName("icon")
+		local iconsLayout = cell:getDescendantByName("iconsLayout")
+		cellIcon:applyProfile(baseIconProfile)
+		for _, iconFilename in pairs(iconFilenames) do
+			local icon = self.fruitIconTemplate:clone(iconsLayout)
+			icon:setVisible(true)
+			table.insert(self.clonedElements, icon)
+			icon:applyProfile(InGameMenuStatisticsFrame.PROFILE.ICON_FRUIT_TYPE)
+			icon:setImageFilename(iconFilename)
+			totalWidth = totalWidth + icon.absSize[1] + icon.margin[1] + icon.margin[3]
 		end
-		local v152_ = self.attributesLayout.absSize[1] * 0.91
-		local v153_ = math.min(v152_, v148_)
-		local v154_ = v153_ + v146_.absSize[1] + v146_.margin[1]
-		v147_:setSize(v148_, nil)
-		v147_:setPosition(0, nil)
-		v147_.parent:setSize(v153_, nil)
-		v147_:invalidateLayout()
-		if v154_ < v148_ then
-			self.marqueeBoxes[v147_] = 0
+		local maxWidth = self.attributesLayout.absSize[1] * 0.91
+		local parentSize = math.min(maxWidth, totalWidth)
+		local iconsLayoutSize = parentSize + cellIcon.absSize[1] + cellIcon.margin[1]
+		iconsLayout:setSize(totalWidth, nil)
+		iconsLayout:setPosition(0, nil)
+		iconsLayout.parent:setSize(parentSize, nil)
+		iconsLayout:invalidateLayout()
+		if iconsLayoutSize < totalWidth then
+			self.marqueeBoxes[iconsLayout] = 0
 			return
 		end
-		self.marqueeBoxes[v147_] = nil
+		self.marqueeBoxes[iconsLayout] = nil
 	end
 end
-
--- Local values: mission, accessHandler, _, handTool, item, name, brand, text, value, holderText, holder
 function InGameMenuStatisticsFrame:updateHandTools()
 	self.handTools = {}
 	if g_localPlayer ~= nil then
-		local v156_ = g_currentMission
-		local v157_ = v156_.accessHandler
-		for _, v158_ in ipairs(v156_.handToolSystem.handTools) do
-			if v157_:canPlayerAccess(v158_) and (v158_:getShowInHandToolsOverview() and g_localPlayer.farmId == v158_:getOwnerFarmId()) then
-				local v159_ = {
-					["handTool"] = v158_,
-					["columns"] = {}
-				}
-				local v160_ = v158_:getName()
-				local v161_ = v158_.brand
-				if v161_ ~= nil and v161_.title ~= "None" then
-					v160_ = v161_.title .. " " .. v160_
+		local mission = g_currentMission
+		local accessHandler = mission.accessHandler
+		for _, handTool in ipairs(mission.handToolSystem.handTools) do
+			if accessHandler:canPlayerAccess(handTool) and (handTool:getShowInHandToolsOverview() and g_localPlayer.farmId == handTool:getOwnerFarmId()) then
+				local item = {}
+				item.handTool = handTool
+				item.columns = {}
+				local name = handTool:getName()
+				local brand = handTool.brand
+				if brand ~= nil and brand.title ~= "None" then
+					name = brand.title .. " " .. name
 				end
-				v159_.columns[InGameMenuStatisticsFrame.COLUMN_NAME] = {
-					["text"] = v160_,
-					["value"] = v160_
-				}
-				local v162_ = {
-					["text"] = Vehicle.getSpecValueAge(nil, v158_),
-					["value"] = v158_.age
-				}
-				v159_.columns[InGameMenuStatisticsFrame.COLUMN_AGE] = v162_
-				local v163_ = v158_:getHolder()
-				local v164_ = v163_ == nil and "-" or v163_:getHolderName()
-				v159_.columns[InGameMenuStatisticsFrame.COLUMN_HOLDER] = {
-					["text"] = v164_,
-					["value"] = v164_
-				}
-				local v165_ = self.handTools
-				table.insert(v165_, v159_)
+				item.columns[InGameMenuStatisticsFrame.COLUMN_NAME] = { text = name, value = name }
+				local text = Vehicle.getSpecValueAge(nil, handTool)
+				local value = handTool.age
+				item.columns[InGameMenuStatisticsFrame.COLUMN_AGE] = { text = text, value = value }
+				local holderText = "-"
+				local holder = handTool:getHolder()
+				if holder ~= nil then
+					holderText = holder:getHolderName()
+				end
+				item.columns[InGameMenuStatisticsFrame.COLUMN_HOLDER] = { text = holderText, value = holderText }
+				table.insert(self.handTools, item)
 			end
 		end
 	end
 	self:updateViewHandTools()
 end
-
--- Local values: sortByColumn, sortOrder, column, icons, isSortedByColumn
 function InGameMenuStatisticsFrame:updateViewHandTools()
-	local v_u_167_ = self.sortByColumnHandTools
-	local v_u_168_ = self.sortOrderHandTools
-	for v169_, v170_ in pairs(self.sortIconsHandTools) do
-		local v171_ = v169_ == v_u_167_
-		local v172_ = v170_[InGameMenuStatisticsFrame.SORT_ORDER_DESC]
-		local v173_
-		if v171_ then
-			v173_ = v_u_168_ == InGameMenuStatisticsFrame.SORT_ORDER_DESC
-		else
-			v173_ = v171_
-		end
-		v172_:setVisible(v173_)
-		local v174_ = v170_[InGameMenuStatisticsFrame.SORT_ORDER_ASC]
-		if v171_ then
-			v171_ = v_u_168_ == InGameMenuStatisticsFrame.SORT_ORDER_ASC
-		end
-		v174_:setVisible(v171_)
+	local sortByColumn = self.sortByColumnHandTools
+	local sortOrder = self.sortOrderHandTools
+	for column, icons in pairs(self.sortIconsHandTools) do
+		local isSortedByColumn = column == sortByColumn
+		icons[InGameMenuStatisticsFrame.SORT_ORDER_DESC]:setVisible(isSortedByColumn and sortOrder == InGameMenuStatisticsFrame.SORT_ORDER_DESC)
+		icons[InGameMenuStatisticsFrame.SORT_ORDER_ASC]:setVisible(isSortedByColumn and sortOrder == InGameMenuStatisticsFrame.SORT_ORDER_ASC)
 	end
-	table.sort(self.handTools, function(p175_, p176_)
-		-- upvalues: (copy) v_u_167_, (copy) v_u_168_
-		local v177_ = p175_.columns[v_u_167_].value
-		local v178_ = p176_.columns[v_u_167_].value
-		if v177_ == v178_ then
-			v177_ = p175_.columns[InGameMenuStatisticsFrame.COLUMN_NAME].value
-			v178_ = p176_.columns[InGameMenuStatisticsFrame.COLUMN_NAME].value
-			if v177_ == v178_ then
-				v177_ = p175_.columns[InGameMenuStatisticsFrame.COLUMN_HOLDER].value
-				v178_ = p176_.columns[InGameMenuStatisticsFrame.COLUMN_HOLDER].value
+	table.sort(self.handTools, function(itemA, itemB)
+		local valueA = itemA.columns[sortByColumn].value
+		local valueB = itemB.columns[sortByColumn].value
+		if valueA == valueB then
+			valueA = itemA.columns[InGameMenuStatisticsFrame.COLUMN_NAME].value
+			valueB = itemB.columns[InGameMenuStatisticsFrame.COLUMN_NAME].value
+			if valueA == valueB then
+				valueA = itemA.columns[InGameMenuStatisticsFrame.COLUMN_HOLDER].value
+				valueB = itemB.columns[InGameMenuStatisticsFrame.COLUMN_HOLDER].value
 			end
 		end
-		if v_u_168_ == InGameMenuStatisticsFrame.SORT_ORDER_DESC then
-			return v178_ < v177_
+		if sortOrder == InGameMenuStatisticsFrame.SORT_ORDER_DESC then
+			return valueB < valueA
 		else
-			return v177_ < v178_
+			return valueA < valueB
 		end
 	end)
 	self.handToolsList:reloadData()
 end
-
--- Local values: _, list
 function InGameMenuStatisticsFrame:updateStatistics()
 	self.statsData = self.playerFarm.stats:getStatisticData()
-	for _, v180_ in ipairs(self.statisticsLists) do
-		v180_:reloadData()
+	for _, list in ipairs(self.statisticsLists) do
+		list:reloadData()
 	end
 end
-
 function InGameMenuStatisticsFrame:setClient(client)
 	self.client = client
 end
-
 function InGameMenuStatisticsFrame:setEnvironment(environment)
 	self.environment = environment
 end
-
 function InGameMenuStatisticsFrame:setPlayerFarm(playerFarm)
 	self.playerFarm = playerFarm
 end
-
--- Local values: currentPeriod, i, pastPeriod, stats
 function InGameMenuStatisticsFrame:updateFinances()
-	local v188_ = self.environment.currentPeriod
-	for v189_ = 1, InGameMenuStatisticsFrame.FINANCES.PAST_PERIOD_COUNT do
-		local v190_ = v188_ - v189_
-		self.pastDayHeader[v189_]:setText(g_i18n:formatPeriod(v190_, false))
+	local currentPeriod = self.environment.currentPeriod
+	for i = 1, InGameMenuStatisticsFrame.FINANCES.PAST_PERIOD_COUNT do
+		local pastPeriod = currentPeriod - i
+		self.pastDayHeader[i]:setText(g_i18n:formatPeriod(pastPeriod, false))
 	end
-	self.pastDayHeader[0]:setText(g_i18n:formatPeriod(v188_, false))
+	self.pastDayHeader[0]:setText(g_i18n:formatPeriod(currentPeriod, false))
 	self.financesList:reloadData()
-	local v191_ = self.playerFarm.stats
-	self:updateFinancesFooter(v191_.finances, v191_.financesHistory)
+	local stats = self.playerFarm.stats
+	self:updateFinancesFooter(stats.finances, stats.financesHistory)
 	self:updateFinancesLoanButtons()
 end
-
--- Local values: allowChangeLoan, isBorrowEnabled, isRepayEnabled
 function InGameMenuStatisticsFrame:updateFinancesLoanButtons()
 	if Platform.gameplay.hasLoans then
-		local v193_ = self:hasPlayerLoanPermission()
-		local v194_
+		local allowChangeLoan = self:hasPlayerLoanPermission()
+		local isBorrowEnabled = false
 		if self.playerFarm.loan < self.playerFarm.loanMax then
-			v194_ = v193_
-		else
-			v194_ = false
+			isBorrowEnabled = allowChangeLoan
 		end
-		if self.playerFarm.loan > 0 then
-			if self.playerFarm.money < InGameMenuStatisticsFrame.FINANCES.LOAN_STEP then
-				v193_ = false
+		local isRepayEnabled = false
+		if 0 < self.playerFarm.loan then
+			isRepayEnabled = false
+			if InGameMenuStatisticsFrame.FINANCES.LOAN_STEP <= self.playerFarm.money then
+				isRepayEnabled = allowChangeLoan
 			end
-		else
-			v193_ = false
 		end
-		self.borrowButtonInfo.disabled = not v194_
-		self.repayButtonInfo.disabled = not v193_
+		self.borrowButtonInfo.disabled = not isBorrowEnabled
+		self.repayButtonInfo.disabled = not isRepayEnabled
 		self:setMenuButtonInfoDirty()
 	end
 end
-
--- Local values: borrowTemplate, text, repayTemplate
 function InGameMenuStatisticsFrame:updateMoneyUnit()
 	self.currentMoneyUnitText = g_i18n:getCurrencySymbol(true)
 	if Platform.gameplay.hasLoans then
-		local v196_ = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.BUTTON_BORROW)
-		local v197_ = string.gsub(v196_, InGameMenuStatisticsFrame.L10N_SYMBOL.CURRENCY, self.currentMoneyUnitText)
-		self.borrowButtonInfo.text = v197_
-		local v198_ = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.BUTTON_REPAY)
-		local v199_ = string.gsub(v198_, InGameMenuStatisticsFrame.L10N_SYMBOL.CURRENCY, self.currentMoneyUnitText)
-		self.repayButtonInfo.text = v199_
+		local borrowTemplate = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.BUTTON_BORROW)
+		local text = string.gsub(borrowTemplate, InGameMenuStatisticsFrame.L10N_SYMBOL.CURRENCY, self.currentMoneyUnitText)
+		self.borrowButtonInfo.text = text
+		local repayTemplate = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.BUTTON_REPAY)
+		text = string.gsub(repayTemplate, InGameMenuStatisticsFrame.L10N_SYMBOL.CURRENCY, self.currentMoneyUnitText)
+		self.repayButtonInfo.text = text
 	end
 end
-
 function InGameMenuStatisticsFrame:updateFinancesFooter(currentFinances, pastFinances)
 	self:updateBalance()
 	if Platform.gameplay.hasLoans then
@@ -866,267 +695,245 @@ function InGameMenuStatisticsFrame:updateFinancesFooter(currentFinances, pastFin
 	end
 	self:updateDayTotals(currentFinances, pastFinances)
 end
-
--- Local values: currentBalance, balanceMoneyText, balanceProfile
 function InGameMenuStatisticsFrame:updateBalance()
-	local v204_ = self.playerFarm:getBalance()
-	local v205_ = g_i18n:formatMoney(v204_, 0, false)
-	local v206_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
-	if math.floor(v204_) <= -1 then
-		v206_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+	local currentBalance = self.playerFarm:getBalance()
+	local balanceMoneyText = g_i18n:formatMoney(currentBalance, 0, false)
+	local balanceProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
+	if math.floor(currentBalance) <= -1 then
+		balanceProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
 	end
-	self.balanceText:applyProfile(v206_, true)
-	self.balanceText:setText(v205_ .. " " .. self.currentMoneyUnitText)
+	self.balanceText:applyProfile(balanceProfile, true)
+	self.balanceText:setText(balanceMoneyText .. " " .. self.currentMoneyUnitText)
 end
-
--- Local values: i, dayFinances, pastIndex, dayTotalProfile, dayTotal, _, statName, totalMoneyText
 function InGameMenuStatisticsFrame:updateDayTotals(currentFinances, pastFinances)
-	for v210_ = 1, InGameMenuStatisticsFrame.FINANCES.PAST_PERIOD_COUNT + 1 do
-		local v211_
-		if v210_ > 1 then
-			v211_ = pastFinances[#pastFinances - (v210_ - 2)]
-		else
-			v211_ = currentFinances
+	for i = 1, InGameMenuStatisticsFrame.FINANCES.PAST_PERIOD_COUNT + 1 do
+		local dayFinances = currentFinances
+		if 1 < i then
+			local pastIndex = #pastFinances - (i - 2)
+			dayFinances = pastFinances[pastIndex]
 		end
-		local v212_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
-		if v211_ == nil then
-			self.totalText[v210_]:setText("")
+		local dayTotalProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
+		if dayFinances ~= nil then
+			local dayTotal = 0
+			for _, statName in pairs(dayFinances.statNames) do
+				dayTotal = dayTotal + dayFinances[statName]
+			end
+			local totalMoneyText = g_i18n:formatMoney(dayTotal, 0, false)
+			if math.floor(dayTotal) <= -1 then
+				dayTotalProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+			end
+			self.totalText[i]:setText(totalMoneyText .. " " .. self.currentMoneyUnitText)
 		else
-			local v213_ = 0
-			for _, v214_ in pairs(v211_.statNames) do
-				v213_ = v213_ + v211_[v214_]
-			end
-			local v215_ = g_i18n:formatMoney(v213_, 0, false)
-			if math.floor(v213_) <= -1 then
-				v212_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
-			end
-			self.totalText[v210_]:setText(v215_ .. " " .. self.currentMoneyUnitText)
+			self.totalText[i]:setText("")
 		end
-		self.totalText[v210_]:applyProfile(v212_, true)
+		self.totalText[i]:applyProfile(dayTotalProfile, true)
 	end
 end
-
--- Local values: currentLoan, loanMoneyText, loanProfile
 function InGameMenuStatisticsFrame:updateLoan()
-	local v217_ = self.playerFarm:getLoan()
-	local v218_ = g_i18n:formatMoney(-v217_, 0, false)
-	local v219_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
-	if v217_ > 0 then
-		v219_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+	local currentLoan = self.playerFarm:getLoan()
+	local loanMoneyText = g_i18n:formatMoney(-currentLoan, 0, false)
+	local loanProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
+	if 0 < currentLoan then
+		loanProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
 	end
-	self.loanText:applyProfile(v219_, true)
-	self.loanText:setText(v218_ .. " " .. self.currentMoneyUnitText)
+	self.loanText:applyProfile(loanProfile, true)
+	self.loanText:setText(loanMoneyText .. " " .. self.currentMoneyUnitText)
 end
-
--- Local values: mission
 function InGameMenuStatisticsFrame:hasPlayerLoanPermission()
-	return g_currentMission:getHasPlayerPermission("farmManager")
+	local mission = g_currentMission
+	return mission:getHasPlayerPermission("farmManager")
 end
-
--- Local values: subCategoryIndex, mission, hotspot, item, vehicle, storeItem, _, currentHandToolIndex, buttons, currentHandTool, holder
 function InGameMenuStatisticsFrame:updateMenuButtons()
-	local v221_ = self.subCategoryPaging:getState()
-	local v222_ = g_currentMission
-	if v221_ == InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES then
+	local subCategoryIndex = self.subCategoryPaging:getState()
+	local mission = g_currentMission
+	if subCategoryIndex == InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES then
 		if self.sellingStationMode then
 			self.sellingStationModeButtonInfo.text = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.LIST_COMMODITIES)
 		else
 			self.sellingStationModeButtonInfo.text = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.LIST_STATIONS)
 		end
-		local v223_ = self:getSelectedHotspot()
-		if v223_ == nil or (self.sellingStationMode or FocusManager:getFocusedElement() ~= self.priceList) and (not self.sellingStationMode or FocusManager:getFocusedElement() ~= self.productList) then
-			self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = self.menuButtonInfoPrices
-		else
-			if v223_ == v222_.currentMapTargetHotspot then
-				self.hotspotButtonInfo.text = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.REMOVE_MARKER)
+		local hotspot = self:getSelectedHotspot()
+		if hotspot ~= nil and (not self.sellingStationMode and (FocusManager:getFocusedElement() ~= self.priceList and self.sellingStationMode)) then
+			if FocusManager:getFocusedElement() == self.productList then
+				if hotspot == mission.currentMapTargetHotspot then
+					self.hotspotButtonInfo.text = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.REMOVE_MARKER)
+				else
+					self.hotspotButtonInfo.text = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.SET_MARKER)
+				end
+				self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = self.menuButtonInfoPricesWithHotspot
 			else
-				self.hotspotButtonInfo.text = g_i18n:getText(InGameMenuStatisticsFrame.L10N_SYMBOL.SET_MARKER)
+				self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = self.menuButtonInfoPrices
 			end
-			self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = self.menuButtonInfoPricesWithHotspot
 		end
-	elseif v221_ == InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW then
+	elseif subCategoryIndex == InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW then
 		table.removeElement(self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW], self.viewVehicleOnMapButtonInfo)
 		table.removeElement(self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW], self.sellVehicleButtonInfo)
 		table.removeElement(self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW], self.returnVehicleButtonInfo)
-		local v224_ = self.vehicles[self.vehiclesList:getSelectedIndexInSection()]
-		if v224_ ~= nil and v224_.vehicle ~= nil then
+		local item = self.vehicles[self.vehiclesList:getSelectedIndexInSection()]
+		if item ~= nil and item.vehicle ~= nil then
 			table.addElement(self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW], self.viewVehicleOnMapButtonInfo)
-			local v225_ = v224_.vehicle
-			if g_storeManager:getItemByXMLFilename(v225_.configFileName).canBeSold then
-				if v225_.propertyState == VehiclePropertyState.LEASED then
+			local vehicle = item.vehicle
+			local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+			if storeItem.canBeSold then
+				if vehicle.propertyState == VehiclePropertyState.LEASED then
 					table.addElement(self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW], self.returnVehicleButtonInfo)
 				else
 					table.addElement(self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW], self.sellVehicleButtonInfo)
 				end
 			end
 		end
-	elseif v221_ == InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS then
-		local _, v226_ = self.handToolsList:getSelectedPath()
-		local v227_ = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo }
-		if self.handToolsList:getItemCount() > 0 and self.handTools[v226_] ~= nil then
-			local v228_ = self.handTools[v226_]
-			local v229_ = v228_.handTool:getHolder()
-			if v229_ == nil then
-				local v230_ = self.sellHandToolButtonInfo
-				table.insert(v227_, v230_)
-				local v231_ = self.pickUpHandToolButtonInfo
-				table.insert(v227_, v231_)
+	elseif subCategoryIndex == InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS then
+		local _, currentHandToolIndex = self.handToolsList:getSelectedPath()
+		local buttons = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo }
+		if 0 < self.handToolsList:getItemCount() and self.handTools[currentHandToolIndex] ~= nil then
+			local currentHandTool = self.handTools[currentHandToolIndex]
+			local holder = currentHandTool.handTool:getHolder()
+			if holder == nil then
+				table.insert(buttons, self.sellHandToolButtonInfo)
+				table.insert(buttons, self.pickUpHandToolButtonInfo)
 			else
-				if v229_:getCanPickupHandToolFromMenu(v228_) then
-					local v232_ = self.pickUpHandToolButtonInfo
-					table.insert(v227_, v232_)
+				if holder:getCanPickupHandToolFromMenu(currentHandTool) then
+					table.insert(buttons, self.pickUpHandToolButtonInfo)
 				end
-				if v229_ == g_localPlayer then
-					local v233_ = self.sellHandToolButtonInfo
-					table.insert(v227_, v233_)
-					local v234_ = self.storeHandToolButtonInfo
-					table.insert(v227_, v234_)
+				if holder == g_localPlayer then
+					table.insert(buttons, self.sellHandToolButtonInfo)
+					table.insert(buttons, self.storeHandToolButtonInfo)
 				end
 			end
 		end
-		self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS] = v227_
+		self.menuButtonInfo[InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS] = buttons
 	end
 	self:setMenuButtonInfoDirty()
 end
-
--- Local values: section, index, fillTypeDesc, prices, min, max, i, minPrice, maxPrice, range, hasAnyFluctuations, minPercent, maxPercent, month, percentageInView, posX, posX
 function InGameMenuStatisticsFrame:updateFluctuations()
 	if not self.sellingStationMode then
-		local v236_, v237_ = self.productList:getSelectedPath()
-		local v238_ = self.fillTypes[v236_][v237_].economy.history
-		local v239_ = math.huge
-		local v240_ = 0
-		for v241_ = 1, 12 do
-			local v242_ = v238_[v241_]
-			v239_ = math.min(v239_, v242_)
-			local v243_ = v238_[v241_]
-			v240_ = math.max(v240_, v243_)
+		local section, index = self.productList:getSelectedPath()
+		local fillTypeDesc = self.fillTypes[section][index]
+		local prices = fillTypeDesc.economy.history
+		local min = math.huge
+		local max = 0
+		for i = 1, 12 do
+			min = math.min(min, prices[i])
+			max = math.max(max, prices[i])
 		end
-		local v244_ = v239_ * 1000 * EconomyManager.getPriceMultiplier()
-		local v245_ = v240_ * 1000 * EconomyManager.getPriceMultiplier()
-		local v246_ = v240_ - v239_
-		local v247_ = v239_ - v246_ * 0.2
-		local v248_ = math.max(v247_, 0)
-		local v249_ = v240_ + v246_ * 0.2
-		local v250_ = v248_ ~= v249_
-		self.noFluctuationsText:setVisible(not v250_)
-		self.fluctuationsLayoutBg:setVisible(v250_)
+		local minPrice = min * 1000 * EconomyManager.getPriceMultiplier()
+		local maxPrice = max * 1000 * EconomyManager.getPriceMultiplier()
+		local range = max - min
+		min = math.max(min - range * 0.2, 0)
+		max = max + range * 0.2
+		local hasAnyFluctuations = min ~= max
+		self.noFluctuationsText:setVisible(not hasAnyFluctuations)
+		self.fluctuationsLayoutBg:setVisible(hasAnyFluctuations)
 		self.fluctuationPoints = {}
-		self.fluctuationHigh:setVisible(v250_)
-		self.fluctuationHigh:setValue(v245_)
-		self.fluctuationLow:setVisible(v250_)
-		self.fluctuationLow:setValue(v244_)
-		self.hasAnyFluctuations = v250_
-		if not v250_ then
+		self.fluctuationHigh:setVisible(hasAnyFluctuations)
+		self.fluctuationHigh:setValue(maxPrice)
+		self.fluctuationLow:setVisible(hasAnyFluctuations)
+		self.fluctuationLow:setValue(minPrice)
+		self.hasAnyFluctuations = hasAnyFluctuations
+		if not hasAnyFluctuations then
 			return
 		end
-		local v251_ = 0
-		local v252_ = math.huge
-		for v253_ = 1, 12 do
-			local v254_ = (v238_[v253_] - v248_) / (v249_ - v248_)
-			self.fluctuationPoints[v253_] = v254_ * self.fluctuationsContainer.absSize[2]
-			if v254_ < v252_ then
-				local v255_ = self.monthTexts[v253_].absPosition[1] + self.monthTexts[v253_].absSize[1] * 0.5 - self.fluctuationLow.absSize[1] * 0.5
-				self.fluctuationLow:setAbsolutePosition(v255_, nil)
-				v252_ = v254_
+		local minPercent = math.huge
+		local maxPercent = 0
+		for month = 1, 12 do
+			local percentageInView = (prices[month] - min) / (max - min)
+			self.fluctuationPoints[month] = percentageInView * self.fluctuationsContainer.absSize[2]
+			if percentageInView < minPercent then
+				minPercent = percentageInView
+				local posX = self.monthTexts[month].absPosition[1] + self.monthTexts[month].absSize[1] * 0.5 - self.fluctuationLow.absSize[1] * 0.5
+				self.fluctuationLow:setAbsolutePosition(posX, nil)
 			end
-			if v251_ < v254_ then
-				local v256_ = self.monthTexts[v253_].absPosition[1] + self.monthTexts[v253_].absSize[1] * 0.5 - self.fluctuationHigh.absSize[1] * 0.5
-				self.fluctuationHigh:setAbsolutePosition(v256_, nil)
-				v251_ = v254_
+			if maxPercent < percentageInView then
+				maxPercent = percentageInView
+				local posX = self.monthTexts[month].absPosition[1] + self.monthTexts[month].absSize[1] * 0.5 - self.fluctuationHigh.absSize[1] * 0.5
+				self.fluctuationHigh:setAbsolutePosition(posX, nil)
 			end
 		end
 	end
 	self.priceList:reloadData()
 end
-
--- Local values: mission, env, season, intoSeason, percentage, parentSize
 function InGameMenuStatisticsFrame:updateTodayBar()
-	local v258_ = g_currentMission.environment
-	local v259_ = v258_.currentSeason - 1
-	local v260_ = (v258_.currentDayInSeason - 1) / v258_:getDaysPerSeason()
-	local v261_ = v259_ * 0.25 + v260_ * 0.25
-	local v262_ = self.todayBar.parent.size[1]
-	self.todayBar:setPosition(v262_ * v261_ + v262_ / (v258_:getDaysPerSeason() * 4) * 0.5, nil)
+	local mission = g_currentMission
+	local env = mission.environment
+	local season = env.currentSeason - 1
+	local intoSeason = (env.currentDayInSeason - 1) / env:getDaysPerSeason()
+	local percentage = season * 0.25 + intoSeason * 0.25
+	local parentSize = self.todayBar.parent.size[1]
+	self.todayBar:setPosition(parentSize * percentage + parentSize / (env:getDaysPerSeason() * 4) * 0.5, nil)
 end
-
--- Local values: fruitTypes, otherTypes, _, fillTypeDesc, fillTypeSortFunc
 function InGameMenuStatisticsFrame:rebuildTable()
-	local v264_ = {}
-	local v265_ = {}
-	self.fillTypes = { v264_, v265_ }
-	for _, v266_ in pairs(g_fillTypeManager:getFillTypes()) do
-		if v266_.showOnPriceTable then
-			if g_fruitTypeManager:getFruitTypeIndexByFillTypeIndex(v266_.index) then
-				table.insert(v264_, v266_)
+	local fruitTypes = {}
+	local otherTypes = {}
+	self.fillTypes = { fruitTypes, otherTypes }
+	for _, fillTypeDesc in pairs(g_fillTypeManager:getFillTypes()) do
+		if fillTypeDesc.showOnPriceTable then
+			if g_fruitTypeManager:getFruitTypeIndexByFillTypeIndex(fillTypeDesc.index) then
+				table.insert(fruitTypes, fillTypeDesc)
 			else
-				table.insert(v265_, v266_)
+				table.insert(otherTypes, fillTypeDesc)
 			end
 		end
 	end
-	local function v269_(p267_, p268_)
-		return p267_.title < p268_.title
+	local fillTypeSortFunc = function(a, b)
+		return a.title < b.title
 	end
-	table.sort(v264_, v269_)
-	table.sort(v265_, v269_)
+	table.sort(fruitTypes, fillTypeSortFunc)
+	table.sort(otherTypes, fillTypeSortFunc)
 	self:updateStationData()
 	self.productList:reloadData()
 end
-
--- Local values: selectedIndex, stationData
 function InGameMenuStatisticsFrame:getSelectedHotspot()
-	local v271_ = self.priceList:getSelectedIndexInSection()
+	local selectedIndex = self.priceList:getSelectedIndexInSection()
 	if self.sellingStationMode then
-		v271_ = self.productList:getSelectedIndexInSection()
+		selectedIndex = self.productList:getSelectedIndexInSection()
 	end
-	if v271_ < 1 then
+	if selectedIndex < 1 then
 		return nil
 	else
-		local v272_ = self.currentStationData[v271_]
-		if v272_ == nil or v272_.owningPlaceable == nil then
-			return nil
-		else
-			return v272_.owningPlaceable:getHotspot(1)
+		local stationData = self.currentStationData[selectedIndex]
+		if stationData ~= nil and stationData.owningPlaceable ~= nil then
+			return stationData.owningPlaceable:getHotspot(1)
 		end
+		return nil
 	end
 end
-
--- Local values: totalCapacity, usedCapacity, mission, farmId, _, storage
 function InGameMenuStatisticsFrame:getStorageFillLevel(fillType, farmSilo, usedStorages)
-	local v276_ = g_currentMission
-	local v277_ = v276_:getFarmId()
-	local v278_ = 0
-	local v279_ = 0
-	for _, v280_ in pairs(v276_.storageSystem:getStorages()) do
-		if usedStorages[v280_] == nil and (v280_:getOwnerFarmId() == v277_ and (v280_.foreignSilo ~= farmSilo and v280_:getIsFillTypeSupported(fillType.index))) then
-			usedStorages[v280_] = true
-			v278_ = v278_ + v280_:getFillLevel(fillType.index)
-			v279_ = v279_ + v280_:getCapacity(fillType.index)
+	local totalCapacity = 0
+	local usedCapacity = 0
+	local mission = g_currentMission
+	local farmId = mission:getFarmId()
+	for _, storage in pairs(mission.storageSystem:getStorages()) do
+		if usedStorages[storage] == nil and storage:getOwnerFarmId() == farmId then
+			if storage.foreignSilo == farmSilo then
+				continue
+			end
+			if storage:getIsFillTypeSupported(fillType.index) then
+				usedStorages[storage] = true
+				usedCapacity = usedCapacity + storage:getFillLevel(fillType.index)
+				totalCapacity = totalCapacity + storage:getCapacity(fillType.index)
+			end
 		end
 	end
-	if v279_ > 0 then
-		return v278_, v279_
+	if 0 < totalCapacity then
+		return usedCapacity, totalCapacity
 	else
 		return -1, -1
 	end
 end
-
--- Local values: hotspot, mission
 function InGameMenuStatisticsFrame:onButtonHotspot()
-	local v282_ = self:getSelectedHotspot()
-	local v283_ = g_currentMission
-	if v282_ == nil then
-		v283_:setMapTargetHotspot(nil)
-	else
-		if v283_.currentMapTargetHotspot == v282_ then
-			v283_:setMapTargetHotspot(nil)
+	local hotspot = self:getSelectedHotspot()
+	local mission = g_currentMission
+	if hotspot ~= nil then
+		if mission.currentMapTargetHotspot == hotspot then
+			mission:setMapTargetHotspot(nil)
 		else
-			v283_:setMapTargetHotspot(v282_)
+			mission:setMapTargetHotspot(hotspot)
 		end
 		self:updateMenuButtons()
+	else
+		mission:setMapTargetHotspot(nil)
 	end
 end
-
 function InGameMenuStatisticsFrame:onButtonChangeSellingStationMode()
 	self.sellingStationMode = not self.sellingStationMode
 	if self.sellingStationMode then
@@ -1144,192 +951,161 @@ function InGameMenuStatisticsFrame:onButtonChangeSellingStationMode()
 	self.productList:reloadData()
 	self.priceList:reloadData()
 end
-
--- Local values: item, vehicle, storeItem
 function InGameMenuStatisticsFrame:onButtonSell()
-	local v286_ = self.vehicles[self.vehiclesList:getSelectedIndexInSection()]
-	if v286_ ~= nil and v286_.vehicle ~= nil then
-		local v287_ = v286_.vehicle
-		local v288_ = g_storeManager:getItemByXMLFilename(v287_.configFileName)
-		g_shopController:sell(v288_, v287_)
+	local item = self.vehicles[self.vehiclesList:getSelectedIndexInSection()]
+	if item ~= nil and item.vehicle ~= nil then
+		local vehicle = item.vehicle
+		local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+		g_shopController:sell(storeItem, vehicle)
 	end
 end
-
--- Local values: item, inGameMenu, mapPage
 function InGameMenuStatisticsFrame:onVehicleViewOnMap()
-	local v290_ = self.vehicles[self.vehiclesList:getSelectedIndexInSection()]
-	local v291_ = g_inGameMenu
-	v291_:openMapOverview()
-	local v292_ = v291_.pageMapOverview
+	local item = self.vehicles[self.vehiclesList:getSelectedIndexInSection()]
+	local inGameMenu = g_inGameMenu
+	inGameMenu:openMapOverview()
+	local mapPage = inGameMenu.pageMapOverview
 	if Platform.isMobile then
-		v292_ = v291_.pageMapMobile
+		mapPage = inGameMenu.pageMapMobile
 	end
-	v292_:showMapHotspot(v290_.vehicle:getMapHotspot())
+	mapPage:showMapHotspot(item.vehicle:getMapHotspot())
 end
-
--- Local values: item, handTool, storeItem
 function InGameMenuStatisticsFrame:onButtonSellHandTool()
-	local v294_ = self.handTools[self.handToolsList:getSelectedIndexInSection()]
-	if v294_ ~= nil and v294_.handTool ~= nil then
-		local v295_ = v294_.handTool
-		local v296_ = g_storeManager:getItemByXMLFilename(v295_.configFileName)
-		g_shopController:sell(v296_, v295_)
+	local item = self.handTools[self.handToolsList:getSelectedIndexInSection()]
+	if item ~= nil and item.handTool ~= nil then
+		local handTool = item.handTool
+		local storeItem = g_storeManager:getItemByXMLFilename(handTool.configFileName)
+		g_shopController:sell(storeItem, handTool)
 	end
 end
-
--- Local values: _, index, item, itemName, brand, title, text
 function InGameMenuStatisticsFrame:onStoreHandTool()
-	local _, v298_ = self.handToolsList:getSelectedPath()
-	local v299_ = self.handTools[v298_]
-	if v299_ ~= nil and v299_.handTool ~= nil then
-		local v300_ = v299_.handTool:getName()
-		local v301_ = v299_.handTool.brand
-		if v301_ ~= nil and v301_.title ~= "None" then
-			v300_ = v301_.title .. " " .. v300_
+	local _, index = self.handToolsList:getSelectedPath()
+	local item = self.handTools[index]
+	if item ~= nil and item.handTool ~= nil then
+		local itemName = item.handTool:getName()
+		local brand = item.handTool.brand
+		if brand ~= nil and brand.title ~= "None" then
+			itemName = brand.title .. " " .. itemName
 		end
-		local v302_ = g_i18n:getText("ui_handToolStoreTitle")
-		local v303_ = string.format(g_i18n:getText("ui_confirmationStoreHandtool"), v300_)
-		YesNoDialog.show(self.onYesNoStoreHandTool, self, v303_, v302_)
+		local title = g_i18n:getText("ui_handToolStoreTitle")
+		local text = string.format(g_i18n:getText("ui_confirmationStoreHandtool"), itemName)
+		YesNoDialog.show(self.onYesNoStoreHandTool, self, text, title)
 	end
 end
-
--- Local values: section, index, item, cell
 function InGameMenuStatisticsFrame:onYesNoStoreHandTool(yes)
 	if yes then
-		local v306_, v307_ = self.handToolsList:getSelectedPath()
-		local v308_ = self.handTools[v307_]
-		if v308_ ~= nil and v308_.handTool ~= nil then
-			v308_.handTool:setHolder(nil)
-			local v309_ = self.handToolsList.sections[v306_].cells[v307_]
-			if v309_ ~= nil then
-				v309_:getAttribute("holder"):setText("-")
+		local section, index = self.handToolsList:getSelectedPath()
+		local item = self.handTools[index]
+		if item ~= nil and item.handTool ~= nil then
+			item.handTool:setHolder(nil)
+			local cell = self.handToolsList.sections[section].cells[index]
+			if cell ~= nil then
+				cell:getAttribute("holder"):setText("-")
 			end
 		end
 		self.handToolInfoDirty = true
 		self:updateMenuButtons()
 	end
 end
-
--- Local values: _, index, item, handTool, itemName, brand, title, text
 function InGameMenuStatisticsFrame:onPickUpHandTool()
-	local _, v311_ = self.handToolsList:getSelectedPath()
-	local v312_ = self.handTools[v311_]
-	if v312_ ~= nil and v312_.handTool ~= nil then
-		local v313_ = v312_.handTool
-		if g_localPlayer:getReachedHandToolLimit(v313_) then
+	local _, index = self.handToolsList:getSelectedPath()
+	local item = self.handTools[index]
+	if item ~= nil and item.handTool ~= nil then
+		local handTool = item.handTool
+		if g_localPlayer:getReachedHandToolLimit(handTool) then
 			InfoDialog.show(g_i18n:getText("ui_handToolLimitReached"))
 			return
 		end
-		if not g_localPlayer:getCanPickupHandTool(v313_) then
+		if not g_localPlayer:getCanPickupHandTool(handTool) then
 			InfoDialog.show(g_i18n:getText("ui_handToolCannotBePickedUp"))
 			return
 		end
-		local v314_ = v313_:getName()
-		local v315_ = v313_.brand
-		if v315_ ~= nil and v315_.title ~= "None" then
-			v314_ = v315_.title .. " " .. v314_
+		local itemName = handTool:getName()
+		local brand = handTool.brand
+		if brand ~= nil and brand.title ~= "None" then
+			itemName = brand.title .. " " .. itemName
 		end
-		local v316_ = g_i18n:getText("ui_handToolPickupTitle")
-		local v317_ = string.format(g_i18n:getText("ui_confirmationPickupHandtool"), v314_)
-		YesNoDialog.show(self.onYesNoPickUpHandTool, self, v317_, v316_)
+		local title = g_i18n:getText("ui_handToolPickupTitle")
+		local text = string.format(g_i18n:getText("ui_confirmationPickupHandtool"), itemName)
+		YesNoDialog.show(self.onYesNoPickUpHandTool, self, text, title)
 	end
 end
-
--- Local values: section, index, item, cell
 function InGameMenuStatisticsFrame:onYesNoPickUpHandTool(yes)
 	if yes then
-		local v320_, v321_ = self.handToolsList:getSelectedPath()
-		local v322_ = self.handTools[v321_]
-		if v322_ ~= nil and v322_.handTool ~= nil then
-			v322_.handTool:setHolder(g_localPlayer)
-			local v323_ = self.handToolsList.sections[v320_].cells[v321_]
-			if v323_ ~= nil then
-				v323_:getAttribute("holder"):setText(g_localPlayer:getHolderName())
+		local section, index = self.handToolsList:getSelectedPath()
+		local item = self.handTools[index]
+		if item ~= nil and item.handTool ~= nil then
+			item.handTool:setHolder(g_localPlayer)
+			local cell = self.handToolsList.sections[section].cells[index]
+			if cell ~= nil then
+				cell:getAttribute("holder"):setText(g_localPlayer:getHolderName())
 			end
 		end
 		self:updateMenuButtons()
 	end
 end
-
 function InGameMenuStatisticsFrame:onButtonBorrow()
 	if self:hasPlayerLoanPermission() then
 		self.client:getServerConnection():sendEvent(ChangeLoanEvent.new(InGameMenuStatisticsFrame.FINANCES.LOAN_STEP, self.playerFarm.farmId))
 	end
 end
-
 function InGameMenuStatisticsFrame:onButtonRepay()
 	if self:hasPlayerLoanPermission() then
 		self.client:getServerConnection():sendEvent(ChangeLoanEvent.new(-InGameMenuStatisticsFrame.FINANCES.LOAN_STEP, self.playerFarm.farmId))
 	end
 end
-
 function InGameMenuStatisticsFrame:onHourChanged()
 	self:updateFluctuations()
 	self:updateTodayBar()
 end
-
--- Local values: farm, moneyText
 function InGameMenuStatisticsFrame:onMoneyChange()
 	if g_localPlayer ~= nil then
-		local v328_ = g_farmManager:getFarmById(g_localPlayer.farmId)
-		if v328_.money <= -1 then
+		local farm = g_farmManager:getFarmById(g_localPlayer.farmId)
+		if farm.money <= -1 then
 			self.currentBalanceText:applyProfile(ShopMenu.GUI_PROFILE.SHOP_MONEY_NEGATIVE, nil, true)
 		else
 			self.currentBalanceText:applyProfile(ShopMenu.GUI_PROFILE.SHOP_MONEY, nil, true)
 		end
-		local v329_ = g_i18n:formatMoney(v328_.money, 0, true, false)
-		self.currentBalanceText:setText(v329_)
+		local moneyText = g_i18n:formatMoney(farm.money, 0, true, false)
+		self.currentBalanceText:setText(moneyText)
 		if self.shopMoneyBox ~= nil then
 			self.shopMoneyBox:invalidateLayout()
 			self.shopMoneyBoxBg:setSize(self.shopMoneyBox.flowSizes[1] + 60 * g_pixelSizeScaledX)
 		end
 	end
 end
-
 function InGameMenuStatisticsFrame:onVehicleSellEvent()
 	self:updateVehicles()
 end
-
 function InGameMenuStatisticsFrame:onVehicleBuyEvent()
 	self:updateVehicles()
 end
-
 function InGameMenuStatisticsFrame:onHandToolSellEvent()
 	self:updateHandTools()
 end
-
 function InGameMenuStatisticsFrame:onHandToolBuyEvent()
 	self:updateHandTools()
 end
-
 function InGameMenuStatisticsFrame:onHandToolSetHolderEvent()
 	self:updateHandTools()
 end
-
 function InGameMenuStatisticsFrame:onClickPrices()
 	self.subCategoryPaging:setState(InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES, true)
 end
-
 function InGameMenuStatisticsFrame:onClickVehicleOverview()
 	self.subCategoryPaging:setState(InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW, true)
 end
-
 function InGameMenuStatisticsFrame:onClickHandTools()
 	self.subCategoryPaging:setState(InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS, true)
 end
-
 function InGameMenuStatisticsFrame:onClickFinances()
 	self.subCategoryPaging:setState(InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES, true)
 end
-
 function InGameMenuStatisticsFrame:onClickStatistics()
 	self.subCategoryPaging:setState(InGameMenuStatisticsFrame.SUB_CATEGORY.STATISTICS, true)
 end
-
--- Local values: index, page
 function InGameMenuStatisticsFrame:updateSubCategoryPages(subCategoryIndex)
-	for v342_, v343_ in pairs(self.subCategoryPages) do
-		v343_:setVisible(v342_ == subCategoryIndex)
+	for index, page in pairs(self.subCategoryPages) do
+		page:setVisible(index == subCategoryIndex)
 	end
 	self.categoryHeaderIcon:setImageSlice(nil, InGameMenuStatisticsFrame.HEADER_SLICES[subCategoryIndex])
 	self.categoryHeaderText:setText(g_i18n:getText(InGameMenuStatisticsFrame.HEADER_TITLES[subCategoryIndex]))
@@ -1353,264 +1129,280 @@ function InGameMenuStatisticsFrame:updateSubCategoryPages(subCategoryIndex)
 	FocusManager:setFocus(self.subCategoryPaging)
 	self:updateMenuButtons()
 end
-
 function InGameMenuStatisticsFrame:getNumberOfSections(list)
-	return list == self.productList and not self.sellingStationMode and #self.fillTypes or 1
+	if list == self.productList and not self.sellingStationMode then
+		return #self.fillTypes
+	end
+	return 1
 end
-
--- Local values: numItems
 function InGameMenuStatisticsFrame:getNumberOfItemsInSection(list, section)
-	return list == self.financesList and #FinanceStats.statNames or (list == self.productList and not self.sellingStationMode and #self.fillTypes[section] or (list == self.priceList and self.sellingStationMode and #self.currentAcceptedFillTypes or ((list == self.productList and self.sellingStationMode or list == self.priceList and not self.sellingStationMode) and #self.currentStationData or (list == self.vehiclesList and #self.vehicles or (list == self.handToolsList and #self.handTools or (self.statsIndices == nil and 0 or (self.statsIndices[self.statisticsList1] ~= nil and #self.statsIndices[self.statisticsList1] or 0)))))))
+	if list == self.financesList then
+		return #FinanceStats.statNames
+	end
+	if list == self.productList and not self.sellingStationMode then
+		return #self.fillTypes[section]
+	end
+	if list == self.priceList and self.sellingStationMode then
+		return #self.currentAcceptedFillTypes
+	end
+	if list ~= self.productList or not self.sellingStationMode then
+		if list == self.priceList and not self.sellingStationMode then
+			return #self.currentStationData
+		end
+		if list == self.vehiclesList then
+			return #self.vehicles
+		elseif list == self.handToolsList then
+			return #self.handTools
+		elseif self.statsIndices ~= nil then
+			local numItems = self.statsIndices[self.statisticsList1] ~= nil and #self.statsIndices[self.statisticsList1] or 0
+			return numItems
+		else
+			return 0
+		end
+	end
 end
-
 function InGameMenuStatisticsFrame:getTitleForSectionHeader(list, section)
 	if list == self.productList and not self.sellingStationMode then
 		return g_i18n:getText(InGameMenuStatisticsFrame.PRICE_SECTIONS[section])
-	else
-		return nil
 	end
+	return nil
 end
-
--- Local values: stats, currentFinances, pastFinances, statsName, statsNameText, fillTypeDesc, usedStorages, localLiters, foreignLiters, stationData, profile, sellingStation, sellingAllowed, price, priceTrend, buyingStation, palletBuyingStation, isBuyingStation, price, stationData, fillTypeSection, fillTypeIndex, fillTypeDesc, mapHotspot, distanceText, x, _, z, hotspotX, hotspotZ, distance, profile, sellingStation, price, priceTrend, buyingStation, palletBuyingStation, isBuyingStation, price, item, vehicle, storeItem, nameElement, column, licensePlateText, ageProfile, maxVehicleAge, ageElement, hoursElement, damageProfile, damageElement, leasingElement, valueElement, item, handTool, storeItem, nameElement, column, ageProfile, maxVehicleAge, ageElement, holderElement, statsIndex, stats
 function InGameMenuStatisticsFrame:populateCellForItemInSection(list, section, index, cell)
 	if list == self.financesList then
-		local v357_ = self.playerFarm.stats
-		local v358_ = v357_.finances
-		local v359_ = v357_.financesHistory
-		local v360_ = FinanceStats.statNames[index]
-		local v361_ = FinanceStats.statNamesI18n[v360_]
-		cell:getAttribute("name"):setText(v361_)
-		self:setPastDayFinances(cell:getAttribute("todayMinusFour"), v359_, 4, v360_)
-		self:setPastDayFinances(cell:getAttribute("todayMinusThree"), v359_, 3, v360_)
-		self:setPastDayFinances(cell:getAttribute("todayMinusTwo"), v359_, 2, v360_)
-		self:setPastDayFinances(cell:getAttribute("todayMinusOne"), v359_, 1, v360_)
-		self:setPastDayFinances(cell:getAttribute("today"), v358_, 0, v360_)
-	elseif list == self.productList and not self.sellingStationMode or list == self.priceList and self.sellingStationMode then
-		local v362_ = self.fillTypes[section][index]
-		if self.sellingStationMode then
-			v362_ = g_fillTypeManager:getFillTypeByIndex(self.currentAcceptedFillTypes[index])
-		end
-		cell:getAttribute("icon"):setVisible(true)
-		cell:getAttribute("icon"):setImageFilename(v362_.hudOverlayFilename)
-		cell:getAttribute("title"):setText(v362_.title)
-		local v363_ = {}
-		local v364_ = self:getStorageFillLevel(v362_, true, v363_)
-		local v365_ = self:getStorageFillLevel(v362_, false, v363_)
-		if v364_ < 0 and v365_ < 0 then
-			cell:getAttribute("info"):setText("-")
-		else
-			cell:getAttribute("info"):setText(g_i18n:formatVolume(math.max(v364_, 0) + math.max(v365_, 0)))
-		end
-		cell:getAttribute("hotspot"):setVisible(false)
-		cell:getAttribute("iconTrain"):setVisible(false)
-		cell:getAttribute("iconPallet"):setVisible(false)
-		if not self.sellingStationMode then
-			return
-		end
-		local v366_ = self.currentStationData[self.currentStationIndex]
-		local v367_ = InGameMenuStatisticsFrame.PROFILE.PRICE_NORMAL
-		local v368_ = v366_.sellingStation
-		local v369_
-		if v368_ == nil then
-			v369_ = false
-		else
-			v369_ = v368_:getIsFillTypeAllowed(v362_.index)
-		end
-		local v370_ = cell:getAttribute("price")
-		local v371_
-		if v368_ == nil then
-			v371_ = false
-		else
-			v371_ = v369_
-		end
-		v370_:setVisible(v371_)
-		if v368_ ~= nil and v369_ then
-			local v372_ = v368_:getEffectiveFillTypePrice(v362_.index) * 1000
-			cell:getAttribute("price"):setValue((tostring(v372_)))
-			local v373_ = v368_:getCurrentPricingTrend(v362_.index)
-			if v373_ ~= nil then
-				if Utils.isBitSet(v373_, SellingStation.PRICE_GREAT_DEMAND) then
-					v367_ = InGameMenuStatisticsFrame.PROFILE.PRICE_GREAT_DEMAND
-				elseif Utils.isBitSet(v373_, SellingStation.PRICE_CLIMBING) then
-					v367_ = InGameMenuStatisticsFrame.PROFILE.PRICE_CLIMBING
-				elseif Utils.isBitSet(v373_, SellingStation.PRICE_FALLING) then
-					v367_ = InGameMenuStatisticsFrame.PROFILE.PRICE_FALLING
-				end
+		local stats = self.playerFarm.stats
+		local currentFinances = stats.finances
+		local pastFinances = stats.financesHistory
+		local statsName = FinanceStats.statNames[index]
+		local statsNameText = FinanceStats.statNamesI18n[statsName]
+		cell:getAttribute("name"):setText(statsNameText)
+		self:setPastDayFinances(cell:getAttribute("todayMinusFour"), pastFinances, 4, statsName)
+		self:setPastDayFinances(cell:getAttribute("todayMinusThree"), pastFinances, 3, statsName)
+		self:setPastDayFinances(cell:getAttribute("todayMinusTwo"), pastFinances, 2, statsName)
+		self:setPastDayFinances(cell:getAttribute("todayMinusOne"), pastFinances, 1, statsName)
+		self:setPastDayFinances(cell:getAttribute("today"), currentFinances, 0, statsName)
+	elseif list ~= self.productList or self.sellingStationMode then
+		if list == self.priceList and self.sellingStationMode then
+			local fillTypeDesc = self.fillTypes[section][index]
+			if self.sellingStationMode then
+				fillTypeDesc = g_fillTypeManager:getFillTypeByIndex(self.currentAcceptedFillTypes[index])
 			end
-		end
-		cell:getAttribute("priceTrend"):applyProfile(v367_)
-		local v374_ = v366_.buyingStation
-		local v375_ = v366_.palletBuyingStation
-		local v376_ = v374_ ~= nil and true or v375_ ~= nil
-		cell:getAttribute("buyPrice"):setVisible(v376_)
-		if v376_ then
-			local v377_ = nil
-			if v374_ == nil then
-				if v375_:getHasPalletForFillType(v362_.index) then
-					v377_ = v375_:getEffectivePricePerPallet(v362_.index)
-				end
-			else
-				v377_ = v374_:getEffectiveFillTypePrice(v362_.index) * 1000
-			end
-			if v377_ == nil then
-				cell:getAttribute("buyPrice"):setVisible(false)
-			else
-				cell:getAttribute("buyPrice"):setValue((tostring(v377_)))
-			end
-		end
-	elseif list == self.productList and self.sellingStationMode or list == self.priceList and not self.sellingStationMode then
-		local v378_ = self.currentStationData[index]
-		local v379_, v380_ = self.productList:getSelectedPath()
-		local v381_ = self.fillTypes[v379_][v380_]
-		local v_u_382_
-		if v378_.owningPlaceable == nil then
-			v_u_382_ = nil
-		else
-			v_u_382_ = v378_.owningPlaceable:getHotspot(1) or nil
-		end
-		cell:getAttribute("hotspot"):setVisible(v_u_382_ ~= nil)
-		if v_u_382_ ~= nil then
-			cell:getAttribute("hotspot").getIsSelected = function()
-				-- upvalues: (copy) v_u_382_
-				local v383_ = g_currentMission
-				local v384_
-				if v383_.currentMapTargetHotspot == nil then
-					v384_ = false
+			cell:getAttribute("icon"):setVisible(true)
+			cell:getAttribute("icon"):setImageFilename(fillTypeDesc.hudOverlayFilename)
+			cell:getAttribute("title"):setText(fillTypeDesc.title)
+			local usedStorages = {}
+			local localLiters = self:getStorageFillLevel(fillTypeDesc, true, usedStorages)
+			local foreignLiters = self:getStorageFillLevel(fillTypeDesc, false, usedStorages)
+			if localLiters < 0 then
+				if foreignLiters < 0 then
+					cell:getAttribute("info"):setText("-")
 				else
-					v384_ = v_u_382_ == v383_.currentMapTargetHotspot
-				end
-				return v384_
-			end
-		end
-		cell:getAttribute("title"):setText(v378_.name)
-		cell:getAttribute("iconTrain"):setVisible(v378_.isTrainStation)
-		cell:getAttribute("iconPallet"):setVisible(v378_.isPalletStation)
-		local v385_
-		if v_u_382_ == nil then
-			v385_ = "-"
-		else
-			local v386_, _, v387_ = getWorldTranslation(g_cameraManager:getActiveCamera())
-			local v388_, v389_ = v_u_382_:getWorldPosition()
-			local v390_ = MathUtil.vector2Length(v386_ - v388_, v387_ - v389_)
-			v385_ = g_i18n:formatDistance(v390_, 0)
-		end
-		cell:getAttribute("info"):setText(v385_)
-		cell:getAttribute("icon"):setVisible(false)
-		if self.sellingStationMode then
-			return
-		end
-		local v391_ = InGameMenuStatisticsFrame.PROFILE.PRICE_NORMAL
-		local v392_ = v378_.sellingStation
-		cell:getAttribute("price"):setVisible(v392_ ~= nil)
-		if v392_ ~= nil then
-			local v393_ = v392_:getEffectiveFillTypePrice(v381_.index) * 1000
-			cell:getAttribute("price"):setValue((tostring(v393_)))
-			local v394_ = v392_:getCurrentPricingTrend(v381_.index)
-			if v394_ ~= nil then
-				if Utils.isBitSet(v394_, SellingStation.PRICE_GREAT_DEMAND) then
-					v391_ = InGameMenuStatisticsFrame.PROFILE.PRICE_GREAT_DEMAND
-				elseif Utils.isBitSet(v394_, SellingStation.PRICE_CLIMBING) then
-					v391_ = InGameMenuStatisticsFrame.PROFILE.PRICE_CLIMBING
-				elseif Utils.isBitSet(v394_, SellingStation.PRICE_FALLING) then
-					v391_ = InGameMenuStatisticsFrame.PROFILE.PRICE_FALLING
+					cell:getAttribute("info"):setText(g_i18n:formatVolume(math.max(localLiters, 0) + math.max(foreignLiters, 0)))
 				end
 			end
-		end
-		cell:getAttribute("priceTrend"):applyProfile(v391_)
-		local v395_ = v378_.buyingStation
-		local v396_ = v378_.palletBuyingStation
-		local v397_ = v395_ ~= nil and true or v396_ ~= nil
-		cell:getAttribute("buyPrice"):setVisible(v397_)
-		if v397_ then
-			local v398_
-			if v395_ == nil then
-				v398_ = v396_:getEffectivePricePerPallet(v381_.index)
+			cell:getAttribute("hotspot"):setVisible(false)
+			cell:getAttribute("iconTrain"):setVisible(false)
+			cell:getAttribute("iconPallet"):setVisible(false)
+			if not self.sellingStationMode then
+				return
 			else
-				v398_ = v395_:getEffectiveFillTypePrice(v381_.index) * 1000
+				local stationData = self.currentStationData[self.currentStationIndex]
+				local profile = InGameMenuStatisticsFrame.PROFILE.PRICE_NORMAL
+				local sellingStation = stationData.sellingStation
+				local sellingAllowed = false
+				if sellingStation ~= nil then
+					sellingAllowed = sellingStation:getIsFillTypeAllowed(fillTypeDesc.index)
+				end
+				cell:getAttribute("price"):setVisible(false)
+				if sellingStation ~= nil and sellingAllowed then
+					local price = sellingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
+					cell:getAttribute("price"):setValue(tostring(price))
+					local priceTrend = sellingStation:getCurrentPricingTrend(fillTypeDesc.index)
+					if priceTrend ~= nil then
+						if Utils.isBitSet(priceTrend, SellingStation.PRICE_GREAT_DEMAND) then
+							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_GREAT_DEMAND
+						elseif Utils.isBitSet(priceTrend, SellingStation.PRICE_CLIMBING) then
+							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_CLIMBING
+						elseif Utils.isBitSet(priceTrend, SellingStation.PRICE_FALLING) then
+							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_FALLING
+						end
+					end
+				end
+				cell:getAttribute("priceTrend"):applyProfile(profile)
+				local buyingStation = stationData.buyingStation
+				local palletBuyingStation = stationData.palletBuyingStation
+				local isBuyingStation = buyingStation ~= nil or palletBuyingStation ~= nil
+				cell:getAttribute("buyPrice"):setVisible(isBuyingStation)
+				if isBuyingStation then
+					local price = nil
+					if buyingStation ~= nil then
+						price = buyingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
+					elseif palletBuyingStation:getHasPalletForFillType(fillTypeDesc.index) then
+						price = palletBuyingStation:getEffectivePricePerPallet(fillTypeDesc.index)
+					end
+					if price ~= nil then
+						cell:getAttribute("buyPrice"):setValue(tostring(price))
+					else
+						cell:getAttribute("buyPrice"):setVisible(false)
+					end
+				end
+				return
 			end
-			cell:getAttribute("buyPrice"):setValue((tostring(v398_)))
-			return
 		end
-	elseif list == self.vehiclesList then
-		local v399_ = self.vehicles[index]
-		local v400_ = v399_.vehicle
-		local v401_ = g_storeManager:getItemByXMLFilename(v400_.configFileName)
-		if v401_ ~= nil then
-			cell:getAttribute("name"):setText(v399_.columns[InGameMenuStatisticsFrame.COLUMN_NAME].text)
-			local v402_ = LicensePlates.getSpecValuePlateText(nil, v400_) or "-"
-			cell:getAttribute("licensePlate"):setText(v402_)
-			local v403_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
-			if v401_.lifetime <= v400_.age then
-				v403_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+		if list ~= self.productList or not self.sellingStationMode then
+			if list == self.priceList and not self.sellingStationMode then
+				local stationData = self.currentStationData[index]
+				local fillTypeSection, fillTypeIndex = self.productList:getSelectedPath()
+				local fillTypeDesc = self.fillTypes[fillTypeSection][fillTypeIndex]
+				local mapHotspot = stationData.owningPlaceable ~= nil and stationData.owningPlaceable:getHotspot(1) or nil
+				cell:getAttribute("hotspot"):setVisible(mapHotspot ~= nil)
+				if mapHotspot ~= nil then
+					cell:getAttribute("hotspot").getIsSelected = function()
+						local mission = g_currentMission
+						local isTagActive = mission.currentMapTargetHotspot ~= nil and mapHotspot == mission.currentMapTargetHotspot
+						return isTagActive
+					end
+				end
+				cell:getAttribute("title"):setText(stationData.name)
+				cell:getAttribute("iconTrain"):setVisible(stationData.isTrainStation)
+				cell:getAttribute("iconPallet"):setVisible(stationData.isPalletStation)
+				local distanceText = "-"
+				if mapHotspot ~= nil then
+					local x, _, z = getWorldTranslation(g_cameraManager:getActiveCamera())
+					local hotspotX, hotspotZ = mapHotspot:getWorldPosition()
+					local distance = MathUtil.vector2Length(x - hotspotX, z - hotspotZ)
+					distanceText = g_i18n:formatDistance(distance, 0)
+				end
+				cell:getAttribute("info"):setText(distanceText)
+				cell:getAttribute("icon"):setVisible(false)
+				if self.sellingStationMode then
+					return
+				end
+				local profile = InGameMenuStatisticsFrame.PROFILE.PRICE_NORMAL
+				local sellingStation = stationData.sellingStation
+				cell:getAttribute("price"):setVisible(sellingStation ~= nil)
+				if sellingStation ~= nil then
+					local price = sellingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
+					cell:getAttribute("price"):setValue(tostring(price))
+					local priceTrend = sellingStation:getCurrentPricingTrend(fillTypeDesc.index)
+					if priceTrend ~= nil then
+						if Utils.isBitSet(priceTrend, SellingStation.PRICE_GREAT_DEMAND) then
+							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_GREAT_DEMAND
+						elseif Utils.isBitSet(priceTrend, SellingStation.PRICE_CLIMBING) then
+							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_CLIMBING
+						elseif Utils.isBitSet(priceTrend, SellingStation.PRICE_FALLING) then
+							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_FALLING
+						end
+					end
+				end
+				cell:getAttribute("priceTrend"):applyProfile(profile)
+				local buyingStation = stationData.buyingStation
+				local palletBuyingStation = stationData.palletBuyingStation
+				local isBuyingStation = buyingStation ~= nil or palletBuyingStation ~= nil
+				cell:getAttribute("buyPrice"):setVisible(isBuyingStation)
+				if isBuyingStation then
+					local price = nil
+					price = buyingStation ~= nil and buyingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000 or palletBuyingStation:getEffectivePricePerPallet(fillTypeDesc.index)
+					cell:getAttribute("buyPrice"):setValue(tostring(price))
+					return
+				end
 			end
-			local v404_ = cell:getAttribute("age")
-			v404_:setText(v399_.columns[InGameMenuStatisticsFrame.COLUMN_AGE].text)
-			v404_:applyProfile(v403_, true)
-			cell:getAttribute("operatingHours"):setText(v399_.columns[InGameMenuStatisticsFrame.COLUMN_HOURS].text)
-			local v405_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
-			local v406_ = v399_.columns[InGameMenuStatisticsFrame.COLUMN_DAMAGE]
-			if v406_.value >= InGameMenuStatisticsFrame.DAMAGE_NEGATIVE_THRESHOLD then
-				v405_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+			if list == self.vehiclesList then
+				local item = self.vehicles[index]
+				local vehicle = item.vehicle
+				local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+				if storeItem ~= nil then
+					local nameElement = cell:getAttribute("name")
+					local column = item.columns[InGameMenuStatisticsFrame.COLUMN_NAME]
+					nameElement:setText(column.text)
+					local licensePlateText = LicensePlates.getSpecValuePlateText(nil, vehicle) or "-"
+					cell:getAttribute("licensePlate"):setText(licensePlateText)
+					local ageProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
+					local maxVehicleAge = storeItem.lifetime
+					if maxVehicleAge <= vehicle.age then
+						ageProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+					end
+					local ageElement = cell:getAttribute("age")
+					column = item.columns[InGameMenuStatisticsFrame.COLUMN_AGE]
+					ageElement:setText(column.text)
+					ageElement:applyProfile(ageProfile, true)
+					local hoursElement = cell:getAttribute("operatingHours")
+					column = item.columns[InGameMenuStatisticsFrame.COLUMN_HOURS]
+					hoursElement:setText(column.text)
+					local damageProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
+					column = item.columns[InGameMenuStatisticsFrame.COLUMN_DAMAGE]
+					if InGameMenuStatisticsFrame.DAMAGE_NEGATIVE_THRESHOLD <= column.value then
+						damageProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+					end
+					local damageElement = cell:getAttribute("damage")
+					damageElement:setText(column.text)
+					damageElement:applyProfile(damageProfile, true)
+					local leasingElement = cell:getAttribute("leasing")
+					column = item.columns[InGameMenuStatisticsFrame.COLUMN_LEASING]
+					leasingElement:setText(column.text)
+					local valueElement = cell:getAttribute("value")
+					column = item.columns[InGameMenuStatisticsFrame.COLUMN_VALUE]
+					valueElement:setText(column.text)
+				end
+			elseif list == self.handToolsList then
+				local item = self.handTools[index]
+				local handTool = item.handTool
+				local storeItem = g_storeManager:getItemByXMLFilename(handTool.configFileName)
+				if storeItem ~= nil then
+					local nameElement = cell:getAttribute("name")
+					local column = item.columns[InGameMenuStatisticsFrame.COLUMN_NAME]
+					nameElement:setText(column.text)
+					local ageProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
+					local maxVehicleAge = storeItem.lifetime
+					if maxVehicleAge <= handTool.age then
+						ageProfile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+					end
+					local ageElement = cell:getAttribute("age")
+					column = item.columns[InGameMenuStatisticsFrame.COLUMN_AGE]
+					ageElement:setText(column.text)
+					ageElement:applyProfile(ageProfile, true)
+					local holderElement = cell:getAttribute("holder")
+					column = item.columns[InGameMenuStatisticsFrame.COLUMN_HOLDER]
+					holderElement:setText(column.text)
+				end
+			else
+				local statsIndex = self.statsIndices[list][index]
+				if statsIndex == nil then
+					cell:getAttribute("name"):setText("")
+					cell:getAttribute("session"):setText("")
+					cell:getAttribute("total"):setText("")
+				else
+					local stats = self.statsData[statsIndex]
+					cell:getAttribute("name"):setText(stats.name)
+					cell:getAttribute("session"):setText(stats.valueSession)
+					cell:getAttribute("total"):setText(stats.valueTotal)
+				end
 			end
-			local v407_ = cell:getAttribute("damage")
-			v407_:setText(v406_.text)
-			v407_:applyProfile(v405_, true)
-			cell:getAttribute("leasing"):setText(v399_.columns[InGameMenuStatisticsFrame.COLUMN_LEASING].text)
-			cell:getAttribute("value"):setText(v399_.columns[InGameMenuStatisticsFrame.COLUMN_VALUE].text)
-			return
 		end
-	elseif list == self.handToolsList then
-		local v408_ = self.handTools[index]
-		local v409_ = v408_.handTool
-		local v410_ = g_storeManager:getItemByXMLFilename(v409_.configFileName)
-		if v410_ ~= nil then
-			cell:getAttribute("name"):setText(v408_.columns[InGameMenuStatisticsFrame.COLUMN_NAME].text)
-			local v411_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
-			if v410_.lifetime <= v409_.age then
-				v411_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
-			end
-			local v412_ = cell:getAttribute("age")
-			v412_:setText(v408_.columns[InGameMenuStatisticsFrame.COLUMN_AGE].text)
-			v412_:applyProfile(v411_, true)
-			cell:getAttribute("holder"):setText(v408_.columns[InGameMenuStatisticsFrame.COLUMN_HOLDER].text)
-			return
-		end
-	else
-		local v413_ = self.statsIndices[list][index]
-		if v413_ == nil then
-			cell:getAttribute("name"):setText("")
-			cell:getAttribute("session"):setText("")
-			cell:getAttribute("total"):setText("")
-			return
-		end
-		local v414_ = self.statsData[v413_]
-		cell:getAttribute("name"):setText(v414_.name)
-		cell:getAttribute("session"):setText(v414_.valueSession)
-		cell:getAttribute("total"):setText(v414_.valueTotal)
 	end
 end
-
--- Local values: value, profile, financeData, pastIndex, moneyValue, moneyText
 function InGameMenuStatisticsFrame:setPastDayFinances(cell, financesData, dayIndex, statsName)
-	if InGameMenuStatisticsFrame.FINANCES.PAST_PERIOD_COUNT >= dayIndex then
-		local v420_ = "-"
-		local v421_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
-		if dayIndex > 0 then
-			financesData = financesData[#financesData - (dayIndex - 1)]
+	if InGameMenuStatisticsFrame.FINANCES.PAST_PERIOD_COUNT < dayIndex then
+		return
+	else
+		local value = "-"
+		local profile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEUTRAL
+		local financeData = financesData
+		if 0 < dayIndex then
+			local pastIndex = #financesData - (dayIndex - 1)
+			financeData = financesData[pastIndex]
 		end
-		if financesData ~= nil then
-			local v422_ = financesData[statsName]
-			v420_ = g_i18n:formatMoney(v422_, 0, false) .. " " .. self.currentMoneyUnitText
-			if math.floor(v422_) <= -1 then
-				v421_ = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
+		if financeData ~= nil then
+			local moneyValue = financeData[statsName]
+			local moneyText = g_i18n:formatMoney(moneyValue, 0, false)
+			value = moneyText .. " " .. self.currentMoneyUnitText
+			if math.floor(moneyValue) <= -1 then
+				profile = InGameMenuStatisticsFrame.PROFILE.VALUE_CELL_NEGATIVE
 			end
 		end
-		cell:applyProfile(v421_, true)
-		cell:setText(v420_)
+		cell:applyProfile(profile, true)
+		cell:setText(value)
 	end
 end
-
--- Local values: fillTypeDesc
 function InGameMenuStatisticsFrame:onListSelectionChanged(list, section, index)
 	if list == self.productList then
 		if self.sellingStationMode then
@@ -1619,7 +1411,8 @@ function InGameMenuStatisticsFrame:onListSelectionChanged(list, section, index)
 			self.priceList:reloadData()
 			self:updateMenuButtons()
 		else
-			self:updateStationData(self.fillTypes[section][index])
+			local fillTypeDesc = self.fillTypes[section][index]
+			self:updateStationData(fillTypeDesc)
 			self.noSellpointsText:setVisible(#self.currentStationData == 0)
 			self.priceList:reloadData()
 			self:updateFluctuations()
@@ -1627,352 +1420,253 @@ function InGameMenuStatisticsFrame:onListSelectionChanged(list, section, index)
 		end
 	elseif list == self.priceList then
 		self:updateMenuButtons()
-		return
 	elseif list == self.vehiclesList then
 		self:updateItemAttributeData(index)
 		self:updateMenuButtons()
-	elseif list == self.handToolsList then
-		self:updateMenuButtons()
+	else
+		if list == self.handToolsList then
+			self:updateMenuButtons()
+		end
 	end
 end
-
--- Local values: placeableToStation, mission, _, station, owningPlaceable, stationData, foundFillType, fillTypeIndex, _, fillType, _, station, owningPlaceable, stationData, foundFillType, fillTypeIndex, _, fillType, _, placeable, stationData
 function InGameMenuStatisticsFrame:updateStationData(fillTypeDesc)
 	self.currentStationData = {}
-	local v429_ = g_currentMission
-	local v430_ = {}
-	for _, v431_ in pairs(v429_.storageSystem:getUnloadingStations()) do
-		if v431_:isa(SellingStation) and (not v431_.hideFromPricesMenu and (fillTypeDesc == nil or v431_:getIsFillTypeAllowed(fillTypeDesc.index))) then
-			local v432_ = v431_.owningPlaceable
-			local v433_ = v430_[v432_]
-			if v433_ == nil then
-				local v434_ = false
-				for v435_, _ in pairs(v431_.supportedFillTypes) do
-					local v436_ = g_fillTypeManager:getFillTypeByIndex(v435_)
-					if v436_ ~= nil then
-						if v436_.showOnPriceTable then
-							v434_ = true
+	local placeableToStation = {}
+	local mission = g_currentMission
+	for _, station in pairs(mission.storageSystem:getUnloadingStations()) do
+		if station:isa(SellingStation) then
+			if station.hideFromPricesMenu then
+				continue
+			end
+			if fillTypeDesc == nil or station:getIsFillTypeAllowed(fillTypeDesc.index) then
+				local owningPlaceable = station.owningPlaceable
+				local stationData = placeableToStation[owningPlaceable]
+				if stationData == nil then
+					local foundFillType = false
+					for fillTypeIndex, _ in pairs(station.supportedFillTypes) do
+						local fillType = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
+						if fillType == nil or not fillType.showOnPriceTable then
+							continue
 						end
+						foundFillType = true
 					end
-				end
-				if v434_ then
-					v433_ = {
-						["name"] = v431_:getName(),
-						["owningPlaceable"] = v432_
-					}
-					table.addElement(self.currentStationData, v433_)
-					if v432_ ~= nil then
-						v430_[v432_] = v433_
-					end
-					goto l8
-				end
-			else
-				::l8::
-				if v431_.isTrainStation then
-					v433_.isTrainStation = true
-				end
-				if v431_.isPalletStation then
-					v433_.isPalletStation = true
-				end
-				v433_.sellingStation = v431_
-			end
-		end
-	end
-	for _, v437_ in pairs(v429_.storageSystem:getLoadingStations()) do
-		if v437_:isa(BuyingStation) and (fillTypeDesc == nil or v437_:getIsFillTypeSupported(fillTypeDesc.index)) then
-			local v438_ = v437_.owningPlaceable
-			local v439_ = v430_[v438_]
-			if v439_ == nil then
-				local v440_ = false
-				for v441_, _ in pairs(v437_.supportedFillTypes) do
-					local v442_ = g_fillTypeManager:getFillTypeByIndex(v441_)
-					if v442_ ~= nil then
-						if v442_.showOnPriceTable then
-							v440_ = true
+					if foundFillType then
+						stationData = { owningPlaceable = owningPlaceable, name = station:getName() }
+						table.addElement(self.currentStationData, stationData)
+						if owningPlaceable ~= nil then
+							placeableToStation[owningPlaceable] = stationData
 						end
+						if station.isTrainStation then
+							stationData.isTrainStation = true
+						end
+						if station.isPalletStation then
+							stationData.isPalletStation = true
+						end
+						stationData.sellingStation = station
 					end
 				end
-				if v440_ then
-					v439_ = {
-						["name"] = v437_:getName(),
-						["owningPlaceable"] = v438_
-					}
-					table.addElement(self.currentStationData, v439_)
-					if v438_ ~= nil then
-						v430_[v438_] = v439_
-					end
-					goto l28
-				end
-			else
-				::l28::
-				v439_.buyingStation = v437_
 			end
 		end
 	end
-	for _, v443_ in pairs(v429_.storageSystem:getPalletBuyingStations()) do
-		if fillTypeDesc == nil or v443_:getHasPalletForFillType(fillTypeDesc.index) then
-			local v444_ = v430_[v443_]
-			if v444_ == nil then
-				v444_ = {
-					["name"] = v443_:getName(),
-					["owningPlaceable"] = v443_
-				}
-				table.addElement(self.currentStationData, v444_)
-				v430_[v443_] = v444_
+	for _, station in pairs(mission.storageSystem:getLoadingStations()) do
+		if station:isa(BuyingStation) and (fillTypeDesc == nil or station:getIsFillTypeSupported(fillTypeDesc.index)) then
+			local owningPlaceable = station.owningPlaceable
+			local stationData = placeableToStation[owningPlaceable]
+			if stationData == nil then
+				local foundFillType = false
+				for fillTypeIndex, _ in pairs(station.supportedFillTypes) do
+					local fillType = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
+					if fillType == nil or not fillType.showOnPriceTable then
+						continue
+					end
+					foundFillType = true
+				end
+				if foundFillType then
+					stationData = { owningPlaceable = owningPlaceable, name = station:getName() }
+					table.addElement(self.currentStationData, stationData)
+					if owningPlaceable ~= nil then
+						placeableToStation[owningPlaceable] = stationData
+					end
+					stationData.buyingStation = station
+				end
 			end
-			v444_.isPalletStation = true
-			v444_.palletBuyingStation = v443_
 		end
 	end
-	table.sort(self.currentStationData, function(p445_, p446_)
-		return p445_.name < p446_.name
+	for _, placeable in pairs(mission.storageSystem:getPalletBuyingStations()) do
+		if fillTypeDesc == nil or placeable:getHasPalletForFillType(fillTypeDesc.index) then
+			local stationData = placeableToStation[placeable]
+			if stationData == nil then
+				stationData = { owningPlaceable = placeable, name = placeable:getName() }
+				table.addElement(self.currentStationData, stationData)
+				placeableToStation[placeable] = stationData
+			end
+			stationData.isPalletStation = true
+			stationData.palletBuyingStation = placeable
+		end
+	end
+	table.sort(self.currentStationData, function(station1, station2)
+		return station1.name < station2.name
 	end)
 end
-
--- Local values: sellingStation, fillTypeIndex, fillTypeDesc, buyingStation, fillTypeIndex, _, palletBuyingStation, fillTypeIndex, _
 function InGameMenuStatisticsFrame:updateAcceptedFillTypes(placeable)
 	self.currentAcceptedFillTypes = {}
-	if placeable ~= nil then
-		local v449_ = placeable.sellingStation
-		if v449_ ~= nil then
-			for v450_, _ in pairs(v449_.acceptedFillTypes) do
-				table.addElement(self.currentAcceptedFillTypes, v450_)
+	if placeable == nil then
+		return
+	else
+		local sellingStation = placeable.sellingStation
+		if sellingStation ~= nil then
+			for fillTypeIndex, fillTypeDesc in pairs(sellingStation.acceptedFillTypes) do
+				table.addElement(self.currentAcceptedFillTypes, fillTypeIndex)
 			end
 		end
-		local v451_ = placeable.buyingStation
-		if v451_ ~= nil then
-			for v452_, _ in pairs(v451_.supportedFillTypes) do
-				table.addElement(self.currentAcceptedFillTypes, v452_)
+		local buyingStation = placeable.buyingStation
+		if buyingStation ~= nil then
+			for fillTypeIndex, _ in pairs(buyingStation.supportedFillTypes) do
+				table.addElement(self.currentAcceptedFillTypes, fillTypeIndex)
 			end
 		end
-		local v453_ = placeable.palletBuyingStation
-		if v453_ ~= nil then
-			for v454_, _ in pairs(v453_.spec_palletBuyingStation.fillTypeIndexToPallet) do
-				table.addElement(self.currentAcceptedFillTypes, v454_)
+		local palletBuyingStation = placeable.palletBuyingStation
+		if palletBuyingStation ~= nil then
+			for fillTypeIndex, _ in pairs(palletBuyingStation.spec_palletBuyingStation.fillTypeIndexToPallet) do
+				table.addElement(self.currentAcceptedFillTypes, fillTypeIndex)
 			end
 		end
 	end
 end
-
--- Local values: vehicle, storeItem, displayItem, x, z
 function InGameMenuStatisticsFrame:updateItemAttributeData(index)
-	local v457_ = index or self.vehiclesList.selectedIndex
-	local v458_ = self.vehicles[v457_].vehicle
-	if v458_ ~= nil and v458_:getMapHotspot() ~= nil then
-		local v459_ = g_storeManager:getItemByXMLFilename(v458_.configFileName)
-		local v460_ = g_shopController:makeDisplayItem(v459_, v458_, v458_.configurations)
-		local v461_, v462_ = v458_:getMapHotspot():getWorldPosition()
-		self.itemDetailsMap:setCenterToWorldPosition(v461_, v462_)
+	index = index or self.vehiclesList.selectedIndex
+	local vehicle = self.vehicles[index].vehicle
+	if vehicle ~= nil and vehicle:getMapHotspot() ~= nil then
+		local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+		local displayItem = g_shopController:makeDisplayItem(storeItem, vehicle, vehicle.configurations)
+		local x, z = vehicle:getMapHotspot():getWorldPosition()
+		self.itemDetailsMap:setCenterToWorldPosition(x, z)
 		self.itemDetailsMap:setMapZoom(7)
 		self.itemDetailsMap:setMapAlpha(1)
-		if v460_ ~= nil and self:getIsVisible() then
-			self:assignItemAttributeData(v460_)
+		if displayItem ~= nil and self:getIsVisible() then
+			self:assignItemAttributeData(displayItem)
 			return
 		end
 	end
 	self.detailBox:setVisible(false)
 end
-
--- Local values: k, clone, i, element, name
 function InGameMenuStatisticsFrame:buildCellDatabase()
-	for v464_, v465_ in pairs(self.detailsTemplates) do
-		v465_:delete()
-		self.detailsTemplates[v464_] = nil
+	for k, clone in pairs(self.detailsTemplates) do
+		clone:delete()
+		self.detailsTemplates[k] = nil
 	end
 	self.detailsTemplates = {}
-	for v466_ = #self.attributesLayout.elements, 1, -1 do
-		local v467_ = self.attributesLayout.elements[v466_]
-		local v468_ = v467_.name
-		self.detailsTemplates[v468_] = v467_:clone()
-		self.detailsCache[v468_] = {}
+	for i = #self.attributesLayout.elements, 1, -1 do
+		local element = self.attributesLayout.elements[i]
+		local name = element.name
+		self.detailsTemplates[name] = element:clone()
+		self.detailsCache[name] = {}
 	end
 end
-
--- Local values: cell, cache
 function InGameMenuStatisticsFrame:dequeueDetailsCell(name)
 	if self.detailsTemplates[name] == nil then
 		return nil
-	end
-	local v471_ = self.detailsCache[name]
-	local v472_
-	if #v471_ > 0 then
-		v472_ = v471_[#v471_]
-		v471_[#v471_] = nil
 	else
-		v472_ = self.detailsTemplates[name]:clone()
+		local cell = nil
+		local cache = self.detailsCache[name]
+		if 0 < #cache then
+			cell = cache[#cache]
+			cache[#cache] = nil
+		else
+			cell = self.detailsTemplates[name]:clone()
+		end
+		self.attributesLayout:addElement(cell)
+		return cell
 	end
-	self.attributesLayout:addElement(v472_)
-	return v472_
 end
-
--- Local values: cache
 function InGameMenuStatisticsFrame:queueDetailsCell(cell)
-	local v475_ = self.detailsCache[cell.name]
-	v475_[#v475_ + 1] = cell
+	local cache = self.detailsCache[cell.name]
+	cache[#cache + 1] = cell
 	self.attributesLayout:removeElement(cell)
 	cell:unlinkElement()
 end
-
 function InGameMenuStatisticsFrame:applySorting(column)
-	if self.sortByColumn == column and self.sortOrder ~= InGameMenuStatisticsFrame.SORT_ORDER_ASC then
-		self.sortOrder = InGameMenuStatisticsFrame.SORT_ORDER_ASC
-	else
-		self.sortOrder = InGameMenuStatisticsFrame.SORT_ORDER_DESC
+	if self.sortByColumn == column then
+		if self.sortOrder ~= InGameMenuStatisticsFrame.SORT_ORDER_ASC then
+			self.sortOrder = InGameMenuStatisticsFrame.SORT_ORDER_ASC
+		else
+			self.sortOrder = InGameMenuStatisticsFrame.SORT_ORDER_DESC
+		end
 	end
 	self.sortByColumn = column
 	self:updateView()
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByName()
 	self:applySorting(InGameMenuStatisticsFrame.COLUMN_NAME)
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByAge()
 	self:applySorting(InGameMenuStatisticsFrame.COLUMN_AGE)
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByHours()
 	self:applySorting(InGameMenuStatisticsFrame.COLUMN_HOURS)
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByDamage()
 	self:applySorting(InGameMenuStatisticsFrame.COLUMN_DAMAGE)
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByLeasing()
 	self:applySorting(InGameMenuStatisticsFrame.COLUMN_LEASING)
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByValue()
 	self:applySorting(InGameMenuStatisticsFrame.COLUMN_VALUE)
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByName(element)
-	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_NAME] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_NAME] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByAge(element)
-	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_AGE] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_AGE] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByHours(element)
-	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_HOURS] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_HOURS] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByDamage(element)
-	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_DAMAGE] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_DAMAGE] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByLeasing(element)
-	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_LEASING] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_LEASING] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByValue(element)
-	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_VALUE] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIcons[InGameMenuStatisticsFrame.COLUMN_VALUE] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
-
 function InGameMenuStatisticsFrame:applySortingHandTools(column)
 	if self.handToolInfoDirty then
 		self:updateHandTools()
 	end
-	if self.sortByColumnHandTools == column and self.sortOrderHandTools ~= InGameMenuStatisticsFrame.SORT_ORDER_ASC then
-		self.sortOrderHandTools = InGameMenuStatisticsFrame.SORT_ORDER_ASC
-	else
-		self.sortOrderHandTools = InGameMenuStatisticsFrame.SORT_ORDER_DESC
+	if self.sortByColumnHandTools == column then
+		if self.sortOrderHandTools ~= InGameMenuStatisticsFrame.SORT_ORDER_ASC then
+			self.sortOrderHandTools = InGameMenuStatisticsFrame.SORT_ORDER_ASC
+		else
+			self.sortOrderHandTools = InGameMenuStatisticsFrame.SORT_ORDER_DESC
+		end
 	end
 	self.sortByColumnHandTools = column
 	self:updateViewHandTools()
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByNameHandTools()
 	self:applySortingHandTools(InGameMenuStatisticsFrame.COLUMN_NAME)
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByAgeHandTools()
 	self:applySortingHandTools(InGameMenuStatisticsFrame.COLUMN_AGE)
 end
-
 function InGameMenuStatisticsFrame:onClickButtonSortByHolder()
 	self:applySortingHandTools(InGameMenuStatisticsFrame.COLUMN_HOLDER)
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByNameHandTools(element)
-	self.sortIconsHandTools[InGameMenuStatisticsFrame.COLUMN_NAME] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIconsHandTools[InGameMenuStatisticsFrame.COLUMN_NAME] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByAgeHandTools(element)
-	self.sortIconsHandTools[InGameMenuStatisticsFrame.COLUMN_AGE] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIconsHandTools[InGameMenuStatisticsFrame.COLUMN_AGE] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
-
 function InGameMenuStatisticsFrame:onCreateButtonSortByHolder(element)
-	self.sortIconsHandTools[InGameMenuStatisticsFrame.COLUMN_HOLDER] = {
-		[InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"),
-		[InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending")
-	}
+	self.sortIconsHandTools[InGameMenuStatisticsFrame.COLUMN_HOLDER] = { [InGameMenuStatisticsFrame.SORT_ORDER_ASC] = element:getDescendantByName("iconAscending"), [InGameMenuStatisticsFrame.SORT_ORDER_DESC] = element:getDescendantByName("iconDescending") }
 end
 InGameMenuStatisticsFrame.DAMAGE_NEGATIVE_THRESHOLD = 0.8
-InGameMenuStatisticsFrame.L10N_SYMBOL = {
-	["WEEK_DAY_TEMPLATE"] = "ui_financesDay",
-	["BUTTON_BORROW"] = "button_borrow5000",
-	["BUTTON_REPAY"] = "button_repay5000",
-	["BUTTON_NEXT"] = "",
-	["BUTTON_PREV"] = "",
-	["CURRENCY"] = "$CURRENCY_SYMBOL",
-	["SILO_CAPACITY"] = "ui_silos_totalCapacity",
-	["SET_MARKER"] = "action_tag",
-	["REMOVE_MARKER"] = "action_untag",
-	["LIST_STATIONS"] = "action_listStations",
-	["LIST_COMMODITIES"] = "action_listCommodities"
-}
-InGameMenuStatisticsFrame.PROFILE = {
-	["VALUE_CELL_NEUTRAL"] = "fs25_statisticsTextWhite",
-	["VALUE_CELL_NEGATIVE"] = "fs25_statisticsTextRed",
-	["PRICE_NORMAL"] = "fs25_pricesPriceListArrow",
-	["PRICE_FALLING"] = "fs25_pricesPriceListArrowFalling",
-	["PRICE_CLIMBING"] = "fs25_pricesPriceListArrowClimbing",
-	["PRICE_GREAT_DEMAND"] = "fs25_pricesPriceListArrowGreatDemand",
-	["ICON_FRUIT_TYPE"] = "fs25_itemDetailsFruitIcon",
-	["ICON_FILL_TYPES"] = "shopListAttributeIconFillTypes",
-	["ICON_SEED_FILL_TYPES"] = "shopListAttributeIconSeeds",
-	["ICON_INPUT"] = "shopListAttributeIconInput",
-	["ICON_OUTPUT"] = "shopListAttributeIconOutput"
-}
-InGameMenuStatisticsFrame.HEADER_SLICES = {
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = "gui.icon_ingameMenu_prices",
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW] = "gui.icon_vehicleDealer_machines",
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS] = "gui.icon_ingameMenu_handToolsOverview",
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES] = "gui.icon_ingameMenu_finances",
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.STATISTICS] = "gui.icon_ingameMenu_finances"
-}
-InGameMenuStatisticsFrame.HEADER_TITLES = {
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = "ui_prices",
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW] = "ui_garageOverview",
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS] = "ui_handTools",
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES] = "ui_finances",
-	[InGameMenuStatisticsFrame.SUB_CATEGORY.STATISTICS] = "ui_statistics"
-}
+InGameMenuStatisticsFrame.L10N_SYMBOL = { WEEK_DAY_TEMPLATE = "ui_financesDay", BUTTON_BORROW = "button_borrow5000", BUTTON_REPAY = "button_repay5000", BUTTON_NEXT = "", BUTTON_PREV = "", CURRENCY = "$CURRENCY_SYMBOL", SILO_CAPACITY = "ui_silos_totalCapacity", SET_MARKER = "action_tag", REMOVE_MARKER = "action_untag", LIST_STATIONS = "action_listStations", LIST_COMMODITIES = "action_listCommodities" }
+InGameMenuStatisticsFrame.PROFILE = { VALUE_CELL_NEUTRAL = "fs25_statisticsTextWhite", VALUE_CELL_NEGATIVE = "fs25_statisticsTextRed", PRICE_NORMAL = "fs25_pricesPriceListArrow", PRICE_FALLING = "fs25_pricesPriceListArrowFalling", PRICE_CLIMBING = "fs25_pricesPriceListArrowClimbing", PRICE_GREAT_DEMAND = "fs25_pricesPriceListArrowGreatDemand", ICON_FRUIT_TYPE = "fs25_itemDetailsFruitIcon", ICON_FILL_TYPES = "shopListAttributeIconFillTypes", ICON_SEED_FILL_TYPES = "shopListAttributeIconSeeds", ICON_INPUT = "shopListAttributeIconInput", ICON_OUTPUT = "shopListAttributeIconOutput" }
+InGameMenuStatisticsFrame.HEADER_SLICES = { [InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = "gui.icon_ingameMenu_prices", [InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW] = "gui.icon_vehicleDealer_machines", [InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS] = "gui.icon_ingameMenu_handToolsOverview", [InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES] = "gui.icon_ingameMenu_finances", [InGameMenuStatisticsFrame.SUB_CATEGORY.STATISTICS] = "gui.icon_ingameMenu_finances" }
+InGameMenuStatisticsFrame.HEADER_TITLES = { [InGameMenuStatisticsFrame.SUB_CATEGORY.PRICES] = "ui_prices", [InGameMenuStatisticsFrame.SUB_CATEGORY.VEHICLE_OVERVIEW] = "ui_garageOverview", [InGameMenuStatisticsFrame.SUB_CATEGORY.HANDTOOLS] = "ui_handTools", [InGameMenuStatisticsFrame.SUB_CATEGORY.FINANCES] = "ui_finances", [InGameMenuStatisticsFrame.SUB_CATEGORY.STATISTICS] = "ui_statistics" }
 InGameMenuStatisticsFrame.PRICE_SECTIONS = { "helpLine_IconOverview_fillType", "ui_other" }

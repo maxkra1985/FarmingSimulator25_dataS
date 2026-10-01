@@ -1,70 +1,58 @@
--- Local values: VehicleSaleAddEvent_mt
 VehicleSaleAddEvent = {}
 local VehicleSaleAddEvent_mt = Class(VehicleSaleAddEvent, Event)
 InitStaticEventClass(VehicleSaleAddEvent, "VehicleSaleAddEvent")
 function VehicleSaleAddEvent.emptyNew()
-	-- upvalues: (copy) VehicleSaleAddEvent_mt
-	return Event.new(VehicleSaleAddEvent_mt)
+	local self = Event.new(VehicleSaleAddEvent_mt)
+	return self
 end
-
--- Local values: self
 function VehicleSaleAddEvent.new(saleItem)
-	local v3_ = VehicleSaleAddEvent.emptyNew()
-	v3_.saleItem = saleItem
-	return v3_
+	local self = VehicleSaleAddEvent.emptyNew()
+	self.saleItem = saleItem
+	return self
 end
-
--- Local values: saleItem, numConfigurations, i, name, id
 function VehicleSaleAddEvent:readStream(streamId, connection)
-	local v7_ = {
-		["id"] = streamReadUInt8(streamId),
-		["xmlFilename"] = NetworkUtil.convertFromNetworkFilename(streamReadString(streamId)),
-		["age"] = streamReadUInt16(streamId),
-		["price"] = streamReadInt32(streamId),
-		["damage"] = NetworkUtil.readCompressedPercentages(streamId, 10),
-		["wear"] = NetworkUtil.readCompressedPercentages(streamId, 10),
-		["operatingTime"] = streamReadFloat32(streamId),
-		["boughtConfigurations"] = {}
-	}
-	for _ = 1, streamReadUInt8(streamId) do
-		local v8_ = g_vehicleConfigurationManager:getConfigurationNameByIndex(streamReadUIntN(streamId, ConfigurationUtil.SEND_NUM_BITS))
-		local v9_ = streamReadUIntN(streamId, ConfigurationUtil.SEND_NUM_BITS)
-		if v7_.boughtConfigurations[v8_] == nil then
-			v7_.boughtConfigurations[v8_] = {}
+	local saleItem = {}
+	saleItem.id = streamReadUInt8(streamId)
+	saleItem.xmlFilename = NetworkUtil.convertFromNetworkFilename(streamReadString(streamId))
+	saleItem.age = streamReadUInt16(streamId)
+	saleItem.price = streamReadInt32(streamId)
+	saleItem.damage = NetworkUtil.readCompressedPercentages(streamId, 10)
+	saleItem.wear = NetworkUtil.readCompressedPercentages(streamId, 10)
+	saleItem.operatingTime = streamReadFloat32(streamId)
+	saleItem.boughtConfigurations = {}
+	local numConfigurations = streamReadUInt8(streamId)
+	for i = 1, numConfigurations do
+		local name = g_vehicleConfigurationManager:getConfigurationNameByIndex(streamReadUIntN(streamId, ConfigurationUtil.SEND_NUM_BITS))
+		local id = streamReadUIntN(streamId, ConfigurationUtil.SEND_NUM_BITS)
+		if saleItem.boughtConfigurations[name] == nil then
+			saleItem.boughtConfigurations[name] = {}
 		end
-		v7_.boughtConfigurations[v8_][v9_] = true
+		saleItem.boughtConfigurations[name][id] = true
 	end
-	self.saleItem = v7_
+	self.saleItem = saleItem
 	self:run(connection)
 end
-
--- Local values: saleItem, config, name, ids, id, _, i
 function VehicleSaleAddEvent:writeStream(streamId, connection)
-	local v12_ = self.saleItem
-	streamWriteUInt8(streamId, v12_.id)
-	streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(v12_.xmlFilename))
-	streamWriteUInt16(streamId, v12_.age)
-	streamWriteInt32(streamId, v12_.price)
-	NetworkUtil.writeCompressedPercentages(streamId, v12_.damage, 10)
-	NetworkUtil.writeCompressedPercentages(streamId, v12_.wear, 10)
-	streamWriteFloat32(streamId, v12_.operatingTime)
-	local v13_ = {}
-	for v14_, v15_ in pairs(v12_.boughtConfigurations) do
-		for v16_, _ in pairs(v15_) do
-			local v17_ = {
-				["nameId"] = g_vehicleConfigurationManager:getConfigurationIndexByName(v14_),
-				["configId"] = v16_
-			}
-			table.insert(v13_, v17_)
+	local saleItem = self.saleItem
+	streamWriteUInt8(streamId, saleItem.id)
+	streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(saleItem.xmlFilename))
+	streamWriteUInt16(streamId, saleItem.age)
+	streamWriteInt32(streamId, saleItem.price)
+	NetworkUtil.writeCompressedPercentages(streamId, saleItem.damage, 10)
+	NetworkUtil.writeCompressedPercentages(streamId, saleItem.wear, 10)
+	streamWriteFloat32(streamId, saleItem.operatingTime)
+	local config = {}
+	for name, ids in pairs(saleItem.boughtConfigurations) do
+		for id, _ in pairs(ids) do
+			table.insert(config, { configId = id, nameId = g_vehicleConfigurationManager:getConfigurationIndexByName(name) })
 		end
 	end
-	streamWriteUInt8(streamId, #v13_)
-	for v18_ = 1, #v13_ do
-		streamWriteUIntN(streamId, v13_[v18_].nameId, ConfigurationUtil.SEND_NUM_BITS)
-		streamWriteUIntN(streamId, v13_[v18_].configId, ConfigurationUtil.SEND_NUM_BITS)
+	streamWriteUInt8(streamId, #config)
+	for i = 1, #config do
+		streamWriteUIntN(streamId, config[i].nameId, ConfigurationUtil.SEND_NUM_BITS)
+		streamWriteUIntN(streamId, config[i].configId, ConfigurationUtil.SEND_NUM_BITS)
 	end
 end
-
 function VehicleSaleAddEvent:run(connection)
 	if connection:getIsServer() then
 		g_currentMission.vehicleSaleSystem:addSale(self.saleItem, true)

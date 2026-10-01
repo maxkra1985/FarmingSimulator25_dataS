@@ -1,11 +1,8 @@
--- Local values: VehicleConfigurationItem_mt
 VehicleConfigurationItem = {}
 VehicleConfigurationItem.SELECTOR = ConfigurationUtil.SELECTOR_MULTIOPTION
 VehicleConfigurationItem.GLOBAL_DATA = {}
-
 function VehicleConfigurationItem.registerGlobalConfigurationData(data)
-	local v2_ = VehicleConfigurationItem.GLOBAL_DATA
-	table.insert(v2_, data)
+	table.insert(VehicleConfigurationItem.GLOBAL_DATA, data)
 end
 source("dataS/scripts/vehicles/configurations/data/VehicleConfigurationDataAdditionalMass.lua")
 source("dataS/scripts/vehicles/configurations/data/VehicleConfigurationDataAttacherJoint.lua")
@@ -14,39 +11,31 @@ source("dataS/scripts/vehicles/configurations/data/VehicleConfigurationDataMater
 source("dataS/scripts/vehicles/configurations/data/VehicleConfigurationDataObjectChange.lua")
 source("dataS/scripts/vehicles/configurations/data/VehicleConfigurationDataOverwrites.lua")
 source("dataS/scripts/vehicles/configurations/data/VehicleConfigurationDataSize.lua")
-local v_u_3_ = Class(VehicleConfigurationItem)
-
--- Upvalues: VehicleConfigurationItem_mt
--- Local values: self
+local VehicleConfigurationItem_mt = Class(VehicleConfigurationItem)
 function VehicleConfigurationItem.new(configName, customMt)
-	-- upvalues: (copy) v_u_3_
-	local v6_ = customMt or v_u_3_
-	local v7_ = setmetatable({}, v6_)
-	v7_.configName = configName
-	v7_.name = ""
-	v7_.index = -1
-	v7_.hasDefaultName = false
-	v7_.configKey = ""
-	v7_.desc = nil
-	v7_.price = 0
-	v7_.dailyUpkeep = 0
-	v7_.isDefault = false
-	v7_.isSelectable = true
-	v7_.saveId = nil
-	v7_.isYesNoOption = false
-	return v7_
+	local self = setmetatable({}, customMt or VehicleConfigurationItem_mt)
+	self.configName = configName
+	self.name = ""
+	self.index = -1
+	self.hasDefaultName = false
+	self.configKey = ""
+	self.desc = nil
+	self.price = 0
+	self.dailyUpkeep = 0
+	self.isDefault = false
+	self.isSelectable = true
+	self.saveId = nil
+	self.isYesNoOption = false
+	return self
 end
-
--- Local values: params, vehicleBrandName, vehicleIcon, brandName, _, data
 function VehicleConfigurationItem:loadFromXML(xmlFile, baseKey, configKey, baseDirectory, customEnvironment)
 	self.name = xmlFile:getValue(configKey .. "#name", self.name, customEnvironment, false)
-	local v14_ = xmlFile:getValue(configKey .. "#params")
-	if v14_ ~= nil then
-		self.name = g_i18n:insertTextParams(self.name, v14_, customEnvironment, xmlFile)
+	local params = xmlFile:getValue(configKey .. "#params")
+	if params ~= nil then
+		self.name = g_i18n:insertTextParams(self.name, params, customEnvironment, xmlFile)
 	end
 	if self.name == "" then
-		local v15_ = self.index
-		self.name = tostring(v15_)
+		self.name = tostring(self.index)
 		self.hasDefaultName = true
 	end
 	self.configKey = configKey
@@ -58,126 +47,120 @@ function VehicleConfigurationItem:loadFromXML(xmlFile, baseKey, configKey, baseD
 	self.saveId = xmlFile:getValue(configKey .. "#saveId", self.saveId)
 	self.overwrittenTitle = xmlFile:getValue(baseKey .. "#title", nil, customEnvironment, false)
 	self.isYesNoOption = xmlFile:getValue(baseKey .. "#isYesNoOption", self.isYesNoOption)
-	local v16_ = xmlFile:getValue(configKey .. "#vehicleBrand")
-	self.vehicleBrand = g_brandManager:getBrandIndexByName(v16_)
+	local vehicleBrandName = xmlFile:getValue(configKey .. "#vehicleBrand")
+	self.vehicleBrand = g_brandManager:getBrandIndexByName(vehicleBrandName)
 	self.vehicleName = xmlFile:getValue(configKey .. "#vehicleName", nil, customEnvironment, false)
-	local v17_ = xmlFile:getValue(configKey .. "#vehicleIcon")
-	if v17_ ~= nil then
-		self.vehicleIcon = Utils.getFilename(v17_, baseDirectory)
+	local vehicleIcon = xmlFile:getValue(configKey .. "#vehicleIcon")
+	if vehicleIcon ~= nil then
+		self.vehicleIcon = Utils.getFilename(vehicleIcon, baseDirectory)
 		if not textureFileExists(self.vehicleIcon) then
-			Logging.xmlWarning(xmlFile, "Custom configuration vehicle icon \'%s\' not found.", self.vehicleIcon)
+			Logging.xmlWarning(xmlFile, "Custom configuration vehicle icon '%s' not found.", self.vehicleIcon)
 			self.vehicleIcon = nil
 		end
 	end
-	local v18_ = xmlFile:getValue(configKey .. "#displayBrand")
-	self.brandIndex = g_brandManager:getBrandIndexByName(v18_)
+	local brandName = xmlFile:getValue(configKey .. "#displayBrand")
+	self.brandIndex = g_brandManager:getBrandIndexByName(brandName)
 	self.shopTranslationOffset = xmlFile:getValue(configKey .. ".shopOffset#translation", nil, true)
 	self.shopRotationOffset = xmlFile:getValue(configKey .. ".shopOffset#rotation", nil, true)
-	for _, v19_ in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
-		if v19_.loadConfigItem ~= nil then
-			v19_.loadConfigItem(self, xmlFile, baseKey, configKey, baseDirectory, customEnvironment)
+	for _, data in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
+		if data.loadConfigItem == nil then
+			continue
 		end
+		data.loadConfigItem(self, xmlFile, baseKey, configKey, baseDirectory, customEnvironment)
 	end
 	return true
 end
-
 function VehicleConfigurationItem:saveToXMLFile(xmlFile, key, isActive, configurationData)
 	xmlFile:setValue(key .. "#name", self.configName)
 	xmlFile:setValue(key .. "#id", self.saveId)
 	xmlFile:setValue(key .. "#isActive", Utils.getNoNil(isActive, false))
 end
-
 function VehicleConfigurationItem:loadFromSavegameXMLFile(xmlFile, key, configurationData) end
-
 function VehicleConfigurationItem:setIndex(index)
 	self.index = index
 	if self.saveId == nil then
 		self.saveId = tostring(index)
 	end
 end
-
 function VehicleConfigurationItem:getNeedsRenaming(otherItem)
 	return self.name == otherItem.name
 end
-
--- Local values: _, data
 function VehicleConfigurationItem:onPreLoad(object, configId)
-	for _, v31_ in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
-		if v31_.onPreLoad ~= nil then
-			v31_.onPreLoad(object, self, configId)
+	for _, data in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
+		if data.onPreLoad == nil then
+			continue
 		end
+		data.onPreLoad(object, self, configId)
 	end
 end
-
--- Local values: _, data
 function VehicleConfigurationItem:onLoad(object, configId)
-	for _, v35_ in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
-		if v35_.onLoad ~= nil then
-			v35_.onLoad(object, self, configId)
+	for _, data in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
+		if data.onLoad == nil then
+			continue
 		end
+		data.onLoad(object, self, configId)
 	end
 end
-
--- Local values: _, data
 function VehicleConfigurationItem:onPrePostLoad(object, configId)
-	for _, v39_ in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
-		if v39_.onPrePostLoad ~= nil then
-			v39_.onPrePostLoad(object, self, configId)
+	for _, data in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
+		if data.onPrePostLoad == nil then
+			continue
 		end
+		data.onPrePostLoad(object, self, configId)
 	end
 end
-
--- Local values: _, data
 function VehicleConfigurationItem:onPostLoad(object, configId)
-	for _, v43_ in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
-		if v43_.onPostLoad ~= nil then
-			v43_.onPostLoad(object, self, configId)
+	for _, data in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
+		if data.onPostLoad == nil then
+			continue
 		end
+		data.onPostLoad(object, self, configId)
 	end
 end
-
--- Local values: _, data
 function VehicleConfigurationItem:onLoadFinished(object, configId)
-	for _, v47_ in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
-		if v47_.onLoadFinished ~= nil then
-			v47_.onLoadFinished(object, self, configId)
+	for _, data in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
+		if data.onLoadFinished == nil then
+			continue
 		end
+		data.onLoadFinished(object, self, configId)
 	end
 end
-
--- Local values: _, data
 function VehicleConfigurationItem:onSizeLoad(xmlFile, sizeData)
-	for _, v51_ in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
-		if v51_.onSizeLoad ~= nil then
-			v51_.onSizeLoad(self, xmlFile, sizeData)
+	for _, data in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
+		if data.onSizeLoad == nil then
+			continue
 		end
+		data.onSizeLoad(self, xmlFile, sizeData)
 	end
 end
-
--- Local values: i, renameIndex, j, i
 function VehicleConfigurationItem.postLoad(xmlFile, baseKey, baseDir, customEnvironment, isMod, configurationItems, storeItem)
-	for v54_ = 1, #configurationItems do
-		local v55_ = 0
-		for v56_ = 1, #configurationItems do
-			if configurationItems[v54_] ~= configurationItems[v56_] then
-				if configurationItems[v54_]:getNeedsRenaming(configurationItems[v56_]) then
-					configurationItems[v54_].renameIndex = (configurationItems[v56_].renameIndex or v55_) + 1
-				end
-				if configurationItems[v54_].saveId ~= nil and configurationItems[v54_].saveId == configurationItems[v56_].saveId then
-					Logging.xmlWarning(xmlFile, "Duplicated saveId \'%s\' in \'%s\' configurations", configurationItems[v54_].saveId, configurationItems[v54_].configName)
-				end
+	for i = 1, #configurationItems do
+		local renameIndex = 0
+		for j = 1, #configurationItems do
+			if configurationItems[i] == configurationItems[j] then
+				continue
+			end
+			if configurationItems[i]:getNeedsRenaming(configurationItems[j]) then
+				configurationItems[i].renameIndex = (configurationItems[j].renameIndex or renameIndex) + 1
+			end
+			if configurationItems[i].saveId == nil then
+				continue
+			end
+			if configurationItems[i].saveId == configurationItems[j].saveId then
+				Logging.xmlWarning(xmlFile, "Duplicated saveId '%s' in '%s' configurations", configurationItems[i].saveId, configurationItems[i].configName)
 			end
 		end
 	end
-	for v57_ = 1, #configurationItems do
-		if configurationItems[v57_].renameIndex ~= nil and configurationItems[v57_].renameIndex > 1 then
-			configurationItems[v57_].name = string.format("%s\194\160(%d)", configurationItems[v57_].name, configurationItems[v57_].renameIndex)
-			configurationItems[v57_].renameIndex = nil
+	for i = 1, #configurationItems do
+		if configurationItems[i].renameIndex == nil then
+			continue
+		end
+		if 1 < configurationItems[i].renameIndex then
+			configurationItems[i].name = string.format("%s\194\160(%d)", configurationItems[i].name, configurationItems[i].renameIndex)
+			configurationItems[i].renameIndex = nil
 		end
 	end
 end
-
--- Local values: _, data
 function VehicleConfigurationItem.registerXMLPaths(schema, rootPath, configPath)
 	schema:register(XMLValueType.L10N_STRING, rootPath .. "#title", "configuration title to display in shop")
 	schema:register(XMLValueType.BOOL, rootPath .. "#isYesNoOption", "UI in the shop will just show a yes/no slider element", false)
@@ -195,13 +178,13 @@ function VehicleConfigurationItem.registerXMLPaths(schema, rootPath, configPath)
 	schema:register(XMLValueType.STRING, configPath .. "#vehicleIcon", "Custom icon to display after bought with this configuration")
 	schema:register(XMLValueType.VECTOR_TRANS, configPath .. ".shopOffset#translation", "Shop translation offset when this config is used")
 	schema:register(XMLValueType.VECTOR_ROT, configPath .. ".shopOffset#rotation", "Shop rotation offset when this config is used")
-	for _, v61_ in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
-		if v61_.registerXMLPaths ~= nil then
-			v61_.registerXMLPaths(schema, rootPath, configPath)
+	for _, data in ipairs(VehicleConfigurationItem.GLOBAL_DATA) do
+		if data.registerXMLPaths == nil then
+			continue
 		end
+		data.registerXMLPaths(schema, rootPath, configPath)
 	end
 end
-
 function VehicleConfigurationItem.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#name", "Name of configuration")
 	schema:register(XMLValueType.STRING, basePath .. "#id", "Save id")

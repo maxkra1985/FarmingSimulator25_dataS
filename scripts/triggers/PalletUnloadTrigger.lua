@@ -1,67 +1,58 @@
--- Local values: PalletUnloadTrigger_mt
 PalletUnloadTrigger = {}
 source("dataS/scripts/triggers/PalletUnloadTriggerActivatable.lua")
 local PalletUnloadTrigger_mt = Class(PalletUnloadTrigger, UnloadTrigger)
 UnloadTrigger.registerCustomTrigger("palletTrigger", PalletUnloadTrigger)
 InitStaticObjectClass(PalletUnloadTrigger, "PalletUnloadTrigger")
-
 function PalletUnloadTrigger.registerXMLPaths(schema, basePath)
 	UnloadTrigger.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#triggerNode", "Trigger node")
 	schema:register(XMLValueType.BOOL, basePath .. "#autoUnload", "Auto unload pallets", true)
 	schema:register(XMLValueType.BOOL, basePath .. "#autoUnloadStrapped", "Auto unload pallets that are fasten with tension belts", false)
 end
-
--- Upvalues: PalletUnloadTrigger_mt
--- Local values: self
 function PalletUnloadTrigger.new(isServer, isClient, customMt)
-	-- upvalues: (copy) PalletUnloadTrigger_mt
-	local v7_ = UnloadTrigger.new(isServer, isClient, customMt or PalletUnloadTrigger_mt)
-	v7_.triggerNode = nil
-	v7_.activatable = PalletUnloadTriggerActivatable.new(v7_)
-	v7_.isPlayerInRange = false
-	v7_.isEnabled = true
-	v7_.palletsInRange = {}
-	v7_.vehiclesInRange = {}
-	v7_.autoUnload = true
-	v7_.autoUnloadStrapped = false
-	return v7_
+	local self = UnloadTrigger.new(isServer, isClient, customMt or PalletUnloadTrigger_mt)
+	self.triggerNode = nil
+	self.activatable = PalletUnloadTriggerActivatable.new(self)
+	self.isPlayerInRange = false
+	self.isEnabled = true
+	self.palletsInRange = {}
+	self.vehiclesInRange = {}
+	self.autoUnload = true
+	self.autoUnloadStrapped = false
+	return self
 end
-
--- Local values: triggerNodeKey, colMask
 function PalletUnloadTrigger:load(components, xmlFile, xmlNode, target, extraAttributes, i3dMappings)
 	if not PalletUnloadTrigger:superClass().load(self, components, xmlFile, xmlNode, target, extraAttributes, i3dMappings) then
 		return false
 	end
-	local v15_ = xmlNode .. "#triggerNode"
-	self.triggerNode = xmlFile:getValue(v15_, nil, components, i3dMappings)
+	local triggerNodeKey = xmlNode .. "#triggerNode"
+	self.triggerNode = xmlFile:getValue(triggerNodeKey, nil, components, i3dMappings)
 	if self.triggerNode == nil then
-		Logging.xmlError(xmlFile, "Pallet trigger %q not specified!", v15_)
+		Logging.xmlError(xmlFile, "Pallet trigger %q not specified!", triggerNodeKey)
 		return false
 	end
-	local v16_ = getCollisionFilterMask(self.triggerNode)
-	local v17_ = CollisionFlag.VEHICLE
-	if bit32.band(v17_, v16_) == 0 then
-		Logging.xmlError(xmlFile, "Invalid collision mask for pallet trigger \'%s\'. %s needs to be set!", v15_, CollisionFlag.getBitAndName(CollisionFlag.VEHICLE))
+	local colMask = getCollisionFilterMask(self.triggerNode)
+	if bit32.band(CollisionFlag.VEHICLE, colMask) == 0 then
+		Logging.xmlError(xmlFile, "Invalid collision mask for pallet trigger '%s'. %s needs to be set!", triggerNodeKey, CollisionFlag.getBitAndName(CollisionFlag.VEHICLE))
 		return false
+	else
+		addTrigger(self.triggerNode, "palletTriggerCallback", self)
+		self.autoUnload = xmlFile:getValue(xmlNode .. "#autoUnload", self.autoUnload)
+		self.autoUnloadStrapped = xmlFile:getValue(xmlNode .. "#autoUnloadStrapped", self.autoUnloadStrapped)
+		return true
 	end
-	addTrigger(self.triggerNode, "palletTriggerCallback", self)
-	self.autoUnload = xmlFile:getValue(xmlNode .. "#autoUnload", self.autoUnload)
-	self.autoUnloadStrapped = xmlFile:getValue(xmlNode .. "#autoUnloadStrapped", self.autoUnloadStrapped)
-	return true
 end
-
--- Local values: _, pallet
 function PalletUnloadTrigger:delete()
 	if self.triggerNode ~= nil and self.triggerNode ~= 0 then
 		removeTrigger(self.triggerNode)
 		self.triggerNode = 0
 	end
 	if self.palletsInRange ~= nil then
-		for _, v19_ in ipairs(self.palletsInRange) do
-			if v19_.removeDeleteListener ~= nil then
-				v19_:removeDeleteListener(self, "onObjectDeleted")
+		for _, pallet in ipairs(self.palletsInRange) do
+			if pallet.removeDeleteListener == nil then
+				continue
 			end
+			pallet:removeDeleteListener(self, "onObjectDeleted")
 		end
 		table.clear(self.palletsInRange)
 	end
@@ -70,7 +61,6 @@ function PalletUnloadTrigger:delete()
 	end
 	PalletUnloadTrigger:superClass().delete(self)
 end
-
 function PalletUnloadTrigger:update(dt)
 	PalletUnloadTrigger:superClass().update(self, dt)
 	if self.isServer and next(self.palletsInRange) ~= nil then
@@ -80,39 +70,42 @@ function PalletUnloadTrigger:update(dt)
 		end
 	end
 end
-
--- Local values: mission, accessHandler, _, pallet, fillUnits, fillUnitIndex, _, fillTypeIndex, fillLevel, isAllowed, used
 function PalletUnloadTrigger:unloadPallets(farmId)
-	if self.isServer then
-		local v24_ = g_currentMission
-		local v25_ = v24_.accessHandler
-		for _, v26_ in ipairs(self.palletsInRange) do
-			if farmId == nil or v25_:canFarmAccess(farmId, v26_) then
-				local v27_ = v26_:getFillUnits()
-				for v28_, _ in pairs(v27_) do
-					local v29_ = v26_:getFillUnitFillType(v28_)
-					if v29_ ~= FillType.UNKNOWN and self:getIsFillTypeSupported(v29_) then
-						local v30_ = v26_:getFillUnitFillLevel(v28_)
-						if v30_ > 0 then
-							local v31_ = true
-							if v26_.dynamicMountType ~= nil and v26_.dynamicMountType ~= MountableObject.MOUNT_TYPE_NONE then
+	if not self.isServer then
+		g_client:getServerConnection():sendEvent(PalletUnloadTriggerEvent.new(self))
+	else
+		local mission = g_currentMission
+		local accessHandler = mission.accessHandler
+		for _, pallet in ipairs(self.palletsInRange) do
+			if farmId == nil or accessHandler:canFarmAccess(farmId, pallet) then
+				local fillUnits = pallet:getFillUnits()
+				for fillUnitIndex, _ in pairs(fillUnits) do
+					local fillTypeIndex = pallet:getFillUnitFillType(fillUnitIndex)
+					if fillTypeIndex == FillType.UNKNOWN then
+						continue
+					end
+					if self:getIsFillTypeSupported(fillTypeIndex) then
+						local fillLevel = pallet:getFillUnitFillLevel(fillUnitIndex)
+						if 0 < fillLevel then
+							local isAllowed = true
+							if pallet.dynamicMountType ~= nil and pallet.dynamicMountType ~= MountableObject.MOUNT_TYPE_NONE then
 								if self.autoUnloadStrapped then
-									v26_:unmountDynamic()
+									pallet:unmountDynamic()
 								else
-									v31_ = false
+									isAllowed = false
 									if self.isServer then
 										self:raiseActive()
 									end
 								end
 							end
-							if v31_ then
-								if v26_.getPalletUnloadTriggerExtraSellPrice ~= nil and (self.target ~= nil and self.target.moneyChangeType ~= nil) then
-									v24_:addMoney(v26_:getPalletUnloadTriggerExtraSellPrice(), v26_:getOwnerFarmId(), self.target.moneyChangeType, true)
+							if isAllowed then
+								if pallet.getPalletUnloadTriggerExtraSellPrice ~= nil and (self.target ~= nil and self.target.moneyChangeType ~= nil) then
+									mission:addMoney(pallet:getPalletUnloadTriggerExtraSellPrice(), pallet:getOwnerFarmId(), self.target.moneyChangeType, true)
 								end
-								local v32_ = self:addFillUnitFillLevel(v26_:getOwnerFarmId(), v28_, v30_, v29_, ToolType.UNDEFINED)
-								v26_:addFillUnitFillLevel(v26_:getOwnerFarmId(), v28_, -v32_, v29_, ToolType.UNDEFINED)
-								if v26_:getFillUnitFillLevel(v28_) < 1 then
-									v26_:delete()
+								local used = self:addFillUnitFillLevel(pallet:getOwnerFarmId(), fillUnitIndex, fillLevel, fillTypeIndex, ToolType.UNDEFINED)
+								pallet:addFillUnitFillLevel(pallet:getOwnerFarmId(), fillUnitIndex, -used, fillTypeIndex, ToolType.UNDEFINED)
+								if pallet:getFillUnitFillLevel(fillUnitIndex) < 1 then
+									pallet:delete()
 								end
 							end
 						end
@@ -120,69 +113,68 @@ function PalletUnloadTrigger:unloadPallets(farmId)
 				end
 			end
 		end
-	else
-		g_client:getServerConnection():sendEvent(PalletUnloadTriggerEvent.new(self))
 	end
 end
-
--- Local values: mission
 function PalletUnloadTrigger:updateActivatableObject()
-	local v34_ = g_currentMission
+	local mission = g_currentMission
 	if self.isPlayerInRange or next(self.vehiclesInRange) ~= nil then
-		v34_.activatableObjectsSystem:addActivatable(self.activatable)
-	else
-		v34_.activatableObjectsSystem:removeActivatable(self.activatable)
+		mission.activatableObjectsSystem:addActivatable(self.activatable)
+		return
 	end
+	mission.activatableObjectsSystem:removeActivatable(self.activatable)
 end
-
 function PalletUnloadTrigger:onObjectDeleted(object)
 	table.removeElement(self.palletsInRange, object)
 	self.vehiclesInRange[object] = nil
 end
-
--- Local values: mission, object, fillUnits, fillUnitIndex, _, fillTypeIndex
 function PalletUnloadTrigger:palletTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay, otherShapeId)
 	if otherId ~= 0 then
-		local v40_ = g_currentMission:getNodeObject(otherId)
-		if v40_ ~= nil and (v40_.isPallet and v40_.getFillUnits ~= nil) then
+		local mission = g_currentMission
+		local object = mission:getNodeObject(otherId)
+		if object ~= nil and (object.isPallet and object.getFillUnits ~= nil) then
 			if onEnter then
-				local v41_ = v40_:getFillUnits()
-				for v42_, _ in pairs(v41_) do
-					local v43_ = v40_:getFillUnitFillType(v42_)
-					if v43_ ~= FillType.UNKNOWN and (self:getIsFillTypeSupported(v43_) and v40_:getFillUnitFillLevel(v42_) > 0) then
-						table.addElement(self.palletsInRange, v40_)
-						v40_:addDeleteListener(self, "onObjectDeleted")
+				local fillUnits = object:getFillUnits()
+				for fillUnitIndex, _ in pairs(fillUnits) do
+					local fillTypeIndex = object:getFillUnitFillType(fillUnitIndex)
+					if fillTypeIndex == FillType.UNKNOWN then
+						continue
+					end
+					if self:getIsFillTypeSupported(fillTypeIndex) and 0 < object:getFillUnitFillLevel(fillUnitIndex) then
+						table.addElement(self.palletsInRange, object)
+						object:addDeleteListener(self, "onObjectDeleted")
 					end
 				end
 				if self.autoUnload and self.isServer then
 					self:unloadPallets()
 				end
 			else
-				table.removeElement(self.palletsInRange, v40_)
-				v40_:removeDeleteListener(self, "onObjectDeleted")
+				table.removeElement(self.palletsInRange, object)
+				object:removeDeleteListener(self, "onObjectDeleted")
 			end
 		end
 		if not self.autoUnload then
-			if v40_ == nil then
-				if g_localPlayer ~= nil and otherId == g_localPlayer.rootNode then
+			if object ~= nil then
+				if object:isa(Vehicle) then
+					if onEnter then
+						if self.vehiclesInRange[object] == nil then
+							self.vehiclesInRange[object] = 0
+							object:addDeleteListener(self, "onObjectDeleted")
+						end
+						self.vehiclesInRange[object] = self.vehiclesInRange[object] + 1
+					elseif self.vehiclesInRange[object] ~= nil then
+						self.vehiclesInRange[object] = self.vehiclesInRange[object] - 1
+						if self.vehiclesInRange[object] == 0 then
+							self.vehiclesInRange[object] = nil
+							object:removeDeleteListener(self, "onObjectDeleted")
+						end
+					end
+				end
+			elseif g_localPlayer ~= nil then
+				if otherId == g_localPlayer.rootNode then
 					if onEnter then
 						self.isPlayerInRange = true
 					else
 						self.isPlayerInRange = false
-					end
-				end
-			elseif v40_:isa(Vehicle) then
-				if onEnter then
-					if self.vehiclesInRange[v40_] == nil then
-						self.vehiclesInRange[v40_] = 0
-						v40_:addDeleteListener(self, "onObjectDeleted")
-					end
-					self.vehiclesInRange[v40_] = self.vehiclesInRange[v40_] + 1
-				elseif self.vehiclesInRange[v40_] ~= nil then
-					self.vehiclesInRange[v40_] = self.vehiclesInRange[v40_] - 1
-					if self.vehiclesInRange[v40_] == 0 then
-						self.vehiclesInRange[v40_] = nil
-						v40_:removeDeleteListener(self, "onObjectDeleted")
 					end
 				end
 			end
@@ -190,7 +182,6 @@ function PalletUnloadTrigger:palletTriggerCallback(triggerId, otherId, onEnter, 
 		self:updateActivatableObject()
 	end
 end
-
 function PalletUnloadTrigger:getNeedRaiseActive()
 	return false
 end

@@ -1,8 +1,6 @@
--- Local values: WashingStation_mt, WashingStationActivatable_mt
 WashingStation = {}
 local WashingStation_mt = Class(WashingStation, Object)
 InitStaticObjectClass(WashingStation, "WashingStation")
-
 function WashingStation.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".trigger#node", "Vehicle trigger node")
 	schema:register(XMLValueType.FLOAT, basePath .. "#washDuration", "Wash duration")
@@ -10,40 +8,33 @@ function WashingStation.registerXMLPaths(schema, basePath)
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".sounds", "active")
 	EffectManager.registerEffectXMLPaths(schema, basePath .. ".effects")
 end
-
--- Upvalues: WashingStation_mt
--- Local values: self
 function WashingStation.new(isServer, isClient, customMt)
-	-- upvalues: (copy) WashingStation_mt
-	return Object.new(isServer, isClient, customMt or WashingStation_mt)
+	local self = Object.new(isServer, isClient, customMt or WashingStation_mt)
+	return self
 end
-
--- Local values: trigger, _, baseDirectory
 function WashingStation:load(components, xmlFile, key, customEnv, i3dMappings, rootNode)
-	local v13_ = xmlFile:getValue(key .. ".trigger#node", rootNode, components, i3dMappings)
-	if v13_ == nil then
+	local trigger = xmlFile:getValue(key .. ".trigger#node", rootNode, components, i3dMappings)
+	if trigger == nil then
 		return false
+	else
+		self.trigger = trigger
+		addTrigger(trigger, "onTriggerCallback", self)
+		self.isEnabled = true
+		self.vehicleNodesInRange = {}
+		self.vehiclesToWash = {}
+		self.pricePerWash = xmlFile:getValue(key .. "#pricePerWash", 1)
+		self.washDuration = xmlFile:getValue(key .. "#washDuration", 1) * 1000
+		if self.isClient then
+			local _, baseDirectory = Utils.getModNameAndBaseDirectory(xmlFile:getFilename())
+			self.samples = { active = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "active", baseDirectory, components, 0, AudioGroup.ENVIRONMENT, i3dMappings, nil) }
+			self.effects = g_effectManager:loadEffect(xmlFile, key .. ".effects", components, self, i3dMappings)
+			self.fxActive = false
+		end
+		self.activatable = WashingStationActivatable.new(self, self.trigger)
+		self.dirtyFlag = self:getNextDirtyFlag()
+		return true
 	end
-	self.trigger = v13_
-	addTrigger(v13_, "onTriggerCallback", self)
-	self.isEnabled = true
-	self.vehicleNodesInRange = {}
-	self.vehiclesToWash = {}
-	self.pricePerWash = xmlFile:getValue(key .. "#pricePerWash", 1)
-	self.washDuration = xmlFile:getValue(key .. "#washDuration", 1) * 1000
-	if self.isClient then
-		local _, v14_ = Utils.getModNameAndBaseDirectory(xmlFile:getFilename())
-		self.samples = {
-			["active"] = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "active", v14_, components, 0, AudioGroup.ENVIRONMENT, i3dMappings, nil)
-		}
-		self.effects = g_effectManager:loadEffect(xmlFile, key .. ".effects", components, self, i3dMappings)
-		self.fxActive = false
-	end
-	self.activatable = WashingStationActivatable.new(self, self.trigger)
-	self.dirtyFlag = self:getNextDirtyFlag()
-	return true
 end
-
 function WashingStation:delete()
 	if self.trigger ~= nil then
 		removeTrigger(self.trigger)
@@ -56,36 +47,33 @@ function WashingStation:delete()
 	self.vehicleNodesInRange = {}
 	g_currentMission.activatableObjectsSystem:removeActivatable(self.activatable)
 end
-
--- Local values: isActive
 function WashingStation:readUpdateStream(streamId, timestamp, connection)
 	WashingStation:superClass().readUpdateStream(self, streamId, timestamp, connection)
 	if connection:getIsServer() then
-		if streamReadBool(streamId) then
+		local isActive = streamReadBool(streamId)
+		if isActive then
 			self:onStartWashing()
 			return
 		end
 		self:onStopWashing()
 	end
 end
-
 function WashingStation:writeUpdateStream(streamId, connection, dirtyMask)
 	WashingStation:superClass().writeUpdateStream(self, streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
 		streamWriteBool(streamId, self.endTime ~= nil)
 	end
 end
-
--- Local values: i, vehicle, dirtAmount
 function WashingStation:update(dt)
 	if self.isServer and self.endTime ~= nil then
-		if self.endTime > g_time then
-			for v26_ = #self.vehiclesToWash, 1, -1 do
-				local v27_ = self.vehiclesToWash[v26_]
-				if v27_:getDirtAmount() > 0.01 then
-					v27_:cleanVehicle(1 / self.washDuration * dt)
+		if g_time < self.endTime then
+			for i = #self.vehiclesToWash, 1, -1 do
+				local vehicle = self.vehiclesToWash[i]
+				local dirtAmount = vehicle:getDirtAmount()
+				if 0.01 < dirtAmount then
+					vehicle:cleanVehicle(1 / self.washDuration * dt)
 				else
-					table.remove(self.vehiclesToWash, v26_)
+					table.remove(self.vehiclesToWash, i)
 				end
 			end
 			self:raiseActive()
@@ -94,39 +82,35 @@ function WashingStation:update(dt)
 		self:onStopWashing()
 	end
 end
-
--- Local values: isWashing, washedVehicles, costs, node, _, vehicle, dirtAmount
 function WashingStation:startWashing(farmId)
 	if self.isServer then
-		local v30_ = {}
-		local v31_ = 0
-		local v32_ = false
-		for v33_, _ in pairs(self.vehicleNodesInRange) do
-			if entityExists(v33_) then
-				local v34_ = g_currentMission:getNodeObject(v33_)
-				if v30_[v34_] == nil then
-					local v35_ = v34_:getDirtAmount()
-					if v35_ > 0.01 then
-						local v36_ = self.vehiclesToWash
-						table.insert(v36_, v34_)
-						v31_ = v31_ + v35_ * self.pricePerWash
-						v32_ = true
+		local isWashing = false
+		local washedVehicles = {}
+		local costs = 0
+		for node, _ in pairs(self.vehicleNodesInRange) do
+			if entityExists(node) then
+				local vehicle = g_currentMission:getNodeObject(node)
+				if washedVehicles[vehicle] == nil then
+					local dirtAmount = vehicle:getDirtAmount()
+					if 0.01 < dirtAmount then
+						isWashing = true
+						table.insert(self.vehiclesToWash, vehicle)
+						costs = costs + dirtAmount * self.pricePerWash
 					end
-					v30_[v34_] = true
+					washedVehicles[vehicle] = true
 				end
 			else
-				self.vehicleNodesInRange[v33_] = nil
+				self.vehicleNodesInRange[node] = nil
 			end
 		end
-		if v32_ then
-			if v31_ >= 1 then
-				g_currentMission:addMoney(-v31_, farmId, MoneyType.VEHICLE_REPAIR, true, true)
+		if isWashing then
+			if 1 <= costs then
+				g_currentMission:addMoney(-costs, farmId, MoneyType.VEHICLE_REPAIR, true, true)
 			end
 			self:onStartWashing()
 		end
 	end
 end
-
 function WashingStation:onStartWashing()
 	if self.isServer then
 		self.endTime = g_time + self.washDuration
@@ -140,12 +124,10 @@ function WashingStation:onStartWashing()
 		self.fxActive = true
 	end
 end
-
--- Local values: i
 function WashingStation:onStopWashing()
 	if self.isServer then
-		for v39_ = #self.vehiclesToWash, 1, -1 do
-			self.vehiclesToWash[v39_] = nil
+		for i = #self.vehiclesToWash, 1, -1 do
+			self.vehiclesToWash[i] = nil
 		end
 		self:raiseDirtyFlags(self.dirtyFlag)
 	end
@@ -155,79 +137,76 @@ function WashingStation:onStopWashing()
 		self.fxActive = false
 	end
 end
-
--- Local values: canBeActivated, node, _, vehicle
 function WashingStation:updateVehicleState()
 	g_currentMission.activatableObjectsSystem:removeActivatable(self.activatable)
-	if self.isEnabled then
-		local v41_ = self.isPlayerInRange
-		if not v41_ then
-			for v42_, _ in pairs(self.vehicleNodesInRange) do
-				if entityExists(v42_) then
-					local v43_ = g_currentMission:getNodeObject(v42_)
-					if v43_ ~= nil and v43_ == g_localPlayer:getCurrentVehicle() then
-						v41_ = true
+	if not self.isEnabled then
+		return
+	else
+		local canBeActivated = self.isPlayerInRange
+		if not canBeActivated then
+			for node, _ in pairs(self.vehicleNodesInRange) do
+				if entityExists(node) then
+					local vehicle = g_currentMission:getNodeObject(node)
+					if vehicle == nil then
+						continue
+					end
+					if vehicle == g_localPlayer:getCurrentVehicle() then
+						canBeActivated = true
 					end
 				else
-					self.vehicleNodesInRange[v42_] = nil
+					self.vehicleNodesInRange[node] = nil
 				end
 			end
 		end
-		if v41_ then
+		if canBeActivated then
 			g_currentMission.activatableObjectsSystem:addActivatable(self.activatable)
 		end
 	end
 end
-
--- Local values: changed, object
 function WashingStation:onTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay, otherShapeId)
 	if onEnter or onLeave then
-		local v48_ = nil
-		if g_localPlayer == nil or otherId ~= g_localPlayer.rootNode then
-			local v49_ = g_currentMission:getNodeObject(otherId)
-			if v49_ ~= nil and (v49_:isa(Vehicle) and (v49_.getAllowsWashingByType ~= nil and v49_:getAllowsWashingByType(Washable.WASHTYPE_TRIGGER))) then
-				if onEnter then
-					self.vehicleNodesInRange[otherId] = true
-					v48_ = true
-				else
-					self.vehicleNodesInRange[otherId] = nil
-					v48_ = true
+		local changed = nil
+		if g_localPlayer ~= nil then
+			if otherId ~= g_localPlayer.rootNode then
+				local object = g_currentMission:getNodeObject(otherId)
+				if object ~= nil and (object:isa(Vehicle) and (object.getAllowsWashingByType ~= nil and object:getAllowsWashingByType(Washable.WASHTYPE_TRIGGER))) then
+					if onEnter then
+						self.vehicleNodesInRange[otherId] = true
+						changed = true
+					else
+						self.vehicleNodesInRange[otherId] = nil
+						changed = true
+					end
 				end
+			elseif onEnter then
+				self.isPlayerInRange = true
+				changed = true
+			else
+				self.isPlayerInRange = false
+				changed = true
 			end
-		elseif onEnter then
-			self.isPlayerInRange = true
-			v48_ = true
-		else
-			self.isPlayerInRange = false
-			v48_ = true
 		end
-		if v48_ then
+		if changed then
 			self:updateVehicleState()
 		end
 	end
 end
 WashingStationActivatable = {}
-local v_u_50_ = Class(WashingStationActivatable)
-function WashingStationActivatable.new(p51_, p52_)
-	-- upvalues: (copy) v_u_50_
-	local v53_ = v_u_50_
-	local v54_ = setmetatable({}, v53_)
-	v54_.washingStation = p51_
-	v54_.triggerNode = p52_
-	v54_.activateText = g_i18n:getText("action_startWashing")
-	return v54_
+local WashingStationActivatable_mt = Class(WashingStationActivatable)
+function WashingStationActivatable.new(washingStation, triggerNode)
+	local self = setmetatable({}, WashingStationActivatable_mt)
+	self.washingStation = washingStation
+	self.triggerNode = triggerNode
+	self.activateText = g_i18n:getText("action_startWashing")
+	return self
 end
-
 function WashingStationActivatable:getIsActivatable()
 	return g_currentMission.accessHandler:canFarmAccess(g_currentMission:getFarmId(), self.washingStation)
 end
-
 function WashingStationActivatable:run()
 	g_client:getServerConnection():sendEvent(WashingStationEvent.new(self.washingStation))
 end
-
--- Local values: tx, ty, tz
 function WashingStationActivatable:getDistance(x, y, z)
-	local v61_, v62_, v63_ = getWorldTranslation(self.triggerNode)
-	return MathUtil.vector3Length(x - v61_, y - v62_, z - v63_)
+	local tx, ty, tz = getWorldTranslation(self.triggerNode)
+	return MathUtil.vector3Length(x - tx, y - ty, z - tz)
 end

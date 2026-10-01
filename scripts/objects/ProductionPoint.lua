@@ -1,4 +1,3 @@
--- Local values: ProductionPoint_mt
 source("dataS/scripts/objects/ProductionPointActivatable.lua")
 ProductionPoint = {}
 ProductionPoint.NO_PALLET_SPACE_COOLDOWN = 15000
@@ -15,14 +14,8 @@ ProductionPoint.PROD_STATUS.RUNNING = 1
 ProductionPoint.PROD_STATUS.MISSING_INPUTS = 2
 ProductionPoint.PROD_STATUS.NO_OUTPUT_SPACE = 3
 ProductionPoint.PROD_STATUS_NUM_BITS = 2
-ProductionPoint.PROD_STATUS_TO_L10N = {
-	[ProductionPoint.PROD_STATUS.INACTIVE] = "ui_production_status_inactive",
-	[ProductionPoint.PROD_STATUS.RUNNING] = "ui_production_status_running",
-	[ProductionPoint.PROD_STATUS.MISSING_INPUTS] = "ui_production_status_materialsMissing",
-	[ProductionPoint.PROD_STATUS.NO_OUTPUT_SPACE] = "ui_production_status_outOfSpace"
-}
+ProductionPoint.PROD_STATUS_TO_L10N = { [ProductionPoint.PROD_STATUS.INACTIVE] = "ui_production_status_inactive", [ProductionPoint.PROD_STATUS.RUNNING] = "ui_production_status_running", [ProductionPoint.PROD_STATUS.MISSING_INPUTS] = "ui_production_status_materialsMissing", [ProductionPoint.PROD_STATUS.NO_OUTPUT_SPACE] = "ui_production_status_outOfSpace" }
 local ProductionPoint_mt = Class(ProductionPoint, Object)
-
 function ProductionPoint.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#name", "Name of the Production Point", "unnamed production point")
 	schema:register(XMLValueType.BOOL, basePath .. ".productions#sharedThroughputCapacity", "Productions slow each other down if active at the same time", true)
@@ -53,7 +46,6 @@ function ProductionPoint.registerXMLPaths(schema, basePath)
 	PalletSpawner.registerXMLPaths(schema, basePath .. ".palletSpawner")
 	Storage.registerXMLPaths(schema, basePath .. ".storage")
 end
-
 function ProductionPoint.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. "#palletSpawnCooldown", "remaining cooldown duration of pallet spawner")
 	schema:register(XMLValueType.FLOAT, basePath .. "#productionCostsToClaim", "production costs yet to be claimed from the owning player")
@@ -64,61 +56,31 @@ function ProductionPoint.registerSavegameXMLPaths(schema, basePath)
 	Storage.registerSavegameXMLPaths(schema, basePath .. ".storage")
 end
 InitStaticObjectClass(ProductionPoint, "ProductionPoint")
-
--- Upvalues: ProductionPoint_mt
--- Local values: self
 function ProductionPoint.new(isServer, isClient, baseDirectory, customMt)
-	-- upvalues: (copy) ProductionPoint_mt
-	local v10_ = Object.new(isServer, isClient, customMt or ProductionPoint_mt)
-	v10_.baseDirectory = baseDirectory
-	v10_.owningPlaceable = nil
-	v10_.isOwned = false
-	v10_.mission = g_currentMission
-	v10_.activeProductions = {}
-	v10_.minuteFactorTimescaled = v10_.mission:getEffectiveTimeScale() / 1000 / 60
-	v10_.waitingForPalletToSpawn = false
-	v10_.palletSpawnCooldown = 0
-	v10_.palletLimitReached = false
-	v10_.isFinalized = true
-	v10_.dirtyFlag = v10_:getNextDirtyFlag()
-	v10_.inputFillLevels = {}
-	v10_.productionCostsToClaim = 0
-	v10_.soldFillTypesToPayOut = {}
-	v10_.activatable = ProductionPointActivatable.new(v10_)
-	g_messageCenter:subscribe(MessageType.TIMESCALE_CHANGED, v10_.onTimescaleChanged, v10_)
-	v10_.infoTables = {
-		["activeProds"] = {
-			["title"] = g_i18n:getText("infohud_activeProductions"),
-			["accentuate"] = true
-		},
-		["noActiveProd"] = {
-			["title"] = g_i18n:getText("infohud_noActiveProduction"),
-			["accentuate"] = true
-		},
-		["storage"] = {
-			["title"] = g_i18n:getText("ui_productions_buildingStorage"),
-			["accentuate"] = true
-		},
-		["storageEmpty"] = {
-			["title"] = "",
-			["text"] = g_i18n:getText("infohud_storageIsEmpty")
-		},
-		["palletLimitReached"] = {
-			["title"] = g_i18n:getText("infohud_tooManyPallets"),
-			["accentuate"] = true
-		}
-	}
-	return v10_
+	local self = Object.new(isServer, isClient, customMt or ProductionPoint_mt)
+	self.baseDirectory = baseDirectory
+	self.owningPlaceable = nil
+	self.isOwned = false
+	self.mission = g_currentMission
+	self.activeProductions = {}
+	self.minuteFactorTimescaled = self.mission:getEffectiveTimeScale() / 1000 / 60
+	self.waitingForPalletToSpawn = false
+	self.palletSpawnCooldown = 0
+	self.palletLimitReached = false
+	self.isFinalized = true
+	self.dirtyFlag = self:getNextDirtyFlag()
+	self.inputFillLevels = {}
+	self.productionCostsToClaim = 0
+	self.soldFillTypesToPayOut = {}
+	self.activatable = ProductionPointActivatable.new(self)
+	g_messageCenter:subscribe(MessageType.TIMESCALE_CHANGED, self.onTimescaleChanged, self)
+	self.infoTables = { activeProds = { title = g_i18n:getText("infohud_activeProductions"), accentuate = true }, noActiveProd = { title = g_i18n:getText("infohud_noActiveProduction"), accentuate = true }, storage = { title = g_i18n:getText("ui_productions_buildingStorage"), accentuate = true }, storageEmpty = { title = "", text = g_i18n:getText("infohud_storageIsEmpty") }, palletLimitReached = { title = g_i18n:getText("infohud_tooManyPallets"), accentuate = true } }
+	return self
 end
-
--- Local values: name, usedProdIds, loadingStationKey, palletSpawnerKey, fillTypeId, pallet, inputFillTypeIndex, fillTypeName, outputFillTypeIndex, fillTypeName, i, production, x, input, x, output, supportedFillType, _
 function ProductionPoint:load(components, xmlFile, key, customEnv, i3dMappings)
 	self.node = components[1].node
-	local v17_ = xmlFile:getValue(key .. "#name")
-	if v17_ then
-		v17_ = g_i18n:convertText(v17_, customEnv)
-	end
-	self.name = v17_
+	local name = xmlFile:getValue(key .. "#name")
+	self.name = name and g_i18n:convertText(name, customEnv)
 	self.productions = {}
 	self.productionsIdToObj = {}
 	self.inputFillTypeIds = {}
@@ -129,108 +91,103 @@ function ProductionPoint:load(components, xmlFile, key, customEnv, i3dMappings)
 	self.outputFillTypeIdsAutoDeliver = {}
 	self.outputFillTypeIdsToPallets = {}
 	self.sharedThroughputCapacity = xmlFile:getValue(key .. ".productions#sharedThroughputCapacity", true)
-	local v_u_18_ = {}
-	xmlFile:iterate(key .. ".productions.production", function(p19_, p20_)
-		-- upvalues: (copy) xmlFile, (copy) customEnv, (copy) v_u_18_, (copy) self, (copy) components, (copy) i3dMappings
-		local v_u_21_ = {
-			["id"] = xmlFile:getValue(p20_ .. "#id"),
-			["name"] = xmlFile:getValue(p20_ .. "#name", nil, customEnv, false)
-		}
-		local v22_ = xmlFile:getValue(p20_ .. "#params")
-		if v22_ ~= nil then
-			v_u_21_.name = g_i18n:insertTextParams(v_u_21_.name, v22_, customEnv, xmlFile)
+	local usedProdIds = {}
+	xmlFile:iterate(key .. ".productions.production", function(index, productionKey)
+		local production = {}
+		production.id = xmlFile:getValue(productionKey .. "#id")
+		production.name = xmlFile:getValue(productionKey .. "#name", nil, customEnv, false)
+		local params = xmlFile:getValue(productionKey .. "#params")
+		if params ~= nil then
+			production.name = g_i18n:insertTextParams(production.name, params, customEnv, xmlFile)
 		end
-		if not v_u_21_.id then
-			Logging.xmlError(xmlFile, "missing id for production \'%s\'", v_u_21_.name or p19_)
+		if not production.id then
+			Logging.xmlError(xmlFile, "missing id for production '%s'", production.name or index)
 			return false
 		end
-		for v23_ = 1, #v_u_18_ do
-			if v_u_18_[v23_] == v_u_21_.id then
-				Logging.xmlError(xmlFile, "production id \'%s\' already in use", v_u_21_.id)
+		for i = 1, #usedProdIds do
+			if usedProdIds[i] == production.id then
+				Logging.xmlError(xmlFile, "production id '%s' already in use", production.id)
 				return false
 			end
 		end
-		local v24_ = v_u_18_
-		local v25_ = v_u_21_.id
-		table.insert(v24_, v25_)
-		local v26_ = xmlFile:getValue(p20_ .. "#cyclesPerMonth")
-		local v27_ = xmlFile:getValue(p20_ .. "#cyclesPerHour")
-		local v28_ = xmlFile:getValue(p20_ .. "#cyclesPerMinute")
-		v_u_21_.cyclesPerMinute = v26_ and v26_ / 60 / 24 or (v27_ and v27_ / 60 or (v28_ or 1))
-		v_u_21_.cyclesPerHour = v27_ or v_u_21_.cyclesPerMinute * 60
-		v_u_21_.cyclesPerMonth = v26_ or v_u_21_.cyclesPerHour * 24
-		local v29_ = xmlFile:getValue(p20_ .. "#costsPerActiveMinute")
-		local v30_ = xmlFile:getValue(p20_ .. "#costsPerActiveHour")
-		local v31_ = xmlFile:getValue(p20_ .. "#costsPerActiveMonth")
-		v_u_21_.costsPerActiveMinute = v31_ and v31_ / 60 / 24 or v30_ and v30_ / 60 or (v29_ or 1)
-		v_u_21_.costsPerActiveHour = v30_ or v_u_21_.costsPerActiveMinute * 60
-		v_u_21_.costsPerActiveMonth = v31_ or v_u_21_.costsPerActiveHour * 24
-		v_u_21_.status = ProductionPoint.PROD_STATUS.INACTIVE
-		v_u_21_.inputs = {}
-		xmlFile:iterate(p20_ .. ".inputs.input", function(_, p32_)
-			-- upvalues: (ref) xmlFile, (ref) self, (copy) v_u_21_
-			local v33_ = {}
-			local v34_ = xmlFile:getValue(p32_ .. "#fillType")
-			v33_.type = g_fillTypeManager:getFillTypeIndexByName(v34_)
-			if v33_.type == nil then
-				Logging.xmlError(xmlFile, "Unable to load fillType \'%s\' for \'%s\'", v34_, p32_)
+		table.insert(usedProdIds, production.id)
+		local cyclesPerMonth = xmlFile:getValue(productionKey .. "#cyclesPerMonth")
+		local _v115 = productionKey .. "#cyclesPerHour"
+		local cyclesPerHour = xmlFile:getValue(_v115)
+		local cyclesPerMinute = xmlFile:getValue(productionKey .. "#cyclesPerMinute")
+		production.cyclesPerMinute = _v115
+		production.cyclesPerHour = cyclesPerHour or production.cyclesPerMinute * 60
+		production.cyclesPerMonth = cyclesPerMonth or production.cyclesPerHour * 24
+		local costsPerActiveMinute = xmlFile:getValue(productionKey .. "#costsPerActiveMinute")
+		local _v129 = productionKey .. "#costsPerActiveHour"
+		local costsPerActiveHour = xmlFile:getValue(_v129)
+		local costsPerActiveMonth = xmlFile:getValue(productionKey .. "#costsPerActiveMonth")
+		production.costsPerActiveMinute = _v129
+		production.costsPerActiveHour = costsPerActiveHour or production.costsPerActiveMinute * 60
+		production.costsPerActiveMonth = costsPerActiveMonth or production.costsPerActiveHour * 24
+		production.status = ProductionPoint.PROD_STATUS.INACTIVE
+		production.inputs = {}
+		xmlFile:iterate(productionKey .. ".inputs.input", function(inputIndex, inputKey)
+			local input = {}
+			local fillTypeString = xmlFile:getValue(inputKey .. "#fillType")
+			input.type = g_fillTypeManager:getFillTypeIndexByName(fillTypeString)
+			if input.type == nil then
+				Logging.xmlError(xmlFile, "Unable to load fillType '%s' for '%s'", fillTypeString, inputKey)
 			else
-				self.inputFillTypeIds[v33_.type] = true
-				table.addElement(self.inputFillTypeIdsArray, v33_.type)
-				v33_.amount = xmlFile:getValue(p32_ .. "#amount", 1)
-				local v35_ = v_u_21_.inputs
-				table.insert(v35_, v33_)
+				self.inputFillTypeIds[input.type] = true
+				table.addElement(self.inputFillTypeIdsArray, input.type)
+				input.amount = xmlFile:getValue(inputKey .. "#amount", 1)
+				table.insert(production.inputs, input)
 			end
 		end)
-		if #v_u_21_.inputs ~= 0 then
-			v_u_21_.outputs = {}
-			v_u_21_.primaryProductFillType = nil
-			local v_u_36_ = 0
-			xmlFile:iterate(p20_ .. ".outputs.output", function(_, p37_)
-				-- upvalues: (ref) xmlFile, (ref) self, (copy) v_u_21_, (ref) v_u_36_
-				local v38_ = {}
-				local v39_ = xmlFile:getValue(p37_ .. "#fillType")
-				v38_.type = g_fillTypeManager:getFillTypeIndexByName(v39_)
-				if v38_.type == nil then
-					Logging.xmlError(xmlFile, "Unable to load fillType \'%s\' for \'%s\'", v39_, p37_)
+		if #production.inputs == 0 then
+			Logging.xmlError(xmlFile, "No inputs for production '%s'", productionKey)
+			return
+		end
+		production.outputs = {}
+		production.primaryProductFillType = nil
+		local maxOutputAmount = 0
+		xmlFile:iterate(productionKey .. ".outputs.output", function(outputIndex, outputKey)
+			local output = {}
+			local fillTypeString = xmlFile:getValue(outputKey .. "#fillType")
+			output.type = g_fillTypeManager:getFillTypeIndexByName(fillTypeString)
+			if output.type == nil then
+				Logging.xmlError(xmlFile, "Unable to load fillType '%s' for '%s'", fillTypeString, outputKey)
+			else
+				output.sellDirectly = xmlFile:getValue(outputKey .. "#sellDirectly", false)
+				if not output.sellDirectly then
+					self.outputFillTypeIds[output.type] = true
+					table.addElement(self.outputFillTypeIdsArray, output.type)
 				else
-					v38_.sellDirectly = xmlFile:getValue(p37_ .. "#sellDirectly", false)
-					if v38_.sellDirectly then
-						self.soldFillTypesToPayOut[v38_.type] = 0
-					else
-						self.outputFillTypeIds[v38_.type] = true
-						table.addElement(self.outputFillTypeIdsArray, v38_.type)
-					end
-					v38_.amount = xmlFile:getValue(p37_ .. "#amount", 1)
-					local v40_ = v_u_21_.outputs
-					table.insert(v40_, v38_)
-					if v_u_36_ < v38_.amount then
-						v_u_21_.primaryProductFillType = v38_.type
-						v_u_36_ = v38_.amount
-					end
+					self.soldFillTypesToPayOut[output.type] = 0
 				end
-			end)
-			if #v_u_21_.outputs == 0 then
-				Logging.xmlError(xmlFile, "No outputs for production \'%s\'", p20_)
+				output.amount = xmlFile:getValue(outputKey .. "#amount", 1)
+				table.insert(production.outputs, output)
+				if maxOutputAmount < output.amount then
+					production.primaryProductFillType = output.type
+					maxOutputAmount = output.amount
+				end
 			end
-			if self.isClient then
-				v_u_21_.samples = {}
-				v_u_21_.samples.active = g_soundManager:loadSampleFromXML(xmlFile, p20_ .. ".sounds", "active", self.baseDirectory, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil)
-				v_u_21_.animationNodes = g_animationManager:loadAnimations(xmlFile, p20_ .. ".animationNodes", components, self, i3dMappings)
-				v_u_21_.effects = g_effectManager:loadEffect(xmlFile, p20_ .. ".effectNodes", components, self, i3dMappings)
-				g_effectManager:setEffectTypeInfo(v_u_21_.effects, FillType.UNKNOWN)
-			end
-			if self.productionsIdToObj[v_u_21_.id] ~= nil then
-				Logging.xmlError(xmlFile, "production id \'%s\' already used", v_u_21_.id)
-				return false
-			end
-			self.productionsIdToObj[v_u_21_.id] = v_u_21_
-			local v41_ = self.productions
-			table.insert(v41_, v_u_21_)
-			v_u_21_.index = #self.productions
+		end)
+		if #production.outputs == 0 then
+			Logging.xmlError(xmlFile, "No outputs for production '%s'", productionKey)
+		end
+		if self.isClient then
+			production.samples = {}
+			production.samples.active = g_soundManager:loadSampleFromXML(xmlFile, productionKey .. ".sounds", "active", self.baseDirectory, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil)
+			production.animationNodes = g_animationManager:loadAnimations(xmlFile, productionKey .. ".animationNodes", components, self, i3dMappings)
+			production.effects = g_effectManager:loadEffect(xmlFile, productionKey .. ".effectNodes", components, self, i3dMappings)
+			g_effectManager:setEffectTypeInfo(production.effects, FillType.UNKNOWN)
+		end
+		if self.productionsIdToObj[production.id] ~= nil then
+			Logging.xmlError(xmlFile, "production id '%s' already used", production.id)
+			return false
+		else
+			self.productionsIdToObj[production.id] = production
+			table.insert(self.productions, production)
+			production.index = #self.productions
 			return true
 		end
-		Logging.xmlError(xmlFile, "No inputs for production \'%s\'", p20_)
 	end)
 	if #self.productions == 0 then
 		Logging.xmlError(xmlFile, "No valid productions defined")
@@ -238,135 +195,141 @@ function ProductionPoint:load(components, xmlFile, key, customEnv, i3dMappings)
 	if self.owningPlaceable == nil then
 		printError("Error: ProductionPoint.owningPlaceable was not set before load()")
 		return false
-	end
-	self.interactionTriggerNode = xmlFile:getValue(key .. ".playerTrigger#node", nil, components, i3dMappings)
-	if self.interactionTriggerNode ~= nil then
-		self.useInteractionTriggerForBuying = true
-		addTrigger(self.interactionTriggerNode, "interactionTriggerCallback", self)
-	end
-	if self.isClient then
-		self.samples = {}
-		self.samples.idle = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "idle", self.baseDirectory, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil)
-		self.samples.active = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "active", self.baseDirectory, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil)
-		self.animationNodes = g_animationManager:loadAnimations(xmlFile, key .. ".animationNodes", components, self, i3dMappings)
-		self.effects = g_effectManager:loadEffect(xmlFile, key .. ".effectNodes", components, self, i3dMappings)
-		g_effectManager:setEffectTypeInfo(self.effects, FillType.UNKNOWN)
-	end
-	self.unloadingStation = SellingStation.new(self.isServer, self.isClient)
-	self.unloadingStation:load(components, xmlFile, key .. ".sellingStation", self.customEnvironment, i3dMappings, components[1].node)
-	function self.unloadingStation.getStoreGoods(_, p42_, _)
-		-- upvalues: (copy) self
-		local v43_ = self.owningPlaceable:getOwnerFarmId()
-		return v43_ ~= AccessHandler.EVERYONE and (v43_ == p42_ or g_currentMission.accessHandler:canFarmAccess(p42_, self.owningPlaceable)) and true or false
-	end
-	function self.unloadingStation.getSkipSell(_, p44_, _)
-		-- upvalues: (copy) self
-		local v45_ = self.owningPlaceable:getOwnerFarmId()
-		return v45_ ~= AccessHandler.EVERYONE and (v45_ == p44_ or g_currentMission.accessHandler:canFarmAccess(p44_, self.owningPlaceable)) and true or false
-	end
-	self.unloadingStation:register(true)
-	local v46_ = key .. ".loadingStation"
-	if xmlFile:hasProperty(v46_) then
-		self.loadingStation = LoadingStation.new(self.isServer, self.isClient)
-		if not self.loadingStation:load(components, xmlFile, v46_, self.customEnvironment, i3dMappings, components[1].node) then
-			Logging.xmlError(xmlFile, "Unable to load loading station %s", v46_)
-			return false
+	else
+		self.interactionTriggerNode = xmlFile:getValue(key .. ".playerTrigger#node", nil, components, i3dMappings)
+		if self.interactionTriggerNode ~= nil then
+			self.useInteractionTriggerForBuying = true
+			addTrigger(self.interactionTriggerNode, "interactionTriggerCallback", self)
 		end
-		function self.loadingStation.hasFarmAccessToStorage(_, p47_)
-			-- upvalues: (copy) self
-			return p47_ == self.owningPlaceable:getOwnerFarmId()
+		if self.isClient then
+			self.samples = {}
+			self.samples.idle = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "idle", self.baseDirectory, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil)
+			self.samples.active = g_soundManager:loadSampleFromXML(xmlFile, key .. ".sounds", "active", self.baseDirectory, components, 1, AudioGroup.ENVIRONMENT, i3dMappings, nil)
+			self.animationNodes = g_animationManager:loadAnimations(xmlFile, key .. ".animationNodes", components, self, i3dMappings)
+			self.effects = g_effectManager:loadEffect(xmlFile, key .. ".effectNodes", components, self, i3dMappings)
+			g_effectManager:setEffectTypeInfo(self.effects, FillType.UNKNOWN)
 		end
-		self.loadingStation.owningPlaceable = self.owningPlaceable
-		self.loadingStation:register(true)
-	end
-	local v48_ = key .. ".palletSpawner"
-	if xmlFile:hasProperty(v48_) then
-		self.palletSpawner = PalletSpawner.new(self.baseDirectory)
-		if not self.palletSpawner:load(components, xmlFile, key .. ".palletSpawner", self.customEnvironment, i3dMappings) then
-			Logging.xmlError(xmlFile, "Unable to load pallet spawner %s", v48_)
-			return false
-		end
-	end
-	if self.loadingStation == nil and self.palletSpawner == nil then
-		Logging.xmlError(xmlFile, "No loading station or pallet spawner for production point")
-		return false
-	end
-	if self.palletSpawner ~= nil then
-		for v49_, v50_ in pairs(self.palletSpawner:getSupportedFillTypes()) do
-			if self.outputFillTypeIds[v49_] then
-				self.outputFillTypeIdsToPallets[v49_] = v50_
+		self.unloadingStation = SellingStation.new(self.isServer, self.isClient)
+		self.unloadingStation:load(components, xmlFile, key .. ".sellingStation", self.customEnvironment, i3dMappings, components[1].node)
+		function self.unloadingStation.getStoreGoods(_, farmId, fillTypeIndex)
+			local ownerFarmId = self.owningPlaceable:getOwnerFarmId()
+			if ownerFarmId ~= AccessHandler.EVERYONE and (ownerFarmId == farmId or g_currentMission.accessHandler:canFarmAccess(farmId, self.owningPlaceable)) then
+				return true
 			end
+			return false
 		end
-	end
-	self.storage = Storage.new(self.isServer, self.isClient)
-	self.storage:load(components, xmlFile, key .. ".storage", i3dMappings, self.baseDirectory)
-	self.storage:register(true)
-	if self.loadingStation ~= nil then
-		if not self.loadingStation:addSourceStorage(self.storage) then
-			Logging.xmlWarning(xmlFile, "Unable to add source storage ")
+		function self.unloadingStation.getSkipSell(_, farmId, fillTypeIndex)
+			local ownerFarmId = self.owningPlaceable:getOwnerFarmId()
+			if ownerFarmId ~= AccessHandler.EVERYONE and (ownerFarmId == farmId or g_currentMission.accessHandler:canFarmAccess(farmId, self.owningPlaceable)) then
+				return true
+			end
+			return false
 		end
-		g_currentMission.storageSystem:addLoadingStation(self.loadingStation, self.owningPlaceable)
-	end
-	self.unloadingStation:addTargetStorage(self.storage)
-	for v51_ in pairs(self.inputFillTypeIds) do
-		if not self.unloadingStation:getIsFillTypeSupported(v51_) then
-			local v52_ = g_fillTypeManager:getFillTypeNameByIndex(v51_)
-			Logging.xmlWarning(xmlFile, "Input filltype \'%s\' is not supported by unloading station", v52_)
+		self.unloadingStation:register(true)
+		local loadingStationKey = key .. ".loadingStation"
+		if xmlFile:hasProperty(loadingStationKey) then
+			self.loadingStation = LoadingStation.new(self.isServer, self.isClient)
+			if not self.loadingStation:load(components, xmlFile, loadingStationKey, self.customEnvironment, i3dMappings, components[1].node) then
+				Logging.xmlError(xmlFile, "Unable to load loading station %s", loadingStationKey)
+				return false
+			end
+			function self.loadingStation.hasFarmAccessToStorage(_, farmId)
+				return farmId == self.owningPlaceable:getOwnerFarmId()
+			end
+			self.loadingStation.owningPlaceable = self.owningPlaceable
+			self.loadingStation:register(true)
 		end
-	end
-	for v53_ in pairs(self.outputFillTypeIds) do
-		if (self.loadingStation == nil or not self.loadingStation:getIsFillTypeSupported(v53_)) and self.outputFillTypeIdsToPallets[v53_] == nil then
-			local v54_ = g_fillTypeManager:getFillTypeNameByIndex(v53_)
-			Logging.xmlWarning(xmlFile, "Output filltype \'%s\' is not supported by loading station or pallet spawner", v54_)
-		end
-	end
-	self.unloadingStation.owningPlaceable = self.owningPlaceable
-	g_currentMission.storageSystem:addUnloadingStation(self.unloadingStation, self.owningPlaceable)
-	g_currentMission.economyManager:addSellingStation(self.unloadingStation)
-	for v55_ = 1, #self.productions do
-		local v56_ = self.productions[v55_]
-		for v57_ = 1, #v56_.inputs do
-			local v58_ = v56_.inputs[v57_]
-			if not self.storage:getIsFillTypeSupported(v58_.type) then
-				Logging.xmlError(xmlFile, "production point storage does not support fillType \'%s\' used as in input in production \'%s\'", g_fillTypeManager:getFillTypeNameByIndex(v58_.type), v56_.name)
+		local palletSpawnerKey = key .. ".palletSpawner"
+		if xmlFile:hasProperty(palletSpawnerKey) then
+			self.palletSpawner = PalletSpawner.new(self.baseDirectory)
+			if not self.palletSpawner:load(components, xmlFile, key .. ".palletSpawner", self.customEnvironment, i3dMappings) then
+				Logging.xmlError(xmlFile, "Unable to load pallet spawner %s", palletSpawnerKey)
 				return false
 			end
 		end
-		for v59_ = 1, #v56_.outputs do
-			local v60_ = v56_.outputs[v59_]
-			if not (v60_.sellDirectly or self.storage:getIsFillTypeSupported(v60_.type)) then
-				Logging.xmlError(xmlFile, "production point storage does not support fillType \'%s\' used as an output in production \'%s\'", g_fillTypeManager:getFillTypeNameByIndex(v60_.type), v56_.name)
+		if self.loadingStation == nil and self.palletSpawner == nil then
+			Logging.xmlError(xmlFile, "No loading station or pallet spawner for production point")
+			return false
+		end
+		if self.palletSpawner ~= nil then
+			for fillTypeId, pallet in pairs(self.palletSpawner:getSupportedFillTypes()) do
+				if self.outputFillTypeIds[fillTypeId] then
+					self.outputFillTypeIdsToPallets[fillTypeId] = pallet
+				end
+			end
+		end
+		self.storage = Storage.new(self.isServer, self.isClient)
+		self.storage:load(components, xmlFile, key .. ".storage", i3dMappings, self.baseDirectory)
+		self.storage:register(true)
+		if self.loadingStation ~= nil then
+			if not self.loadingStation:addSourceStorage(self.storage) then
+				Logging.xmlWarning(xmlFile, "Unable to add source storage ")
+			end
+			g_currentMission.storageSystem:addLoadingStation(self.loadingStation, self.owningPlaceable)
+		end
+		self.unloadingStation:addTargetStorage(self.storage)
+		for inputFillTypeIndex in pairs(self.inputFillTypeIds) do
+			if self.unloadingStation:getIsFillTypeSupported(inputFillTypeIndex) then
+				continue
+			end
+			local fillTypeName = g_fillTypeManager:getFillTypeNameByIndex(inputFillTypeIndex)
+			Logging.xmlWarning(xmlFile, "Input filltype '%s' is not supported by unloading station", fillTypeName)
+		end
+		for outputFillTypeIndex in pairs(self.outputFillTypeIds) do
+			if (self.loadingStation == nil or not self.loadingStation:getIsFillTypeSupported(outputFillTypeIndex)) and self.outputFillTypeIdsToPallets[outputFillTypeIndex] == nil then
+				local fillTypeName = g_fillTypeManager:getFillTypeNameByIndex(outputFillTypeIndex)
+				Logging.xmlWarning(xmlFile, "Output filltype '%s' is not supported by loading station or pallet spawner", fillTypeName)
+			end
+		end
+		self.unloadingStation.owningPlaceable = self.owningPlaceable
+		g_currentMission.storageSystem:addUnloadingStation(self.unloadingStation, self.owningPlaceable)
+		g_currentMission.economyManager:addSellingStation(self.unloadingStation)
+		for i = 1, #self.productions do
+			local production = self.productions[i]
+			for x = 1, #production.inputs do
+				local input = production.inputs[x]
+				if self.storage:getIsFillTypeSupported(input.type) then
+					continue
+				end
+				Logging.xmlError(xmlFile, "production point storage does not support fillType '%s' used as in input in production '%s'", g_fillTypeManager:getFillTypeNameByIndex(input.type), production.name)
+				return false
+			end
+			for x = 1, #production.outputs do
+				local output = production.outputs[x]
+				if output.sellDirectly or self.storage:getIsFillTypeSupported(output.type) then
+					continue
+				end
+				Logging.xmlError(xmlFile, "production point storage does not support fillType '%s' used as an output in production '%s'", g_fillTypeManager:getFillTypeNameByIndex(output.type), production.name)
 				return false
 			end
 		end
-	end
-	for v61_, _ in pairs(self.storage:getSupportedFillTypes()) do
-		if not (self.inputFillTypeIds[v61_] or self.outputFillTypeIds[v61_]) then
-			Logging.xmlWarning(xmlFile, "storage fillType \'%s\' not used as a production input or ouput", g_fillTypeManager:getFillTypeNameByIndex(v61_))
+		for supportedFillType, _ in pairs(self.storage:getSupportedFillTypes()) do
+			if self.inputFillTypeIds[supportedFillType] or self.outputFillTypeIds[supportedFillType] then
+				continue
+			end
+			Logging.xmlWarning(xmlFile, "storage fillType '%s' not used as a production input or ouput", g_fillTypeManager:getFillTypeNameByIndex(supportedFillType))
 		end
+		return true
 	end
-	return true
 end
-
--- Local values: storageSystem, storagesInRange, _, storage, storagesInRange, _, storage
 function ProductionPoint:findStorageExtensions()
-	local v63_ = g_currentMission.storageSystem
+	local storageSystem = g_currentMission.storageSystem
 	if self.unloadingStation ~= nil then
-		local v64_ = v63_:getStorageExtensionsInRange(self.unloadingStation, self:getOwnerFarmId())
-		if v64_ ~= nil then
-			for _, v65_ in ipairs(v64_) do
-				if self.unloadingStation.targetStorages[v65_] == nil then
-					v63_:addStorageToUnloadingStation(v65_, self.unloadingStation)
+		local storagesInRange = storageSystem:getStorageExtensionsInRange(self.unloadingStation, self:getOwnerFarmId())
+		if storagesInRange ~= nil then
+			for _, storage in ipairs(storagesInRange) do
+				if self.unloadingStation.targetStorages[storage] == nil then
+					storageSystem:addStorageToUnloadingStation(storage, self.unloadingStation)
 				end
 			end
 		end
 	end
 	if self.loadingStation ~= nil then
-		local v66_ = v63_:getStorageExtensionsInRange(self.loadingStation, self:getOwnerFarmId())
-		if v66_ ~= nil then
-			for _, v67_ in ipairs(v66_) do
-				if self.loadingStation.sourceStorages[v67_] == nil then
-					v63_:addStorageToLoadingStation(v67_, self.loadingStation)
+		local storagesInRange = storageSystem:getStorageExtensionsInRange(self.loadingStation, self:getOwnerFarmId())
+		if storagesInRange ~= nil then
+			for _, storage in ipairs(storagesInRange) do
+				if self.loadingStation.sourceStorages[storage] == nil then
+					storageSystem:addStorageToLoadingStation(storage, self.loadingStation)
 				end
 			end
 		end
@@ -375,8 +338,6 @@ function ProductionPoint:findStorageExtensions()
 		end
 	end
 end
-
--- Local values: i, production
 function ProductionPoint:delete()
 	g_messageCenter:unsubscribeAll(self)
 	self.mission.activatableObjectsSystem:removeActivatable(self.activatable)
@@ -414,61 +375,64 @@ function ProductionPoint:delete()
 	if self.storage ~= nil then
 		self.storage:delete()
 	end
-	for v69_ = 1, #self.productions do
-		local v70_ = self.productions[v69_]
-		g_soundManager:deleteSamples(v70_.samples)
-		v70_.samples = nil
-		g_animationManager:deleteAnimations(v70_.animationNodes)
-		g_effectManager:deleteEffects(v70_.effects)
+	for i = 1, #self.productions do
+		local production = self.productions[i]
+		g_soundManager:deleteSamples(production.samples)
+		production.samples = nil
+		g_animationManager:deleteAnimations(production.animationNodes)
+		g_effectManager:deleteEffects(production.effects)
 	end
 	ProductionPoint:superClass().delete(self)
 end
-
--- Local values: numSellFillTypes, i, fillType, numDeliverFillTypes, i, fillType, unloadingStationId, loadingStationId, storageId, numProductions, i, productionIndex, production, productionId, productionStatus
 function ProductionPoint:readStream(streamId, connection)
 	ProductionPoint:superClass().readStream(self, streamId, connection)
 	if connection:getIsServer() then
-		for _ = 1, streamReadUInt8(streamId) do
-			self:setOutputDistributionMode(streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS), ProductionPoint.OUTPUT_MODE.DIRECT_SELL, true)
+		local numSellFillTypes = streamReadUInt8(streamId)
+		for i = 1, numSellFillTypes do
+			local fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+			self:setOutputDistributionMode(fillType, ProductionPoint.OUTPUT_MODE.DIRECT_SELL, true)
 		end
-		for _ = 1, streamReadUInt8(streamId) do
-			self:setOutputDistributionMode(streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS), ProductionPoint.OUTPUT_MODE.AUTO_DELIVER, true)
+		local numDeliverFillTypes = streamReadUInt8(streamId)
+		for i = 1, numDeliverFillTypes do
+			local fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+			self:setOutputDistributionMode(fillType, ProductionPoint.OUTPUT_MODE.AUTO_DELIVER, true)
 		end
-		local v74_ = NetworkUtil.readNodeObjectId(streamId)
+		local unloadingStationId = NetworkUtil.readNodeObjectId(streamId)
 		self.unloadingStation:readStream(streamId, connection)
-		g_client:finishRegisterObject(self.unloadingStation, v74_)
+		g_client:finishRegisterObject(self.unloadingStation, unloadingStationId)
 		if self.loadingStation ~= nil then
-			local v75_ = NetworkUtil.readNodeObjectId(streamId)
+			local loadingStationId = NetworkUtil.readNodeObjectId(streamId)
 			self.loadingStation:readStream(streamId, connection)
-			g_client:finishRegisterObject(self.loadingStation, v75_)
+			g_client:finishRegisterObject(self.loadingStation, loadingStationId)
 		end
-		local v76_ = NetworkUtil.readNodeObjectId(streamId)
+		local storageId = NetworkUtil.readNodeObjectId(streamId)
 		self.storage:readStream(streamId, connection)
-		g_client:finishRegisterObject(self.storage, v76_)
-		for _ = 1, streamReadUInt8(streamId) do
-			local v77_ = streamReadUInt8(streamId)
-			local v78_ = self.productions[v77_]
-			if v78_ ~= nil then
-				self:setProductionState(v78_.id, true, true)
-				local v79_ = streamReadUIntN(streamId, ProductionPoint.PROD_STATUS_NUM_BITS)
-				self:setProductionStatus(v78_.id, v79_, true)
+		g_client:finishRegisterObject(self.storage, storageId)
+		local numProductions = streamReadUInt8(streamId)
+		for i = 1, numProductions do
+			local productionIndex = streamReadUInt8(streamId)
+			local production = self.productions[productionIndex]
+			if production == nil then
+				continue
 			end
+			local productionId = production.id
+			self:setProductionState(productionId, true, true)
+			local productionStatus = streamReadUIntN(streamId, ProductionPoint.PROD_STATUS_NUM_BITS)
+			self:setProductionStatus(production.id, productionStatus, true)
 		end
 		self.palletLimitReached = streamReadBool(streamId)
 	end
 end
-
--- Local values: directSellFillTypeId, autoDeliverFillTypeId, i, production
 function ProductionPoint:writeStream(streamId, connection)
 	ProductionPoint:superClass().writeStream(self, streamId, connection)
 	if not connection:getIsServer() then
 		streamWriteUInt8(streamId, table.size(self.outputFillTypeIdsDirectSell))
-		for v83_ in pairs(self.outputFillTypeIdsDirectSell) do
-			streamWriteUIntN(streamId, v83_, FillTypeManager.SEND_NUM_BITS)
+		for directSellFillTypeId in pairs(self.outputFillTypeIdsDirectSell) do
+			streamWriteUIntN(streamId, directSellFillTypeId, FillTypeManager.SEND_NUM_BITS)
 		end
 		streamWriteUInt8(streamId, table.size(self.outputFillTypeIdsAutoDeliver))
-		for v84_ in pairs(self.outputFillTypeIdsAutoDeliver) do
-			streamWriteUIntN(streamId, v84_, FillTypeManager.SEND_NUM_BITS)
+		for autoDeliverFillTypeId in pairs(self.outputFillTypeIdsAutoDeliver) do
+			streamWriteUIntN(streamId, autoDeliverFillTypeId, FillTypeManager.SEND_NUM_BITS)
 		end
 		NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(self.unloadingStation))
 		self.unloadingStation:writeStream(streamId, connection)
@@ -482,28 +446,24 @@ function ProductionPoint:writeStream(streamId, connection)
 		self.storage:writeStream(streamId, connection)
 		g_server:registerObjectInStream(connection, self.storage)
 		streamWriteUInt8(streamId, #self.activeProductions)
-		for v85_ = 1, #self.activeProductions do
-			local v86_ = self.activeProductions[v85_]
-			streamWriteUInt8(streamId, v86_.index)
-			streamWriteUIntN(streamId, v86_.status, ProductionPoint.PROD_STATUS_NUM_BITS)
+		for i = 1, #self.activeProductions do
+			local production = self.activeProductions[i]
+			streamWriteUInt8(streamId, production.index)
+			streamWriteUIntN(streamId, production.status, ProductionPoint.PROD_STATUS_NUM_BITS)
 		end
 		streamWriteBool(streamId, self.palletLimitReached)
 	end
 end
-
 function ProductionPoint:readUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
 		self.palletLimitReached = streamReadBool(streamId)
 	end
 end
-
 function ProductionPoint:writeUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
 		streamWriteBool(streamId, self.palletLimitReached)
 	end
 end
-
--- Local values: _, production
 function ProductionPoint:setOwnerFarmId(farmId, noEventSend)
 	if self.isServer then
 		self:claimProductionCosts()
@@ -512,8 +472,8 @@ function ProductionPoint:setOwnerFarmId(farmId, noEventSend)
 	ProductionPoint:superClass().setOwnerFarmId(self, farmId, noEventSend)
 	self.isOwned = farmId ~= AccessHandler.EVERYONE
 	if g_server ~= nil and g_currentMission.isRunning then
-		for _, v96_ in pairs(self.productions) do
-			self:setProductionState(v96_.id, not self.isOwned)
+		for _, production in pairs(self.productions) do
+			self:setProductionState(production.id, not self.isOwned)
 		end
 	end
 	if self.unloadingStation ~= nil then
@@ -527,42 +487,37 @@ function ProductionPoint:setOwnerFarmId(farmId, noEventSend)
 	end
 	g_currentMission.productionChainManager:addProductionPoint(self)
 end
-
--- Local values: fillUnitIndex, delta
 function ProductionPoint:palletSpawnRequestCallback(pallet, status, fillType)
 	self.waitingForPalletToSpawn = false
-	if pallet == nil or (not pallet.addFillUnitFillLevel or fillType == nil) then
-		self.palletSpawnCooldown = g_time + ProductionPoint.NO_PALLET_SPACE_COOLDOWN
-		if status == PalletSpawner.PALLET_LIMITED_REACHED then
-			if not self.palletLimitReached then
-				self.palletLimitReached = true
-				self:raiseDirtyFlags(self.dirtyFlag)
-				return
-			end
-		else
-			self.lastPalletFillTypeId = next(self.outputFillTypeIdsToPallets, self.lastPalletFillTypeId)
-		end
-	else
+	if pallet ~= nil and (pallet.addFillUnitFillLevel and fillType ~= nil) then
 		if self.palletLimitReached then
 			self.palletLimitReached = false
 			self:raiseDirtyFlags(self.dirtyFlag)
 		end
-		local v101_ = pallet:getFirstValidFillUnitToFill(fillType)
-		if not v101_ then
-			printf("Error: No fillUnitIndex for fillType %s found, pallet: %s", g_fillTypeManager:getFillTypeNameByIndex(fillType), pallet.xmlFile.filename)
-			return
+		local fillUnitIndex = pallet:getFirstValidFillUnitToFill(fillType)
+		if fillUnitIndex then
+			local delta = pallet:addFillUnitFillLevel(self:getOwnerFarmId(), fillUnitIndex, self.storage:getFillLevel(fillType), fillType, ToolType.UNDEFINED)
+			if 0 < delta then
+				self.storage:setFillLevel(self.storage:getFillLevel(fillType) - delta, fillType)
+				return
+			end
 		end
-		local v102_ = pallet:addFillUnitFillLevel(self:getOwnerFarmId(), v101_, self.storage:getFillLevel(fillType), fillType, ToolType.UNDEFINED)
-		if v102_ > 0 then
-			self.storage:setFillLevel(self.storage:getFillLevel(fillType) - v102_, fillType)
-			return
+		printf("Error: No fillUnitIndex for fillType %s found, pallet: %s", g_fillTypeManager:getFillTypeNameByIndex(fillType), pallet.xmlFile.filename)
+		return
+	end
+	self.palletSpawnCooldown = g_time + ProductionPoint.NO_PALLET_SPACE_COOLDOWN
+	if status == PalletSpawner.PALLET_LIMITED_REACHED then
+		if not self.palletLimitReached then
+			self.palletLimitReached = true
+			self:raiseDirtyFlags(self.dirtyFlag)
 		end
+	else
+		self.lastPalletFillTypeId = next(self.outputFillTypeIdsToPallets, self.lastPalletFillTypeId)
 	end
 end
-
 function ProductionPoint:updateFxState()
 	if self.isClient then
-		if #self.activeProductions > 0 and self.isFinalized then
+		if 0 < #self.activeProductions and self.isFinalized then
 			g_soundManager:stopSample(self.samples.idle)
 			if not g_soundManager:getIsSamplePlaying(self.samples.active) then
 				g_soundManager:playSample(self.samples.active)
@@ -579,260 +534,228 @@ function ProductionPoint:updateFxState()
 		g_effectManager:stopEffects(self.effects)
 	end
 end
-
 function ProductionPoint:update(dt) end
-
--- Local values: dt, timeAdjust, numActiveProductions, minuteFactorTimescaledDt, minuteFactorDt, n, production, cyclesPerMinuteMinuteFactor, cyclesPerMinuteFactorNoTimescale, enoughInputResources, enoughOutputSpace, x, input, fillLevel, x, output, freeCapacity, factor, y, input, fillLevel, y, output, fillLevel, nextFillTypeId, fillTypeId, fillLevel, pallet
 function ProductionPoint:updateProduction()
 	if self.lastUpdatedTime == nil then
 		self.lastUpdatedTime = g_time
 		return
 	end
-	local v105_ = g_time - self.lastUpdatedTime
-	local v106_ = math.clamp(v105_, 0, 30000)
-	local v107_ = g_currentMission.environment.timeAdjustment
-	local v108_ = #self.activeProductions
-	if v108_ > 0 then
-		local v109_ = v106_ * self.minuteFactorTimescaled * v107_
-		local v110_ = v106_ / 60000 * v107_
-		for v111_ = 1, v108_ do
-			local v112_ = self.activeProductions[v111_]
-			local v113_ = v112_.cyclesPerMinute * v109_
-			local v114_ = v112_.cyclesPerMinute * v110_
-			local v115_ = true
-			local v116_ = true
-			for v117_ = 1, #v112_.inputs do
-				local v118_ = v112_.inputs[v117_]
-				local v119_ = self:getFillLevel(v118_.type)
-				self.inputFillLevels[v118_] = v119_
-				if self.isOwned and v119_ < v118_.amount * v114_ then
-					v115_ = false
-					if v112_.status ~= ProductionPoint.PROD_STATUS.MISSING_INPUTS then
-						v112_.status = ProductionPoint.PROD_STATUS.MISSING_INPUTS
-						self.owningPlaceable:productionStatusChanged(v112_, ProductionPoint.PROD_STATUS.MISSING_INPUTS)
-						self:setProductionStatus(v112_.id, v112_.status)
-					end
-					break
-				end
-			end
-			if v115_ and self.isOwned then
-				for v120_ = 1, #v112_.outputs do
-					local v121_ = v112_.outputs[v120_]
-					if not v121_.sellDirectly and self.storage:getFreeCapacity(v121_.type) < v121_.amount * v113_ then
-						v116_ = false
-						if v112_.status ~= ProductionPoint.PROD_STATUS.NO_OUTPUT_SPACE then
-							v112_.status = ProductionPoint.PROD_STATUS.NO_OUTPUT_SPACE
-							self:setProductionStatus(v112_.id, v112_.status)
-						end
+	local dt = math.clamp(g_time - self.lastUpdatedTime, 0, 30000)
+	local timeAdjust = g_currentMission.environment.timeAdjustment
+	local numActiveProductions = #self.activeProductions
+	if 0 < numActiveProductions then
+		local minuteFactorTimescaledDt = dt * self.minuteFactorTimescaled * timeAdjust
+		local minuteFactorDt = dt / 60000 * timeAdjust
+		for n = 1, numActiveProductions do
+			local production = self.activeProductions[n]
+			local cyclesPerMinuteMinuteFactor = production.cyclesPerMinute * minuteFactorTimescaledDt
+			local cyclesPerMinuteFactorNoTimescale = production.cyclesPerMinute * minuteFactorDt
+			local enoughInputResources = true
+			local enoughOutputSpace = true
+			for x = 1, #production.inputs do
+				local input = production.inputs[x]
+				local fillLevel = self:getFillLevel(input.type)
+				self.inputFillLevels[input] = fillLevel
+				if self.isOwned and fillLevel < input.amount * cyclesPerMinuteFactorNoTimescale then
+					enoughInputResources = false
+					if production.status ~= ProductionPoint.PROD_STATUS.MISSING_INPUTS then
+						production.status = ProductionPoint.PROD_STATUS.MISSING_INPUTS
+						self.owningPlaceable:productionStatusChanged(production, ProductionPoint.PROD_STATUS.MISSING_INPUTS)
+						self:setProductionStatus(production.id, production.status)
 						break
 					end
-				end
-			end
-			if self.isOwned then
-				self.productionCostsToClaim = self.productionCostsToClaim + v112_.costsPerActiveMinute * v109_
-			end
-			if not self.isOwned or v115_ and v116_ then
-				local v122_ = v113_ / (self.sharedThroughputCapacity and v108_ and v108_ or 1)
-				for v123_ = 1, #v112_.inputs do
-					local v124_ = v112_.inputs[v123_]
-					if self.loadingStation == nil then
-						local v125_ = self.inputFillLevels[v124_]
-						if v125_ and v125_ > 0 then
-							self.storage:setFillLevel(v125_ - v124_.amount * v122_, v124_.type)
-						end
-					else
-						self.loadingStation:removeFillLevel(v124_.type, v124_.amount * v122_, self.ownerFarmId)
-					end
-				end
-				if self.isOwned then
-					for v126_ = 1, #v112_.outputs do
-						local v127_ = v112_.outputs[v126_]
-						if v127_.sellDirectly then
-							if self.isServer then
-								self.soldFillTypesToPayOut[v127_.type] = self.soldFillTypesToPayOut[v127_.type] + v127_.amount * v122_
+					if enoughInputResources and self.isOwned then
+						for x = 1, #production.outputs do
+							local output = production.outputs[x]
+							if not output.sellDirectly then
+								local freeCapacity = self.storage:getFreeCapacity(output.type)
+								if freeCapacity < output.amount * cyclesPerMinuteMinuteFactor then
+									enoughOutputSpace = false
+									if production.status ~= ProductionPoint.PROD_STATUS.NO_OUTPUT_SPACE then
+										production.status = ProductionPoint.PROD_STATUS.NO_OUTPUT_SPACE
+										self:setProductionStatus(production.id, production.status)
+										break
+									end
+									if self.isOwned then
+										self.productionCostsToClaim = self.productionCostsToClaim + production.costsPerActiveMinute * minuteFactorTimescaledDt
+									end
+									if not self.isOwned or enoughInputResources and enoughOutputSpace then
+										local factor = cyclesPerMinuteMinuteFactor / (self.sharedThroughputCapacity and numActiveProductions or 1)
+										for y = 1, #production.inputs do
+											local input = production.inputs[y]
+											if self.loadingStation ~= nil then
+												self.loadingStation:removeFillLevel(input.type, input.amount * factor, self.ownerFarmId)
+											else
+												local fillLevel = self.inputFillLevels[input]
+												if fillLevel and 0 < fillLevel then
+													self.storage:setFillLevel(fillLevel - input.amount * factor, input.type)
+												end
+											end
+										end
+										if self.isOwned then
+											for y = 1, #production.outputs do
+												local output = production.outputs[y]
+												if output.sellDirectly then
+													if self.isServer then
+														self.soldFillTypesToPayOut[output.type] = self.soldFillTypesToPayOut[output.type] + output.amount * factor
+													end
+												else
+													local fillLevel = self.storage:getFillLevel(output.type)
+													self.storage:setFillLevel(fillLevel + output.amount * factor, output.type)
+												end
+											end
+										end
+										if production.status ~= ProductionPoint.PROD_STATUS.RUNNING then
+											production.status = ProductionPoint.PROD_STATUS.RUNNING
+											self.owningPlaceable:productionStatusChanged(production, production.status)
+											ProductionPointProductionStatusEvent.sendEvent(self, production.index, production.status)
+										end
+										table.clear(self.inputFillLevels)
+									end
+								end
 							end
-						else
-							local v128_ = self.storage:getFillLevel(v127_.type)
-							self.storage:setFillLevel(v128_ + v127_.amount * v122_, v127_.type)
 						end
 					end
 				end
-				if v112_.status ~= ProductionPoint.PROD_STATUS.RUNNING then
-					v112_.status = ProductionPoint.PROD_STATUS.RUNNING
-					self.owningPlaceable:productionStatusChanged(v112_, v112_.status)
-					ProductionPointProductionStatusEvent.sendEvent(self, v112_.index, v112_.status)
-				end
-				table.clear(self.inputFillLevels)
 			end
 		end
 	end
-	if self.isServer and (self.isOwned and (g_time > self.palletSpawnCooldown and not self.waitingForPalletToSpawn)) then
-		local v129_ = nil
+	if self.isServer and (self.isOwned and (self.palletSpawnCooldown < g_time and not self.waitingForPalletToSpawn)) then
+		local nextFillTypeId = nil
 		while true do
-			local v130_ = self.lastPalletFillTypeId
-			if v130_ ~= nil and (self.outputFillTypeIdsDirectSell[v130_] == nil and self.outputFillTypeIdsAutoDeliver[v130_] == nil) then
-				local v131_ = self.storage:getFillLevel(v130_)
-				if v131_ > 0 then
-					local v132_ = self.outputFillTypeIdsToPallets[v130_]
-					if v132_ and v132_.capacity <= v131_ then
-						v129_ = v130_
-						break
+			local fillTypeId = self.lastPalletFillTypeId
+			if fillTypeId == nil then
+				break
+			end
+			if self.outputFillTypeIdsDirectSell[fillTypeId] == nil and self.outputFillTypeIdsAutoDeliver[fillTypeId] == nil then
+				local fillLevel = self.storage:getFillLevel(fillTypeId)
+				if 0 < fillLevel then
+					local pallet = self.outputFillTypeIdsToPallets[fillTypeId]
+					if pallet and pallet.capacity <= fillLevel then
+						nextFillTypeId = fillTypeId
+						if nextFillTypeId ~= nil then
+							self.waitingForPalletToSpawn = true
+							self.palletSpawner:spawnPallet(self:getOwnerFarmId(), nextFillTypeId, self.palletSpawnRequestCallback, self)
+						end
+						self.lastUpdatedTime = g_time
+						return
 					end
 				end
 			end
+		end
+		while true do
 			self.lastPalletFillTypeId = next(self.outputFillTypeIdsToPallets, self.lastPalletFillTypeId)
 			if self.lastPalletFillTypeId == nil then
 				break
 			end
 		end
-		if v129_ ~= nil then
-			self.waitingForPalletToSpawn = true
-			self.palletSpawner:spawnPallet(self:getOwnerFarmId(), v129_, self.palletSpawnRequestCallback, self)
-		end
 	end
-	self.lastUpdatedTime = g_time
 end
-
 function ProductionPoint:updateTick(dt) end
-
--- Local values: localPlayer, playerNode, px, py, pz, ppx, ppy, ppz, distance, text, i, production, n, input, n, output
 function ProductionPoint:draw()
-	local v134_ = g_localPlayer
-	local v135_ = (v134_:getCurrentVehicle() or {}).rootNode or (v134_ or {}).rootNode
-	local v136_, v137_, v138_ = getWorldTranslation(v135_)
-	local v139_, v140_, v141_ = getWorldTranslation(self.node)
-	if MathUtil.vector3Length(v136_ - v139_, v137_ - v140_, v138_ - v141_) < 40 then
-		local v142_ = {}
-		local v143_ = string.format
-		local v144_ = self:getName()
-		local v145_ = self:tableId()
-		local v146_ = self.ownerFarmId
-		local v147_ = self.isOwned
-		table.insert(v142_, v143_("PP %s (%s); ownerFarmId: %s; isOwned: %s", v144_, v145_, v146_, v147_))
-		for v148_ = 1, #self.productions do
-			local v149_ = self.productions[v148_]
-			local v150_ = string.format
-			local v151_ = v149_.id
-			local v152_ = v149_.cyclesPerMinute
-			local v153_ = table.hasElement
-			local v154_ = self.activeProductions
-			local v155_ = tostring(v153_(v154_, v149_))
-			table.insert(v142_, v150_("  prodId \'%s\': cyclesPerMinute: %.2f; enabled: %s", v151_, v152_, v155_))
-			for v156_ = 1, #v149_.inputs do
-				local v157_ = v149_.inputs[v156_]
-				local v158_ = string.format
-				local v159_ = g_fillTypeManager:getFillTypeNameByIndex(v157_.type)
-				local v160_ = v157_.amount
-				table.insert(v142_, v158_("    i: %s: %.2f", v159_, v160_))
+	local localPlayer = g_localPlayer
+	if not (localPlayer:getCurrentVehicle() or {}).rootNode then
+		local playerNode = (localPlayer or {}).rootNode
+	end
+	local px, py, pz = getWorldTranslation(playerNode)
+	local ppx, ppy, ppz = getWorldTranslation(self.node)
+	local distance = MathUtil.vector3Length(px - ppx, py - ppy, pz - ppz)
+	if distance < 40 then
+		local text = {}
+		table.insert(text, string.format("PP %s (%s); ownerFarmId: %s; isOwned: %s", self:getName(), self:tableId(), self.ownerFarmId, self.isOwned))
+		for i = 1, #self.productions do
+			local production = self.productions[i]
+			table.insert(text, string.format("  prodId '%s': cyclesPerMinute: %.2f; enabled: %s", production.id, production.cyclesPerMinute, tostring(table.hasElement(self.activeProductions, production))))
+			for n = 1, #production.inputs do
+				local input = production.inputs[n]
+				table.insert(text, string.format("    i: %s: %.2f", g_fillTypeManager:getFillTypeNameByIndex(input.type), input.amount))
 			end
-			for v161_ = 1, #v149_.outputs do
-				local v162_ = v149_.outputs[v161_]
-				local v163_ = string.format
-				local v164_ = g_fillTypeManager:getFillTypeNameByIndex(v162_.type)
-				local v165_ = v162_.amount
-				local v166_ = self.outputFillTypeIdsDirectSell[v162_.type] == true
-				local v167_ = tostring(v166_)
-				local v168_ = self.outputFillTypeIdsAutoDeliver[v162_.type] == true
-				local v169_ = tostring(v168_)
-				table.insert(v142_, v163_("    o: %s: %.2f; directSell:%s; autoDeliver:%s", v164_, v165_, v167_, v169_))
+			for n = 1, #production.outputs do
+				local output = production.outputs[n]
+				table.insert(text, string.format("    o: %s: %.2f; directSell:%s; autoDeliver:%s", g_fillTypeManager:getFillTypeNameByIndex(output.type), output.amount, tostring(self.outputFillTypeIdsDirectSell[output.type] == true), tostring(self.outputFillTypeIdsAutoDeliver[output.type] == true)))
 			end
 		end
-		local v170_ = string.format
-		local v171_ = self.productionCostsToClaim
-		table.insert(v142_, v170_("productionCostsToClaim : %.1f", v171_))
-		local v172_ = string.format
-		local v173_ = self.waitingForPalletToSpawn
-		table.insert(v142_, v172_("waitingForPalletToSpawn: %s", v173_))
-		if self.palletSpawnCooldown > g_time then
-			local v174_ = string.format
-			local v175_ = (self.palletSpawnCooldown - g_time) / 1000
-			table.insert(v142_, v174_("palletSpawnCooldown: %.1f s", v175_))
+		table.insert(text, string.format("productionCostsToClaim : %.1f", self.productionCostsToClaim))
+		table.insert(text, string.format("waitingForPalletToSpawn: %s", self.waitingForPalletToSpawn))
+		if g_time < self.palletSpawnCooldown then
+			table.insert(text, string.format("palletSpawnCooldown: %.1f s", (self.palletSpawnCooldown - g_time) / 1000))
 		end
-		self.debugText:setText(table.concat(v142_, "\n"))
+		self.debugText:setText(table.concat(text, "\n"))
 		self.debugText:draw()
 		self.storage:draw()
 	end
 end
-
 function ProductionPoint:onTimescaleChanged()
 	self.minuteFactorTimescaled = self.mission:getEffectiveTimeScale() / 1000 / 60
 end
-
 function ProductionPoint:claimProductionCosts()
-	if self.isOwned and (self.isServer and self.productionCostsToClaim > 0) then
+	if self.isOwned and (self.isServer and 0 < self.productionCostsToClaim) then
 		self.mission:addMoney(-self.productionCostsToClaim, self.ownerFarmId, MoneyType.PRODUCTION_COSTS, true)
 	end
 	self.productionCostsToClaim = 0
 end
-
--- Local values: fillTypeId, amount, moneyType
 function ProductionPoint:updateBalaceDirectlySoldOutputs()
 	if self.isOwned and self.isServer then
-		for v179_, v180_ in pairs(self.soldFillTypesToPayOut) do
-			local v181_ = MoneyType.HARVEST_INCOME
-			if g_fillTypeManager:getIsFillTypeInCategory(v179_, "PRODUCT") then
-				v181_ = MoneyType.SOLD_PRODUCTS
-			elseif g_fillTypeManager:getIsFillTypeInCategory(v179_, "PRODUCT_BGA") then
-				v181_ = MoneyType.INCOME_BGA
+		for fillTypeId, amount in pairs(self.soldFillTypesToPayOut) do
+			local moneyType = MoneyType.HARVEST_INCOME
+			if g_fillTypeManager:getIsFillTypeInCategory(fillTypeId, "PRODUCT") then
+				moneyType = MoneyType.SOLD_PRODUCTS
+			elseif g_fillTypeManager:getIsFillTypeInCategory(fillTypeId, "PRODUCT_BGA") then
+				moneyType = MoneyType.INCOME_BGA
 			end
-			self.mission:addMoney(v180_ * g_currentMission.economyManager:getPricePerLiter(v179_), self.ownerFarmId, v181_, true)
-			self.soldFillTypesToPayOut[v179_] = 0
+			self.mission:addMoney(amount * g_currentMission.economyManager:getPricePerLiter(fillTypeId), self.ownerFarmId, moneyType, true)
+			self.soldFillTypesToPayOut[fillTypeId] = 0
 		end
 	end
 end
-
--- Local values: outputFillTypeId, amount, revenue
 function ProductionPoint:directlySellOutputs()
-	for v183_ in pairs(self.outputFillTypeIdsDirectSell) do
-		local v184_ = self.storage:getFillLevel(v183_)
-		if v184_ > 0 then
-			local v185_ = ProductionPoint.DIRECT_SELL_PRICE_FACTOR * v184_ * g_currentMission.economyManager:getPricePerLiter(v183_)
-			self.mission:addMoney(v185_, self.ownerFarmId, MoneyType.SOLD_PRODUCTS, true)
-			self.storage:setFillLevel(0, v183_)
+	for outputFillTypeId in pairs(self.outputFillTypeIdsDirectSell) do
+		local amount = self.storage:getFillLevel(outputFillTypeId)
+		if 0 < amount then
+			local revenue = ProductionPoint.DIRECT_SELL_PRICE_FACTOR * amount * g_currentMission.economyManager:getPricePerLiter(outputFillTypeId)
+			self.mission:addMoney(revenue, self.ownerFarmId, MoneyType.SOLD_PRODUCTS, true)
+			self.storage:setFillLevel(0, outputFillTypeId)
 		end
 	end
 end
-
--- Local values: palletSpawnCooldown, n
 function ProductionPoint:loadFromXMLFile(xmlFile, key)
-	local v189_ = xmlFile:getValue(key .. "#palletSpawnCooldown")
-	if v189_ then
-		self.palletSpawnCooldown = g_time + v189_
+	local palletSpawnCooldown = xmlFile:getValue(key .. "#palletSpawnCooldown")
+	if palletSpawnCooldown then
+		self.palletSpawnCooldown = g_time + palletSpawnCooldown
 	end
 	self.productionCostsToClaim = xmlFile:getValue(key .. "#productionCostsToClaim") or self.productionCostsToClaim
 	if self.owningPlaceable.ownerFarmId == AccessHandler.EVERYONE then
-		for v190_ = 1, #self.productions do
-			self:setProductionState(self.productions[v190_].id, true)
+		for n = 1, #self.productions do
+			self:setProductionState(self.productions[n].id, true)
 		end
 	end
-	xmlFile:iterate(key .. ".production", function(_, p191_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v192_ = xmlFile:getValue(p191_ .. "#id")
-		local v193_ = xmlFile:getValue(p191_ .. "#isEnabled")
-		if self.productionsIdToObj[v192_] == nil then
-			Logging.xmlWarning(xmlFile, "Unknown production id \'%s\'", v192_)
+	xmlFile:iterate(key .. ".production", function(index, productionKey)
+		local prodId = xmlFile:getValue(productionKey .. "#id")
+		local isEnabled = xmlFile:getValue(productionKey .. "#isEnabled")
+		if self.productionsIdToObj[prodId] == nil then
+			Logging.xmlWarning(xmlFile, "Unknown production id '%s'", prodId)
 		else
-			self:setProductionState(v192_, v193_)
+			self:setProductionState(prodId, isEnabled)
 		end
 	end)
-	xmlFile:iterate(key .. ".directSellFillType", function(_, p194_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v195_ = g_fillTypeManager:getFillTypeIndexByName(xmlFile:getValue(p194_))
-		if v195_ then
-			self:setOutputDistributionMode(v195_, ProductionPoint.OUTPUT_MODE.DIRECT_SELL)
+	xmlFile:iterate(key .. ".directSellFillType", function(index, directSellKey)
+		local fillType = g_fillTypeManager:getFillTypeIndexByName(xmlFile:getValue(directSellKey))
+		if fillType then
+			self:setOutputDistributionMode(fillType, ProductionPoint.OUTPUT_MODE.DIRECT_SELL)
 		end
 	end)
-	xmlFile:iterate(key .. ".autoDeliverFillType", function(_, p196_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v197_ = g_fillTypeManager:getFillTypeIndexByName(xmlFile:getValue(p196_))
-		if v197_ then
-			self:setOutputDistributionMode(v197_, ProductionPoint.OUTPUT_MODE.AUTO_DELIVER)
+	xmlFile:iterate(key .. ".autoDeliverFillType", function(index, autoDeliverKey)
+		local fillType = g_fillTypeManager:getFillTypeIndexByName(xmlFile:getValue(autoDeliverKey))
+		if fillType then
+			self:setOutputDistributionMode(fillType, ProductionPoint.OUTPUT_MODE.AUTO_DELIVER)
 		end
 	end)
-	return self.storage:loadFromXMLFile(xmlFile, key .. ".storage") and true or false
+	if not self.storage:loadFromXMLFile(xmlFile, key .. ".storage") then
+		return false
+	else
+		return true
+	end
 end
-
--- Local values: xmlIndex, i, production, productionKey
 function ProductionPoint:saveToXMLFile(xmlFile, key, usedModNames)
 	if g_time < self.palletSpawnCooldown then
 		xmlFile:setValue(key .. "#palletSpawnCooldown", self.palletSpawnCooldown - g_time)
@@ -840,236 +763,197 @@ function ProductionPoint:saveToXMLFile(xmlFile, key, usedModNames)
 	if self.productionCostsToClaim ~= 0 then
 		xmlFile:setValue(key .. "#productionCostsToClaim", self.productionCostsToClaim)
 	end
-	local v202_ = 0
-	for v203_ = 1, #self.activeProductions do
-		local v204_ = self.activeProductions[v203_]
-		local v205_ = string.format("%s.production(%i)", key, v202_)
-		xmlFile:setValue(v205_ .. "#id", v204_.id)
-		xmlFile:setValue(v205_ .. "#isEnabled", true)
-		v202_ = v202_ + 1
+	local xmlIndex = 0
+	for i = 1, #self.activeProductions do
+		local production = self.activeProductions[i]
+		local productionKey = string.format("%s.production(%i)", key, xmlIndex)
+		xmlFile:setValue(productionKey .. "#id", production.id)
+		xmlFile:setValue(productionKey .. "#isEnabled", true)
+		xmlIndex = xmlIndex + 1
 	end
-	xmlFile:setTable(key .. ".directSellFillType", self.outputFillTypeIdsDirectSell, function(p206_, _, p207_)
-		-- upvalues: (copy) xmlFile
-		xmlFile:setValue(p206_, (g_fillTypeManager:getFillTypeNameByIndex(p207_)))
+	xmlFile:setTable(key .. ".directSellFillType", self.outputFillTypeIdsDirectSell, function(fillTypeKey, _, fillTypeId)
+		local fillType = g_fillTypeManager:getFillTypeNameByIndex(fillTypeId)
+		xmlFile:setValue(fillTypeKey, fillType)
 	end)
-	xmlFile:setTable(key .. ".autoDeliverFillType", self.outputFillTypeIdsAutoDeliver, function(p208_, _, p209_)
-		-- upvalues: (copy) xmlFile
-		xmlFile:setValue(p208_, (g_fillTypeManager:getFillTypeNameByIndex(p209_)))
+	xmlFile:setTable(key .. ".autoDeliverFillType", self.outputFillTypeIdsAutoDeliver, function(fillTypeKey, _, fillTypeId)
+		local fillType = g_fillTypeManager:getFillTypeNameByIndex(fillTypeId)
+		xmlFile:setValue(fillTypeKey, fillType)
 	end)
 	self.storage:saveToXMLFile(xmlFile, key .. ".storage", usedModNames)
 end
-
 function ProductionPoint:getName()
 	return self.name or self.owningPlaceable:getName()
 end
-
--- Local values: production
 function ProductionPoint:setProductionState(productionId, state, noEventSend)
-	local v215_ = self.productionsIdToObj[productionId]
-	if v215_ == nil then
-		printError(string.format("Error: setProductionState(): unknown productionId \'%s\'", productionId))
-	else
+	local production = self.productionsIdToObj[productionId]
+	if production ~= nil then
 		if state then
-			if not table.hasElement(self.activeProductions, v215_) then
-				v215_.status = ProductionPoint.PROD_STATUS.RUNNING
-				local v216_ = self.activeProductions
-				table.insert(v216_, v215_)
+			if not table.hasElement(self.activeProductions, production) then
+				production.status = ProductionPoint.PROD_STATUS.RUNNING
+				table.insert(self.activeProductions, production)
 			end
 			if self.isClient then
-				g_soundManager:playSamples(v215_.samples)
-				g_animationManager:startAnimations(v215_.animationNodes)
-				g_effectManager:startEffects(v215_.effects)
+				g_soundManager:playSamples(production.samples)
+				g_animationManager:startAnimations(production.animationNodes)
+				g_effectManager:startEffects(production.effects)
 			end
 		else
-			table.removeElement(self.activeProductions, v215_)
-			v215_.status = ProductionPoint.PROD_STATUS.INACTIVE
+			table.removeElement(self.activeProductions, production)
+			production.status = ProductionPoint.PROD_STATUS.INACTIVE
 			if self.isClient then
-				g_soundManager:stopSamples(v215_.samples)
-				g_animationManager:stopAnimations(v215_.animationNodes)
-				g_effectManager:stopEffects(v215_.effects)
+				g_soundManager:stopSamples(production.samples)
+				g_animationManager:stopAnimations(production.animationNodes)
+				g_effectManager:stopEffects(production.effects)
 			end
 		end
-		self.owningPlaceable:outputsChanged(v215_.outputs, state)
+		self.owningPlaceable:outputsChanged(production.outputs, state)
 		ProductionPointProductionStateEvent.sendEvent(self, productionId, state, noEventSend)
+	else
+		printError(string.format("Error: setProductionState(): unknown productionId '%s'", productionId))
 	end
 	if self.isClient then
 		self:updateFxState()
 	end
 end
-
 function ProductionPoint:getIsProductionEnabled(productionId)
 	return table.hasElement(self.activeProductions, self.productionsIdToObj[productionId])
 end
-
--- Local values: owningFarm, activeProduction, i, productionName, fillType, fillLevel, fillTypesDisplayed, i, i
 function ProductionPoint:updateInfo(infoTable)
-	local v221_ = g_farmManager:getFarmById(self:getOwnerFarmId())
-	if v221_ ~= nil and not string.isNilOrWhitespace(v221_.name) then
-		local v222_ = {
-			["title"] = g_i18n:getText("fieldInfo_ownedBy"),
-			["text"] = v221_.name
-		}
-		table.insert(infoTable, v222_)
+	local owningFarm = g_farmManager:getFarmById(self:getOwnerFarmId())
+	if owningFarm ~= nil and not string.isNilOrWhitespace(owningFarm.name) then
+		table.insert(infoTable, { title = g_i18n:getText("fieldInfo_ownedBy"), text = owningFarm.name })
 	end
-	if #self.activeProductions > 0 then
-		local v223_ = self.infoTables.activeProds
-		table.insert(infoTable, v223_)
-		for v224_ = 1, #self.activeProductions do
-			local v225_ = self.activeProductions[v224_]
-			local v226_ = {
-				["title"] = v225_.name or g_fillTypeManager:getFillTypeTitleByIndex(v225_.primaryProductFillType),
-				["text"] = g_i18n:getText(ProductionPoint.PROD_STATUS_TO_L10N[self:getProductionStatus(v225_.id)])
-			}
-			table.insert(infoTable, v226_)
+	if 0 < #self.activeProductions then
+		table.insert(infoTable, self.infoTables.activeProds)
+		local activeProduction = nil
+		for i = 1, #self.activeProductions do
+			activeProduction = self.activeProductions[i]
+			local productionName = activeProduction.name or g_fillTypeManager:getFillTypeTitleByIndex(activeProduction.primaryProductFillType)
+			table.insert(infoTable, { title = productionName, text = g_i18n:getText(ProductionPoint.PROD_STATUS_TO_L10N[self:getProductionStatus(activeProduction.id)]) })
 		end
 	else
-		local v227_ = self.infoTables.noActiveProd
-		table.insert(infoTable, v227_)
+		table.insert(infoTable, self.infoTables.noActiveProd)
 	end
-	local v228_ = self.infoTables.storage
-	table.insert(infoTable, v228_)
-	local v229_ = false
-	for v230_ = 1, #self.inputFillTypeIdsArray do
-		local v231_ = self.inputFillTypeIdsArray[v230_]
-		local v232_ = self:getFillLevel(v231_)
-		if v232_ > 1 then
-			local v233_ = {
-				["title"] = g_fillTypeManager:getFillTypeTitleByIndex(v231_),
-				["text"] = g_i18n:formatVolume(v232_, 0)
-			}
-			table.insert(infoTable, v233_)
-			v229_ = true
+	local fillType = nil
+	local fillLevel = nil
+	local fillTypesDisplayed = false
+	table.insert(infoTable, self.infoTables.storage)
+	for i = 1, #self.inputFillTypeIdsArray do
+		fillType = self.inputFillTypeIdsArray[i]
+		fillLevel = self:getFillLevel(fillType)
+		if 1 < fillLevel then
+			fillTypesDisplayed = true
+			table.insert(infoTable, { title = g_fillTypeManager:getFillTypeTitleByIndex(fillType), text = g_i18n:formatVolume(fillLevel, 0) })
 		end
 	end
-	for v234_ = 1, #self.outputFillTypeIdsArray do
-		local v235_ = self.outputFillTypeIdsArray[v234_]
-		local v236_ = self:getFillLevel(v235_)
-		if v236_ > 1 then
-			local v237_ = {
-				["title"] = g_fillTypeManager:getFillTypeTitleByIndex(v235_),
-				["text"] = g_i18n:formatVolume(v236_, 0)
-			}
-			table.insert(infoTable, v237_)
-			v229_ = true
+	for i = 1, #self.outputFillTypeIdsArray do
+		fillType = self.outputFillTypeIdsArray[i]
+		fillLevel = self:getFillLevel(fillType)
+		if 1 < fillLevel then
+			fillTypesDisplayed = true
+			table.insert(infoTable, { title = g_fillTypeManager:getFillTypeTitleByIndex(fillType), text = g_i18n:formatVolume(fillLevel, 0) })
 		end
 	end
-	if not v229_ then
-		local v238_ = self.infoTables.storageEmpty
-		table.insert(infoTable, v238_)
+	if not fillTypesDisplayed then
+		table.insert(infoTable, self.infoTables.storageEmpty)
 	end
 	if self.palletLimitReached then
-		local v239_ = self.infoTables.palletLimitReached
-		table.insert(infoTable, v239_)
+		table.insert(infoTable, self.infoTables.palletLimitReached)
 	end
 end
-
 function ProductionPoint:getProductionStatus(productionId)
 	return self.productionsIdToObj[productionId].status
 end
-
 function ProductionPoint:setOutputDistributionMode(outputFillTypeId, mode, noEventSend)
 	if self.outputFillTypeIds[outputFillTypeId] == nil then
-		printf("Error: setOutputDistribution(): fillType \'%s\' is not an output fillType", g_fillTypeManager:getFillTypeNameByIndex(outputFillTypeId))
+		printf("Error: setOutputDistribution(): fillType '%s' is not an output fillType", g_fillTypeManager:getFillTypeNameByIndex(outputFillTypeId))
 	else
-		local v246_ = tonumber(mode)
+		mode = tonumber(mode)
 		self.outputFillTypeIdsDirectSell[outputFillTypeId] = nil
 		self.outputFillTypeIdsAutoDeliver[outputFillTypeId] = nil
-		if v246_ == ProductionPoint.OUTPUT_MODE.DIRECT_SELL then
+		if mode == ProductionPoint.OUTPUT_MODE.DIRECT_SELL then
 			self.outputFillTypeIdsDirectSell[outputFillTypeId] = true
-		elseif v246_ == ProductionPoint.OUTPUT_MODE.AUTO_DELIVER then
+		elseif mode == ProductionPoint.OUTPUT_MODE.AUTO_DELIVER then
 			self.outputFillTypeIdsAutoDeliver[outputFillTypeId] = true
-		elseif v246_ ~= ProductionPoint.OUTPUT_MODE.KEEP then
-			printf("Error: setOutputDistribution(): Undefined mode \'%s\'", v246_)
+		elseif mode ~= ProductionPoint.OUTPUT_MODE.KEEP then
+			printf("Error: setOutputDistribution(): Undefined mode '%s'", mode)
 			return
 		end
-		ProductionPointOutputModeEvent.sendEvent(self, outputFillTypeId, v246_, noEventSend)
+		ProductionPointOutputModeEvent.sendEvent(self, outputFillTypeId, mode, noEventSend)
 	end
 end
-
--- Local values: production
 function ProductionPoint:setProductionStatus(productionId, status, noEventSend)
-	local v251_ = tonumber(status)
-	local v252_ = self.productionsIdToObj[productionId]
-	v252_.status = v251_
-	ProductionPointProductionStatusEvent.sendEvent(self, v252_.index, v251_, noEventSend)
+	status = tonumber(status)
+	local production = self.productionsIdToObj[productionId]
+	production.status = status
+	ProductionPointProductionStatusEvent.sendEvent(self, production.index, status, noEventSend)
 end
-
 function ProductionPoint:getOutputDistributionMode(outputFillTypeId)
-	if self.outputFillTypeIdsDirectSell[outputFillTypeId] == nil then
-		if self.outputFillTypeIdsAutoDeliver[outputFillTypeId] == nil then
-			return ProductionPoint.OUTPUT_MODE.KEEP
-		else
-			return ProductionPoint.OUTPUT_MODE.AUTO_DELIVER
-		end
-	else
+	if self.outputFillTypeIdsDirectSell[outputFillTypeId] ~= nil then
 		return ProductionPoint.OUTPUT_MODE.DIRECT_SELL
+	elseif self.outputFillTypeIdsAutoDeliver[outputFillTypeId] ~= nil then
+		return ProductionPoint.OUTPUT_MODE.AUTO_DELIVER
+	else
+		return ProductionPoint.OUTPUT_MODE.KEEP
 	end
 end
-
--- Local values: curMode
 function ProductionPoint:toggleOutputDistributionMode(outputFillTypeId)
 	if self.outputFillTypeIds[outputFillTypeId] ~= nil then
-		local v257_ = self:getOutputDistributionMode(outputFillTypeId)
-		if table.hasElement(ProductionPoint.OUTPUT_MODE, v257_ + 1) then
-			self:setOutputDistributionMode(outputFillTypeId, v257_ + 1)
+		local curMode = self:getOutputDistributionMode(outputFillTypeId)
+		if table.hasElement(ProductionPoint.OUTPUT_MODE, curMode + 1) then
+			self:setOutputDistributionMode(outputFillTypeId, curMode + 1)
 			return
 		end
 		self:setOutputDistributionMode(outputFillTypeId, 0)
 	end
 end
-
 function ProductionPoint:getFillLevel(fillTypeId)
-	if self.outputFillTypeIds[fillTypeId] == nil then
-		return self.inputFillTypeIds[fillTypeId] == nil and 0 or self.unloadingStation:getFillLevel(fillTypeId, self.ownerFarmId)
-	elseif self.loadingStation == nil then
-		return self.storage:getFillLevel(fillTypeId)
+	if self.outputFillTypeIds[fillTypeId] ~= nil then
+		if self.loadingStation ~= nil then
+			return self.loadingStation:getFillLevel(fillTypeId, self.ownerFarmId)
+		else
+			return self.storage:getFillLevel(fillTypeId)
+		end
+	elseif self.inputFillTypeIds[fillTypeId] ~= nil then
+		return self.unloadingStation:getFillLevel(fillTypeId, self.ownerFarmId)
 	else
-		return self.loadingStation:getFillLevel(fillTypeId, self.ownerFarmId)
+		return 0
 	end
 end
-
 function ProductionPoint:getCapacity(fillTypeId)
-	if self.outputFillTypeIds[fillTypeId] == nil then
-		return self.inputFillTypeIds[fillTypeId] == nil and 0 or self.unloadingStation:getCapacity(fillTypeId, self.ownerFarmId)
-	else
+	if self.outputFillTypeIds[fillTypeId] ~= nil then
 		return self.storage:getCapacity(fillTypeId)
+	elseif self.inputFillTypeIds[fillTypeId] ~= nil then
+		return self.unloadingStation:getCapacity(fillTypeId, self.ownerFarmId)
+	else
+		return 0
 	end
 end
-
 function ProductionPoint:tableId()
 	return tostring(self):sub(10)
 end
-
--- Local values: paddedName
 function ProductionPoint:toString()
-	local v264_ = self:getName() .. string.rep(" ", 25 - utf8Strlen(self:getName()))
-	return string.format("PP %s (%s): productions:(%i/%i) - owner: %i", v264_, self:tableId(), #self.activeProductions, #self.productions, self.ownerFarmId)
+	local paddedName = self:getName() .. string.rep(" ", 25 - utf8Strlen(self:getName()))
+	return string.format("PP %s (%s): productions:(%i/%i) - owner: %i", paddedName, self:tableId(), #self.activeProductions, #self.productions, self.ownerFarmId)
 end
-
--- Local values: fillTypeNames
 function ProductionPoint.loadSpecValueInputFillTypes(xmlFile, customEnvironment, baseDir)
-	local v_u_266_ = nil
-	xmlFile:iterate("placeable.productionPoint.productions.production", function(_, p267_)
-		-- upvalues: (copy) xmlFile, (ref) v_u_266_
-		xmlFile:iterate(p267_ .. ".inputs.input", function(_, p268_)
-			-- upvalues: (ref) xmlFile, (ref) v_u_266_
-			local v269_ = xmlFile:getValue(p268_ .. "#fillType")
-			v_u_266_ = v_u_266_ or {}
-			v_u_266_[v269_] = true
+	local fillTypeNames = nil
+	xmlFile:iterate("placeable.productionPoint.productions.production", function(_, productionKey)
+		xmlFile:iterate(productionKey .. ".inputs.input", function(_, inputKey)
+			local fillTypeName = xmlFile:getValue(inputKey .. "#fillType")
+			fillTypeNames = fillTypeNames or {}
+			fillTypeNames[fillTypeName] = true
 		end)
 	end)
-	xmlFile:iterate("placeable.productionPoint.productionPointConfigurations.productionPointConfiguration(0).productionPoint.productions.production", function(_, p270_)
-		-- upvalues: (copy) xmlFile, (ref) v_u_266_
-		xmlFile:iterate(p270_ .. ".inputs.input", function(_, p271_)
-			-- upvalues: (ref) xmlFile, (ref) v_u_266_
-			local v272_ = xmlFile:getValue(p271_ .. "#fillType")
-			v_u_266_ = v_u_266_ or {}
-			v_u_266_[v272_] = true
+	xmlFile:iterate("placeable.productionPoint.productionPointConfigurations.productionPointConfiguration(0).productionPoint.productions.production", function(_, productionKey)
+		xmlFile:iterate(productionKey .. ".inputs.input", function(_, inputKey)
+			local fillTypeName = xmlFile:getValue(inputKey .. "#fillType")
+			fillTypeNames = fillTypeNames or {}
+			fillTypeNames[fillTypeName] = true
 		end)
 	end)
-	return v_u_266_
+	return fillTypeNames
 end
-
 function ProductionPoint.getSpecValueInputFillTypes(storeItem, realItem)
 	if storeItem.specs.prodPointInputFillTypes == nil then
 		return nil
@@ -1077,31 +961,24 @@ function ProductionPoint.getSpecValueInputFillTypes(storeItem, realItem)
 		return g_fillTypeManager:getFillTypesByNames(table.concatKeys(storeItem.specs.prodPointInputFillTypes, " "))
 	end
 end
-
--- Local values: fillTypeNames
 function ProductionPoint.loadSpecValueOutputFillTypes(xmlFile, customEnvironment, baseDir)
-	local v_u_275_ = nil
-	xmlFile:iterate("placeable.productionPoint.productions.production", function(_, p276_)
-		-- upvalues: (copy) xmlFile, (ref) v_u_275_
-		xmlFile:iterate(p276_ .. ".outputs.output", function(_, p277_)
-			-- upvalues: (ref) xmlFile, (ref) v_u_275_
-			local v278_ = xmlFile:getValue(p277_ .. "#fillType")
-			v_u_275_ = v_u_275_ or {}
-			v_u_275_[v278_] = true
+	local fillTypeNames = nil
+	xmlFile:iterate("placeable.productionPoint.productions.production", function(_, productionKey)
+		xmlFile:iterate(productionKey .. ".outputs.output", function(_, inputKey)
+			local fillTypeName = xmlFile:getValue(inputKey .. "#fillType")
+			fillTypeNames = fillTypeNames or {}
+			fillTypeNames[fillTypeName] = true
 		end)
 	end)
-	xmlFile:iterate("placeable.productionPoint.productionPointConfigurations.productionPointConfiguration(0).productionPoint.productions.production", function(_, p279_)
-		-- upvalues: (copy) xmlFile, (ref) v_u_275_
-		xmlFile:iterate(p279_ .. ".outputs.output", function(_, p280_)
-			-- upvalues: (ref) xmlFile, (ref) v_u_275_
-			local v281_ = xmlFile:getValue(p280_ .. "#fillType")
-			v_u_275_ = v_u_275_ or {}
-			v_u_275_[v281_] = true
+	xmlFile:iterate("placeable.productionPoint.productionPointConfigurations.productionPointConfiguration(0).productionPoint.productions.production", function(_, productionKey)
+		xmlFile:iterate(productionKey .. ".outputs.output", function(_, inputKey)
+			local fillTypeName = xmlFile:getValue(inputKey .. "#fillType")
+			fillTypeNames = fillTypeNames or {}
+			fillTypeNames[fillTypeName] = true
 		end)
 	end)
-	return v_u_275_
+	return fillTypeNames
 end
-
 function ProductionPoint.getSpecValueOutputFillTypes(storeItem, realItem)
 	if storeItem.specs.prodPointOutputFillTypes == nil then
 		return nil
@@ -1109,7 +986,6 @@ function ProductionPoint.getSpecValueOutputFillTypes(storeItem, realItem)
 		return g_fillTypeManager:getFillTypesByNames(table.concatKeys(storeItem.specs.prodPointOutputFillTypes, " "))
 	end
 end
-
 function ProductionPoint:interactionTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay, otherShapeId)
 	if (onEnter or onLeave) and (g_localPlayer ~= nil and g_localPlayer.rootNode == otherId) then
 		if onEnter then
@@ -1125,52 +1001,48 @@ function ProductionPoint:interactionTriggerCallback(triggerId, otherId, onEnter,
 		end
 	end
 end
-
 function ProductionPoint:openMenu()
 	g_gui:showGui("InGameMenu")
 	g_messageCenter:publish(MessageType.GUI_INGAME_OPEN_PRODUCTION_SCREEN, self)
 end
-
--- Local values: storeItem, price, farmlandId, farmland, activatable, productionPoint, buyingEventCallback, dialogCallback, callback
 function ProductionPoint:buyRequest(requestCallback, target)
 	if g_guidedTourManager:getIsTourRunning() then
 		InfoDialog.show(g_i18n:getText("guidedTour_feature_deactivated"))
 	else
-		local v291_ = g_storeManager:getItemByXMLFilename(self.owningPlaceable.configFileName)
-		local v292_ = g_currentMission.economyManager:getBuyPrice(v291_) or self.owningPlaceable:getPrice()
+		local storeItem = g_storeManager:getItemByXMLFilename(self.owningPlaceable.configFileName)
+		local price = g_currentMission.economyManager:getBuyPrice(storeItem) or self.owningPlaceable:getPrice()
 		if self.owningPlaceable.buysFarmland and self.owningPlaceable.getFarmlandId ~= nil then
-			local v293_ = self.owningPlaceable:getFarmlandId()
-			local v294_ = g_farmlandManager:getFarmlandById(v293_)
-			if v294_ ~= nil and g_farmlandManager:getFarmlandOwner(v293_) ~= self.mission:getFarmId() then
-				v292_ = v292_ + v294_.price * self.owningPlaceable.buysFarmlandPriceScale
+			local farmlandId = self.owningPlaceable:getFarmlandId()
+			local farmland = g_farmlandManager:getFarmlandById(farmlandId)
+			if farmland ~= nil and g_farmlandManager:getFarmlandOwner(farmlandId) ~= self.mission:getFarmId() then
+				price = price + farmland.price * self.owningPlaceable.buysFarmlandPriceScale
 			end
 		end
-		local v_u_295_ = self.activatable
-		local function v_u_298_(p296_)
-			-- upvalues: (copy) self, (copy) v_u_295_, (copy) self
-			if p296_ ~= nil then
-				local v297_ = BuyExistingPlaceableEvent.DIALOG_MESSAGES[p296_]
-				if v297_ ~= nil then
-					InfoDialog.show(g_i18n:getText(v297_.text), nil, nil, v297_.dialogType)
+		local activatable = self.activatable
+		local buyingEventCallback = function(statusCode)
+			if statusCode ~= nil then
+				local dialogArgs = BuyExistingPlaceableEvent.DIALOG_MESSAGES[statusCode]
+				if dialogArgs ~= nil then
+					InfoDialog.show(g_i18n:getText(dialogArgs.text), nil, nil, dialogArgs.dialogType)
 				end
 			end
-			g_messageCenter:unsubscribe(BuyExistingPlaceableEvent, self)
-			v_u_295_:updateText()
+			g_messageCenter:unsubscribe(BuyExistingPlaceableEvent, productionPoint)
+			activatable:updateText()
 			self.owningPlaceable:onBuy()
 		end
-		YesNoDialog.show(function(p299_)
-			-- upvalues: (copy) v_u_298_, (copy) self, (copy) requestCallback, (copy) target
-			if p299_ then
-				g_messageCenter:subscribe(BuyExistingPlaceableEvent, v_u_298_)
+		local dialogCallback = function(yes)
+			if yes then
+				g_messageCenter:subscribe(BuyExistingPlaceableEvent, buyingEventCallback)
 				g_client:getServerConnection():sendEvent(BuyExistingPlaceableEvent.new(self.owningPlaceable, self.mission:getFarmId()))
 			end
 			if requestCallback ~= nil then
 				if target ~= nil then
-					requestCallback(target, p299_)
+					requestCallback(target, yes)
 					return
 				end
-				requestCallback(p299_)
+				requestCallback(yes)
 			end
-		end, nil, string.format(g_i18n:getText("dialog_buyBuildingFor"), self:getName(), g_i18n:formatMoney(v292_, 0, true)))
+		end
+		YesNoDialog.show(dialogCallback, nil, string.format(g_i18n:getText("dialog_buyBuildingFor"), self:getName(), g_i18n:formatMoney(price, 0, true)))
 	end
 end

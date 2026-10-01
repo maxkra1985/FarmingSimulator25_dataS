@@ -1,34 +1,27 @@
--- Local values: AIModeSelectionSettingsEvent_mt
 AIModeSelectionSettingsEvent = {}
 local AIModeSelectionSettingsEvent_mt = Class(AIModeSelectionSettingsEvent, Event)
 InitStaticEventClass(AIModeSelectionSettingsEvent, "AIModeSelectionSettingsEvent")
 function AIModeSelectionSettingsEvent.emptyNew()
-	-- upvalues: (copy) AIModeSelectionSettingsEvent_mt
-	return Event.new(AIModeSelectionSettingsEvent_mt)
+	local self = Event.new(AIModeSelectionSettingsEvent_mt)
+	return self
 end
-
--- Local values: self
 function AIModeSelectionSettingsEvent.new(vehicle, fieldCourseSettings)
-	local v4_ = AIModeSelectionSettingsEvent.emptyNew()
-	v4_.vehicle = vehicle
-	v4_.fieldCourseSettings = fieldCourseSettings
-	return v4_
+	local self = AIModeSelectionSettingsEvent.emptyNew()
+	self.vehicle = vehicle
+	self.fieldCourseSettings = fieldCourseSettings
+	return self
 end
-
--- Local values: attributes
 function AIModeSelectionSettingsEvent:readStream(streamId, connection)
 	self.vehicle = NetworkUtil.readNodeObject(streamId)
-	local v8_ = FieldCourseSettings.readStream(streamId, connection)
+	local attributes = FieldCourseSettings.readStream(streamId, connection)
 	self.fieldCourseSettings = FieldCourseSettings.new(self.vehicle)
-	self.fieldCourseSettings:applyAttributes(v8_)
+	self.fieldCourseSettings:applyAttributes(attributes)
 	self:run(connection)
 end
-
 function AIModeSelectionSettingsEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.vehicle)
 	self.fieldCourseSettings:writeStream(streamId, connection)
 end
-
 function AIModeSelectionSettingsEvent:run(connection)
 	if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
 		self.vehicle:setAIModeFieldCourseSettings(self.fieldCourseSettings)
@@ -37,7 +30,6 @@ function AIModeSelectionSettingsEvent:run(connection)
 		g_server:broadcastEvent(AIModeSelectionSettingsEvent.new(self.vehicle, self.fieldCourseSettings), nil, connection, self.vehicle)
 	end
 end
-
 function AIModeSelectionSettingsEvent.sendEvent(vehicle, fieldCourseSettings, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

@@ -1,89 +1,72 @@
--- Local values: WorkAreaTypeManager_mt
 WorkAreaTypeManager = {}
 WorkAreaType = nil
 local WorkAreaTypeManager_mt = Class(WorkAreaTypeManager, AbstractManager)
-
--- Upvalues: WorkAreaTypeManager_mt
--- Local values: self
 function WorkAreaTypeManager.new(customMt)
-	-- upvalues: (copy) WorkAreaTypeManager_mt
-	return AbstractManager.new(customMt or WorkAreaTypeManager_mt)
+	local self = AbstractManager.new(customMt or WorkAreaTypeManager_mt)
+	return self
 end
-
 function WorkAreaTypeManager:initDataStructures()
 	self.workAreaTypes = {}
 	self.workAreaTypeNameToInt = {}
 	self.workAreaTypeNameToDesc = {}
 	WorkAreaType = self.workAreaTypeNameToInt
 end
-
--- Local values: entry
 function WorkAreaTypeManager:addWorkAreaType(name, attractWildlife, isAIArea, isSteeringAssistArea)
 	if name == nil then
 		Logging.error("WorkArea name missing!")
-		return
-	elseif self.workAreaTypeNameToInt[name] == nil then
-		local v9_ = string.upper(name)
-		local v10_ = {
-			["name"] = v9_,
-			["index"] = #self.workAreaTypes + 1,
-			["attractWildlife"] = Utils.getNoNil(attractWildlife, false),
-			["isAIArea"] = Utils.getNoNil(isAIArea, false),
-			["isSteeringAssistArea"] = Utils.getNoNil(isSteeringAssistArea, false)
-		}
-		self.workAreaTypeNameToInt[v9_] = v10_.index
-		self.workAreaTypeNameToDesc[v9_] = v10_
-		local v11_ = self.workAreaTypes
-		table.insert(v11_, v10_)
-		print("  Register workAreaType \'" .. v9_ .. "\'")
+	elseif self.workAreaTypeNameToInt[name] ~= nil then
+		Logging.error("WorkArea name '%s' is already in use!", name)
 	else
-		Logging.error("WorkArea name \'%s\' is already in use!", name)
+		name = string.upper(name)
+		local entry = {}
+		entry.name = name
+		entry.index = #self.workAreaTypes + 1
+		entry.attractWildlife = Utils.getNoNil(attractWildlife, false)
+		entry.isAIArea = Utils.getNoNil(isAIArea, false)
+		entry.isSteeringAssistArea = Utils.getNoNil(isSteeringAssistArea, false)
+		self.workAreaTypeNameToInt[name] = entry.index
+		self.workAreaTypeNameToDesc[name] = entry
+		table.insert(self.workAreaTypes, entry)
+		print("  Register workAreaType '" .. name .. "'")
 	end
 end
-
--- Local values: workAreaType
 function WorkAreaTypeManager:getWorkAreaTypeNameByIndex(index)
-	local v14_ = self.workAreaTypes[index]
-	if v14_ then
-		return v14_.name
+	local workAreaType = self.workAreaTypes[index]
+	if workAreaType then
+		return workAreaType.name
 	else
 		return nil
 	end
 end
-
 function WorkAreaTypeManager:getWorkAreaTypeIndexByName(name)
-	if name == nil then
-		return nil
-	else
+	if name ~= nil then
 		return self.workAreaTypeNameToInt[string.upper(name)]
-	end
-end
-
-function WorkAreaTypeManager:getConfigurationDescByName(name)
-	if name == nil then
-		return nil
 	else
-		return self.workAreaTypeNameToDesc[string.upper(name)]
+		return nil
 	end
 end
-
+function WorkAreaTypeManager:getConfigurationDescByName(name)
+	if name ~= nil then
+		return self.workAreaTypeNameToDesc[string.upper(name)]
+	else
+		return nil
+	end
+end
 function WorkAreaTypeManager:getWorkAreaTypeByIndex(index)
 	return self.workAreaTypes[index]
 end
-
 function WorkAreaTypeManager:getWorkAreaTypeIsAIArea(index)
-	if self.workAreaTypes[index] == nil then
-		return false
-	else
+	if self.workAreaTypes[index] ~= nil then
 		return self.workAreaTypes[index].isAIArea
+	else
+		return false
 	end
 end
-
 function WorkAreaTypeManager:getWorkAreaTypeIsSteeringAssistArea(index)
-	if self.workAreaTypes[index] == nil then
-		return false
-	else
+	if self.workAreaTypes[index] ~= nil then
 		return self.workAreaTypes[index].isSteeringAssistArea
+	else
+		return false
 	end
 end
 g_workAreaTypeManager = WorkAreaTypeManager.new()

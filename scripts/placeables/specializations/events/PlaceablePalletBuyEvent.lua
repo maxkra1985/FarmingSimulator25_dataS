@@ -1,47 +1,39 @@
--- Local values: PlaceablePalletBuyEvent_mt
 PlaceablePalletBuyEvent = {}
 local PlaceablePalletBuyEvent_mt = Class(PlaceablePalletBuyEvent, Event)
 InitStaticEventClass(PlaceablePalletBuyEvent, "PlaceablePalletBuyEvent")
 function PlaceablePalletBuyEvent.emptyNew()
-	-- upvalues: (copy) PlaceablePalletBuyEvent_mt
-	return Event.new(PlaceablePalletBuyEvent_mt)
+	local self = Event.new(PlaceablePalletBuyEvent_mt)
+	return self
 end
-
--- Local values: self
 function PlaceablePalletBuyEvent.new(placeable, farmId, fillTypeIndex, quantity, palletPrice)
-	local v7_ = PlaceablePalletBuyEvent.emptyNew()
-	local v8_ = quantity < 16
-	assert(v8_)
-	v7_.placeable = placeable
-	v7_.farmId = farmId
-	v7_.fillTypeIndex = fillTypeIndex
-	v7_.quantity = quantity
-	v7_.palletPrice = palletPrice
-	return v7_
+	local self = PlaceablePalletBuyEvent.emptyNew()
+	assert(quantity < 16)
+	self.placeable = placeable
+	self.farmId = farmId
+	self.fillTypeIndex = fillTypeIndex
+	self.quantity = quantity
+	self.palletPrice = palletPrice
+	return self
 end
-
--- Local values: self
 function PlaceablePalletBuyEvent.newServerToClient(errorCode, numBoughPallets)
-	local v11_ = PlaceablePalletBuyEvent.emptyNew()
-	v11_.numBoughPallets = numBoughPallets
-	v11_.errorCode = errorCode
-	return v11_
+	local self = PlaceablePalletBuyEvent.emptyNew()
+	self.numBoughPallets = numBoughPallets
+	self.errorCode = errorCode
+	return self
 end
-
 function PlaceablePalletBuyEvent:readStream(streamId, connection)
-	if connection:getIsServer() then
-		self.errorCode = streamReadUIntN(streamId, 3)
-		self.numBoughPallets = streamReadUIntN(streamId, 4)
-	else
+	if not connection:getIsServer() then
 		self.placeable = NetworkUtil.readNodeObject(streamId)
 		self.farmId = streamReadUIntN(streamId, FarmManager.FARM_ID_SEND_NUM_BITS)
 		self.fillTypeIndex = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 		self.quantity = streamReadUIntN(streamId, 4)
 		self.palletPrice = streamReadUInt16(streamId)
+	else
+		self.errorCode = streamReadUIntN(streamId, 3)
+		self.numBoughPallets = streamReadUIntN(streamId, 4)
 	end
 	self:run(connection)
 end
-
 function PlaceablePalletBuyEvent:writeStream(streamId, connection)
 	if connection:getIsServer() then
 		NetworkUtil.writeNodeObject(streamId, self.placeable)
@@ -54,18 +46,18 @@ function PlaceablePalletBuyEvent:writeStream(streamId, connection)
 		streamWriteUIntN(streamId, self.numBoughPallets, 4)
 	end
 end
-
 function PlaceablePalletBuyEvent:run(connection)
 	if connection:getIsServer() then
 		g_messageCenter:publish(PlaceablePalletBuyEvent, self.errorCode, self.numBoughPallets)
-	elseif self.placeable ~= nil then
-		self.placeable:tryToSpawnPallets(self.farmId, self.fillTypeIndex, self.quantity, function(p20_, p21_)
-			-- upvalues: (copy) self, (copy) connection
-			if p21_ > 0 then
-				local v22_ = self.palletPrice * p21_
-				g_currentMission:addMoney(-v22_, self.farmId, MoneyType.PURCHASE_PALLETS, true, true)
-			end
-			connection:sendEvent(PlaceablePalletBuyEvent.newServerToClient(p20_, p21_))
-		end)
+	else
+		if self.placeable ~= nil then
+			self.placeable:tryToSpawnPallets(self.farmId, self.fillTypeIndex, self.quantity, function(errorCode, numBoughtPallets)
+				if 0 < numBoughtPallets then
+					local price = self.palletPrice * numBoughtPallets
+					g_currentMission:addMoney(-price, self.farmId, MoneyType.PURCHASE_PALLETS, true, true)
+				end
+				connection:sendEvent(PlaceablePalletBuyEvent.newServerToClient(errorCode, numBoughtPallets))
+			end)
+		end
 	end
 end

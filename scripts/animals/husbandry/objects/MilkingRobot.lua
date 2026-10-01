@@ -1,35 +1,22 @@
--- Local values: MilkingRobot_mt
 MilkingRobot = {}
 local MilkingRobot_mt = Class(MilkingRobot)
-
--- Upvalues: MilkingRobot_mt
--- Local values: self
 function MilkingRobot.new(owner, baseDirectory, customMt)
-	-- upvalues: (copy) MilkingRobot_mt
-	local v5_ = customMt or MilkingRobot_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.owner = owner
-	v6_.baseDirectory = baseDirectory
-	return v6_
+	local self = setmetatable({}, customMt or MilkingRobot_mt)
+	self.owner = owner
+	self.baseDirectory = baseDirectory
+	return self
 end
-
--- Local values: xmlFile, i3dFilename, arguments
 function MilkingRobot:load(linkNode, filename, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArgs)
-	local v13_ = XMLFile.load("milkingRobot", filename)
-	if v13_ == nil then
+	local xmlFile = XMLFile.load("milkingRobot", filename)
+	if xmlFile == nil then
 		return false
+	else
+		local i3dFilename = Utils.getFilename(xmlFile:getString("milkingRobot.filename"), self.baseDirectory)
+		local arguments = { xmlFile = xmlFile, linkNode = linkNode, asyncCallbackFunction = asyncCallbackFunction, asyncCallbackObject = asyncCallbackObject, asyncCallbackArgs = asyncCallbackArgs }
+		self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(i3dFilename, true, false, self.onI3DFileLoaded, self, arguments)
+		return true
 	end
-	local v14_ = Utils.getFilename(v13_:getString("milkingRobot.filename"), self.baseDirectory)
-	self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(v14_, true, false, self.onI3DFileLoaded, self, {
-		["xmlFile"] = v13_,
-		["linkNode"] = linkNode,
-		["asyncCallbackFunction"] = asyncCallbackFunction,
-		["asyncCallbackObject"] = asyncCallbackObject,
-		["asyncCallbackArgs"] = asyncCallbackArgs
-	})
-	return true
 end
-
 function MilkingRobot:delete()
 	if self.sharedLoadRequestId ~= nil then
 		g_i3DManager:releaseSharedI3DFile(self.sharedLoadRequestId)
@@ -40,7 +27,6 @@ function MilkingRobot:delete()
 		self.node = nil
 	end
 end
-
 function MilkingRobot:onI3DFileLoaded(node, failedReason, args)
 	if node ~= 0 then
 		link(args.linkNode, node)
@@ -49,7 +35,6 @@ function MilkingRobot:onI3DFileLoaded(node, failedReason, args)
 	args.xmlFile:delete()
 	args.asyncCallbackFunction(args.asyncCallbackObject, self, args.asyncCallbackArgs)
 end
-
 function MilkingRobot:finalizePlacement()
 	if self.node ~= nil then
 		addToPhysics(self.node)

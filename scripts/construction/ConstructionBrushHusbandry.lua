@@ -1,15 +1,10 @@
--- Local values: ConstructionBrushHusbandry_mt
 ConstructionBrushHusbandry = {}
 source("dataS/scripts/animals/husbandry/placeables/events/HusbandryCancelCreationEvent.lua")
 local ConstructionBrushHusbandry_mt = Class(ConstructionBrushHusbandry, ConstructionBrushPlaceable)
-
--- Upvalues: ConstructionBrushHusbandry_mt
--- Local values: self
 function ConstructionBrushHusbandry.new(subclass_mt, cursor)
-	-- upvalues: (copy) ConstructionBrushHusbandry_mt
-	return ConstructionBrushHusbandry:superClass().new(subclass_mt or ConstructionBrushHusbandry_mt, cursor)
+	local self = ConstructionBrushHusbandry:superClass().new(subclass_mt or ConstructionBrushHusbandry_mt, cursor)
+	return self
 end
-
 function ConstructionBrushHusbandry:deactivate()
 	if self.findPlaceableWithId ~= nil then
 		g_client:getServerConnection():sendEvent(HusbandryCancelCreationEvent.new(self.findPlaceableWithId))
@@ -17,89 +12,76 @@ function ConstructionBrushHusbandry:deactivate()
 	self.findPlaceableWithId = nil
 	ConstructionBrushHusbandry:superClass().deactivate(self)
 end
-
--- Local values: placeable
 function ConstructionBrushHusbandry:update(dt)
 	ConstructionBrushHusbandry:superClass().update(self, dt)
 	if self.findPlaceableWithId ~= nil then
-		local v7_ = NetworkUtil.getObject(self.findPlaceableWithId)
-		if v7_ ~= nil and v7_:getIsSynchronized() then
+		local placeable = NetworkUtil.getObject(self.findPlaceableWithId)
+		if placeable ~= nil and placeable:getIsSynchronized() then
 			self.findPlaceableWithId = nil
-			self:onCreatedPlaceableFound(v7_)
+			self:onCreatedPlaceableFound(placeable)
 		end
 	end
 end
-
 function ConstructionBrushHusbandry:onPlaceableCreated(errorCode, price, serverObjectId)
 	ConstructionBrushHusbandry:superClass().onPlaceableCreated(self, errorCode, price, serverObjectId)
 	if errorCode == BuyPlaceableEvent.STATE_SUCCESS then
 		self.findPlaceableWithId = serverObjectId
 	end
 end
-
--- Local values: customizeFenceDialogCallback
 function ConstructionBrushHusbandry:onCreatedPlaceableFound(placeable)
-	if placeable.getHasCustomizableFence == nil or not placeable:getHasCustomizableFence() then
-		self:onCustomizableFenceFinished(placeable)
-	else
-		YesNoDialog.show(function(p14_)
-			-- upvalues: (copy) self, (copy) placeable
-			if p14_ then
+	if placeable.getHasCustomizableFence ~= nil and placeable:getHasCustomizableFence() then
+		local customizeFenceDialogCallback = function(yes)
+			if yes then
 				self:onCustomizeFenceStart(placeable)
 			else
 				self:onCustomizableFenceFinished(placeable)
 			end
-		end, nil, string.namedFormat(g_i18n:getText("ui_construction_customizeFence"), "placeableName", self.placeable:getName()))
+		end
+		YesNoDialog.show(customizeFenceDialogCallback, nil, string.namedFormat(g_i18n:getText("ui_construction_customizeFence"), "placeableName", self.placeable:getName()))
+		return
 	end
+	self:onCustomizableFenceFinished(placeable)
 end
-
--- Local values: fence, storeItem, brushClass, brush, startX, startY, startZ, endX, endY, endZ
 function ConstructionBrushHusbandry:onCustomizeFenceStart(placeable)
 	placeable:startFenceCustomization(nil)
-	local v17_ = placeable:getFence()
-	local v18_ = g_storeManager:getItemByXMLFilename(v17_.xmlFilename)
-	local v19_ = g_constructionBrushTypeManager:getClassObjectByTypeName(v18_.brush.type).new(nil, self.cursor)
-	v19_:setFenceParentObject(placeable)
-	local v20_, v21_, v22_, v23_, v24_, v25_ = placeable:getCustomizeableSectionStartAndEndPositions()
-	v19_:setSnapStartAndEndPositions(v20_, v21_, v22_, v23_, v24_, v25_)
-	v19_:setFinishCallback(function(p26_)
-		-- upvalues: (copy) self, (copy) placeable
-		self:onFinishedCustomFence(p26_, placeable)
+	local fence = placeable:getFence()
+	local storeItem = g_storeManager:getItemByXMLFilename(fence.xmlFilename)
+	local brushClass = g_constructionBrushTypeManager:getClassObjectByTypeName(storeItem.brush.type)
+	local brush = brushClass.new(nil, self.cursor)
+	brush:setFenceParentObject(placeable)
+	local startX, startY, startZ, endX, endY, endZ = placeable:getCustomizeableSectionStartAndEndPositions()
+	brush:setSnapStartAndEndPositions(startX, startY, startZ, endX, endY, endZ)
+	brush:setFinishCallback(function(statusCode)
+		self:onFinishedCustomFence(statusCode, placeable)
 	end)
-	v19_:setValidateCallback(function(p27_)
-		-- upvalues: (copy) self, (copy) placeable
-		self:validateFence(p27_, placeable)
+	brush:setValidateCallback(function(finishedValidationFunc)
+		self:validateFence(finishedValidationFunc, placeable)
 	end)
-	g_constructionScreen:setBrush(v19_, true)
+	g_constructionScreen:setBrush(brush, true)
 end
-
 function ConstructionBrushHusbandry:validateFence(finishedValidationFunc, placeable)
 	MessageDialog.show(g_i18n:getText("ui_construction_fenceHusbandryValidating"))
-	g_messageCenter:subscribeOneshot(HusbandryFenceValidateEvent, function(p30_)
-		-- upvalues: (copy) finishedValidationFunc
+	g_messageCenter:subscribeOneshot(HusbandryFenceValidateEvent, function(success)
 		MessageDialog.hide()
-		finishedValidationFunc(p30_)
-		if not p30_ then
+		finishedValidationFunc(success)
+		if not success then
 			InfoDialog.show(g_i18n:getText("ui_construction_fenceHusbandryFailed"))
 		end
 	end, nil)
 	g_client:getServerConnection():sendEvent(HusbandryFenceValidateEvent.new(placeable))
 end
-
--- Local values: success
 function ConstructionBrushHusbandry:onFinishedCustomFence(statusCode, placeable)
 	g_constructionScreen:setBrush(self, false)
-	placeable:finishFenceCustomization(nil, statusCode == ConstructionBrushNewFence.STATUS.SUCCESS)
+	local success = statusCode == ConstructionBrushNewFence.STATUS.SUCCESS
+	placeable:finishFenceCustomization(nil, success)
 	self:onCustomizableFenceFinished(placeable)
 end
-
--- Local values: createMeadowCallback
 function ConstructionBrushHusbandry:onCustomizableFenceFinished(placeable)
 	if placeable.getCanCreateMeadow ~= nil and placeable:getCanCreateMeadow() then
-		YesNoDialog.show(function(p36_)
-			-- upvalues: (copy) self, (copy) placeable
+		local createMeadowCallback = function(yes)
 			g_constructionScreen:setBrush(self, false)
-			placeable:createMeadow(p36_)
-		end, nil, string.namedFormat(g_i18n:getText("ui_construction_createMeadow"), "placeableName", placeable:getName()))
+			placeable:createMeadow(yes)
+		end
+		YesNoDialog.show(createMeadowCallback, nil, string.namedFormat(g_i18n:getText("ui_construction_createMeadow"), "placeableName", placeable:getName()))
 	end
 end

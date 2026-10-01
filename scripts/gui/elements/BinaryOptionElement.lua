@@ -1,4 +1,3 @@
--- Local values: BinaryOptionElement_mt
 BinaryOptionElement = {}
 BinaryOptionElement.STATE_LEFT = 1
 BinaryOptionElement.STATE_RIGHT = 2
@@ -10,25 +9,19 @@ BinaryOptionElement.NUM_SLIDER_STATES = 6
 local BinaryOptionElement_mt = Class(BinaryOptionElement, MultiTextOptionElement)
 Gui.registerGuiElement("BinaryOption", BinaryOptionElement)
 Gui.registerGuiElementProcFunction("BinaryOption", Gui.assignPlaySampleCallback)
-
--- Upvalues: BinaryOptionElement_mt
--- Local values: self
 function BinaryOptionElement.new(target, custom_mt)
-	-- upvalues: (copy) BinaryOptionElement_mt
-	local v4_ = MultiTextOptionElement.new(target, custom_mt or BinaryOptionElement_mt)
-	v4_.sliderElement = nil
-	v4_.isSliderMoving = false
-	v4_.sliderState = 0
-	v4_.sliderMovingDirection = 0
-	v4_.useYesNoTexts = false
-	return v4_
+	local self = MultiTextOptionElement.new(target, custom_mt or BinaryOptionElement_mt)
+	self.sliderElement = nil
+	self.isSliderMoving = false
+	self.sliderState = 0
+	self.sliderMovingDirection = 0
+	self.useYesNoTexts = false
+	return self
 end
-
 function BinaryOptionElement:loadFromXML(xmlFile, key)
 	BinaryOptionElement:superClass().loadFromXML(self, xmlFile, key)
 	self.useYesNoTexts = Utils.getNoNil(getXMLBool(xmlFile, key .. "#useYesNoTexts"), self.useYesNoTexts)
 end
-
 function BinaryOptionElement:loadProfile(profile, applyProfile)
 	BinaryOptionElement:superClass().loadProfile(self, profile, applyProfile)
 	self.useYesNoTexts = profile:getBool("useYesNoTexts", self.useYesNoTexts)
@@ -37,7 +30,6 @@ function BinaryOptionElement:loadProfile(profile, applyProfile)
 	self.defaultProfileSliderRound = profile:getValue("defaultProfileSliderRound", self.defaultProfileSliderRound)
 	self.defaultProfileSliderThreePart = profile:getValue("defaultProfileSliderThreePart", self.defaultProfileSliderThreePart)
 end
-
 function BinaryOptionElement:copyAttributes(src)
 	BinaryOptionElement:superClass().copyAttributes(self, src)
 	self.useYesNoTexts = src.useYesNoTexts
@@ -45,15 +37,13 @@ function BinaryOptionElement:copyAttributes(src)
 	self.defaultProfileSliderRound = src.defaultProfileSliderRound
 	self.defaultProfileSliderThreePart = src.defaultProfileSliderThreePart
 end
-
--- Local values: _, element
 function BinaryOptionElement:setElementsByName()
 	BinaryOptionElement:superClass().setElementsByName(self)
-	for _, v14_ in pairs(self.elements) do
-		if v14_.name == "slider" then
-			self.sliderElement = v14_
-			v14_.target = self
-			v14_:updateAbsolutePosition()
+	for _, element in pairs(self.elements) do
+		if element.name == "slider" then
+			self.sliderElement = element
+			element.target = self
+			element:updateAbsolutePosition()
 		end
 	end
 	if self.sliderElement == nil then
@@ -61,51 +51,44 @@ function BinaryOptionElement:setElementsByName()
 	end
 	self.leftButtonElement:setSelected(true)
 	function self.leftButtonElement.getIsSelected()
-		-- upvalues: (copy) self
 		return self.state == BinaryOptionElement.STATE_LEFT
 	end
 	function self.leftButtonElement.getIsScrollingAllowed()
-		-- upvalues: (copy) self
 		return self:getIsFocused() or self:getIsHighlighted()
 	end
 	function self.rightButtonElement.getIsSelected()
-		-- upvalues: (copy) self
 		return self.state == BinaryOptionElement.STATE_RIGHT
 	end
 	function self.rightButtonElement.getIsScrollingAllowed()
-		-- upvalues: (copy) self
 		return self:getIsFocused() or self:getIsHighlighted()
 	end
 	self.sliderDelta = (self.absSize[1] - self.sliderElement.absSize[1]) / BinaryOptionElement.NUM_SLIDER_STATES
 end
-
--- Local values: baseElement, baseElement, baseElement
 function BinaryOptionElement:addDefaultElements()
 	BinaryOptionElement:superClass().addDefaultElements(self)
 	if self.autoAddDefaultElements and self:getDescendantByName("slider") == nil then
 		if self.defaultProfileSliderRound ~= nil then
-			local v16_ = RoundCornerElement.new(self)
-			v16_.name = "slider"
-			self:addElement(v16_)
-			v16_:applyProfile(self.defaultProfileSliderRound)
+			local baseElement = RoundCornerElement.new(self)
+			baseElement.name = "slider"
+			self:addElement(baseElement)
+			baseElement:applyProfile(self.defaultProfileSliderRound)
 			return
 		end
 		if self.defaultProfileSliderThreePart ~= nil then
-			local v17_ = ThreePartBitmapElement.new(self)
-			v17_.name = "slider"
-			self:addElement(v17_)
-			v17_:applyProfile(self.defaultProfileSliderThreePart)
+			local baseElement = ThreePartBitmapElement.new(self)
+			baseElement.name = "slider"
+			self:addElement(baseElement)
+			baseElement:applyProfile(self.defaultProfileSliderThreePart)
 			return
 		end
 		if self.defaultProfileSlider ~= nil then
-			local v18_ = BitmapElement.new(self)
-			v18_.name = "slider"
-			self:addElement(v18_)
-			v18_:applyProfile(self.defaultProfileSlider)
+			local baseElement = BitmapElement.new(self)
+			baseElement.name = "slider"
+			self:addElement(baseElement)
+			baseElement:applyProfile(self.defaultProfileSlider)
 		end
 	end
 end
-
 function BinaryOptionElement:onGuiSetupFinished()
 	BinaryOptionElement:superClass().onGuiSetupFinished(self)
 	if self.useYesNoTexts then
@@ -115,11 +98,9 @@ function BinaryOptionElement:onGuiSetupFinished()
 	end
 	self.textElement:setVisible(false)
 end
-
 function BinaryOptionElement:getIsChecked()
 	return self.state == BinaryOptionElement.STATE_RIGHT
 end
-
 function BinaryOptionElement:setIsChecked(isChecked, skipAnimation, forceEvent)
 	if isChecked then
 		self:setState(BinaryOptionElement.STATE_RIGHT, forceEvent)
@@ -128,11 +109,9 @@ function BinaryOptionElement:setIsChecked(isChecked, skipAnimation, forceEvent)
 	end
 	self.skipAnimation = skipAnimation
 end
-
 function BinaryOptionElement:getIsActiveNonRec()
 	return self:getIsVisibleNonRec()
 end
-
 function BinaryOptionElement:setTexts(texts)
 	if #texts ~= 2 then
 		Logging.warning("BinaryOption: called setTexts() with invalid number of texts, binary option requires exactly 2 texts")
@@ -142,59 +121,51 @@ function BinaryOptionElement:setTexts(texts)
 	self.leftButtonElement:setText(texts[1])
 	self.rightButtonElement:setText(texts[2])
 end
-
 function BinaryOptionElement:update(dt)
 	BinaryOptionElement:superClass().update(self, dt)
 	if self.sliderMovingDirection ~= 0 then
 		if self.skipAnimation then
-			self.sliderState = self.sliderMovingDirection > 0 and BinaryOptionElement.NUM_SLIDER_STATES or 0
+			self.sliderState = 0 < self.sliderMovingDirection and BinaryOptionElement.NUM_SLIDER_STATES or 0
 		else
 			self.sliderState = self.sliderState + self.sliderMovingDirection
 		end
-		if self.sliderState <= 0 or self.sliderState >= BinaryOptionElement.NUM_SLIDER_STATES then
+		if self.sliderState <= 0 or BinaryOptionElement.NUM_SLIDER_STATES <= self.sliderState then
 			self.sliderMovingDirection = 0
 		end
 		self.sliderElement:setPosition(self.sliderDelta * self.sliderState)
 	end
 	self.skipAnimation = false
 end
-
 function BinaryOptionElement:inputLeft()
-	if self.sliderMovingDirection ~= 0 or not (self:getIsFocused() or self.leftButtonElement:getIsPressed()) then
-		return false
+	if self.sliderMovingDirection == 0 and (self:getIsFocused() or self.leftButtonElement:getIsPressed()) then
+		self:onLeftButtonClicked()
+		return true
 	end
-	self:onLeftButtonClicked()
-	return true
+	return false
 end
-
 function BinaryOptionElement:inputRight()
-	if self.sliderMovingDirection ~= 0 or not (self:getIsFocused() or self.rightButtonElement:getIsPressed()) then
-		return false
+	if self.sliderMovingDirection == 0 and (self:getIsFocused() or self.rightButtonElement:getIsPressed()) then
+		self:onRightButtonClicked()
+		return true
 	end
-	self:onRightButtonClicked()
-	return true
+	return false
 end
-
 function BinaryOptionElement:setState(state, forceEvent, skipAnimation)
-	if state == BinaryOptionElement.STATE_LEFT or state == BinaryOptionElement.STATE_RIGHT then
-		if state == self.state then
-			if forceEvent then
-				self:raiseClickCallback(true)
-			end
-		else
-			local v36_ = BinaryOptionElement.STATE_LEFT
-			local v37_ = BinaryOptionElement.STATE_RIGHT
-			local v38_ = math.clamp(state, v36_, v37_)
-			BinaryOptionElement:superClass().setState(self, v38_, forceEvent)
-			self:updateSelection()
-			self.skipAnimation = skipAnimation
-		end
-	else
+	if state ~= BinaryOptionElement.STATE_LEFT and state ~= BinaryOptionElement.STATE_RIGHT then
 		Logging.warning("BinaryOption: invalid state input " .. state .. ", only 1 and 2 allowed")
 		return
 	end
+	if state == self.state then
+		if forceEvent then
+			self:raiseClickCallback(true)
+		end
+	else
+		state = math.clamp(state, BinaryOptionElement.STATE_LEFT, BinaryOptionElement.STATE_RIGHT)
+		BinaryOptionElement:superClass().setState(self, state, forceEvent)
+		self:updateSelection()
+		self.skipAnimation = skipAnimation
+	end
 end
-
 function BinaryOptionElement:onRightButtonClicked()
 	self:setSoundSuppressed(true)
 	FocusManager:setFocus(self)
@@ -207,7 +178,6 @@ function BinaryOptionElement:onRightButtonClicked()
 		self:notifyIndexChange(self.state, #self.texts)
 	end
 end
-
 function BinaryOptionElement:onLeftButtonClicked()
 	self:setSoundSuppressed(true)
 	FocusManager:setFocus(self)
@@ -220,7 +190,6 @@ function BinaryOptionElement:onLeftButtonClicked()
 		self:notifyIndexChange(self.state, #self.texts)
 	end
 end
-
 function BinaryOptionElement:updateSelection()
 	self.leftButtonElement:setSelected(self.state == BinaryOptionElement.STATE_LEFT)
 	self.rightButtonElement:setSelected(self.state == BinaryOptionElement.STATE_RIGHT)

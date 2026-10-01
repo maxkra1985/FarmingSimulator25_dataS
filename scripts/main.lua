@@ -1,4 +1,3 @@
--- Local values: debugTool
 source("dataS/scripts/std.lua")
 source("dataS/scripts/StartParams.lua")
 source("dataS/scripts/testing.lua")
@@ -8,12 +7,7 @@ newGetSafeFrameInsets = getSafeFrameInsets
 function getSafeFrameInsets()
 	return 0, 0, 0, 0
 end
-AutoLoadParams = {
-	["enable"] = false,
-	["x"] = 0,
-	["y"] = 0,
-	["z"] = 0
-}
+AutoLoadParams = { enable = false, x = 0, y = 0, z = 0 }
 local debugTool = debug
 debug = nil
 GS_PROFILE_VERY_LOW = 1
@@ -22,13 +16,13 @@ GS_PROFILE_MEDIUM = 3
 GS_PROFILE_HIGH = 4
 GS_PROFILE_VERY_HIGH = 5
 GS_PROFILE_ULTRA = 6
-g_gameVersion = 23
-g_gameVersionNotification = "1.21.1.0"
-g_gameVersionDisplay = "1.21.1.0"
+g_gameVersion = 26
+g_gameVersionNotification = "1.24.0.0"
+g_gameVersionDisplay = "1.24.0.0"
 g_gameVersionDisplayExtra = ""
 g_isDevelopmentConsoleScriptModTesting = false
 g_minModDescVersion = 90
-g_maxModDescVersion = 111
+g_maxModDescVersion = 114
 g_language = 0
 g_languageShort = "en"
 g_languageSuffix = "_en"
@@ -116,51 +110,44 @@ g_updateDownloadFinished = false
 g_updateDownloadFinishedDialogShown = false
 g_skipStartupScreen = false
 function initPlatform()
-	local v_u_2_ = nil
+	local debugPlatformId = nil
 	if StartParams.getIsSet("platform") then
-		local v3_ = string.upper(string.trim(StartParams.getValue("platform") or ""))
-		if PlatformId[v3_] == nil then
-			if v3_ == "STEAM" then
-				v_u_2_ = PlatformId.WIN
-				GS_IS_STEAM_VERSION = true
-			elseif v3_ == "EPIC" then
-				v_u_2_ = PlatformId.WIN
-				GS_IS_EPIC_VERSION = true
-			elseif v3_ == "MSSTORE" then
-				v_u_2_ = PlatformId.WIN
-				GS_IS_MSSTORE_VERSION = true
-			elseif v3_ == "NETFLIX" then
-				v_u_2_ = PlatformId.ANDROID
-				GS_IS_NETFLIX_VERSION = true
-			else
-				printError(string.format("Error: Invalid platform \'%s\'", v3_))
-			end
+		local debugPlatform = string.upper(string.trim(StartParams.getValue("platform") or ""))
+		if PlatformId[debugPlatform] ~= nil then
+			debugPlatformId = PlatformId[debugPlatform]
+		elseif debugPlatform == "STEAM" then
+			debugPlatformId = PlatformId.WIN
+			GS_IS_STEAM_VERSION = true
+		elseif debugPlatform == "EPIC" then
+			debugPlatformId = PlatformId.WIN
+			GS_IS_EPIC_VERSION = true
+		elseif debugPlatform == "MSSTORE" then
+			debugPlatformId = PlatformId.WIN
+			GS_IS_MSSTORE_VERSION = true
+		elseif debugPlatform == "NETFLIX" then
+			debugPlatformId = PlatformId.ANDROID
+			GS_IS_NETFLIX_VERSION = true
 		else
-			v_u_2_ = PlatformId[v3_]
+			printError(string.format("Error: Invalid platform '%s'", debugPlatform))
 		end
 	end
-	if v_u_2_ ~= nil then
+	if debugPlatformId ~= nil then
 		function getPlatformId()
-			-- upvalues: (ref) v_u_2_
-			return v_u_2_
+			return debugPlatformId
 		end
 	end
-	local v4_ = getPlatformId()
-	GS_PLATFORM_ID = v4_
-	GS_PLATFORM_PC = v4_ == PlatformId.WIN and true or v4_ == PlatformId.MAC
-	GS_PLATFORM_XBOX = v4_ == PlatformId.XBOX_SERIES
-	GS_PLATFORM_PLAYSTATION = v4_ == PlatformId.PS5
-	GS_PLATFORM_SWITCH = v4_ == PlatformId.SWITCH
-	GS_PLATFORM_SWITCH2 = v4_ == PlatformId.SWITCH2
-	GS_PLATFORM_PHONE = v4_ == PlatformId.ANDROID and true or v4_ == PlatformId.IOS
-	GS_IS_CONSOLE_VERSION = GS_PLATFORM_XBOX or (GS_PLATFORM_PLAYSTATION or GS_PLATFORM_SWITCH2)
+	local platformId = getPlatformId()
+	GS_PLATFORM_ID = platformId
+	GS_PLATFORM_PC = platformId == PlatformId.WIN or platformId == PlatformId.MAC
+	GS_PLATFORM_XBOX = platformId == PlatformId.XBOX_SERIES
+	GS_PLATFORM_PLAYSTATION = platformId == PlatformId.PS5
+	GS_PLATFORM_SWITCH = platformId == PlatformId.SWITCH
+	GS_PLATFORM_SWITCH2 = platformId == PlatformId.SWITCH2
+	GS_PLATFORM_PHONE = platformId == PlatformId.ANDROID or platformId == PlatformId.IOS
+	GS_IS_CONSOLE_VERSION = GS_PLATFORM_XBOX or GS_PLATFORM_PLAYSTATION or GS_PLATFORM_SWITCH2
 	GS_IS_MOBILE_VERSION = GS_PLATFORM_PHONE or GS_PLATFORM_SWITCH
 end
-
--- Upvalues: debugTool
--- Local values: settingsXML, developmentLevel, kioskMode, isServerStart, autoStartSavegameId, autoLoadURI, devStartServer, devStartClient, devUniqueUserId, safeFrameOffsetX, safeFrameOffsetY, safeFrameMajorOffsetX, safeFrameMajorOffsetY, safeFramePixels, xOffset, yOffset, availableLanguagesString, _, lang, gameVersionText, nameExtra, screenshotsDir, modSettingsDir, modsDir, modDownloadDir, modsDir2, modsDirectoryParam, mapsXML, startedRepeat, userProfilePath, func, _, filename, node, defaultCamera, soundPlayerLocal, soundPlayerTemplate, soundPlayerReadmeTemplate, soundUserPlayerLocal, soundPlayerTarget, soundPlayerReadme, eventAdded, eventId, userName
 function init(args)
-	-- upvalues: (copy) debugTool
 	StartParams.init(args)
 	initPlatform()
 	source("dataS/scripts/game.lua")
@@ -168,19 +155,21 @@ function init(args)
 	addFoliageTypeFromXML = nil
 	setModHubRating = nil
 	getModHubRating = nil
-	if not initTesting() then
+	if initTesting() then
+		return
+	else
 		setTextureStreamingPaused(true)
-		local v6_ = XMLFile.load("SettingsFile", "dataS/settings.xml")
-		local v7_ = v6_:getString("settings#developmentLevel", "release"):lower()
-		g_buildName = v6_:getString("settings#buildName", g_buildName)
-		g_buildTypeParam = v6_:getString("settings#buildTypeParam", g_buildTypeParam)
-		g_gameRevision = v6_:getString("settings#revision", g_gameRevision)
+		local settingsXML = XMLFile.load("SettingsFile", "dataS/settings.xml")
+		local developmentLevel = settingsXML:getString("settings#developmentLevel", "release"):lower()
+		g_buildName = settingsXML:getString("settings#buildName", g_buildName)
+		g_buildTypeParam = settingsXML:getString("settings#buildTypeParam", g_buildTypeParam)
+		g_gameRevision = settingsXML:getString("settings#revision", g_gameRevision)
 		g_gameRevision = g_gameRevision .. getGameRevisionExtraText()
 		g_isDevelopmentVersion = false
-		if v7_ == "internal" then
+		if developmentLevel == "internal" then
 			print("INTERNAL VERSION")
 			g_addTestCommands = true
-		elseif v7_ == "development" then
+		elseif developmentLevel == "development" then
 			print("DEVELOPMENT VERSION")
 			g_isDevelopmentVersion = true
 			g_addTestCommands = true
@@ -219,18 +208,17 @@ function init(args)
 			end
 			Profiler.init()
 		end
-		if setLuaErrorHandler ~= nil and (StartParams.getIsSet("scriptDebug") or g_isDevelopmentVersion) then
-			if debugTool == nil or debugTool.traceback == nil then
-				print("Info: lua custom error handler enabled (B)")
-				setLuaErrorHandler(function(p8_)
-					printCallstack()
-					return p8_
+		if setLuaErrorHandler ~= nil and ((StartParams.getIsSet("scriptDebug") or g_isDevelopmentVersion) and debugTool ~= nil) then
+			if debugTool.traceback ~= nil then
+				print("Info: lua custom error handler enabled (A)")
+				setLuaErrorHandler(function(errorString)
+					return debugTool.traceback(errorString, 2)
 				end)
 			else
-				print("Info: lua custom error handler enabled (A)")
-				setLuaErrorHandler(function(p9_)
-					-- upvalues: (ref) debugTool
-					return debugTool.traceback(p9_, 2)
+				print("Info: lua custom error handler enabled (B)")
+				setLuaErrorHandler(function(errorString)
+					printCallstack()
+					return errorString
 				end)
 			end
 		end
@@ -248,25 +236,23 @@ function init(args)
 		updateLoadingBarProgress()
 		g_autoSaveManager = AutoSaveManager.new()
 		updateLoadingBarProgress()
-		local v10_ = KioskMode.new()
-		if v10_:load() then
-			g_kioskMode = v10_
+		local kioskMode = KioskMode.new()
+		if kioskMode:load() then
+			g_kioskMode = kioskMode
 		end
 		g_lifetimeStats = LifetimeStats.new()
 		g_lifetimeStats:load()
-		local v11_ = StartParams.getIsSet("server") or StartParams.getIsSet("serverWithGui")
-		local v12_ = StartParams.getValue("autoStartSavegameId")
-		local v13_ = StartParams.getValue("autoLoadURI")
-		local v14_ = StartParams.getValue("devStartServer")
-		local v15_ = StartParams.getValue("devStartClient")
-		local v16_ = g_isDevelopmentVersion and StartParams.getValue("uniqueUserId") or nil
+		local isServerStart = StartParams.getIsSet("server") or StartParams.getIsSet("serverWithGui")
+		local autoStartSavegameId = StartParams.getValue("autoStartSavegameId")
+		local autoLoadURI = StartParams.getValue("autoLoadURI")
+		local devStartServer = StartParams.getValue("devStartServer")
+		local devStartClient = StartParams.getValue("devStartClient")
+		local devUniqueUserId = g_isDevelopmentVersion and StartParams.getValue("uniqueUserId") or nil
 		if Platform.isPlaystation then
 			g_unsafeScreenWidth = 1920
 			g_unsafeScreenHeight = 1080
 		else
-			local v17_, v18_ = getScreenModeInfo(getScreenMode())
-			g_unsafeScreenWidth = v17_
-			g_unsafeScreenHeight = v18_
+			g_unsafeScreenWidth, g_unsafeScreenHeight = getScreenModeInfo(getScreenMode())
 		end
 		g_safeFrameScreenOffsetX = 0
 		g_safeFrameScreenOffsetY = 0
@@ -282,35 +268,25 @@ function init(args)
 		g_baseHUDFilename = "dataS/menu/hud/hud_elements.png"
 		g_controlHUDFilename = "dataS/menu/hud/hud_elements2.png"
 		if g_isDevelopmentVersion then
-			print(string.format(" Loading UI-textures: \'%s\' \'%s\' \'%s\'", g_baseUIFilename, g_baseHUDFilename, g_iconsUIFilename))
+			print(string.format(" Loading UI-textures: '%s' '%s' '%s'", g_baseUIFilename, g_baseHUDFilename, g_iconsUIFilename))
 		end
 		g_screenAspectRatio = g_screenWidth / g_screenHeight
 		g_presentedScreenAspectRatio = getScreenAspectRatio()
 		updateAspectRatio(g_screenAspectRatio)
-		local v19_, v20_ = getNormalizedScreenValues(1, 1)
-		g_pixelSizeScaledX = v19_
-		g_pixelSizeScaledY = v20_
-		g_colorBgUVs = GuiUtils.getUVs({
-			10,
-			1010,
-			4,
-			4
-		})
-		local v21_ = Platform.safeFrameOffsetX
-		local v22_ = Platform.safeFrameOffsetY
-		local v23_, v24_ = getNormalizedScreenValues(v21_, v22_)
-		g_safeFrameOffsetX = v23_
-		g_safeFrameOffsetY = v24_
-		local v25_ = Platform.safeFrameMajorOffsetX
-		local v26_ = Platform.safeFrameMajorOffsetY
-		local v27_, v28_ = getNormalizedScreenValues(v25_, v26_)
-		g_safeFrameMajorOffsetX = v27_
-		g_safeFrameMajorOffsetY = v28_
-		local v29_, v30_ = getNormalizedScreenValues(30, 30)
-		g_hudAnchorLeft = v29_
-		g_hudAnchorRight = 1 - v29_
-		g_hudAnchorBottom = v30_
-		g_hudAnchorTop = 1 - v30_
+		g_pixelSizeScaledX, g_pixelSizeScaledY = getNormalizedScreenValues(1, 1)
+		g_colorBgUVs = GuiUtils.getUVs({ 10, 1010, 4, 4 })
+		local safeFrameOffsetX = Platform.safeFrameOffsetX
+		local safeFrameOffsetY = Platform.safeFrameOffsetY
+		g_safeFrameOffsetX, g_safeFrameOffsetY = getNormalizedScreenValues(safeFrameOffsetX, safeFrameOffsetY)
+		local safeFrameMajorOffsetX = Platform.safeFrameMajorOffsetX
+		local safeFrameMajorOffsetY = Platform.safeFrameMajorOffsetY
+		g_safeFrameMajorOffsetX, g_safeFrameMajorOffsetY = getNormalizedScreenValues(safeFrameMajorOffsetX, safeFrameMajorOffsetY)
+		local safeFramePixels = 30
+		local xOffset, yOffset = getNormalizedScreenValues(30, 30)
+		g_hudAnchorLeft = xOffset
+		g_hudAnchorRight = 1 - xOffset
+		g_hudAnchorBottom = yOffset
+		g_hudAnchorTop = 1 - yOffset
 		registerProfileFile("gameSettings.xml")
 		registerProfileFile("extraContent.xml")
 		g_textWidthScale = 0.95
@@ -322,12 +298,12 @@ function init(args)
 		g_gameSettings = GameSettings.new()
 		loadUserSettings(g_gameSettings)
 		updateLoadingBarProgress()
-		loadLanguageSettings(v6_)
-		local v31_ = "Available Languages:"
-		for _, v32_ in ipairs(g_availableLanguagesTable) do
-			v31_ = v31_ .. " " .. getLanguageCode(v32_)
+		loadLanguageSettings(settingsXML)
+		local availableLanguagesString = "Available Languages:"
+		for _, lang in ipairs(g_availableLanguagesTable) do
+			availableLanguagesString = availableLanguagesString .. " " .. getLanguageCode(lang)
 		end
-		v6_:delete()
+		settingsXML:delete()
 		g_gameTitle = "Farming Simulator 25"
 		if GS_IS_MOBILE_VERSION then
 			g_gameTitle = "Farming Simulator 26"
@@ -345,83 +321,80 @@ function init(args)
 			CaptionUtil.addText("- iOS")
 		end
 		if g_isDevelopmentVersion then
-			local v33_ = g_gameVersionDisplay .. g_gameVersionDisplayExtra .. " (" .. getEngineRevision() .. "/" .. g_gameRevision .. ")"
-			CaptionUtil.addText("- DevelopmentVersion " .. v33_ .. " - " .. getAppBasePath() .. " - " .. getUserProfileAppPath())
+			local gameVersionText = g_gameVersionDisplay .. g_gameVersionDisplayExtra .. " (" .. getEngineRevision() .. "/" .. g_gameRevision .. ")"
+			CaptionUtil.addText("- DevelopmentVersion " .. gameVersionText .. " - " .. getAppBasePath() .. " - " .. getUserProfileAppPath())
 		elseif g_addTestCommands then
 			CaptionUtil.addText("- InternalVersion")
 		end
 		addNotificationFilter(GS_PRODUCT_ID, g_gameVersionNotification)
 		updateLoadingBarProgress()
-		local v34_ = ""
+		local nameExtra = ""
 		if g_buildTypeParam ~= "" then
-			v34_ = v34_ .. " " .. g_buildTypeParam
+			nameExtra = nameExtra .. " " .. g_buildTypeParam
 		end
 		if GS_IS_STEAM_VERSION then
-			v34_ = v34_ .. " (Steam)"
+			nameExtra = nameExtra .. " (Steam)"
 		end
 		if GS_IS_EPIC_VERSION then
-			v34_ = v34_ .. " (Epic)"
+			nameExtra = nameExtra .. " (Epic)"
 		end
 		if GS_IS_MSSTORE_VERSION then
-			v34_ = v34_ .. " (MSStore)"
+			nameExtra = nameExtra .. " (MSStore)"
 		end
 		if GS_IS_MAC_APP_STORE_VERSION then
-			v34_ = v34_ .. " (Mac App Store)"
+			nameExtra = nameExtra .. " (Mac App Store)"
 		end
-		if v11_ then
-			v34_ = v34_ .. " (Server)"
+		if isServerStart then
+			nameExtra = nameExtra .. " (Server)"
 		end
-		print(g_gameTitle .. v34_)
+		print(g_gameTitle .. nameExtra)
 		print("  Game-Version: " .. g_gameVersionDisplay .. g_gameVersionDisplayExtra)
 		print("  Build-Id: " .. g_buildName)
 		print("  Build-Revision: " .. g_gameRevision)
-		print("  " .. v31_)
+		print("  " .. availableLanguagesString)
 		print("  Language: " .. g_languageShort)
 		print("  Time: " .. getDate("%Y-%m-%d %H:%M:%S"))
 		print("  ModDesc Version: " .. g_maxModDescVersion)
 		if Platform.isPC then
-			local v35_ = getUserProfileAppPath() .. "screenshots/"
-			g_screenshotsDirectory = v35_
-			createFolder(v35_)
-			local v36_ = getUserProfileAppPath() .. "modSettings/"
-			g_modSettingsDirectory = v36_
-			createFolder(v36_)
+			local screenshotsDir = getUserProfileAppPath() .. "screenshots/"
+			g_screenshotsDirectory = screenshotsDir
+			createFolder(screenshotsDir)
+			local modSettingsDir = getUserProfileAppPath() .. "modSettings/"
+			g_modSettingsDirectory = modSettingsDir
+			createFolder(modSettingsDir)
 		end
 		g_adsSystem = AdsSystem.new()
-		local v37_ = getModInstallPath()
-		local v38_ = getModDownloadPath()
+		local modsDir = getModInstallPath()
+		local modDownloadDir = getModDownloadPath()
 		updateLoadingBarProgress()
 		if Platform.allowsModDirectoryOverride then
-			local v39_ = nil
-			local v40_ = StartParams.getValue("modsDirectory")
-			if string.isNilOrWhitespace(v40_) then
-				if Utils.getNoNil(getXMLBool(g_savegameXML, "gameSettings.modsDirectoryOverride#active"), false) then
-					v39_ = getXMLString(g_savegameXML, "gameSettings.modsDirectoryOverride#directory")
-				end
-			else
-				v39_ = v40_
+			local modsDir2 = nil
+			local modsDirectoryParam = StartParams.getValue("modsDirectory")
+			if not string.isNilOrWhitespace(modsDirectoryParam) then
+				modsDir2 = modsDirectoryParam
+			elseif Utils.getNoNil(getXMLBool(g_savegameXML, "gameSettings.modsDirectoryOverride#active"), false) then
+				modsDir2 = getXMLString(g_savegameXML, "gameSettings.modsDirectoryOverride#directory")
 			end
-			if not string.isNilOrWhitespace(v39_) then
-				v37_ = string.gsub(v39_, "\\", "/")
-				if v37_:sub(1, 2) == "//" then
-					v37_ = "\\\\" .. string.sub(v37_, 3)
+			if not string.isNilOrWhitespace(modsDir2) then
+				modsDir = modsDir2
+				modsDir = string.gsub(modsDir, "\\", "/")
+				if modsDir:sub(1, 2) == "//" then
+					modsDir = "\\\\" .. string.sub(modsDir, 3)
 				end
-				local v41_ = string.len(v37_)
-				local v42_ = string.len(v37_)
-				if string.sub(v37_, v41_, v42_) ~= "/" then
-					v37_ = v37_ .. "/"
+				if string.sub(modsDir, string.len(modsDir), string.len(modsDir)) ~= "/" then
+					modsDir = modsDir .. "/"
 				end
 			end
 		end
 		updateLoadingBarProgress()
-		if v37_ then
-			print("  Mod Directory: " .. v37_)
-			createFolder(v37_)
+		if modsDir then
+			print("  Mod Directory: " .. modsDir)
+			createFolder(modsDir)
 		end
-		if v38_ then
-			createFolder(v38_)
+		if modDownloadDir then
+			createFolder(modDownloadDir)
 		end
-		g_modsDirectory = v37_
+		g_modsDirectory = modsDir
 		if g_addTestCommands then
 			print("  Testing Commands: Enabled")
 		elseif g_addCheatCommands then
@@ -443,12 +416,11 @@ function init(args)
 		updateLoadingBarProgress()
 		g_splitShapeManager:load()
 		addSplitShapesShaderParameterOverwrite("windSnowLeafScale", 0, 0, 0, 80)
-		local v_u_43_ = XMLFile.load("MapsXML", "dataS/maps.xml")
-		v_u_43_:iterate("maps.map", function(_, p44_)
-			-- upvalues: (copy) v_u_43_
-			g_mapManager:loadMapFromXML(v_u_43_, p44_, "", nil, true, true, false)
+		local mapsXML = XMLFile.load("MapsXML", "dataS/maps.xml")
+		mapsXML:iterate("maps.map", function(_, key)
+			g_mapManager:loadMapFromXML(mapsXML, key, "", nil, true, true, false)
 		end)
-		v_u_43_:delete()
+		mapsXML:delete()
 		updateLoadingBarProgress()
 		g_animCache = AnimationCache.new()
 		g_animCache:load(AnimationCache.CHARACTER, "dataS/character/playerAnimations/animations.i3d")
@@ -462,18 +434,18 @@ function init(args)
 		g_updateables = {}
 		updateLoadingBarProgress()
 		if g_modsDirectory then
-			initModDownloadManager(g_modsDirectory, v38_, g_minModDescVersion, g_maxModDescVersion, g_isDevelopmentVersion)
+			initModDownloadManager(g_modsDirectory, modDownloadDir, g_minModDescVersion, g_maxModDescVersion, g_isDevelopmentVersion)
 			initModDownloadManager = nil
 		end
 		startUpdatePendingMods()
 		updateLoadingBarProgress()
 		loadDlcs()
 		updateLoadingBarProgress()
-		local v45_ = startFrameRepeatMode()
+		local startedRepeat = startFrameRepeatMode()
 		while isModUpdateRunning() do
 			usleep(16000)
 		end
-		if v45_ then
+		if startedRepeat then
 			endFrameRepeatMode()
 		end
 		if Platform.supportsMods then
@@ -499,10 +471,10 @@ function init(args)
 			g_touchHandler = TouchHandler.new()
 		end
 		simulatePhysics(false)
-		if v11_ then
-			local v46_ = getUserProfileAppPath()
+		if isServerStart then
+			local userProfilePath = getUserProfileAppPath()
 			g_dedicatedServer = DedicatedServer.new()
-			g_dedicatedServer:load(v46_ .. "dedicated_server/dedicatedServerConfig.xml", v46_ .. "dedicated_server/gameStats.xml")
+			g_dedicatedServer:load(userProfilePath .. "dedicated_server/dedicatedServerConfig.xml", userProfilePath .. "dedicated_server/gameStats.xml")
 		end
 		updateLoadingBarProgress()
 		g_connectionManager = ConnectionManager.new()
@@ -623,24 +595,21 @@ function init(args)
 		loadStreamedSample(g_menuMusic, "data/music/menu.ogg")
 		setStreamedSampleGroup(g_menuMusic, AudioGroup.MENU_MUSIC)
 		setStreamedSampleVolume(g_menuMusic, 1)
-		g_soundMixer:addVolumeChangedListener(AudioGroup.MENU_MUSIC, function(_, _, p47_)
+		local func = function(target, audioGroupIndex, volume)
 			if g_menuMusicIsPlayingStarted then
-				if p47_ > 0 then
+				if 0 < volume then
 					resumeStreamedSample(g_menuMusic)
 					return
 				end
 				pauseStreamedSample(g_menuMusic)
 			end
-		end, nil)
+		end
+		g_soundMixer:addVolumeChangedListener(AudioGroup.MENU_MUSIC, func, nil)
 		if Platform.preShaderContentFiles ~= nil then
 			g_preShaderContents = {}
-			for _, v48_ in ipairs(Platform.preShaderContentFiles) do
-				local v49_ = g_i3DManager:loadI3DFile(v48_, false, false)
-				local v50_ = g_preShaderContents
-				table.insert(v50_, {
-					["step"] = 0,
-					["node"] = v49_
-				})
+			for _, filename in ipairs(Platform.preShaderContentFiles) do
+				local node = g_i3DManager:loadI3DFile(filename, false, false)
+				table.insert(g_preShaderContents, { step = 0, node = node })
 			end
 			g_preShaderContentStepIndex = 1
 			if #g_preShaderContents == 0 then
@@ -651,32 +620,32 @@ function init(args)
 		if g_kioskMode ~= nil then
 			g_kioskMode:init()
 		end
-		if Platform.showStartupScreen and g_skipStartupScreen == false then
-			g_gui:showGui("StartupScreen")
-		else
-			g_gui:showGui("MainScreen")
+		if Platform.showStartupScreen then
+			if g_skipStartupScreen == false then
+				g_gui:showGui("StartupScreen")
+			else
+				g_gui:showGui("MainScreen")
+			end
 		end
 		g_inputBinding:setShowMouseCursor(true)
-		local v51_ = getCamera()
-		g_cameraManager:addCamera(v51_, nil, true)
-		g_cameraManager:setActiveCamera(v51_)
+		local defaultCamera = getCamera()
+		g_cameraManager:addCamera(defaultCamera, nil, true)
+		g_cameraManager:setActiveCamera(defaultCamera)
 		if g_dedicatedServer == nil then
-			local v52_ = getAppBasePath() .. "data/music/"
-			local v53_ = getAppBasePath() .. "profileTemplate/streamingInternetRadios.xml"
-			local v54_ = getAppBasePath() .. "profileTemplate/ReadmeMusic.txt"
-			local v55_, v56_
+			local soundPlayerLocal = getAppBasePath() .. "data/music/"
+			local soundPlayerTemplate = getAppBasePath() .. "profileTemplate/streamingInternetRadios.xml"
+			local soundPlayerReadmeTemplate = getAppBasePath() .. "profileTemplate/ReadmeMusic.txt"
+			local soundUserPlayerLocal = soundPlayerLocal
+			local soundPlayerTarget = soundPlayerTemplate
 			if Platform.supportsCustomInternetRadios then
-				v55_ = getUserProfileAppPath() .. "music/"
-				v56_ = v55_ .. "streamingInternetRadios.xml"
-				local v57_ = v55_ .. "ReadmeMusic.txt"
-				createFolder(v55_)
-				copyFile(v53_, v56_, false)
-				copyFile(v54_, v57_, false)
-			else
-				v55_ = v52_
-				v56_ = v53_
+				soundUserPlayerLocal = getUserProfileAppPath() .. "music/"
+				soundPlayerTarget = soundUserPlayerLocal .. "streamingInternetRadios.xml"
+				local soundPlayerReadme = soundUserPlayerLocal .. "ReadmeMusic.txt"
+				createFolder(soundUserPlayerLocal)
+				copyFile(soundPlayerTemplate, soundPlayerTarget, false)
+				copyFile(soundPlayerReadmeTemplate, soundPlayerReadme, false)
 			end
-			g_soundPlayer = SoundPlayer.new(getAppBasePath(), "https://www.farming-simulator.com/feed/fs2025-radio-station-feed.xml", v56_, v52_, v55_, g_languageShort, AudioGroup.RADIO)
+			g_soundPlayer = SoundPlayer.new(getAppBasePath(), "https://www.farming-simulator.com/feed/fs2025-radio-station-feed.xml", soundPlayerTarget, soundPlayerLocal, soundUserPlayerLocal, g_languageShort, AudioGroup.RADIO)
 		end
 		RestartManager:init(args)
 		if RestartManager.restarting then
@@ -687,32 +656,34 @@ function init(args)
 		if g_dedicatedServer ~= nil then
 			g_dedicatedServer:start()
 		end
-		if v14_ ~= nil then
-			startDevServer(v14_, v16_)
+		if devStartServer ~= nil then
+			startDevServer(devStartServer, devUniqueUserId)
 		end
-		if v15_ ~= nil then
-			startDevClient(v15_, v16_)
+		if devStartClient ~= nil then
+			startDevClient(devStartClient, devUniqueUserId)
 		end
-		if v12_ == nil then
-			if v13_ ~= nil then
-				autoLoadByURI(v13_)
-				return
+		if autoStartSavegameId ~= nil then
+			if not StartParams.getIsSet("restart") or GameLoadingCancelSimulator.ACTIVE then
+				autoStartLocalSavegame(autoStartSavegameId)
+			else
+				Logging.info("Ignored 'autoStartSavegame' start parameter after game restart")
 			end
-		elseif StartParams.getIsSet("restart") and not GameLoadingCancelSimulator.ACTIVE then
-			Logging.info("Ignored \'autoStartSavegame\' start parameter after game restart")
-		else
-			autoStartLocalSavegame(v12_)
+		elseif autoLoadURI ~= nil then
+			autoLoadByURI(autoLoadURI)
+			return
 		end
 		if GS_PLATFORM_PC then
 			registerGlobalActionEvents(g_inputBinding)
-		elseif GS_IS_CONSOLE_VERSION and g_isDevelopmentVersion then
-			local v58_, v59_ = g_inputBinding:registerActionEvent(InputAction.CONSOLE_DEBUG_TOGGLE_FPS, nil, toggleShowFPS, false, true, false, true)
-			if v58_ then
-				g_inputBinding:setActionEventTextVisibility(v59_, false)
-			end
-			local v60_, v61_ = g_inputBinding:registerActionEvent(InputAction.CONSOLE_DEBUG_TOGGLE_STATS, nil, toggleStatsOverlay, false, true, false, true)
-			if v60_ then
-				g_inputBinding:setActionEventTextVisibility(v61_, false)
+		elseif GS_IS_CONSOLE_VERSION then
+			if g_isDevelopmentVersion then
+				local eventAdded, eventId = g_inputBinding:registerActionEvent(InputAction.CONSOLE_DEBUG_TOGGLE_FPS, nil, toggleShowFPS, false, true, false, true)
+				if eventAdded then
+					g_inputBinding:setActionEventTextVisibility(eventId, false)
+				end
+				eventAdded, eventId = g_inputBinding:registerActionEvent(InputAction.CONSOLE_DEBUG_TOGGLE_STATS, nil, toggleStatsOverlay, false, true, false, true)
+				if eventAdded then
+					g_inputBinding:setActionEventTextVisibility(eventId, false)
+				end
 			end
 		end
 		if Platform.supportsMods then
@@ -722,12 +693,12 @@ function init(args)
 		setFileLogPrefixTimestamp(g_logFilePrefixTimestamp)
 		if StartParams.getIsSet("invitePlatformServerId") then
 			g_invitePlatformServerId = StartParams.getValue("invitePlatformServerId")
-			local v62_ = StartParams.getValue("inviteRequestUserName")
-			g_inviteRequestUserName = base64Decode(v62_)
+			local userName = StartParams.getValue("inviteRequestUserName")
+			g_inviteRequestUserName = base64Decode(userName)
 			g_handleInviteRequest = true
 		end
-		if StartParams.getIsSet("restart") and Platform.needsSignIn then
-			if StartParams.getIsSet("autoSignIn") and g_gui.currentGuiName ~= "GamepadSigninScreen" then
+		if StartParams.getIsSet("restart") and (Platform.needsSignIn and StartParams.getIsSet("autoSignIn")) then
+			if g_gui.currentGuiName ~= "GamepadSigninScreen" then
 				g_autoSignIn = true
 			else
 				g_gui:showGui("GamepadSigninScreen")
@@ -740,31 +711,29 @@ function init(args)
 		return true
 	end
 end
-
--- Local values: data, step, _, item, platformServerId, requestUserName, _, updateable
 function update(dt)
 	if Platform.isMobile then
 		checkInsets()
 	end
 	if g_preShaderContents ~= nil then
-		local v64_ = g_preShaderContents[g_preShaderContentStepIndex]
-		local v65_ = v64_.step
-		v64_.step = v64_.step + 1
-		if v65_ == 0 then
-			link(getRootNode(), v64_.node)
+		local data = g_preShaderContents[g_preShaderContentStepIndex]
+		local step = data.step
+		data.step = data.step + 1
+		if step == 0 then
+			link(getRootNode(), data.node)
 			setTranslation(g_cameraManager:getActiveCamera(), 0, 0, 5)
 			Logging.devInfo("PreShaderContent (%d/%d): render default", g_preShaderContentStepIndex, #g_preShaderContents)
-		elseif v65_ == 1 then
+		elseif step == 1 then
 			setTranslation(g_cameraManager:getActiveCamera(), 0, 0, 30 * getViewDistanceCoeff() + 2)
 			Logging.devInfo("PreShaderContent (%d/%d): render blended", g_preShaderContentStepIndex, #g_preShaderContents)
-		elseif v65_ == 2 then
+		elseif step == 2 then
 			Logging.devInfo("PreShaderContent (%d/%d): compiling done", g_preShaderContentStepIndex, #g_preShaderContents)
 			g_preShaderContentStepIndex = g_preShaderContentStepIndex + 1
 		end
-		if g_preShaderContentStepIndex > #g_preShaderContents then
+		if #g_preShaderContents < g_preShaderContentStepIndex then
 			Logging.devInfo("PreShaderContent: finished shader compilation")
-			for _, v66_ in ipairs(g_preShaderContents) do
-				delete(v66_.node)
+			for _, item in ipairs(g_preShaderContents) do
+				delete(item.node)
 			end
 			g_preShaderContents = nil
 			setTranslation(g_cameraManager:getActiveCamera(), 0, 0, 0)
@@ -775,33 +744,33 @@ function update(dt)
 		g_gamepadSigninScreen:signIn()
 	end
 	if g_handleInviteRequest then
-		local v67_ = g_invitePlatformServerId
-		local v68_ = g_inviteRequestUserName
+		local platformServerId = g_invitePlatformServerId
+		local requestUserName = g_inviteRequestUserName
 		g_invitePlatformServerId = nil
 		g_inviteRequestUserName = nil
 		g_handleInviteRequest = nil
-		acceptedGameInvite(v67_, v68_)
+		acceptedGameInvite(platformServerId, requestUserName)
 	end
 	g_time = g_time + dt
 	g_currentDt = dt
 	g_physicsDt = getPhysicsDt()
 	g_physicsDtUnclamped = getPhysicsDtUnclamped()
 	g_physicsDtNonInterpolated = getPhysicsDtNonInterpolated()
-	if g_physicsDtNonInterpolated > 0 then
+	if 0 < g_physicsDtNonInterpolated then
 		g_physicsDtLastValidNonInterpolated = g_physicsDtNonInterpolated
 	end
 	g_networkTime = netGetTime()
 	g_physicsNetworkTime = g_physicsNetworkTime + g_physicsDtUnclamped
 	g_physicsTimeLooped = (g_physicsTimeLooped + g_physicsDt * 10) % 65535
 	g_updateLoopIndex = g_updateLoopIndex + 1
-	if g_updateLoopIndex > 1073741824 then
+	if 1073741824 < g_updateLoopIndex then
 		g_updateLoopIndex = 0
 	end
-	local v69_ = g_physicsDt
-	g_physicsDt = math.max(v69_, 0.001)
-	local v70_ = g_physicsDtUnclamped
-	g_physicsDtUnclamped = math.max(v70_, 0.001)
-	if g_currentTest == nil then
+	g_physicsDt = math.max(g_physicsDt, 0.001)
+	g_physicsDtUnclamped = math.max(g_physicsDtUnclamped, 0.001)
+	if g_currentTest ~= nil then
+		g_currentTest.update(dt)
+	else
 		setTextWidthScale(g_textWidthScale)
 		g_ignitionLockManager:update(dt)
 		g_debugManager:update(dt)
@@ -815,8 +784,8 @@ function update(dt)
 			g_nextModRecommendationTime = g_time + 1800000
 		end
 		g_inputBinding:update(dt)
-		for _, v71_ in ipairs(g_updateables) do
-			v71_:update(dt)
+		for _, updateable in ipairs(g_updateables) do
+			updateable:update(dt)
 		end
 		if g_currentMission ~= nil and (g_currentMission.isLoaded and g_gui.currentGuiName ~= "GamepadSigninScreen") then
 			g_currentMission:preUpdate(dt)
@@ -867,212 +836,213 @@ function update(dt)
 		if g_pendingExit then
 			performExit()
 		end
-	else
-		g_currentTest.update(dt)
 	end
 end
 function draw()
-	if g_currentTest == nil then
-		if g_dedicatedServer == nil then
-			g_debugManager:drawPreUI()
-			if g_currentMission == nil or g_currentMission:getAllowsGuiDisplay() then
-				g_gui:draw()
-			end
-			if g_currentMission ~= nil and (g_currentMission.isLoaded and g_gui.currentGuiName ~= "GamepadSigninScreen") then
-				g_currentMission:draw()
-			end
-			if g_inputBinding ~= nil then
-				g_inputBinding:draw()
-			end
-			if g_inputDisplayManager ~= nil then
-				g_inputDisplayManager:draw()
-			end
-			if g_kioskMode ~= nil then
-				g_kioskMode:draw()
-			end
-			if g_isDevelopmentConsoleScriptModTesting then
-				renderText(0.2, 0.85, getCorrectTextSize(0.05), "CONSOLE SCRIPTS. DEVELOPMENT USE ONLY")
-			end
-			g_debugManager:drawPostUI()
-			if g_showSafeFrame then
-				if g_safeFrameOverlay == nil then
-					g_safeFrameOverlay = createImageOverlay("dataS/menu/base/graph_pixel.png")
-					setOverlayColor(g_safeFrameOverlay, 1, 0, 0, 0.4)
-				end
-				renderOverlay(g_safeFrameOverlay, g_safeFrameOffsetX, 0, 1 - 2 * g_safeFrameOffsetX, g_safeFrameOffsetY)
-				renderOverlay(g_safeFrameOverlay, g_safeFrameOffsetX, 1 - g_safeFrameOffsetY, 1 - 2 * g_safeFrameOffsetX, g_safeFrameOffsetY)
-				renderOverlay(g_safeFrameOverlay, 0, 0, g_safeFrameOffsetX, 1)
-				renderOverlay(g_safeFrameOverlay, 1 - g_safeFrameOffsetX, 0, g_safeFrameOffsetX, 1)
-				if g_safeFrameMajorOverlay == nil then
-					g_safeFrameMajorOverlay = createImageOverlay("dataS/menu/base/graph_pixel.png")
-					setOverlayColor(g_safeFrameMajorOverlay, 1, 0, 0, 0.4)
-				end
-				renderOverlay(g_safeFrameMajorOverlay, g_safeFrameMajorOffsetX, 0, 1 - 2 * g_safeFrameMajorOffsetX, g_safeFrameMajorOffsetY)
-				renderOverlay(g_safeFrameMajorOverlay, g_safeFrameMajorOffsetX, 1 - g_safeFrameMajorOffsetY, 1 - 2 * g_safeFrameMajorOffsetX, g_safeFrameMajorOffsetY)
-				renderOverlay(g_safeFrameMajorOverlay, 0, 0, g_safeFrameMajorOffsetX, 1)
-				renderOverlay(g_safeFrameMajorOverlay, 1 - g_safeFrameMajorOffsetX, 0, g_safeFrameMajorOffsetX, 1)
-			end
-			if g_drawGuiHelper then
-				if g_guiHelperOverlay == nil then
-					g_guiHelperOverlay = createImageOverlay("dataS/menu/base/graph_pixel.png")
-				end
-				if g_guiHelperOverlay ~= 0 then
-					setTextColor(1, 1, 1, 1)
-					local v72_, v73_ = getScreenModeInfo(getScreenMode())
-					for v74_ = g_guiHelperSteps, 1, g_guiHelperSteps do
-						renderOverlay(g_guiHelperOverlay, v74_, 0, 1 / v72_, 1)
-						renderOverlay(g_guiHelperOverlay, 0, v74_, 1, 1 / v73_)
-					end
-					for v75_ = 0.05, 1, 0.05 do
-						renderText(v75_, 0.97, getCorrectTextSize(0.02), string.format("%.2f", v75_))
-						renderText(0.01, v75_, getCorrectTextSize(0.02), string.format("%.2f", v75_))
-					end
-					local v76_ = getCorrectTextSize(0.016)
-					setTextAlignment(RenderText.ALIGN_RIGHT)
-					setTextColor(0, 0, 0, 0.9)
-					renderText(g_lastMousePosX - 0.005, g_lastMousePosY - 0.01 - 0.002, v76_, string.format("y %1.4f", g_lastMousePosY))
-					setTextColor(1, 1, 1, 1)
-					renderText(g_lastMousePosX - 0.005, g_lastMousePosY - 0.01, v76_, string.format("y %1.4f", g_lastMousePosY))
-					setTextAlignment(RenderText.ALIGN_CENTER)
-					setTextColor(0, 0, 0, 0.9)
-					renderText(g_lastMousePosX, g_lastMousePosY + 0.01 - 0.002, v76_, string.format("x %1.4f", g_lastMousePosX))
-					setTextColor(1, 1, 1, 1)
-					renderText(g_lastMousePosX, g_lastMousePosY + 0.01, v76_, string.format("x %1.4f", g_lastMousePosX))
-					setTextAlignment(RenderText.ALIGN_LEFT)
-					local v77_ = 5 / v72_
-					local v78_ = 5 / v73_
-					renderOverlay(g_guiHelperOverlay, g_lastMousePosX - v77_, g_lastMousePosY, 2 * v77_, 1 / v73_)
-					renderOverlay(g_guiHelperOverlay, g_lastMousePosX, g_lastMousePosY - v78_, 1 / v72_, 2 * v78_)
-				end
-			end
-			if Platform.requiresConnectedGamepad and (getNumOfGamepads() == 0 and (g_gui.currentGuiName ~= "StartupScreen" and g_gui.currentGuiName ~= "GamepadSigninScreen")) then
-				if Platform.isXbox then
-					requestGamepadSignin(Input.BUTTON_2, true, false)
-				end
-				setTextBold(true)
-				setTextAlignment(RenderText.ALIGN_CENTER)
-				setTextColor(0, 0, 0, 1)
-				local v79_ = getCorrectTextSize(0.05)
-				local v80_ = g_i18n:getText("ui_pleaseReconnectController")
-				renderText(0.497, 0.6053333333333333, v79_, v80_)
-				renderText(0.5, 0.6053333333333333, v79_, v80_)
-				renderText(0.503, 0.6053333333333333, v79_, v80_)
-				renderText(0.497, 0.6, v79_, v80_)
-				renderText(0.503, 0.6, v79_, v80_)
-				renderText(0.497, 0.5946666666666667, v79_, v80_)
-				renderText(0.5, 0.5946666666666667, v79_, v80_)
-				renderText(0.503, 0.5946666666666667, v79_, v80_)
-				setTextColor(1, 1, 1, 1)
-				renderText(0.5, 0.6, v79_, v80_)
-				setTextBold(false)
-				setTextColor(1, 1, 1, 1)
-				setTextAlignment(RenderText.ALIGN_LEFT)
-				drawFilledRect(0, 0, 1, 1, 1, 1, 1, 0.3)
-			end
-			if g_showRawInput then
-				new2DLayer()
-				setOverlayColor(GuiElement.debugOverlay, 0, 0, 0, 0.8)
-				renderOverlay(GuiElement.debugOverlay, 0, 0, 1, 1)
-				setTextAlignment(RenderText.ALIGN_LEFT)
-				local v81_ = getNumOfGamepads()
-				local v82_ = 0.95
-				local v83_ = 0
-				for v84_ = 0, v81_ - 1 do
-					local v85_ = 0
-					for v86_ = 0, Input.MAX_NUM_BUTTONS - 1 do
-						if getHasGamepadButton(Input.BUTTON_1 + v86_, v84_) then
-							v85_ = v85_ + 1
-						end
-					end
-					local v87_ = 0
-					for v88_ = 0, Input.MAX_NUM_AXES - 1 do
-						if getHasGamepadAxis(v88_, v84_) then
-							v87_ = v87_ + 1
-						end
-					end
-					local v89_ = getGamepadVersionId(v84_)
-					local v90_ = v89_ >= 65535 and "" or string.format("%04X", v89_)
-					setTextColor(0.5, 0.5, 0.5, 1)
-					renderText(v83_ + 0.025, v82_, 0.018, "Name:")
-					local v91_ = v82_ - 0.018
-					renderText(v83_ + 0.025, v91_, 0.018, "ProductId:")
-					local v92_ = v91_ - 0.018
-					renderText(v83_ + 0.025, v92_, 0.018, "VendorId:")
-					local v93_ = v92_ - 0.018
-					renderText(v83_ + 0.025, v93_, 0.018, "Version:")
-					local v94_ = v93_ - 0.018
-					renderText(v83_ + 0.025, v94_, 0.018, "Axis / Buttons:")
-					setTextColor(1, 1, 1, 1)
-					renderText(v83_ + 0.11, v82_, 0.018, string.format("%s (#%d)", getGamepadName(v84_), v84_))
-					local v95_ = v82_ - 0.018
-					renderText(v83_ + 0.11, v95_, 0.018, string.format("%04X", getGamepadProductId(v84_)))
-					local v96_ = v95_ - 0.018
-					renderText(v83_ + 0.11, v96_, 0.018, string.format("%04X", getGamepadVendorId(v84_)))
-					local v97_ = v96_ - 0.018
-					renderText(v83_ + 0.11, v97_, 0.018, string.format("%s", v90_))
-					local v98_ = v97_ - 0.018
-					renderText(v83_ + 0.11, v98_, 0.018, string.format("%d / %d", v87_, v85_))
-					local v99_ = v98_ - 0.035
-					setTextColor(0.5, 0.5, 0.5, 1)
-					renderText(v83_ + 0.025, v99_, 0.018, "Physical")
-					renderText(v83_ + 0.07, v99_, 0.018, "Logical")
-					renderText(v83_ + 0.11, v99_, 0.018, "Ingame")
-					renderText(v83_ + 0.165, v99_, 0.018, "Label")
-					renderText(v83_ + 0.2, v99_, 0.018, "Value")
-					setTextColor(1, 1, 1, 1)
-					local v100_ = v99_ - 0.005
-					for v101_ = 0, Input.MAX_NUM_AXES - 1 do
-						if getHasGamepadAxis(v101_, v84_) then
-							local v102_ = getGamepadAxisPhysicalName(v101_, v84_)
-							v100_ = v100_ - 0.016
-							renderText(v83_ + 0.025, v100_, 0.016, string.format("%s", v102_))
-							renderText(v83_ + 0.07, v100_, 0.016, string.format("%d", v101_))
-							renderText(v83_ + 0.11, v100_, 0.016, string.format("AXIS_%d", v101_ + 1))
-							renderText(v83_ + 0.165, v100_, 0.016, string.format("%s", getGamepadAxisLabel(v101_, v84_)))
-							renderText(v83_ + 0.2, v100_, 0.016, string.format("%1.2f", getInputAxis(v101_, v84_)))
-						end
-					end
-					local v103_ = v100_ - 0.035
-					setTextColor(0.5, 0.5, 0.5, 1)
-					renderText(v83_ + 0.025, v103_, 0.018, "Physical")
-					renderText(v83_ + 0.07, v103_, 0.018, "Logical")
-					renderText(v83_ + 0.11, v103_, 0.018, "Ingame")
-					renderText(v83_ + 0.165, v103_, 0.018, "Label")
-					setTextColor(1, 1, 1, 1)
-					local v104_ = v103_ - 0.005
-					for v105_ = 0, Input.MAX_NUM_BUTTONS - 1 do
-						if getInputButton(v105_, v84_) > 0 then
-							local v106_ = getGamepadButtonPhysicalName(v105_, v84_)
-							v104_ = v104_ - 0.016
-							renderText(v83_ + 0.025, v104_, 0.016, string.format("%s", v106_))
-							renderText(v83_ + 0.07, v104_, 0.016, string.format("%d", v105_))
-							renderText(v83_ + 0.11, v104_, 0.016, string.format("BUTTON_%d", v105_ + 1))
-							renderText(v83_ + 0.165, v104_, 0.016, string.format("%s", getGamepadButtonLabel(v105_, v84_)))
-						end
-					end
-					v82_ = v104_ - 0.1
-					if v82_ < 0.05 then
-						v83_ = v83_ + 0.3
-						v82_ = 0.95
-					end
-				end
-				if v81_ == 0 then
-					renderText(0.025, v82_, 0.025, "No gamepads found")
-				end
-			end
-			setTextVerticalAlignment(RenderText.VERTICAL_ALIGN_BASELINE)
-			setTextAlignment(RenderText.ALIGN_LEFT)
-		end
-	else
+	if g_currentTest ~= nil then
 		g_currentTest.draw()
-		return
+	elseif g_dedicatedServer == nil then
+		g_debugManager:drawPreUI()
+		if g_currentMission == nil or g_currentMission:getAllowsGuiDisplay() then
+			g_gui:draw()
+		end
+		if g_currentMission ~= nil and (g_currentMission.isLoaded and g_gui.currentGuiName ~= "GamepadSigninScreen") then
+			g_currentMission:draw()
+		end
+		if g_inputBinding ~= nil then
+			g_inputBinding:draw()
+		end
+		if g_inputDisplayManager ~= nil then
+			g_inputDisplayManager:draw()
+		end
+		if g_kioskMode ~= nil then
+			g_kioskMode:draw()
+		end
+		if g_isDevelopmentConsoleScriptModTesting then
+			renderText(0.2, 0.85, getCorrectTextSize(0.05), "CONSOLE SCRIPTS. DEVELOPMENT USE ONLY")
+		end
+		g_debugManager:drawPostUI()
+		if g_showSafeFrame then
+			if g_safeFrameOverlay == nil then
+				g_safeFrameOverlay = createImageOverlay("dataS/menu/base/graph_pixel.png")
+				setOverlayColor(g_safeFrameOverlay, 1, 0, 0, 0.4)
+			end
+			renderOverlay(g_safeFrameOverlay, g_safeFrameOffsetX, 0, 1 - 2 * g_safeFrameOffsetX, g_safeFrameOffsetY)
+			renderOverlay(g_safeFrameOverlay, g_safeFrameOffsetX, 1 - g_safeFrameOffsetY, 1 - 2 * g_safeFrameOffsetX, g_safeFrameOffsetY)
+			renderOverlay(g_safeFrameOverlay, 0, 0, g_safeFrameOffsetX, 1)
+			renderOverlay(g_safeFrameOverlay, 1 - g_safeFrameOffsetX, 0, g_safeFrameOffsetX, 1)
+			if g_safeFrameMajorOverlay == nil then
+				g_safeFrameMajorOverlay = createImageOverlay("dataS/menu/base/graph_pixel.png")
+				setOverlayColor(g_safeFrameMajorOverlay, 1, 0, 0, 0.4)
+			end
+			renderOverlay(g_safeFrameMajorOverlay, g_safeFrameMajorOffsetX, 0, 1 - 2 * g_safeFrameMajorOffsetX, g_safeFrameMajorOffsetY)
+			renderOverlay(g_safeFrameMajorOverlay, g_safeFrameMajorOffsetX, 1 - g_safeFrameMajorOffsetY, 1 - 2 * g_safeFrameMajorOffsetX, g_safeFrameMajorOffsetY)
+			renderOverlay(g_safeFrameMajorOverlay, 0, 0, g_safeFrameMajorOffsetX, 1)
+			renderOverlay(g_safeFrameMajorOverlay, 1 - g_safeFrameMajorOffsetX, 0, g_safeFrameMajorOffsetX, 1)
+		end
+		if g_drawGuiHelper then
+			if g_guiHelperOverlay == nil then
+				g_guiHelperOverlay = createImageOverlay("dataS/menu/base/graph_pixel.png")
+			end
+			if g_guiHelperOverlay ~= 0 then
+				setTextColor(1, 1, 1, 1)
+				local width, height = getScreenModeInfo(getScreenMode())
+				for i = g_guiHelperSteps, 1, g_guiHelperSteps do
+					renderOverlay(g_guiHelperOverlay, i, 0, 1 / width, 1)
+					renderOverlay(g_guiHelperOverlay, 0, i, 1, 1 / height)
+				end
+				for i = 0.05, 1, 0.05 do
+					renderText(i, 0.97, getCorrectTextSize(0.02), string.format("%.2f", i))
+					renderText(0.01, i, getCorrectTextSize(0.02), string.format("%.2f", i))
+				end
+				local textSize = getCorrectTextSize(0.016)
+				setTextAlignment(RenderText.ALIGN_RIGHT)
+				setTextColor(0, 0, 0, 0.9)
+				renderText(g_lastMousePosX - 0.005, g_lastMousePosY - 0.01 - 0.002, textSize, string.format("y %1.4f", g_lastMousePosY))
+				setTextColor(1, 1, 1, 1)
+				renderText(g_lastMousePosX - 0.005, g_lastMousePosY - 0.01, textSize, string.format("y %1.4f", g_lastMousePosY))
+				setTextAlignment(RenderText.ALIGN_CENTER)
+				setTextColor(0, 0, 0, 0.9)
+				renderText(g_lastMousePosX, g_lastMousePosY + 0.01 - 0.002, textSize, string.format("x %1.4f", g_lastMousePosX))
+				setTextColor(1, 1, 1, 1)
+				renderText(g_lastMousePosX, g_lastMousePosY + 0.01, textSize, string.format("x %1.4f", g_lastMousePosX))
+				setTextAlignment(RenderText.ALIGN_LEFT)
+				local halfCrosshairWidth = 5 / width
+				local halfCrosshairHeight = 5 / height
+				renderOverlay(g_guiHelperOverlay, g_lastMousePosX - halfCrosshairWidth, g_lastMousePosY, 2 * halfCrosshairWidth, 1 / height)
+				renderOverlay(g_guiHelperOverlay, g_lastMousePosX, g_lastMousePosY - halfCrosshairHeight, 1 / width, 2 * halfCrosshairHeight)
+			end
+		end
+		if Platform.requiresConnectedGamepad and (getNumOfGamepads() == 0 and (g_gui.currentGuiName ~= "StartupScreen" and g_gui.currentGuiName ~= "GamepadSigninScreen")) then
+			if Platform.isXbox then
+				requestGamepadSignin(Input.BUTTON_2, true, false)
+			end
+			setTextBold(true)
+			setTextAlignment(RenderText.ALIGN_CENTER)
+			setTextColor(0, 0, 0, 1)
+			local xPos = 0.5
+			local yPos = 0.6
+			local blackOffset = 0.003
+			local textSize = getCorrectTextSize(0.05)
+			local text = g_i18n:getText("ui_pleaseReconnectController")
+			renderText(0.497, 0.6053333333333333, textSize, text)
+			renderText(0.5, 0.6053333333333333, textSize, text)
+			renderText(0.503, 0.6053333333333333, textSize, text)
+			renderText(0.497, 0.6, textSize, text)
+			renderText(0.503, 0.6, textSize, text)
+			renderText(0.497, 0.5946666666666667, textSize, text)
+			renderText(0.5, 0.5946666666666667, textSize, text)
+			renderText(0.503, 0.5946666666666667, textSize, text)
+			setTextColor(1, 1, 1, 1)
+			renderText(0.5, 0.6, textSize, text)
+			setTextBold(false)
+			setTextColor(1, 1, 1, 1)
+			setTextAlignment(RenderText.ALIGN_LEFT)
+			drawFilledRect(0, 0, 1, 1, 1, 1, 1, 0.3)
+		end
+		if g_showRawInput then
+			new2DLayer()
+			setOverlayColor(GuiElement.debugOverlay, 0, 0, 0, 0.8)
+			renderOverlay(GuiElement.debugOverlay, 0, 0, 1, 1)
+			setTextAlignment(RenderText.ALIGN_LEFT)
+			local numGamepads = getNumOfGamepads()
+			local yCoord = 0.95
+			local xOffset = 0
+			for i = 0, numGamepads - 1 do
+				local numButtons = 0
+				for j = 0, Input.MAX_NUM_BUTTONS - 1 do
+					if getHasGamepadButton(Input.BUTTON_1 + j, i) then
+						numButtons = numButtons + 1
+					end
+				end
+				local numAxes = 0
+				for axis = 0, Input.MAX_NUM_AXES - 1 do
+					if getHasGamepadAxis(axis, i) then
+						numAxes = numAxes + 1
+					end
+				end
+				local versionId = getGamepadVersionId(i)
+				local versionText = ""
+				if versionId < 65535 then
+					versionText = string.format("%04X", versionId)
+				end
+				setTextColor(0.5, 0.5, 0.5, 1)
+				local topYCoord = yCoord
+				renderText(xOffset + 0.025, yCoord, 0.018, "Name:")
+				yCoord = yCoord - 0.018
+				renderText(xOffset + 0.025, yCoord, 0.018, "ProductId:")
+				yCoord = yCoord - 0.018
+				renderText(xOffset + 0.025, yCoord, 0.018, "VendorId:")
+				yCoord = yCoord - 0.018
+				renderText(xOffset + 0.025, yCoord, 0.018, "Version:")
+				yCoord = yCoord - 0.018
+				renderText(xOffset + 0.025, yCoord, 0.018, "Axis / Buttons:")
+				setTextColor(1, 1, 1, 1)
+				yCoord = topYCoord
+				renderText(xOffset + 0.11, yCoord, 0.018, string.format("%s (#%d)", getGamepadName(i), i))
+				yCoord = yCoord - 0.018
+				renderText(xOffset + 0.11, yCoord, 0.018, string.format("%04X", getGamepadProductId(i)))
+				yCoord = yCoord - 0.018
+				renderText(xOffset + 0.11, yCoord, 0.018, string.format("%04X", getGamepadVendorId(i)))
+				yCoord = yCoord - 0.018
+				renderText(xOffset + 0.11, yCoord, 0.018, string.format("%s", versionText))
+				yCoord = yCoord - 0.018
+				renderText(xOffset + 0.11, yCoord, 0.018, string.format("%d / %d", numAxes, numButtons))
+				yCoord = yCoord - 0.035
+				setTextColor(0.5, 0.5, 0.5, 1)
+				renderText(xOffset + 0.025, yCoord, 0.018, "Physical")
+				renderText(xOffset + 0.07, yCoord, 0.018, "Logical")
+				renderText(xOffset + 0.11, yCoord, 0.018, "Ingame")
+				renderText(xOffset + 0.165, yCoord, 0.018, "Label")
+				renderText(xOffset + 0.2, yCoord, 0.018, "Value")
+				setTextColor(1, 1, 1, 1)
+				yCoord = yCoord - 0.005
+				for axis = 0, Input.MAX_NUM_AXES - 1 do
+					if getHasGamepadAxis(axis, i) then
+						local physical = getGamepadAxisPhysicalName(axis, i)
+						yCoord = yCoord - 0.016
+						renderText(xOffset + 0.025, yCoord, 0.016, string.format("%s", physical))
+						renderText(xOffset + 0.07, yCoord, 0.016, string.format("%d", axis))
+						renderText(xOffset + 0.11, yCoord, 0.016, string.format("AXIS_%d", axis + 1))
+						renderText(xOffset + 0.165, yCoord, 0.016, string.format("%s", getGamepadAxisLabel(axis, i)))
+						renderText(xOffset + 0.2, yCoord, 0.016, string.format("%1.2f", getInputAxis(axis, i)))
+					end
+				end
+				yCoord = yCoord - 0.035
+				setTextColor(0.5, 0.5, 0.5, 1)
+				renderText(xOffset + 0.025, yCoord, 0.018, "Physical")
+				renderText(xOffset + 0.07, yCoord, 0.018, "Logical")
+				renderText(xOffset + 0.11, yCoord, 0.018, "Ingame")
+				renderText(xOffset + 0.165, yCoord, 0.018, "Label")
+				setTextColor(1, 1, 1, 1)
+				yCoord = yCoord - 0.005
+				for button = 0, Input.MAX_NUM_BUTTONS - 1 do
+					if 0 < getInputButton(button, i) then
+						local physical = getGamepadButtonPhysicalName(button, i)
+						yCoord = yCoord - 0.016
+						renderText(xOffset + 0.025, yCoord, 0.016, string.format("%s", physical))
+						renderText(xOffset + 0.07, yCoord, 0.016, string.format("%d", button))
+						renderText(xOffset + 0.11, yCoord, 0.016, string.format("BUTTON_%d", button + 1))
+						renderText(xOffset + 0.165, yCoord, 0.016, string.format("%s", getGamepadButtonLabel(button, i)))
+					end
+				end
+				yCoord = yCoord - 0.1
+				if yCoord < 0.05 then
+					xOffset = xOffset + 0.3
+					yCoord = 0.95
+				end
+			end
+			if numGamepads == 0 then
+				renderText(0.025, yCoord, 0.025, "No gamepads found")
+			end
+		end
+		setTextVerticalAlignment(RenderText.VERTICAL_ALIGN_BASELINE)
+		setTextAlignment(RenderText.ALIGN_LEFT)
 	end
 end
-
--- Local values: _, callbackData
 function postAnimationUpdate(dt)
-	for _, v108_ in pairs(g_postAnimationUpdateCallbacks) do
-		v108_.callbackFunc(v108_.callbackTarget, dt, v108_.callbackArguments)
+	for _, callbackData in pairs(g_postAnimationUpdateCallbacks) do
+		callbackData.callbackFunc(callbackData.callbackTarget, dt, callbackData.callbackArguments)
 	end
 end
 function cleanUp()
@@ -1135,91 +1105,86 @@ function performExit()
 	print("Application quit")
 	requestExit()
 end
-
--- Local values: userName
 function doRestart(restartProcess, args)
 	if g_invitePlatformServerId ~= nil then
-		local v111_ = base64Encode(g_inviteRequestUserName)
-		args = args .. "-invitePlatformServerId " .. g_invitePlatformServerId .. " -inviteRequestUserName " .. v111_
+		local userName = base64Encode(g_inviteRequestUserName)
+		args = args .. "-invitePlatformServerId " .. g_invitePlatformServerId .. " -inviteRequestUserName " .. userName
 	end
-	g_pendingRestartData = {
-		["restartProcess"] = restartProcess,
-		["args"] = args
-	}
+	g_pendingRestartData = { restartProcess = restartProcess, args = args }
 end
 function checkInsets()
-	local v112_, v113_, v114_, v115_ = getSafeFrameInsets()
+	local left, right, top, bottom = getSafeFrameInsets()
 	if g_insetLeft == nil then
-		g_insetLeft = v112_
-		g_insetRight = v113_
-		g_insetTop = v114_
-		g_insetBottom = v115_
+		g_insetLeft = left
+		g_insetRight = right
+		g_insetTop = top
+		g_insetBottom = bottom
 	end
-	if v112_ ~= g_insetLeft or (v113_ ~= g_insetRight or (v114_ ~= g_insetTop or v115_ ~= g_insetBottom)) then
-		g_insetLeft = v112_
-		g_insetRight = v113_
-		g_insetTop = v114_
-		g_insetBottom = v115_
+	if left ~= g_insetLeft or right ~= g_insetRight or top ~= g_insetTop or bottom ~= g_insetBottom then
+		g_insetLeft = left
+		g_insetRight = right
+		g_insetTop = top
+		g_insetBottom = bottom
 		g_messageCenter:publish(MessageType.INSETS_CHANGED)
 	end
 end
 function performRestart()
-	if g_pendingRestartData ~= nil then
-		local v116_ = g_pendingRestartData
-		if Platform.needsSignIn and (g_isSignedIn and getStartMode() ~= RestartManager.START_SCREEN_GAMEPAD_SIGNIN) then
-			v116_.args = v116_.args .. " -autoSignIn"
+	if g_pendingRestartData == nil then
+		return
+	else
+		local data = g_pendingRestartData
+		if Platform.needsSignIn and g_isSignedIn then
+			local startScreen = getStartMode()
+			if startScreen ~= RestartManager.START_SCREEN_GAMEPAD_SIGNIN then
+				data.args = data.args .. " -autoSignIn"
+			end
 		end
 		cleanUp()
-		local v117_ = v116_.restartProcess and "" or "(soft restart)"
-		print("Application restart " .. v117_)
-		restartApplication(v116_.restartProcess, v116_.args)
+		local restartType = ""
+		if not data.restartProcess then
+			restartType = "(soft restart)"
+		end
+		print("Application restart " .. restartType)
+		restartApplication(data.restartProcess, data.args)
 	end
 end
-
--- Local values: numLanguages, languageCodeToLanguage, i, language, languageSet, availableLanguages, i
 function loadLanguageSettings(xmlFile)
-	local v119_ = getNumOfLanguages()
-	local v_u_120_ = {}
-	for v121_ = 0, v119_ - 1 do
-		v_u_120_[getLanguageCode(v121_)] = v121_
+	local numLanguages = getNumOfLanguages()
+	local languageCodeToLanguage = {}
+	for i = 0, numLanguages - 1 do
+		languageCodeToLanguage[getLanguageCode(i)] = i
 	end
-	local v_u_122_ = getLanguage()
-	local v_u_123_ = false
-	local v_u_124_ = {}
-	xmlFile:iterate("settings.languages.language", function(_, p125_)
-		-- upvalues: (copy) xmlFile, (copy) v_u_120_, (copy) v_u_122_, (ref) v_u_123_, (copy) v_u_124_
-		local v126_ = xmlFile:getString(p125_ .. "#code")
-		local v127_ = xmlFile:getString(p125_ .. "#short")
-		local v128_ = xmlFile:getString(p125_ .. "#suffix")
-		local v129_ = v_u_120_[v126_]
-		if v129_ ~= nil then
-			if v129_ == v_u_122_ or not v_u_123_ then
-				v_u_123_ = true
-				g_language = v129_
-				g_languageShort = v127_
-				g_languageSuffix = v128_
+	local language = getLanguage()
+	local languageSet = false
+	local availableLanguages = {}
+	xmlFile:iterate("settings.languages.language", function(_, key)
+		local code = xmlFile:getString(key .. "#code")
+		local languageShort = xmlFile:getString(key .. "#short")
+		local languageSuffix = xmlFile:getString(key .. "#suffix")
+		local lang = languageCodeToLanguage[code]
+		if lang ~= nil then
+			if lang == language or not languageSet then
+				languageSet = true
+				g_language = lang
+				g_languageShort = languageShort
+				g_languageSuffix = languageSuffix
 			end
-			if getIsLanguageEnabled(v129_) then
-				v_u_124_[v129_] = true
+			if getIsLanguageEnabled(lang) then
+				availableLanguages[lang] = true
 			end
 		end
 	end)
 	g_availableLanguagesTable = {}
 	g_availableLanguageNamesTable = {}
-	for v130_ = 0, v119_ - 1 do
-		if v_u_124_[v130_] or v130_ == g_language then
-			local v131_ = g_availableLanguagesTable
-			table.insert(v131_, v130_)
-			if getLanguageNativeName == nil then
-				local v132_ = g_availableLanguageNamesTable
-				local v133_ = getLanguageName
-				table.insert(v132_, v133_(v130_))
+	for i = 0, numLanguages - 1 do
+		if availableLanguages[i] or i == g_language then
+			table.insert(g_availableLanguagesTable, i)
+			if getLanguageNativeName ~= nil then
+				table.insert(g_availableLanguageNamesTable, getLanguageNativeName(i))
 			else
-				local v134_ = g_availableLanguageNamesTable
-				local v135_ = getLanguageNativeName
-				table.insert(v134_, v135_(v130_))
+				table.insert(g_availableLanguageNamesTable, getLanguageName(i))
 			end
-			if v130_ == g_language then
+			if i == g_language then
 				g_settingsLanguageGUI = #g_availableLanguagesTable - 1
 			end
 		end
@@ -1228,33 +1193,33 @@ function loadLanguageSettings(xmlFile)
 		g_gameSettings:setValue(GameSettings.SETTING.MP_LANGUAGE, getSystemLanguage())
 	end
 end
-
--- Local values: nickname, gameSettingsPathTemplate, revision, gameSettingsTemplate, revisionTemplate
 function loadUserSettings(gameSettings)
-	local v137_ = getUserName():trim()
-	local v138_ = (v137_ == nil or v137_ == "") and "Player" or v137_
-	gameSettings:setValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME, v138_)
+	local nickname = getUserName():trim()
+	if nickname == nil or nickname == "" then
+		nickname = "Player"
+	end
+	gameSettings:setValue(GameSettings.SETTING.ONLINE_PRESENCE_NAME, nickname)
 	gameSettings:setValue(GameSettings.SETTING.VOLUME_MASTER, getMasterVolume())
 	gameSettings:setValue("joystickVibrationEnabled", getGamepadVibrationEnabled())
 	if g_savegameXML ~= nil then
 		delete(g_savegameXML)
 	end
-	local v139_ = getAppBasePath() .. "profileTemplate/gameSettingsTemplate.xml"
+	local gameSettingsPathTemplate = getAppBasePath() .. "profileTemplate/gameSettingsTemplate.xml"
 	g_savegamePath = getUserProfileAppPath() .. "gameSettings.xml"
-	copyFile(v139_, g_savegamePath, false)
+	copyFile(gameSettingsPathTemplate, g_savegamePath, false)
 	g_savegameXML = loadXMLFile("savegameXML", g_savegamePath)
 	if g_savegameXML == nil or g_savegameXML == 0 then
 		Logging.error("Detected corrupt gameSettings.xml. Restoring default file!")
-		copyFile(v139_, g_savegamePath, true)
+		copyFile(gameSettingsPathTemplate, g_savegamePath, true)
 		g_savegameXML = loadXMLFile("savegameXML", g_savegamePath)
 	end
 	syncProfileFiles()
-	local v140_ = getXMLInt(g_savegameXML, "gameSettings#revision")
-	local v141_ = loadXMLFile("GameSettingsTemplate", v139_)
-	local v142_ = getXMLInt(v141_, "gameSettings#revision")
-	delete(v141_)
-	if v140_ == nil or v140_ ~= v142_ then
-		copyFile(v139_, g_savegamePath, true)
+	local revision = getXMLInt(g_savegameXML, "gameSettings#revision")
+	local gameSettingsTemplate = loadXMLFile("GameSettingsTemplate", gameSettingsPathTemplate)
+	local revisionTemplate = getXMLInt(gameSettingsTemplate, "gameSettings#revision")
+	delete(gameSettingsTemplate)
+	if revision == nil or revision ~= revisionTemplate then
+		copyFile(gameSettingsPathTemplate, g_savegamePath, true)
 		delete(g_savegameXML)
 		g_savegameXML = loadXMLFile("savegameXML", g_savegamePath)
 	end
@@ -1284,18 +1249,16 @@ function takeScreenshot()
 	if g_screenshotsDirectory == nil then
 		printError("Error: Screenshot directory not defined!")
 	else
-		local v143_ = g_screenshotsDirectory .. "fsScreen_" .. getDate("%Y_%m_%d_%H_%M_%S") .. ".png"
-		print("Saving screenshot: " .. v143_)
-		if not saveScreenshot(v143_) then
-			printError(string.format("Error while saving screenshot \'%s\'", v143_))
+		local screenshotName = g_screenshotsDirectory .. "fsScreen_" .. getDate("%Y_%m_%d_%H_%M_%S") .. ".png"
+		print("Saving screenshot: " .. screenshotName)
+		if not saveScreenshot(screenshotName) then
+			printError(string.format("Error while saving screenshot '%s'", screenshotName))
 		end
 	end
 end
-
--- Local values: _, eventId
 function registerGlobalActionEvents(inputManager)
-	local _, v144_ = g_inputBinding:registerActionEvent(InputAction.TAKE_SCREENSHOT, nil, takeScreenshot, false, true, false, true)
-	g_inputBinding:setActionEventTextVisibility(v144_, false)
+	local _, eventId = g_inputBinding:registerActionEvent(InputAction.TAKE_SCREENSHOT, nil, takeScreenshot, false, true, false, true)
+	g_inputBinding:setActionEventTextVisibility(eventId, false)
 	if g_addTestCommands and Platform.isPC then
 		g_noteManager:registerInputActionEvent()
 	end
@@ -1303,96 +1266,75 @@ function registerGlobalActionEvents(inputManager)
 		g_kioskMode:registerGlobalInputActionEvents()
 	end
 end
-
--- Local values: referenceAspect
 function updateAspectRatio(aspect)
-	local v146_ = g_referenceScreenWidth / g_referenceScreenHeight
-	if v146_ < aspect then
-		g_aspectScaleX = v146_ / aspect
+	local referenceAspect = g_referenceScreenWidth / g_referenceScreenHeight
+	if referenceAspect < aspect then
+		g_aspectScaleX = referenceAspect / aspect
 		g_aspectScaleY = 1
 	else
 		g_aspectScaleX = 1
-		g_aspectScaleY = aspect / v146_
+		g_aspectScaleY = aspect / referenceAspect
 	end
 	g_aspectScaleX = g_aspectScaleX * g_safeFrameRatioX
 	g_aspectScaleY = g_aspectScaleY * g_safeFrameRatioY
 end
 g_postAnimationUpdateCallbacks = {}
-
--- Local values: callbackData
 function addPostAnimationCallback(callbackFunc, callbackTarget, callbackArguments)
-	local v150_ = {
-		["callbackFunc"] = callbackFunc,
-		["callbackTarget"] = callbackTarget,
-		["callbackArguments"] = callbackArguments
-	}
-	local v151_ = g_postAnimationUpdateCallbacks
-	table.insert(v151_, v150_)
-	return v150_
+	local callbackData = { callbackFunc = callbackFunc, callbackTarget = callbackTarget, callbackArguments = callbackArguments }
+	table.insert(g_postAnimationUpdateCallbacks, callbackData)
+	return callbackData
 end
-
--- Local values: i, callbackData
 function removePostAnimationCallback(callbackDataToRemove)
-	for v153_, v154_ in pairs(g_postAnimationUpdateCallbacks) do
-		if v154_ == callbackDataToRemove then
-			table.remove(g_postAnimationUpdateCallbacks, v153_)
+	for i, callbackData in pairs(g_postAnimationUpdateCallbacks) do
+		if callbackData == callbackDataToRemove then
+			table.remove(g_postAnimationUpdateCallbacks, i)
 		end
 	end
 end
-
 function addGlobalUpdateable(updateable)
 	table.addElement(g_updateables, updateable)
 end
-
 function removeGlobalUpdateable(updateable)
 	table.removeElement(g_updateables, updateable)
 end
-
--- Local values: ratio
 function updateLoadingBarProgress(isLast)
 	g_curNumLoadingBarStep = g_curNumLoadingBarStep + 1
-	local v158_ = g_curNumLoadingBarStep / g_maxNumLoadingBarSteps
-	if isLast and v158_ < 1 or v158_ > 1 then
+	local ratio = g_curNumLoadingBarStep / g_maxNumLoadingBarSteps
+	if isLast and (ratio < 1 or 1 < ratio) then
 		printError("Error: Invalid g_maxNumLoadingBarSteps. Last step number is " .. g_curNumLoadingBarStep)
 	end
-	updateLoadingBar(v158_)
+	updateLoadingBar(ratio)
 end
 function onShowDeepLinkingErrorMsg()
 	g_deepLinkingInfo = nil
 	ConnectionFailedDialog.show(g_i18n:getText("ui_failedToConnectToGame"), OnInGameMenuMenu)
 	g_showDeeplinkingFailedMessage = false
 end
-
--- Local values: savegame
 function startDevServer(savegameId, uniqueUserId)
 	if StartParams.getIsSet("restart") then
 		print("Skipping server auto start due to restart")
-		return
 	else
 		g_savegameController:updateSavegames()
 		g_savegameController:loadSavegames()
 		print("Start developer mp server (Savegame-Id: " .. tostring(savegameId) .. ")")
 		g_mainScreen:onMultiplayerClick()
 		g_multiplayerScreen:onClickCreateGame()
-		local v160_ = g_savegameController:getSavegame((tonumber(savegameId)))
-		if v160_ == SavegameController.NO_SAVEGAME or not v160_.isValid then
+		local savegame = g_savegameController:getSavegame(tonumber(savegameId))
+		if savegame == SavegameController.NO_SAVEGAME or not savegame.isValid then
 			printWarning("    Savegame not found! Please select savegame manually!")
-		else
-			g_careerScreen.savegameList.selectedIndex = tonumber(savegameId)
-			g_careerScreen:onStartAction()
-			if g_gui.currentGuiName == "ModSelectionScreen" then
-				g_modSelectionScreen:onClickOk()
-			end
-			g_autoDevMP = {
-				["serverName"] = "InternalTest_" .. getUserName()
-			}
-			g_createGameScreen.serverNameElement:setText(g_autoDevMP.serverName)
-			g_createGameScreen.autoAccept = true
-			g_createGameScreen:onClickOk()
+			return
 		end
+		g_careerScreen.savegameList.selectedIndex = tonumber(savegameId)
+		g_careerScreen:onStartAction()
+		if g_gui.currentGuiName == "ModSelectionScreen" then
+			g_modSelectionScreen:onClickOk()
+		end
+		g_autoDevMP = { serverName = "InternalTest_" .. getUserName() }
+		g_createGameScreen.serverNameElement:setText(g_autoDevMP.serverName)
+		g_createGameScreen.autoAccept = true
+		g_createGameScreen:onClickOk()
 	end
 end
-
 function startDevClient(serverName, uniqueUserId)
 	if StartParams.getIsSet("restart") then
 		print("Skipping client auto join due to restart")
@@ -1402,69 +1344,61 @@ function startDevClient(serverName, uniqueUserId)
 		if serverName == nil or serverName == "" then
 			serverName = "InternalTest_" .. getUserName()
 		end
-		g_autoDevMP = {
-			["serverName"] = serverName
-		}
+		g_autoDevMP = { serverName = serverName }
 		g_multiplayerScreen:onClickJoinGame()
 	end
 end
-
--- Local values: savegame
 function autoStartLocalSavegame(savegameId)
 	print("Auto start local savegame (Id: " .. tostring(savegameId) .. ")")
 	g_gui:setIsMultiplayer(false)
 	g_gui:showGui("CareerScreen")
-	g_careerScreen:setSelectedSavegameIndex((tonumber(savegameId)))
-	local v163_ = g_savegameController:getSavegame((tonumber(savegameId)))
-	if v163_ == SavegameController.NO_SAVEGAME or not v163_.isValid then
+	g_careerScreen:setSelectedSavegameIndex(tonumber(savegameId))
+	local savegame = g_savegameController:getSavegame(tonumber(savegameId))
+	if savegame == SavegameController.NO_SAVEGAME or not savegame.isValid then
 		printWarning("    Savegame not found! Please select savegame manually!")
-	else
-		g_careerScreen.currentSavegame = v163_
-		g_careerScreen:onStartAction()
-		if g_gui.currentGuiName == "ModSelectionScreen" then
-			g_modSelectionScreen:onClickOk()
-		end
+		return
+	end
+	g_careerScreen.currentSavegame = savegame
+	g_careerScreen:onStartAction()
+	if g_gui.currentGuiName == "ModSelectionScreen" then
+		g_modSelectionScreen:onClickOk()
 	end
 end
-
--- Local values: uriComponents, uriParamStrings, uriParams, i, v, keyValues, map, x, z, savegameIndex, savegame
 function autoLoadByURI(uri)
-	local v165_ = string.split(uri, ":")
-	local v166_ = string.split(v165_[2], "&")
-	local v167_ = {}
-	for _, v168_ in ipairs(v166_) do
-		local v169_ = string.split(v168_, "=")
-		v167_[v169_[1]] = v169_[2]
+	local uriComponents = string.split(uri, ":")
+	local uriParamStrings = string.split(uriComponents[2], "&")
+	local uriParams = {}
+	for i, v in ipairs(uriParamStrings) do
+		local keyValues = string.split(v, "=")
+		uriParams[keyValues[1]] = keyValues[2]
 	end
-	if v167_.map == nil then
-		printError("Error: URI Parameter \'map\' not set! Cannot auto load from URI.")
+	if uriParams.map == nil then
+		printError("Error: URI Parameter 'map' not set! Cannot auto load from URI.")
 	else
-		local v170_ = v167_.map
-		local v171_ = v167_.x
-		local v172_ = v167_.z
-		local v173_ = v167_.savegameIndex
-		local v174_ = tonumber(v173_) or 1
+		local map = uriParams.map
+		local x = uriParams.x
+		local z = uriParams.z
+		local savegameIndex = tonumber(uriParams.savegameIndex) or 1
 		AutoLoadParams.enable = true
-		AutoLoadParams.x = tonumber(v171_)
-		AutoLoadParams.z = tonumber(v172_)
+		AutoLoadParams.x = tonumber(x)
+		AutoLoadParams.z = tonumber(z)
 		g_gui:setIsMultiplayer(false)
 		g_gui:showGui("CareerScreen")
-		g_savegameController:deleteSavegame(v174_)
-		g_careerScreen:setSelectedSavegameIndex(v174_)
-		local v175_ = g_savegameController:getSavegame(v174_)
-		g_careerScreen.currentSavegame = v175_
-		g_startMissionInfo.mapId = v170_
+		g_savegameController:deleteSavegame(savegameIndex)
+		g_careerScreen:setSelectedSavegameIndex(savegameIndex)
+		local savegame = g_savegameController:getSavegame(savegameIndex)
+		g_careerScreen.currentSavegame = savegame
+		g_startMissionInfo.mapId = map
 		g_startMissionInfo.canStart = true
-		g_careerScreen:startSavegame(v175_)
+		g_careerScreen:startSavegame(savegame)
 		g_gui:changeScreen(nil, CareerScreen)
 		if g_gui.currentGuiName == "ModSelectionScreen" then
 			g_modSelectionScreen:onClickOk()
 		end
 	end
 end
-
 function connectToServer(platformServerId)
-	if storeHaveDlcsChanged() or (haveModsChanged() or g_forceNeedsDlcsAndModsReload) then
+	if storeHaveDlcsChanged() or haveModsChanged() or g_forceNeedsDlcsAndModsReload then
 		g_forceNeedsDlcsAndModsReload = false
 		reloadDlcsAndMods()
 	end

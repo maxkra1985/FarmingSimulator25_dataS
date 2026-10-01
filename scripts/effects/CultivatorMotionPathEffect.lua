@@ -1,74 +1,65 @@
--- Local values: CultivatorMotionPathEffect_mt
 CultivatorMotionPathEffect = {}
 local CultivatorMotionPathEffect_mt = Class(CultivatorMotionPathEffect, TypedMotionPathEffect)
-
--- Upvalues: CultivatorMotionPathEffect_mt
--- Local values: self
 function CultivatorMotionPathEffect.new(customMt)
-	-- upvalues: (copy) CultivatorMotionPathEffect_mt
-	local v3_ = TypedMotionPathEffect.new(customMt or CultivatorMotionPathEffect_mt)
-	v3_.shapeVariationStateDelay = ValueDelay.new(500)
-	v3_.shapeVariationStateSmoothed = 0
-	v3_.densityScale = math.random(75, 100) * 0.01
-	v3_.autoTurnOffSpeed = 1
-	return v3_
+	local self = TypedMotionPathEffect.new(customMt or CultivatorMotionPathEffect_mt)
+	self.shapeVariationStateDelay = ValueDelay.new(500)
+	self.shapeVariationStateSmoothed = 0
+	self.densityScale = math.random(75, 100) * 0.01
+	self.autoTurnOffSpeed = 1
+	return self
 end
-
 function CultivatorMotionPathEffect:loadEffectAttributes(xmlFile, key, node, i3dNode, i3dMapping)
 	if not CultivatorMotionPathEffect:superClass().loadEffectAttributes(self, xmlFile, key, node, i3dNode, i3dMapping) then
 		return false
+	else
+		self.isCultivatorSweepEffect = xmlFile:getValue(key .. ".motionPathEffect#isCultivatorSweepEffect", false)
+		self.minDensity = 0.4
+		self.maxDensitySpeed = 4
+		if self.isCultivatorSweepEffect then
+			self.minDensity = 0
+			self.maxDensitySpeed = 10
+		end
+		self.minDensity = xmlFile:getValue(key .. ".motionPathEffect#minDensity", self.minDensity)
+		self.maxDensitySpeed = xmlFile:getValue(key .. ".motionPathEffect#maxDensitySpeed", self.maxDensitySpeed)
+		self.densityScale = xmlFile:getValue(key .. ".motionPathEffect#densityScale", self.densityScale)
+		self.maxVariationState = xmlFile:getValue(key .. ".motionPathEffect#maxVariationState", 1)
+		return true
 	end
-	self.isCultivatorSweepEffect = xmlFile:getValue(key .. ".motionPathEffect#isCultivatorSweepEffect", false)
-	self.minDensity = 0.4
-	self.maxDensitySpeed = 4
-	if self.isCultivatorSweepEffect then
-		self.minDensity = 0
-		self.maxDensitySpeed = 10
-	end
-	self.minDensity = xmlFile:getValue(key .. ".motionPathEffect#minDensity", self.minDensity)
-	self.maxDensitySpeed = xmlFile:getValue(key .. ".motionPathEffect#maxDensitySpeed", self.maxDensitySpeed)
-	self.densityScale = xmlFile:getValue(key .. ".motionPathEffect#densityScale", self.densityScale)
-	self.maxVariationState = xmlFile:getValue(key .. ".motionPathEffect#maxVariationState", 1)
-	return true
 end
-
--- Local values: lastSpeed, variationState, speedScale, x, y, z, i, effectNode, density, variationMin, variationMax, variationAlpha, variationState, _, effectNode
 function CultivatorMotionPathEffect:update(dt)
-	local v12_ = self.parent:getLastSpeed()
+	local lastSpeed = self.parent:getLastSpeed()
 	if self.isCultivatorSweepEffect then
 		if self.state == MotionPathEffect.STATE_TURNING_ON or self.state == MotionPathEffect.STATE_ON then
-			local v13_ = (v12_ - 5) / 10
-			local v14_ = math.clamp(v13_, 0, 1)
-			self.effectSpeedScale = self.effectSpeedScaleOrig * (0.5 + v14_ * 0.5)
+			local variationState = math.clamp((lastSpeed - 5) / 10, 0, 1)
+			self.effectSpeedScale = self.effectSpeedScaleOrig * (0.5 + variationState * 0.5)
 		end
 	else
-		local v15_ = v12_ / 10
-		local v16_ = math.clamp(v15_, 0, 1)
-		self.effectSpeedScale = self.effectSpeedScaleOrig * (0.5 + v16_ * 0.5)
+		local speedScale = math.clamp(lastSpeed / 10, 0, 1)
+		self.effectSpeedScale = self.effectSpeedScaleOrig * (0.5 + speedScale * 0.5)
 	end
-	if self.state == MotionPathEffect.STATE_ON and v12_ < self.autoTurnOffSpeed then
+	if self.state == MotionPathEffect.STATE_ON and lastSpeed < self.autoTurnOffSpeed then
 		g_effectManager:stopEffect(self)
 	end
 	if self.hasCurrentEffectNodes then
 		if self.state == MotionPathEffect.STATE_TURNING_OFF then
-			local v17_ = self.effectSpeedScaleOrig
-			local v18_ = v12_ / 10
-			self.effectSpeedScale = v17_ * math.clamp(v18_, 0.4, 1)
+			self.effectSpeedScale = self.effectSpeedScaleOrig * math.clamp(lastSpeed / 10, 0.4, 1)
 		end
-		local v19_ = 0
-		for _, v20_ in ipairs(self.currentEffectNodes) do
+		local x = 0
+		local y = 0
+		local z = 0
+		for i, effectNode in ipairs(self.currentEffectNodes) do
 			if self.state == MotionPathEffect.STATE_TURNING_OFF then
-				local v21_, v22_, v23_ = getTranslation(v20_)
-				v19_ = v22_ - dt * 0.001
-				setTranslation(v20_, v21_, v19_, v23_)
-				if v19_ < -0.5 then
-					setTranslation(v20_, 0, 0, 0)
+				x, y, z = getTranslation(effectNode)
+				y = y - dt * 0.001
+				setTranslation(effectNode, x, y, z)
+				if y < -0.5 then
+					setTranslation(effectNode, 0, 0, 0)
 				end
 			else
-				setTranslation(v20_, 0, 0, 0)
+				setTranslation(effectNode, 0, 0, 0)
 			end
 		end
-		if v19_ < -0.5 then
+		if y < -0.5 then
 			self.fadeIn = self.minFade
 			self.fadeOut = self.minFade
 			self.state = MotionPathEffect.STATE_OFF
@@ -81,26 +72,20 @@ function CultivatorMotionPathEffect:update(dt)
 	CultivatorMotionPathEffect:superClass().update(self, dt)
 	if self.hasCurrentEffectNodes then
 		if self.state == MotionPathEffect.STATE_TURNING_ON or self.state == MotionPathEffect.STATE_ON then
-			local v24_ = v12_ / self.maxDensitySpeed
-			self:setDensity((math.min(v24_, 1) * (1 - self.minDensity) + self.minDensity) * self.densityScale)
-			local v25_, v26_, v27_
+			local density = math.min(lastSpeed / self.maxDensitySpeed, 1) * (1 - self.minDensity) + self.minDensity
+			self:setDensity(density * self.densityScale)
+			local variationMin = 0
+			local variationMax = 0
+			local variationAlpha = 0
 			if self.isCultivatorSweepEffect then
-				local v28_ = (v12_ - 5) / 10
-				local v29_ = self.maxVariationState
-				local v30_ = math.clamp(v28_, 0, v29_)
-				self.shapeVariationStateSmoothed = self.shapeVariationStateSmoothed * 0.985 + v30_ * 0.015
-				local v31_ = self.shapeVariationStateSmoothed * 2
-				v25_ = math.floor(v31_)
-				local v32_ = self.shapeVariationStateSmoothed * 2 + 1
-				v26_ = math.floor(v32_)
-				v27_ = self.shapeVariationStateSmoothed * 2 % 1
-			else
-				v25_ = 0
-				v26_ = 0
-				v27_ = 0
+				local variationState = math.clamp((lastSpeed - 5) / 10, 0, self.maxVariationState)
+				self.shapeVariationStateSmoothed = self.shapeVariationStateSmoothed * 0.985 + variationState * 0.015
+				variationMin = math.floor(self.shapeVariationStateSmoothed * 2)
+				variationMax = math.floor(self.shapeVariationStateSmoothed * 2 + 1)
+				variationAlpha = self.shapeVariationStateSmoothed * 2 % 1
 			end
-			for _, v33_ in ipairs(self.currentEffectNodes) do
-				setShaderParameterRecursive(v33_, "scrollPos", nil, v25_, v26_, v27_, false)
+			for _, effectNode in ipairs(self.currentEffectNodes) do
+				setShaderParameterRecursive(effectNode, "scrollPos", nil, variationMin, variationMax, variationAlpha, false)
 			end
 		end
 		if self.state == MotionPathEffect.STATE_OFF then
@@ -109,39 +94,30 @@ function CultivatorMotionPathEffect:update(dt)
 		end
 	end
 end
-
 function CultivatorMotionPathEffect:stop()
 	return CultivatorMotionPathEffect:superClass().stop(self)
 end
-
 function CultivatorMotionPathEffect:reset()
 	return CultivatorMotionPathEffect:superClass().reset(self)
 end
-
 function CultivatorMotionPathEffect.loadEffectDefinitionFromXML(motionPathEffect, xmlFile, key)
 	TypedMotionPathEffect.loadEffectDefinitionFromXML(motionPathEffect, xmlFile, key)
 end
-
 function CultivatorMotionPathEffect.loadEffectMeshFromXML(effectMesh, xmlFile, key)
 	TypedMotionPathEffect.loadEffectMeshFromXML(effectMesh, xmlFile, key)
 end
-
 function CultivatorMotionPathEffect.loadEffectMaterialFromXML(effectMaterial, xmlFile, key)
 	TypedMotionPathEffect.loadEffectMaterialFromXML(effectMaterial, xmlFile, key)
 end
-
 function CultivatorMotionPathEffect.registerEffectDefinitionXMLPaths(schema, basePath)
 	TypedMotionPathEffect.registerEffectDefinitionXMLPaths(schema, basePath)
 end
-
 function CultivatorMotionPathEffect.registerEffectMeshXMLPaths(schema, basePath)
 	TypedMotionPathEffect.registerEffectMeshXMLPaths(schema, basePath)
 end
-
 function CultivatorMotionPathEffect.registerEffectMaterialXMLPaths(schema, basePath)
 	TypedMotionPathEffect.registerEffectMaterialXMLPaths(schema, basePath)
 end
-
 function CultivatorMotionPathEffect.registerEffectXMLPaths(schema, basePath)
 	TypedMotionPathEffect.registerEffectXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. ".motionPathEffect#isCultivatorSweepEffect", "(CultivatorMotionPathEffect) Is sweep effect", false)

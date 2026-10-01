@@ -1,31 +1,25 @@
--- Local values: SetWorkModeEvent_mt
 SetWorkModeEvent = {}
 local SetWorkModeEvent_mt = Class(SetWorkModeEvent, Event)
 InitStaticEventClass(SetWorkModeEvent, "SetWorkModeEvent")
 function SetWorkModeEvent.emptyNew()
-	-- upvalues: (copy) SetWorkModeEvent_mt
-	return Event.new(SetWorkModeEvent_mt)
+	local self = Event.new(SetWorkModeEvent_mt)
+	return self
 end
-
--- Local values: self
 function SetWorkModeEvent.new(vehicle, state)
-	local v4_ = SetWorkModeEvent.emptyNew()
-	v4_.vehicle = vehicle
-	v4_.state = state
-	return v4_
+	local self = SetWorkModeEvent.emptyNew()
+	self.vehicle = vehicle
+	self.state = state
+	return self
 end
-
 function SetWorkModeEvent:readStream(streamId, connection)
 	self.vehicle = NetworkUtil.readNodeObject(streamId)
 	self.state = streamReadUIntN(streamId, WorkMode.WORKMODE_SEND_NUM_BITS)
 	self:run(connection)
 end
-
 function SetWorkModeEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.vehicle)
 	streamWriteUIntN(streamId, self.state, WorkMode.WORKMODE_SEND_NUM_BITS)
 end
-
 function SetWorkModeEvent:run(connection)
 	if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
 		self.vehicle:setWorkMode(self.state, true)
@@ -34,7 +28,6 @@ function SetWorkModeEvent:run(connection)
 		g_server:broadcastEvent(SetWorkModeEvent.new(self.vehicle, self.state), nil, connection, self.object)
 	end
 end
-
 function SetWorkModeEvent.sendEvent(vehicle, state, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

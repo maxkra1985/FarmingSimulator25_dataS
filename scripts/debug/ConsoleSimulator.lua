@@ -10,54 +10,53 @@ ConsoleSimulator.MOD_AVAILABILITY = MultiplayerAvailability and MultiplayerAvail
 ConsoleSimulator.MAIN_USER_PROFILE = true
 ConsoleSimulator.HDR_AVAILABLE = true
 function ConsoleSimulator.init()
-	local v_u_1_ = keyEvent
-	function keyEvent(p2_, p3_, p4_, p5_)
-		-- upvalues: (copy) v_u_1_
-		if p5_ then
-			if p3_ == Input.KEY_1 then
+	local oldKeyEvent = keyEvent
+	local keyEvent_new = function(unicode, sym, modifier, isDown)
+		if isDown then
+			if sym == Input.KEY_1 then
 				Logging.devInfo("ConsoleSimulator: NETWORK_ERROR - Error")
 				ConsoleSimulator.NETWORK_ERROR = "ERROR"
-			elseif p3_ == Input.KEY_2 then
+			elseif sym == Input.KEY_2 then
 				Logging.devInfo("ConsoleSimulator: NETWORK_ERROR - Nil")
 				ConsoleSimulator.NETWORK_ERROR = nil
-			elseif p3_ == Input.KEY_3 then
+			elseif sym == Input.KEY_3 then
 				Logging.devInfo("ConsoleSimulator: MP_AVAILABILITY - nil")
 				ConsoleSimulator.MP_AVAILABILITY = nil
-			elseif p3_ == Input.KEY_4 then
-				if MultiplayerAvailability == nil then
-					Logging.devError("Multiplayer not available")
-				else
+			elseif sym == Input.KEY_4 then
+				if MultiplayerAvailability ~= nil then
 					Logging.devInfo("ConsoleSimulator: MP_AVAILABILITY - AVAILABILITY_UNKNOWN")
 					ConsoleSimulator.MP_AVAILABILITY = MultiplayerAvailability.AVAILABILITY_UNKNOWN
-				end
-			elseif p3_ == Input.KEY_5 then
-				if MultiplayerAvailability == nil then
-					Logging.devError("Multiplayer not available")
 				else
+					Logging.devError("Multiplayer not available")
+				end
+			elseif sym == Input.KEY_5 then
+				if MultiplayerAvailability ~= nil then
 					Logging.devInfo("ConsoleSimulator: MP_AVAILABILITY - NOT_AVAILABLE")
 					ConsoleSimulator.MP_AVAILABILITY = MultiplayerAvailability.NOT_AVAILABLE
-				end
-			elseif p3_ == Input.KEY_6 then
-				if MultiplayerAvailability == nil then
-					Logging.devError("Multiplayer not available")
 				else
+					Logging.devError("Multiplayer not available")
+				end
+			elseif sym == Input.KEY_6 then
+				if MultiplayerAvailability ~= nil then
 					Logging.devInfo("ConsoleSimulator: MP_AVAILABILITY - NO_PRIVILEGES")
 					ConsoleSimulator.MP_AVAILABILITY = MultiplayerAvailability.NO_PRIVILEGES
+				else
+					Logging.devError("Multiplayer not available")
 				end
-			elseif p3_ == Input.KEY_7 then
+			elseif sym == Input.KEY_7 then
 				Logging.devInfo("ConsoleSimulator: finishedUserProfileSync")
 				finishedUserProfileSync()
-			elseif p3_ == Input.KEY_9 then
+			elseif sym == Input.KEY_9 then
 				Logging.devInfo("ConsoleSimulator: onMasterServerConnectionFailed - conenction lost")
 				g_currentMission:onMasterServerConnectionFailed(MasterServerConnection.FAILED_CONNECTION_LOST)
-			elseif p3_ == Input.KEY_0 then
+			elseif sym == Input.KEY_0 then
 				Logging.devInfo("ConsoleSimulator: NEW_DLCS")
 				ConsoleSimulator.NEW_DLCS = true
 				ConsoleSimulator.STORE_DLC_CHANGED = true
-			elseif p3_ == Input.KEY_KP_1 then
+			elseif sym == Input.KEY_KP_1 then
 				ConsoleSimulator.ACHIEVEMENTS_AVAILABLE = not ConsoleSimulator.ACHIEVEMENTS_AVAILABLE
 				Logging.devInfo("ConsoleSimulator: ACHIEVEMENTS_AVAILABLE: %s", ConsoleSimulator.ACHIEVEMENTS_AVAILABLE)
-			elseif p3_ == Input.KEY_KP_2 then
+			elseif sym == Input.KEY_KP_2 then
 				if ConsoleSimulator.ALLOW_CROSSPLAY == nil then
 					ConsoleSimulator.ALLOW_CROSSPLAY = true
 				elseif ConsoleSimulator.ALLOW_CROSSPLAY == true then
@@ -66,87 +65,84 @@ function ConsoleSimulator.init()
 					ConsoleSimulator.ALLOW_CROSSPLAY = nil
 				end
 				Logging.devInfo("ConsoleSimulator: ALLOW_CROSSPLAY: %s", ConsoleSimulator.ALLOW_CROSSPLAY)
-			elseif p3_ == Input.KEY_KP_4 then
-				if MultiplayerAvailability == nil then
-					Logging.devError("Multiplayer not available")
-				else
+			elseif sym == Input.KEY_KP_4 then
+				if MultiplayerAvailability ~= nil then
 					Logging.devInfo("ConsoleSimulator: CROSSPLAY_AVAILABILITY - AVAILABILITY_UNKNOWN")
 					ConsoleSimulator.CROSSPLAY_AVAILABILITY = MultiplayerAvailability.AVAILABILITY_UNKNOWN
-				end
-			elseif p3_ == Input.KEY_KP_5 then
-				if MultiplayerAvailability == nil then
-					Logging.devError("Multiplayer not available")
 				else
+					Logging.devError("Multiplayer not available")
+				end
+			elseif sym == Input.KEY_KP_5 then
+				if MultiplayerAvailability ~= nil then
 					Logging.devInfo("ConsoleSimulator: CROSSPLAY_AVAILABILITY - NOT_AVAILABLE")
 					ConsoleSimulator.CROSSPLAY_AVAILABILITY = MultiplayerAvailability.NOT_AVAILABLE
-				end
-			elseif p3_ == Input.KEY_KP_6 then
-				if MultiplayerAvailability == nil then
-					Logging.devError("Multiplayer not available")
 				else
+					Logging.devError("Multiplayer not available")
+				end
+			elseif sym == Input.KEY_KP_6 then
+				if MultiplayerAvailability ~= nil then
 					Logging.devInfo("ConsoleSimulator: CROSSPLAY_AVAILABILITY - NO_PRIVILEGES")
 					ConsoleSimulator.CROSSPLAY_AVAILABILITY = MultiplayerAvailability.NO_PRIVILEGES
-				end
-			elseif p3_ == Input.KEY_KP_7 then
-				if MultiplayerAvailability == nil then
-					Logging.devError("Multiplayer not available")
 				else
+					Logging.devError("Multiplayer not available")
+				end
+			elseif sym == Input.KEY_KP_7 then
+				if MultiplayerAvailability ~= nil then
 					Logging.devInfo("ConsoleSimulator: CROSSPLAY_AVAILABILITY - NO_PRIVILEGES")
 					ConsoleSimulator.CROSSPLAY_AVAILABILITY = MultiplayerAvailability.AVAILABLE
+				else
+					Logging.devError("Multiplayer not available")
 				end
-			elseif p3_ == Input.KEY_KP_8 then
+			elseif sym == Input.KEY_KP_8 then
 				Logging.devInfo("ConsoleSimulator: ToggleUser")
 				ConsoleSimulator.MAIN_USER_PROFILE = not ConsoleSimulator.MAIN_USER_PROFILE
-			elseif p3_ == Input.KEY_KP_9 then
+			elseif sym == Input.KEY_KP_9 then
 				Logging.devInfo("ConsoleSimulator: HDR Available")
 				ConsoleSimulator.HDR_AVAILABLE = not ConsoleSimulator.HDR_AVAILABLE
-			elseif p3_ == Input.KEY_KP_0 then
+			elseif sym == Input.KEY_KP_0 then
 				ConsoleSimulator.IS_MODHUB_LOADED = not ConsoleSimulator.IS_MODHUB_LOADED
 				Logging.devInfo("ConsoleSimulator: ModHub Loaded - %s", ConsoleSimulator.IS_MODHUB_LOADED)
 			end
 		end
-		v_u_1_(p2_, p3_, p4_, p5_)
+		oldKeyEvent(unicode, sym, modifier, isDown)
 	end
+	keyEvent = keyEvent_new
 	if getNetworkError ~= nil then
-		local v_u_6_ = getNetworkError
+		local oldGetNetworkError = getNetworkError
 		function getNetworkError()
-			-- upvalues: (copy) v_u_6_
-			if ConsoleSimulator.NETWORK_ERROR == nil then
-				return v_u_6_()
-			else
+			if ConsoleSimulator.NETWORK_ERROR ~= nil then
 				return ConsoleSimulator.NETWORK_ERROR
+			else
+				return oldGetNetworkError()
 			end
 		end
 	end
-	local v_u_7_ = getUserProfileAppPath
+	local oldGetUserProfileAppPath = getUserProfileAppPath
 	function getUserProfileAppPath()
-		-- upvalues: (copy) v_u_7_
-		local v8_ = v_u_7_()
+		local profilePath = oldGetUserProfileAppPath()
 		if ConsoleSimulator.MAIN_USER_PROFILE then
-			return v8_
+			return profilePath
 		else
-			return string.gsub(v8_, "FarmingSimulator2025", "FarmingSimulator2025_SecondUser")
+			return string.gsub(profilePath, "FarmingSimulator2025", "FarmingSimulator2025_SecondUser")
 		end
 	end
 	if getMultiplayerAvailability ~= nil then
-		local v_u_9_ = getMultiplayerAvailability
+		local oldGetMultiplayerAvailability = getMultiplayerAvailability
 		function getMultiplayerAvailability()
-			-- upvalues: (copy) v_u_9_
-			if ConsoleSimulator.MP_AVAILABILITY == nil then
-				return v_u_9_()
-			else
+			if ConsoleSimulator.MP_AVAILABILITY ~= nil then
 				return ConsoleSimulator.MP_AVAILABILITY, false
+			else
+				return oldGetMultiplayerAvailability()
 			end
 		end
 	end
 	if getCrossPlayAvailability ~= nil then
-		local v_u_10_ = getCrossPlayAvailability
-		function getCrossPlayAvailability(p11_)
-			-- upvalues: (copy) v_u_10_
-			if ConsoleSimulator.CROSSPLAY_AVAILABILITY == nil then
-				return v_u_10_(p11_)
+		local oldGetCrossPlayAvailability = getCrossPlayAvailability
+		function getCrossPlayAvailability(showDialog)
+			if ConsoleSimulator.CROSSPLAY_AVAILABILITY ~= nil then
+				return ConsoleSimulator.CROSSPLAY_AVAILABILITY, Platform.isXbox and showDialog
 			else
-				return ConsoleSimulator.CROSSPLAY_AVAILABILITY, Platform.isXbox and p11_
+				return oldGetCrossPlayAvailability(showDialog)
 			end
 		end
 	end
@@ -156,51 +152,48 @@ function ConsoleSimulator.init()
 	function modDownloadManagerLoaded()
 		return ConsoleSimulator.IS_MODHUB_LOADED
 	end
-	local v_u_12_ = startFrameRepeatMode
+	local oldStartFrameRepeatMode = startFrameRepeatMode
 	function startFrameRepeatMode()
-		-- upvalues: (copy) v_u_12_
 		Logging.devInfo("ConsoleSimulator: startFrameRepeatMode")
-		return v_u_12_()
+		return oldStartFrameRepeatMode()
 	end
-	local v_u_13_ = endFrameRepeatMode
+	local oldEndFrameRepeatMode = endFrameRepeatMode
 	function endFrameRepeatMode()
-		-- upvalues: (copy) v_u_13_
 		Logging.devInfo("ConsoleSimulator: endFrameRepeatMode")
-		return v_u_13_()
+		return oldEndFrameRepeatMode()
 	end
-	local v_u_14_ = forceEndFrameRepeatMode
+	local oldForceEndFrameRepeatMode = forceEndFrameRepeatMode
 	function forceEndFrameRepeatMode()
-		-- upvalues: (copy) v_u_14_
 		Logging.devInfo("ConsoleSimulator: forceEndFrameRepeatMode")
-		v_u_14_()
+		oldForceEndFrameRepeatMode()
 	end
-	local v_u_15_ = checkForNewDlcs
+	local oldCheckForNewDlcs = checkForNewDlcs
 	function checkForNewDlcs()
-		-- upvalues: (copy) v_u_15_
-		if not ConsoleSimulator.NEW_DLCS then
-			return v_u_15_()
+		if ConsoleSimulator.NEW_DLCS then
+			ConsoleSimulator.NEW_DLCS = false
+			return true
+		else
+			return oldCheckForNewDlcs()
 		end
-		ConsoleSimulator.NEW_DLCS = false
-		return true
 	end
-	local v_u_16_ = storeHaveDlcsChanged
+	local oldStoreHaveDlcsChanged = storeHaveDlcsChanged
 	function storeHaveDlcsChanged()
-		-- upvalues: (copy) v_u_16_
-		if not ConsoleSimulator.STORE_DLC_CHANGED then
-			return v_u_16_()
+		if ConsoleSimulator.STORE_DLC_CHANGED then
+			ConsoleSimulator.STORE_DLC_CHANGED = false
+			return true
+		else
+			return oldStoreHaveDlcsChanged()
 		end
-		ConsoleSimulator.STORE_DLC_CHANGED = false
-		return true
 	end
 	function getModDownloadAvailability()
-		return ConsoleSimulator.MP_AVAILABILITY or MultiplayerAvailability.AVAILABLE, false
+		local available = ConsoleSimulator.MP_AVAILABILITY or MultiplayerAvailability.AVAILABLE
+		return available, false
 	end
 	if openMpFriendInvitation ~= nil then
-		local v_u_17_ = openMpFriendInvitation
-		function openMpFriendInvitation(p18_, p19_)
-			-- upvalues: (copy) v_u_17_
-			Logging.devInfo("ConsoleSimulator: Open friend invitation. Currently online: %d . Capacity: %d", p18_, p19_)
-			v_u_17_(p18_, p19_)
+		local oldOpenMpFriendInvitation = openMpFriendInvitation
+		function openMpFriendInvitation(num, capacity)
+			Logging.devInfo("ConsoleSimulator: Open friend invitation. Currently online: %d . Capacity: %d", num, capacity)
+			oldOpenMpFriendInvitation(num, capacity)
 		end
 	end
 	function getHdrAvailable()
@@ -209,7 +202,8 @@ function ConsoleSimulator.init()
 	addConsoleCommand("gsConsoleAcceptInvite", "Console simulator accept invitation", "acceptedGameInvite", ConsoleSimulator)
 	printWarning("\n\n  ##################   Warning: Console Simulator active!   ##################\n\n")
 end
-
 function ConsoleSimulator.acceptedGameInvite(_, platformServerId, requestUserName)
-	acceptedGameInvite(platformServerId or "2", requestUserName or "test -user")
+	platformServerId = platformServerId or "2"
+	requestUserName = requestUserName or "test -user"
+	acceptedGameInvite(platformServerId, requestUserName)
 end

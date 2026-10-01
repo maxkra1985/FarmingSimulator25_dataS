@@ -1,94 +1,96 @@
 VehicleConfigurationDataMaterial = {}
-
--- Local values: materialKey
 function VehicleConfigurationDataMaterial.registerXMLPaths(schema, rootPath, configPath)
 	schema:setXMLSharedRegistration("VehicleConfigurationDataMaterial", configPath)
-	local v3_ = configPath .. ".material(?)"
-	VehicleMaterial.registerXMLPaths(schema, v3_)
-	schema:register(XMLValueType.BOOL, v3_ .. "#ignoreWarning", "If set to \'true\' there is no warning if the material is not found.", false)
-	schema:register(XMLValueType.NODE_INDEX, v3_ .. "#node", "If defined, the \'targetMaterialSlotName\' is only replaced for this node")
-	schema:register(XMLValueType.STRING, v3_ .. "#sourceMaterialSlotName", "Material with this slot name replaces the material defined with \'targetMaterialSlotName\'")
-	schema:register(XMLValueType.STRING, v3_ .. "#targetMaterialSlotName", "Material with this slot name is replaced the material defined with \'sourceMaterialSlotName\'")
-	schema:register(XMLValueType.BOOL, v3_ .. "#useBaseColor", "Use base vehicle color", false)
-	schema:register(XMLValueType.INT, v3_ .. "#useDesignColorIndex", "Use color of the design color with the defined index (1-16)")
-	schema:register(XMLValueType.BOOL, v3_ .. "#useRimColor", "Use rim color", false)
+	local materialKey = configPath .. ".material(?)"
+	VehicleMaterial.registerXMLPaths(schema, materialKey)
+	schema:register(XMLValueType.BOOL, materialKey .. "#ignoreWarning", "If set to 'true' there is no warning if the material is not found.", false)
+	schema:register(XMLValueType.NODE_INDEX, materialKey .. "#node", "If defined, the 'targetMaterialSlotName' is only replaced for this node")
+	schema:register(XMLValueType.STRING, materialKey .. "#sourceMaterialSlotName", "Material with this slot name replaces the material defined with 'targetMaterialSlotName'")
+	schema:register(XMLValueType.STRING, materialKey .. "#targetMaterialSlotName", "Material with this slot name is replaced the material defined with 'sourceMaterialSlotName'")
+	schema:register(XMLValueType.BOOL, materialKey .. "#useBaseColor", "Use base vehicle color", false)
+	schema:register(XMLValueType.INT, materialKey .. "#useDesignColorIndex", "Use color of the design color with the defined index (1-16)")
+	schema:register(XMLValueType.BOOL, materialKey .. "#useRimColor", "Use rim color", false)
 	schema:resetXMLSharedRegistration("VehicleConfigurationDataMaterial", configPath)
 end
-function VehicleConfigurationDataMaterial.onLoadFinished(p_u_4_, p_u_5_, _, ...)
-	if p_u_5_.configKey ~= "" then
-		local v_u_6_
-		if p_u_5_:isa(VehicleConfigurationItemColor) then
-			v_u_6_ = p_u_5_:getColor()
-		else
-			v_u_6_ = nil
+function VehicleConfigurationDataMaterial.onLoadFinished(vehicle, configItem, configId, ...)
+	if configItem.configKey == "" then
+		return
+	else
+		local color = nil
+		if configItem:isa(VehicleConfigurationItemColor) then
+			color = configItem:getColor()
 		end
-		p_u_4_.xmlFile:iterate(p_u_5_.configKey .. ".material", function(_, p7_)
-			-- upvalues: (copy) p_u_4_, (ref) v_u_6_, (copy) p_u_5_
-			XMLUtil.checkDeprecatedXMLElements(p_u_4_.xmlFile, p7_ .. "#refNode", p7_ .. "#sourceMaterialSlotName")
-			local v8_ = p_u_4_.xmlFile:getValue(p7_ .. "#materialSlotName")
-			if v8_ == nil then
-				local v9_ = p_u_4_.xmlFile:getValue(p7_ .. "#node", nil, p_u_4_.components, p_u_4_.i3dMappings)
-				local v10_ = p_u_4_.xmlFile:getValue(p7_ .. "#sourceMaterialSlotName")
-				local v11_ = p_u_4_.xmlFile:getValue(p7_ .. "#targetMaterialSlotName")
-				if v10_ ~= nil and v11_ ~= nil then
-					local v12_ = nil
-					for _, v13_ in pairs(p_u_4_.components) do
-						v12_ = MaterialUtil.getMaterialBySlotName(v13_.node, v11_)
-						if v12_ ~= nil then
-							break
+		vehicle.xmlFile:iterate(configItem.configKey .. ".material", function(index, materialKey)
+			XMLUtil.checkDeprecatedXMLElements(vehicle.xmlFile, materialKey .. "#refNode", materialKey .. "#sourceMaterialSlotName")
+			local targetMaterialSlotName = vehicle.xmlFile:getValue(materialKey .. "#materialSlotName")
+			if targetMaterialSlotName ~= nil then
+				local material = nil
+				if vehicle.xmlFile:getValue(materialKey .. "#useBaseColor") then
+					material = VehicleConfigurationItemColor.getMaterialByColorConfiguration(vehicle, "baseColor")
+				else
+					local useDesignColorIndex = vehicle.xmlFile:getValue(materialKey .. "#useDesignColorIndex")
+					if useDesignColorIndex ~= nil then
+						local configName = "designColor"
+						if 2 <= useDesignColorIndex then
+							configName = string.format("designColor%d", useDesignColorIndex)
 						end
-					end
-					local v14_ = nil
-					for _, v15_ in pairs(p_u_4_.components) do
-						v14_ = MaterialUtil.getMaterialBySlotName(v15_.node, v10_)
-						if v14_ ~= nil then
-							break
+						material = VehicleConfigurationItemColor.getMaterialByColorConfiguration(vehicle, configName)
+					elseif vehicle.xmlFile:getBool(materialKey .. "#useRimColor", false) then
+						material = VehicleConfigurationItemColor.getMaterialByColorConfiguration(vehicle, "rimColor")
+						if material == nil then
+							material = VehicleMaterial.new(vehicle.baseDirectory)
+							material:setTemplateName("RIM_DEFAULT")
 						end
-					end
-					if v12_ == nil then
-						Logging.xmlWarning(p_u_4_.xmlFile, "Unable to find targetMaterialSlotName \'%s\' in \'%s\'", v11_, p_u_5_.configKey)
-						return
-					elseif v14_ == nil then
-						Logging.xmlWarning(p_u_4_.xmlFile, "Unable to find sourceMaterialSlotName \'%s\' in \'%s\'", v10_, p_u_5_.configKey)
-						return
-					elseif v9_ == nil then
-						for _, v16_ in pairs(p_u_4_.components) do
-							MaterialUtil.replaceMaterialRec(v16_.node, v12_, v14_)
-						end
-					else
-						MaterialUtil.replaceMaterialRec(v9_, v12_, v14_)
 					end
 				end
-				if v10_ ~= nil or v11_ ~= nil then
-					Logging.xmlWarning(p_u_4_.xmlFile, "Both \'sourceMaterialSlotName\' and \'targetMaterialSlotName\' need to be defined in \'%s\'", p7_)
+				if material == nil then
+					material = VehicleMaterial.new(vehicle.baseDirectory)
+					material:setColor(color)
+					material:loadFromXML(vehicle.xmlFile, materialKey, vehicle.customEnvironment)
+				end
+				if material ~= nil and (targetMaterialSlotName ~= nil and (not material:applyToVehicle(vehicle, targetMaterialSlotName) and not vehicle.xmlFile:getValue(materialKey .. "#ignoreWarning", false))) then
+					Logging.xmlWarning(vehicle.xmlFile, "Failed to find material by material slot name '%s' in '%s'", targetMaterialSlotName, materialKey)
 				end
 			else
-				local v17_ = nil
-				if p_u_4_.xmlFile:getValue(p7_ .. "#useBaseColor") then
-					v17_ = VehicleConfigurationItemColor.getMaterialByColorConfiguration(p_u_4_, "baseColor")
-				else
-					local v18_ = p_u_4_.xmlFile:getValue(p7_ .. "#useDesignColorIndex")
-					if v18_ == nil then
-						if p_u_4_.xmlFile:getBool(p7_ .. "#useRimColor", false) then
-							v17_ = VehicleConfigurationItemColor.getMaterialByColorConfiguration(p_u_4_, "rimColor")
-							if v17_ == nil then
-								v17_ = VehicleMaterial.new(p_u_4_.baseDirectory)
-								v17_:setTemplateName("RIM_DEFAULT")
+				local node = vehicle.xmlFile:getValue(materialKey .. "#node", nil, vehicle.components, vehicle.i3dMappings)
+				local sourceMaterialSlotName = vehicle.xmlFile:getValue(materialKey .. "#sourceMaterialSlotName")
+				local targetMaterialSlotName = vehicle.xmlFile:getValue(materialKey .. "#targetMaterialSlotName")
+				if sourceMaterialSlotName ~= nil and targetMaterialSlotName ~= nil then
+					local oldMaterial = nil
+					for _, component in pairs(vehicle.components) do
+						oldMaterial = MaterialUtil.getMaterialBySlotName(component.node, targetMaterialSlotName)
+						if oldMaterial == nil then
+							continue
+						end
+						local newMaterial = nil
+						for _, component in pairs(vehicle.components) do
+							newMaterial = MaterialUtil.getMaterialBySlotName(component.node, sourceMaterialSlotName)
+							if newMaterial == nil then
+								continue
+							end
+							if oldMaterial ~= nil then
+								if newMaterial ~= nil then
+									if node ~= nil then
+										MaterialUtil.replaceMaterialRec(node, oldMaterial, newMaterial)
+										return
+									else
+										for _, component in pairs(vehicle.components) do
+											MaterialUtil.replaceMaterialRec(component.node, oldMaterial, newMaterial)
+										end
+										return
+									end
+								end
+								Logging.xmlWarning(vehicle.xmlFile, "Unable to find sourceMaterialSlotName '%s' in '%s'", sourceMaterialSlotName, configItem.configKey)
+								return
+							else
+								Logging.xmlWarning(vehicle.xmlFile, "Unable to find targetMaterialSlotName '%s' in '%s'", targetMaterialSlotName, configItem.configKey)
+								return
 							end
 						end
-					else
-						local v19_ = v18_ < 2 and "designColor" or string.format("designColor%d", v18_)
-						v17_ = VehicleConfigurationItemColor.getMaterialByColorConfiguration(p_u_4_, v19_)
 					end
 				end
-				if v17_ == nil then
-					v17_ = VehicleMaterial.new(p_u_4_.baseDirectory)
-					v17_:setColor(v_u_6_)
-					v17_:loadFromXML(p_u_4_.xmlFile, p7_, p_u_4_.customEnvironment)
-				end
-				if v17_ ~= nil and (v8_ ~= nil and not (v17_:applyToVehicle(p_u_4_, v8_) or p_u_4_.xmlFile:getValue(p7_ .. "#ignoreWarning", false))) then
-					Logging.xmlWarning(p_u_4_.xmlFile, "Failed to find material by material slot name \'%s\' in \'%s\'", v8_, p7_)
-					return
+				if sourceMaterialSlotName ~= nil or targetMaterialSlotName ~= nil then
+					Logging.xmlWarning(vehicle.xmlFile, "Both 'sourceMaterialSlotName' and 'targetMaterialSlotName' need to be defined in '%s'", materialKey)
 				end
 			end
 		end)

@@ -20,35 +20,27 @@ source("dataS/scripts/vehicles/specializations/events/AIAutomaticSteeringCourseE
 source("dataS/scripts/vehicles/specializations/events/AIAutomaticSteeringLineEndEvent.lua")
 source("dataS/scripts/vehicles/specializations/events/AIAutomaticSteeringRequestEvent.lua")
 source("dataS/scripts/vehicles/specializations/events/AIAutomaticSteeringStateEvent.lua")
-
 function AIAutomaticSteering.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(Drivable, specializations)
 end
 function AIAutomaticSteering.initSpecialization()
-	local v2_ = Vehicle.xmlSchema
-	v2_:setXMLSpecializationType("AIAutomaticSteering")
-	SoundManager.registerSampleXMLPaths(v2_, "vehicle.ai.automaticSteering.sounds", "engage")
-	SoundManager.registerSampleXMLPaths(v2_, "vehicle.ai.automaticSteering.sounds", "disengage")
-	SoundManager.registerSampleXMLPaths(v2_, "vehicle.ai.automaticSteering.sounds", "lineEnd")
-	Dashboard.registerDashboardXMLPaths(v2_, "vehicle.ai.automaticSteering.dashboards", {
-		"steeringEngaged",
-		"steeringState",
-		"heading",
-		"headingLetter"
-	})
-	v2_:register(XMLValueType.FLOAT, "vehicle.ai.automaticSteering#lookAheadDistance", "Distance for aiming onto the wayline", "half of the vehicle length")
-	v2_:setXMLSpecializationType()
-	local v3_ = Vehicle.xmlSchemaSavegame
-	SteeringFieldCourse.registerXMLPaths(v3_, "vehicles.vehicle(?).aiAutomaticSteering.steeringFieldCourse")
-	SteeringFieldCourse.registerXMLPaths(v3_, "vehicles.vehicle(?).aiAutomaticSteering.lastActiveSteeringFieldCourse")
-	v3_:register(XMLValueType.BOOL, "vehicles.vehicle(?).aiAutomaticSteering#isOnField", "Is on field")
-	v3_:register(XMLValueType.BOOL, "vehicles.vehicle(?).aiAutomaticSteering#courseWasActive", "Current course was also the last active one")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("AIAutomaticSteering")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.ai.automaticSteering.sounds", "engage")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.ai.automaticSteering.sounds", "disengage")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.ai.automaticSteering.sounds", "lineEnd")
+	Dashboard.registerDashboardXMLPaths(schema, "vehicle.ai.automaticSteering.dashboards", { "steeringEngaged", "steeringState", "heading", "headingLetter" })
+	schema:register(XMLValueType.FLOAT, "vehicle.ai.automaticSteering#lookAheadDistance", "Distance for aiming onto the wayline", "half of the vehicle length")
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	SteeringFieldCourse.registerXMLPaths(schemaSavegame, "vehicles.vehicle(?).aiAutomaticSteering.steeringFieldCourse")
+	SteeringFieldCourse.registerXMLPaths(schemaSavegame, "vehicles.vehicle(?).aiAutomaticSteering.lastActiveSteeringFieldCourse")
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).aiAutomaticSteering#isOnField", "Is on field")
+	schemaSavegame:register(XMLValueType.BOOL, "vehicles.vehicle(?).aiAutomaticSteering#courseWasActive", "Current course was also the last active one")
 end
-
 function AIAutomaticSteering.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onAIAutomaticSteeringLineEnd")
 end
-
 function AIAutomaticSteering.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getAttacherToolWorkingWidth", AIAutomaticSteering.getAttacherToolWorkingWidth)
 	SpecializationUtil.registerFunction(vehicleType, "getIsAutomaticSteeringAllowed", AIAutomaticSteering.getIsAutomaticSteeringAllowed)
@@ -60,12 +52,10 @@ function AIAutomaticSteering.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getAIAutomaticSteeringLookAheadDistance", AIAutomaticSteering.getAIAutomaticSteeringLookAheadDistance)
 	SpecializationUtil.registerFunction(vehicleType, "getIsSideOffsetReversed", AIAutomaticSteering.getIsSideOffsetReversed)
 end
-
 function AIAutomaticSteering.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "setSteeringInput", AIAutomaticSteering.setSteeringInput)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "updateVehiclePhysics", AIAutomaticSteering.updateVehiclePhysics)
 end
-
 function AIAutomaticSteering.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", AIAutomaticSteering)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", AIAutomaticSteering)
@@ -85,452 +75,393 @@ function AIAutomaticSteering.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLeaveVehicle", AIAutomaticSteering)
 	SpecializationUtil.registerEventListener(vehicleType, "onRegisterActionEvents", AIAutomaticSteering)
 end
-
--- Local values: spec
 function AIAutomaticSteering:onLoad(savegame)
-	local v9_ = self.spec_aiAutomaticSteering
-	v9_.lastIsOnField = false
-	v9_.forceFieldCourseUpdate = false
-	v9_.resetCourseTimer = 0
-	v9_.steeringFieldCourse = nil
-	v9_.lastActiveSteeringFieldCourse = nil
-	v9_.fieldCourseDetectionInProgress = false
-	v9_.fieldCourseDetectionPendingData = nil
-	v9_.lastDistanceToEnd = 0
-	v9_.steeringEnabled = false
-	v9_.steeringLastEnableTime = -math.huge
-	v9_.steeringLockedMovingDirection = 0
-	v9_.steeringValue = 0
-	v9_.lookAheadDistance = self.xmlFile:getValue("vehicle.ai.automaticSteering#lookAheadDistance")
-	v9_.lastSteeringInputValue = 0
+	local spec = self.spec_aiAutomaticSteering
+	spec.lastIsOnField = false
+	spec.forceFieldCourseUpdate = false
+	spec.resetCourseTimer = 0
+	spec.steeringFieldCourse = nil
+	spec.lastActiveSteeringFieldCourse = nil
+	spec.fieldCourseDetectionInProgress = false
+	spec.fieldCourseDetectionPendingData = nil
+	spec.lastDistanceToEnd = 0
+	spec.steeringEnabled = false
+	spec.steeringLastEnableTime = -math.huge
+	spec.steeringLockedMovingDirection = 0
+	spec.steeringValue = 0
+	spec.lookAheadDistance = self.xmlFile:getValue("vehicle.ai.automaticSteering#lookAheadDistance")
+	spec.lastSteeringInputValue = 0
 	if self.isClient then
-		v9_.samples = {}
-		v9_.samples.engage = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.ai.automaticSteering.sounds", "engage", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v9_.samples.disengage = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.ai.automaticSteering.sounds", "disengage", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v9_.samples.lineEnd = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.ai.automaticSteering.sounds", "lineEnd", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples = {}
+		spec.samples.engage = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.ai.automaticSteering.sounds", "engage", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.disengage = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.ai.automaticSteering.sounds", "disengage", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.lineEnd = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.ai.automaticSteering.sounds", "lineEnd", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
 	end
 	self:registerVehicleSetting(GameSettings.SETTING.STEERING_ASSIST_CRUISE_CONTROL, true)
-	v9_.dirtyFlag = self:getNextDirtyFlag()
+	spec.dirtyFlag = self:getNextDirtyFlag()
 end
-
--- Local values: spec, courseWasActive
 function AIAutomaticSteering:onPostLoad(savegame)
 	if savegame ~= nil and not savegame.resetVehicles then
-		local v_u_12_ = self.spec_aiAutomaticSteering
-		local v_u_13_ = savegame.xmlFile:getValue(savegame.key .. ".aiAutomaticSteering#courseWasActive", false)
-		v_u_12_.lastIsOnField = savegame.xmlFile:getValue(savegame.key .. ".aiAutomaticSteering#isOnField", v_u_12_.lastIsOnField)
-		SteeringFieldCourse.loadFromXML(savegame.xmlFile, savegame.key .. ".aiAutomaticSteering.lastActiveSteeringFieldCourse", function(p14_)
-			-- upvalues: (copy) v_u_12_
-			if p14_ ~= nil then
-				v_u_12_.lastActiveSteeringFieldCourse = p14_
+		local spec = self.spec_aiAutomaticSteering
+		local courseWasActive = savegame.xmlFile:getValue(savegame.key .. ".aiAutomaticSteering#courseWasActive", false)
+		spec.lastIsOnField = savegame.xmlFile:getValue(savegame.key .. ".aiAutomaticSteering#isOnField", spec.lastIsOnField)
+		SteeringFieldCourse.loadFromXML(savegame.xmlFile, savegame.key .. ".aiAutomaticSteering.lastActiveSteeringFieldCourse", function(steeringFieldCourse)
+			if steeringFieldCourse ~= nil then
+				spec.lastActiveSteeringFieldCourse = steeringFieldCourse
 			end
 		end)
-		SteeringFieldCourse.loadFromXML(savegame.xmlFile, savegame.key .. ".aiAutomaticSteering.steeringFieldCourse", function(p15_)
-			-- upvalues: (copy) self, (copy) v_u_12_, (copy) v_u_13_
-			if p15_ ~= nil then
-				self:setAIAutomaticSteeringCourse(p15_, true)
-				v_u_12_.forceFieldCourseUpdate = false
-				if v_u_13_ then
-					v_u_12_.lastActiveSteeringFieldCourse = p15_
+		SteeringFieldCourse.loadFromXML(savegame.xmlFile, savegame.key .. ".aiAutomaticSteering.steeringFieldCourse", function(steeringFieldCourse)
+			if steeringFieldCourse ~= nil then
+				self:setAIAutomaticSteeringCourse(steeringFieldCourse, true)
+				spec.forceFieldCourseUpdate = false
+				if courseWasActive then
+					spec.lastActiveSteeringFieldCourse = steeringFieldCourse
 				end
 			end
 		end)
 	end
 end
-
--- Local values: spec, steeringEngaged, steeringState, heading, headingLetter
 function AIAutomaticSteering:onRegisterDashboardValueTypes()
-	local v17_ = self.spec_aiAutomaticSteering
-	local v18_ = DashboardValueType.new("ai.automaticSteering", "steeringEngaged")
-	v18_:setValue(v17_, "steeringEnabled")
-	v18_:setPollUpdate(false)
-	self:registerDashboardValueType(v18_)
-	local v19_ = DashboardValueType.new("ai.automaticSteering", "steeringState")
-	v19_:setValue(v17_, function()
-		-- upvalues: (copy) self
+	local spec = self.spec_aiAutomaticSteering
+	local steeringEngaged = DashboardValueType.new("ai.automaticSteering", "steeringEngaged")
+	steeringEngaged:setValue(spec, "steeringEnabled")
+	steeringEngaged:setPollUpdate(false)
+	self:registerDashboardValueType(steeringEngaged)
+	local steeringState = DashboardValueType.new("ai.automaticSteering", "steeringState")
+	steeringState:setValue(spec, function()
 		return self:getAIAutomaticSteeringState() - 1
 	end)
-	v19_:setPollUpdate(false)
-	self:registerDashboardValueType(v19_)
-	local v20_ = DashboardValueType.new("ai.automaticSteering", "heading")
-	v20_:setValue(v17_, function()
-		-- upvalues: (copy) self
-		local v21_, _, v22_ = localDirectionToWorld(self.rootNode, 0, 0, 1)
-		local v23_ = MathUtil.getYRotationFromDirection(v21_, v22_)
-		if v23_ < 0 then
-			v23_ = v23_ + 6.283185307179586
+	steeringState:setPollUpdate(false)
+	self:registerDashboardValueType(steeringState)
+	local heading = DashboardValueType.new("ai.automaticSteering", "heading")
+	heading:setValue(spec, function()
+		local dx, _, dz = localDirectionToWorld(self.rootNode, 0, 0, 1)
+		local yRot = MathUtil.getYRotationFromDirection(dx, dz)
+		if yRot < 0 then
+			yRot = yRot + 6.283185307179586
 		end
-		return 360 - math.deg(v23_)
+		return 360 - math.deg(yRot)
 	end)
-	self:registerDashboardValueType(v20_)
-	local v24_ = DashboardValueType.new("ai.automaticSteering", "headingLetter")
-	v24_:setValue(v17_, function()
-		-- upvalues: (copy) self
-		local v25_, _, v26_ = localDirectionToWorld(self.rootNode, 0, 0, -1)
-		local v27_ = MathUtil.getYRotationFromDirection(v25_, v26_)
-		if v27_ < 0 then
-			v27_ = v27_ + 6.283185307179586
+	self:registerDashboardValueType(heading)
+	local headingLetter = DashboardValueType.new("ai.automaticSteering", "headingLetter")
+	headingLetter:setValue(spec, function()
+		local dx, _, dz = localDirectionToWorld(self.rootNode, 0, 0, -1)
+		local yRot = MathUtil.getYRotationFromDirection(dx, dz)
+		if yRot < 0 then
+			yRot = yRot + 6.283185307179586
 		end
-		local v28_ = 360 - math.deg(v27_)
-		if v28_ >= 337.5 or v28_ < 22.5 then
+		yRot = 360 - math.deg(yRot)
+		if 337.5 <= yRot or yRot < 22.5 then
 			return AIAutomaticSteering.HEADING_LETTERS[1]
 		end
-		if v28_ >= 22.5 and v28_ < 67.5 then
+		if 22.5 <= yRot and yRot < 67.5 then
 			return AIAutomaticSteering.HEADING_LETTERS[2]
 		end
-		if v28_ >= 67.5 and v28_ < 112.5 then
+		if 67.5 <= yRot and yRot < 112.5 then
 			return AIAutomaticSteering.HEADING_LETTERS[3]
 		end
-		if v28_ >= 112.5 and v28_ < 157.5 then
+		if 112.5 <= yRot and yRot < 157.5 then
 			return AIAutomaticSteering.HEADING_LETTERS[4]
 		end
-		if v28_ >= 157.5 and v28_ < 202.5 then
+		if 157.5 <= yRot and yRot < 202.5 then
 			return AIAutomaticSteering.HEADING_LETTERS[5]
 		end
-		if v28_ >= 202.5 and v28_ < 247.5 then
+		if 202.5 <= yRot and yRot < 247.5 then
 			return AIAutomaticSteering.HEADING_LETTERS[6]
 		end
-		if v28_ >= 247.5 and v28_ < 292.5 then
+		if 247.5 <= yRot and yRot < 292.5 then
 			return AIAutomaticSteering.HEADING_LETTERS[7]
 		end
-		if v28_ >= 292.5 and v28_ < 337.5 then
+		if 292.5 <= yRot and yRot < 337.5 then
 			return AIAutomaticSteering.HEADING_LETTERS[8]
 		end
 	end)
-	self:registerDashboardValueType(v24_)
+	self:registerDashboardValueType(headingLetter)
 end
-
--- Local values: spec
 function AIAutomaticSteering:onDelete()
-	local v30_ = self.spec_aiAutomaticSteering
-	if v30_.samples ~= nil then
-		g_soundManager:deleteSamples(v30_.samples)
+	local spec = self.spec_aiAutomaticSteering
+	if spec.samples ~= nil then
+		g_soundManager:deleteSamples(spec.samples)
 	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:saveToXMLFile(xmlFile, key, usedModNames)
-	local v34_ = self.spec_aiAutomaticSteering
-	xmlFile:setValue(key .. "#courseWasActive", v34_.lastActiveSteeringFieldCourse == v34_.steeringFieldCourse)
-	if v34_.lastActiveSteeringFieldCourse ~= nil and v34_.lastActiveSteeringFieldCourse ~= v34_.steeringFieldCourse then
-		v34_.lastActiveSteeringFieldCourse:saveToXML(xmlFile, key .. ".lastActiveSteeringFieldCourse")
+	local spec = self.spec_aiAutomaticSteering
+	xmlFile:setValue(key .. "#courseWasActive", spec.lastActiveSteeringFieldCourse == spec.steeringFieldCourse)
+	if spec.lastActiveSteeringFieldCourse ~= nil and spec.lastActiveSteeringFieldCourse ~= spec.steeringFieldCourse then
+		spec.lastActiveSteeringFieldCourse:saveToXML(xmlFile, key .. ".lastActiveSteeringFieldCourse")
 	end
-	if v34_.steeringFieldCourse ~= nil then
-		v34_.steeringFieldCourse:saveToXML(xmlFile, key .. ".steeringFieldCourse")
+	if spec.steeringFieldCourse ~= nil then
+		spec.steeringFieldCourse:saveToXML(xmlFile, key .. ".steeringFieldCourse")
 	end
-	xmlFile:setValue(key .. "#isOnField", v34_.lastIsOnField)
+	xmlFile:setValue(key .. "#isOnField", spec.lastIsOnField)
 end
-
 function AIAutomaticSteering:onReadStream(streamId, connection)
 	if streamReadBool(streamId) then
-		SteeringFieldCourse.readStream(streamId, connection, function(p38_)
-			-- upvalues: (copy) self
-			self:setAIAutomaticSteeringCourse(p38_, true)
+		SteeringFieldCourse.readStream(streamId, connection, function(steeringFieldCourse)
+			self:setAIAutomaticSteeringCourse(steeringFieldCourse, true)
 			self.spec_aiAutomaticSteering.lastIsOnField = true
 			self.spec_aiAutomaticSteering.forceFieldCourseUpdate = false
 		end)
 	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:onWriteStream(streamId, connection)
-	local v42_ = self.spec_aiAutomaticSteering
-	if streamWriteBool(streamId, v42_.steeringFieldCourse ~= nil) then
-		v42_.steeringFieldCourse:writeStream(streamId, connection)
+	local spec = self.spec_aiAutomaticSteering
+	if streamWriteBool(streamId, spec.steeringFieldCourse ~= nil) then
+		spec.steeringFieldCourse:writeStream(streamId, connection)
 	end
 end
-
 function AIAutomaticSteering:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() and streamReadBool(streamId) then
 		SteeringFieldCourse.readSegmentStatesFromStream(self.spec_aiAutomaticSteering.steeringFieldCourse, streamId, connection)
 	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:onWriteUpdateStream(streamId, connection, dirtyMask)
-	local v50_ = self.spec_aiAutomaticSteering
-	if not connection:getIsServer() then
-		local v51_ = streamWriteBool
-		local v52_ = v50_.dirtyFlag
-		if v51_(streamId, bit32.band(dirtyMask, v52_) ~= 0) then
-			v50_.steeringFieldCourse:writeSegmentStatesToStream(streamId, connection)
-		end
+	local spec = self.spec_aiAutomaticSteering
+	if not connection:getIsServer() and streamWriteBool(streamId, bit32.band(dirtyMask, spec.dirtyFlag) ~= 0) then
+		spec.steeringFieldCourse:writeSegmentStatesToStream(streamId, connection)
 	end
 end
-
--- Local values: spec, lastSpeed, aiRootNode, reverserDirection, sideOffsetReversed, lookAheadDistance, x, _, z, dirX, _, dirZ, tX, tZ, distanceToEnd, tX_2, tZ_2, d1X, d1Z, hit, _, f2, rotTime, radius, targetRotTime
 function AIAutomaticSteering:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v56_ = self.spec_aiAutomaticSteering
-	if self:getAIModeSelection() == AIModeSelection.MODE.STEERING_ASSIST and v56_.steeringFieldCourse ~= nil then
+	local spec = self.spec_aiAutomaticSteering
+	if self:getAIModeSelection() == AIModeSelection.MODE.STEERING_ASSIST and spec.steeringFieldCourse ~= nil then
 		if isActiveForInputIgnoreSelection and VehicleDebug.state == VehicleDebug.DEBUG_AI then
-			v56_.steeringFieldCourse:draw()
+			spec.steeringFieldCourse:draw()
 		end
 		if self.isServer or isActiveForInputIgnoreSelection then
-			local v57_ = self:getLastSpeed()
-			local v58_ = self:getAIRootNode()
-			local v59_ = self:getReverserDirection()
-			local v60_ = self:getIsSideOffsetReversed()
-			local v61_ = self:getAIAutomaticSteeringLookAheadDistance()
-			local v62_
-			if self.movingDirection < 0 and v57_ > 0.25 then
-				v62_ = math.min(v61_, -4)
-			else
-				v62_ = math.max(v61_, 4)
+			local lastSpeed = self:getLastSpeed()
+			local aiRootNode = self:getAIRootNode()
+			local reverserDirection = self:getReverserDirection()
+			local sideOffsetReversed = self:getIsSideOffsetReversed()
+			local lookAheadDistance = self:getAIAutomaticSteeringLookAheadDistance()
+			if self.movingDirection < 0 then
+				if 0.25 < lastSpeed then
+					lookAheadDistance = math.min(lookAheadDistance, -4)
+				else
+					lookAheadDistance = math.max(lookAheadDistance, 4)
+				end
 			end
-			local v63_ = v62_ * v59_
-			local v64_ = math.sign(v63_)
-			local v65_ = v57_ / 30
-			local v66_ = math.min(v65_, 1)
-			local v67_ = v63_ + v64_ * math.pow(v66_, 2) * 5
-			local v68_, _, v69_ = localToWorld(v58_, 0, 0, v67_)
-			local v70_, _, v71_ = localDirectionToWorld(v58_, 0, 0, 1)
-			local v72_, v73_ = MathUtil.vector2Normalize(v70_, v71_)
-			if v56_.steeringFieldCourse:updateVehicleData(dt, v56_.steeringEnabled, v68_, v69_, v72_, v73_, v60_) then
+			lookAheadDistance = lookAheadDistance * reverserDirection
+			lookAheadDistance = lookAheadDistance + math.sign(lookAheadDistance) * math.pow(math.min(lastSpeed / 30, 1), 2) * 5
+			local x, _, z = localToWorld(aiRootNode, 0, 0, lookAheadDistance)
+			local dirX, _, dirZ = localDirectionToWorld(aiRootNode, 0, 0, 1)
+			dirX, dirZ = MathUtil.vector2Normalize(dirX, dirZ)
+			if spec.steeringFieldCourse:updateVehicleData(dt, spec.steeringEnabled, x, z, dirX, dirZ, sideOffsetReversed) then
 				AIAutomaticSteering.updateActionEvents(self)
 			end
 			if self.isServer then
-				if v56_.steeringFieldCourse.currentSegment ~= nil and v56_.steeringEnabled then
-					local v74_, v75_, v76_ = v56_.steeringFieldCourse:getSteeringTarget(v58_, v67_, v60_)
-					if v74_ ~= 0 and v75_ ~= 0 then
-						local v77_ = v74_ * 0.5
-						local v78_ = v75_ * 0.5
-						local v79_ = -v77_
-						local v80_
-						if v74_ > 0 then
-							v80_ = -v78_
-							v79_ = v77_
-						else
-							v80_ = v78_
+				if spec.steeringFieldCourse.currentSegment ~= nil and spec.steeringEnabled then
+					local tX, tZ, distanceToEnd = spec.steeringFieldCourse:getSteeringTarget(aiRootNode, lookAheadDistance, sideOffsetReversed)
+					if tX ~= 0 and tZ ~= 0 then
+						local tX_2 = tX * 0.5
+						local tZ_2 = tZ * 0.5
+						local d1X = tZ_2
+						local d1Z = -tX_2
+						if 0 < tX then
+							d1X = -tZ_2
+							d1Z = tX_2
 						end
-						local v81_, _, v82_ = MathUtil.getLineLineIntersection2D(v77_, v78_, v80_, v79_, 0, 0, v74_, 0)
-						local v83_
-						if v81_ and math.abs(v82_) < 100000 then
-							v83_ = self:getSteeringRotTimeByCurvature(1 / (v74_ * v82_))
-							if v59_ < 0 then
-								v83_ = -v83_
+						local hit, _, f2 = MathUtil.getLineLineIntersection2D(tX_2, tZ_2, d1X, d1Z, 0, 0, tX, 0)
+						local rotTime = 0
+						if hit and math.abs(f2) < 100000 then
+							local radius = tX * f2
+							rotTime = self:getSteeringRotTimeByCurvature(1 / radius)
+							if reverserDirection < 0 then
+								rotTime = -rotTime
+							end
+						end
+						local targetRotTime = nil
+						if 0 <= rotTime then
+							targetRotTime = math.min(rotTime, self.maxRotTime)
+						else
+							targetRotTime = math.max(rotTime, self.minRotTime)
+						end
+						if spec.steeringValue < targetRotTime then
+							spec.steeringValue = math.min(spec.steeringValue + dt * self:getAISteeringSpeed(), targetRotTime)
+						else
+							spec.steeringValue = math.max(spec.steeringValue - dt * self:getAISteeringSpeed(), targetRotTime)
+						end
+						if distanceToEnd ~= nil then
+							if distanceToEnd ~= spec.lastDistanceToEnd then
+								if AIAutomaticSteering.LINE_END_SOUND_DISTANCE < spec.lastDistanceToEnd and distanceToEnd <= AIAutomaticSteering.LINE_END_SOUND_DISTANCE then
+									SpecializationUtil.raiseEvent(self, "onAIAutomaticSteeringLineEnd")
+									g_server:broadcastEvent(AIAutomaticSteeringLineEndEvent.new(self), nil, nil, self)
+								end
+								if self.isServer and (AIAutomaticSteering.CRUISE_CONTROL_DISABLE_DISTANCE < spec.lastDistanceToEnd and (distanceToEnd <= AIAutomaticSteering.CRUISE_CONTROL_DISABLE_DISTANCE and (self:getVehicleSettingState(GameSettings.SETTING.STEERING_ASSIST_CRUISE_CONTROL) and self.setCruiseControlState ~= nil))) then
+									self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF)
+								end
+								spec.lastDistanceToEnd = distanceToEnd
 							end
 						else
-							v83_ = 0
-						end
-						local v84_
-						if v83_ >= 0 then
-							local v85_ = self.maxRotTime
-							v84_ = math.min(v83_, v85_)
-						else
-							local v86_ = self.minRotTime
-							v84_ = math.max(v83_, v86_)
-						end
-						if v56_.steeringValue < v84_ then
-							local v87_ = v56_.steeringValue + dt * self:getAISteeringSpeed()
-							v56_.steeringValue = math.min(v87_, v84_)
-						else
-							local v88_ = v56_.steeringValue - dt * self:getAISteeringSpeed()
-							v56_.steeringValue = math.max(v88_, v84_)
-						end
-						if v76_ == nil then
-							v56_.lastDistanceToEnd = 0
-						elseif v76_ ~= v56_.lastDistanceToEnd then
-							if v56_.lastDistanceToEnd > AIAutomaticSteering.LINE_END_SOUND_DISTANCE and v76_ <= AIAutomaticSteering.LINE_END_SOUND_DISTANCE then
-								SpecializationUtil.raiseEvent(self, "onAIAutomaticSteeringLineEnd")
-								g_server:broadcastEvent(AIAutomaticSteeringLineEndEvent.new(self), nil, nil, self)
-							end
-							if self.isServer and (v56_.lastDistanceToEnd > AIAutomaticSteering.CRUISE_CONTROL_DISABLE_DISTANCE and (v76_ <= AIAutomaticSteering.CRUISE_CONTROL_DISABLE_DISTANCE and (self:getVehicleSettingState(GameSettings.SETTING.STEERING_ASSIST_CRUISE_CONTROL) and self.setCruiseControlState ~= nil))) then
-								self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF)
-							end
-							v56_.lastDistanceToEnd = v76_
+							spec.lastDistanceToEnd = 0
 						end
 					end
 				end
-				if v56_.steeringFieldCourse.segmentStatesDirty then
-					self:raiseDirtyFlags(v56_.dirtyFlag)
-					v56_.steeringFieldCourse.segmentStatesDirty = false
+				if spec.steeringFieldCourse.segmentStatesDirty then
+					self:raiseDirtyFlags(spec.dirtyFlag)
+					spec.steeringFieldCourse.segmentStatesDirty = false
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, x, _, z, isOnField, farmId, hasAccess, workingWidth, generateCourse, fieldCourseSettings, lastSpeed
 function AIAutomaticSteering:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v92_ = self.spec_aiAutomaticSteering
+	local spec = self.spec_aiAutomaticSteering
 	if isActiveForInputIgnoreSelection and self:getAIModeSelection() == AIModeSelection.MODE.STEERING_ASSIST then
-		local v93_, _, v94_ = localToWorld(self.rootNode, 0, 0, self.size.length * 0.5 + self.size.lengthOffset)
-		local v95_, v96_ = g_fieldCourseManager:roundToTerrainDetailPixel(v93_, v94_)
-		local v97_ = getDensityAtWorldPos(g_currentMission.terrainDetailId, v95_, 0, v96_) ~= 0
-		if not v97_ then
-			local v98_, _, v99_ = localToWorld(self.rootNode, 0, 0, -self.size.length * 0.5 + self.size.lengthOffset + 1)
-			v95_, v96_ = g_fieldCourseManager:roundToTerrainDetailPixel(v98_, v99_)
-			if getDensityAtWorldPos(g_currentMission.terrainDetailId, v95_, 0, v96_) == 0 then
-				v97_ = false
-			else
-				v97_ = true
-			end
+		local x, _, z = localToWorld(self.rootNode, 0, 0, self.size.length * 0.5 + self.size.lengthOffset)
+		x, z = g_fieldCourseManager:roundToTerrainDetailPixel(x, z)
+		local isOnField = getDensityAtWorldPos(g_currentMission.terrainDetailId, x, 0, z) ~= 0
+		x, _, z = localToWorld(self.rootNode, 0, 0, -self.size.length * 0.5 + self.size.lengthOffset + 1)
+		x, z = g_fieldCourseManager:roundToTerrainDetailPixel(x, z)
+		getDensityAtWorldPos(g_currentMission.terrainDetailId, x, 0, z)
+		isOnField = false
+		local farmId = self:getActiveFarm()
+		local hasAccess = g_currentMission.accessHandler:canFarmAccessLand(farmId, x, z) or g_missionManager:getIsMissionWorkAllowed(farmId, x, z, nil, self)
+		if not hasAccess then
+			isOnField = false
 		end
-		local v100_ = self:getActiveFarm()
-		if not (g_currentMission.accessHandler:canFarmAccessLand(v100_, v95_, v96_) or g_missionManager:getIsMissionWorkAllowed(v100_, v95_, v96_, nil, self)) then
-			v97_ = false
-		end
-		if v97_ ~= v92_.lastIsOnField or v92_.forceFieldCourseUpdate then
-			v92_.lastIsOnField = v97_
-			if v97_ then
-				v92_.resetCourseTimer = 0
-				local v101_ = self:getAttacherToolWorkingWidth()
-				local v102_ = true
-				if v92_.steeringFieldCourse ~= nil and (not v92_.forceFieldCourseUpdate and v92_.steeringFieldCourse:getIsPointInsideBoundary(v95_, v96_)) then
-					if v101_ == 0 then
-						v102_ = false
-					else
-						local v103_ = v101_ - v92_.steeringFieldCourse.fieldCourseSettings.implementWidth
-						if math.abs(v103_) < 0.05 then
-							v102_ = false
-						end
-					end
+		if isOnField ~= spec.lastIsOnField or spec.forceFieldCourseUpdate then
+			spec.lastIsOnField = isOnField
+			if isOnField then
+				spec.resetCourseTimer = 0
+				local workingWidth = self:getAttacherToolWorkingWidth()
+				local generateCourse = true
+				if spec.steeringFieldCourse ~= nil and (not spec.forceFieldCourseUpdate and (spec.steeringFieldCourse:getIsPointInsideBoundary(x, z) and (workingWidth == 0 or math.abs(workingWidth - spec.steeringFieldCourse.fieldCourseSettings.implementWidth) < 0.05))) then
+					generateCourse = false
 				end
-				if v102_ then
+				if generateCourse then
 					self:initializeLoadedAIModeUserSettings()
-					local v104_ = self:getAIModeFieldCourseSettings()
-					if v104_ == nil then
-						local v105_
-						v104_, v105_ = FieldCourseSettings.generate(self.rootVehicle)
+					local fieldCourseSettings = self:getAIModeFieldCourseSettings()
+					if fieldCourseSettings == nil then
+						fieldCourseSettings, _ = FieldCourseSettings.generate(self.rootVehicle)
 					end
 					if VehicleDebug.state == VehicleDebug.DEBUG_AI then
-						v104_:print()
+						fieldCourseSettings:print()
 					end
-					g_client:getServerConnection():sendEvent(AIAutomaticSteeringRequestEvent.new(self, v95_, v96_, v104_))
+					g_client:getServerConnection():sendEvent(AIAutomaticSteeringRequestEvent.new(self, x, z, fieldCourseSettings))
 				end
 			else
-				v92_.resetCourseTimer = AIAutomaticSteering.RESET_COURSE_TIME
+				spec.resetCourseTimer = AIAutomaticSteering.RESET_COURSE_TIME
 			end
-			v92_.forceFieldCourseUpdate = false
+			spec.forceFieldCourseUpdate = false
 		end
-		if not v97_ and (not v92_.steeringEnabled and v92_.resetCourseTimer > 0) then
-			v92_.resetCourseTimer = v92_.resetCourseTimer - dt
-			if v92_.resetCourseTimer <= 0 then
+		if not isOnField and (not spec.steeringEnabled and 0 < spec.resetCourseTimer) then
+			spec.resetCourseTimer = spec.resetCourseTimer - dt
+			if spec.resetCourseTimer <= 0 then
 				self:setAIAutomaticSteeringCourse(nil)
 			end
 		end
 	end
-	if self.isServer and (self:getAIModeSelection() == AIModeSelection.MODE.STEERING_ASSIST and (v92_.steeringFieldCourse ~= nil and (v92_.steeringEnabled and g_time - v92_.steeringLastEnableTime > 2500))) then
-		local v106_ = self:getLastSpeed()
-		if v92_.steeringLockedMovingDirection == 0 then
-			if v106_ > 2.5 then
-				v92_.steeringLockedMovingDirection = self.movingDirection * self:getReverserDirection()
-				return
+	if self.isServer and (self:getAIModeSelection() == AIModeSelection.MODE.STEERING_ASSIST and (spec.steeringFieldCourse ~= nil and (spec.steeringEnabled and 2500 < g_time - spec.steeringLastEnableTime))) then
+		local lastSpeed = self:getLastSpeed()
+		if spec.steeringLockedMovingDirection == 0 then
+			if 2.5 < lastSpeed then
+				spec.steeringLockedMovingDirection = self.movingDirection * self:getReverserDirection()
 			end
-		elseif v106_ > 1 and self.movingDirection * self:getReverserDirection() ~= v92_.steeringLockedMovingDirection then
-			self:setAIAutomaticSteeringEnabled(false)
+		elseif 1 < lastSpeed then
+			if self.movingDirection * self:getReverserDirection() ~= spec.steeringLockedMovingDirection then
+				self:setAIAutomaticSteeringEnabled(false)
+			end
 		end
 	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:onStateChange(state, data)
-	if state == VehicleStateChange.ATTACH and not data.loadFromSavegame or state == VehicleStateChange.DETACH then
-		local v110_ = self.spec_aiAutomaticSteering
-		v110_.forceFieldCourseUpdate = true
-		v110_.lastActiveSteeringFieldCourse = nil
+	if state == VehicleStateChange.ATTACH and (data.loadFromSavegame and state == VehicleStateChange.DETACH) then
+		local spec = self.spec_aiAutomaticSteering
+		spec.forceFieldCourseUpdate = true
+		spec.lastActiveSteeringFieldCourse = nil
 		if self.isServer and (self:getAIModeSelection() == AIModeSelection.MODE.STEERING_ASSIST and not self:getIsAutomaticSteeringAllowed()) then
 			self:setAIModeSelection(AIModeSelection.MODE.WORKER)
 		end
 	end
 end
-
 function AIAutomaticSteering:onAIModeChanged(aiMode)
-	if aiMode == AIModeSelection.MODE.STEERING_ASSIST then
+	if aiMode ~= AIModeSelection.MODE.STEERING_ASSIST then
+		self:setAIAutomaticSteeringCourse(nil, true)
+	else
 		if self.isActiveForInputIgnoreSelectionIgnoreAI then
 			self.spec_aiAutomaticSteering.forceFieldCourseUpdate = true
 		end
-	else
-		self:setAIAutomaticSteeringCourse(nil, true)
 	end
 end
-
 function AIAutomaticSteering:onAIModeSettingsChanged(aiMode)
 	if self.isActiveForInputIgnoreSelectionIgnoreAI and aiMode == AIModeSelection.MODE.STEERING_ASSIST then
 		self:setAIAutomaticSteeringCourse(nil)
 		self.spec_aiAutomaticSteering.forceFieldCourseUpdate = true
 	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:onAIAutomaticSteeringLineEnd()
-	local v116_ = self.spec_aiAutomaticSteering
-	g_soundManager:playSample(v116_.samples.lineEnd)
+	local spec = self.spec_aiAutomaticSteering
+	g_soundManager:playSample(spec.samples.lineEnd)
 end
-
--- Local values: spec
 function AIAutomaticSteering:onActivate()
 	if self:getAIModeSelection() == AIModeSelection.MODE.STEERING_ASSIST and self:getIsActiveForInput(true, true) then
-		local v118_ = self.spec_aiAutomaticSteering
-		if v118_.steeringFieldCourse ~= nil then
-			g_fieldCourseManager:setActiveSteeringFieldCourse(v118_.steeringFieldCourse, self)
+		local spec = self.spec_aiAutomaticSteering
+		if spec.steeringFieldCourse ~= nil then
+			g_fieldCourseManager:setActiveSteeringFieldCourse(spec.steeringFieldCourse, self)
 		end
 	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:onLeaveVehicle(wasEntered)
-	if self.isServer and not (self.isDeleted or self.isDeleting) then
-		if self.spec_aiAutomaticSteering.steeringFieldCourse ~= nil then
+	if self.isServer and (not self.isDeleted and not self.isDeleting) then
+		local spec = self.spec_aiAutomaticSteering
+		if spec.steeringFieldCourse ~= nil then
 			g_fieldCourseManager:setActiveSteeringFieldCourse(nil, self)
 		end
 		self:setAIAutomaticSteeringEnabled(false)
 	end
 end
-
--- Local values: workingWidth, _, vehicle, _, _, _, _, aiMarkerWidth
 function AIAutomaticSteering:getAttacherToolWorkingWidth()
-	local v121_ = 0
-	for _, v122_ in pairs(self.rootVehicle.childVehicles) do
-		if v122_.getAIMarkers ~= nil then
-			v122_:updateAIMarkerWidth()
-			local _, _, _, _, v123_ = v122_:getAIMarkers()
-			if v123_ ~= nil then
-				v121_ = math.max(v121_, v123_)
+	local workingWidth = 0
+	for _, vehicle in pairs(self.rootVehicle.childVehicles) do
+		if vehicle.getAIMarkers ~= nil then
+			vehicle:updateAIMarkerWidth()
+			local _, _, _, _, aiMarkerWidth = vehicle:getAIMarkers()
+			if aiMarkerWidth ~= nil then
+				workingWidth = math.max(workingWidth, aiMarkerWidth)
 			end
 		end
-		if v122_.getAIWorkAreaWidth ~= nil then
-			v121_ = math.max(v121_, v122_:getAIWorkAreaWidth())
+		if vehicle.getAIWorkAreaWidth == nil then
+			continue
 		end
+		workingWidth = math.max(workingWidth, vehicle:getAIWorkAreaWidth())
 	end
-	return v121_
+	return workingWidth
 end
-
--- Local values: _, vehicle
 function AIAutomaticSteering:getIsAutomaticSteeringAllowed()
 	if self.rootVehicle.getImplementAllowAutomaticSteering ~= nil and self.rootVehicle:getImplementAllowAutomaticSteering() then
 		return true
 	end
-	for _, v125_ in pairs(self.rootVehicle.childVehicles) do
-		if v125_.getImplementAllowAutomaticSteering ~= nil and v125_:getImplementAllowAutomaticSteering() then
+	for _, vehicle in pairs(self.rootVehicle.childVehicles) do
+		if vehicle.getImplementAllowAutomaticSteering == nil then
+			continue
+		end
+		if vehicle:getImplementAllowAutomaticSteering() then
 			return true
 		end
 	end
 	return false
 end
-
--- Local values: spec
 function AIAutomaticSteering:setAIAutomaticSteeringEnabled(isEnabled, segmentIndex, segmentIsLeft, noEventSend)
-	local v131_ = self.spec_aiAutomaticSteering
+	local spec = self.spec_aiAutomaticSteering
 	if isEnabled == nil then
-		isEnabled = not v131_.steeringEnabled
+		isEnabled = not spec.steeringEnabled
 	end
-	if isEnabled ~= v131_.steeringEnabled then
-		v131_.steeringEnabled = isEnabled
+	if isEnabled ~= spec.steeringEnabled then
+		spec.steeringEnabled = isEnabled
 		if isEnabled then
-			v131_.steeringValue = self.rotatedTime
-			v131_.steeringLastEnableTime = g_time
-			v131_.steeringLockedMovingDirection = 0
-			v131_.lastDistanceToEnd = 0
+			spec.steeringValue = self.rotatedTime
+			spec.steeringLastEnableTime = g_time
+			spec.steeringLockedMovingDirection = 0
+			spec.lastDistanceToEnd = 0
 			if self.isServer then
-				v131_.lastActiveSteeringFieldCourse = v131_.steeringFieldCourse
+				spec.lastActiveSteeringFieldCourse = spec.steeringFieldCourse
 			end
 		end
 		if self.isClient then
 			if isEnabled then
-				g_soundManager:playSample(v131_.samples.engage)
+				g_soundManager:playSample(spec.samples.engage)
 			else
-				g_soundManager:playSample(v131_.samples.disengage)
+				g_soundManager:playSample(spec.samples.disengage)
 			end
 			AIAutomaticSteering.updateActionEvents(self)
 			if self.updateDashboardValueType ~= nil then
@@ -539,23 +470,21 @@ function AIAutomaticSteering:setAIAutomaticSteeringEnabled(isEnabled, segmentInd
 			end
 		end
 	end
-	if v131_.steeringFieldCourse ~= nil then
+	if spec.steeringFieldCourse ~= nil then
 		if self.isServer then
-			segmentIndex = v131_.steeringFieldCourse.currentSegmentIndex
-			segmentIsLeft = v131_.steeringFieldCourse.currentSegmentIsLeft
+			segmentIndex = spec.steeringFieldCourse.currentSegmentIndex
+			segmentIsLeft = spec.steeringFieldCourse.currentSegmentIsLeft
 		elseif segmentIndex ~= nil then
-			v131_.steeringFieldCourse:setCurrentSegmentIndex(segmentIndex, segmentIsLeft)
+			spec.steeringFieldCourse:setCurrentSegmentIndex(segmentIndex, segmentIsLeft)
 		end
 	end
 	AIAutomaticSteeringStateEvent.sendEvent(self, isEnabled, segmentIndex, segmentIsLeft, noEventSend)
 	return segmentIndex, segmentIsLeft
 end
-
--- Local values: spec
 function AIAutomaticSteering:setAIAutomaticSteeringCourse(steeringFieldCourse, noEventSend)
-	local v135_ = self.spec_aiAutomaticSteering
-	v135_.steeringFieldCourse = steeringFieldCourse
-	if steeringFieldCourse == nil and v135_.steeringEnabled then
+	local spec = self.spec_aiAutomaticSteering
+	spec.steeringFieldCourse = steeringFieldCourse
+	if steeringFieldCourse == nil and spec.steeringEnabled then
 		self:setAIAutomaticSteeringEnabled(false, nil, nil, true)
 	end
 	if self.isActiveForInputIgnoreSelectionIgnoreAI then
@@ -575,164 +504,131 @@ function AIAutomaticSteering:setAIAutomaticSteeringCourse(steeringFieldCourse, n
 		g_client:getServerConnection():sendEvent(AIAutomaticSteeringCourseEvent.new(self, steeringFieldCourse))
 	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:generateSteeringFieldCourse(x, z, fieldCourseSettings)
-	local v_u_140_ = self.spec_aiAutomaticSteering
-	if v_u_140_.lastActiveSteeringFieldCourse == nil or not (v_u_140_.lastActiveSteeringFieldCourse:getIsPointInsideBoundary(x, z) and fieldCourseSettings:isIdentical(v_u_140_.lastActiveSteeringFieldCourse.fieldCourseSettings)) then
-		if v_u_140_.fieldCourseDetectionInProgress then
-			v_u_140_.fieldCourseDetectionPendingData = {
-				["x"] = x,
-				["z"] = z,
-				["fieldCourseSettings"] = fieldCourseSettings
-			}
-		else
-			v_u_140_.fieldCourseDetectionInProgress = true
-			g_fieldCourseManager:generateFieldCourseAtWorldPos(x, z, fieldCourseSettings, function(_, p141_)
-				-- upvalues: (copy) v_u_140_, (copy) self
-				v_u_140_.fieldCourseDetectionInProgress = false
-				if p141_ == nil then
-					Logging.devInfo("Failed to generate field course for AISteering")
-					self:setAIAutomaticSteeringCourse(nil)
-				else
-					self:setAIAutomaticSteeringCourse((SteeringFieldCourse.new(p141_)))
-				end
-				if v_u_140_.fieldCourseDetectionPendingData ~= nil then
-					local v142_ = v_u_140_.fieldCourseDetectionPendingData
-					v_u_140_.fieldCourseDetectionPendingData = nil
-					self:generateSteeringFieldCourse(v142_.x, v142_.z, v142_.fieldCourseSettings)
-				end
-			end)
-		end
-	else
-		self:setAIAutomaticSteeringCourse(v_u_140_.lastActiveSteeringFieldCourse)
+	local spec = self.spec_aiAutomaticSteering
+	if spec.lastActiveSteeringFieldCourse ~= nil and (spec.lastActiveSteeringFieldCourse:getIsPointInsideBoundary(x, z) and fieldCourseSettings:isIdentical(spec.lastActiveSteeringFieldCourse.fieldCourseSettings)) then
+		self:setAIAutomaticSteeringCourse(spec.lastActiveSteeringFieldCourse)
 		return
 	end
+	if not spec.fieldCourseDetectionInProgress then
+		spec.fieldCourseDetectionInProgress = true
+		g_fieldCourseManager:generateFieldCourseAtWorldPos(x, z, fieldCourseSettings, function(_, course)
+			spec.fieldCourseDetectionInProgress = false
+			if course == nil then
+				Logging.devInfo("Failed to generate field course for AISteering")
+				self:setAIAutomaticSteeringCourse(nil)
+			else
+				local steeringFieldCourse = SteeringFieldCourse.new(course)
+				self:setAIAutomaticSteeringCourse(steeringFieldCourse)
+			end
+			if spec.fieldCourseDetectionPendingData ~= nil then
+				local data = spec.fieldCourseDetectionPendingData
+				spec.fieldCourseDetectionPendingData = nil
+				self:generateSteeringFieldCourse(data.x, data.z, data.fieldCourseSettings)
+			end
+		end)
+	else
+		spec.fieldCourseDetectionPendingData = { x = x, z = z, fieldCourseSettings = fieldCourseSettings }
+	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:getIsAIAutomaticSteeringAllowed()
-	local v144_ = self.spec_aiAutomaticSteering
-	if v144_.steeringFieldCourse == nil then
+	local spec = self.spec_aiAutomaticSteering
+	if spec.steeringFieldCourse == nil then
 		return false, g_i18n:getText("ai_automaticSteeringWarningNoCourse")
-	elseif v144_.steeringFieldCourse.currentSegment == nil then
+	elseif spec.steeringFieldCourse.currentSegment == nil then
 		return false, g_i18n:getText("ai_automaticSteeringWarningNoSegment")
 	else
 		return true
 	end
 end
-
--- Local values: spec
 function AIAutomaticSteering:getAIAutomaticSteeringState()
-	local v146_ = self.spec_aiAutomaticSteering
-	if v146_.steeringFieldCourse == nil then
-		return AIAutomaticSteering.STATE.DISABLED
-	elseif v146_.steeringEnabled then
-		return AIAutomaticSteering.STATE.ACTIVE
-	else
-		return AIAutomaticSteering.STATE.AVAILABLE
-	end
-end
-
--- Local values: spec
-function AIAutomaticSteering:getAIAutomaticSteeringLookAheadDistance()
-	local v148_ = self.spec_aiAutomaticSteering
-	if v148_.lookAheadDistance == nil then
-		return self.movingDirection >= 0 and self:getAIRootNodeMaxZOffset() or self:getAIRootNodeMinZOffset()
-	else
-		return v148_.lookAheadDistance
-	end
-end
-
--- Local values: _, vehicle
-function AIAutomaticSteering:getIsSideOffsetReversed()
-	for _, v150_ in pairs(self.rootVehicle.childVehicles) do
-		if v150_.spec_plow ~= nil then
-			return v150_.spec_plow.rotationMax
+	local spec = self.spec_aiAutomaticSteering
+	if spec.steeringFieldCourse ~= nil then
+		if spec.steeringEnabled then
+			return AIAutomaticSteering.STATE.ACTIVE
+		else
+			return AIAutomaticSteering.STATE.AVAILABLE
 		end
+	end
+	return AIAutomaticSteering.STATE.DISABLED
+end
+function AIAutomaticSteering:getAIAutomaticSteeringLookAheadDistance()
+	local spec = self.spec_aiAutomaticSteering
+	if spec.lookAheadDistance == nil then
+		return 0 <= self.movingDirection and self:getAIRootNodeMaxZOffset() or self:getAIRootNodeMinZOffset()
+	else
+		return spec.lookAheadDistance
+	end
+end
+function AIAutomaticSteering:getIsSideOffsetReversed()
+	for _, vehicle in pairs(self.rootVehicle.childVehicles) do
+		if vehicle.spec_plow == nil then
+			continue
+		end
+		return vehicle.spec_plow.rotationMax
 	end
 	return false
 end
-
--- Local values: spec, diff
 function AIAutomaticSteering:setSteeringInput(superFunc, inputValue, isAnalog, deviceCategory)
-	local v156_ = self.spec_aiAutomaticSteering
-	if v156_.steeringEnabled then
+	local spec = self.spec_aiAutomaticSteering
+	if spec.steeringEnabled then
 		if deviceCategory == InputDevice.CATEGORY.KEYBOARD_MOUSE then
 			self:setAIAutomaticSteeringEnabled(false)
-		elseif g_time - v156_.steeringLastEnableTime > 2500 then
-			local v157_ = inputValue - v156_.lastSteeringInputValue
-			if math.abs(v157_) > 0.1 then
+		elseif 2500 >= g_time - spec.steeringLastEnableTime then
+			spec.lastSteeringInputValue = inputValue
+		else
+			local diff = inputValue - spec.lastSteeringInputValue
+			if 0.1 < math.abs(diff) then
 				self:setAIAutomaticSteeringEnabled(false)
 			end
-		else
-			v156_.lastSteeringInputValue = inputValue
 		end
 	else
-		v156_.lastSteeringInputValue = inputValue
+		spec.lastSteeringInputValue = inputValue
 	end
 	return superFunc(self, inputValue, isAnalog, deviceCategory)
 end
-
--- Local values: spec, acceleration
 function AIAutomaticSteering:updateVehiclePhysics(superFunc, axisForward, axisSide, doHandbrake, dt)
-	local v164_ = self.spec_aiAutomaticSteering
-	if not v164_.steeringEnabled then
+	local spec = self.spec_aiAutomaticSteering
+	if spec.steeringEnabled then
+		axisSide = spec.steeringValue < 0 and -spec.steeringValue / self.maxRotTime or spec.steeringValue / self.minRotTime
+		local acceleration = superFunc(self, axisForward, axisSide, doHandbrake, dt)
+		self.rotatedTime = spec.steeringValue
+		self.spec_drivable.axisSide = axisSide
+		return acceleration
+	else
 		return superFunc(self, axisForward, axisSide, doHandbrake, dt)
 	end
-	local v165_
-	if v164_.steeringValue < 0 then
-		v165_ = -v164_.steeringValue / self.maxRotTime
-	else
-		v165_ = v164_.steeringValue / self.minRotTime
-	end
-	local v166_ = superFunc(self, axisForward, v165_, doHandbrake, dt)
-	self.rotatedTime = v164_.steeringValue
-	self.spec_drivable.axisSide = v165_
-	return v166_
 end
-
--- Local values: spec, _, actionEventId, _, actionEventId
 function AIAutomaticSteering:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
 	if self.isClient then
-		local v169_ = self.spec_aiAutomaticSteering
-		self:clearActionEventsTable(v169_.actionEvents)
+		local spec = self.spec_aiAutomaticSteering
+		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection then
-			local _, v170_ = self:addActionEvent(v169_.actionEvents, InputAction.TOGGLE_AI_STEERING, self, AIAutomaticSteering.actionEventSteering, false, true, false, true, nil)
-			if v170_ ~= nil then
-				g_inputBinding:setActionEventTextPriority(v170_, GS_PRIO_HIGH)
-				g_inputBinding:setActionEventText(v170_, string.format(g_i18n:getText("ai_modeSelect"), g_i18n:getText("ai_modeSteeringAssist")))
+			local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_AI_STEERING, self, AIAutomaticSteering.actionEventSteering, false, true, false, true, nil)
+			if actionEventId ~= nil then
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
+				g_inputBinding:setActionEventText(actionEventId, string.format(g_i18n:getText("ai_modeSelect"), g_i18n:getText("ai_modeSteeringAssist")))
 				AIAutomaticSteering.updateActionEvents(self)
 			end
-			local _, v171_ = self:addActionEvent(v169_.actionEvents, InputAction.TOGGLE_AI_STEERING_LINES, self, AIAutomaticSteering.actionEventSteeringLines, false, true, false, true, nil)
-			if v171_ ~= nil then
-				g_inputBinding:setActionEventTextVisibility(v171_, false)
+			local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_AI_STEERING_LINES, self, AIAutomaticSteering.actionEventSteeringLines, false, true, false, true, nil)
+			if actionEventId ~= nil then
+				g_inputBinding:setActionEventTextVisibility(actionEventId, false)
 			end
 		end
 	end
 end
-
 function AIAutomaticSteering:actionEventSteering(actionName, inputValue, callbackState, isAnalog)
 	self:setAIAutomaticSteeringEnabled()
 end
-
--- Local values: spec, actionEvent, isActive
 function AIAutomaticSteering:updateActionEvents()
-	local v174_ = self.spec_aiAutomaticSteering
-	local v175_ = v174_.actionEvents[InputAction.TOGGLE_AI_STEERING]
-	if v175_ ~= nil then
-		local v176_
-		if v174_.steeringFieldCourse == nil then
-			v176_ = false
-		else
-			v176_ = v174_.steeringFieldCourse.currentSegment ~= nil
-		end
-		g_inputBinding:setActionEventActive(v175_.actionEventId, v176_)
+	local spec = self.spec_aiAutomaticSteering
+	local actionEvent = spec.actionEvents[InputAction.TOGGLE_AI_STEERING]
+	if actionEvent ~= nil then
+		local isActive = spec.steeringFieldCourse ~= nil and spec.steeringFieldCourse.currentSegment ~= nil
+		g_inputBinding:setActionEventActive(actionEvent.actionEventId, isActive)
 	end
 end
-
--- Local values: value
 function AIAutomaticSteering:actionEventSteeringLines()
-	local v177_ = g_gameSettings:getValue(GameSettings.SETTING.STEERING_ASSIST_LINES)
-	g_gameSettings:setValue(GameSettings.SETTING.STEERING_ASSIST_LINES, not v177_, true)
+	local value = g_gameSettings:getValue(GameSettings.SETTING.STEERING_ASSIST_LINES)
+	g_gameSettings:setValue(GameSettings.SETTING.STEERING_ASSIST_LINES, not value, true)
 end

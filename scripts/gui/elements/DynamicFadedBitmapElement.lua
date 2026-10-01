@@ -1,33 +1,25 @@
--- Local values: DynamicFadedBitmapElement_mt
 DynamicFadedBitmapElement = {}
 local DynamicFadedBitmapElement_mt = Class(DynamicFadedBitmapElement, PictureElement)
 Gui.registerGuiElement("DynamicFadedBitmap", DynamicFadedBitmapElement)
-
--- Upvalues: DynamicFadedBitmapElement_mt
--- Local values: self
 function DynamicFadedBitmapElement.new(target, custom_mt)
-	-- upvalues: (copy) DynamicFadedBitmapElement_mt
-	local v4_ = DynamicFadedBitmapElement:superClass().new(target, custom_mt or DynamicFadedBitmapElement_mt)
-	v4_.templateOverlay = {}
-	v4_.fadeTime = 2500
-	v4_.fadeInterval = 10000
-	v4_.alpha = 1
-	v4_.filenames = {}
-	v4_.overlays = {}
-	v4_.currentImageIndex = 1
-	v4_.fadeAlpha = 0
-	return v4_
+	local self = DynamicFadedBitmapElement:superClass().new(target, custom_mt or DynamicFadedBitmapElement_mt)
+	self.templateOverlay = {}
+	self.fadeTime = 2500
+	self.fadeInterval = 10000
+	self.alpha = 1
+	self.filenames = {}
+	self.overlays = {}
+	self.currentImageIndex = 1
+	self.fadeAlpha = 0
+	return self
 end
-
--- Local values: _, overlay
 function DynamicFadedBitmapElement:delete()
-	for _, v6_ in ipairs(self.overlays) do
-		GuiOverlay.deleteOverlay(v6_)
+	for _, overlay in ipairs(self.overlays) do
+		GuiOverlay.deleteOverlay(overlay)
 	end
 	GuiOverlay.deleteOverlay(self.templateOverlay)
 	DynamicFadedBitmapElement:superClass().delete(self)
 end
-
 function DynamicFadedBitmapElement:loadFromXML(xmlFile, key)
 	DynamicFadedBitmapElement:superClass().loadFromXML(self, xmlFile, key)
 	self.fadeTime = getXMLInt(xmlFile, key .. "#fadeTime") or self.fadeTime
@@ -35,25 +27,22 @@ function DynamicFadedBitmapElement:loadFromXML(xmlFile, key)
 	GuiOverlay.loadOverlay(self, self.templateOverlay, "image", self.imageSize, nil, xmlFile, key)
 	GuiOverlay.createOverlay(self.templateOverlay)
 end
-
--- Local values: oldFilename, oldPreviewFilename, filenameList
 function DynamicFadedBitmapElement:loadProfile(profile, applyProfile)
 	DynamicFadedBitmapElement:superClass().loadProfile(self, profile, applyProfile)
 	self.fadeTime = profile:getNumber("fadeTime", self.fadeTime)
 	self.fadeInterval = profile:getNumber("fadeInterval", self.fadeInterval)
-	local v13_ = self.templateOverlay.filename
-	local v14_ = self.templateOverlay.previewFilename
+	local oldFilename = self.templateOverlay.filename
+	local oldPreviewFilename = self.templateOverlay.previewFilename
 	GuiOverlay.loadOverlay(self, self.templateOverlay, "image", self.imageSize, profile, nil, nil)
-	if v13_ ~= self.templateOverlay.filename or v14_ ~= self.templateOverlay.previewFilename then
+	if oldFilename ~= self.templateOverlay.filename or oldPreviewFilename ~= self.templateOverlay.previewFilename then
 		GuiOverlay.createOverlay(self.templateOverlay)
 	end
-	local v15_ = profile:getValue("imageFilenames")
-	if v15_ ~= nil then
-		self.filenames = v15_:split(";")
+	local filenameList = profile:getValue("imageFilenames")
+	if filenameList ~= nil then
+		self.filenames = filenameList:split(";")
 		self:buildOverlays()
 	end
 end
-
 function DynamicFadedBitmapElement:copyAttributes(src)
 	DynamicFadedBitmapElement:superClass().copyAttributes(self, src)
 	GuiOverlay.copyOverlay(self.templateOverlay, src.templateOverlay)
@@ -62,82 +51,73 @@ function DynamicFadedBitmapElement:copyAttributes(src)
 	self.fadeInterval = src.fadeInterval
 	self:buildOverlays()
 end
-
 function DynamicFadedBitmapElement:setAlpha(alpha)
 	DynamicFadedBitmapElement:superClass().setAlpha(self, alpha)
 	self.alpha = alpha
 end
-
 function DynamicFadedBitmapElement:setImageFilenames(filenames)
 	self.filenames = filenames
 	self:buildOverlays()
 end
-
 function DynamicFadedBitmapElement:setImagesUVs(uvs)
 	self.uvs = uvs
 	self:buildOverlays()
 end
-
--- Local values: i, i, filename
 function DynamicFadedBitmapElement:buildOverlays()
-	for v25_ = 1, #self.overlays do
-		GuiOverlay.deleteOverlay(self.overlays[v25_])
-		self.overlays[v25_] = nil
+	for i = 1, #self.overlays do
+		GuiOverlay.deleteOverlay(self.overlays[i])
+		self.overlays[i] = nil
 	end
-	for v26_, _ in ipairs(self.filenames) do
-		self.overlays[v26_] = {}
-		GuiOverlay.copyOverlay(self.overlays[v26_], self.templateOverlay, self.filenames[v26_])
-		if self.uvs ~= nil then
-			self.overlays[v26_].uvs = self.uvs
+	for i, filename in ipairs(self.filenames) do
+		self.overlays[i] = {}
+		GuiOverlay.copyOverlay(self.overlays[i], self.templateOverlay, self.filenames[i])
+		if self.uvs == nil then
+			continue
 		end
+		self.overlays[i].uvs = self.uvs
 	end
 end
-
--- Local values: newValue
 function DynamicFadedBitmapElement:update(dt)
 	DynamicFadedBitmapElement:superClass().update(self, dt)
-	if #self.filenames ~= 0 then
-		local v29_ = g_time % (self.fadeInterval * #self.filenames)
-		local v30_ = v29_ / self.fadeInterval
-		self.currentImageIndex = math.floor(v30_) + 1
-		self.fadeAlpha = v29_ % self.fadeInterval / self.fadeInterval
+	if #self.filenames == 0 then
+		return
+	else
+		local newValue = g_time % (self.fadeInterval * #self.filenames)
+		self.currentImageIndex = math.floor(newValue / self.fadeInterval) + 1
+		self.fadeAlpha = newValue % self.fadeInterval / self.fadeInterval
 	end
 end
-
--- Local values: x, y, w, h, state, primaryIndex, secondaryIndex, alpha, primaryFade, secondaryFade
 function DynamicFadedBitmapElement:draw(clipX1, clipY1, clipX2, clipY2)
-	local v36_, v37_, v38_, v39_ = self:getAdjustedPosition()
-	local v40_ = self:getOverlayState()
-	local v41_ = self.currentImageIndex
-	local v42_ = v41_ % #self.filenames + 1
-	local v43_ = MathUtil.smoothstep(1 - self.fadeTime / self.fadeInterval, 1, self.fadeAlpha)
-	self.overlays[v41_].color[4] = 1 * self.alpha
-	GuiOverlay.renderOverlay(self.overlays[v41_], v36_, v37_, v38_, v39_, v40_, clipX1, clipY1, clipX2, clipY2)
-	if v43_ > 0 then
-		self.overlays[v42_].color[4] = v43_ * self.alpha
-		GuiOverlay.renderOverlay(self.overlays[v42_], v36_, v37_, v38_, v39_, v40_, clipX1, clipY1, clipX2, clipY2)
+	local x, y, w, h = self:getAdjustedPosition()
+	local state = self:getOverlayState()
+	local primaryIndex = self.currentImageIndex
+	local secondaryIndex = primaryIndex % #self.filenames + 1
+	local alpha = MathUtil.smoothstep(1 - self.fadeTime / self.fadeInterval, 1, self.fadeAlpha)
+	local primaryFade = 1
+	self.overlays[primaryIndex].color[4] = primaryFade * self.alpha
+	GuiOverlay.renderOverlay(self.overlays[primaryIndex], x, y, w, h, state, clipX1, clipY1, clipX2, clipY2)
+	if 0 < alpha then
+		self.overlays[secondaryIndex].color[4] = alpha * self.alpha
+		GuiOverlay.renderOverlay(self.overlays[secondaryIndex], x, y, w, h, state, clipX1, clipY1, clipX2, clipY2)
 	end
 end
-
--- Local values: _, v
 function DynamicFadedBitmapElement:canReceiveFocus()
 	if not self.visible or #self.elements < 1 then
 		return false
 	end
-	for _, v45_ in ipairs(self.elements) do
-		if not v45_:canReceiveFocus() then
-			return false
+	for _, v in ipairs(self.elements) do
+		if v:canReceiveFocus() then
+			continue
 		end
+		return false
 	end
 	return true
 end
-
--- Local values: _, firstElement
 function DynamicFadedBitmapElement:getFocusTarget()
-	if #self.elements > 0 then
-		local _, v47_ = next(self.elements)
-		if v47_ then
-			return v47_
+	if 0 < #self.elements then
+		local _, firstElement = next(self.elements)
+		if firstElement then
+			return firstElement
 		end
 	end
 	return self

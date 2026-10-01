@@ -1,113 +1,89 @@
--- Local values: DebugCircle_mt
 DebugCircle = {}
 local DebugCircle_mt = Class(DebugCircle, DebugElement)
-
--- Upvalues: DebugCircle_mt
--- Local values: self
 function DebugCircle.new(customMt)
-	-- upvalues: (copy) DebugCircle_mt
-	local v3_ = DebugCircle:superClass().new(customMt or DebugCircle_mt)
-	v3_.radius = 1
-	v3_.numSegments = 16
-	v3_.solid = false
-	v3_.alignToGround = false
-	v3_.drawSectors = false
-	v3_.text = nil
-	return v3_
-end
-
-function DebugCircle:draw()
-	local v5_ = DebugCircle.renderAtPosition
-	local v6_ = self.x
-	local v7_
-	if self.alignToGround then
-		v7_ = nil
-	else
-		v7_ = self.y or nil
-	end
-	v5_(v6_, v7_, self.z, self.radius, self.color, self.numSegments, self.solid, self.filled, self.drawSectors, self.text)
-end
-
--- Local values: x, y, z
-function DebugCircle.renderAtNode(node, offsets, radius, color, numSegments, solid, alignToGround, filled, drawSectors, text)
-	local v18_, v19_, v20_ = getWorldTranslation(node)
-	if offsets ~= nil then
-		v18_ = v18_ + offsets[1]
-		v19_ = v19_ + offsets[2]
-		v20_ = v20_ + offsets[3]
-	end
-	if alignToGround then
-		v19_ = nil
-	end
-	DebugCircle.renderAtPosition(v18_, v19_, v20_, radius, color, numSegments, solid, filled, drawSectors, text)
-end
-
--- Local values: r, g, b, a, alignToTerrain, i, a1, a2, c, s, x1, y1, z1, x2, y2, z2
-function DebugCircle.renderAtPosition(x, y, z, radius, color, numSegments, solid, filled, drawSectors, text)
-	local v31_, v32_, v33_, v34_
-	if color == nil then
-		v31_ = 1
-		v32_ = 1
-		v33_ = 1
-		v34_ = 1
-	else
-		v33_, v31_, v32_, v34_ = color:unpack()
-	end
-	local v35_ = y == nil
-	if not v35_ or g_terrainNode ~= nil then
-		local v36_ = numSegments or 16
-		for v37_ = 1, v36_ do
-			local v38_ = (v37_ - 1) / v36_ * 2 * 3.141592653589793
-			local v39_ = v37_ / v36_ * 2 * 3.141592653589793
-			local v40_ = math.cos(v38_) * radius
-			local v41_ = math.sin(v38_) * radius
-			local v42_ = x + v40_
-			local v43_ = z + v41_
-			local v44_ = math.cos(v39_) * radius
-			local v45_ = math.sin(v39_) * radius
-			local v46_ = x + v44_
-			local v47_ = z + v45_
-			local v48_, v49_
-			if v35_ then
-				v48_ = getTerrainHeightAtWorldPos(g_terrainNode, v42_, 0, v43_) + 0.05
-				v49_ = getTerrainHeightAtWorldPos(g_terrainNode, v46_, 0, v47_) + 0.05
-			else
-				v49_ = y
-				v48_ = v49_
-				local v50_ = v49_
-				v49_ = v48_
-				v50_ = v48_
-			end
-			drawDebugLine(v42_, v48_, v43_, v33_, v31_, v32_, v46_, v49_, v47_, v33_, v31_, v32_, solid)
-			if filled then
-				drawDebugTriangle(x, y, z, v42_, v48_, v43_, v46_, v49_, v47_, v33_, v31_, v32_, 0.5, solid)
-				drawDebugTriangle(v42_, v48_, v43_, x, y, z, v46_, v49_, v47_, v33_, v31_, v32_, 0.5, solid)
-				drawDebugTriangle(v42_, v48_, v43_, v46_, v49_, v47_, x, y, z, v33_, v31_, v32_, 0.5, solid)
-				drawDebugTriangle(v46_, v49_, v47_, x, y, z, v42_, v48_, v43_, v33_, v31_, v32_, 0.5, solid)
-			end
-			if drawSectors then
-				if v35_ then
-					y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z) + 0.05
-				end
-				drawDebugLine(x, y, z, v33_, v31_, v32_, v42_, v48_, v43_, v33_, v31_, v32_, solid)
-			end
-		end
-		if text ~= nil then
-			if y == nil then
-				y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z) + 0.05
-			end
-			Utils.renderTextAtWorldPosition(x, y, z, text, 0.02, 0.01, v33_, v31_, v32_, v34_)
-		end
-	end
-end
-
--- Local values: x, y, z
-function DebugCircle:createWithNode(node, radius, color, numSegments, solid, alignToGround, filled, drawSectors)
-	local v60_, v61_, v62_ = getWorldTranslation(node)
-	self:createWithWorldPos(v60_, v61_, v62_, radius, color, numSegments, solid, alignToGround, filled, drawSectors)
+	local self = DebugCircle:superClass().new(customMt or DebugCircle_mt)
+	self.radius = 1
+	self.numSegments = 16
+	self.solid = false
+	self.alignToGround = false
+	self.drawSectors = false
+	self.text = nil
 	return self
 end
-
+function DebugCircle:draw()
+	if not self.alignToGround then
+		local _v2 = self.y or nil
+	end
+	DebugCircle.renderAtPosition(self.x, nil, self.z, self.radius, self.color, self.numSegments, self.solid, self.filled, self.drawSectors, self.text)
+end
+function DebugCircle.renderAtNode(node, offsets, radius, color, numSegments, solid, alignToGround, filled, drawSectors, text)
+	local x, y, z = getWorldTranslation(node)
+	if offsets ~= nil then
+		x = x + offsets[1]
+		y = y + offsets[2]
+		z = z + offsets[3]
+	end
+	if alignToGround then
+		y = nil
+	end
+	DebugCircle.renderAtPosition(x, y, z, radius, color, numSegments, solid, filled, drawSectors, text)
+end
+function DebugCircle.renderAtPosition(x, y, z, radius, color, numSegments, solid, filled, drawSectors, text)
+	local r = 1
+	local g = 1
+	local b = 1
+	local a = 1
+	if color ~= nil then
+		r, g, b, a = color:unpack()
+	end
+	local alignToTerrain = y == nil
+	if alignToTerrain and g_terrainNode == nil then
+		return
+	end
+	numSegments = numSegments or 16
+	for i = 1, numSegments do
+		local a1 = (i - 1) / numSegments * 2 * 3.141592653589793
+		local a2 = i / numSegments * 2 * 3.141592653589793
+		local c = math.cos(a1) * radius
+		local s = math.sin(a1) * radius
+		local x1 = x + c
+		local y1 = y
+		local z1 = z + s
+		c = math.cos(a2) * radius
+		s = math.sin(a2) * radius
+		local x2 = x + c
+		local y2 = y
+		local z2 = z + s
+		if alignToTerrain then
+			y1 = getTerrainHeightAtWorldPos(g_terrainNode, x1, 0, z1) + 0.05
+			y2 = getTerrainHeightAtWorldPos(g_terrainNode, x2, 0, z2) + 0.05
+		end
+		drawDebugLine(x1, y1, z1, r, g, b, x2, y2, z2, r, g, b, solid)
+		if filled then
+			drawDebugTriangle(x, y, z, x1, y1, z1, x2, y2, z2, r, g, b, 0.5, solid)
+			drawDebugTriangle(x1, y1, z1, x, y, z, x2, y2, z2, r, g, b, 0.5, solid)
+			drawDebugTriangle(x1, y1, z1, x2, y2, z2, x, y, z, r, g, b, 0.5, solid)
+			drawDebugTriangle(x2, y2, z2, x, y, z, x1, y1, z1, r, g, b, 0.5, solid)
+		end
+		if drawSectors then
+			if alignToTerrain then
+				y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z) + 0.05
+			end
+			drawDebugLine(x, y, z, r, g, b, x1, y1, z1, r, g, b, solid)
+		end
+	end
+	if text ~= nil then
+		if y == nil then
+			y = getTerrainHeightAtWorldPos(g_terrainNode, x, 0, z) + 0.05
+		end
+		Utils.renderTextAtWorldPosition(x, y, z, text, 0.02, 0.01, r, g, b, a)
+	end
+end
+function DebugCircle:createWithNode(node, radius, color, numSegments, solid, alignToGround, filled, drawSectors)
+	local x, y, z = getWorldTranslation(node)
+	self:createWithWorldPos(x, y, z, radius, color, numSegments, solid, alignToGround, filled, drawSectors)
+	return self
+end
 function DebugCircle:createWithWorldPos(x, y, z, radius, color, numSegments, solid, alignToGround, filled, drawSectors)
 	self.x = x
 	self.y = y

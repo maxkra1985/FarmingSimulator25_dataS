@@ -1,4 +1,3 @@
--- Local values: standardLuaFunctions, k
 StringTest = {}
 function StringTest.test_isNilOrWhitespace()
 	Assert.isTrue(string.isNilOrWhitespace(nil), "Nil string returned false!")
@@ -12,9 +11,12 @@ function StringTest.test_isNilOrWhitespace()
 end
 function StringTest.test_contains()
 	Assert.throwsError(function()
+		local str = nil
+		local substring = ""
 		string.contains(nil, "")
 	end, "Nil as string argument does not raise an error")
 	Assert.throwsError(function()
+		local substring = nil
 		string.contains("", nil)
 	end, "Nil as substring argument does not raise an error")
 	Assert.isTrue(string.contains("", ""), "empty string does not contain empty string")
@@ -24,24 +26,25 @@ function StringTest.test_contains()
 	Assert.isTrue(string.contains("a\195\164\195\188a", "\195\164\195\188"), "Non-ASCII substring characters were not found")
 	Assert.isFalse(string.contains("a\195\164a", "\195\164\195\188"), "Non-present Non-ASCII substring characters were found")
 	Assert.isTrue(string.contains("a\nb", "\n"), "Newline substring was not found")
-	local v1_, _, _, v2_ = StringTest.generateRandomStr(100000)
-	Assert.isTrue(string.contains(v1_, v2_), "returns false for char \'%s\' (%d)", v2_, string.byte(v2_))
+	local str, _firstChar, _lastChar, randomChar = StringTest.generateRandomStr(100000)
+	Assert.isTrue(string.contains(str, randomChar), "returns false for char '%s' (%d)", randomChar, string.byte(randomChar))
 	Assert.isTrue(string.contains("abc", ".c"))
 	Assert.isFalse(string.contains("abc", "b.c"))
 	Assert.isFalse(string.contains("abc", ".c", true))
 	Assert.isTrue(string.contains("abc", "bc", true))
 	Assert.throwsError(function()
 		string.contains("abc", "bc", 10)
-	end, "Number value for \'plain\' argument does not raise an error")
+	end, "Number value for 'plain' argument does not raise an error")
 	Assert.throwsError(function()
 		string.contains("abc", "bc", {})
-	end, "Table value for \'plain\' argument does not raise an error")
+	end, "Table value for 'plain' argument does not raise an error")
 	Assert.throwsError(function()
 		string.contains("abc", "bc", "yes")
-	end, "String value for \'plain\' argument does not raise an error")
+	end, "String value for 'plain' argument does not raise an error")
 end
 function StringTest.test_split()
 	Assert.throwsError(function()
+		local str = nil
 		string.split(nil)
 	end, "Nil string does not raise an error")
 	Assert.throwsError(function()
@@ -50,27 +53,33 @@ function StringTest.test_split()
 	Assert.areEqual(#string.split(""), 1)
 	Assert.areEqual(string.split("abc")[1], "abc")
 	Assert.areEqual(#string.split("a,b,c"), 3)
-	local v3_ = {}
-	for _ = 1, 1000 do
-		table.insert(v3_, "bla bla bla, many words, much wow\nHansi did it \t \195\164\195\182\195\188")
+	local strs = {}
+	for i = 1, 1000 do
+		table.insert(strs, "bla bla bla, many words, much wow\nHansi did it \t \195\164\195\182\195\188")
 	end
-	local v4_ = table.concat(v3_, "|")
-	Assert.areEqual(#string.split(v4_, "|"), #v3_, "number of strings after split was not the same as before concat")
-	Assert.areEqual(#string.split("a,b,c", ",", function(_)
+	local str = table.concat(strs, "|")
+	Assert.areEqual(#string.split(str, "|"), #strs, "number of strings after split was not the same as before concat")
+	Assert.areEqual(#string.split("a,b,c", ",", function(str)
 		return nil
 	end), 0, "result was not empty table when filter function returned nil for every element")
-	Assert.areEqual(string.split("a,b,c", ",", function(_)
-		return "override"
-	end)[3], "override", "result element was not equal to filter function return")
+	Assert.areEqual(
+		string.split("a,b,c", ",", function(str)
+			return "override"
+		end)[3],
+		"override",
+		"result element was not equal to filter function return"
+	)
 	Assert.throwsError(function()
 		string.split("a b c", " ", true)
 	end, "boolean filterFunction argument does not raise an error")
 end
 function StringTest.test_namedFormat()
 	Assert.throwsError(function()
+		local formatStr = nil
 		string.namedFormat(nil)
 	end, "Nil format string with nil args does not raise an error")
 	Assert.throwsError(function()
+		local formatStr = nil
 		string.namedFormat(nil, "")
 	end, "Nil format string with args does not raise an error")
 	Assert.areEqual(string.namedFormat(""), "", "empty format string does not return empty string")
@@ -82,10 +91,12 @@ function StringTest.test_namedFormat()
 		string.namedFormat("%{ }s", " ", "val1")
 	end, "whitespace variable name does not raise an error")
 	Assert.throwsError(function()
-		string.namedFormat(unpack({ "%{var1}s", "var1" }))
+		local args = { "%{var1}s", "var1" }
+		string.namedFormat(unpack(args))
 	end, "missing value for named argument does not raise an error")
 	Assert.throwsError(function()
-		string.namedFormat(unpack({ "%{var1}s", "var2", "val2" }))
+		local args = { "%{var1}s", "var2", "val2" }
+		string.namedFormat(unpack(args))
 	end, "missing named argument does not raise an error")
 	Assert.throwsError(function()
 		string.namedFormat("%{var1}s %{var2}", "var1", "var2", "val2", "test")
@@ -94,13 +105,13 @@ end
 function StringTest.test_getRadians()
 	Assert.throwsError(function()
 		string.getRadians({})
-	end, "Table value for \'str\' argument does not raise an error")
+	end, "Table value for 'str' argument does not raise an error")
 	Assert.throwsError(function()
 		string.getRadians(true)
-	end, "Boolean value for \'str\' argument does not raise an error")
+	end, "Boolean value for 'str' argument does not raise an error")
 	Assert.throwsError(function()
 		string.getRadians(5)
-	end, "Number value for \'str\' argument does not raise an error")
+	end, "Number value for 'str' argument does not raise an error")
 	Assert.areRoughlyEqual(string.getRadians("0")[1], 0)
 	Assert.areRoughlyEqual(string.getRadians("90")[1], 1.5707963267948966)
 	Assert.areRoughlyEqual(string.getRadians("180")[1], 3.141592653589793)
@@ -123,24 +134,24 @@ function StringTest.test_getRadians()
 	Assert.areEqual(string.getRadians("0 90", 3), nil)
 	Assert.throwsError(function()
 		string.getRadians("150", true)
-	end, "Boolean value for \'num\' argument does not raise an error")
+	end, "Boolean value for 'num' argument does not raise an error")
 	Assert.throwsError(function()
 		string.getRadians("150", {})
-	end, "Table value for \'num\' argument does not raise an error")
+	end, "Table value for 'num' argument does not raise an error")
 	Assert.throwsError(function()
 		string.getRadians("150", "yes")
-	end, "String value for \'num\' argument does not raise an error")
+	end, "String value for 'num' argument does not raise an error")
 end
 function StringTest.test_getVector()
 	Assert.throwsError(function()
 		string.getVector({})
-	end, "Table value for \'str\' argument does not raise an error")
+	end, "Table value for 'str' argument does not raise an error")
 	Assert.throwsError(function()
 		string.getVector(true)
-	end, "Boolean value for \'str\' argument does not raise an error")
+	end, "Boolean value for 'str' argument does not raise an error")
 	Assert.throwsError(function()
 		string.getVector(5)
-	end, "Number value for \'str\' argument does not raise an error")
+	end, "Number value for 'str' argument does not raise an error")
 	Assert.isType(string.getVector(""), "table")
 	Assert.areEqual(#string.getVector(""), 0)
 	Assert.areEqual(table.size(string.getVector("")), 0)
@@ -160,13 +171,13 @@ function StringTest.test_getVector()
 	Assert.areEqual(string.getVector("1  2"), nil)
 	Assert.throwsError(function()
 		string.getVector("150 10", true)
-	end, "Boolean value for \'num\' argument does not raise an error")
+	end, "Boolean value for 'num' argument does not raise an error")
 	Assert.throwsError(function()
 		string.getVector("150 10", {})
-	end, "Table value for \'num\' argument does not raise an error")
+	end, "Table value for 'num' argument does not raise an error")
 	Assert.throwsError(function()
 		string.getVector("150 10", "yes")
-	end, "String value for \'num\' argument does not raise an error")
+	end, "String value for 'num' argument does not raise an error")
 	Assert.areEqual(string.getVector("50")[1], 50)
 	Assert.areEqual(string.getVector("50", nil)[1], 50)
 	Assert.areEqual(string.getVector("50", 1)[1], 50)
@@ -195,19 +206,23 @@ function StringTest.test_startsWith()
 	Assert.isFalse(string.startsWith("", " "))
 	Assert.isFalse(string.startsWith("a", "A"))
 	Assert.isFalse(string.startsWith("A", "a"))
-	local v5_, v6_, v7_ = StringTest.generateRandomStr(100000)
-	Assert.isTrue(string.startsWith(v5_, v6_))
-	Assert.isFalse(string.startsWith(v5_, v7_))
+	local str, firstChar, lastChar = StringTest.generateRandomStr(100000)
+	Assert.isTrue(string.startsWith(str, firstChar))
+	Assert.isFalse(string.startsWith(str, lastChar))
 	Assert.throwsError(function()
+		local str = nil
 		string.startsWith(nil, "")
 	end, "Nil value for string does not raise an error")
 	Assert.throwsError(function()
+		local prefix = nil
 		string.startsWith("", nil)
 	end, "Nil value for prefix does not raise an error")
 	Assert.throwsError(function()
-		string.startsWith("", {})
+		local prefix = {}
+		string.startsWith("", prefix)
 	end, "table value for prefix does not raise an error")
 	Assert.throwsError(function()
+		local prefix = true
 		string.startsWith("1", true)
 	end, "boolean value for prefix does not raise an error")
 end
@@ -221,24 +236,29 @@ function StringTest.test_endsWith()
 	Assert.isFalse(string.endsWith("", " "))
 	Assert.isFalse(string.endsWith("a", "A"))
 	Assert.isFalse(string.endsWith("A", "a"))
-	local v8_, v9_, v10_ = StringTest.generateRandomStr(100000)
-	Assert.isTrue(string.endsWith(v8_, v10_))
-	Assert.isFalse(string.endsWith(v8_, v9_))
+	local str, firstChar, lastChar = StringTest.generateRandomStr(100000)
+	Assert.isTrue(string.endsWith(str, lastChar))
+	Assert.isFalse(string.endsWith(str, firstChar))
 	Assert.throwsError(function()
+		local str = nil
 		string.endsWith(nil, "")
 	end, "Nil value for string does not raise an error")
 	Assert.throwsError(function()
+		local suffix = nil
 		string.endsWith("", nil)
 	end, "Nil value for suffix does not raise an error")
 	Assert.throwsError(function()
-		string.endsWith("", {})
+		local suffix = {}
+		string.endsWith("", suffix)
 	end, "table value for suffix does not raise an error")
 	Assert.throwsError(function()
+		local suffix = true
 		string.endsWith("1", true)
 	end, "boolean value for suffix does not raise an error")
 end
 function StringTest.test_trim()
 	Assert.throwsError(function()
+		local str = nil
 		string.trim(nil)
 	end, "Nil value for string does not raise an error")
 	Assert.areEqual(string.trim(""), "")
@@ -275,6 +295,7 @@ function StringTest.test_trim()
 end
 function StringTest.test_ltrim()
 	Assert.throwsError(function()
+		local str = nil
 		string.ltrim(nil)
 	end, "Nil value for string does not raise an error")
 	Assert.areEqual(string.ltrim(""), "")
@@ -311,6 +332,7 @@ function StringTest.test_ltrim()
 end
 function StringTest.test_rtrim()
 	Assert.throwsError(function()
+		local str = nil
 		string.rtrim(nil)
 	end, "Nil value for string does not raise an error")
 	Assert.areEqual(string.rtrim(""), "")
@@ -347,9 +369,12 @@ function StringTest.test_rtrim()
 end
 function StringTest.test_findLast()
 	Assert.throwsError(function()
+		local str = nil
 		string.findLast(nil, "a")
 	end, "Nil value for string does not raise an error")
 	Assert.throwsError(function()
+		local str = "a"
+		local substr = nil
 		string.findLast("a", nil)
 	end, "Nil value for substring does not raise an error")
 	Assert.areEqual(string.findLast("", ""), 1)
@@ -360,6 +385,7 @@ function StringTest.test_findLast()
 	Assert.areEqual(string.findLast("abc", "abc"), 1)
 	Assert.areEqual(string.findLast("abac", "a"), 3)
 	Assert.areEqual(string.findLast("abcabc", "bc"), 5)
+	local str = "abc"
 	Assert.areEqual(string.findLast("abc", ""), 4)
 	Assert.areEqual(string.findLast("abc", ".c"), 2)
 	Assert.areEqual(string.findLast("abc", "b.c"), 0)
@@ -367,55 +393,36 @@ function StringTest.test_findLast()
 	Assert.areEqual(string.findLast("abc", "bc", true), 2)
 	Assert.throwsError(function()
 		string.findLast("abc", "bc", 10)
-	end, "Number value for \'plain\' argument does not raise an error")
+	end, "Number value for 'plain' argument does not raise an error")
 	Assert.throwsError(function()
 		string.findLast("abc", "bc", {})
-	end, "Table value for \'plain\' argument does not raise an error")
+	end, "Table value for 'plain' argument does not raise an error")
 	Assert.throwsError(function()
 		string.findLast("abc", "bc", "yes")
-	end, "String value for \'plain\' argument does not raise an error")
+	end, "String value for 'plain' argument does not raise an error")
 end
-
--- Local values: str, chars, lastChar, firstChar, i, char, randomIndex, randomChar
 function StringTest.generateRandomStr(length)
-	local v12_ = table.create(length)
-	local v13_ = nil
-	local v14_ = nil
-	for _ = 1, length do
-		local v15_ = math.random
-		local v16_ = string.char(v15_(0, 255))
-		v12_[#v12_ + 1] = v16_
-		if #v12_ == 1 then
-			v13_ = v16_
-		elseif #v12_ == length then
-			v14_ = v16_
+	local str = nil
+	local chars = table.create(length)
+	local lastChar = nil
+	local firstChar = nil
+	for i = 1, length do
+		local char = string.char(math.random(0, 255))
+		chars[#chars + 1] = char
+		if #chars == 1 then
+			firstChar = char
+		elseif #chars == length then
+			lastChar = char
 		end
 	end
-	local v17_ = table.concat(v12_)
-	local v18_ = math.random(1, length)
-	return v17_, v13_, v14_, string.sub(v17_, v18_, v18_)
+	str = table.concat(chars)
+	local randomIndex = math.random(1, length)
+	local randomChar = string.sub(str, randomIndex, randomIndex)
+	return str, firstChar, lastChar, randomChar
 end
-local v19_ = {
-	["unpack"] = true,
-	["match"] = true,
-	["gmatch"] = true,
-	["upper"] = true,
-	["gsub"] = true,
-	["format"] = true,
-	["lower"] = true,
-	["sub"] = true,
-	["pack"] = true,
-	["find"] = true,
-	["char"] = true,
-	["dump"] = true,
-	["packsize"] = true,
-	["reverse"] = true,
-	["byte"] = true,
-	["rep"] = true,
-	["len"] = true
-}
-for v20_ in pairs(string) do
-	if StringTest["test_" .. v20_] == nil and v19_[v20_] == nil then
-		printWarning("Warning: no test function for function string." .. v20_)
+local standardLuaFunctions = { ["unpack"] = true, ["match"] = true, ["gmatch"] = true, ["upper"] = true, ["gsub"] = true, ["format"] = true, ["lower"] = true, ["sub"] = true, ["pack"] = true, ["find"] = true, ["char"] = true, ["dump"] = true, ["packsize"] = true, ["reverse"] = true, ["byte"] = true, ["rep"] = true, ["len"] = true }
+for k in pairs(string) do
+	if StringTest["test_" .. k] == nil and standardLuaFunctions[k] == nil then
+		printWarning("Warning: no test function for function string." .. k)
 	end
 end

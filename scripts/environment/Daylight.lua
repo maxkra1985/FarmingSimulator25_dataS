@@ -1,47 +1,31 @@
--- Local values: Daylight_mt
 Daylight = {}
 local Daylight_mt = Class(Daylight)
-
--- Upvalues: Daylight_mt
--- Local values: self
 function Daylight.new(customMt)
-	-- upvalues: (copy) Daylight_mt
-	local v3_ = customMt or Daylight_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.latitude = 50
-	v4_.latitudeInRadians = 50
-	v4_.dayStart = 6
-	v4_.dayEnd = 20
-	v4_.nightEnd = 8
-	v4_.nightStart = 18
-	v4_.logicalNightStart = 6
-	v4_.logicalNightEnd = 18
-	v4_.logicalNightStartMinutes = v4_.logicalNightStart * 60
-	v4_.logicalNightEndMinutes = v4_.logicalNightEnd * 60
-	v4_:setJulianDay(90)
-	return v4_
+	local self = setmetatable({}, customMt or Daylight_mt)
+	self.latitude = 50
+	self.latitudeInRadians = 50
+	self.dayStart = 6
+	self.dayEnd = 20
+	self.nightEnd = 8
+	self.nightStart = 18
+	self.logicalNightStart = 6
+	self.logicalNightEnd = 18
+	self.logicalNightStartMinutes = self.logicalNightStart * 60
+	self.logicalNightEndMinutes = self.logicalNightEnd * 60
+	self:setJulianDay(90)
+	return self
 end
-
 function Daylight:delete() end
-
 function Daylight:load(xmlFile, baseKey)
 	self.latitude = xmlFile:getFloat(baseKey .. ".latitude", 50)
-	local v8_ = self.latitude
-	self.latitudeInRadians = math.rad(v8_)
+	self.latitudeInRadians = math.rad(self.latitude)
 end
-
 function Daylight:saveToXMLFile(xmlFile, key) end
-
 function Daylight:loadFromXMLFile(xmlFile, key) end
-
 function Daylight:setJulianDay(julianDay)
 	if self.julianDay ~= julianDay then
 		self.julianDay = julianDay
-		local v11_, v12_, v13_, v14_ = self:calculateStartEndOfDay()
-		self.dayStart = v11_
-		self.dayEnd = v12_
-		self.nightEnd = v13_
-		self.nightStart = v14_
+		self.dayStart, self.dayEnd, self.nightEnd, self.nightStart = self:calculateStartEndOfDay()
 		self.logicalNightStart = MathUtil.lerp(self.dayEnd, self.nightStart, 0.3)
 		self.logicalNightEnd = MathUtil.lerp(self.nightEnd, self.dayStart, 0.8)
 		self.logicalNightStartMinutes = self.logicalNightStart * 60
@@ -49,55 +33,52 @@ function Daylight:setJulianDay(julianDay)
 		g_messageCenter:publishDelayed(MessageType.DAYLIGHT_CHANGED)
 	end
 end
-
 function Daylight:getDaylightTimes()
 	return self.dayStart, self.dayEnd, self.nightEnd, self.nightStart
 end
-
 function Daylight:getLogicalNightTime()
 	return self.logicalNightStart, self.logicalNightEnd
 end
-
 function Daylight:getSunHeightAngle()
 	return self.latitudeInRadians - self:calculateSunDeclination() - 1.5707963267948966
 end
-
--- Local values: dayStart, dayEnd, nightEnd, nightStart, sunDeclination
 function Daylight:calculateStartEndOfDay()
-	local v19_ = self:calculateSunDeclination()
-	local v20_ = self:calculateTime(-12, true, v19_)
-	local v21_ = self:calculateTime(-5, false, v19_)
-	local v22_ = self:calculateTime(14, false, v19_)
-	local v23_ = self:calculateTime(5, true, v19_)
-	local v24_ = math.max(v23_, 1.01)
-	if v20_ == v21_ then
-		v21_ = v21_ + 0.01
+	local dayStart = nil
+	local dayEnd = nil
+	local nightEnd = nil
+	local nightStart = nil
+	local sunDeclination = self:calculateSunDeclination()
+	dayStart = self:calculateTime(-12, true, sunDeclination)
+	dayEnd = self:calculateTime(-5, false, sunDeclination)
+	nightStart = self:calculateTime(14, false, sunDeclination)
+	nightEnd = self:calculateTime(5, true, sunDeclination)
+	nightEnd = math.max(nightEnd, 1.01)
+	if dayStart == dayEnd then
+		dayEnd = dayEnd + 0.01
 	end
-	local v25_ = math.min(v22_, 22.99)
-	local v26_ = v25_ - 0.01
-	return v20_, math.min(v21_, v26_), v24_, v25_
+	nightStart = math.min(nightStart, 22.99)
+	dayEnd = math.min(dayEnd, nightStart - 0.01)
+	return dayStart, dayEnd, nightEnd, nightStart
 end
-
--- Local values: denom, latitudeInRadians, gamma
 function Daylight:calculateTime(position, isDawn, sunDeclination)
-	local v31_ = position * 3.141592653589793 / 180
-	local v32_ = self.latitudeInRadians
-	local v33_ = (math.sin(v31_) + math.sin(v32_) * math.sin(sunDeclination)) / (math.cos(v32_) * math.cos(sunDeclination))
-	local v34_ = v33_ < -1 and 0 or (v33_ > 1 and 24 or 24 - 7.639437268410976 * math.acos(v33_))
-	if isDawn then
-		local v35_ = 12 - v34_ / 2
-		return math.max(v35_, 0.01)
+	local denom = nil
+	position = position * 3.141592653589793 / 180
+	local latitudeInRadians = self.latitudeInRadians
+	local gamma = (math.sin(position) + math.sin(latitudeInRadians) * math.sin(sunDeclination)) / (math.cos(latitudeInRadians) * math.cos(sunDeclination))
+	if gamma < -1 then
+		denom = 0
+	elseif 1 < gamma then
+		denom = 24
 	else
-		local v36_ = 12 + v34_ / 2
-		return math.min(v36_, 23.99)
+		denom = 24 - 7.639437268410976 * math.acos(gamma)
+	end
+	if isDawn then
+		return math.max(12 - denom / 2, 0.01)
+	else
+		return math.min(12 + denom / 2, 23.99)
 	end
 end
-
--- Local values: theta
 function Daylight:calculateSunDeclination()
-	local v38_ = 0.0086 * (self.julianDay - 186)
-	local v39_ = 0.967 * math.tan(v38_)
-	local v40_ = 0.216 + 2 * math.atan(v39_)
-	local v41_ = 0.4 * math.cos(v40_)
-	return math.asin(v41_)
+	local theta = 0.216 + 2 * math.atan(0.967 * math.tan(0.0086 * (self.julianDay - 186)))
+	return math.asin(0.4 * math.cos(theta))
 end

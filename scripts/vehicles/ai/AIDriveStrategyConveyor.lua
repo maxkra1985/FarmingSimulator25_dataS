@@ -1,47 +1,34 @@
--- Local values: AIDriveStrategyConveyor_mt
 AIDriveStrategyConveyor = {}
 local AIDriveStrategyConveyor_mt = Class(AIDriveStrategyConveyor, AIDriveStrategy)
-
--- Upvalues: AIDriveStrategyConveyor_mt
--- Local values: self
 function AIDriveStrategyConveyor.new(reconstructionData, customMt)
-	-- upvalues: (copy) AIDriveStrategyConveyor_mt
-	return AIDriveStrategy.new(reconstructionData, customMt or AIDriveStrategyConveyor_mt)
+	local self = AIDriveStrategy.new(reconstructionData, customMt or AIDriveStrategyConveyor_mt)
+	return self
 end
-
--- Local values: _, y, z, x1, y1, z1, x2, y2, z2, length, width, length2
 function AIDriveStrategyConveyor:setAIVehicle(vehicle)
 	AIDriveStrategyConveyor:superClass().setAIVehicle(self, vehicle)
-	local _, v6_, v7_ = localToLocal(self.vehicle.wheels[self.vehicle.aiConveyorBelt.backWheelIndex].repr, self.vehicle.components[1].node, 0, 0, 0)
-	local v8_, v9_, v10_ = localToWorld(self.vehicle.components[1].node, 0, v6_, v7_)
-	local v11_, v12_, v13_ = getWorldTranslation(self.vehicle.wheels[self.vehicle.aiConveyorBelt.centerWheelIndex].repr)
-	local v14_ = MathUtil.vector3Length(v8_ - v11_, v9_ - v12_, v10_ - v13_)
-	local v15_ = self.vehicle.aiConveyorBelt.currentAngle / 2
-	local v16_ = math.rad(v15_)
-	local v17_ = v14_ * math.sin(v16_)
-	local v18_ = math.pow(v14_, 2) - math.pow(v17_, 2)
-	local v19_ = math.sqrt(v18_)
-	local v20_ = self.vehicle.aiConveyorBelt.currentAngle
-	self.distanceToMove = math.rad(v20_) * v14_ / 2
+	local _, y, z = localToLocal(self.vehicle.wheels[self.vehicle.aiConveyorBelt.backWheelIndex].repr, self.vehicle.components[1].node, 0, 0, 0)
+	local x1, y1, z1 = localToWorld(self.vehicle.components[1].node, 0, y, z)
+	local x2, y2, z2 = getWorldTranslation(self.vehicle.wheels[self.vehicle.aiConveyorBelt.centerWheelIndex].repr)
+	local length = MathUtil.vector3Length(x1 - x2, y1 - y2, z1 - z2)
+	local width = length * math.sin(math.rad(self.vehicle.aiConveyorBelt.currentAngle / 2))
+	local length2 = math.sqrt(math.pow(length, 2) - math.pow(width, 2))
+	self.distanceToMove = math.rad(self.vehicle.aiConveyorBelt.currentAngle) * length / 2
 	self.currentTarget = 1
 	self.worldTarget = {}
-	self.worldTarget[1] = { localToWorld(self.vehicle.wheels[self.vehicle.aiConveyorBelt.centerWheelIndex].repr, v17_, 0, -v19_) }
-	self.worldTarget[2] = { localToWorld(self.vehicle.wheels[self.vehicle.aiConveyorBelt.centerWheelIndex].repr, -v17_, 0, -v19_) }
-	self.lastPos = { v8_, v9_, v10_ }
+	self.worldTarget[1] = { localToWorld(self.vehicle.wheels[self.vehicle.aiConveyorBelt.centerWheelIndex].repr, width, 0, -length2) }
+	self.worldTarget[2] = { localToWorld(self.vehicle.wheels[self.vehicle.aiConveyorBelt.centerWheelIndex].repr, -width, 0, -length2) }
+	self.lastPos = { x1, y1, z1 }
 	self.distanceMoved = 0
 	self.fistTimeChange = true
 end
-
 function AIDriveStrategyConveyor:update(dt) end
-
--- Local values: _, y, z, worldCX, worldCY, worldCZ, distanceMoved, speedFactor, dir
 function AIDriveStrategyConveyor:getDriveData(dt, vX, vY, vZ)
-	local _, v22_, v23_ = localToLocal(self.vehicle.wheels[self.vehicle.aiConveyorBelt.backWheelIndex].repr, self.vehicle.components[1].node, 0, 0, 0)
-	local v24_, v25_, v26_ = localToWorld(self.vehicle.components[1].node, 0, v22_, v23_)
-	local v27_ = MathUtil.vector2Length(v24_ - self.lastPos[1], v26_ - self.lastPos[3])
-	self.distanceMoved = self.distanceMoved + v27_
-	self.lastPos = { v24_, v25_, v26_ }
-	if self.distanceMoved >= self.distanceToMove then
+	local _, y, z = localToLocal(self.vehicle.wheels[self.vehicle.aiConveyorBelt.backWheelIndex].repr, self.vehicle.components[1].node, 0, 0, 0)
+	local worldCX, worldCY, worldCZ = localToWorld(self.vehicle.components[1].node, 0, y, z)
+	local distanceMoved = MathUtil.vector2Length(worldCX - self.lastPos[1], worldCZ - self.lastPos[3])
+	self.distanceMoved = self.distanceMoved + distanceMoved
+	self.lastPos = { worldCX, worldCY, worldCZ }
+	if self.distanceToMove <= self.distanceMoved then
 		if self.fistTimeChange then
 			self.distanceToMove = self.distanceToMove * 2
 			self.fistTimeChange = false
@@ -53,12 +40,10 @@ function AIDriveStrategyConveyor:getDriveData(dt, vX, vY, vZ)
 			self.currentTarget = 1
 		end
 	end
-	local v28_ = self.distanceMoved / self.distanceToMove * 3.14
-	local v29_ = math.sin(v28_)
-	local v30_ = math.clamp(v29_, 0.1, 0.5) * 2
-	local v31_ = true
+	local speedFactor = math.clamp(math.sin(self.distanceMoved / self.distanceToMove * 3.14), 0.1, 0.5) * 2
+	local dir = true
 	if self.currentTarget == 2 then
-		v31_ = not v31_
+		dir = not dir
 	end
-	return self.worldTarget[self.currentTarget][1], self.worldTarget[self.currentTarget][3], v31_, self.vehicle.aiConveyorBelt.speed * v30_, 100
+	return self.worldTarget[self.currentTarget][1], self.worldTarget[self.currentTarget][3], dir, self.vehicle.aiConveyorBelt.speed * speedFactor, 100
 end

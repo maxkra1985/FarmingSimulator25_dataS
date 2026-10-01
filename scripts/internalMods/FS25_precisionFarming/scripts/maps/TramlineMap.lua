@@ -1,85 +1,43 @@
--- Local values: TramlineMap_mt, worldCoordsToLocalCoords
 TramlineMap = {}
 TramlineMap.MIN_STRAIGHT_SEGMENT_LENGTH = 10
 source(g_currentModDirectory .. "scripts/gui/TramlineSettingsDialog.lua")
 source(g_currentModDirectory .. "scripts/densityMapUpdates/TramlineMapDensityMapTask.lua")
 local TramlineMap_mt = Class(TramlineMap, ValueMap)
-
--- Upvalues: TramlineMap_mt
--- Local values: self, _, number, _, number, i
 function TramlineMap.new(pfModule, customMt)
-	-- upvalues: (copy) TramlineMap_mt
-	local v4_ = ValueMap.new(pfModule, customMt or TramlineMap_mt)
-	v4_.filename = "precisionFarming_tramlineMap.grle"
-	v4_.name = "tramlineMap"
-	v4_.id = "TRAMLINE_MAP"
-	v4_.label = ""
+	local self = ValueMap.new(pfModule, customMt or TramlineMap_mt)
+	self.filename = "precisionFarming_tramlineMap.grle"
+	self.name = "tramlineMap"
+	self.id = "TRAMLINE_MAP"
+	self.label = ""
 	if g_server ~= nil then
-		addConsoleCommand("pfTramlineSet", "Sets the tramlines for a specific farmland", "debugTramlineSet", v4_)
+		addConsoleCommand("pfTramlineSet", "Sets the tramlines for a specific farmland", "debugTramlineSet", self)
 	end
-	v4_.farmlandTramlineStates = {}
-	v4_.implementWidths = {
-		0,
-		15,
-		18,
-		20,
-		21,
-		24,
-		27,
-		28,
-		30,
-		33,
-		36,
-		39,
-		40,
-		42,
-		44,
-		45,
-		51,
-		52,
-		54,
-		60
-	}
-	v4_.implementWidthTexts = {}
-	for _, v5_ in ipairs(v4_.implementWidths) do
-		if v5_ == 0 then
-			local v6_ = v4_.implementWidthTexts
-			local v7_ = g_i18n
-			table.insert(v6_, v7_:getText("ui_tramlinesOff"))
+	self.farmlandTramlineStates = {}
+	self.implementWidths = { 0, 15, 18, 20, 21, 24, 27, 28, 30, 33, 36, 39, 40, 42, 44, 45, 51, 52, 54, 60 }
+	self.implementWidthTexts = {}
+	for _, number in ipairs(self.implementWidths) do
+		if number ~= 0 then
+			table.insert(self.implementWidthTexts, string.format("%dm", number))
 		else
-			local v8_ = v4_.implementWidthTexts
-			local v9_ = string.format
-			table.insert(v8_, v9_("%dm", v5_))
+			table.insert(self.implementWidthTexts, g_i18n:getText("ui_tramlinesOff"))
 		end
 	end
-	v4_.spacings = {
-		2,
-		2.5,
-		3,
-		3.5
-	}
-	v4_.spacingTexts = {}
-	for _, v10_ in ipairs(v4_.spacings) do
-		local v11_ = v4_.spacingTexts
-		local v12_ = string.format
-		table.insert(v11_, v12_("%.1fm", v10_))
+	self.spacings = { 2, 2.5, 3, 3.5 }
+	self.spacingTexts = {}
+	for _, number in ipairs(self.spacings) do
+		table.insert(self.spacingTexts, string.format("%.1fm", number))
 	end
-	v4_.workDirectionTexts = {}
-	v4_.workDirectionTextToDeg = {}
-	local v13_ = v4_.workDirectionTexts
-	local v14_ = g_i18n
-	table.insert(v13_, v14_:getText("ai_settingAutomatic"))
-	v4_.workDirectionTextToDeg[1] = -57.29577951308232
-	for v15_ = 0, 175, 5 do
-		local v16_ = v4_.workDirectionTexts
-		local v17_ = string.format
-		table.insert(v16_, v17_("%d \194\176", v15_))
-		v4_.workDirectionTextToDeg[#v4_.workDirectionTexts] = v15_
+	self.workDirectionTexts = {}
+	self.workDirectionTextToDeg = {}
+	table.insert(self.workDirectionTexts, g_i18n:getText("ai_settingAutomatic"))
+	self.workDirectionTextToDeg[1] = -57.29577951308232
+	for i = 0, 175, 5 do
+		table.insert(self.workDirectionTexts, string.format("%d \194\176", i))
+		self.workDirectionTextToDeg[#self.workDirectionTexts] = i
 	end
 	MessageType.PRECISION_FARMING_TRAMLINES_CHANGED = nextMessageTypeId()
-	return v4_
+	return self
 end
-
 function TramlineMap:initialize()
 	TramlineMap:superClass().initialize(self)
 	self.densityMapModifiersPaint = {}
@@ -87,7 +45,6 @@ function TramlineMap:initialize()
 	self.densityMapModifiersReset = nil
 	TramlineSettingsDialog.register()
 end
-
 function TramlineMap:delete()
 	TramlineMap:superClass().delete(self)
 	if g_server ~= nil then
@@ -95,27 +52,24 @@ function TramlineMap:delete()
 	end
 	g_messageCenter:unsubscribeAll(self)
 end
-
--- Local values: missionInfo, mapXMLFilename, mapXMLFile
 function TramlineMap:loadFromXML(xmlFile, key, baseDirectory, configFileName, mapFilename)
-	local v23_ = key .. ".tramlineMap"
+	key = key .. ".tramlineMap"
 	self.npcFieldFruitTypes = {}
-	self:loadTramlineFruitTypesFromXML(xmlFile, v23_ .. ".npcFields#fruitTypes")
-	local v24_ = g_currentMission.missionInfo
-	local v25_ = Utils.getFilename(v24_.mapXMLFilename, g_currentMission.baseDirectory)
-	local v26_ = loadXMLFile("MapXML", v25_)
-	if v26_ ~= nil then
-		self:loadTramlineFruitTypesFromXML(v26_, "map.precisionFarming.npcTramlines#fruitTypes")
-		delete(v26_)
+	self:loadTramlineFruitTypesFromXML(xmlFile, key .. ".npcFields#fruitTypes")
+	local missionInfo = g_currentMission.missionInfo
+	local mapXMLFilename = Utils.getFilename(missionInfo.mapXMLFilename, g_currentMission.baseDirectory)
+	local mapXMLFile = loadXMLFile("MapXML", mapXMLFilename)
+	if mapXMLFile ~= nil then
+		self:loadTramlineFruitTypesFromXML(mapXMLFile, "map.precisionFarming.npcTramlines#fruitTypes")
+		delete(mapXMLFile)
 	end
-	self.npcWorkingWidth = getXMLInt(xmlFile, v23_ .. ".npcFields#workingWidth") or 27
-	self.npcSpacing = getXMLFloat(xmlFile, v23_ .. ".npcFields#spacing") or 2
+	self.npcWorkingWidth = getXMLInt(xmlFile, key .. ".npcFields#workingWidth") or 27
+	self.npcSpacing = getXMLFloat(xmlFile, key .. ".npcFields#spacing") or 2
 	if g_server ~= nil then
 		g_messageCenter:subscribe(MessageType.FARMLAND_OWNER_CHANGED, self.onFarmlandStateChanged, self)
 	end
 	return true
 end
-
 function TramlineMap:initTerrain(mission, terrainId, filename)
 	TramlineMap:superClass().initTerrain(self, mission, terrainId, filename)
 	self.numChannels = 2
@@ -124,194 +78,196 @@ function TramlineMap:initTerrain(mission, terrainId, filename)
 	self:addBitVectorMapToSave(self.bitVectorMap, self.filename)
 	self:addBitVectorMapToDelete(self.bitVectorMap)
 end
-
--- Local values: fruitTypesStr, fruitTypes, j, fruitType
 function TramlineMap:loadTramlineFruitTypesFromXML(xmlFile, key)
-	local v34_ = getXMLString(xmlFile, key)
-	if v34_ ~= nil then
-		local v35_ = v34_:split(" ")
-		for v36_ = 1, #v35_ do
-			local v37_ = g_fruitTypeManager:getFruitTypeByName(v35_[v36_])
-			if v37_ == nil then
-				Logging.xmlWarning(xmlFile, "Invalid fruit type \'%s\' for npc fields \'%s\'", v35_[v36_], key)
+	local fruitTypesStr = getXMLString(xmlFile, key)
+	if fruitTypesStr ~= nil then
+		local fruitTypes = fruitTypesStr:split(" ")
+		for j = 1, #fruitTypes do
+			local fruitType = g_fruitTypeManager:getFruitTypeByName(fruitTypes[j])
+			if fruitType ~= nil then
+				self.npcFieldFruitTypes[fruitType.index] = true
 			else
-				self.npcFieldFruitTypes[v37_.index] = true
+				Logging.xmlWarning(xmlFile, "Invalid fruit type '%s' for npc fields '%s'", fruitTypes[j], key)
 			end
 		end
 	end
 end
-
 function TramlineMap:loadFromItemsXML(xmlFile, key)
-	xmlFile:iterate((key .. ".tramlineMap") .. ".farmland", function(_, p41_)
-		-- upvalues: (copy) xmlFile, (copy) self
-		local v42_ = xmlFile:getInt(p41_ .. "#farmlandId")
-		if v42_ ~= nil then
-			local v43_ = {
-				["workingWidth"] = xmlFile:getFloat(p41_ .. "#width")
-			}
-			if v43_.workingWidth ~= nil then
-				v43_.workDirection = xmlFile:getFloat(p41_ .. "#workDirection", -57.29577951308232)
-				v43_.spacing = xmlFile:getFloat(p41_ .. "#spacing", 2)
-				v43_.pendingUpdate = xmlFile:getBool(p41_ .. "#pendingUpdate", false)
-				self.farmlandTramlineStates[v42_] = v43_
+	key = key .. ".tramlineMap"
+	xmlFile:iterate(key .. ".farmland", function(_, baseKey)
+		local farmlandId = xmlFile:getInt(baseKey .. "#farmlandId")
+		if farmlandId ~= nil then
+			local state = {}
+			state.workingWidth = xmlFile:getFloat(baseKey .. "#width")
+			if state.workingWidth ~= nil then
+				state.workDirection = xmlFile:getFloat(baseKey .. "#workDirection", -57.29577951308232)
+				state.spacing = xmlFile:getFloat(baseKey .. "#spacing", 2)
+				state.pendingUpdate = xmlFile:getBool(baseKey .. "#pendingUpdate", false)
+				self.farmlandTramlineStates[farmlandId] = state
 			end
 		end
 	end)
 end
-
--- Local values: i, farmlandId, state, baseKey
 function TramlineMap:saveToXMLFile(xmlFile, key, usedModNames)
-	local v47_ = key .. ".tramlineMap"
-	local v48_ = 0
-	for v49_, v50_ in pairs(self.farmlandTramlineStates) do
-		local v51_ = string.format("%s.farmland(%d)", v47_, v48_)
-		xmlFile:setInt(v51_ .. "#farmlandId", v49_)
-		xmlFile:setFloat(v51_ .. "#width", v50_.workingWidth)
-		xmlFile:setFloat(v51_ .. "#workDirection", v50_.workDirection)
-		xmlFile:setFloat(v51_ .. "#spacing", v50_.spacing or 2)
-		xmlFile:setBool(v51_ .. "#pendingUpdate", Utils.getNoNil(v50_.pendingUpdate, false))
-		v48_ = v48_ + 1
+	key = key .. ".tramlineMap"
+	local i = 0
+	for farmlandId, state in pairs(self.farmlandTramlineStates) do
+		local baseKey = string.format("%s.farmland(%d)", key, i)
+		xmlFile:setInt(baseKey .. "#farmlandId", farmlandId)
+		xmlFile:setFloat(baseKey .. "#width", state.workingWidth)
+		xmlFile:setFloat(baseKey .. "#workDirection", state.workDirection)
+		xmlFile:setFloat(baseKey .. "#spacing", state.spacing or 2)
+		xmlFile:setBool(baseKey .. "#pendingUpdate", Utils.getNoNil(state.pendingUpdate, false))
+		i = i + 1
 	end
 end
-
 function TramlineMap:sendInitialClientState(connection, user, farm)
 	connection:sendEvent(TramlineMapInitialEvent.new(self.farmlandTramlineStates))
 end
-
 function TramlineMap:setMapFrame(mapFrame)
 	self.mapFrame = mapFrame
 end
-
 function TramlineMap:update(dt) end
-local function v_u_64_(p56_, p57_, p58_, p59_, p60_, p61_, p62_, p63_)
-	return (p56_ + p63_ * 0.5) / p63_ * p62_ + 0.5 - 1, (p57_ + p63_ * 0.5) / p63_ * p62_ + 0.5 - 1, (p58_ + p63_ * 0.5) / p63_ * p62_ + 0.5 - 1, (p59_ + p63_ * 0.5) / p63_ * p62_ + 0.5 - 1, (p60_ + p63_ * 0.5) / p63_ * p62_ + 0.5 - 1, (p61_ + p63_ * 0.5) / p63_ * p62_ + 0.5 - 1
+local worldCoordsToLocalCoords = function(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, size, terrainSize)
+	return (startWorldX + terrainSize * 0.5) / terrainSize * size + 0.5 - 1, (startWorldZ + terrainSize * 0.5) / terrainSize * size + 0.5 - 1, (widthWorldX + terrainSize * 0.5) / terrainSize * size + 0.5 - 1, (widthWorldZ + terrainSize * 0.5) / terrainSize * size + 0.5 - 1, (heightWorldX + terrainSize * 0.5) / terrainSize * size + 0.5 - 1, (heightWorldZ + terrainSize * 0.5) / terrainSize * size + 0.5 - 1
 end
-
--- Local values: farmlandId
 function TramlineMap:getTramlineWidthAtWorldPos(worldPosX, worldPosZ)
-	local v68_ = g_farmlandManager:getFarmlandIdAtWorldPosition(worldPosX, worldPosZ)
-	if v68_ == nil or self.farmlandTramlineStates[v68_] == nil then
-		return nil
-	else
-		return self.farmlandTramlineStates[v68_].workingWidth
+	local farmlandId = g_farmlandManager:getFarmlandIdAtWorldPosition(worldPosX, worldPosZ)
+	if farmlandId ~= nil and self.farmlandTramlineStates[farmlandId] ~= nil then
+		return self.farmlandTramlineStates[farmlandId].workingWidth
 	end
+	return nil
 end
-
--- Upvalues: worldCoordsToLocalCoords
--- Local values: modifier, dirX, dirZ, yRot, rotOffsetFactor, offset, sideDirX, sideDirZ, minOffset, maxOffset, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ
 function TramlineMap:paintLine(sx, sz, ex, ez, spacing)
-	-- upvalues: (copy) v_u_64_
-	local v75_ = spacing or 2
-	local v76_ = self.densityMapModifiersPaint.modifier
-	if v76_ == nil then
+	spacing = spacing or 2
+	local modifier = self.densityMapModifiersPaint.modifier
+	if modifier == nil then
 		self.densityMapModifiersPaint.modifier = DensityMapModifier.new(self.bitVectorMap, 0, 1)
-		v76_ = self.densityMapModifiersPaint.modifier
-		v76_:setPolygonRoundingMode(DensityRoundingMode.NEAREST_EXPAND)
+		modifier = self.densityMapModifiersPaint.modifier
+		modifier:setPolygonRoundingMode(DensityRoundingMode.NEAREST_EXPAND)
 	end
-	local v77_, v78_ = MathUtil.vector2Normalize(ex - sx, ez - sz)
-	local v79_ = MathUtil.getYRotationFromDirection(v77_, v78_)
-	local v80_ = math.abs(v79_) % 1.5707963267948966 / 1.5707963267948966
-	if v80_ > 0.5 then
-		v80_ = 1 - v80_
+	local dirX, dirZ = MathUtil.vector2Normalize(ex - sx, ez - sz)
+	local yRot = math.abs(MathUtil.getYRotationFromDirection(dirX, dirZ))
+	yRot = yRot % 1.5707963267948966
+	local rotOffsetFactor = yRot / 1.5707963267948966
+	if 0.5 < rotOffsetFactor then
+		rotOffsetFactor = 1 - rotOffsetFactor
 	end
-	local v81_ = v80_ * 2
-	local v82_ = v75_ * 0.5 + v81_ * 0.25
-	local v83_ = -v78_
-	local v84_, v85_
-	if math.abs(v83_) > math.abs(v77_) then
-		v84_ = math.sign(v83_)
-		v85_ = 0
+	rotOffsetFactor = rotOffsetFactor * 2
+	local offset = spacing * 0.5 + rotOffsetFactor * 0.25
+	local sideDirX = -dirZ
+	local sideDirZ = dirX
+	if math.abs(sideDirZ) < math.abs(sideDirX) then
+		sideDirX = math.sign(sideDirX)
+		sideDirZ = 0
 	else
-		v85_ = math.sign(v77_)
-		v84_ = 0
+		sideDirX = 0
+		sideDirZ = math.sign(sideDirZ)
 	end
-	v76_:resetDensityMapAndChannels(self.bitVectorMap, 0, 1)
-	local v86_ = -v82_ - 0.01
-	local v87_ = -v82_ + 0.01
-	local v88_, v89_, v90_, v91_, v92_, v93_ = v_u_64_(sx + v84_ * v86_, sz + v85_ * v86_, sx + v84_ * v87_, sz + v85_ * v87_, ex + v84_ * v86_, ez + v85_ * v86_, self.size, g_currentMission.terrainSize)
-	v76_:setParallelogramDensityMapCoords(v88_, v89_, v90_, v91_, v92_, v93_, DensityCoordType.POINT_POINT_POINT)
-	v76_:executeSet(1)
-	local v94_ = v82_ - 0.01
-	local v95_ = v82_ + 0.01
-	local v96_, v97_, v98_, v99_, v100_, v101_ = v_u_64_(sx + v84_ * v94_, sz + v85_ * v94_, sx + v84_ * v95_, sz + v85_ * v95_, ex + v84_ * v94_, ez + v85_ * v94_, self.size, g_currentMission.terrainSize)
-	v76_:setParallelogramDensityMapCoords(v96_, v97_, v98_, v99_, v100_, v101_, DensityCoordType.POINT_POINT_POINT)
-	v76_:executeSet(1)
-	v76_:resetDensityMapAndChannels(self.bitVectorMap, 1, 1)
-	local v102_ = -(v75_ * 0.5 + 1)
-	local v103_ = v75_ * 0.5 + 1
-	local v104_, v105_, v106_, v107_, v108_, v109_ = v_u_64_(sx + v84_ * v102_, sz + v85_ * v102_, sx + v84_ * v103_, sz + v85_ * v103_, ex + v84_ * v102_, ez + v85_ * v102_, self.size, g_currentMission.terrainSize)
-	v76_:setParallelogramDensityMapCoords(v104_, v105_, v106_, v107_, v108_, v109_, DensityCoordType.POINT_POINT_POINT)
-	v76_:executeSet(1)
+	modifier:resetDensityMapAndChannels(self.bitVectorMap, 0, 1)
+	local minOffset = -offset - 0.01
+	local maxOffset = -offset + 0.01
+	local startWorldX = sx + sideDirX * minOffset
+	local startWorldZ = sz + sideDirZ * minOffset
+	local widthWorldX = sx + sideDirX * maxOffset
+	local widthWorldZ = sz + sideDirZ * maxOffset
+	local heightWorldX = ex + sideDirX * minOffset
+	local heightWorldZ = ez + sideDirZ * minOffset
+	startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ = worldCoordsToLocalCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, self.size, g_currentMission.terrainSize)
+	modifier:setParallelogramDensityMapCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
+	modifier:executeSet(1)
+	minOffset = offset - 0.01
+	maxOffset = offset + 0.01
+	startWorldX = sx + sideDirX * minOffset
+	startWorldZ = sz + sideDirZ * minOffset
+	widthWorldX = sx + sideDirX * maxOffset
+	widthWorldZ = sz + sideDirZ * maxOffset
+	heightWorldX = ex + sideDirX * minOffset
+	heightWorldZ = ez + sideDirZ * minOffset
+	startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ = worldCoordsToLocalCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, self.size, g_currentMission.terrainSize)
+	modifier:setParallelogramDensityMapCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
+	modifier:executeSet(1)
+	modifier:resetDensityMapAndChannels(self.bitVectorMap, 1, 1)
+	minOffset = -(spacing * 0.5 + 1)
+	maxOffset = spacing * 0.5 + 1
+	startWorldX = sx + sideDirX * minOffset
+	startWorldZ = sz + sideDirZ * minOffset
+	widthWorldX = sx + sideDirX * maxOffset
+	widthWorldZ = sz + sideDirZ * maxOffset
+	heightWorldX = ex + sideDirX * minOffset
+	heightWorldZ = ez + sideDirZ * minOffset
+	startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ = worldCoordsToLocalCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, self.size, g_currentMission.terrainSize)
+	modifier:setParallelogramDensityMapCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
+	modifier:executeSet(1)
 end
-
--- Local values: multiModifiers, multiModifier
 function TramlineMap:clearTramlines(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, densityMapShape, npcField)
-	local v119_ = self.densityMapModifiersClear.multiModifiers
-	if v119_ == nil then
+	local multiModifiers = self.densityMapModifiersClear.multiModifiers
+	if multiModifiers == nil then
 		self.densityMapModifiersClear.multiModifiers = {}
 		self.densityMapModifiersClear.multiModifiers[true] = DensityMapMultiModifier.new()
 		self.densityMapModifiersClear.multiModifiers[false] = DensityMapMultiModifier.new()
 		self:addTramlineClearToMultiModifier(self.densityMapModifiersClear.multiModifiers[true], true)
 		self:addTramlineClearToMultiModifier(self.densityMapModifiersClear.multiModifiers[false], false)
-		v119_ = self.densityMapModifiersClear.multiModifiers
+		multiModifiers = self.densityMapModifiersClear.multiModifiers
 	end
-	local v120_ = v119_[Utils.getNoNil(npcField, false)]
-	if densityMapShape == nil then
-		v120_:updateParallelogramWorldCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
+	npcField = Utils.getNoNil(npcField, false)
+	local multiModifier = multiModifiers[npcField]
+	if densityMapShape ~= nil then
+		densityMapShape:applyToModifier(multiModifier)
 	else
-		densityMapShape:applyToModifier(v120_)
+		multiModifier:updateParallelogramWorldCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
 	end
-	v120_:execute()
+	multiModifier:execute()
 end
-
--- Local values: tramlineFilter, weedSystem, weedMapId, weedFirstChannel, weedNumChannels, weedModifier, fruitFilter, fruitModifier, _, desc
 function TramlineMap:addTramlineClearToMultiModifier(multiModifier, npcField)
-	local v124_ = DensityMapFilter.new(self.bitVectorMap, 0, 1)
-	v124_:setValueCompareParams(DensityValueCompareType.EQUAL, 1)
-	local v125_ = g_currentMission.weedSystem
-	if v125_:getMapHasWeed() then
-		local v126_, v127_, v128_ = v125_:getDensityMapData()
-		multiModifier:addExecuteSet(0, DensityMapModifier.new(v126_, v127_, v128_, g_terrainNode), v124_)
+	local tramlineFilter = DensityMapFilter.new(self.bitVectorMap, 0, 1)
+	tramlineFilter:setValueCompareParams(DensityValueCompareType.EQUAL, 1)
+	local weedSystem = g_currentMission.weedSystem
+	if weedSystem:getMapHasWeed() then
+		local weedMapId, weedFirstChannel, weedNumChannels = weedSystem:getDensityMapData()
+		local weedModifier = DensityMapModifier.new(weedMapId, weedFirstChannel, weedNumChannels, g_terrainNode)
+		multiModifier:addExecuteSet(0, weedModifier, tramlineFilter)
 	end
-	local v129_ = nil
-	local v130_ = nil
-	for _, v131_ in pairs(g_fruitTypeManager:getFruitTypes()) do
-		if (not npcField or self.npcFieldFruitTypes[v131_.index]) and v131_.terrainDataPlaneId ~= nil then
-			if v129_ == nil then
-				v129_ = DensityMapFilter.new(v131_.terrainDataPlaneId, v131_.startStateChannel, v131_.numStateChannels)
-			else
-				v129_:resetDensityMapAndChannels(v131_.terrainDataPlaneId, v131_.startStateChannel, v131_.numStateChannels)
+	local fruitFilter = nil
+	local fruitModifier = nil
+	for _, desc in pairs(g_fruitTypeManager:getFruitTypes()) do
+		if not npcField or self.npcFieldFruitTypes[desc.index] then
+			if desc.terrainDataPlaneId == nil then
+				continue
 			end
-			v129_:setValueCompareParams(DensityValueCompareType.GREATER, 0)
-			if v130_ == nil then
-				v130_ = DensityMapModifier.new(v131_.terrainDataPlaneId, v131_.startStateChannel, v131_.numStateChannels)
+			if fruitFilter == nil then
+				fruitFilter = DensityMapFilter.new(desc.terrainDataPlaneId, desc.startStateChannel, desc.numStateChannels)
 			else
-				v130_:resetDensityMapAndChannels(v131_.terrainDataPlaneId, v131_.startStateChannel, v131_.numStateChannels)
+				fruitFilter:resetDensityMapAndChannels(desc.terrainDataPlaneId, desc.startStateChannel, desc.numStateChannels)
 			end
-			v130_:setNewTypeIndexMode(DensityIndexCompareMode.ZERO)
-			multiModifier:addExecuteSet(0, v130_, v124_, v129_)
+			fruitFilter:setValueCompareParams(DensityValueCompareType.GREATER, 0)
+			if fruitModifier == nil then
+				fruitModifier = DensityMapModifier.new(desc.terrainDataPlaneId, desc.startStateChannel, desc.numStateChannels)
+			else
+				fruitModifier:resetDensityMapAndChannels(desc.terrainDataPlaneId, desc.startStateChannel, desc.numStateChannels)
+			end
+			fruitModifier:setNewTypeIndexMode(DensityIndexCompareMode.ZERO)
+			multiModifier:addExecuteSet(0, fruitModifier, tramlineFilter, fruitFilter)
 		end
 	end
 end
-
--- Local values: farmland, state
 function TramlineMap:setFarmlandTramlines(farmlandId, workingWidth, workDirection, spacing, enabled, clearFruit, noEventSend)
 	if enabled then
 		self:resetFarmlandTramlines(farmlandId)
 	end
-	if math.abs(workingWidth) > 0.1 then
-		if g_farmlandManager:getFarmlandById(farmlandId) == nil then
-			Logging.devError("TramlineMap: Farmland with id %d not found", farmlandId)
+	if 0.1 < math.abs(workingWidth) then
+		local farmland = g_farmlandManager:getFarmlandById(farmlandId)
+		if farmland ~= nil then
+			local state = {}
+			state.workingWidth = workingWidth
+			state.workDirection = workDirection
+			state.spacing = spacing
+			state.enabled = enabled
+			state.pendingUpdate = state.enabled
+			state.clearFruit = clearFruit
+			self.farmlandTramlineStates[farmlandId] = state
 		else
-			local v140_ = {
-				["workingWidth"] = workingWidth,
-				["workDirection"] = workDirection,
-				["spacing"] = spacing,
-				["enabled"] = enabled
-			}
-			v140_.pendingUpdate = v140_.enabled
-			v140_.clearFruit = clearFruit
-			self.farmlandTramlineStates[farmlandId] = v140_
+			Logging.devError("TramlineMap: Farmland with id %d not found", farmlandId)
 		end
 	else
 		self.farmlandTramlineStates[farmlandId] = nil
@@ -319,70 +275,62 @@ function TramlineMap:setFarmlandTramlines(farmlandId, workingWidth, workDirectio
 	TramlineMapSetEvent.sendEvent(farmlandId, workingWidth, workDirection, spacing, enabled, clearFruit, noEventSend)
 	g_messageCenter:publish(MessageType.PRECISION_FARMING_TRAMLINES_CHANGED)
 end
-
--- Local values: farmland, state, posX, posZ, fieldCourseSettings, segmentFunc, finishedFunc
 function TramlineMap:onDensityMapUpdateFinished(farmlandId)
-	local v_u_143_ = g_farmlandManager:getFarmlandById(farmlandId)
-	local v_u_144_ = self.farmlandTramlineStates[farmlandId]
-	if v_u_143_ ~= nil and (v_u_144_ ~= nil and v_u_144_.pendingUpdate) then
-		v_u_144_.pendingUpdate = false
+	local farmland = g_farmlandManager:getFarmlandById(farmlandId)
+	local state = self.farmlandTramlineStates[farmlandId]
+	if farmland ~= nil and (state ~= nil and state.pendingUpdate) then
+		state.pendingUpdate = false
 		if g_server ~= nil then
-			local v145_, v146_ = v_u_143_:getIndicatorPosition()
-			local v147_ = FieldCourseSettings.new()
-			v147_.implementWidth = v_u_144_.workingWidth
-			local v148_ = v_u_144_.workDirection
-			v147_.workDirection = math.rad(v148_)
-			v147_.numHeadlands = 1
-			v147_.segmentExtendedToBoundary = true
-			v147_.segmentHeadlandReverseLines = true
-			v147_.segmentMinOffset = 3
-			v147_.segmentMinLength = 25
-			FieldCourseIterator.new(v145_, v146_, v147_, function(p149_, p150_, p151_, p152_, p153_, p154_, _, _)
-				-- upvalues: (copy) self, (copy) v_u_144_
-				if TramlineMap.MIN_STRAIGHT_SEGMENT_LENGTH < p153_ or p154_ ~= nil then
-					self:paintLine(p149_, p150_, p151_, p152_, v_u_144_.spacing)
+			local posX, posZ = farmland:getIndicatorPosition()
+			local fieldCourseSettings = FieldCourseSettings.new()
+			fieldCourseSettings.implementWidth = state.workingWidth
+			fieldCourseSettings.workDirection = math.rad(state.workDirection)
+			fieldCourseSettings.numHeadlands = 1
+			fieldCourseSettings.segmentExtendedToBoundary = true
+			fieldCourseSettings.segmentHeadlandReverseLines = true
+			fieldCourseSettings.segmentMinOffset = 3
+			fieldCourseSettings.segmentMinLength = 25
+			local segmentFunc = function(sx, sz, ex, ez, segmentLength, headlandIndex, islandIndex, totalCourseLength)
+				if TramlineMap.MIN_STRAIGHT_SEGMENT_LENGTH < segmentLength or headlandIndex ~= nil then
+					self:paintLine(sx, sz, ex, ez, state.spacing)
 				end
-			end, function()
-				-- upvalues: (copy) v_u_144_, (copy) farmlandId, (copy) self, (copy) v_u_143_
-				if v_u_144_.clearFruit then
-					v_u_144_.clearFruit = false
-					local v155_ = g_fieldManager:getFieldById(farmlandId)
-					if v155_ ~= nil then
-						self:clearTramlines(nil, nil, nil, nil, nil, nil, v155_:getDensityMapPolygon(), not v_u_143_.isOwned)
+			end
+			local finishedFunc = function()
+				if state.clearFruit then
+					state.clearFruit = false
+					local field = g_fieldManager:getFieldById(farmlandId)
+					if field ~= nil then
+						local area = field:getDensityMapPolygon()
+						self:clearTramlines(nil, nil, nil, nil, nil, nil, area, not farmland.isOwned)
 					end
 				end
-				Logging.devInfo("TramlineMap: Set tramlines for farmland %d (%d m)", farmlandId, v_u_144_.workingWidth)
-			end)
+				Logging.devInfo("TramlineMap: Set tramlines for farmland %d (%d m)", farmlandId, state.workingWidth)
+			end
+			FieldCourseIterator.new(posX, posZ, fieldCourseSettings, segmentFunc, finishedFunc)
 		end
 	end
 end
-
--- Local values: updateTask
 function TramlineMap:resetFarmlandTramlines(farmlandId)
-	local v157_ = TramlineMapDensityMapTask.new()
-	v157_:setData(farmlandId)
-	v157_:enqueue()
+	local updateTask = TramlineMapDensityMapTask.new()
+	updateTask:setData(farmlandId)
+	updateTask:enqueue()
 end
-
--- Local values: functionData, multiModifier
 function TramlineMap:getResetTramlinesMultiMudifier(farmlandId)
-	local v160_ = self.densityMapModifiersReset
-	if v160_ == nil then
-		v160_ = {
-			["modifier"] = DensityMapModifier.new(self.bitVectorMap, 0, self.numChannels, g_terrainNode),
-			["multiModifiers"] = {}
-		}
-		self.densityMapModifiersReset = v160_
+	local functionData = self.densityMapModifiersReset
+	if functionData == nil then
+		functionData = {}
+		functionData.modifier = DensityMapModifier.new(self.bitVectorMap, 0, self.numChannels, g_terrainNode)
+		functionData.multiModifiers = {}
+		self.densityMapModifiersReset = functionData
 	end
-	local v161_ = v160_.multiModifiers[farmlandId]
-	if v161_ == nil then
-		v161_ = DensityMapMultiModifier.new()
-		v160_.multiModifiers[farmlandId] = v161_
-		v161_:addExecuteSet(0, v160_.modifier)
+	local multiModifier = functionData.multiModifiers[farmlandId]
+	if multiModifier == nil then
+		multiModifier = DensityMapMultiModifier.new()
+		functionData.multiModifiers[farmlandId] = multiModifier
+		multiModifier:addExecuteSet(0, functionData.modifier)
 	end
-	return v161_
+	return multiModifier
 end
-
 function TramlineMap:buildOverlay(overlay, yieldFilter, isColorBlindMode)
 	resetDensityMapVisualizationOverlay(overlay)
 	setOverlayColor(overlay, 1, 1, 1, 0.1)
@@ -390,32 +338,22 @@ function TramlineMap:buildOverlay(overlay, yieldFilter, isColorBlindMode)
 	setDensityMapVisualizationOverlayStateColor(overlay, self.bitVectorMap, 0, 0, 0, 2, 2, 0, 1, 0)
 	setDensityMapVisualizationOverlayStateColor(overlay, self.bitVectorMap, 0, 0, 0, 2, 3, 0, 1, 0)
 end
-
 function TramlineMap:getShowInMenu()
 	return false
 end
-
 function TramlineMap:collectFarmlandHotspotActions(actions)
-	local v166_ = {
-		["title"] = g_i18n:getText("ui_tramlines"),
-		["callback"] = self.onSetUpTramlines,
-		["callbackTarget"] = self
-	}
-	table.insert(actions, v166_)
+	table.insert(actions, { callbackTarget = self, title = g_i18n:getText("ui_tramlines"), callback = self.onSetUpTramlines })
 end
-
--- Local values: callback, state, implementWidthIndex, workDirectionIndex, spacingIndex, i, number, i, _, i, number, fieldX, fieldZ, farmland
 function TramlineMap:onSetUpTramlines(farmlandId)
-	local function v181_(p169_, p170_, p171_, p172_, p173_)
-		-- upvalues: (copy) self
-		local v174_ = #p170_
-		if p169_ and (v174_ > 0 and (p171_ ~= 0 and p172_ ~= 0)) then
-			local v175_ = self.implementWidths[p171_]
-			local v176_ = self.workDirectionTextToDeg[p172_]
-			local v177_ = self.spacings[p173_]
-			for v178_, v179_ in ipairs(p170_) do
-				local v180_ = v178_ == v174_
-				self:setFarmlandTramlines(v179_:getId(), v175_, v176_, v177_, v180_, false)
+	local callback = function(applyChanges, farmlands, implementWidthIndex, workDirectionIndex, spacingIndex)
+		local numFarmlands = #farmlands
+		if applyChanges and (0 < numFarmlands and (implementWidthIndex ~= 0 and workDirectionIndex ~= 0)) then
+			local workingWidth = self.implementWidths[implementWidthIndex]
+			local workDirection = self.workDirectionTextToDeg[workDirectionIndex]
+			local spacing = self.spacings[spacingIndex]
+			for index, farmland in ipairs(farmlands) do
+				local enabled = index == numFarmlands
+				self:setFarmlandTramlines(farmland:getId(), workingWidth, workDirection, spacing, enabled, false)
 			end
 		end
 		if self.mapFrame ~= nil then
@@ -425,67 +363,59 @@ function TramlineMap:onSetUpTramlines(farmlandId)
 			self.mapFrame.ingameMapBase:restoreDefaultFilter()
 		end
 	end
-	local v182_ = self.farmlandTramlineStates[farmlandId]
-	local v183_ = 1
-	local v184_ = 1
-	local v185_ = 1
-	if v182_ ~= nil then
-		for v186_, v187_ in ipairs(self.implementWidths) do
-			if v187_ == v182_.workingWidth then
-				v183_ = v186_
+	local state = self.farmlandTramlineStates[farmlandId]
+	local implementWidthIndex = 1
+	local workDirectionIndex = 1
+	local spacingIndex = 1
+	if state ~= nil then
+		for i, number in ipairs(self.implementWidths) do
+			if number == state.workingWidth then
+				implementWidthIndex = i
 				break
 			end
 		end
-		for v188_, _ in ipairs(self.workDirectionTextToDeg) do
-			local v189_ = v182_.workDirection - self.workDirectionTextToDeg[v188_]
-			if math.abs(v189_) < 0.1 then
-				v184_ = v188_
+		for i, _ in ipairs(self.workDirectionTextToDeg) do
+			if math.abs(state.workDirection - self.workDirectionTextToDeg[i]) < 0.1 then
+				workDirectionIndex = i
 				break
 			end
 		end
-		for v190_, v191_ in ipairs(self.spacings) do
-			local v192_ = v182_.spacing - v191_
-			if math.abs(v192_) < 0.1 then
-				v185_ = v190_
+		for i, number in ipairs(self.spacings) do
+			if math.abs(state.spacing - number) < 0.1 then
+				spacingIndex = i
 				break
 			end
 		end
 	end
-	local v193_ = g_farmlandManager:getFarmlandById(farmlandId)
-	local v194_, v195_
-	if v193_ == nil then
-		v194_ = 0
-		v195_ = 0
-	else
-		v194_, v195_ = v193_:getIndicatorPosition()
+	local fieldX = 0
+	local fieldZ = 0
+	local farmland = g_farmlandManager:getFarmlandById(farmlandId)
+	if farmland ~= nil then
+		fieldX, fieldZ = farmland:getIndicatorPosition()
 	end
 	if self.mapFrame ~= nil then
 		self.mapFrame.ingameMap:onClose()
 		self.mapFrame:toggleMapInput(false)
 		self.mapFrame.ingameMapBase:restoreDefaultFilter()
 	end
-	TramlineSettingsDialog.show(v183_, v184_, v185_, v194_, v195_, v181_)
+	TramlineSettingsDialog.show(implementWidthIndex, workDirectionIndex, spacingIndex, fieldX, fieldZ, callback)
 end
-
--- Local values: field
 function TramlineMap:debugTramlineSet(fieldId, workingWidth, workDirection, spacing)
-	local v201_ = tonumber(fieldId)
-	local v202_ = tonumber(workingWidth) or 30
-	local v203_ = tonumber(workDirection) or -57.29577951308232
-	local v204_ = tonumber(spacing) or 2
-	local v205_ = g_fieldManager:getFieldById(v201_)
-	if v205_ ~= nil and v205_.getDensityMapPolygon ~= nil then
-		self:setFarmlandTramlines(v205_:getId(), v202_, v203_, v204_, true, true)
+	fieldId = tonumber(fieldId)
+	workingWidth = tonumber(workingWidth) or 30
+	workDirection = tonumber(workDirection) or -57.29577951308232
+	spacing = tonumber(spacing) or 2
+	local field = g_fieldManager:getFieldById(fieldId)
+	if field ~= nil and field.getDensityMapPolygon ~= nil then
+		self:setFarmlandTramlines(field:getId(), workingWidth, workDirection, spacing, true, true)
 	end
 end
-
--- Local values: field
 function TramlineMap:onFarmlandStateChanged(farmlandId, farmId, loadFromSavegame)
 	if not loadFromSavegame then
 		if farmId == FarmlandManager.NO_OWNER_FARM_ID then
-			if g_fieldManager:getFieldById(farmlandId) ~= nil then
+			local field = g_fieldManager:getFieldById(farmlandId)
+			if field ~= nil then
 				self:setFarmlandTramlines(farmlandId, self.npcWorkingWidth, -57.29577951308232, self.npcSpacing, true, false)
-				return
 			end
 		else
 			Logging.devInfo("TramlineMap: Reset tramlines on bought farmland %d", farmlandId)
@@ -493,120 +423,120 @@ function TramlineMap:onFarmlandStateChanged(farmlandId, farmId, loadFromSavegame
 		end
 	end
 end
-
 function TramlineMap:overwriteGameFunctions(pfModule)
 	TramlineMap:superClass().overwriteGameFunctions(self, pfModule)
-	pfModule:overwriteGameFunction(FSDensityMapUtil, "updateSowingArea", function(p212_, p213_, p214_, p215_, p216_, p217_, p218_, p219_, ...)
-		-- upvalues: (copy) self
-		local v220_, v221_ = p212_(p213_, p214_, p215_, p216_, p217_, p218_, p219_, ...)
-		local v222_ = g_missionManager:getMissionMapActiveMissionIdAtWorldPosition((p214_ + p216_) * 0.5, (p215_ + p217_) * 0.5)
-		if v220_ > 0 and v222_ == 0 then
-			self:clearTramlines(p214_, p215_, p216_, p217_, p218_, p219_, nil, false)
+	pfModule:overwriteGameFunction(FSDensityMapUtil, "updateSowingArea", function(superFunc, fruitIndex, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, ...)
+		local changedArea, totalArea = superFunc(fruitIndex, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, ...)
+		local missionId = g_missionManager:getMissionMapActiveMissionIdAtWorldPosition((startWorldX + widthWorldX) * 0.5, (startWorldZ + widthWorldZ) * 0.5)
+		if 0 < changedArea and missionId == 0 then
+			self:clearTramlines(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, nil, false)
 		end
-		return v220_, v221_
+		return changedArea, totalArea
 	end)
-	pfModule:overwriteGameFunction(FSDensityMapUtil, "updateDirectSowingArea", function(p223_, p224_, p225_, p226_, p227_, p228_, p229_, p230_, ...)
-		-- upvalues: (copy) self
-		local v231_, v232_ = p223_(p224_, p225_, p226_, p227_, p228_, p229_, p230_, ...)
-		local v233_ = g_missionManager:getMissionMapActiveMissionIdAtWorldPosition((p225_ + p227_) * 0.5, (p226_ + p228_) * 0.5)
-		if v231_ > 0 and v233_ == 0 then
-			self:clearTramlines(p225_, p226_, p227_, p228_, p229_, p230_, nil, false)
+	pfModule:overwriteGameFunction(FSDensityMapUtil, "updateDirectSowingArea", function(superFunc, fruitIndex, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, ...)
+		local changedArea, totalArea = superFunc(fruitIndex, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, ...)
+		local missionId = g_missionManager:getMissionMapActiveMissionIdAtWorldPosition((startWorldX + widthWorldX) * 0.5, (startWorldZ + widthWorldZ) * 0.5)
+		if 0 < changedArea and missionId == 0 then
+			self:clearTramlines(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, nil, false)
 		end
-		return v231_, v232_
+		return changedArea, totalArea
 	end)
-	pfModule:overwriteGameFunction(FSDensityMapUtil, "updateWheelDestructionArea", function(_, p234_, p235_, p236_, p237_, p238_, p239_, ...)
-		-- upvalues: (copy) self
-		local v240_ = self.updateWheelDestructionAreaData
-		if v240_ == nil then
-			local v241_ = g_terrainNode
-			local v242_ = g_currentMission.fieldGroundSystem
-			local v243_, v244_, v245_ = v242_:getDensityMapData(FieldDensityMap.GROUND_TYPE)
-			local v246_, v247_, v248_ = v242_:getDensityMapData(FieldDensityMap.SPRAY_TYPE)
-			v240_ = {
-				["modifier"] = DensityMapModifier.new(v246_, v247_, v248_, v241_),
-				["multiModifier"] = nil,
-				["filter1"] = DensityMapFilter.new(v243_, v244_, v245_),
-				["fieldFilter"] = DensityMapFilter.new(v243_, v244_, v245_)
-			}
-			v240_.fieldFilter:setValueCompareParams(DensityValueCompareType.GREATER, 0)
-			v240_.tramlineFilter = DensityMapFilter.new(self.bitVectorMap, 1, 1)
-			v240_.tramlineFilter:setValueCompareParams(DensityValueCompareType.EQUAL, 0)
-			self.updateWheelDestructionAreaData = v240_
+	pfModule:overwriteGameFunction(FSDensityMapUtil, "updateWheelDestructionArea", function(superFunc, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, ...)
+		local functionData = self.updateWheelDestructionAreaData
+		if functionData == nil then
+			local terrainRootNode = g_terrainNode
+			local fieldGroundSystem = g_currentMission.fieldGroundSystem
+			local groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels = fieldGroundSystem:getDensityMapData(FieldDensityMap.GROUND_TYPE)
+			local sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels = fieldGroundSystem:getDensityMapData(FieldDensityMap.SPRAY_TYPE)
+			functionData = {}
+			functionData.modifier = DensityMapModifier.new(sprayTypeMapId, sprayTypeFirstChannel, sprayTypeNumChannels, terrainRootNode)
+			functionData.multiModifier = nil
+			functionData.filter1 = DensityMapFilter.new(groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels)
+			functionData.fieldFilter = DensityMapFilter.new(groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels)
+			functionData.fieldFilter:setValueCompareParams(DensityValueCompareType.GREATER, 0)
+			functionData.tramlineFilter = DensityMapFilter.new(self.bitVectorMap, 1, 1)
+			functionData.tramlineFilter:setValueCompareParams(DensityValueCompareType.EQUAL, 0)
+			self.updateWheelDestructionAreaData = functionData
 		end
-		local v249_ = v240_.modifier
-		local v250_ = v240_.multiModifier
-		local v251_ = v240_.filter1
-		local v252_ = v240_.fieldFilter
-		local v253_ = v240_.tramlineFilter
+		local modifier = functionData.modifier
+		local multiModifier = functionData.multiModifier
+		local filter1 = functionData.filter1
+		local fieldFilter = functionData.fieldFilter
+		local tramlineFilter = functionData.tramlineFilter
 		g_currentMission.growthSystem:setIgnoreDensityChanges(true)
-		if v250_ == nil then
-			v250_ = DensityMapMultiModifier.new()
-			v240_.multiModifier = v250_
-			for _, v254_ in pairs(g_fruitTypeManager:getFruitTypes()) do
-				if v254_.terrainDataPlaneId ~= nil and v254_.minWheelDestructionState ~= nil then
-					v249_:resetDensityMapAndChannels(v254_.terrainDataPlaneId, v254_.startStateChannel, v254_.numStateChannels)
-					v251_:resetDensityMapAndChannels(v254_.terrainDataPlaneId, v254_.startStateChannel, v254_.numStateChannels)
-					v251_:setValueCompareParams(DensityValueCompareType.BETWEEN, v254_.minWheelDestructionState, v254_.maxWheelDestructionState)
-					v250_:addExecuteSet(v254_.wheelDestructionState, v249_, v251_, v252_, v253_)
+		if multiModifier == nil then
+			multiModifier = DensityMapMultiModifier.new()
+			functionData.multiModifier = multiModifier
+			for _, desc in pairs(g_fruitTypeManager:getFruitTypes()) do
+				if desc.terrainDataPlaneId == nil or desc.minWheelDestructionState == nil then
+					continue
 				end
+				modifier:resetDensityMapAndChannels(desc.terrainDataPlaneId, desc.startStateChannel, desc.numStateChannels)
+				filter1:resetDensityMapAndChannels(desc.terrainDataPlaneId, desc.startStateChannel, desc.numStateChannels)
+				filter1:setValueCompareParams(DensityValueCompareType.BETWEEN, desc.minWheelDestructionState, desc.maxWheelDestructionState)
+				multiModifier:addExecuteSet(desc.wheelDestructionState, modifier, filter1, fieldFilter, tramlineFilter)
 			end
-			for v255_ = 1, #g_currentMission.dynamicFoliageLayers do
-				local v256_ = g_currentMission.dynamicFoliageLayers[v255_]
-				v249_:resetDensityMapAndChannels(v256_, 0, (getTerrainDetailNumChannels(v256_)))
-				v250_:addExecuteSet(0, v249_)
+			for i = 1, #g_currentMission.dynamicFoliageLayers do
+				local id = g_currentMission.dynamicFoliageLayers[i]
+				local numChannels = getTerrainDetailNumChannels(id)
+				modifier:resetDensityMapAndChannels(id, 0, numChannels)
+				multiModifier:addExecuteSet(0, modifier)
 			end
 		end
-		v250_:updateParallelogramWorldCoords(p234_, p235_, p236_, p237_, p238_, p239_, DensityCoordType.POINT_POINT_POINT)
-		v250_:execute()
-		FSDensityMapUtil.removeWeedArea(p234_, p235_, p236_, p237_, p238_, p239_)
+		multiModifier:updateParallelogramWorldCoords(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, DensityCoordType.POINT_POINT_POINT)
+		multiModifier:execute()
+		FSDensityMapUtil.removeWeedArea(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
 		g_currentMission.growthSystem:setIgnoreDensityChanges(false)
 	end)
-	pfModule:overwriteGameFunction(FieldUpdateTask, "prepare", function(p257_, p258_, ...)
-		-- upvalues: (copy) self
-		p257_(p258_, ...)
-		self:addTramlineClearToMultiModifier(p258_.multiModifier, true)
+	pfModule:overwriteGameFunction(FieldUpdateTask, "prepare", function(superFunc, _self, ...)
+		superFunc(_self, ...)
+		self:addTramlineClearToMultiModifier(_self.multiModifier, true)
 	end)
-	pfModule:overwriteGameFunction(FarmlandManager, "loadFromXMLFile", function(p259_, p260_, p261_, ...)
-		-- upvalues: (copy) self
-		local v262_ = p259_(p260_, p261_, ...)
+	pfModule:overwriteGameFunction(FarmlandManager, "loadFromXMLFile", function(superFunc, _self, xmlFilename, ...)
+		local success = superFunc(_self, xmlFilename, ...)
 		if self.npcWorkingWidth ~= nil then
-			for _, v263_ in ipairs(g_farmlandManager.sortedFarmlands) do
-				local v264_ = v263_:getId()
-				if not v263_.isOwned and (g_fieldManager:getFieldById(v264_) ~= nil and self.farmlandTramlineStates[v264_] == nil) then
-					Logging.devInfo("Initialize tramlines on NPC field \'%d\'", v264_)
-					self:setFarmlandTramlines(v263_:getId(), self.npcWorkingWidth, -57.29577951308232, self.npcSpacing, true, true, true)
+			for _, farmland in ipairs(g_farmlandManager.sortedFarmlands) do
+				local farmlandId = farmland:getId()
+				if farmland.isOwned then
+					continue
+				end
+				local field = g_fieldManager:getFieldById(farmlandId)
+				if field == nil then
+					continue
+				end
+				if self.farmlandTramlineStates[farmlandId] == nil then
+					Logging.devInfo("Initialize tramlines on NPC field '%d'", farmlandId)
+					self:setFarmlandTramlines(farmland:getId(), self.npcWorkingWidth, -57.29577951308232, self.npcSpacing, true, true, true)
 				end
 			end
 		end
-		return v262_
+		return success
 	end)
-	pfModule:overwriteGameFunction(AbstractFieldMission, "initializeModifier", function(p265_, p266_, ...)
-		-- upvalues: (copy) self
-		p265_(p266_, ...)
+	pfModule:overwriteGameFunction(AbstractFieldMission, "initializeModifier", function(superFunc, _self, ...)
+		superFunc(_self, ...)
 		if self.missionTramlineModifier ~= nil then
-			p266_.field:getDensityMapPolygon():applyToModifier(self.missionTramlineModifier)
+			local densityMapPolygon = _self.field:getDensityMapPolygon()
+			densityMapPolygon:applyToModifier(self.missionTramlineModifier)
 		end
 	end)
-	pfModule:overwriteGameFunction(SowMission, "createModifier", function(p267_, p268_, ...)
-		-- upvalues: (copy) self
-		p267_(p268_, ...)
+	pfModule:overwriteGameFunction(SowMission, "createModifier", function(superFunc, _self, ...)
+		superFunc(_self, ...)
 		if self.missionTramlineModifier == nil then
 			self.missionTramlineModifier = DensityMapModifier.new(self.bitVectorMap, 0, 1, g_terrainNode)
 			self.missionTramlineFilter = DensityMapFilter.new(self.bitVectorMap, 0, 1)
 			self.missionTramlineFilter:setValueCompareParams(DensityValueCompareType.EQUAL, 1)
 		end
 	end)
-	pfModule:overwriteGameFunction(SowMission, "getPartitionCompletion", function(p269_, p270_, p271_, ...)
-		-- upvalues: (copy) self
-		local v272_, v273_, v274_ = p269_(p270_, p271_, ...)
+	pfModule:overwriteGameFunction(SowMission, "getPartitionCompletion", function(superFunc, _self, partitionIndex, ...)
+		local sumPixels, area, totalArea = superFunc(_self, partitionIndex, ...)
 		if self.missionTramlineModifier ~= nil then
-			if p270_.completionPartitions ~= nil and #p270_.completionPartitions > 1 then
-				local v275_ = p270_.completionPartitions[p271_]
-				self.missionTramlineModifier:setPolygonClipRegion(v275_.minZ, v275_.maxZ)
+			if _self.completionPartitions ~= nil and 1 < #_self.completionPartitions then
+				local partition = _self.completionPartitions[partitionIndex]
+				self.missionTramlineModifier:setPolygonClipRegion(partition.minZ, partition.maxZ)
 			end
-			local _, v276_, _ = self.missionTramlineModifier:executeGet(self.missionTramlineFilter)
-			v274_ = v274_ - v276_
+			local _, tramlineArea, _ = self.missionTramlineModifier:executeGet(self.missionTramlineFilter)
+			totalArea = totalArea - tramlineArea
 		end
-		return v272_, v273_, v274_
+		return sumPixels, area, totalArea
 	end)
 end

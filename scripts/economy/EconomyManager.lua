@@ -1,4 +1,3 @@
--- Local values: EconomyManager_mt
 EconomyManager = {}
 source("dataS/scripts/economy/GreatDemandsEvent.lua")
 source("dataS/scripts/economy/PricingHistoryInitialEvent.lua")
@@ -17,284 +16,253 @@ EconomyManager.LIFETIME_OPERATINGTIME_RATIO = 0.08333
 EconomyManager.CONFIG_CHANGE_PRICE = 1000
 EconomyManager.DIRECT_SELL_MULTIPLIER = 1.1
 EconomyManager.MAX_DAILYUPKEEP_MULTIPLIER = 4
-
--- Upvalues: EconomyManager_mt
--- Local values: self
 function EconomyManager.new(customMt)
-	-- upvalues: (copy) EconomyManager_mt
-	local v3_ = customMt or EconomyManager_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.minuteUpdateInterval = 5
-	v4_.minuteTimer = v4_.minuteUpdateInterval
-	v4_.showMoneyChangeNextMinute = false
-	v4_.greatDemandFillTypes = {}
-	v4_.greatDemands = {}
-	v4_.numberOfConcurrentDemands = EconomyManager.MAX_GREAT_DEMANDS
-	g_messageCenter:subscribe(MessageType.MINUTE_CHANGED, v4_.minuteChanged, v4_)
-	g_messageCenter:subscribe(MessageType.HOUR_CHANGED, v4_.hourChanged, v4_)
-	g_messageCenter:subscribe(MessageType.DAY_CHANGED, v4_.dayChanged, v4_)
-	g_messageCenter:subscribe(MessageType.PERIOD_CHANGED, v4_.periodChanged, v4_)
-	v4_.sellingStations = {}
-	v4_.sellingStationUpdateIndex = 1
-	return v4_
+	local self = setmetatable({}, customMt or EconomyManager_mt)
+	self.minuteUpdateInterval = 5
+	self.minuteTimer = self.minuteUpdateInterval
+	self.showMoneyChangeNextMinute = false
+	self.greatDemandFillTypes = {}
+	self.greatDemands = {}
+	self.numberOfConcurrentDemands = EconomyManager.MAX_GREAT_DEMANDS
+	g_messageCenter:subscribe(MessageType.MINUTE_CHANGED, self.minuteChanged, self)
+	g_messageCenter:subscribe(MessageType.HOUR_CHANGED, self.hourChanged, self)
+	g_messageCenter:subscribe(MessageType.DAY_CHANGED, self.dayChanged, self)
+	g_messageCenter:subscribe(MessageType.PERIOD_CHANGED, self.periodChanged, self)
+	self.sellingStations = {}
+	self.sellingStationUpdateIndex = 1
+	return self
 end
-
--- Local values: _, greatDemand
 function EconomyManager:init(mission)
 	for _ = 1, self.numberOfConcurrentDemands do
-		local v7_ = GreatDemandSpecs.new()
-		v7_:setUpRandomDemand(true, self.greatDemands, mission)
-		local v8_ = self.greatDemands
-		table.insert(v8_, v7_)
+		local greatDemand = GreatDemandSpecs.new()
+		greatDemand:setUpRandomDemand(true, self.greatDemands, mission)
+		table.insert(self.greatDemands, greatDemand)
 	end
 end
-
 function EconomyManager:delete()
 	g_messageCenter:unsubscribeAll(self)
 end
-
--- Local values: xmlFile
 function EconomyManager:saveToXMLFile(xmlFileHandle, key)
-	local v_u_13_ = XMLFile.wrap(xmlFileHandle)
-	v_u_13_:setSortedTable(key .. ".greatDemands.greatDemand", self.greatDemands, function(p14_, p15_)
-		-- upvalues: (copy) v_u_13_
-		local v16_ = g_fillTypeManager:getFillTypeNameByIndex(p15_.fillTypeIndex)
-		if v16_ ~= nil then
-			local v17_ = p15_.sellStation.owningPlaceable:getUniqueId()
-			if v17_ ~= nil then
-				v_u_13_:setString(p14_ .. "#uniqueId", v17_)
-				v_u_13_:setString(p14_ .. "#fillTypeName", v16_)
-				v_u_13_:setFloat(p14_ .. "#demandMultiplier", p15_.demandMultiplier)
-				v_u_13_:setInt(p14_ .. "#demandStartDay", p15_.demandStart.day)
-				v_u_13_:setInt(p14_ .. "#demandStartHour", p15_.demandStart.hour)
-				v_u_13_:setInt(p14_ .. "#demandDuration", p15_.demandDuration)
-				v_u_13_:setBool(p14_ .. "#isRunning", p15_.isRunning)
-				v_u_13_:setBool(p14_ .. "#isValid", p15_.isValid)
+	local xmlFile = XMLFile.wrap(xmlFileHandle)
+	xmlFile:setSortedTable(key .. ".greatDemands.greatDemand", self.greatDemands, function(demandKey, greatDemand)
+		local fillTypeName = g_fillTypeManager:getFillTypeNameByIndex(greatDemand.fillTypeIndex)
+		if fillTypeName ~= nil then
+			local uniqueId = greatDemand.sellStation.owningPlaceable:getUniqueId()
+			if uniqueId ~= nil then
+				xmlFile:setString(demandKey .. "#uniqueId", uniqueId)
+				xmlFile:setString(demandKey .. "#fillTypeName", fillTypeName)
+				xmlFile:setFloat(demandKey .. "#demandMultiplier", greatDemand.demandMultiplier)
+				xmlFile:setInt(demandKey .. "#demandStartDay", greatDemand.demandStart.day)
+				xmlFile:setInt(demandKey .. "#demandStartHour", greatDemand.demandStart.hour)
+				xmlFile:setInt(demandKey .. "#demandDuration", greatDemand.demandDuration)
+				xmlFile:setBool(demandKey .. "#isRunning", greatDemand.isRunning)
+				xmlFile:setBool(demandKey .. "#isValid", greatDemand.isValid)
 			end
 		end
 	end)
-	v_u_13_:setSortedTable(key .. ".fillTypes.fillType", g_fillTypeManager:getFillTypes(), function(p18_, p19_)
-		-- upvalues: (copy) v_u_13_
-		v_u_13_:setString(p18_ .. "#fillType", p19_.name)
-		if p19_.totalAmount > 0 then
-			v_u_13_:setInt(p18_ .. "#totalAmount", p19_.totalAmount)
+	xmlFile:setSortedTable(key .. ".fillTypes.fillType", g_fillTypeManager:getFillTypes(), function(fillTypeKey, fillType)
+		xmlFile:setString(fillTypeKey .. "#fillType", fillType.name)
+		if 0 < fillType.totalAmount then
+			xmlFile:setInt(fillTypeKey .. "#totalAmount", fillType.totalAmount)
 		end
-		v_u_13_:setSortedTable(p18_ .. ".history.period", p19_.economy.history, function(p20_, p21_, p22_)
-			-- upvalues: (ref) v_u_13_
-			SeasonPeriod.saveToXMLFile(v_u_13_, p20_ .. "#period", p22_)
-			local v23_ = v_u_13_
-			local v24_ = p21_ * 1000
-			v23_:setInt(p20_, (math.round(v24_)))
+		xmlFile:setSortedTable(fillTypeKey .. ".history.period", fillType.economy.history, function(periodKey, price, period)
+			SeasonPeriod.saveToXMLFile(xmlFile, periodKey .. "#period", period)
+			xmlFile:setInt(periodKey, math.round(price * 1000))
 		end)
 	end)
-	v_u_13_:delete()
+	xmlFile:delete()
 end
-
--- Local values: xmlFile
 function EconomyManager:loadFromXMLFile(xmlFileHandle, key)
-	local v_u_28_ = XMLFile.wrap(xmlFileHandle)
+	local xmlFile = XMLFile.wrap(xmlFileHandle)
 	self.greatDemandToLoad = {}
-	v_u_28_:iterate(key .. ".greatDemands.greatDemand", function(_, p29_)
-		-- upvalues: (copy) v_u_28_, (copy) self
-		local v30_ = v_u_28_:getString(p29_ .. "#uniqueId")
-		if v30_ == nil then
+	xmlFile:iterate(key .. ".greatDemands.greatDemand", function(_, demandKey)
+		local uniqueId = xmlFile:getString(demandKey .. "#uniqueId")
+		if uniqueId == nil then
+			return
+		end
+		local fillTypeName = xmlFile:getString(demandKey .. "#fillTypeName")
+		local fillType = g_fillTypeManager:getFillTypeByName(fillTypeName)
+		local fillTypeIndex = nil
+		if fillType ~= nil then
+			fillTypeIndex = fillType.index
+		end
+		if fillTypeIndex == nil then
 			return
 		else
-			local v31_ = v_u_28_:getString(p29_ .. "#fillTypeName")
-			local v32_ = g_fillTypeManager:getFillTypeByName(v31_)
-			local v33_
-			if v32_ == nil then
-				v33_ = nil
-			else
-				v33_ = v32_.index
-			end
-			if v33_ ~= nil then
-				local v34_ = {
-					["uniqueId"] = v30_,
-					["fillTypeIndex"] = v33_,
-					["demandMultiplier"] = v_u_28_:getFloat(p29_ .. "#demandMultiplier"),
-					["day"] = v_u_28_:getInt(p29_ .. "#demandStartDay"),
-					["hour"] = v_u_28_:getInt(p29_ .. "#demandStartHour"),
-					["demandDuration"] = v_u_28_:getInt(p29_ .. "#demandDuration"),
-					["isRunning"] = v_u_28_:getBool(p29_ .. "#isRunning", false),
-					["isValid"] = v_u_28_:getBool(p29_ .. "#isValid", false)
-				}
-				local v35_ = self.greatDemandToLoad
-				table.insert(v35_, v34_)
-			end
+			local greatDemand = {}
+			greatDemand.uniqueId = uniqueId
+			greatDemand.fillTypeIndex = fillTypeIndex
+			greatDemand.demandMultiplier = xmlFile:getFloat(demandKey .. "#demandMultiplier")
+			greatDemand.day = xmlFile:getInt(demandKey .. "#demandStartDay")
+			greatDemand.hour = xmlFile:getInt(demandKey .. "#demandStartHour")
+			greatDemand.demandDuration = xmlFile:getInt(demandKey .. "#demandDuration")
+			greatDemand.isRunning = xmlFile:getBool(demandKey .. "#isRunning", false)
+			greatDemand.isValid = xmlFile:getBool(demandKey .. "#isValid", false)
+			table.insert(self.greatDemandToLoad, greatDemand)
 		end
 	end)
-	v_u_28_:iterate(key .. ".fillTypes.fillType", function(_, p36_)
-		-- upvalues: (copy) v_u_28_
-		local v37_ = v_u_28_:getString(p36_ .. "#fillType")
-		if v37_ ~= nil then
-			local v_u_38_ = g_fillTypeManager:getFillTypeByName(v37_)
-			if v_u_38_ ~= nil then
-				v_u_38_.totalAmount = v_u_28_:getInt(p36_ .. "#totalAmount", v_u_38_.totalAmount)
-				v_u_28_:iterate(p36_ .. ".history.period", function(_, p39_)
-					-- upvalues: (ref) v_u_28_, (copy) v_u_38_
-					local v40_ = SeasonPeriod.loadFromXMLFile(v_u_28_, p39_ .. "#period")
-					if v40_ ~= nil then
-						v_u_38_.economy.history[v40_] = v_u_28_:getInt(p39_, v_u_38_.economy.history[v40_]) / 1000
+	xmlFile:iterate(key .. ".fillTypes.fillType", function(_, fillTypeKey)
+		local fillTypeName = xmlFile:getString(fillTypeKey .. "#fillType")
+		if fillTypeName == nil then
+			return
+		else
+			local fillType = g_fillTypeManager:getFillTypeByName(fillTypeName)
+			if fillType ~= nil then
+				fillType.totalAmount = xmlFile:getInt(fillTypeKey .. "#totalAmount", fillType.totalAmount)
+				xmlFile:iterate(fillTypeKey .. ".history.period", function(_, periodKey)
+					local period = SeasonPeriod.loadFromXMLFile(xmlFile, periodKey .. "#period")
+					if period ~= nil then
+						fillType.economy.history[period] = xmlFile:getInt(periodKey, fillType.economy.history[period]) / 1000
 					end
 				end)
 			end
 		end
 	end)
-	v_u_28_:delete()
+	xmlFile:delete()
 end
-
--- Local values: i, _, greatDemandToLoad, placeable, station, greatDemand
 function EconomyManager:finalizeGreatDemandLoading()
 	if self.greatDemandToLoad ~= nil then
-		local v42_ = 1
-		for _, v43_ in ipairs(self.greatDemandToLoad) do
-			local v44_ = g_currentMission.placeableSystem:getPlaceableByUniqueId(v43_.uniqueId)
-			if v44_ ~= nil then
-				if v44_.getSellingStation == nil then
-					Logging.warning("Placeable is not a selling station (%s)", v44_.configFileName)
-				else
-					local v45_ = v44_:getSellingStation()
-					if v45_ ~= nil and (v45_.getSupportsGreatDemand and v45_:getSupportsGreatDemand(v43_.fillTypeIndex)) then
-						local v46_ = self.greatDemands[v42_]
-						v46_.sellStation = v45_
-						v46_.fillTypeIndex = v43_.fillTypeIndex
-						v46_.demandMultiplier = v43_.demandMultiplier
-						v46_.demandStart.day = v43_.day
-						v46_.demandStart.hour = v43_.hour
-						v46_.demandDuration = v43_.demandDuration
-						v46_.isRunning = v43_.isRunning
-						v46_.isValid = v43_.isValid
-						v42_ = v42_ + 1
-					end
+		local i = 1
+		for _, greatDemandToLoad in ipairs(self.greatDemandToLoad) do
+			local placeable = g_currentMission.placeableSystem:getPlaceableByUniqueId(greatDemandToLoad.uniqueId)
+			if placeable == nil then
+				continue
+			end
+			if placeable.getSellingStation ~= nil then
+				local station = placeable:getSellingStation()
+				if station == nil then
+					continue
 				end
+				if station.getSupportsGreatDemand and station:getSupportsGreatDemand(greatDemandToLoad.fillTypeIndex) then
+					local greatDemand = self.greatDemands[i]
+					greatDemand.sellStation = station
+					greatDemand.fillTypeIndex = greatDemandToLoad.fillTypeIndex
+					greatDemand.demandMultiplier = greatDemandToLoad.demandMultiplier
+					greatDemand.demandStart.day = greatDemandToLoad.day
+					greatDemand.demandStart.hour = greatDemandToLoad.hour
+					greatDemand.demandDuration = greatDemandToLoad.demandDuration
+					greatDemand.isRunning = greatDemandToLoad.isRunning
+					greatDemand.isValid = greatDemandToLoad.isValid
+					i = i + 1
+				end
+			else
+				Logging.warning("Placeable is not a selling station (%s)", placeable.configFileName)
 			end
 		end
 		self.greatDemandToLoad = nil
 	end
 end
-
--- Local values: alreadyAdded, k, data
 function EconomyManager:addSellingStation(sellingStation)
-	local v49_ = false
-	for _, v50_ in ipairs(self.sellingStations) do
-		if v50_.station == sellingStation then
-			v49_ = true
+	local alreadyAdded = false
+	for k, data in ipairs(self.sellingStations) do
+		if data.station == sellingStation then
+			alreadyAdded = true
 			break
 		end
 	end
-	if not v49_ then
-		local v51_ = self.sellingStations
-		table.insert(v51_, {
-			["station"] = sellingStation,
-			["dt"] = 0,
-			["scaledDt"] = 0
-		})
+	if not alreadyAdded then
+		table.insert(self.sellingStations, { station = sellingStation, dt = 0, scaledDt = 0 })
 	end
 end
-
--- Local values: k, data, i, greatDemand
 function EconomyManager:removeSellingStation(sellingStation)
-	for v54_, v55_ in ipairs(self.sellingStations) do
-		if v55_.station == sellingStation then
-			table.remove(self.sellingStations, v54_)
+	for k, data in ipairs(self.sellingStations) do
+		if data.station == sellingStation then
+			table.remove(self.sellingStations, k)
 			if self.currentUpdatingSellingStation == sellingStation then
 				self.currentUpdatingSellingStation = nil
 			end
-			for v56_ = #self.greatDemands, 1, -1 do
-				if self.greatDemands[v56_].sellStation == sellingStation then
-					table.remove(self.greatDemands, v56_)
+			for i = #self.greatDemands, 1, -1 do
+				local greatDemand = self.greatDemands[i]
+				if greatDemand.sellStation == sellingStation then
+					table.remove(self.greatDemands, i)
 				end
 			end
 			return
 		end
 	end
 end
-
--- Local values: station, isDone
 function EconomyManager:updateSellingStations(dt)
 	if self.currentUpdatingSellingStation == nil then
 		self.sellingStationUpdateIndex = self.sellingStationUpdateIndex + 1
-		if self.sellingStationUpdateIndex > #self.sellingStations then
+		if #self.sellingStations < self.sellingStationUpdateIndex then
 			self.sellingStationUpdateIndex = 1
 		end
 		self.currentUpdatingSellingStation = self.sellingStations[self.sellingStationUpdateIndex]
 	end
-	if self.currentUpdatingSellingStation ~= nil and self.currentUpdatingSellingStation.station:updateSellingStationPrices() then
-		self.currentUpdatingSellingStation = nil
+	if self.currentUpdatingSellingStation ~= nil then
+		local station = self.currentUpdatingSellingStation.station
+		local isDone = station:updateSellingStationPrices()
+		if isDone then
+			self.currentUpdatingSellingStation = nil
+		end
 	end
 end
-
 function EconomyManager:update(dt)
 	self:updateSellingStations(dt)
 end
-
--- Local values: timeAdjustment, _, farm, farmId, money, perDayLeasingCosts, _, item, _, vehicle, vehicleUpkeep, facilityUpkeep, storeItem, item, _, realItem, _, realItem
 function EconomyManager:dayChanged()
 	if g_currentMission:getIsServer() then
-		local v61_ = g_currentMission.environment.timeAdjustment
-		for _, v62_ in ipairs(g_farmManager.farms) do
-			local v63_ = v62_.farmId
-			if v63_ ~= FarmManager.SPECTATOR_FARM_ID then
-				local v64_ = -v62_:calculateDailyLoanInterest()
-				g_currentMission:addMoney(v64_, v63_, MoneyType.LOAN_INTEREST, true)
-				local v65_ = 0
-				for _, v66_ in pairs(g_currentMission.leasedItems) do
-					for _, v67_ in pairs(v66_.items) do
-						if v67_:getOwnerFarmId() == v63_ then
-							v65_ = v65_ + v67_:getPrice() * EconomyManager.PER_DAY_LEASING_FACTOR * v61_
+		local timeAdjustment = g_currentMission.environment.timeAdjustment
+		for _, farm in ipairs(g_farmManager.farms) do
+			local farmId = farm.farmId
+			if farmId == FarmManager.SPECTATOR_FARM_ID then
+				continue
+			end
+			local money = -farm:calculateDailyLoanInterest()
+			g_currentMission:addMoney(money, farmId, MoneyType.LOAN_INTEREST, true)
+			local perDayLeasingCosts = 0
+			for _, item in pairs(g_currentMission.leasedItems) do
+				for _, vehicle in pairs(item.items) do
+					if vehicle:getOwnerFarmId() == farmId then
+						perDayLeasingCosts = perDayLeasingCosts + vehicle:getPrice() * EconomyManager.PER_DAY_LEASING_FACTOR * timeAdjustment
+					end
+				end
+			end
+			if 0 < perDayLeasingCosts then
+				g_currentMission:addMoney(-perDayLeasingCosts, farmId, MoneyType.LEASING_COSTS, true)
+			end
+			local vehicleUpkeep = 0
+			local facilityUpkeep = 0
+			for storeItem, item in pairs(g_currentMission.ownedItems) do
+				if StoreItemUtil.getIsVehicle(storeItem) then
+					for _, realItem in pairs(item.items) do
+						if realItem:getOwnerFarmId() == farmId then
+							vehicleUpkeep = vehicleUpkeep + realItem:getDailyUpkeep() * timeAdjustment
+						end
+					end
+				elseif StoreItemUtil.getIsPlaceable(storeItem) then
+					for _, realItem in pairs(item.items) do
+						if realItem:getOwnerFarmId() == farmId then
+							facilityUpkeep = facilityUpkeep + realItem:getDailyUpkeep() * timeAdjustment
 						end
 					end
 				end
-				if v65_ > 0 then
-					g_currentMission:addMoney(-v65_, v63_, MoneyType.LEASING_COSTS, true)
-				end
-				local v68_ = 0
-				local v69_ = 0
-				for v70_, v71_ in pairs(g_currentMission.ownedItems) do
-					if StoreItemUtil.getIsVehicle(v70_) then
-						for _, v72_ in pairs(v71_.items) do
-							if v72_:getOwnerFarmId() == v63_ then
-								v68_ = v68_ + v72_:getDailyUpkeep() * v61_
-							end
-						end
-					elseif StoreItemUtil.getIsPlaceable(v70_) then
-						for _, v73_ in pairs(v71_.items) do
-							if v73_:getOwnerFarmId() == v63_ then
-								v69_ = v69_ + v73_:getDailyUpkeep() * v61_
-							end
-						end
-					end
-				end
-				if v68_ > 0 then
-					g_currentMission:addMoney(-v68_, v63_, MoneyType.VEHICLE_RUNNING_COSTS, true)
-				end
-				if v69_ > 0 then
-					g_currentMission:addMoney(-v69_, v63_, MoneyType.PROPERTY_MAINTENANCE, true)
-				end
+			end
+			if 0 < vehicleUpkeep then
+				g_currentMission:addMoney(-vehicleUpkeep, farmId, MoneyType.VEHICLE_RUNNING_COSTS, true)
+			end
+			if 0 < facilityUpkeep then
+				g_currentMission:addMoney(-facilityUpkeep, farmId, MoneyType.PROPERTY_MAINTENANCE, true)
 			end
 		end
 		self.showMoneyChangeNextMinute = true
 	end
 end
-
 function EconomyManager:hourChanged(hour)
 	if g_currentMission:getIsServer() then
 		self:manageGreatDemands()
 	end
 	self:updateFillTypeHistory()
 end
-
--- Local values: storeItem, vehicleRunningLeasingCosts
 function EconomyManager:vehicleOperatingHourChanged(vehicle)
 	if g_currentMission:getIsServer() then
-		local v76_ = g_storeManager:getItemByXMLFilename(vehicle.configFileName).runningLeasingFactor * vehicle:getPrice()
-		if v76_ > 0 then
-			g_currentMission:addMoney(-v76_, vehicle:getOwnerFarmId(), MoneyType.LEASING_COSTS, true)
+		local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+		local vehicleRunningLeasingCosts = storeItem.runningLeasingFactor * vehicle:getPrice()
+		if 0 < vehicleRunningLeasingCosts then
+			g_currentMission:addMoney(-vehicleRunningLeasingCosts, vehicle:getOwnerFarmId(), MoneyType.LEASING_COSTS, true)
 		end
 	end
 end
-
 function EconomyManager:minuteChanged()
 	if self.showMoneyChangeNextMinute then
 		g_currentMission:showMoneyChange(MoneyType.LOAN_INTEREST)
@@ -307,214 +275,223 @@ function EconomyManager:minuteChanged()
 		self.showMoneyChangeNextMinute = false
 	end
 end
-
 function EconomyManager:periodChanged(period)
 	if g_currentMission:getIsServer() then
 		self:sendPeriodFillTypeHistory((period - 2) % 12 + 1)
 	end
 end
-
--- Local values: _, greatDemand, station
 function EconomyManager:updateGreatDemandsPDASpots()
-	for _, v81_ in pairs(self.greatDemands) do
-		if v81_.isValid and v81_.isRunning then
-			local v82_ = v81_.sellStation
-			if v82_ ~= nil and (v82_.mapHotspot ~= nil and not v82_.mapHotspot.isBlinking) then
-				v82_.mapHotspot:setBlinking(true)
-				v82_.mapHotspot:setPersistent(true)
+	for _, greatDemand in pairs(self.greatDemands) do
+		if greatDemand.isValid and greatDemand.isRunning then
+			local station = greatDemand.sellStation
+			if station == nil or station.mapHotspot == nil or station.mapHotspot.isBlinking then
+				continue
 			end
+			station.mapHotspot:setBlinking(true)
+			station.mapHotspot:setPersistent(true)
 		end
 	end
 end
-
--- Local values: _, greatDemand, station
 function EconomyManager:restartGreatDemands()
 	self:finalizeGreatDemandLoading()
-	for _, v84_ in pairs(self.greatDemands) do
-		if v84_.isValid and v84_.isRunning then
-			local v85_ = v84_.sellStation
-			if v85_ ~= nil and v85_:getSupportsGreatDemand(v84_.fillTypeIndex) then
-				v85_:setIsInGreatDemand(v84_.fillTypeIndex, true)
-				self.greatDemandFillTypes[v84_.fillTypeIndex] = true
-				if v85_.mapHotspot ~= nil then
-					v85_.mapHotspot:setBlinking(true)
-					v85_.mapHotspot:setPersistent(true)
+	for _, greatDemand in pairs(self.greatDemands) do
+		if greatDemand.isValid and greatDemand.isRunning then
+			local station = greatDemand.sellStation
+			if station == nil then
+				continue
+			end
+			if station:getSupportsGreatDemand(greatDemand.fillTypeIndex) then
+				station:setIsInGreatDemand(greatDemand.fillTypeIndex, true)
+				self.greatDemandFillTypes[greatDemand.fillTypeIndex] = true
+				if station.mapHotspot ~= nil then
+					station.mapHotspot:setBlinking(true)
+					station.mapHotspot:setPersistent(true)
 				end
-				v85_:setPriceMultiplier(v84_.fillTypeIndex, v84_.demandMultiplier)
+				station:setPriceMultiplier(greatDemand.fillTypeIndex, greatDemand.demandMultiplier)
 			end
 		end
 	end
 end
-
--- Local values: _, greatDemand, _, greatDemand
 function EconomyManager:manageGreatDemands()
-	for _, v87_ in pairs(self.greatDemands) do
-		if v87_.isValid then
-			if v87_.isRunning then
-				v87_.demandDuration = v87_.demandDuration - 1
-				if v87_.demandDuration <= 0 then
-					self:stopGreatDemand(v87_)
+	for _, greatDemand in pairs(self.greatDemands) do
+		if greatDemand.isValid then
+			if greatDemand.isRunning then
+				greatDemand.demandDuration = greatDemand.demandDuration - 1
+				if greatDemand.demandDuration <= 0 then
+					self:stopGreatDemand(greatDemand)
 				end
-			elseif not v87_.isRunning and (v87_.demandStart.day == g_currentMission.environment.currentMonotonicDay and v87_.demandStart.hour <= g_currentMission.environment.currentHour) then
-				self:startGreatDemand(v87_)
+			else
+				if greatDemand.isRunning then
+					continue
+				end
+				if greatDemand.demandStart.day == g_currentMission.environment.currentMonotonicDay and greatDemand.demandStart.hour <= g_currentMission.environment.currentHour then
+					self:startGreatDemand(greatDemand)
+				end
 			end
 		end
 	end
 	g_server:broadcastEvent(GreatDemandsEvent.new(self.greatDemands))
-	for _, v88_ in pairs(self.greatDemands) do
-		if not v88_.isValid or not v88_.isRunning and v88_.demandStart.day < g_currentMission.environment.currentMonotonicDay then
-			v88_:setUpRandomDemand(true, self.greatDemands, g_currentMission)
+	for _, greatDemand in pairs(self.greatDemands) do
+		if not greatDemand.isValid or not greatDemand.isRunning and greatDemand.demandStart.day < g_currentMission.environment.currentMonotonicDay then
+			greatDemand:setUpRandomDemand(true, self.greatDemands, g_currentMission)
 		end
 	end
 end
-
--- Local values: sellStation
 function EconomyManager:stopGreatDemand(greatDemand)
 	greatDemand.isRunning = false
 	greatDemand.isValid = false
-	local v91_ = greatDemand.sellStation
-	if v91_ ~= nil and v91_:getSupportsGreatDemand(greatDemand.fillTypeIndex) then
-		v91_:setIsInGreatDemand(greatDemand.fillTypeIndex, false)
+	local sellStation = greatDemand.sellStation
+	if sellStation ~= nil and sellStation:getSupportsGreatDemand(greatDemand.fillTypeIndex) then
+		sellStation:setIsInGreatDemand(greatDemand.fillTypeIndex, false)
 		self.greatDemandFillTypes[greatDemand.fillTypeIndex] = nil
-		if v91_.mapHotspot ~= nil then
-			v91_.mapHotspot:setBlinking(false)
-			v91_.mapHotspot:setPersistent(false)
+		if sellStation.mapHotspot ~= nil then
+			sellStation.mapHotspot:setBlinking(false)
+			sellStation.mapHotspot:setPersistent(false)
 		end
-		v91_:setPriceMultiplier(greatDemand.fillTypeIndex, 1)
+		sellStation:setPriceMultiplier(greatDemand.fillTypeIndex, 1)
 	end
 end
-
--- Local values: sellStation
 function EconomyManager:startGreatDemand(greatDemand)
 	greatDemand.isRunning = true
-	local v94_ = greatDemand.sellStation
-	if v94_ ~= nil then
-		g_currentMission.hud:addSideNotification(FSBaseMission.INGAME_NOTIFICATION_GREATDEMAND, string.format(g_i18n:getText("notification_greatDemand"), v94_:getName()), 40000, GuiSoundPlayer.SOUND_SAMPLES.NOTIFICATION)
-		if v94_:getSupportsGreatDemand(greatDemand.fillTypeIndex) then
-			v94_:setIsInGreatDemand(greatDemand.fillTypeIndex, true)
+	local sellStation = greatDemand.sellStation
+	if sellStation ~= nil then
+		g_currentMission.hud:addSideNotification(FSBaseMission.INGAME_NOTIFICATION_GREATDEMAND, string.format(g_i18n:getText("notification_greatDemand"), sellStation:getName()), 40000, GuiSoundPlayer.SOUND_SAMPLES.NOTIFICATION)
+		if sellStation:getSupportsGreatDemand(greatDemand.fillTypeIndex) then
+			sellStation:setIsInGreatDemand(greatDemand.fillTypeIndex, true)
 			self.greatDemandFillTypes[greatDemand.fillTypeIndex] = true
-			if v94_.mapHotspot ~= nil then
-				v94_.mapHotspot:setBlinking(true)
-				v94_.mapHotspot:setPersistent(true)
+			if sellStation.mapHotspot ~= nil then
+				sellStation.mapHotspot:setBlinking(true)
+				sellStation.mapHotspot:setPersistent(true)
 			end
-			v94_:setPriceMultiplier(greatDemand.fillTypeIndex, greatDemand.demandMultiplier)
+			sellStation:setPriceMultiplier(greatDemand.fillTypeIndex, greatDemand.demandMultiplier)
 		end
 	end
 end
-
 function EconomyManager:getGreatDemandById(id)
 	return self.greatDemands[id]
 end
-
 function EconomyManager:getHasFillTypeGreatDemand(fillTypeIndex)
 	return self.greatDemandFillTypes[fillTypeIndex] == true
 end
-
--- Local values: fillType, difficultyMultiplier, period, alpha, seasonalFactor
 function EconomyManager:getPricePerLiter(fillTypeIndex, useMultiplier)
-	local v102_ = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
-	local v103_ = EconomyManager.getPriceMultiplier()
-	local v104_ = useMultiplier ~= nil and not useMultiplier and 1 or v103_
-	local v105_, v106_ = g_currentMission.environment:getPeriodAndAlphaIntoPeriod()
-	local v107_ = self:getFillTypeSeasonalFactor(v102_, v105_, v106_)
-	return v102_.pricePerLiter * v104_ * v107_
-end
-
--- Local values: fillType, difficultyMultiplier, period, alpha, seasonalFactor
-function EconomyManager:getCostPerLiter(fillTypeIndex, useMultiplier)
-	local v111_ = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
-	local v112_ = EconomyManager.getCostMultiplier()
-	local v113_ = useMultiplier ~= nil and not useMultiplier and 1 or v112_
-	local v114_, v115_ = g_currentMission.environment:getPeriodAndAlphaIntoPeriod()
-	local v116_ = self:getFillTypeSeasonalFactor(v111_, v114_, v115_)
-	return v111_.pricePerLiter * v113_ * v116_
-end
-
--- Local values: price, upgradePrice, name, id, configs, hasBought
-function EconomyManager:getBuyPrice(storeItem, configurations, saleItem)
-	local v120_ = storeItem.price
-	if saleItem ~= nil then
-		v120_ = saleItem.price
+	local fillType = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
+	local difficultyMultiplier = EconomyManager.getPriceMultiplier()
+	if useMultiplier ~= nil and not useMultiplier then
+		difficultyMultiplier = 1
 	end
-	local v121_ = 0
+	local period, alpha = g_currentMission.environment:getPeriodAndAlphaIntoPeriod()
+	local seasonalFactor = self:getFillTypeSeasonalFactor(fillType, period, alpha)
+	return fillType.pricePerLiter * difficultyMultiplier * seasonalFactor
+end
+function EconomyManager:getCostPerLiter(fillTypeIndex, useMultiplier)
+	local fillType = g_fillTypeManager:getFillTypeByIndex(fillTypeIndex)
+	local difficultyMultiplier = EconomyManager.getCostMultiplier()
+	if useMultiplier ~= nil and not useMultiplier then
+		difficultyMultiplier = 1
+	end
+	local period, alpha = g_currentMission.environment:getPeriodAndAlphaIntoPeriod()
+	local seasonalFactor = self:getFillTypeSeasonalFactor(fillType, period, alpha)
+	return fillType.pricePerLiter * difficultyMultiplier * seasonalFactor
+end
+function EconomyManager:getBuyPrice(storeItem, configurations, saleItem)
+	local price = storeItem.price
+	if saleItem ~= nil then
+		price = saleItem.price
+	end
+	local upgradePrice = 0
 	if configurations ~= nil then
-		for v122_, v123_ in pairs(configurations) do
-			local v124_ = storeItem.configurations[v122_]
-			if v124_ ~= nil then
-				local v125_
-				if saleItem == nil or saleItem.boughtConfigurations[v122_] == nil then
-					v125_ = false
-				else
-					v125_ = saleItem.boughtConfigurations[v122_][v123_]
-				end
-				if not v125_ then
-					v121_ = v121_ + v124_[v123_].price
-					v120_ = v120_ + v124_[v123_].price
+		for name, id in pairs(configurations) do
+			local configs = storeItem.configurations[name]
+			if configs == nil then
+				continue
+			end
+			local hasBought = false
+			if saleItem ~= nil then
+				hasBought = false
+				if saleItem.boughtConfigurations[name] ~= nil then
+					hasBought = saleItem.boughtConfigurations[name][id]
 				end
 			end
+			if hasBought then
+				continue
+			end
+			upgradePrice = upgradePrice + configs[id].price
+			price = price + configs[id].price
 		end
 	end
-	return v120_, v121_
+	return price, upgradePrice
 end
-
+function EconomyManager:getConfigurationChangePrice(storeItem, vehicle, configurations, isOwnWorkshop)
+	local upgradePrice = 0
+	local hasConfigurationChanges = false
+	if storeItem.configurations ~= nil and configurations ~= nil then
+		for name, id in pairs(configurations) do
+			if vehicle.configurations[name] == id then
+				continue
+			end
+			hasConfigurationChanges = true
+			local configs = storeItem.configurations[name]
+			if configs == nil or configs[id] == nil or ConfigurationUtil.hasBoughtConfiguration(vehicle, name, id) then
+				continue
+			end
+			upgradePrice = upgradePrice + configs[id].price
+		end
+	end
+	local serviceFee = 0
+	if not isOwnWorkshop then
+		serviceFee = EconomyManager.CONFIG_CHANGE_PRICE
+	end
+	return serviceFee, upgradePrice, hasConfigurationChanges
+end
 function EconomyManager:getSellPrice(object)
 	if object.getSellPrice ~= nil then
 		return object:getSellPrice()
+	else
+		return math.floor(object.price * 0.5)
 	end
-	local v127_ = object.price * 0.5
-	return math.floor(v127_)
 end
-
 function EconomyManager:getInitialLeasingPrice(price)
 	return price * (EconomyManager.DEFAULT_LEASING_DEPOSIT_FACTOR + EconomyManager.PER_DAY_LEASING_FACTOR + EconomyManager.DEFAULT_RUNNING_LEASING_FACTOR)
 end
-
 function EconomyManager.getPriceMultiplier(fillType, fillFormat)
 	return EconomyManager.PRICE_MULTIPLIER[g_currentMission.missionInfo.economicDifficulty]
 end
-
 function EconomyManager.getCostMultiplier(fillTypeIndex)
 	return EconomyManager.COST_MULTIPLIER[g_currentMission.missionInfo.economicDifficulty]
 end
-
--- Local values: p0, p1, p2, p3, factors
 function EconomyManager:getFillTypeSeasonalFactor(fillType, period, alpha)
-	local v132_ = period - 1
-	local v133_ = (v132_ - 1) % 12 + 1
-	local v134_ = (v132_ + 0) % 12 + 1
-	local v135_ = (v132_ + 1) % 12 + 1
-	local v136_ = (v132_ + 2) % 12 + 1
-	local v137_ = fillType.economy.factors
-	return MathUtil.catmullRom(v137_[v133_], v137_[v134_], v137_[v135_], v137_[v136_], alpha)
+	period = period - 1
+	local p0 = (period - 1) % 12 + 1
+	local p1 = (period + 0) % 12 + 1
+	local p2 = (period + 1) % 12 + 1
+	local p3 = (period + 2) % 12 + 1
+	local factors = fillType.economy.factors
+	return MathUtil.catmullRom(factors[p0], factors[p1], factors[p2], factors[p3], alpha)
 end
-
 function EconomyManager:getFillTypeHistoricPrice(fillType, period)
 	return fillType.economy.history[period] * EconomyManager.getPriceMultiplier()
 end
-
--- Local values: period, fillTypeIndex, fillType, num, total, _, sellingStation, price, historicPrice, price, hoursPassed
 function EconomyManager:updateFillTypeHistory()
-	local v141_ = g_currentMission.environment.currentPeriod
-	for v142_, v143_ in ipairs(g_fillTypeManager:getFillTypes()) do
-		local v144_ = 0
-		local v145_ = 0
-		for _, v146_ in ipairs(self.sellingStations) do
-			if v146_.station.acceptedFillTypes[v142_] then
-				local v147_ = v146_.station:getEffectiveFillTypePrice(v142_, ToolType.UNDEFINED) / EconomyManager.getPriceMultiplier()
-				v144_ = v144_ + 1
-				v145_ = v145_ + v147_
+	local period = g_currentMission.environment.currentPeriod
+	for fillTypeIndex, fillType in ipairs(g_fillTypeManager:getFillTypes()) do
+		local num = 0
+		local total = 0
+		for _, sellingStation in ipairs(self.sellingStations) do
+			if sellingStation.station.acceptedFillTypes[fillTypeIndex] then
+				local price = sellingStation.station:getEffectiveFillTypePrice(fillTypeIndex, ToolType.UNDEFINED) / EconomyManager.getPriceMultiplier()
+				num = num + 1
+				total = total + price
 			end
 		end
-		if v144_ > 0 then
-			local v148_ = v143_.economy.history[v141_]
-			local v149_ = v145_ / v144_
-			local v150_ = g_currentMission.environment.currentHour
-			local v151_ = (v150_ * v148_ + v149_) / (v150_ + 1)
-			v143_.economy.history[v141_] = v151_
+		if 0 < num then
+			local historicPrice = fillType.economy.history[period]
+			local price = total / num
+			local hoursPassed = g_currentMission.environment.currentHour
+			historicPrice = (hoursPassed * historicPrice + price) / (hoursPassed + 1)
+			fillType.economy.history[period] = historicPrice
 		end
 	end
 end
-
 function EconomyManager:sendPeriodFillTypeHistory(period)
 	g_server:broadcastEvent(PricingHistoryEvent.new(period))
 end

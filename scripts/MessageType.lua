@@ -1,28 +1,25 @@
--- Local values: messageTypeId, _, setting
 local messageTypeId = 0
 function nextMessageTypeId()
-	-- upvalues: (ref) messageTypeId
 	messageTypeId = messageTypeId + 1
 	return messageTypeId
 end
 MessageType = {}
-
--- Local values: messageName, typeId, messageName, typeId
 function MessageType.getMessageNameById(messageTypeId)
-	if type(messageTypeId) ~= "number" then
-		return ClassUtil.getClassName(messageTypeId) or string.format("<unknownMessageType \'%s\'>", messageTypeId)
-	end
-	for v3_, v4_ in pairs(MessageType) do
-		if messageTypeId == v4_ then
-			return v3_
+	if type(messageTypeId) == "number" then
+		for messageName, typeId in pairs(MessageType) do
+			if messageTypeId == typeId then
+				return messageName
+			end
 		end
-	end
-	for v5_, v6_ in pairs(MessageType.SETTING_CHANGED) do
-		if messageTypeId == v6_ then
-			return "SETTING_CHANGED:" .. v5_
+		for messageName, typeId in pairs(MessageType.SETTING_CHANGED) do
+			if messageTypeId == typeId then
+				return "SETTING_CHANGED:" .. messageName
+			end
 		end
+		return string.format("<unknownMessageType '%d'>", messageTypeId)
+	else
+		return ClassUtil.getClassName(messageTypeId) or string.format("<unknownMessageType '%s'>", messageTypeId)
 	end
-	return string.format("<unknownMessageType \'%d\'>", messageTypeId)
 end
 MessageType.MONEY_CHANGED = nextMessageTypeId()
 MessageType.PLAYER_FARM_CHANGED = nextMessageTypeId()
@@ -72,8 +69,8 @@ MessageType.CURRENT_MISSION_START = nextMessageTypeId()
 MessageType.CURRENT_MISSION_LOADED = nextMessageTypeId()
 MessageType.SETTING_CHANGED = {}
 if GameSettings ~= nil then
-	for _, v7_ in pairs(GameSettings.SETTING) do
-		MessageType.SETTING_CHANGED[v7_] = nextMessageTypeId()
+	for _, setting in pairs(GameSettings.SETTING) do
+		MessageType.SETTING_CHANGED[setting] = nextMessageTypeId()
 	end
 end
 MessageType.INPUT_BINDINGS_CHANGED = nextMessageTypeId()

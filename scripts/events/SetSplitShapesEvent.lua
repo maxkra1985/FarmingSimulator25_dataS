@@ -1,130 +1,112 @@
--- Local values: SetSplitShapesEvent_mt
 SetSplitShapesEvent = {}
 local SetSplitShapesEvent_mt = Class(SetSplitShapesEvent, Event)
 InitStaticEventClass(SetSplitShapesEvent, "SetSplitShapesEvent")
 SetSplitShapesEvent.PartSizeBits = 160000
 function SetSplitShapesEvent.emptyNew()
-	-- upvalues: (copy) SetSplitShapesEvent_mt
-	local v2_ = Event.new(SetSplitShapesEvent_mt)
-	v2_.streamId = createStream()
-	return v2_
+	local self = Event.new(SetSplitShapesEvent_mt)
+	self.streamId = createStream()
+	return self
 end
-
--- Local values: self
 function SetSplitShapesEvent.newAck(streamCurrentOffsetAck)
-	local v4_ = SetSplitShapesEvent.emptyNew()
-	v4_.streamCurrentOffsetAck = streamCurrentOffsetAck
-	return v4_
+	local self = SetSplitShapesEvent.emptyNew()
+	self.streamCurrentOffsetAck = streamCurrentOffsetAck
+	return self
 end
-
--- Local values: self
 function SetSplitShapesEvent.newReceiving(streamTotalSize)
-	local v6_ = SetSplitShapesEvent.emptyNew()
-	v6_.streamTotalSize = streamTotalSize
-	return v6_
+	local self = SetSplitShapesEvent.emptyNew()
+	self.streamTotalSize = streamTotalSize
+	return self
 end
 function SetSplitShapesEvent.new()
-	local v7_ = SetSplitShapesEvent.emptyNew()
-	local v8_ = v7_.streamId
-	local v9_ = g_currentMission.mapsSplitShapeFileIds
-	local v10_ = #v9_
-	streamWriteInt32(v8_, v10_)
-	for v11_ = 1, v10_ do
-		streamWriteInt32(v8_, v9_[v11_])
+	local self = SetSplitShapesEvent.emptyNew()
+	local streamId = self.streamId
+	local mapsSplitShapeFileIds = g_currentMission.mapsSplitShapeFileIds
+	local numFileIds = #mapsSplitShapeFileIds
+	streamWriteInt32(streamId, numFileIds)
+	for i = 1, numFileIds do
+		streamWriteInt32(streamId, mapsSplitShapeFileIds[i])
 	end
-	g_treePlantManager:writeToClientStream(v8_)
-	writeSplitShapesToStream(v8_)
-	v7_.streamCurrentOffset = 0
-	v7_.streamTotalSize = streamGetWriteOffset(v8_)
-	v7_.percentage = 0
-	return v7_
+	g_treePlantManager:writeToClientStream(streamId)
+	writeSplitShapesToStream(streamId)
+	self.streamCurrentOffset = 0
+	self.streamTotalSize = streamGetWriteOffset(streamId)
+	self.percentage = 0
+	return self
 end
-
 function SetSplitShapesEvent:delete()
 	if self.streamId ~= 0 then
 		delete(self.streamId)
 		self.streamId = 0
 	end
 end
-
--- Local values: currentMission, streamCurrentOffset, streamTotalSizeInit, event, streamTotalSize, sizeToRead, streamCurrentOffsetAck, syncPlayer, splitShapesEvent
 function SetSplitShapesEvent:readStream(streamId, connection)
-	local v15_ = g_currentMission
+	local currentMission = g_currentMission
 	if connection:getIsServer() then
-		local v16_ = streamReadUInt32(streamId)
-		Logging.devInfo("SetSplitShapesEvent:readStream-currentOffset: %d", v16_)
-		if v16_ == 0 then
-			local v17_ = streamReadUInt32(streamId)
-			v15_.receivingSplitShapesEvent = SetSplitShapesEvent.newReceiving(v17_)
-			Logging.devInfo("SetSplitShapesEvent:readStream-totalSize: %d", v17_)
+		local streamCurrentOffset = streamReadUInt32(streamId)
+		Logging.devInfo("SetSplitShapesEvent:readStream-currentOffset: %d", streamCurrentOffset)
+		if streamCurrentOffset == 0 then
+			local streamTotalSizeInit = streamReadUInt32(streamId)
+			currentMission.receivingSplitShapesEvent = SetSplitShapesEvent.newReceiving(streamTotalSizeInit)
+			Logging.devInfo("SetSplitShapesEvent:readStream-totalSize: %d", streamTotalSizeInit)
 		end
-		local v18_ = v15_.receivingSplitShapesEvent
-		local v19_ = v18_.streamTotalSize
-		local v20_ = v18_.streamTotalSize - v16_
-		local v21_ = SetSplitShapesEvent.PartSizeBits
-		local v22_ = math.min(v20_, v21_)
-		Logging.devInfo("SetSplitShapesEvent:readStream-readData: %d", v22_)
-		streamWriteStream(v18_.streamId, streamId, v22_, true)
-		local v23_ = v16_ + v22_
-		local v24_ = v23_ / v19_
-		v18_.percentage = math.clamp(v24_, 0, 1)
-		v15_:onSplitShapesProgress(connection, v18_.percentage)
-		connection:sendEvent(SetSplitShapesEvent.newAck(v23_), true)
-		if v23_ == v19_ then
-			v18_:processReadData()
-			v15_.receivingSplitShapesEvent:delete()
-			v15_.receivingSplitShapesEvent = nil
-			return
+		local event = currentMission.receivingSplitShapesEvent
+		local streamTotalSize = event.streamTotalSize
+		local sizeToRead = math.min(event.streamTotalSize - streamCurrentOffset, SetSplitShapesEvent.PartSizeBits)
+		Logging.devInfo("SetSplitShapesEvent:readStream-readData: %d", sizeToRead)
+		streamWriteStream(event.streamId, streamId, sizeToRead, true)
+		streamCurrentOffset = streamCurrentOffset + sizeToRead
+		event.percentage = math.clamp(streamCurrentOffset / streamTotalSize, 0, 1)
+		currentMission:onSplitShapesProgress(connection, event.percentage)
+		connection:sendEvent(SetSplitShapesEvent.newAck(streamCurrentOffset), true)
+		if streamCurrentOffset == streamTotalSize then
+			event:processReadData()
+			currentMission.receivingSplitShapesEvent:delete()
+			currentMission.receivingSplitShapesEvent = nil
 		end
 	else
-		local v25_ = streamReadUInt32(streamId)
-		local v26_ = v15_.playersSynchronizing[connection]
-		if v26_ ~= nil and v26_.splitShapesEvent ~= nil then
-			local v27_ = v26_.splitShapesEvent
-			local v28_ = v25_ / v27_.streamTotalSize
-			v27_.percentage = math.clamp(v28_, 0, 1)
-			if v25_ < v27_.streamTotalSize then
-				connection:sendEvent(v27_, false)
+		local streamCurrentOffsetAck = streamReadUInt32(streamId)
+		local syncPlayer = currentMission.playersSynchronizing[connection]
+		if syncPlayer ~= nil and syncPlayer.splitShapesEvent ~= nil then
+			local splitShapesEvent = syncPlayer.splitShapesEvent
+			splitShapesEvent.percentage = math.clamp(streamCurrentOffsetAck / splitShapesEvent.streamTotalSize, 0, 1)
+			if streamCurrentOffsetAck < splitShapesEvent.streamTotalSize then
+				connection:sendEvent(splitShapesEvent, false)
 			end
-			v15_:onSplitShapesProgress(connection, v27_.percentage)
+			currentMission:onSplitShapesProgress(connection, splitShapesEvent.percentage)
 		end
 	end
 end
-
--- Local values: currentMission, streamCurrentOffset, readOffset, start
 function SetSplitShapesEvent:writeStream(streamId, connection)
-	if connection:getIsServer() then
-		streamWriteUInt32(streamId, self.streamCurrentOffsetAck)
-	else
-		local v32_ = g_currentMission.playersSynchronizing[connection].splitShapesEvent == self
-		assert(v32_)
-		local v33_ = self.streamCurrentOffset
+	if not connection:getIsServer() then
+		local currentMission = g_currentMission
+		assert(currentMission.playersSynchronizing[connection].splitShapesEvent == self)
+		local streamCurrentOffset = self.streamCurrentOffset
 		self.streamCurrentOffset = self.streamCurrentOffset + SetSplitShapesEvent.PartSizeBits
-		streamWriteUInt32(streamId, v33_)
-		Logging.devInfo("SetSplitShapesEvent:writeStream-currentOffset: %d", v33_)
-		if v33_ == 0 then
+		streamWriteUInt32(streamId, streamCurrentOffset)
+		Logging.devInfo("SetSplitShapesEvent:writeStream-currentOffset: %d", streamCurrentOffset)
+		if streamCurrentOffset == 0 then
 			streamWriteUInt32(streamId, self.streamTotalSize)
 			Logging.devInfo("SetSplitShapesEvent:writeStream-totalSize: %d", self.streamTotalSize)
 		end
-		local v34_ = streamGetReadOffset(self.streamId)
-		streamSetReadOffset(self.streamId, v33_)
-		local v35_ = streamGetWriteOffset(streamId)
+		local readOffset = streamGetReadOffset(self.streamId)
+		streamSetReadOffset(self.streamId, streamCurrentOffset)
+		local start = streamGetWriteOffset(streamId)
 		streamWriteStream(streamId, self.streamId, SetSplitShapesEvent.PartSizeBits, true)
-		Logging.devInfo("SetSplitShapesEvent:writeStream-writeData: %d", streamGetWriteOffset(streamId) - v35_)
-		streamSetReadOffset(self.streamId, v34_)
+		Logging.devInfo("SetSplitShapesEvent:writeStream-writeData: %d", streamGetWriteOffset(streamId) - start)
+		streamSetReadOffset(self.streamId, readOffset)
+	else
+		streamWriteUInt32(streamId, self.streamCurrentOffsetAck)
 	end
 end
-
--- Local values: streamId, mapsSplitShapeFileIds, numFileIds, i, fileId
 function SetSplitShapesEvent:processReadData()
-	local v37_ = self.streamId
-	local v38_ = g_currentMission.mapsSplitShapeFileIds
-	for v39_ = 1, streamReadInt32(v37_) do
-		local v40_ = streamReadInt32(v37_)
-		setSplitShapesFileIdMapping(v38_[v39_], v40_)
+	local streamId = self.streamId
+	local mapsSplitShapeFileIds = g_currentMission.mapsSplitShapeFileIds
+	local numFileIds = streamReadInt32(streamId)
+	for i = 1, numFileIds do
+		local fileId = streamReadInt32(streamId)
+		setSplitShapesFileIdMapping(mapsSplitShapeFileIds[i], fileId)
 	end
-	g_treePlantManager:readFromServerStream(v37_)
-	readSplitShapesFromStream(v37_)
+	g_treePlantManager:readFromServerStream(streamId)
+	readSplitShapesFromStream(streamId)
 end
-
 function SetSplitShapesEvent:run(connection) end

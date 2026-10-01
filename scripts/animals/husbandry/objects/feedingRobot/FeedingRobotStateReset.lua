@@ -1,22 +1,15 @@
--- Local values: FeedingRobotStateReset_mt
 FeedingRobotStateReset = {}
 local FeedingRobotStateReset_mt = Class(FeedingRobotStateReset, FeedingRobotState)
-
--- Upvalues: FeedingRobotStateReset_mt
--- Local values: self
 function FeedingRobotStateReset.new(feedingRobot, customMt)
-	-- upvalues: (copy) FeedingRobotStateReset_mt
-	return FeedingRobotState.new(feedingRobot, customMt or FeedingRobotStateReset_mt)
+	local self = FeedingRobotState.new(feedingRobot, customMt or FeedingRobotStateReset_mt)
+	return self
 end
-
 function FeedingRobotStateReset:isDone()
 	return FeedingRobotStateReset:superClass().isDone(self)
 end
-
 function FeedingRobotStateReset:activate()
 	FeedingRobotStateReset:superClass().activate(self)
 end
-
 function FeedingRobotStateReset:deactivate()
 	g_animationManager:stopAnimations(self.feedingRobot.robot.mixerAnimationNodes)
 	self.feedingRobot:resetRobot()

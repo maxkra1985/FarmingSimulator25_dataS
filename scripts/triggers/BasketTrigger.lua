@@ -1,29 +1,20 @@
--- Local values: BasketTrigger_mt
 BasketTrigger = {}
 BasketTrigger.threePointDistanceThreshold = 6
 local BasketTrigger_mt = Class(BasketTrigger)
-
--- Local values: trigger
 function BasketTrigger:onCreate(id)
-	local v3_ = BasketTrigger.new()
-	if v3_:load(id) then
-		g_currentMission:addNonUpdateable(v3_)
+	local trigger = BasketTrigger.new()
+	if trigger:load(id) then
+		g_currentMission:addNonUpdateable(trigger)
 	else
-		v3_:delete()
+		trigger:delete()
 	end
 end
-
--- Upvalues: BasketTrigger_mt
--- Local values: self
 function BasketTrigger.new(customMt)
-	-- upvalues: (copy) BasketTrigger_mt
-	local v5_ = customMt or BasketTrigger_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.triggerId = 0
-	v6_.nodeId = 0
-	return v6_
+	local self = setmetatable({}, customMt or BasketTrigger_mt)
+	self.triggerId = 0
+	self.nodeId = 0
+	return self
 end
-
 function BasketTrigger:load(nodeId)
 	self.nodeId = nodeId
 	self.triggerId = I3DUtil.indexToObject(nodeId, getUserAttribute(nodeId, "triggerIndex"))
@@ -35,21 +26,20 @@ function BasketTrigger:load(nodeId)
 	self.isEnabled = true
 	return true
 end
-
 function BasketTrigger:delete()
 	removeTrigger(self.triggerId)
 end
-
--- Local values: object
 function BasketTrigger:triggerCallback(triggerId, otherActorId, onEnter, onLeave, onStay, otherShapeId)
 	if self.isEnabled then
 		if onEnter then
-			if g_currentMission:getNodeObject(otherActorId).thrownFromPosition ~= nil then
+			local object = g_currentMission:getNodeObject(otherActorId)
+			if object.thrownFromPosition ~= nil then
 				self.triggerObjects[otherActorId] = true
-				return
 			end
-		elseif onLeave and self.triggerObjects[otherActorId] then
-			self.triggerObjects[otherActorId] = false
+		elseif onLeave then
+			if self.triggerObjects[otherActorId] then
+				self.triggerObjects[otherActorId] = false
+			end
 		end
 	end
 end

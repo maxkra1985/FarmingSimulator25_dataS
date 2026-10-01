@@ -1,70 +1,53 @@
--- Local values: AIDriveStrategyBaler_mt
 AIDriveStrategyBaler = {}
 local AIDriveStrategyBaler_mt = Class(AIDriveStrategyBaler, AIDriveStrategy)
-
--- Upvalues: AIDriveStrategyBaler_mt
--- Local values: self
 function AIDriveStrategyBaler.new(reconstructionData, customMt)
-	-- upvalues: (copy) AIDriveStrategyBaler_mt
-	local v4_ = AIDriveStrategy.new(reconstructionData, customMt or AIDriveStrategyBaler_mt)
-	v4_.balers = {}
-	v4_.slowDownFillLevel = 200
-	v4_.slowDownStartSpeed = 20
-	return v4_
+	local self = AIDriveStrategy.new(reconstructionData, customMt or AIDriveStrategyBaler_mt)
+	self.balers = {}
+	self.slowDownFillLevel = 200
+	self.slowDownStartSpeed = 20
+	return self
 end
-
--- Local values: _, implement
 function AIDriveStrategyBaler:setAIVehicle(vehicle)
 	AIDriveStrategyBaler:superClass().setAIVehicle(self, vehicle)
 	if SpecializationUtil.hasSpecialization(Baler, self.vehicle.specializations) then
-		local v7_ = self.balers
-		local v8_ = self.vehicle
-		table.insert(v7_, v8_)
+		table.insert(self.balers, self.vehicle)
 	end
-	for _, v9_ in pairs(self.vehicle:getAttachedAIImplements()) do
-		if SpecializationUtil.hasSpecialization(Baler, v9_.object.specializations) then
-			local v10_ = self.balers
-			local v11_ = v9_.object
-			table.insert(v10_, v11_)
+	for _, implement in pairs(self.vehicle:getAttachedAIImplements()) do
+		if SpecializationUtil.hasSpecialization(Baler, implement.object.specializations) then
+			table.insert(self.balers, implement.object)
 		end
 	end
 end
-
 function AIDriveStrategyBaler:update(dt) end
-
--- Local values: allowedToDrive, maxSpeed, _, baler, spec, fillLevel, capacity, freeFillLevel
 function AIDriveStrategyBaler:getDriveData(dt, vX, vY, vZ)
-	local v13_ = true
-	local v14_ = math.huge
-	for _, v15_ in pairs(self.balers) do
-		local v16_ = v15_.spec_baler
-		if v16_.nonStopBaling then
-			if v16_.platformDropInProgress then
-				v14_ = v16_.platformAIDropSpeed
+	local allowedToDrive = true
+	local maxSpeed = math.huge
+	for _, baler in pairs(self.balers) do
+		local spec = baler.spec_baler
+		if not spec.nonStopBaling then
+			local fillLevel = baler:getFillUnitFillLevel(spec.fillUnitIndex)
+			local capacity = baler:getFillUnitCapacity(spec.fillUnitIndex)
+			local freeFillLevel = capacity - fillLevel
+			if freeFillLevel < self.slowDownFillLevel then
+				maxSpeed = 2 + freeFillLevel / self.slowDownFillLevel * self.slowDownStartSpeed
 				if VehicleDebug.state == VehicleDebug.DEBUG_AI then
-					self.vehicle:addAIDebugText(string.format("BALER -> Platform dropping active, reducing speed to %.1f km/h", v16_.platformAIDropSpeed))
+					self.vehicle:addAIDebugText(string.format("BALER -> Slow down because nearly full: %.2f", maxSpeed))
 				end
 			end
-		else
-			local v17_ = v15_:getFillUnitFillLevel(v16_.fillUnitIndex)
-			local v18_ = v15_:getFillUnitCapacity(v16_.fillUnitIndex)
-			local v19_ = v18_ - v17_
-			if v19_ < self.slowDownFillLevel then
-				v14_ = 2 + v19_ / self.slowDownFillLevel * self.slowDownStartSpeed
-				if VehicleDebug.state == VehicleDebug.DEBUG_AI then
-					self.vehicle:addAIDebugText(string.format("BALER -> Slow down because nearly full: %.2f", v14_))
-				end
+			if fillLevel == capacity or spec.unloadingState ~= Baler.UNLOADING_CLOSED then
+				allowedToDrive = false
 			end
-			if v17_ == v18_ or v16_.unloadingState ~= Baler.UNLOADING_CLOSED then
-				v13_ = false
+		elseif spec.platformDropInProgress then
+			maxSpeed = spec.platformAIDropSpeed
+			if VehicleDebug.state == VehicleDebug.DEBUG_AI then
+				self.vehicle:addAIDebugText(string.format("BALER -> Platform dropping active, reducing speed to %.1f km/h", spec.platformAIDropSpeed))
 			end
 		end
 	end
-	if v13_ then
-		return nil, nil, nil, v14_, nil
-	else
+	if not allowedToDrive then
 		return 0, 1, true, 0, math.huge
+	else
+		return nil, nil, nil, maxSpeed, nil
 	end
 end
-
 function AIDriveStrategyBaler:updateDriving(dt) end

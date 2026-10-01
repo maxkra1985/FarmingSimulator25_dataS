@@ -1,28 +1,22 @@
--- Local values: SoilSamplerSendEvent_mt
 SoilSamplerSendEvent = {}
 local SoilSamplerSendEvent_mt = Class(SoilSamplerSendEvent, Event)
 InitEventClass(SoilSamplerSendEvent, "SoilSamplerSendEvent")
 function SoilSamplerSendEvent.emptyNew()
-	-- upvalues: (copy) SoilSamplerSendEvent_mt
-	return Event.new(SoilSamplerSendEvent_mt)
+	local self = Event.new(SoilSamplerSendEvent_mt)
+	return self
 end
-
--- Local values: self
 function SoilSamplerSendEvent.new(object)
-	local v3_ = SoilSamplerSendEvent.emptyNew()
-	v3_.object = object
-	return v3_
+	local self = SoilSamplerSendEvent.emptyNew()
+	self.object = object
+	return self
 end
-
 function SoilSamplerSendEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self:run(connection)
 end
-
 function SoilSamplerSendEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 end
-
 function SoilSamplerSendEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -31,7 +25,6 @@ function SoilSamplerSendEvent:run(connection)
 		self.object:sendTakenSoilSamples(true)
 	end
 end
-
 function SoilSamplerSendEvent.sendEvent(object, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

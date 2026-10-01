@@ -1,33 +1,26 @@
--- Local values: OptionSliderElement_mt
 OptionSliderElement = {}
 local OptionSliderElement_mt = Class(OptionSliderElement, MultiTextOptionElement)
 Gui.registerGuiElement("OptionSlider", OptionSliderElement)
 Gui.registerGuiElementProcFunction("OptionSlider", Gui.assignPlaySampleCallback)
-
--- Upvalues: OptionSliderElement_mt
--- Local values: self
 function OptionSliderElement.new(target, custom_mt)
-	-- upvalues: (copy) OptionSliderElement_mt
-	local v4_ = MultiTextOptionElement.new(target, custom_mt or OptionSliderElement_mt)
-	v4_.sliderElement = nil
-	v4_.sliderOffset = nil
-	v4_.defaultProfileSlider = nil
-	v4_.defaultProfileSliderRound = nil
-	v4_.useFillingBar = false
-	v4_.fillingBarElement = nil
-	v4_.defaultProfileFillingBar = nil
-	v4_.defaultProfileFillingBarThreePart = nil
-	v4_.updateTextPosition = true
-	return v4_
+	local self = MultiTextOptionElement.new(target, custom_mt or OptionSliderElement_mt)
+	self.sliderElement = nil
+	self.sliderOffset = nil
+	self.defaultProfileSlider = nil
+	self.defaultProfileSliderRound = nil
+	self.useFillingBar = false
+	self.fillingBarElement = nil
+	self.defaultProfileFillingBar = nil
+	self.defaultProfileFillingBarThreePart = nil
+	self.updateTextPosition = true
+	return self
 end
-
 function OptionSliderElement:loadFromXML(xmlFile, key)
 	OptionSliderElement:superClass().loadFromXML(self, xmlFile, key)
 	self.sliderOffset = GuiUtils.getNormalizedXValue(getXMLInt(xmlFile, key .. "#sliderOffset"), self.sliderOffset)
 	self.useFillingBar = getXMLBool(xmlFile, key .. "#useFillingBar") or self.useFillingBar
 	self.updateTextPosition = getXMLBool(xmlFile, key .. "#updateTextPosition") or self.updateTextPosition
 end
-
 function OptionSliderElement:loadProfile(profile, applyProfile)
 	OptionSliderElement:superClass().loadProfile(self, profile, applyProfile)
 	self.sliderOffset = GuiUtils.getNormalizedXValue(profile:getValue("sliderOffset"), self.sliderOffset)
@@ -38,7 +31,6 @@ function OptionSliderElement:loadProfile(profile, applyProfile)
 	self.defaultProfileFillingBar = profile:getValue("defaultProfileFillingBar", self.defaultProfileFillingBar)
 	self.defaultProfileFillingBarThreePart = profile:getValue("defaultProfileFillingBarThreePart", self.defaultProfileFillingBarThreePart)
 end
-
 function OptionSliderElement:copyAttributes(src)
 	OptionSliderElement:superClass().copyAttributes(self, src)
 	self.sliderOffset = src.sliderOffset
@@ -49,18 +41,16 @@ function OptionSliderElement:copyAttributes(src)
 	self.defaultProfileFillingBar = src.defaultProfileFillingBar
 	self.defaultProfileFillingBarThreePart = src.defaultProfileFillingBarThreePart
 end
-
--- Local values: _, element
 function OptionSliderElement:setElementsByName()
 	OptionSliderElement:superClass().setElementsByName(self)
-	for _, v14_ in pairs(self.elements) do
-		if v14_.name == "slider" then
-			self.sliderElement = v14_
-			v14_.target = self
+	for _, element in pairs(self.elements) do
+		if element.name == "slider" then
+			self.sliderElement = element
+			element.target = self
 		end
-		if v14_.name == "fillingBar" then
-			self.fillingBarElement = v14_
-			v14_.target = self
+		if element.name == "fillingBar" then
+			self.fillingBarElement = element
+			element.target = self
 		end
 	end
 	if self.fillingBarElement == nil then
@@ -68,79 +58,69 @@ function OptionSliderElement:setElementsByName()
 	end
 	if self.sliderElement == nil then
 		Logging.warning("OptionSliderElement: could not find a slider element for element with profile " .. self.profile)
-	elseif self.leftButtonElement ~= nil and self.sliderElement.absSize[1] + self.leftButtonElement.absSize[1] * 2 >= self.absSize[1] then
-		self.sliderOffset = self.absSize[1] / 2
-		Logging.warning("OptionSliderElement: not enough space for slider movement with current settings in profile " .. self.profile)
+	else
+		if self.leftButtonElement ~= nil and self.absSize[1] <= self.sliderElement.absSize[1] + self.leftButtonElement.absSize[1] * 2 then
+			self.sliderOffset = self.absSize[1] / 2
+			Logging.warning("OptionSliderElement: not enough space for slider movement with current settings in profile " .. self.profile)
+		end
 	end
 end
-
--- Local values: baseElement, baseElement, baseElement, baseElement
 function OptionSliderElement:addDefaultElements()
 	OptionSliderElement:superClass().addDefaultElements(self)
 	if self.autoAddDefaultElements then
 		if self:getDescendantByName("fillingBar") == nil then
-			if self.defaultProfileFillingBar == nil then
-				if self.defaultProfileFillingBarThreePart ~= nil then
-					local v16_ = ThreePartBitmapElement.new(self)
-					v16_.name = "fillingBar"
-					self:addElement(v16_)
-					v16_:applyProfile(self.defaultProfileFillingBarThreePart)
-				end
-			else
-				local v17_ = BitmapElement.new(self)
-				v17_.name = "fillingBar"
-				self:addElement(v17_)
-				v17_:applyProfile(self.defaultProfileFillingBar)
+			if self.defaultProfileFillingBar ~= nil then
+				local baseElement = BitmapElement.new(self)
+				baseElement.name = "fillingBar"
+				self:addElement(baseElement)
+				baseElement:applyProfile(self.defaultProfileFillingBar)
+			elseif self.defaultProfileFillingBarThreePart ~= nil then
+				local baseElement = ThreePartBitmapElement.new(self)
+				baseElement.name = "fillingBar"
+				self:addElement(baseElement)
+				baseElement:applyProfile(self.defaultProfileFillingBarThreePart)
 			end
 		end
 		if self:getDescendantByName("slider") == nil then
 			if self.defaultProfileSliderRound ~= nil then
-				local v18_ = RoundCornerElement.new(self)
-				v18_.name = "slider"
-				self:addElement(v18_)
-				v18_:applyProfile(self.defaultProfileSliderRound)
+				local baseElement = RoundCornerElement.new(self)
+				baseElement.name = "slider"
+				self:addElement(baseElement)
+				baseElement:applyProfile(self.defaultProfileSliderRound)
 				return
 			end
 			if self.defaultProfileSlider ~= nil then
-				local v19_ = BitmapElement.new(self)
-				v19_.name = "slider"
-				self:addElement(v19_)
-				v19_:applyProfile(self.defaultProfileSlider)
+				local baseElement = BitmapElement.new(self)
+				baseElement.name = "slider"
+				self:addElement(baseElement)
+				baseElement:applyProfile(self.defaultProfileSlider)
 			end
 		end
 	end
 end
-
 function OptionSliderElement:onOpen()
 	OptionSliderElement:superClass().onOpen(self)
 	self:updateSlider()
 end
-
--- Local values: leftButton, rightButton, slider, slider, sliderWidth, stepSize, mouseMoveDistance, sliderLocalPosX, sliderPosX, state
 function OptionSliderElement:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 	if self:getIsActive() then
-		eventUsed = self.wasContinuousTrigger and isUp and true or (MultiTextOptionElement:superClass().mouseEvent(self, posX, posY, isDown, isUp, button, eventUsed) and true or eventUsed)
+		if not self.wasContinuousTrigger or not isUp then
+			if MultiTextOptionElement:superClass().mouseEvent(self, posX, posY, isDown, isUp, button, eventUsed) then
+				eventUsed = true
+			end
+		else
+			eventUsed = true
+		end
 		if isDown then
-			local v28_ = self.leftButtonElement
-			local v29_ = not self.hideLeftRightButtons
-			if v29_ then
-				v29_ = GuiUtils.checkOverlayOverlap(posX, posY, v28_.absPosition[1], v28_.absPosition[2], v28_.absSize[1], v28_.absSize[2], v28_.hotspot)
+			local leftButton = self.leftButtonElement
+			self.isLeftButtonPressed = not self.hideLeftRightButtons and GuiUtils.checkOverlayOverlap(posX, posY, leftButton.absPosition[1], leftButton.absPosition[2], leftButton.absSize[1], leftButton.absSize[2], leftButton.hotspot)
+			local rightButton = self.rightButtonElement
+			self.isRightButtonPressed = not self.hideLeftRightButtons and GuiUtils.checkOverlayOverlap(posX, posY, rightButton.absPosition[1], rightButton.absPosition[2], rightButton.absSize[1], rightButton.absSize[2], rightButton.hotspot)
+			local slider = self.sliderElement
+			if slider ~= nil then
+				GuiUtils.checkOverlayOverlap(posX, posY, slider.absPosition[1], slider.absPosition[2], slider.absSize[1], slider.absSize[2], slider.hotspot)
 			end
-			self.isLeftButtonPressed = v29_
-			local v30_ = self.rightButtonElement
-			local v31_ = not self.hideLeftRightButtons
-			if v31_ then
-				v31_ = GuiUtils.checkOverlayOverlap(posX, posY, v30_.absPosition[1], v30_.absPosition[2], v30_.absSize[1], v30_.absSize[2], v30_.hotspot)
-			end
-			self.isRightButtonPressed = v31_
-			local v32_ = self.sliderElement
-			local v33_
-			if v32_ == nil then
-				v33_ = false
-			else
-				v33_ = GuiUtils.checkOverlayOverlap(posX, posY, v32_.absPosition[1], v32_.absPosition[2], v32_.absSize[1], v32_.absSize[2], v32_.hotspot)
-			end
-			self.isSliderPressed = v33_
+			self.isSliderPressed = false
 			self.isSliderAreaPressed = GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1] + self.sliderOffset, self.absPosition[2], self.absSize[1] - 2 * self.sliderOffset, self.absSize[2])
 			if self.sliderMousePosX == nil then
 				self.sliderMousePosX = posX
@@ -160,78 +140,69 @@ function OptionSliderElement:mouseEvent(posX, posY, isDown, isUp, button, eventU
 			self.sliderMousePosX = nil
 			self.hasWrapped = false
 		end
-		if eventUsed or not GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], nil) then
-			if self.inputEntered and not self.focusActive then
-				FocusManager:unsetHighlight(self)
-				self.inputEntered = false
-			end
-		else
-			if not (self.inputEntered or self:getIsFocused()) then
+		if not eventUsed and GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], nil) then
+			if not self.inputEntered and not self:getIsFocused() then
 				FocusManager:setHighlight(self)
 				self.inputEntered = true
 			end
-			if #self.texts > 1 and self.isSliderAreaPressed then
+			if 1 < #self.texts and self.isSliderAreaPressed then
 				if not self:getIsFocused() then
 					FocusManager:setFocus(self)
 				end
-				local v34_ = self.sliderElement
-				local v35_ = v34_.absSize[1]
-				local v36_ = (self.absSize[1] - 2 * self.sliderOffset - v35_) / (#self.texts - 1)
-				local v37_ = posX - self.sliderMousePosX
-				local v38_ = posX - self.absPosition[1] - self.sliderOffset - v34_.absSize[1] * 0.5
+				local slider = self.sliderElement
+				local sliderWidth = slider.absSize[1]
+				local stepSize = (self.absSize[1] - 2 * self.sliderOffset - sliderWidth) / (#self.texts - 1)
+				local mouseMoveDistance = posX - self.sliderMousePosX
+				local sliderLocalPosX = posX - self.absPosition[1] - self.sliderOffset - slider.absSize[1] * 0.5
 				if self.isSliderPressed then
-					v38_ = v34_.absPosition[1] - self.absPosition[1] - self.sliderOffset
+					sliderLocalPosX = slider.absPosition[1] - self.absPosition[1] - self.sliderOffset
 				end
-				local v39_ = MathUtil.snapValue(v38_ + v37_, v36_)
-				local v40_ = self.absSize[1] - v35_ - 2 * self.sliderOffset
-				local v41_ = math.clamp(v39_, 0, v40_)
-				local v42_ = MathUtil.round(v41_ / v36_) + 1
-				if v42_ ~= self.state then
+				local sliderPosX = MathUtil.snapValue(sliderLocalPosX + mouseMoveDistance, stepSize)
+				sliderPosX = math.clamp(sliderPosX, 0, self.absSize[1] - sliderWidth - 2 * self.sliderOffset)
+				local state = MathUtil.round(sliderPosX / stepSize) + 1
+				if state ~= self.state then
 					if self.isSliderPressed then
-						self.sliderMousePosX = self.sliderMousePosX + v36_ * (v42_ - self.state)
+						self.sliderMousePosX = self.sliderMousePosX + stepSize * (state - self.state)
 					end
 					self.isSliderPressed = true
-					self:setState(v42_, true)
+					self:setState(state, true)
 				end
-				v34_:setAbsolutePosition(self.absPosition[1] + v41_ + self.sliderOffset, v34_.absPosition[2])
+				slider:setAbsolutePosition(self.absPosition[1] + sliderPosX + self.sliderOffset, slider.absPosition[2])
 				if self.updateTextPosition then
-					self.textElement:setAbsolutePosition(v34_.absPosition[1] - (self.textElement.absSize[1] - v34_.absSize[1]) * 0.5, self.textElement.absPosition[2])
+					self.textElement:setAbsolutePosition(slider.absPosition[1] - (self.textElement.absSize[1] - slider.absSize[1]) * 0.5, self.textElement.absPosition[2])
 				end
 				if self.useFillingBar then
 					self.fillingBarElement:setSize((self.state - 1) / (#self.texts - 1) * (self.absSize[1] - self.sliderOffset * 2) + self.sliderOffset, nil)
 					return eventUsed
 				end
 			end
+			return eventUsed
+		end
+		if self.inputEntered and not self.focusActive then
+			FocusManager:unsetHighlight(self)
+			self.inputEntered = false
 		end
 	end
-	return eventUsed
 end
-
--- Local values: leftButton, rightButton, slider, slider, sliderWidth, stepSize, mouseMoveDistance, sliderLocalPosX, sliderPosX, state
 function OptionSliderElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUsed)
 	if self:getIsActive() then
-		eventUsed = self.wasContinuousTrigger and isUp and true or (MultiTextOptionElement:superClass().touchEvent(self, posX, posY, isDown, isUp, touchId, eventUsed) and true or eventUsed)
+		if not self.wasContinuousTrigger or not isUp then
+			if MultiTextOptionElement:superClass().touchEvent(self, posX, posY, isDown, isUp, touchId, eventUsed) then
+				eventUsed = true
+			end
+		else
+			eventUsed = true
+		end
 		if isDown then
-			local v50_ = self.leftButtonElement
-			local v51_ = not self.hideLeftRightButtons
-			if v51_ then
-				v51_ = GuiUtils.checkOverlayOverlap(posX, posY, v50_.absPosition[1], v50_.absPosition[2], v50_.absSize[1], v50_.absSize[2], v50_.hotspot)
+			local leftButton = self.leftButtonElement
+			self.isLeftButtonPressed = not self.hideLeftRightButtons and GuiUtils.checkOverlayOverlap(posX, posY, leftButton.absPosition[1], leftButton.absPosition[2], leftButton.absSize[1], leftButton.absSize[2], leftButton.hotspot)
+			local rightButton = self.rightButtonElement
+			self.isRightButtonPressed = not self.hideLeftRightButtons and GuiUtils.checkOverlayOverlap(posX, posY, rightButton.absPosition[1], rightButton.absPosition[2], rightButton.absSize[1], rightButton.absSize[2], rightButton.hotspot)
+			local slider = self.sliderElement
+			if slider ~= nil then
+				GuiUtils.checkOverlayOverlap(posX, posY, slider.absPosition[1], slider.absPosition[2], slider.absSize[1], slider.absSize[2], slider.hotspot)
 			end
-			self.isLeftButtonPressed = v51_
-			local v52_ = self.rightButtonElement
-			local v53_ = not self.hideLeftRightButtons
-			if v53_ then
-				v53_ = GuiUtils.checkOverlayOverlap(posX, posY, v52_.absPosition[1], v52_.absPosition[2], v52_.absSize[1], v52_.absSize[2], v52_.hotspot)
-			end
-			self.isRightButtonPressed = v53_
-			local v54_ = self.sliderElement
-			local v55_
-			if v54_ == nil then
-				v55_ = false
-			else
-				v55_ = GuiUtils.checkOverlayOverlap(posX, posY, v54_.absPosition[1], v54_.absPosition[2], v54_.absSize[1], v54_.absSize[2], v54_.hotspot)
-			end
-			self.isSliderPressed = v55_
+			self.isSliderPressed = false
 			if self.sliderMousePosX == nil then
 				self.sliderMousePosX = posX
 			end
@@ -249,79 +220,74 @@ function OptionSliderElement:touchEvent(posX, posY, isDown, isUp, touchId, event
 			self.sliderMousePosX = nil
 			self.hasWrapped = false
 		end
-		if eventUsed or not GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], nil) then
-			if self.inputEntered and not self:getIsFocused() then
-				FocusManager:unsetHighlight(self)
-				self.inputEntered = false
-			end
-		else
-			if not (self.inputEntered or self:getIsFocused()) then
+		if not eventUsed and GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], nil) then
+			if not self.inputEntered and not self:getIsFocused() then
 				FocusManager:setHighlight(self)
 				self.inputEntered = true
 			end
-			if self.isSliderPressed and #self.texts > 1 then
+			if self.isSliderPressed and 1 < #self.texts then
 				if not self:getIsFocused() then
 					FocusManager:setFocus(self)
 				end
-				local v56_ = self.sliderElement
-				local v57_ = v56_.absSize[1]
-				local v58_ = (self.absSize[1] - 2 * self.sliderOffset - v57_) / (#self.texts - 1)
-				local v59_ = posX - self.sliderMousePosX
-				local v60_ = v56_.absPosition[1] - self.absPosition[1] - self.sliderOffset
-				local v61_ = MathUtil.snapValue(v60_ + v59_, v58_)
-				local v62_ = self.absSize[1] - v57_ - 2 * self.sliderOffset
-				local v63_ = math.clamp(v61_, 0, v62_)
-				local v64_ = MathUtil.round(v63_ / v58_) + 1
-				if v64_ ~= self.state then
-					self.sliderMousePosX = self.sliderMousePosX + v58_ * (v64_ - self.state)
-					self:setState(v64_, true)
+				local slider = self.sliderElement
+				local sliderWidth = slider.absSize[1]
+				local stepSize = (self.absSize[1] - 2 * self.sliderOffset - sliderWidth) / (#self.texts - 1)
+				local mouseMoveDistance = posX - self.sliderMousePosX
+				local sliderLocalPosX = slider.absPosition[1] - self.absPosition[1] - self.sliderOffset
+				local sliderPosX = MathUtil.snapValue(sliderLocalPosX + mouseMoveDistance, stepSize)
+				sliderPosX = math.clamp(sliderPosX, 0, self.absSize[1] - sliderWidth - 2 * self.sliderOffset)
+				local state = MathUtil.round(sliderPosX / stepSize) + 1
+				if state ~= self.state then
+					self.sliderMousePosX = self.sliderMousePosX + stepSize * (state - self.state)
+					self:setState(state, true)
 				end
-				v56_:setAbsolutePosition(self.absPosition[1] + v63_ + self.sliderOffset, v56_.absPosition[2])
+				slider:setAbsolutePosition(self.absPosition[1] + sliderPosX + self.sliderOffset, slider.absPosition[2])
 				if self.updateTextPosition then
-					self.textElement:setAbsolutePosition(v56_.absPosition[1] - (self.textElement.absSize[1] - v56_.absSize[1]) * 0.5, self.textElement.absPosition[2])
+					self.textElement:setAbsolutePosition(slider.absPosition[1] - (self.textElement.absSize[1] - slider.absSize[1]) * 0.5, self.textElement.absPosition[2])
 				end
 				if self.useFillingBar then
 					self.fillingBarElement:setSize((self.state - 1) / (#self.texts - 1) * (self.absSize[1] - self.sliderOffset * 2) + self.sliderOffset, nil)
 					return eventUsed
 				end
 			end
+			return eventUsed
+		end
+		if self.inputEntered and not self:getIsFocused() then
+			FocusManager:unsetHighlight(self)
+			self.inputEntered = false
 		end
 	end
-	return eventUsed
 end
-
--- Local values: text, slider, minVal, maxVal, pos, fillingBarSize
 function OptionSliderElement:updateSlider()
 	if self.sliderElement ~= nil then
 		if self.sliderOffset == nil then
 			self.sliderOffset = self.leftButtonElement.absSize[1]
 		end
-		local v66_ = self.textElement
-		local v67_ = self.sliderElement
-		local v68_ = self.absPosition[1] + self.sliderOffset
-		local v69_ = self.absPosition[1] + self.absSize[1] - v67_.absSize[1] - self.sliderOffset
-		if #self.texts > 1 then
-			v69_ = v68_ + (self.state - 1) / (#self.texts - 1) * (v69_ - v68_)
+		local text = self.textElement
+		local slider = self.sliderElement
+		local minVal = self.absPosition[1] + self.sliderOffset
+		local maxVal = self.absPosition[1] + self.absSize[1] - slider.absSize[1] - self.sliderOffset
+		local pos = maxVal
+		if 1 < #self.texts then
+			pos = minVal + (self.state - 1) / (#self.texts - 1) * (maxVal - minVal)
 		end
-		v67_:setAbsolutePosition(v69_, v67_.absPosition[2])
+		slider:setAbsolutePosition(pos, slider.absPosition[2])
 		if self.updateTextPosition then
-			v66_:setAbsolutePosition(v69_ - (v66_.absSize[1] - v67_.absSize[1]) * 0.5, v66_.absPosition[2])
+			text:setAbsolutePosition(pos - (text.absSize[1] - slider.absSize[1]) * 0.5, text.absPosition[2])
 		end
 		if self.useFillingBar then
-			local v70_ = self.absSize[1] - self.sliderOffset
-			if #self.texts > 1 then
-				v70_ = (self.state - 1) / (#self.texts - 1) * (self.absSize[1] - self.sliderOffset * 2) + self.sliderOffset
+			local fillingBarSize = self.absSize[1] - self.sliderOffset
+			if 1 < #self.texts then
+				fillingBarSize = (self.state - 1) / (#self.texts - 1) * (self.absSize[1] - self.sliderOffset * 2) + self.sliderOffset
 			end
-			self.fillingBarElement:setSize(v70_, nil)
+			self.fillingBarElement:setSize(fillingBarSize, nil)
 		end
 	end
 end
-
 function OptionSliderElement:updateAbsolutePosition()
 	OptionSliderElement:superClass().updateAbsolutePosition(self)
 	self:updateSlider()
 end
-
 function OptionSliderElement:updateContentElement()
 	OptionSliderElement:superClass().updateContentElement(self)
 	self:updateSlider()

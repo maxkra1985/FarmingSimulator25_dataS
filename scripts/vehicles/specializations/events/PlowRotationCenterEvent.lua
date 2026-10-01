@@ -1,28 +1,22 @@
--- Local values: PlowRotationCenterEvent_mt
 PlowRotationCenterEvent = {}
 local PlowRotationCenterEvent_mt = Class(PlowRotationCenterEvent, Event)
 InitStaticEventClass(PlowRotationCenterEvent, "PlowRotationCenterEvent")
 function PlowRotationCenterEvent.emptyNew()
-	-- upvalues: (copy) PlowRotationCenterEvent_mt
-	return Event.new(PlowRotationCenterEvent_mt)
+	local self = Event.new(PlowRotationCenterEvent_mt)
+	return self
 end
-
--- Local values: self
 function PlowRotationCenterEvent.new(object)
-	local v3_ = PlowRotationCenterEvent.emptyNew()
-	v3_.object = object
-	return v3_
+	local self = PlowRotationCenterEvent.emptyNew()
+	self.object = object
+	return self
 end
-
 function PlowRotationCenterEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self:run(connection)
 end
-
 function PlowRotationCenterEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 end
-
 function PlowRotationCenterEvent:run(connection)
 	if self.object ~= nil and self.object:getIsSynchronized() then
 		self.object:setRotationCenter(true)
@@ -31,7 +25,6 @@ function PlowRotationCenterEvent:run(connection)
 		g_server:broadcastEvent(PlowRotationCenterEvent.new(self.object), nil, connection, self.object)
 	end
 end
-
 function PlowRotationCenterEvent.sendEvent(object, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

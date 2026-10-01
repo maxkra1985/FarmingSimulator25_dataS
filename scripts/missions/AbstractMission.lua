@@ -1,14 +1,11 @@
--- Local values: AbstractMission_mt
 AbstractMission = {}
 local AbstractMission_mt = Class(AbstractMission, Object)
 InitStaticObjectClass(AbstractMission, "AbstractMission")
 AbstractMission.SUCCESS_FACTOR = 0.98
 AbstractMission.VEHICLE_USE_COST = 200
 AbstractMission.REIMBURSEMENT_FACTOR = 0.95
-
-function AbstractMission.registerXMLPaths(xmlFile, baseDirectory) end
-
-function AbstractMission.registerSavegameXMLPaths(xmlFile, baseDirectory)
+function AbstractMission.registerXMLPaths(schema, key) end
+function AbstractMission.registerSavegameXMLPaths(schema, key)
 	schema:register(XMLValueType.STRING, key .. "#uniqueId", "Mission unique id")
 	MissionStatus.registerXMLPath(schema, key .. "#status", "Status of the mission", nil, false)
 	MissionFinishState.registerXMLPath(schema, key .. "#finishState", "Finish state of the mission", nil, false)
@@ -24,77 +21,60 @@ function AbstractMission.registerSavegameXMLPaths(xmlFile, baseDirectory)
 	schema:register(XMLValueType.INT, key .. ".endDate#endDay", "End day of the mission")
 	schema:register(XMLValueType.INT, key .. ".endDate#endDayTime", "End daytime of the mission")
 end
-
-function AbstractMission.registerMetaXMLPaths(xmlFile, baseDirectory) end
-
--- Upvalues: AbstractMission_mt
--- Local values: self, data
+function AbstractMission.registerMetaXMLPaths(schema, key) end
 function AbstractMission.new(isServer, isClient, title, description, customMt)
-	-- upvalues: (copy) AbstractMission_mt
-	local v9_ = Object.new(isServer, isClient, customMt or AbstractMission_mt)
-	v9_.title = title
-	v9_.progressTitle = title
-	v9_.description = description
-	v9_.status = MissionStatus.CREATED
-	v9_.finishState = MissionFinishState.NONE
-	v9_.reward = 0
-	v9_.reimbursement = 0
-	v9_.completion = 0
-	v9_.vehicles = {}
-	v9_.info = {}
-	v9_.pendingVehicleLoadingData = {}
-	v9_.spawnedVehicles = false
-	v9_.uniqueId = nil
-	v9_.missionDirtyFlag = v9_:getNextDirtyFlag()
-	g_messageCenter:subscribe(MessageType.FARM_DELETED, v9_.farmDestroyed, v9_)
-	g_messageCenter:subscribe(MessageType.SAVEGAME_LOADED, v9_.onSavegameLoaded, v9_, nil, false)
-	local v10_ = g_missionManager:getMissionTypeDataByName(v9_:getMissionTypeName())
-	v10_.numInstances = v10_.numInstances + 1
-	return v9_
+	local self = Object.new(isServer, isClient, customMt or AbstractMission_mt)
+	self.title = title
+	self.progressTitle = title
+	self.description = description
+	self.status = MissionStatus.CREATED
+	self.finishState = MissionFinishState.NONE
+	self.reward = 0
+	self.reimbursement = 0
+	self.completion = 0
+	self.vehicles = {}
+	self.info = {}
+	self.pendingVehicleLoadingData = {}
+	self.spawnedVehicles = false
+	self.uniqueId = nil
+	self.missionDirtyFlag = self:getNextDirtyFlag()
+	g_messageCenter:subscribe(MessageType.FARM_DELETED, self.farmDestroyed, self)
+	g_messageCenter:subscribe(MessageType.SAVEGAME_LOADED, self.onSavegameLoaded, self, nil, false)
+	local data = g_missionManager:getMissionTypeDataByName(self:getMissionTypeName())
+	data.numInstances = data.numInstances + 1
+	return self
 end
-
 function AbstractMission:init()
-	local v12_, v13_ = self:getVehicleGroup()
-	self.vehiclesToLoad = v12_
-	self.vehicleGroupIdentifier = v13_
+	self.vehiclesToLoad, self.vehicleGroupIdentifier = self:getVehicleGroup()
 	return true
 end
-
 function AbstractMission:failedToLoadFromXMLFile()
 	g_messageCenter:unsubscribe(MessageType.SAVEGAME_LOADED, self)
 end
-
 function AbstractMission:onSavegameLoaded()
 	if self:getWasStarted() then
 		self:reactivate()
 	end
 end
-
 function AbstractMission:reactivate()
 	if self.spawnedVehicles then
 		g_messageCenter:subscribe(MessageType.VEHICLE_RESET, self.onVehicleReset, self)
 	end
 end
-
 function AbstractMission:getMapHotspots()
 	return nil
 end
-
--- Local values: data
 function AbstractMission:delete()
 	AbstractMission:superClass().delete(self)
 	self:removeAccess()
 	g_messageCenter:unsubscribeAll(self)
 	g_missionManager:removeMission(self)
 	g_messageCenter:publish(MessageType.MISSION_DELETED, self)
-	local v18_ = g_missionManager:getMissionTypeDataByName(self:getMissionTypeName())
-	if v18_ ~= nil then
-		local v19_ = v18_.numInstances - 1
-		v18_.numInstances = math.max(v19_, 0)
+	local data = g_missionManager:getMissionTypeDataByName(self:getMissionTypeName())
+	if data ~= nil then
+		data.numInstances = math.max(data.numInstances - 1, 0)
 	end
 end
-
--- Local values: k, vehicle
 function AbstractMission:saveToXMLFile(xmlFile, key)
 	xmlFile:setValue(key .. "#uniqueId", self.uniqueId)
 	MissionStatus.saveToXMLFile(xmlFile, key .. "#status", self.status)
@@ -113,70 +93,66 @@ function AbstractMission:saveToXMLFile(xmlFile, key)
 	end
 	xmlFile:setValue(key .. ".vehicles#spawned", self.spawnedVehicles)
 	xmlFile:setValue(key .. ".vehicles#group", self.vehicleGroupIdentifier)
-	for v23_, v24_ in ipairs(self.vehicles) do
-		xmlFile:setValue(string.format(key .. ".vehicles.vehicle(%d)#uniqueId", v23_ - 1), v24_.uniqueId)
+	for k, vehicle in ipairs(self.vehicles) do
+		xmlFile:setValue(string.format(key .. ".vehicles.vehicle(%d)#uniqueId", k - 1), vehicle.uniqueId)
 	end
 	if self.endDate ~= nil then
 		xmlFile:setValue(key .. ".endDate#endDay", self.endDate.endDay)
 		xmlFile:setValue(key .. ".endDate#endDayTime", self.endDate.endDayTime)
 	end
 end
-
--- Local values: uniqueId, endDay, endDayTime, vehicleGroup, _, vehicleVariant, _, vehicleKey, vehicleUniqueId
 function AbstractMission:loadFromXMLFile(xmlFile, key)
 	self.activeMissionId = xmlFile:getValue(key .. "#activeId")
 	self.status = MissionStatus.loadFromXMLFile(xmlFile, key .. "#status")
 	if self.status == nil then
-		Logging.xmlError(xmlFile, "Invalid mission status for \'%s\'", key)
+		Logging.xmlError(xmlFile, "Invalid mission status for '%s'", key)
 		return false
-	end
-	self.finishState = MissionFinishState.loadFromXMLFile(xmlFile, key .. "#finishState") or MissionFinishState.NONE
-	local v28_ = xmlFile:getValue(key .. "#uniqueId", nil)
-	if v28_ ~= nil then
-		self:setUniqueId(v28_)
-	end
-	self.farmId = xmlFile:getValue(key .. "#farmId")
-	self.reward = xmlFile:getValue(key .. ".info#reward") or self.reward
-	self.reimbursement = xmlFile:getValue(key .. ".info#reimbursement") or self.reimbursement
-	self.completion = xmlFile:getValue(key .. ".info#completion") or self.completion
-	self.stealingCost = xmlFile:getValue(key .. ".info#stealingCost")
-	local v29_ = xmlFile:getValue(key .. ".endDate#endDay")
-	local v30_ = xmlFile:getValue(key .. ".endDate#endDayTime")
-	if v29_ ~= nil and v30_ ~= nil then
-		self:setEndDate(v29_, v30_)
-	end
-	self.spawnedVehicles = xmlFile:getValue(key .. ".vehicles#spawned", self.spawnedVehicles)
-	self.vehicleGroupIdentifier = xmlFile:getValue(key .. ".vehicles#group")
-	local v31_, _, _, v32_ = self:getVehicleGroupFromIdentifier(self.vehicleGroupIdentifier)
-	self.vehiclesToLoad = v31_
-	local v33_ = self:getVehicleVariant()
-	if v33_ ~= nil and (v32_ ~= nil and v32_.variant ~= v33_) then
-		Logging.xmlWarning(xmlFile, "Loading vehicle group identifier does not match mission variant anymore. Skipping mission \'%s\'", key)
-		return false
-	end
-	if self.vehiclesToLoad == nil then
-		local v34_, v35_ = self:getVehicleGroup()
-		self.vehiclesToLoad = v34_
-		self.vehicleGroupIdentifier = v35_
-		if self.vehiclesToLoad == nil then
-			Logging.xmlWarning(xmlFile, "Loading vehicle group failed. Skipping mission \'%s\'", key)
+	else
+		self.finishState = MissionFinishState.loadFromXMLFile(xmlFile, key .. "#finishState") or MissionFinishState.NONE
+		local uniqueId = xmlFile:getValue(key .. "#uniqueId", nil)
+		if uniqueId ~= nil then
+			self:setUniqueId(uniqueId)
+		end
+		self.farmId = xmlFile:getValue(key .. "#farmId")
+		self.reward = xmlFile:getValue(key .. ".info#reward") or self.reward
+		self.reimbursement = xmlFile:getValue(key .. ".info#reimbursement") or self.reimbursement
+		self.completion = xmlFile:getValue(key .. ".info#completion") or self.completion
+		self.stealingCost = xmlFile:getValue(key .. ".info#stealingCost")
+		local endDay = xmlFile:getValue(key .. ".endDate#endDay")
+		local endDayTime = xmlFile:getValue(key .. ".endDate#endDayTime")
+		if endDay ~= nil and endDayTime ~= nil then
+			self:setEndDate(endDay, endDayTime)
+		end
+		local vehicleGroup = nil
+		local _ = nil
+		self.spawnedVehicles = xmlFile:getValue(key .. ".vehicles#spawned", self.spawnedVehicles)
+		self.vehicleGroupIdentifier = xmlFile:getValue(key .. ".vehicles#group")
+		self.vehiclesToLoad, _, _, vehicleGroup = self:getVehicleGroupFromIdentifier(self.vehicleGroupIdentifier)
+		local vehicleVariant = self:getVehicleVariant()
+		if vehicleVariant ~= nil and (vehicleGroup ~= nil and vehicleGroup.variant ~= vehicleVariant) then
+			Logging.xmlWarning(xmlFile, "Loading vehicle group identifier does not match mission variant anymore. Skipping mission '%s'", key)
 			return false
 		end
-	end
-	if self.spawnedVehicles and (self.status ~= MissionStatus.FINISHED and self.status ~= MissionStatus.DISMISSED) then
-		self.tryToAddMissingVehicles = true
-	end
-	for _, v36_ in xmlFile:iterator(key .. ".vehicles.vehicle") do
-		local v37_ = xmlFile:getValue(v36_ .. "#uniqueId")
-		if self.pendingVehicleUniqueIds == nil then
-			self.pendingVehicleUniqueIds = {}
+		if self.vehiclesToLoad == nil then
+			self.vehiclesToLoad, self.vehicleGroupIdentifier = self:getVehicleGroup()
+			if self.vehiclesToLoad == nil then
+				Logging.xmlWarning(xmlFile, "Loading vehicle group failed. Skipping mission '%s'", key)
+				return false
+			end
 		end
-		local v38_ = self.pendingVehicleUniqueIds
-		table.insert(v38_, v37_)
+		if self.spawnedVehicles and (self.status ~= MissionStatus.FINISHED and self.status ~= MissionStatus.DISMISSED) then
+			self.tryToAddMissingVehicles = true
+		end
+		for _, vehicleKey in xmlFile:iterator(key .. ".vehicles.vehicle") do
+			local vehicleUniqueId = xmlFile:getValue(vehicleKey .. "#uniqueId")
+			if self.pendingVehicleUniqueIds == nil then
+				self.pendingVehicleUniqueIds = {}
+			end
+			table.insert(self.pendingVehicleUniqueIds, vehicleUniqueId)
+		end
+		return true
 	end
-	return true
 end
-
 function AbstractMission:writeStream(streamId, connection)
 	AbstractMission:superClass().writeStream(self, streamId, connection)
 	streamWriteUInt8(streamId, self.type.typeId)
@@ -190,17 +166,17 @@ function AbstractMission:writeStream(streamId, connection)
 	end
 	if self.status == MissionStatus.RUNNING or self.status == MissionStatus.PREPARING then
 		streamWriteInt32(streamId, self.activeMissionId)
-	elseif self.status == MissionStatus.FINISHED then
-		streamWriteFloat32(streamId, self.stealingCost or 0)
-		MissionFinishState.writeStream(streamId, self.finishState)
+	else
+		if self.status == MissionStatus.FINISHED then
+			streamWriteFloat32(streamId, self.stealingCost or 0)
+			MissionFinishState.writeStream(streamId, self.finishState)
+		end
 	end
 	if streamWriteBool(streamId, self.endDate ~= nil) then
 		streamWriteInt32(streamId, self.endDate.endDay)
 		streamWriteFloat32(streamId, self.endDate.endDayTime)
 	end
 end
-
--- Local values: endDay, endDayTime
 function AbstractMission:readStream(streamId, connection)
 	AbstractMission:superClass().readStream(self, streamId, connection)
 	self.type = g_missionManager:getMissionTypeById(streamReadUInt8(streamId))
@@ -215,56 +191,53 @@ function AbstractMission:readStream(streamId, connection)
 	end
 	if self.status == MissionStatus.RUNNING or self.status == MissionStatus.PREPARING then
 		self.activeMissionId = streamReadInt32(streamId)
-	elseif self.status == MissionStatus.FINISHED then
-		self.stealingCost = streamReadFloat32(streamId)
-		self.finishState = MissionFinishState.readStream(streamId)
+	else
+		if self.status == MissionStatus.FINISHED then
+			self.stealingCost = streamReadFloat32(streamId)
+			self.finishState = MissionFinishState.readStream(streamId)
+		end
 	end
 	if streamReadBool(streamId) then
-		self:setEndDate(streamReadInt32(streamId), (streamReadFloat32(streamId)))
+		local endDay = streamReadInt32(streamId)
+		local endDayTime = streamReadFloat32(streamId)
+		self:setEndDate(endDay, endDayTime)
 	end
 	g_missionManager:assignGenerationTime(self)
-	local v45_ = g_missionManager.missions
-	table.insert(v45_, self)
+	table.insert(g_missionManager.missions, self)
 	g_messageCenter:publishDelayed(MessageType.MISSION_GENERATED, self)
 end
-
 function AbstractMission:writeUpdateStream(streamId, connection, dirtyMask)
 	MissionStatus.writeStream(streamId, self.status)
 	streamWriteFloat32(streamId, self.completion)
 end
-
--- Local values: status
 function AbstractMission:readUpdateStream(streamId, timestamp, connection)
-	self:setStatus((MissionStatus.readStream(streamId)))
+	local status = MissionStatus.readStream(streamId)
+	self:setStatus(status)
 	self.completion = streamReadFloat32(streamId)
 end
-
 function AbstractMission:writeStreamMissionStartedInfo(streamId, connection)
 	MissionStatus.writeStream(streamId, self.status)
 	streamWriteUIntN(streamId, self.farmId, FarmManager.FARM_ID_SEND_NUM_BITS)
 	streamWriteInt32(streamId, self.activeMissionId)
 	streamWriteBool(streamId, self.spawnedVehicles)
 end
-
 function AbstractMission:readStreamMissionStartedInfo(streamId, connection)
 	self.status = MissionStatus.readStream(streamId)
 	self.farmId = streamReadUIntN(streamId, FarmManager.FARM_ID_SEND_NUM_BITS)
 	self.activeMissionId = streamReadInt32(streamId)
 	self.spawnedVehicles = streamReadBool(streamId)
 end
-
--- Local values: mission, i, uniqueId, vehicle, _, info, found, _, vehicle
 function AbstractMission:update(dt)
-	local v55_ = g_currentMission
+	local mission = g_currentMission
 	if self.pendingVehicleUniqueIds ~= nil then
-		for v56_ = #self.pendingVehicleUniqueIds, 1, -1 do
-			local v57_ = self.pendingVehicleUniqueIds[v56_]
-			local v58_ = v55_.vehicleSystem:getVehicleByUniqueId(v57_)
-			if v58_ ~= nil then
-				table.remove(self.pendingVehicleUniqueIds, v56_)
-				local v59_ = self.vehicles
-				table.insert(v59_, v58_)
+		for i = #self.pendingVehicleUniqueIds, 1, -1 do
+			local uniqueId = self.pendingVehicleUniqueIds[i]
+			local vehicle = mission.vehicleSystem:getVehicleByUniqueId(uniqueId)
+			if vehicle == nil then
+				continue
 			end
+			table.remove(self.pendingVehicleUniqueIds, i)
+			table.insert(self.vehicles, vehicle)
 		end
 		if #self.pendingVehicleUniqueIds == 0 then
 			self.pendingVehicleUniqueIds = nil
@@ -272,17 +245,18 @@ function AbstractMission:update(dt)
 	end
 	if self.tryToAddMissingVehicles and self.pendingVehicleUniqueIds == nil then
 		if #self.vehicles ~= #self.vehiclesToLoad then
-			for _, v60_ in ipairs(self.vehiclesToLoad) do
-				local v61_ = false
-				for _, v62_ in ipairs(self.vehicles) do
-					if v60_.filename == v62_.configFileName then
-						v61_ = true
+			for _, info in ipairs(self.vehiclesToLoad) do
+				local found = false
+				for _, vehicle in ipairs(self.vehicles) do
+					if info.filename == vehicle.configFileName then
+						found = true
 						break
 					end
 				end
-				if not v61_ then
-					self:spawnVehicle(v60_)
+				if found then
+					continue
 				end
+				self:spawnVehicle(info)
 			end
 		end
 		self.tryToAddMissingVehicles = false
@@ -304,25 +278,23 @@ function AbstractMission:update(dt)
 	end
 	if (self.status == MissionStatus.RUNNING or self.status == MissionStatus.FINISHED) and (g_localPlayer ~= nil and g_localPlayer.farmId == self.farmId) then
 		if self.progressBar == nil then
-			self.progressBar = v55_.hud:addSideNotificationProgressBar(g_i18n:getText("contract_title"), self.progressTitle, self.completion)
+			self.progressBar = mission.hud:addSideNotificationProgressBar(g_i18n:getText("contract_title"), self.progressTitle, self.completion)
 		end
 		self.progressBar.progress = self.completion
-		v55_.hud:markSideNotificationProgressBarForDrawing(self.progressBar)
+		mission.hud:markSideNotificationProgressBarForDrawing(self.progressBar)
 	end
 	if self.status == MissionStatus.RUNNING or self.status == MissionStatus.PREPARING then
 		self:raiseActive()
 	end
 end
-
--- Local values: mission
 function AbstractMission:updateTick(dt)
 	if self.isServer and self.status == MissionStatus.RUNNING then
-		local v64_ = g_currentMission
+		local mission = g_currentMission
 		if self.lastCompletion == nil then
-			self.lastCompletion = v64_.time
-		elseif self.lastCompletion < v64_.time - 2500 then
+			self.lastCompletion = mission.time
+		elseif self.lastCompletion < mission.time - 2500 then
 			self.completion = self:getCompletion()
-			if self.completion >= 0.995 then
+			if 0.995 <= self.completion then
 				self:finish(MissionFinishState.SUCCESS)
 			end
 		end
@@ -331,14 +303,12 @@ function AbstractMission:updateTick(dt)
 		end
 	end
 end
-
 function AbstractMission:start(spawnVehicles)
 	self:prepare(spawnVehicles)
 	self:raiseActive()
 	g_server:broadcastEvent(MissionStartedEvent.new(self))
 	return true
 end
-
 function AbstractMission:prepare(spawnVehicles)
 	self:setStatus(MissionStatus.PREPARING)
 	if self.isServer and (spawnVehicles and self.vehiclesToLoad ~= nil) then
@@ -346,37 +316,34 @@ function AbstractMission:prepare(spawnVehicles)
 		g_messageCenter:subscribe(MessageType.VEHICLE_RESET, self.onVehicleReset, self)
 	end
 end
-
 function AbstractMission:getIsPrepared()
-	return not self.spawnedVehicles and true or #self.vehiclesToLoad == #self.vehicles
+	if not self.spawnedVehicles then
+		return true
+	else
+		return #self.vehiclesToLoad == #self.vehicles
+	end
 end
-
 function AbstractMission:finishedPreparing()
 	self:setStatus(MissionStatus.RUNNING)
 end
-
 function AbstractMission:started() end
-
--- Local values: mission
 function AbstractMission:finish(finishState)
 	self:setStatus(MissionStatus.FINISHED)
 	self.finishState = finishState
 	if finishState ~= MissionFinishState.SUCCESS then
 		self:removeAccess()
 	end
-	local v73_ = g_currentMission
-	if v73_:getIsServer() then
+	local mission = g_currentMission
+	if mission:getIsServer() then
 		if finishState == MissionFinishState.SUCCESS then
 			g_farmManager:getFarmById(self.farmId).stats:updateMissionDone()
 		end
 		self.stealingCost = self:calculateStealingCost()
 		g_server:broadcastEvent(MissionFinishedEvent.new(self, finishState, self.stealingCost))
 	end
-	v73_.hud:removeSideNotificationProgressBar(self.progressBar)
+	mission.hud:removeSideNotificationProgressBar(self.progressBar)
 	g_messageCenter:publish(MissionFinishedEvent, self, finishState)
 end
-
--- Local values: change, mission
 function AbstractMission:dismiss()
 	if self.status ~= MissionStatus.DISMISSED then
 		self:setStatus(MissionStatus.DISMISSED)
@@ -384,384 +351,313 @@ function AbstractMission:dismiss()
 			self:removeAccess()
 		end
 		if self.isServer then
-			local v75_ = self:getTotalReward()
-			if v75_ ~= 0 then
-				g_currentMission:addMoney(v75_, self.farmId, MoneyType.MISSIONS, true, true)
+			local change = self:getTotalReward()
+			if change ~= 0 then
+				local mission = g_currentMission
+				mission:addMoney(change, self.farmId, MoneyType.MISSIONS, true, true)
 			end
 		end
 	end
 end
-
 function AbstractMission:setStatus(status)
 	if self.status ~= status then
 		self.status = status
 		g_messageCenter:publishDelayed(MessageType.MISSION_STATUS_CHANGED, self, status)
 	end
 end
-
 function AbstractMission:calculateStealingCost()
 	return 0
 end
-
 function AbstractMission:getUniqueId()
 	return self.uniqueId
 end
-
 function AbstractMission:setUniqueId(uniqueId)
 	self.uniqueId = uniqueId
 end
-
--- Local values: _, info
 function AbstractMission:spawnVehicles()
-	for _, v82_ in ipairs(self.vehiclesToLoad) do
-		self:spawnVehicle(v82_)
+	for _, info in ipairs(self.vehiclesToLoad) do
+		self:spawnVehicle(info)
 	end
-	self.spawnedVehicles = #self.vehiclesToLoad > 0
+	self.spawnedVehicles = 0 < #self.vehiclesToLoad
 end
-
--- Local values: data, mission, loadingInfo
 function AbstractMission:spawnVehicle(info)
-	local v85_ = VehicleLoadingData.new()
-	v85_:setFilename(info.filename)
-	if v85_.isValid then
+	local data = VehicleLoadingData.new()
+	data:setFilename(info.filename)
+	if data.isValid then
 		if info.configurations ~= nil then
-			v85_:setConfigurations(info.configurations)
+			data:setConfigurations(info.configurations)
 		end
-		local v86_ = g_currentMission
-		v85_:setLoadingPlace(v86_.storeSpawnPlaces, v86_.usedStorePlaces)
-		v85_:setPropertyState(VehiclePropertyState.MISSION)
-		v85_:setOwnerFarmId(self.farmId)
-		local v87_ = self.pendingVehicleLoadingData
-		table.insert(v87_, v85_)
-		v85_:load(self.onSpawnedVehicle, self, {
-			["loadingData"] = v85_,
-			["vehicleInfo"] = info
-		})
+		local mission = g_currentMission
+		data:setLoadingPlace(mission.storeSpawnPlaces, mission.usedStorePlaces)
+		data:setPropertyState(VehiclePropertyState.MISSION)
+		data:setOwnerFarmId(self.farmId)
+		table.insert(self.pendingVehicleLoadingData, data)
+		local loadingInfo = { loadingData = data, vehicleInfo = info }
+		data:load(self.onSpawnedVehicle, self, loadingInfo)
 	end
 end
-
--- Local values: _, vehicle, _, vehicle, _, vehicle, _, loadingData, _, vehicle
 function AbstractMission:onSpawnedVehicle(vehicles, vehicleLoadState, loadingInfo)
 	table.removeElement(self.pendingVehicleLoadingData, loadingInfo.loadingData)
 	if self.failedToLoadVehicles then
-		for _, v92_ in ipairs(vehicles) do
-			v92_:delete()
+		for _, vehicle in ipairs(vehicles) do
+			vehicle:delete()
 		end
-		return
 	elseif vehicleLoadState == VehicleLoadingState.OK then
-		for _, v93_ in ipairs(vehicles) do
-			v93_:addWearAmount(math.random() * 0.3 + 0.1)
-			v93_:setOperatingTime(3600000 * (math.random() * 40 + 30))
-			local v94_ = self.vehicles
-			table.insert(v94_, v93_)
+		for _, vehicle in ipairs(vehicles) do
+			vehicle:addWearAmount(math.random() * 0.3 + 0.1)
+			vehicle:setOperatingTime(3600000 * (math.random() * 40 + 30))
+			table.insert(self.vehicles, vehicle)
 		end
 	else
 		self.failedToLoadVehicles = true
-		for _, v95_ in ipairs(vehicles) do
-			v95_:delete()
+		for _, vehicle in ipairs(vehicles) do
+			vehicle:delete()
 		end
-		for _, v96_ in ipairs(self.pendingVehicleLoadingData) do
-			v96_:cancelLoading()
+		for _, loadingData in ipairs(self.pendingVehicleLoadingData) do
+			loadingData:cancelLoading()
 		end
 		table.clear(self.pendingVehicleLoadingData)
 		table.clear(self.vehiclesToLoad)
 		self.spawnedVehicles = false
-		for _, v97_ in ipairs(self.vehicles) do
-			v97_:delete()
+		for _, vehicle in ipairs(self.vehicles) do
+			vehicle:delete()
 		end
 		table.clear(self.vehicles)
 	end
 end
-
 function AbstractMission:getStealingCosts()
 	return 0
 end
-
--- Local values: numVehicles, mission, difficultyMultiplier, vehicleCosts
 function AbstractMission:getVehicleCosts()
 	if self.vehiclesToLoad == nil then
 		return 0
+	else
+		local numVehicles = #self.vehiclesToLoad
+		local mission = g_currentMission
+		local difficultyMultiplier = 0.7 + 0.3 * mission.missionInfo.economicDifficulty
+		local vehicleCosts = numVehicles * AbstractMission.VEHICLE_USE_COST
+		return vehicleCosts * difficultyMultiplier
 	end
-	local v99_ = #self.vehiclesToLoad
-	local v100_ = 0.7 + 0.3 * g_currentMission.missionInfo.economicDifficulty
-	return v99_ * AbstractMission.VEHICLE_USE_COST * v100_
 end
-
 function AbstractMission:getReward()
 	return 0
 end
-
 function AbstractMission:getReimbursement()
 	return self.reimbursement
 end
-
 function AbstractMission:calculateReimbursement() end
-
 function AbstractMission:getActualVehicleCosts()
-	return not self.spawnedVehicles and 0 or self:getVehicleCosts()
+	if self.spawnedVehicles then
+		return self:getVehicleCosts()
+	else
+		return 0
+	end
 end
-
 function AbstractMission:getActualReward()
-	return self.finishState ~= MissionFinishState.SUCCESS and 0 or self:getReward()
+	if self.finishState == MissionFinishState.SUCCESS then
+		return self:getReward()
+	else
+		return 0
+	end
 end
-
 function AbstractMission:getActualStealingCosts()
 	return self:getStealingCosts()
 end
-
--- Local values: reward, vehicleCosts, stealingCosts, reimbursement
 function AbstractMission:getTotalReward()
-	local v106_ = self:getActualReward()
-	local v107_ = self:getActualVehicleCosts()
-	local v108_ = self:getActualStealingCosts()
-	local v109_ = self:getReimbursement()
-	return v106_ - v107_ - v108_ + v109_
+	local reward = self:getActualReward()
+	local vehicleCosts = self:getActualVehicleCosts()
+	local stealingCosts = self:getActualStealingCosts()
+	local reimbursement = self:getReimbursement()
+	return reward - vehicleCosts - stealingCosts + reimbursement
 end
-
--- Local values: isTimedOut
 function AbstractMission:validate(event)
-	return not self:isTimedOut()
+	local isTimedOut = self:isTimedOut()
+	return not isTimedOut
 end
-
--- Local values: minutesLeft
 function AbstractMission:isTimedOut()
-	local v112_ = self:getMinutesLeft()
-	if v112_ == nil then
+	local minutesLeft = self:getMinutesLeft()
+	if minutesLeft == nil then
 		return false
 	else
-		return v112_ <= 0
+		return minutesLeft <= 0
 	end
 end
-
--- Local values: endDate, mission, environment, currentMonotonicDay, dayTime, totalDayTime, endDay, endDayTime, dayTimeDelta, minutesLeft
 function AbstractMission:getMinutesLeft()
-	local v114_ = self.endDate
-	if v114_ == nil then
+	local endDate = self.endDate
+	if endDate == nil then
 		return nil
+	else
+		local mission = g_currentMission
+		local environment = mission.environment
+		local currentMonotonicDay = environment.currentMonotonicDay
+		local dayTime = environment.dayTime
+		local totalDayTime = 86400000
+		local endDay = endDate.endDay
+		local endDayTime = endDate.endDayTime
+		local dayTimeDelta = 0
+		if dayTime < endDayTime then
+			dayTimeDelta = endDayTime - dayTime
+		elseif currentMonotonicDay < endDay then
+			dayTimeDelta = dayTime + (86400000 - endDayTime)
+			currentMonotonicDay = currentMonotonicDay + 1
+		end
+		dayTimeDelta = dayTimeDelta + (endDay - currentMonotonicDay) * 86400000
+		local minutesLeft = dayTimeDelta / 60000
+		return minutesLeft
 	end
-	local v115_ = g_currentMission.environment
-	local v116_ = v115_.currentMonotonicDay
-	local v117_ = v115_.dayTime
-	local v118_ = v114_.endDay
-	local v119_ = v114_.endDayTime
-	local v120_ = 0
-	if v117_ < v119_ then
-		v120_ = v119_ - v117_
-	elseif v116_ < v118_ then
-		v120_ = v117_ + (86400000 - v119_)
-		v116_ = v116_ + 1
-	end
-	return (v120_ + (v118_ - v116_) * 86400000) / 60000
 end
-
--- Local values: mission, environment, currentMonotonicDay, daysPerPeriod, dayInPeriod, endDay, endDayTime
 function AbstractMission:setDefaultEndDate()
-	local v122_ = g_currentMission.environment
-	local v123_ = v122_.currentMonotonicDay
-	self:setEndDate(v123_ + (v122_.daysPerPeriod - v122_:getDayInPeriodFromDay(v123_)), 86399999)
+	local mission = g_currentMission
+	local environment = mission.environment
+	local currentMonotonicDay = environment.currentMonotonicDay
+	local daysPerPeriod = environment.daysPerPeriod
+	local dayInPeriod = environment:getDayInPeriodFromDay(currentMonotonicDay)
+	local endDay = currentMonotonicDay + (daysPerPeriod - dayInPeriod)
+	local endDayTime = 86399999
+	self:setEndDate(endDay, 86399999)
 end
-
--- Local values: mission, environment, currentMonotonicDay, endDay, endDayTime
 function AbstractMission:setEndDateByOffset(dayTimeOffset)
-	local v126_ = g_currentMission.environment
-	local v127_, v128_ = v126_:getDayAndDayTime(dayTimeOffset, v126_.currentMonotonicDay)
-	self:setEndDate(v127_, v128_)
+	local mission = g_currentMission
+	local environment = mission.environment
+	local currentMonotonicDay = environment.currentMonotonicDay
+	local endDay, endDayTime = environment:getDayAndDayTime(dayTimeOffset, currentMonotonicDay)
+	self:setEndDate(endDay, endDayTime)
 end
-
 function AbstractMission:setEndDate(endDay, endDayTime)
-	self.endDate = {
-		["endDay"] = endDay,
-		["endDayTime"] = endDayTime
-	}
+	self.endDate = { endDay = endDay, endDayTime = endDayTime }
 end
-
 function AbstractMission:getIsInProgress()
-	return self.status == MissionStatus.PREPARING and true or self.status == MissionStatus.RUNNING
+	return self.status == MissionStatus.PREPARING or self.status == MissionStatus.RUNNING
 end
-
 function AbstractMission:getIsRunning()
 	return self.status == MissionStatus.RUNNING
 end
-
 function AbstractMission:getWasRunning()
-	return (self.status == MissionStatus.RUNNING or self.status == MissionStatus.FINISHED) and true or self.status == MissionStatus.DISMISSED
+	return self.status == MissionStatus.RUNNING or self.status == MissionStatus.FINISHED or self.status == MissionStatus.DISMISSED
 end
-
 function AbstractMission:getIsReadyToStart()
 	return self.status == MissionStatus.CREATED
 end
-
 function AbstractMission:getWasStarted()
 	return self.status ~= MissionStatus.CREATED
 end
-
 function AbstractMission:getIsFinished()
 	return self.status == MissionStatus.FINISHED
 end
-
 function AbstractMission:getInfo()
 	return self.info
 end
-
 function AbstractMission:getLocation()
 	return ""
 end
-
 function AbstractMission:getDescription()
 	return self.description
 end
-
--- Local values: details
 function AbstractMission:getDetails()
-	local v141_ = {}
+	local details = {}
 	if not self:getWasStarted() or self.spawnedVehicles then
-		local v142_ = {
-			["title"] = g_i18n:getText("contract_vehicleCosts"),
-			["value"] = g_i18n:formatMoney(self:getVehicleCosts(), 0, true, true)
-		}
-		table.insert(v141_, v142_)
+		table.insert(details, { title = g_i18n:getText("contract_vehicleCosts"), value = g_i18n:formatMoney(self:getVehicleCosts(), 0, true, true) })
 	end
-	return v141_
+	return details
 end
-
--- Local values: details
 function AbstractMission:getFinishedDetails()
-	local v144_ = {}
-	local v145_ = {
-		["title"] = g_i18n:getText("contract_reward"),
-		["value"] = g_i18n:formatMoney(self:getActualReward(), 0, true, true)
-	}
-	table.insert(v144_, v145_)
-	local v146_ = {
-		["title"] = g_i18n:getText("contract_reimbursement"),
-		["value"] = g_i18n:formatMoney(self:getReimbursement(), 0, true, true)
-	}
-	table.insert(v144_, v146_)
-	local v147_ = {
-		["title"] = g_i18n:getText("contract_vehicleCosts"),
-		["value"] = g_i18n:formatMoney(-self:getActualVehicleCosts(), 0, true, true)
-	}
-	table.insert(v144_, v147_)
-	local v148_ = {
-		["title"] = g_i18n:getText("contract_stealing"),
-		["value"] = g_i18n:formatMoney(-self:getActualStealingCosts(), 0, true, true)
-	}
-	table.insert(v144_, v148_)
-	return v144_
+	local details = {}
+	table.insert(details, { title = g_i18n:getText("contract_reward"), value = g_i18n:formatMoney(self:getActualReward(), 0, true, true) })
+	table.insert(details, { title = g_i18n:getText("contract_reimbursement"), value = g_i18n:formatMoney(self:getReimbursement(), 0, true, true) })
+	table.insert(details, { title = g_i18n:getText("contract_vehicleCosts"), value = g_i18n:formatMoney(-self:getActualVehicleCosts(), 0, true, true) })
+	table.insert(details, { title = g_i18n:getText("contract_stealing"), value = g_i18n:formatMoney(-self:getActualStealingCosts(), 0, true, true) })
+	return details
 end
-
 function AbstractMission:getTitle()
 	return self.title
 end
-
 function AbstractMission:getNPC()
 	return nil
 end
-
 function AbstractMission:getExtraProgressText()
 	return ""
 end
-
 function AbstractMission:getCompletion()
 	return 0
 end
-
 function AbstractMission:farmDestroyed(farmId)
 	if farmId == self.farmId then
 		g_missionManager:markMissionForDeletion(self)
 	end
 end
-
 function AbstractMission:getMissionTypeName()
 	return nil
 end
-
--- Local values: wasMissionVehicle
 function AbstractMission:onVehicleReset(oldVehicle, newVehicle)
-	if self.isServer and table.removeElement(self.vehicles, oldVehicle) then
-		table.addElement(self.vehicles, newVehicle)
+	if self.isServer then
+		local wasMissionVehicle = table.removeElement(self.vehicles, oldVehicle)
+		if wasMissionVehicle then
+			table.addElement(self.vehicles, newVehicle)
+		end
 	end
 end
-
 function AbstractMission:getVehicleSize()
 	return "small"
 end
-
 function AbstractMission:getVehicleGroupFromIdentifier(identifier)
 	return g_missionManager:getVehicleGroupFromIdentifier(self.type.name, self:getVehicleSize(), identifier)
 end
-
 function AbstractMission:getVehicleGroup()
 	return g_missionManager:getRandomVehicleGroup(self:getMissionTypeName(), self:getVehicleSize(), self:getVehicleVariant())
 end
-
 function AbstractMission:getVehicleVariant()
 	return nil
 end
-
 function AbstractMission:getVariant()
 	return nil
 end
-
--- Local values: _, vehicle
 function AbstractMission:removeAccess()
 	if self.isServer then
 		self:calculateReimbursement()
-		for _, v159_ in ipairs(self.vehicles) do
-			if not v159_:getIsBeingDeleted() then
-				v159_:delete()
+		for _, vehicle in ipairs(self.vehicles) do
+			if vehicle:getIsBeingDeleted() then
+				continue
 			end
+			vehicle:delete()
 		end
 		self.vehicles = {}
 	end
 end
-
 function AbstractMission:hasLeasableVehicles()
 	return self.vehiclesToLoad ~= nil
 end
-
--- Local values: result, mission, places, usedPlaces, placesFilled, _, v, storeItem, size, x, _, _, place, width, _, _, place
 function AbstractMission:isSpawnSpaceAvailable()
-	local v162_ = g_currentMission
-	local v163_ = v162_.storeSpawnPlaces
-	local v164_ = v162_.usedStorePlaces
-	local v165_ = {}
-	local v166_ = true
-	for _, v167_ in ipairs(self.vehiclesToLoad) do
-		local v168_ = g_storeManager:getItemByXMLFilename(v167_.filename)
-		local v169_ = StoreItemUtil.getSizeValues(v167_.filename, "vehicle", v168_.rotation, v167_.configurations)
-		local v170_ = v169_.width
-		local v171_ = VehicleLoadingData.MIN_SPAWN_PLACE_WIDTH
-		v169_.width = math.max(v170_, v171_)
-		local v172_ = v169_.length
-		local v173_ = VehicleLoadingData.MIN_SPAWN_PLACE_LENGTH
-		v169_.length = math.max(v172_, v173_)
-		local v174_ = v169_.height
-		local v175_ = VehicleLoadingData.MIN_SPAWN_PLACE_HEIGHT
-		v169_.height = math.max(v174_, v175_)
-		v169_.width = v169_.width + VehicleLoadingData.SPAWN_WIDTH_OFFSET
-		local v176_, _, _, v177_, v178_, _ = PlacementUtil.getPlace(v163_, v169_, v164_)
-		if v176_ == nil then
-			v166_ = false
+	local result = true
+	local mission = g_currentMission
+	local places = mission.storeSpawnPlaces
+	local usedPlaces = mission.usedStorePlaces
+	local placesFilled = {}
+	for _, v in ipairs(self.vehiclesToLoad) do
+		local storeItem = g_storeManager:getItemByXMLFilename(v.filename)
+		local size = StoreItemUtil.getSizeValues(v.filename, "vehicle", storeItem.rotation, v.configurations)
+		size.width = math.max(size.width, VehicleLoadingData.MIN_SPAWN_PLACE_WIDTH)
+		size.length = math.max(size.length, VehicleLoadingData.MIN_SPAWN_PLACE_LENGTH)
+		size.height = math.max(size.height, VehicleLoadingData.MIN_SPAWN_PLACE_HEIGHT)
+		size.width = size.width + VehicleLoadingData.SPAWN_WIDTH_OFFSET
+		local x, _, _, place, width, _ = PlacementUtil.getPlace(places, size, usedPlaces)
+		if x == nil then
+			result = false
 			break
 		end
-		PlacementUtil.markPlaceUsed(v164_, v177_, v178_)
-		table.insert(v165_, v177_)
+		PlacementUtil.markPlaceUsed(usedPlaces, place, width)
+		table.insert(placesFilled, place)
 	end
-	for _, v179_ in ipairs(v165_) do
-		PlacementUtil.unmarkPlaceUsed(v164_, v179_)
+	for _, place in ipairs(placesFilled) do
+		PlacementUtil.unmarkPlaceUsed(usedPlaces, place)
 	end
-	return v166_
+	return result
 end
-
 function AbstractMission:getIsWorkAllowed(farmId, x, z, workAreaType, vehicle)
 	return true
 end
-
 function AbstractMission:getWorldPosition()
 	return 0, 0
 end
-
 function AbstractMission.loadMapData(xmlFile, baseDirectory) end
 function AbstractMission.unloadMapData() end
 function AbstractMission.tryGenerateMission() end

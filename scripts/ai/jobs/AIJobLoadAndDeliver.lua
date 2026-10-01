@@ -1,515 +1,472 @@
--- Local values: AIJobLoadAndDeliver_mt
 AIJobLoadAndDeliver = {}
 AIJobLoadAndDeliver.START_ERROR_LIMIT_REACHED = 1
 AIJobLoadAndDeliver.START_ERROR_VEHICLE_DELETED = 2
 AIJobLoadAndDeliver.START_ERROR_NO_PERMISSION = 3
 AIJobLoadAndDeliver.START_ERROR_VEHICLE_IN_USE = 4
 local AIJobLoadAndDeliver_mt = Class(AIJobLoadAndDeliver, AIJob)
-
--- Upvalues: AIJobLoadAndDeliver_mt
--- Local values: self, vehicleGroup, loadTargetGroup, unloadTargetGroup, loopingGroup
 function AIJobLoadAndDeliver.new(isServer, customMt)
-	-- upvalues: (copy) AIJobLoadAndDeliver_mt
-	local v4_ = AIJob.new(isServer, customMt or AIJobLoadAndDeliver_mt)
-	v4_.dischargeNodeInfos = {}
-	v4_.loadingNodeInfos = {}
-	v4_.driveToLoadingTask = AITaskDriveTo.new(isServer, v4_)
-	v4_.loadingTask = AITaskLoading.new(isServer, v4_)
-	v4_.driveToUnloadingTask = AITaskDriveTo.new(isServer, v4_)
-	v4_.dischargeTask = AITaskDischarge.new(isServer, v4_)
-	v4_:addTask(v4_.driveToLoadingTask)
-	v4_:addTask(v4_.loadingTask)
-	v4_:addTask(v4_.driveToUnloadingTask)
-	v4_:addTask(v4_.dischargeTask)
-	v4_.vehicleParameter = AIParameterVehicle.new()
-	v4_.unloadingStationParameter = AIParameterUnloadingStation.new()
-	v4_.loadingStationParameter = AIParameterLoadingStation.new()
-	v4_.fillTypeParameter = AIParameterFillType.new()
-	v4_.loopingParameter = AIParameterLooping.new()
-	v4_:addNamedParameter("vehicle", v4_.vehicleParameter)
-	v4_:addNamedParameter("loadingStation", v4_.loadingStationParameter)
-	v4_:addNamedParameter("fillType", v4_.fillTypeParameter)
-	v4_:addNamedParameter("unloadingStation", v4_.unloadingStationParameter)
-	v4_:addNamedParameter("looping", v4_.loopingParameter)
-	local v5_ = AIParameterGroup.new(g_i18n:getText("ai_parameterGroupTitleVehicle"))
-	v5_:addParameter(v4_.vehicleParameter)
-	local v6_ = AIParameterGroup.new(g_i18n:getText("ai_parameterGroupTitleLoadingStation"))
-	v6_:addParameter(v4_.loadingStationParameter)
-	v6_:addParameter(v4_.fillTypeParameter)
-	local v7_ = AIParameterGroup.new(g_i18n:getText("ai_parameterGroupTitleUnloadingStation"))
-	v7_:addParameter(v4_.unloadingStationParameter)
-	local v8_ = AIParameterGroup.new(g_i18n:getText("ai_parameterGroupTitleLooping"))
-	v8_:addParameter(v4_.loopingParameter)
-	local v9_ = v4_.groupedParameters
-	table.insert(v9_, v5_)
-	local v10_ = v4_.groupedParameters
-	table.insert(v10_, v6_)
-	local v11_ = v4_.groupedParameters
-	table.insert(v11_, v7_)
-	local v12_ = v4_.groupedParameters
-	table.insert(v12_, v8_)
-	return v4_
+	local self = AIJob.new(isServer, customMt or AIJobLoadAndDeliver_mt)
+	self.dischargeNodeInfos = {}
+	self.loadingNodeInfos = {}
+	self.driveToLoadingTask = AITaskDriveTo.new(isServer, self)
+	self.loadingTask = AITaskLoading.new(isServer, self)
+	self.driveToUnloadingTask = AITaskDriveTo.new(isServer, self)
+	self.dischargeTask = AITaskDischarge.new(isServer, self)
+	self:addTask(self.driveToLoadingTask)
+	self:addTask(self.loadingTask)
+	self:addTask(self.driveToUnloadingTask)
+	self:addTask(self.dischargeTask)
+	self.vehicleParameter = AIParameterVehicle.new()
+	self.unloadingStationParameter = AIParameterUnloadingStation.new()
+	self.loadingStationParameter = AIParameterLoadingStation.new()
+	self.fillTypeParameter = AIParameterFillType.new()
+	self.loopingParameter = AIParameterLooping.new()
+	self:addNamedParameter("vehicle", self.vehicleParameter)
+	self:addNamedParameter("loadingStation", self.loadingStationParameter)
+	self:addNamedParameter("fillType", self.fillTypeParameter)
+	self:addNamedParameter("unloadingStation", self.unloadingStationParameter)
+	self:addNamedParameter("looping", self.loopingParameter)
+	local vehicleGroup = AIParameterGroup.new(g_i18n:getText("ai_parameterGroupTitleVehicle"))
+	vehicleGroup:addParameter(self.vehicleParameter)
+	local loadTargetGroup = AIParameterGroup.new(g_i18n:getText("ai_parameterGroupTitleLoadingStation"))
+	loadTargetGroup:addParameter(self.loadingStationParameter)
+	loadTargetGroup:addParameter(self.fillTypeParameter)
+	local unloadTargetGroup = AIParameterGroup.new(g_i18n:getText("ai_parameterGroupTitleUnloadingStation"))
+	unloadTargetGroup:addParameter(self.unloadingStationParameter)
+	local loopingGroup = AIParameterGroup.new(g_i18n:getText("ai_parameterGroupTitleLooping"))
+	loopingGroup:addParameter(self.loopingParameter)
+	table.insert(self.groupedParameters, vehicleGroup)
+	table.insert(self.groupedParameters, loadTargetGroup)
+	table.insert(self.groupedParameters, unloadTargetGroup)
+	table.insert(self.groupedParameters, loopingGroup)
+	return self
 end
-
--- Local values: vehicle, loadingStation, unloadingStation, fillTypeIndex, _, fillUnit, fillUnitIndex, _, _, z, _, dischargeNode, _, _, z, childVehicles, _, childVehicle, _, dischargeNode, _, _, z, _, fillUnit, fillUnitIndex, _, _, z, maxDischargeOffset, maxLoadingOffset, x, z, dirX, dirZ, trigger, x, z, dirX, dirZ, trigger
 function AIJobLoadAndDeliver:setValues()
 	self:resetTasks()
-	local v14_ = self.vehicleParameter:getVehicle()
-	if v14_ == nil then
+	local vehicle = self.vehicleParameter:getVehicle()
+	if vehicle == nil then
+		return
+	end
+	local loadingStation = self.loadingStationParameter:getLoadingStation()
+	if loadingStation == nil then
+		return
+	end
+	local unloadingStation = self.unloadingStationParameter:getUnloadingStation()
+	if unloadingStation == nil then
 		return
 	else
-		local v15_ = self.loadingStationParameter:getLoadingStation()
-		if v15_ == nil then
-			return
-		else
-			local v16_ = self.unloadingStationParameter:getUnloadingStation()
-			if v16_ ~= nil then
-				local v17_ = self.fillTypeParameter:getFillTypeIndex()
-				self.loadingTask:setVehicle(v14_)
-				self.driveToUnloadingTask:setVehicle(v14_)
-				self.driveToLoadingTask:setVehicle(v14_)
-				self.dischargeTask:setVehicle(v14_)
-				self.loadingNodeInfos = {}
-				self.dischargeNodeInfos = {}
-				if v14_.getAIFillUnits ~= nil then
-					for _, v18_ in ipairs(v14_:getAIFillUnits()) do
-						local v19_ = v18_.fillUnitIndex
-						local _, _, v20_ = v14_:getAILoadingNodeZAlignedOffset(v19_, v14_)
-						local v21_ = self.loadingNodeInfos
-						table.insert(v21_, {
-							["vehicle"] = v14_,
-							["fillUnitIndex"] = v19_,
-							["offsetZ"] = v20_,
-							["isDirty"] = true
-						})
-					end
-				end
-				if v14_.getAIDischargeNodes ~= nil then
-					for _, v22_ in ipairs(v14_:getAIDischargeNodes()) do
-						local _, _, v23_ = v14_:getAIDischargeNodeZAlignedOffset(v22_, v14_)
-						local v24_ = self.dischargeNodeInfos
-						table.insert(v24_, {
-							["vehicle"] = v14_,
-							["dischargeNode"] = v22_,
-							["offsetZ"] = v23_,
-							["isDirty"] = true
-						})
-					end
-				end
-				local v25_ = v14_:getChildVehicles()
-				for _, v26_ in ipairs(v25_) do
-					if v26_.getAIDischargeNodes ~= nil then
-						for _, v27_ in ipairs(v26_:getAIDischargeNodes()) do
-							local _, _, v28_ = v26_:getAIDischargeNodeZAlignedOffset(v27_, v14_)
-							local v29_ = self.dischargeNodeInfos
-							table.insert(v29_, {
-								["vehicle"] = v26_,
-								["dischargeNode"] = v27_,
-								["offsetZ"] = v28_,
-								["isDirty"] = true
-							})
-						end
-					end
-					if v26_.getAIFillUnits ~= nil then
-						for _, v30_ in ipairs(v26_:getAIFillUnits()) do
-							local v31_ = v30_.fillUnitIndex
-							local _, _, v32_ = v26_:getAILoadingNodeZAlignedOffset(v31_, v14_)
-							local v33_ = self.loadingNodeInfos
-							table.insert(v33_, {
-								["vehicle"] = v26_,
-								["fillUnitIndex"] = v31_,
-								["offsetZ"] = v32_,
-								["isDirty"] = true
-							})
-						end
-					end
-				end
-				table.sort(self.dischargeNodeInfos, function(p34_, p35_)
-					return p34_.offsetZ > p35_.offsetZ
-				end)
-				table.sort(self.loadingNodeInfos, function(p36_, p37_)
-					return p36_.offsetZ > p37_.offsetZ
-				end)
-				local v38_ = #self.dischargeNodeInfos <= 0 and 0 or self.dischargeNodeInfos[#self.dischargeNodeInfos].offsetZ
-				self.driveToUnloadingTask:setTargetOffset(-v38_)
-				local v39_ = #self.loadingNodeInfos <= 0 and 0 or self.loadingNodeInfos[#self.loadingNodeInfos].offsetZ
-				self.driveToLoadingTask:setTargetOffset(-v39_)
-				if v17_ ~= nil then
-					if v15_ ~= nil then
-						local v40_, v41_, v42_, v43_, v44_ = v15_:getAITargetPositionAndDirection(v17_)
-						if v44_ ~= nil then
-							self.driveToLoadingTask:setTargetPosition(v40_, v41_)
-							self.driveToLoadingTask:setTargetDirection(v42_, v43_)
-							self.loadingTask:setLoadTrigger(v44_)
-						end
-					end
-					if v16_ ~= nil then
-						local v45_, v46_, v47_, v48_, v49_ = v16_:getAITargetPositionAndDirection(v17_)
-						if v49_ ~= nil then
-							self.driveToUnloadingTask:setTargetPosition(v45_, v46_)
-							self.driveToUnloadingTask:setTargetDirection(v47_, v48_)
-							self.dischargeTask:setUnloadTrigger(v49_)
-						end
-					end
-					self.loadingTask:setFillType(v17_)
+		local fillTypeIndex = self.fillTypeParameter:getFillTypeIndex()
+		self.loadingTask:setVehicle(vehicle)
+		self.driveToUnloadingTask:setVehicle(vehicle)
+		self.driveToLoadingTask:setVehicle(vehicle)
+		self.dischargeTask:setVehicle(vehicle)
+		self.loadingNodeInfos = {}
+		self.dischargeNodeInfos = {}
+		if vehicle.getAIFillUnits ~= nil then
+			for _, fillUnit in ipairs(vehicle:getAIFillUnits()) do
+				local fillUnitIndex = fillUnit.fillUnitIndex
+				local _, _, z = vehicle:getAILoadingNodeZAlignedOffset(fillUnitIndex, vehicle)
+				table.insert(self.loadingNodeInfos, { vehicle = vehicle, fillUnitIndex = fillUnitIndex, offsetZ = z, isDirty = true })
+			end
+		end
+		if vehicle.getAIDischargeNodes ~= nil then
+			for _, dischargeNode in ipairs(vehicle:getAIDischargeNodes()) do
+				local _, _, z = vehicle:getAIDischargeNodeZAlignedOffset(dischargeNode, vehicle)
+				local dischargeNode = { vehicle = vehicle, dischargeNode = dischargeNode, offsetZ = z, isDirty = true }
+				table.insert(self.dischargeNodeInfos, dischargeNode)
+			end
+		end
+		local childVehicles = vehicle:getChildVehicles()
+		for _, childVehicle in ipairs(childVehicles) do
+			if childVehicle.getAIDischargeNodes ~= nil then
+				for _, dischargeNode in ipairs(childVehicle:getAIDischargeNodes()) do
+					local _, _, z = childVehicle:getAIDischargeNodeZAlignedOffset(dischargeNode, vehicle)
+					table.insert(self.dischargeNodeInfos, { vehicle = childVehicle, dischargeNode = dischargeNode, offsetZ = z, isDirty = true })
 				end
 			end
+			if childVehicle.getAIFillUnits == nil then
+				continue
+			end
+			for _, fillUnit in ipairs(childVehicle:getAIFillUnits()) do
+				local fillUnitIndex = fillUnit.fillUnitIndex
+				local _, _, z = childVehicle:getAILoadingNodeZAlignedOffset(fillUnitIndex, vehicle)
+				table.insert(self.loadingNodeInfos, { vehicle = childVehicle, fillUnitIndex = fillUnitIndex, offsetZ = z, isDirty = true })
+			end
+		end
+		table.sort(self.dischargeNodeInfos, function(a, b)
+			return b.offsetZ < a.offsetZ
+		end)
+		table.sort(self.loadingNodeInfos, function(a, b)
+			return b.offsetZ < a.offsetZ
+		end)
+		local maxDischargeOffset = 0
+		if 0 < #self.dischargeNodeInfos then
+			maxDischargeOffset = self.dischargeNodeInfos[#self.dischargeNodeInfos].offsetZ
+		end
+		self.driveToUnloadingTask:setTargetOffset(-maxDischargeOffset)
+		local maxLoadingOffset = 0
+		if 0 < #self.loadingNodeInfos then
+			maxLoadingOffset = self.loadingNodeInfos[#self.loadingNodeInfos].offsetZ
+		end
+		self.driveToLoadingTask:setTargetOffset(-maxLoadingOffset)
+		if fillTypeIndex ~= nil then
+			if loadingStation ~= nil then
+				local x, z, dirX, dirZ, trigger = loadingStation:getAITargetPositionAndDirection(fillTypeIndex)
+				if trigger ~= nil then
+					self.driveToLoadingTask:setTargetPosition(x, z)
+					self.driveToLoadingTask:setTargetDirection(dirX, dirZ)
+					self.loadingTask:setLoadTrigger(trigger)
+				end
+			end
+			if unloadingStation ~= nil then
+				local x, z, dirX, dirZ, trigger = unloadingStation:getAITargetPositionAndDirection(fillTypeIndex)
+				if trigger ~= nil then
+					self.driveToUnloadingTask:setTargetPosition(x, z)
+					self.driveToUnloadingTask:setTargetDirection(dirX, dirZ)
+					self.dischargeTask:setUnloadTrigger(trigger)
+				end
+			end
+			self.loadingTask:setFillType(fillTypeIndex)
 		end
 	end
 end
-
--- Local values: isVehicleValid, vehicleErrorMessage, isFillTypeValid, fillTypeErrorMessage, fillTypeIndex, isLoadingStationValid, loadingStationErrorMessage, isUnloadingStationValid, unloadingStationErrorMessage, isValid, errorMessage
 function AIJobLoadAndDeliver:validate(farmId)
 	self:setParameterValid(true)
-	local v52_, v53_ = self.vehicleParameter:validate()
-	if v52_ then
+	local isVehicleValid, vehicleErrorMessage = self.vehicleParameter:validate()
+	if isVehicleValid then
 		if #self.dischargeNodeInfos == 0 then
-			v53_ = g_i18n:getText("ai_validationErrorNoAIDischargeNodesFound")
-			v52_ = false
+			isVehicleValid = false
+			vehicleErrorMessage = g_i18n:getText("ai_validationErrorNoAIDischargeNodesFound")
 		elseif #self.loadingNodeInfos == 0 then
-			v53_ = g_i18n:getText("ai_validationErrorNoAILoadingNodesFound")
-			v52_ = false
+			isVehicleValid = false
+			vehicleErrorMessage = g_i18n:getText("ai_validationErrorNoAILoadingNodesFound")
 		end
 	end
-	if not v52_ then
+	if not isVehicleValid then
 		self.vehicleParameter:setIsValid(false)
 	end
-	local v54_, v55_ = self.fillTypeParameter:validate()
-	if not v54_ then
+	local isFillTypeValid, fillTypeErrorMessage = self.fillTypeParameter:validate()
+	if not isFillTypeValid then
 		self.fillTypeParameter:setIsValid(false)
 	end
-	local v56_ = self.fillTypeParameter:getFillTypeIndex()
-	local v57_, v58_ = self.loadingStationParameter:validate(v56_, farmId)
-	if not v57_ then
+	local fillTypeIndex = self.fillTypeParameter:getFillTypeIndex()
+	local isLoadingStationValid, loadingStationErrorMessage = self.loadingStationParameter:validate(fillTypeIndex, farmId)
+	if not isLoadingStationValid then
 		self.loadingStationParameter:setIsValid(false)
 	end
-	local v59_, v60_ = self.unloadingStationParameter:validate(v56_, farmId)
-	if not v59_ then
+	local isUnloadingStationValid, unloadingStationErrorMessage = self.unloadingStationParameter:validate(fillTypeIndex, farmId)
+	if not isUnloadingStationValid then
 		self.unloadingStationParameter:setIsValid(false)
 	end
-	if v52_ then
-		if v54_ then
-			if not v57_ then
-				v59_ = v57_
-			end
-		else
-			v59_ = v54_
-		end
-	else
-		v59_ = v52_
-	end
-	return v59_, v53_ or (v55_ or (v58_ or v60_))
+	local isValid = isVehicleValid and isFillTypeValid and isLoadingStationValid and isUnloadingStationValid
+	local errorMessage = vehicleErrorMessage or fillTypeErrorMessage or loadingStationErrorMessage or unloadingStationErrorMessage
+	return isValid, errorMessage
 end
-
--- Local values: lastJob, unloadingStations, _, unloadingStation, fillTypes, loadingStations, _, loadingStation, fillTypes, loadingStation
 function AIJobLoadAndDeliver:applyCurrentState(vehicle, mission, farmId, isDirectStart)
 	AIJobLoadAndDeliver:superClass().applyCurrentState(self, vehicle, mission, farmId, isDirectStart)
 	self.vehicleParameter:setVehicle(vehicle)
 	self.loopingParameter:setIsLooping(true)
 	if vehicle.getLastJob ~= nil then
-		local v66_ = vehicle:getLastJob()
-		if v66_ ~= nil and v66_:isa(AIJobLoadAndDeliver) then
-			self.unloadingStationParameter:setUnloadingStation(v66_.unloadingStationParameter:getUnloadingStation())
-			self.loadingStationParameter:setLoadingStation(v66_.loadingStationParameter:getLoadingStation())
-			self.loopingParameter:setIsLooping(v66_.loopingParameter:getIsLooping())
+		local lastJob = vehicle:getLastJob()
+		if lastJob ~= nil and lastJob:isa(AIJobLoadAndDeliver) then
+			self.unloadingStationParameter:setUnloadingStation(lastJob.unloadingStationParameter:getUnloadingStation())
+			self.loadingStationParameter:setLoadingStation(lastJob.loadingStationParameter:getLoadingStation())
+			self.loopingParameter:setIsLooping(lastJob.loopingParameter:getIsLooping())
 		end
 	end
-	local v67_ = {}
-	for _, v68_ in pairs(g_currentMission.storageSystem:getUnloadingStations()) do
-		if g_currentMission.accessHandler:canPlayerAccess(v68_) and v68_:isa(UnloadingStation) then
-			local v69_ = v68_:getAISupportedFillTypes()
-			if next(v69_) ~= nil then
-				table.insert(v67_, v68_)
+	local unloadingStations = {}
+	for _, unloadingStation in pairs(g_currentMission.storageSystem:getUnloadingStations()) do
+		if g_currentMission.accessHandler:canPlayerAccess(unloadingStation) and unloadingStation:isa(UnloadingStation) then
+			local fillTypes = unloadingStation:getAISupportedFillTypes()
+			if next(fillTypes) == nil then
+				continue
 			end
+			table.insert(unloadingStations, unloadingStation)
 		end
 	end
-	table.sort(v67_, function(p70_, p71_)
-		return p70_:getName() < p71_:getName()
+	table.sort(unloadingStations, function(a, b)
+		return a:getName() < b:getName()
 	end)
-	self.unloadingStationParameter:setValidUnloadingStations(v67_)
-	local v72_ = {}
-	for _, v73_ in pairs(g_currentMission.storageSystem:getLoadingStations()) do
-		if g_currentMission.accessHandler:canPlayerAccess(v73_) then
-			local v74_ = v73_:getAISupportedFillTypes()
-			if next(v74_) ~= nil then
-				table.insert(v72_, v73_)
+	self.unloadingStationParameter:setValidUnloadingStations(unloadingStations)
+	local loadingStations = {}
+	for _, loadingStation in pairs(g_currentMission.storageSystem:getLoadingStations()) do
+		if g_currentMission.accessHandler:canPlayerAccess(loadingStation) then
+			local fillTypes = loadingStation:getAISupportedFillTypes()
+			if next(fillTypes) == nil then
+				continue
 			end
+			table.insert(loadingStations, loadingStation)
 		end
 	end
-	table.sort(v72_, function(p75_, p76_)
-		return p75_:getName() < p76_:getName()
+	table.sort(loadingStations, function(a, b)
+		return a:getName() < b:getName()
 	end)
-	self.loadingStationParameter:setValidLoadingStations(v72_)
-	self:updateFillTypes((self.loadingStationParameter:getLoadingStation()))
+	self.loadingStationParameter:setValidLoadingStations(loadingStations)
+	local loadingStation = self.loadingStationParameter:getLoadingStation()
+	self:updateFillTypes(loadingStation)
 end
-
--- Local values: fillTypes, fillTypeIndex, _
 function AIJobLoadAndDeliver:updateFillTypes(loadingStation)
-	local v79_ = {}
+	local fillTypes = {}
 	if loadingStation ~= nil then
-		for v80_, _ in pairs(loadingStation:getAISupportedFillTypes()) do
-			v79_[v80_] = loadingStation:getFillLevel(v80_, g_localPlayer.farmId)
+		for fillTypeIndex, _ in pairs(loadingStation:getAISupportedFillTypes()) do
+			fillTypes[fillTypeIndex] = loadingStation:getFillLevel(fillTypeIndex, g_localPlayer.farmId)
 		end
 	end
-	self.fillTypeParameter:setValidFillTypes(v79_)
+	self.fillTypeParameter:setValidFillTypes(fillTypes)
 end
-
--- Local values: loadingStation
 function AIJobLoadAndDeliver:onParameterValueChanged(parameter)
 	if parameter == self.loadingStationParameter then
-		self:updateFillTypes((self.loadingStationParameter:getLoadingStation()))
+		local loadingStation = self.loadingStationParameter:getLoadingStation()
+		self:updateFillTypes(loadingStation)
 	end
 end
-
--- Local values: vehicle
 function AIJobLoadAndDeliver:start(farmId)
 	AIJobLoadAndDeliver:superClass().start(self, farmId)
 	if self.isServer then
-		local v85_ = self.vehicleParameter:getVehicle()
-		v85_:createAgent(self.helperIndex)
-		v85_:aiJobStarted(self, self.helperIndex, farmId)
+		local vehicle = self.vehicleParameter:getVehicle()
+		vehicle:createAgent(self.helperIndex)
+		vehicle:aiJobStarted(self, self.helperIndex, farmId)
 	end
 end
-
--- Local values: vehicle
 function AIJobLoadAndDeliver:stop(aiMessage)
 	if self.isServer then
-		local v88_ = self.vehicleParameter:getVehicle()
-		v88_:deleteAgent()
-		v88_:aiJobFinished()
+		local vehicle = self.vehicleParameter:getVehicle()
+		vehicle:deleteAgent()
+		vehicle:aiJobFinished()
 	end
 	AIJobLoadAndDeliver:superClass().stop(self, aiMessage)
 	self.loadingNodeInfos = {}
 	self.dischargeNodeInfos = {}
 end
-
--- Local values: _, dischargeNodeInfo, _, loadingNodeInfo
 function AIJobLoadAndDeliver:startTask(task)
 	if task == self.driveToLoadingTask then
-		for _, v91_ in ipairs(self.dischargeNodeInfos) do
-			v91_.isDirty = true
+		for _, dischargeNodeInfo in ipairs(self.dischargeNodeInfos) do
+			dischargeNodeInfo.isDirty = true
 		end
 	elseif task == self.driveToUnloadingTask then
-		for _, v92_ in ipairs(self.loadingNodeInfos) do
-			v92_.isDirty = true
+		for _, loadingNodeInfo in ipairs(self.loadingNodeInfos) do
+			loadingNodeInfo.isDirty = true
 		end
 	end
 	AIJobLoadAndDeliver:superClass().startTask(self, task)
 end
-
--- Local values: hasOneEmptyFillUnit, _, loadingNodeInfo, vehicle, fillUnitIndex
 function AIJobLoadAndDeliver:getStartTaskIndex()
-	local v94_ = false
-	for _, v95_ in ipairs(self.loadingNodeInfos) do
-		if v95_.vehicle:getFillUnitFillLevel(v95_.fillUnitIndex) == 0 then
-			v94_ = true
+	local hasOneEmptyFillUnit = false
+	for _, loadingNodeInfo in ipairs(self.loadingNodeInfos) do
+		local vehicle = loadingNodeInfo.vehicle
+		local fillUnitIndex = loadingNodeInfo.fillUnitIndex
+		if vehicle:getFillUnitFillLevel(fillUnitIndex) == 0 then
+			hasOneEmptyFillUnit = true
 			break
 		end
 	end
-	if v94_ then
-		return self.driveToLoadingTask.taskIndex
-	else
+	if not hasOneEmptyFillUnit then
 		return self.driveToUnloadingTask.taskIndex
+	else
+		return self.driveToLoadingTask.taskIndex
 	end
 end
-
--- Local values: hasOneEmptyFillUnit, hasSupportedFillTypeLoaded, plannedFillTypeIndex, _, loadingNodeInfo, vehicle, fillUnitIndex, fillTypeIndex
 function AIJobLoadAndDeliver:canStartWork()
-	local v97_ = self.fillTypeParameter:getFillTypeIndex()
-	local v98_ = false
-	local v99_ = false
-	for _, v100_ in ipairs(self.loadingNodeInfos) do
-		local v101_ = v100_.vehicle
-		local v102_ = v100_.fillUnitIndex
-		local v103_ = v101_:getFillUnitFillType(v102_)
-		if v101_:getFillUnitFillLevel(v102_) == 0 then
-			v99_ = true
+	local hasOneEmptyFillUnit = false
+	local hasSupportedFillTypeLoaded = false
+	local plannedFillTypeIndex = self.fillTypeParameter:getFillTypeIndex()
+	for _, loadingNodeInfo in ipairs(self.loadingNodeInfos) do
+		local vehicle = loadingNodeInfo.vehicle
+		local fillUnitIndex = loadingNodeInfo.fillUnitIndex
+		local fillTypeIndex = vehicle:getFillUnitFillType(fillUnitIndex)
+		if vehicle:getFillUnitFillLevel(fillUnitIndex) == 0 then
+			hasOneEmptyFillUnit = true
 			break
 		end
-		if v103_ == v97_ then
-			v98_ = true
+		if fillTypeIndex == plannedFillTypeIndex then
+			hasSupportedFillTypeLoaded = true
 		end
 	end
-	if v99_ or v98_ then
-		return true, nil
-	else
+	if not hasOneEmptyFillUnit and not hasSupportedFillTypeLoaded then
 		return false, AIMessageErrorNoValidFillTypeLoaded.new()
-	end
-end
-
--- Local values: vehicle, loadingStation, unloadingStation, fillTypeIndex, isEmpty, _, loadingNodeInfo, loadingVehicle, fillUnitIndex
-function AIJobLoadAndDeliver:canContinueWork()
-	if self.vehicleParameter:getVehicle() == nil then
-		return false, AIMessageErrorVehicleDeleted.new()
-	end
-	local v105_ = self.loadingStationParameter:getLoadingStation()
-	if v105_ == nil then
-		return false, AIMessageErrorLoadingStationDeleted.new()
-	end
-	local v106_ = self.unloadingStationParameter:getUnloadingStation()
-	if v106_ == nil then
-		return false, AIMessageErrorUnloadingStationDeleted.new()
-	end
-	local v107_ = self.fillTypeParameter:getFillTypeIndex()
-	if v106_:getFreeCapacity(v107_, self.startedFarmId) <= 0 then
-		return false, AIMessageErrorUnloadingStationFull.new()
-	end
-	if self.currentTaskIndex == self.loadingTask.taskIndex and v105_:getFillLevel(v107_, self.startedFarmId) <= 0 then
-		local v108_ = true
-		for _, v109_ in ipairs(self.loadingNodeInfos) do
-			local v110_ = v109_.vehicle
-			local v111_ = v109_.fillUnitIndex
-			if v110_:getFillUnitFillLevel(v111_) > 0 and v110_:getFillUnitFillType(v111_) == v107_ then
-				v108_ = false
-				break
-			end
-		end
-		if v108_ then
-			return false, AIMessageSuccessSiloEmpty.new()
-		end
 	end
 	return true, nil
 end
-
--- Local values: _, loadingNodeInfo, vehicle, fillUnitIndex, fillTypeIndex, _, dischargeNodeInfo, vehicle, fillUnitIndex, nextTaskIndex
-function AIJobLoadAndDeliver:getNextTaskIndex(isSkipTask)
-	if self.currentTaskIndex == self.driveToLoadingTask.taskIndex or self.currentTaskIndex == self.loadingTask.taskIndex then
-		for _, v114_ in ipairs(self.loadingNodeInfos) do
-			if v114_.isDirty then
-				local v115_ = v114_.vehicle
-				local v116_ = v114_.fillUnitIndex
-				if v115_:getFillUnitFillLevel(v116_) == 0 then
-					self.loadingTask:setFillUnit(v115_, v116_, v114_.offsetZ)
-					v114_.isDirty = false
-					return self.loadingTask.taskIndex
+function AIJobLoadAndDeliver:canContinueWork()
+	local vehicle = self.vehicleParameter:getVehicle()
+	if vehicle == nil then
+		return false, AIMessageErrorVehicleDeleted.new()
+	end
+	local loadingStation = self.loadingStationParameter:getLoadingStation()
+	if loadingStation == nil then
+		return false, AIMessageErrorLoadingStationDeleted.new()
+	end
+	local unloadingStation = self.unloadingStationParameter:getUnloadingStation()
+	if unloadingStation == nil then
+		return false, AIMessageErrorUnloadingStationDeleted.new()
+	end
+	local fillTypeIndex = self.fillTypeParameter:getFillTypeIndex()
+	if unloadingStation:getFreeCapacity(fillTypeIndex, self.startedFarmId) <= 0 then
+		return false, AIMessageErrorUnloadingStationFull.new()
+	else
+		if self.currentTaskIndex == self.loadingTask.taskIndex and loadingStation:getFillLevel(fillTypeIndex, self.startedFarmId) <= 0 then
+			local isEmpty = true
+			for _, loadingNodeInfo in ipairs(self.loadingNodeInfos) do
+				local loadingVehicle = loadingNodeInfo.vehicle
+				local fillUnitIndex = loadingNodeInfo.fillUnitIndex
+				if 0 < loadingVehicle:getFillUnitFillLevel(fillUnitIndex) and loadingVehicle:getFillUnitFillType(fillUnitIndex) == fillTypeIndex then
+					isEmpty = false
+					break
 				end
-				v114_.isDirty = false
+			end
+			if isEmpty then
+				return false, AIMessageSuccessSiloEmpty.new()
 			end
 		end
-	elseif self.currentTaskIndex == self.driveToUnloadingTask.taskIndex or self.currentTaskIndex == self.dischargeTask.taskIndex then
-		local v117_ = self.fillTypeParameter:getFillTypeIndex()
-		for _, v118_ in ipairs(self.dischargeNodeInfos) do
-			if v118_.isDirty then
-				local v119_ = v118_.vehicle
-				local v120_ = v118_.dischargeNode.fillUnitIndex
-				if v119_:getFillUnitFillLevel(v120_) > 1 and v119_:getFillUnitFillType(v120_) == v117_ then
-					self.dischargeTask:setDischargeNode(v119_, v118_.dischargeNode, v118_.offsetZ)
-					v118_.isDirty = false
-					return self.dischargeTask.taskIndex
+		return true, nil
+	end
+end
+function AIJobLoadAndDeliver:getNextTaskIndex(isSkipTask)
+	if self.currentTaskIndex == self.driveToLoadingTask.taskIndex or self.currentTaskIndex == self.loadingTask.taskIndex then
+		for _, loadingNodeInfo in ipairs(self.loadingNodeInfos) do
+			if loadingNodeInfo.isDirty then
+				local vehicle = loadingNodeInfo.vehicle
+				local fillUnitIndex = loadingNodeInfo.fillUnitIndex
+				if vehicle:getFillUnitFillLevel(fillUnitIndex) == 0 then
+					self.loadingTask:setFillUnit(vehicle, fillUnitIndex, loadingNodeInfo.offsetZ)
+					loadingNodeInfo.isDirty = false
+					return self.loadingTask.taskIndex
 				end
-				v118_.isDirty = false
+				loadingNodeInfo.isDirty = false
+			end
+		end
+	else
+		if self.currentTaskIndex == self.driveToUnloadingTask.taskIndex or self.currentTaskIndex == self.dischargeTask.taskIndex then
+			local fillTypeIndex = self.fillTypeParameter:getFillTypeIndex()
+			for _, dischargeNodeInfo in ipairs(self.dischargeNodeInfos) do
+				if dischargeNodeInfo.isDirty then
+					local vehicle = dischargeNodeInfo.vehicle
+					local fillUnitIndex = dischargeNodeInfo.dischargeNode.fillUnitIndex
+					if 1 < vehicle:getFillUnitFillLevel(fillUnitIndex) and vehicle:getFillUnitFillType(fillUnitIndex) == fillTypeIndex then
+						self.dischargeTask:setDischargeNode(vehicle, dischargeNodeInfo.dischargeNode, dischargeNodeInfo.offsetZ)
+						dischargeNodeInfo.isDirty = false
+						return self.dischargeTask.taskIndex
+					end
+					dischargeNodeInfo.isDirty = false
+				end
 			end
 		end
 	end
-	return AIJobLoadAndDeliver:superClass().getNextTaskIndex(self, isSkipTask)
+	local nextTaskIndex = AIJobLoadAndDeliver:superClass().getNextTaskIndex(self, isSkipTask)
+	return nextTaskIndex
 end
-
--- Local values: vehicles, _, childVehicle, nodes, foundDischargeNodes, nodes, _, childVehicle, nodes, foundLoadingNodes, fillUnits, _, childVehicle, fillUnits
 function AIJobLoadAndDeliver:getIsAvailableForVehicle(vehicle)
-	if vehicle.createAgent == nil or (vehicle.setAITarget == nil or not vehicle:getCanStartAIVehicle()) then
+	if vehicle.createAgent == nil or vehicle.setAITarget == nil or not vehicle:getCanStartAIVehicle() then
 		return false
 	end
 	if not vehicle:getIsAIJobSupported(ClassUtil.getClassNameByObject(self)) then
 		return false
 	end
-	local v123_ = vehicle:getChildVehicles()
-	for _, v124_ in ipairs(v123_) do
-		if v124_.getAIDischargeNodes ~= nil then
-			local v125_ = v124_:getAIDischargeNodes()
-			if next(v125_) ~= nil then
-				return true
-			end
+	local vehicles = vehicle:getChildVehicles()
+	for _, childVehicle in ipairs(vehicles) do
+		if childVehicle.getAIDischargeNodes == nil then
+			continue
 		end
+		local nodes = childVehicle:getAIDischargeNodes()
+		if next(nodes) == nil then
+			continue
+		end
+		return true
 	end
-	local v126_ = false
+	local foundDischargeNodes = false
 	if vehicle.getAIDischargeNodes ~= nil then
-		local v127_ = vehicle:getAIDischargeNodes()
-		v126_ = next(v127_) ~= nil and true or v126_
+		local nodes = vehicle:getAIDischargeNodes()
+		if next(nodes) ~= nil then
+			foundDischargeNodes = true
+		end
 	end
-	if not v126_ then
-		local v128_ = vehicle:getChildVehicles()
-		for _, v129_ in ipairs(v128_) do
-			if v129_.getAIDischargeNodes ~= nil then
-				local v130_ = v129_:getAIDischargeNodes()
-				if next(v130_) ~= nil then
-					v126_ = true
-					break
-				end
+	if not foundDischargeNodes then
+		vehicles = vehicle:getChildVehicles()
+		for _, childVehicle in ipairs(vehicles) do
+			if childVehicle.getAIDischargeNodes == nil then
+				continue
+			end
+			local nodes = childVehicle:getAIDischargeNodes()
+			if next(nodes) ~= nil then
+				foundDischargeNodes = true
+				break
 			end
 		end
 	end
-	if not v126_ then
+	if not foundDischargeNodes then
 		return false
 	end
-	local v131_ = false
+	local foundLoadingNodes = false
 	if vehicle.getAIFillUnits ~= nil then
-		local v132_ = vehicle:getAIFillUnits()
-		v131_ = next(v132_) ~= nil and true or v131_
+		local fillUnits = vehicle:getAIFillUnits()
+		if next(fillUnits) ~= nil then
+			foundLoadingNodes = true
+		end
 	end
-	if not v131_ then
-		local v133_ = vehicle:getChildVehicles()
-		for _, v134_ in ipairs(v133_) do
-			if v134_.getAIFillUnits ~= nil then
-				local v135_ = v134_:getAIFillUnits()
-				if next(v135_) ~= nil then
-					v131_ = true
-					break
-				end
+	if not foundLoadingNodes then
+		vehicles = vehicle:getChildVehicles()
+		for _, childVehicle in ipairs(vehicles) do
+			if childVehicle.getAIFillUnits == nil then
+				continue
+			end
+			local fillUnits = childVehicle:getAIFillUnits()
+			if next(fillUnits) ~= nil then
+				foundLoadingNodes = true
+				break
 			end
 		end
 	end
-	return v131_ and true or false
+	if not foundLoadingNodes then
+		return false
+	else
+		return true
+	end
 end
-
--- Local values: vehicle
 function AIJobLoadAndDeliver:getTitle()
-	local v137_ = self.vehicleParameter:getVehicle()
-	return v137_ == nil and "" or v137_:getName()
+	local vehicle = self.vehicleParameter:getVehicle()
+	if vehicle ~= nil then
+		return vehicle:getName()
+	else
+		return ""
+	end
 end
-
--- Local values: desc, nextTask
 function AIJobLoadAndDeliver:getDescription()
-	local v139_ = AIJobLoadAndDeliver:superClass().getDescription(self)
-	local v140_ = self:getTaskByIndex(self.currentTaskIndex)
-	if v140_ == self.driveToLoadingTask then
-		return v139_ .. " - " .. g_i18n:getText("ai_taskDescriptionDriveToLoadingStation")
+	local desc = AIJobLoadAndDeliver:superClass().getDescription(self)
+	local nextTask = self:getTaskByIndex(self.currentTaskIndex)
+	if nextTask == self.driveToLoadingTask then
+		desc = desc .. " - " .. g_i18n:getText("ai_taskDescriptionDriveToLoadingStation")
+		return desc
+	elseif nextTask == self.loadingTask then
+		desc = desc .. " - " .. g_i18n:getText("ai_taskDescriptionLoading")
+		return desc
+	elseif nextTask == self.driveToUnloadingTask then
+		desc = desc .. " - " .. g_i18n:getText("ai_taskDescriptionDriveToUnloadingStation")
+		return desc
+	else
+		if nextTask == self.dischargeTask then
+			desc = desc .. " - " .. g_i18n:getText("ai_taskDescriptionUnloading")
+		end
+		return desc
 	end
-	if v140_ == self.loadingTask then
-		return v139_ .. " - " .. g_i18n:getText("ai_taskDescriptionLoading")
-	end
-	if v140_ == self.driveToUnloadingTask then
-		return v139_ .. " - " .. g_i18n:getText("ai_taskDescriptionDriveToUnloadingStation")
-	end
-	if v140_ == self.dischargeTask then
-		v139_ = v139_ .. " - " .. g_i18n:getText("ai_taskDescriptionUnloading")
-	end
-	return v139_
 end
-
 function AIJobLoadAndDeliver:getIsLooping()
 	return self.loopingParameter:getIsLooping()
 end
-
--- Local values: vehicle
 function AIJobLoadAndDeliver:getIsStartable(connection)
 	if g_currentMission.aiSystem:getAILimitedReached() then
 		return false, AIJobLoadAndDeliver.START_ERROR_LIMIT_REACHED
+	end
+	local vehicle = self.vehicleParameter:getVehicle()
+	if vehicle == nil then
+		return false, AIJobLoadAndDeliver.START_ERROR_VEHICLE_DELETED
+	elseif not g_currentMission:getHasPlayerPermission("hireAssistant", connection, vehicle:getOwnerFarmId()) then
+		return false, AIJobLoadAndDeliver.START_ERROR_NO_PERMISSION
+	elseif vehicle:getIsInUse(connection) then
+		return false, AIJobLoadAndDeliver.START_ERROR_VEHICLE_IN_USE
 	else
-		local v144_ = self.vehicleParameter:getVehicle()
-		if v144_ == nil then
-			return false, AIJobLoadAndDeliver.START_ERROR_VEHICLE_DELETED
-		elseif g_currentMission:getHasPlayerPermission("hireAssistant", connection, v144_:getOwnerFarmId()) then
-			if v144_:getIsInUse(connection) then
-				return false, AIJobLoadAndDeliver.START_ERROR_VEHICLE_IN_USE
-			else
-				return true, AIJob.START_SUCCESS
-			end
-		else
-			return false, AIJobLoadAndDeliver.START_ERROR_NO_PERMISSION
-		end
+		return true, AIJob.START_SUCCESS
 	end
 end
-
 function AIJobLoadAndDeliver.getIsStartErrorText(state)
 	if state == AIJobLoadAndDeliver.START_ERROR_LIMIT_REACHED then
 		return g_i18n:getText("ai_startStateLimitReached")

@@ -1,4 +1,3 @@
--- Local values: SharedLight_mt
 SharedLight = {}
 SharedLight.FS22_RENAMED_LIGHTS = {
 	["frontLight_01"] = "frontLight01",
@@ -107,24 +106,18 @@ SharedLight.FS22_RENAMED_LIGHTS = {
 	["hellaWorkingLightSquare_01_back"] = "hellaWorkingLight05",
 	["hellaWorkingLightSquare_01_reverse"] = "hellaWorkingLight05",
 	["hellaWorkingLightSquare_02_front"] = "hellaWorkingLight06",
-	["hellaWorkingLightSquare_02_back"] = "hellaWorkingLight06"
+	["hellaWorkingLightSquare_02_back"] = "hellaWorkingLight06",
 }
 local SharedLight_mt = Class(SharedLight)
-
--- Upvalues: SharedLight_mt
--- Local values: self
 function SharedLight.new(vehicle, staticLights, customMt)
-	-- upvalues: (copy) SharedLight_mt
-	local v5_ = customMt or SharedLight_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.vehicle = vehicle
-	v6_.staticLights = staticLights
-	v6_.reverseLight = false
-	v6_.turnLightLeft = false
-	v6_.turnLightRight = false
-	return v6_
+	local self = setmetatable({}, customMt or SharedLight_mt)
+	self.vehicle = vehicle
+	self.staticLights = staticLights
+	self.reverseLight = false
+	self.turnLightLeft = false
+	self.turnLightRight = false
+	return self
 end
-
 function SharedLight:delete()
 	if self.xmlFile ~= nil then
 		self.xmlFile:delete()
@@ -139,12 +132,10 @@ function SharedLight:delete()
 		self.sharedLoadRequestId = nil
 	end
 end
-
 function SharedLight:setCallback(callback, callbackTarget)
 	self.callback = callback
 	self.callbackTarget = callbackTarget
 end
-
 function SharedLight:onFinished(success)
 	if self.callback ~= nil then
 		if self.callbackTarget ~= nil then
@@ -154,111 +145,107 @@ function SharedLight:onFinished(success)
 		self.callback(success)
 	end
 end
-
 function SharedLight:setRotationNodes(rotationNodes)
 	self.rotationNodes = rotationNodes
 end
-
 function SharedLight:setLightTypes(lightTypes, excludedLightTypes)
 	self.lightTypes = lightTypes
 	self.excludedLightTypes = excludedLightTypes
 end
-
--- Local values: xmlFile, xmlFilename, linkNode, isReference, filename, runtimeLoaded, xmlName, i3dName, rotationNodes, _, rotKey, name, lightTypes, excludedLightTypes
 function SharedLight:loadFromVehicleXML(key, baseDirectory, callback)
-	local v22_ = self.vehicle.xmlFile
-	local v23_ = v22_:getValue(key .. "#filename")
-	if v23_ ~= nil then
-		local v24_ = Utils.getFilename(v23_, baseDirectory)
-		local v25_ = v22_:getValue(key .. "#linkNode", "0>", self.vehicle.components, self.vehicle.i3dMappings)
-		if v25_ == nil then
-			Logging.xmlWarning(v22_, "Missing light linkNode in \'%s\'!", key)
+	local xmlFile = self.vehicle.xmlFile
+	local xmlFilename = xmlFile:getValue(key .. "#filename")
+	if xmlFilename ~= nil then
+		xmlFilename = Utils.getFilename(xmlFilename, baseDirectory)
+		local linkNode = xmlFile:getValue(key .. "#linkNode", "0>", self.vehicle.components, self.vehicle.i3dMappings)
+		if linkNode == nil then
+			Logging.xmlWarning(xmlFile, "Missing light linkNode in '%s'!", key)
 			return
 		end
-		local v26_, v27_, v28_ = getReferenceInfo(v25_)
-		if v26_ and v28_ then
-			local v29_ = Utils.getFilenameInfo(v24_, true)
-			local v30_ = Utils.getFilenameInfo(v27_, true)
-			if v29_ ~= v30_ then
-				Logging.xmlWarning(v22_, "Shared light \'%s\' loading different file from XML compared to i3D. (XML: %s vs i3D: %s)", getName(v25_), v29_, v30_)
+		local isReference, filename, runtimeLoaded = getReferenceInfo(linkNode)
+		if isReference and runtimeLoaded then
+			local xmlName = Utils.getFilenameInfo(xmlFilename, true)
+			local i3dName = Utils.getFilenameInfo(filename, true)
+			if xmlName ~= i3dName then
+				Logging.xmlWarning(xmlFile, "Shared light '%s' loading different file from XML compared to i3D. (XML: %s vs i3D: %s)", getName(linkNode), xmlName, i3dName)
 			end
-			Logging.xmlWarning(v22_, "Shared light link node \'%s\' is a runtime loaded reference. Please load functional lights via XML and non-functional (e.g. reflectors) as i3D reference, but not both!", getName(v25_))
+			Logging.xmlWarning(xmlFile, "Shared light link node '%s' is a runtime loaded reference. Please load functional lights via XML and non-functional (e.g. reflectors) as i3D reference, but not both!", getName(linkNode))
 			return
 		end
-		if not getVisibility(v25_) then
-			Logging.xmlWarning(v22_, "Shared light link node \'%s\' is hidden!", getName(v25_))
+		if not getVisibility(linkNode) then
+			Logging.xmlWarning(xmlFile, "Shared light link node '%s' is hidden!", getName(linkNode))
 			return
 		end
-		local v31_ = {}
-		for _, v32_ in v22_:iterator(key .. ".rotationNode") do
-			local v33_ = v22_:getValue(v32_ .. "#name")
-			if v33_ ~= nil then
-				v31_[v33_] = v22_:getValue(v32_ .. "#rotation", nil, true)
+		local rotationNodes = {}
+		for _, rotKey in xmlFile:iterator(key .. ".rotationNode") do
+			local name = xmlFile:getValue(rotKey .. "#name")
+			if name == nil then
+				continue
 			end
+			rotationNodes[name] = xmlFile:getValue(rotKey .. "#rotation", nil, true)
 		end
-		local v34_ = v22_:getValue(key .. "#lightTypes", nil, true)
-		local v35_ = v22_:getValue(key .. "#excludedLightTypes", nil, true)
-		self.reverseLight = v22_:getValue(key .. "#reverseLight", self.reverseLight)
-		self.turnLightLeft = v22_:getValue(key .. "#turnLightLeft", self.turnLightLeft)
-		self.turnLightRight = v22_:getValue(key .. "#turnLightRight", self.turnLightRight)
-		self.functionMappingData = StaticLightCompound.loadFunctionMappingData(v22_, key)
+		local lightTypes = xmlFile:getValue(key .. "#lightTypes", nil, true)
+		local excludedLightTypes = xmlFile:getValue(key .. "#excludedLightTypes", nil, true)
+		self.reverseLight = xmlFile:getValue(key .. "#reverseLight", self.reverseLight)
+		self.turnLightLeft = xmlFile:getValue(key .. "#turnLightLeft", self.turnLightLeft)
+		self.turnLightRight = xmlFile:getValue(key .. "#turnLightRight", self.turnLightRight)
+		self.functionMappingData = StaticLightCompound.loadFunctionMappingData(xmlFile, key)
 		self.additionalAttributes = {}
-		self.vehicle:loadAdditionalLightAttributesFromXML(v22_, key, self.additionalAttributes)
-		self:setRotationNodes(v31_)
-		self:setLightTypes(v34_, v35_)
-		self:setCallback(function(p36_)
-			-- upvalues: (copy) callback, (copy) self
-			callback(p36_, p36_ and self or nil)
+		self.vehicle:loadAdditionalLightAttributesFromXML(xmlFile, key, self.additionalAttributes)
+		self:setRotationNodes(rotationNodes)
+		self:setLightTypes(lightTypes, excludedLightTypes)
+		self:setCallback(function(success)
+			callback(success, success and self or nil)
 		end)
-		self:loadFromXML(v25_, v24_, baseDirectory)
+		self:loadFromXML(linkNode, xmlFilename, baseDirectory)
 	end
 end
-
--- Local values: old, new, newPath, filename
 function SharedLight:loadFromXML(linkNode, xmlFilename, baseDirectory)
 	self.xmlFile = XMLFile.loadIfExists("sharedLight", xmlFilename, SharedLight.xmlSchema)
 	if self.xmlFile == nil then
-		for v41_, v42_ in pairs(SharedLight.FS22_RENAMED_LIGHTS) do
-			if xmlFilename:find(v41_) then
-				local v43_ = xmlFilename:gsub(v41_, v42_)
-				if fileExists(v43_) then
-					if self.vehicle == nil then
-						Logging.warning("Light \'%s\' has been renamed to \'%s\' in \'%s\'!", v41_, v42_)
+		for old, new in pairs(SharedLight.FS22_RENAMED_LIGHTS) do
+			if xmlFilename:find(old) then
+				local newPath = xmlFilename:gsub(old, new)
+				if fileExists(newPath) then
+					if self.vehicle ~= nil then
+						Logging.xmlWarning(self.vehicle.xmlFile, "Light has been renamed from '%s' to '%s'!", old, new)
 					else
-						Logging.xmlWarning(self.vehicle.xmlFile, "Light has been renamed from \'%s\' to \'%s\'!", v41_, v42_)
+						Logging.warning("Light '%s' has been renamed to '%s' in '%s'!", old, new)
 					end
 					self:onFinished(false)
 					return false
 				end
 			end
 		end
-		if self.vehicle == nil then
-			Logging.warning("Unable to load shared lights from xml \'%s\'", xmlFilename)
+		if self.vehicle ~= nil then
+			Logging.xmlWarning(self.vehicle.xmlFile, "Unable to load shared lights from xml '%s'", xmlFilename)
 		else
-			Logging.xmlWarning(self.vehicle.xmlFile, "Unable to load shared lights from xml \'%s\'", xmlFilename)
+			Logging.warning("Unable to load shared lights from xml '%s'", xmlFilename)
 		end
 		self:onFinished(false)
 		return false
-	end
-	local v44_ = self.xmlFile:getValue("light.filename")
-	if v44_ ~= nil then
-		self.filename = Utils.getFilename(v44_, baseDirectory)
-		self.linkNode = linkNode
-		if self.vehicle == nil or self.vehicle.loadSubSharedI3DFile == nil then
-			self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(self.filename, false, false, self.onI3DLoaded, self, nil)
+	else
+		local filename = self.xmlFile:getValue("light.filename")
+		if filename == nil then
+			Logging.xmlWarning(self.xmlFile, "Missing light i3d filename!")
+			self.xmlFile:delete()
+			self.xmlFile = nil
+			self:onFinished(false)
+			return false
 		else
-			self.sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(self.filename, false, false, self.onI3DLoaded, self, nil)
+			self.filename = Utils.getFilename(filename, baseDirectory)
+			self.linkNode = linkNode
+			if self.vehicle ~= nil then
+				if self.vehicle.loadSubSharedI3DFile ~= nil then
+					self.sharedLoadRequestId = self.vehicle:loadSubSharedI3DFile(self.filename, false, false, self.onI3DLoaded, self, nil)
+				else
+					self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(self.filename, false, false, self.onI3DLoaded, self, nil)
+				end
+			end
+			return true
 		end
-		return true
 	end
-	Logging.xmlWarning(self.xmlFile, "Missing light i3d filename!")
-	self.xmlFile:delete()
-	self.xmlFile = nil
-	self:onFinished(false)
-	return false
 end
-
--- Local values: staticLightCompound, material, material
 function SharedLight:onI3DLoaded(i3dNode, failedReason, args)
 	if i3dNode ~= 0 then
 		self.node = self.xmlFile:getValue("light.rootNode#node", "0", i3dNode)
@@ -280,37 +267,34 @@ function SharedLight:onI3DLoaded(i3dNode, failedReason, args)
 			StaticLight.loadLightsFromXML(self.staticLights.turnLightsLeft, self.xmlFile, "light.turnLightLeft", self.vehicle, i3dNode, nil, false, self)
 			StaticLight.loadLightsFromXML(self.staticLights.turnLightsRight, self.xmlFile, "light.turnLightRight", self.vehicle, i3dNode, nil, false, self)
 			if self.rotationNodes ~= nil then
-				self.xmlFile:iterate("light.rotationNode", function(_, p47_)
-					-- upvalues: (copy) self, (copy) i3dNode
-					local v48_ = self.xmlFile:getValue(p47_ .. "#name")
-					if v48_ ~= nil then
-						local v49_ = self.xmlFile:getValue(p47_ .. "#node", nil, i3dNode)
-						if self.rotationNodes[v48_] ~= nil then
-							local v50_ = setRotation
-							local v51_ = self.rotationNodes[v48_]
-							v50_(v49_, unpack(v51_))
+				self.xmlFile:iterate("light.rotationNode", function(_, baseKey)
+					local name = self.xmlFile:getValue(baseKey .. "#name")
+					if name ~= nil then
+						local node = self.xmlFile:getValue(baseKey .. "#node", nil, i3dNode)
+						if self.rotationNodes[name] ~= nil then
+							setRotation(node, unpack(self.rotationNodes[name]))
 						end
 					end
 				end)
 			end
 			if self.xmlFile:hasProperty("light.staticLightCompound") then
-				local v52_ = StaticLightCompound.new(self.vehicle)
-				if v52_:loadFromXML(self.xmlFile, "light.staticLightCompound", i3dNode, nil, nil, self) then
-					v52_:setLightTypes(self.lightTypes, self.excludedLightTypes)
-					v52_:setOverwriteSettings(self.turnLightLeft, self.turnLightRight, self.reverseLight)
-					self.staticLightCompound = v52_
+				local staticLightCompound = StaticLightCompound.new(self.vehicle)
+				if staticLightCompound:loadFromXML(self.xmlFile, "light.staticLightCompound", i3dNode, nil, nil, self) then
+					staticLightCompound:setLightTypes(self.lightTypes, self.excludedLightTypes)
+					staticLightCompound:setOverwriteSettings(self.turnLightLeft, self.turnLightRight, self.reverseLight)
+					self.staticLightCompound = staticLightCompound
 				end
 			end
 			if self.xmlFile:hasProperty("light.baseMaterial") then
-				local v53_ = VehicleMaterial.new(self.vehicle.baseDirectory)
-				if v53_:loadFromXML(self.xmlFile, "light.baseMaterial", self.vehicle.customEnvironment) then
-					v53_:apply(self.node, "sharedLightBase_mat")
+				local material = VehicleMaterial.new(self.vehicle.baseDirectory)
+				if material:loadFromXML(self.xmlFile, "light.baseMaterial", self.vehicle.customEnvironment) then
+					material:apply(self.node, "sharedLightBase_mat")
 				end
 			end
 			if self.xmlFile:hasProperty("light.glassMaterial") then
-				local v54_ = VehicleMaterial.new(self.vehicle.baseDirectory)
-				if v54_:loadFromXML(self.xmlFile, "light.glassMaterial", self.vehicle.customEnvironment) then
-					v54_:apply(self.node, "sharedLightGlass_mat")
+				local material = VehicleMaterial.new(self.vehicle.baseDirectory)
+				if material:loadFromXML(self.xmlFile, "light.glassMaterial", self.vehicle.customEnvironment) then
+					material:apply(self.node, "sharedLightGlass_mat")
 				end
 			end
 			link(self.linkNode, self.node)
@@ -321,24 +305,22 @@ function SharedLight:onI3DLoaded(i3dNode, failedReason, args)
 	self.xmlFile = nil
 	self:onFinished(self.node ~= nil)
 end
-
--- Local values: x, y, z, dirX, dirZ, ry, _, light, dummyVehicle, spec, lightTypeMask, lightStates, bitIndex, value, files, rowIndex, rowPosition, lastBasePath, lastName, numLightsToLoad, numLightsToLoadTotal, numLightsSuccess, numLightsFailed, _, file, linkNode, name, basePath, wx, wy, wz, rx, ry, rz, x, y, z, sharedLight, filename, wx, wy, wz, rx, ry, rz
 function SharedLight.consoleCommandDebug(_, defaultLight, brakeLight, highBeam, workLightBack, workLightFront, turnLightLeft, turnLeftRight, reverseLight)
 	if SharedLight.debugRootNode == nil then
 		SharedLight.debugRootNode = createTransformGroup("sharedLightDebugRoot")
 		link(getRootNode(), SharedLight.debugRootNode)
-		local v63_, v64_, v65_ = g_localPlayer:getPosition()
-		local v66_, v67_ = g_localPlayer:getCurrentFacingDirection()
-		local v68_ = v63_ + v66_ * 4
-		local v69_ = v65_ + v67_ * 4
-		local v70_ = MathUtil.getYRotationFromDirection(v66_, v67_)
-		setWorldTranslation(SharedLight.debugRootNode, v68_, v64_, v69_)
-		setWorldRotation(SharedLight.debugRootNode, 0, v70_, 0)
+		local x, y, z = g_localPlayer:getPosition()
+		local dirX, dirZ = g_localPlayer:getCurrentFacingDirection()
+		x = x + dirX * 4
+		z = z + dirZ * 4
+		local ry = MathUtil.getYRotationFromDirection(dirX, dirZ)
+		setWorldTranslation(SharedLight.debugRootNode, x, y, z)
+		setWorldRotation(SharedLight.debugRootNode, 0, ry, 0)
 	end
 	if SharedLight.debugSharedLights ~= nil then
-		for _, v71_ in ipairs(SharedLight.debugSharedLights) do
-			v71_:delete()
-			delete(v71_.linkNode)
+		for _, light in ipairs(SharedLight.debugSharedLights) do
+			light:delete()
+			delete(light.linkNode)
 		end
 	end
 	SharedLight.debugSharedLights = {}
@@ -351,146 +333,138 @@ function SharedLight.consoleCommandDebug(_, defaultLight, brakeLight, highBeam, 
 	SharedLight.debugStaticLights.dayTimeLights = {}
 	SharedLight.debugStaticLights.turnLightsLeft = {}
 	SharedLight.debugStaticLights.turnLightsRight = {}
-	local v_u_72_ = {
-		["getIsPowered"] = function(...)
-			return true
-		end,
-		["getIsInShowroom"] = function(...)
-			return false
-		end,
-		["getIsLightActive"] = function(...)
-			return true
-		end,
-		["getIsActiveForLights"] = function(...)
-			return true
-		end,
-		["getStaticLightFromNode"] = function(...)
-			return nil
-		end,
-		["spec_lights"] = {}
-	}
-	local v_u_73_ = v_u_72_.spec_lights
-	v_u_73_.topLightsVisibility = false
-	v_u_73_.maxLightState = Lights.LIGHT_TYPE_HIGHBEAM
-	v_u_73_.additionalLightTypes = {}
-	v_u_73_.additionalLightTypes.bottomLight = v_u_73_.maxLightState + 1
-	v_u_73_.additionalLightTypes.topLight = v_u_73_.maxLightState + 2
-	v_u_73_.additionalLightTypes.brakeLight = v_u_73_.maxLightState + 3
-	v_u_73_.additionalLightTypes.turnLightLeft = v_u_73_.maxLightState + 4
-	v_u_73_.additionalLightTypes.turnLightRight = v_u_73_.maxLightState + 5
-	v_u_73_.additionalLightTypes.turnLightAny = v_u_73_.maxLightState + 6
-	v_u_73_.additionalLightTypes.reverseLight = v_u_73_.maxLightState + 7
-	v_u_73_.additionalLightTypes.interiorLight = v_u_73_.maxLightState + 8
-	local v74_ = {
-		[Lights.LIGHT_TYPE_DEFAULT] = string.lower(defaultLight or "false") == "true",
-		[v_u_73_.additionalLightTypes.brakeLight] = string.lower(brakeLight or "false") == "true",
-		[Lights.LIGHT_TYPE_HIGHBEAM] = string.lower(highBeam or "false") == "true",
-		[Lights.LIGHT_TYPE_WORK_BACK] = string.lower(workLightBack or "false") == "true",
-		[Lights.LIGHT_TYPE_WORK_FRONT] = string.lower(workLightFront or "false") == "true",
-		[v_u_73_.additionalLightTypes.turnLightLeft] = string.lower(turnLightLeft or "false") == "true",
-		[v_u_73_.additionalLightTypes.turnLightRight] = string.lower(turnLeftRight or "false") == "true",
-		[v_u_73_.additionalLightTypes.reverseLight] = string.lower(reverseLight or "false") == "true"
-	}
-	local v_u_75_ = 0
-	for v76_, v77_ in pairs(v74_) do
-		if v77_ then
-			local v78_ = bit32.lshift(1, v76_)
-			v_u_75_ = bit32.bor(v_u_75_, v78_)
+	local dummyVehicle = {}
+	function dummyVehicle.getIsPowered(...)
+		return true
+	end
+	function dummyVehicle.getIsInShowroom(...)
+		return false
+	end
+	function dummyVehicle.getIsLightActive(...)
+		return true
+	end
+	function dummyVehicle.getIsActiveForLights(...)
+		return true
+	end
+	function dummyVehicle.getStaticLightFromNode(...)
+		return nil
+	end
+	dummyVehicle.spec_lights = {}
+	local spec = dummyVehicle.spec_lights
+	spec.topLightsVisibility = false
+	spec.maxLightState = Lights.LIGHT_TYPE_HIGHBEAM
+	spec.additionalLightTypes = {}
+	spec.additionalLightTypes.bottomLight = spec.maxLightState + 1
+	spec.additionalLightTypes.topLight = spec.maxLightState + 2
+	spec.additionalLightTypes.brakeLight = spec.maxLightState + 3
+	spec.additionalLightTypes.turnLightLeft = spec.maxLightState + 4
+	spec.additionalLightTypes.turnLightRight = spec.maxLightState + 5
+	spec.additionalLightTypes.turnLightAny = spec.maxLightState + 6
+	spec.additionalLightTypes.reverseLight = spec.maxLightState + 7
+	spec.additionalLightTypes.interiorLight = spec.maxLightState + 8
+	local lightTypeMask = 0
+	local lightStates = {}
+	lightStates[Lights.LIGHT_TYPE_DEFAULT] = string.lower(defaultLight or "false") == "true"
+	lightStates[spec.additionalLightTypes.brakeLight] = string.lower(brakeLight or "false") == "true"
+	lightStates[Lights.LIGHT_TYPE_HIGHBEAM] = string.lower(highBeam or "false") == "true"
+	lightStates[Lights.LIGHT_TYPE_WORK_BACK] = string.lower(workLightBack or "false") == "true"
+	lightStates[Lights.LIGHT_TYPE_WORK_FRONT] = string.lower(workLightFront or "false") == "true"
+	lightStates[spec.additionalLightTypes.turnLightLeft] = string.lower(turnLightLeft or "false") == "true"
+	lightStates[spec.additionalLightTypes.turnLightRight] = string.lower(turnLeftRight or "false") == "true"
+	lightStates[spec.additionalLightTypes.reverseLight] = string.lower(reverseLight or "false") == "true"
+	for bitIndex, value in pairs(lightStates) do
+		if value then
+			lightTypeMask = bit32.bor(lightTypeMask, bit32.lshift(1, bitIndex))
 		end
 	end
-	local v79_ = Files.getFilesRecursive(getAppBasePath() .. "data/shared/assets/lights")
-	table.sort(v79_, function(p80_, p81_)
-		return p80_.path < p81_.path
+	local files = Files.getFilesRecursive(getAppBasePath() .. "data/shared/assets/lights")
+	table.sort(files, function(a, b)
+		return a.path < b.path
 	end)
-	local v_u_82_ = 0
-	local v_u_83_ = 0
-	local v84_ = nil
-	local v85_ = nil
-	local v86_ = 0
-	local v_u_87_ = 0
-	local v_u_88_ = 0
-	local v89_ = 0
-	for _, v90_ in ipairs(v79_) do
-		if not v90_.isDirectory and v90_.filename:contains(".xml") then
-			v_u_82_ = v_u_82_ + 1
-			v_u_83_ = v_u_83_ + 1
-			local v91_ = createTransformGroup("linkNode")
-			link(SharedLight.debugRootNode, v91_)
-			local v92_ = v90_.filename
-			local v93_ = string.gsub(v92_, "White", "")
-			local v94_ = string.gsub(v93_, "Orange", "")
-			local v95_ = string.gsub(v94_, "Red", "")
-			local v96_ = string.gsub(v95_, "Reverse", "")
-			local v97_ = string.gsub(v96_, ".xml", "")
-			local v98_ = string.split(v97_, "_")[1]
-			local v99_ = string.gsub(v98_, "%d", "")
-			local v100_ = v90_.path:split(v90_.filename)[1]
-			local v101_
-			if v100_ == v84_ and v99_ == v85_ then
-				v99_ = v85_
-				v101_ = v86_
-				v100_ = v84_
-			else
-				v89_ = v89_ + 1
-				local v102_, v103_, v104_ = localToWorld(SharedLight.debugRootNode, v89_ * 2, 1, -1)
-				local v105_, v106_, v107_ = localRotationToWorld(SharedLight.debugRootNode, -1.5707963267948966, 3.141592653589793, 0)
-				g_debugManager:addElement(DebugText3D.new():createWithWorldPos(v102_, v103_, v104_, v105_, v106_, v107_, v99_, 0.15), nil, nil, math.huge)
-				v101_ = 0
+	local rowIndex = 0
+	local rowPosition = 0
+	local lastBasePath = nil
+	local lastName = nil
+	local numLightsToLoad = 0
+	local numLightsToLoadTotal = 0
+	local numLightsSuccess = 0
+	local numLightsFailed = 0
+	for _, file in ipairs(files) do
+		if file.isDirectory then
+			continue
+		end
+		if file.filename:contains(".xml") then
+			numLightsToLoad = numLightsToLoad + 1
+			numLightsToLoadTotal = numLightsToLoadTotal + 1
+			local linkNode = createTransformGroup("linkNode")
+			link(SharedLight.debugRootNode, linkNode)
+			local name = file.filename
+			name = string.gsub(name, "White", "")
+			name = string.gsub(name, "Orange", "")
+			name = string.gsub(name, "Red", "")
+			name = string.gsub(name, "Reverse", "")
+			name = string.gsub(name, ".xml", "")
+			name = string.split(name, "_")[1]
+			name = string.gsub(name, "%d", "")
+			local basePath = file.path:split(file.filename)[1]
+			if basePath ~= lastBasePath or name ~= lastName then
+				rowIndex = rowIndex + 1
+				rowPosition = 0
+				lastBasePath = basePath
+				lastName = name
+				local wx, wy, wz = localToWorld(SharedLight.debugRootNode, rowIndex * 2, 1, -1)
+				local rx, ry, rz = localRotationToWorld(SharedLight.debugRootNode, -1.5707963267948966, 3.141592653589793, 0)
+				g_debugManager:addElement(DebugText3D.new():createWithWorldPos(wx, wy, wz, rx, ry, rz, name, 0.15), nil, nil, math.huge)
 			end
-			local v108_ = v89_ * 2
-			v86_ = v101_ + 1
-			setTranslation(v91_, v108_, 1, v101_)
-			setRotation(v91_, 0, 3.141592653589793, 0)
-			local v_u_109_ = SharedLight.new(v_u_72_, SharedLight.debugStaticLights)
-			v_u_109_:setCallback(function(p110_)
-				-- upvalues: (ref) v_u_82_, (ref) v_u_87_, (copy) v_u_109_, (ref) v_u_88_, (copy) v_u_72_, (copy) v_u_73_, (ref) v_u_75_, (ref) v_u_83_
-				v_u_82_ = v_u_82_ - 1
-				if p110_ then
-					v_u_87_ = v_u_87_ + 1
-					local v111_ = SharedLight.debugSharedLights
-					local v112_ = v_u_109_
-					table.insert(v111_, v112_)
+			local x = rowIndex * 2
+			local y = 1
+			local z = rowPosition
+			rowPosition = rowPosition + 1
+			setTranslation(linkNode, x, 1, z)
+			setRotation(linkNode, 0, 3.141592653589793, 0)
+			local sharedLight = SharedLight.new(dummyVehicle, SharedLight.debugStaticLights)
+			sharedLight:setCallback(function(success)
+				numLightsToLoad = numLightsToLoad - 1
+				if success then
+					numLightsSuccess = numLightsSuccess + 1
+					table.insert(SharedLight.debugSharedLights, sharedLight)
 				else
-					v_u_88_ = v_u_88_ + 1
+					numLightsFailed = numLightsFailed + 1
 				end
-				if v_u_82_ == 0 then
-					Lights.applyAdditionalActiveLightType(v_u_72_, SharedLight.debugStaticLights.topLights, v_u_73_.additionalLightTypes.topLight)
-					Lights.applyAdditionalActiveLightType(v_u_72_, SharedLight.debugStaticLights.bottomLights, v_u_73_.additionalLightTypes.bottomLight)
-					Lights.applyAdditionalActiveLightType(v_u_72_, SharedLight.debugStaticLights.brakeLights, v_u_73_.additionalLightTypes.brakeLight)
-					Lights.applyAdditionalActiveLightType(v_u_72_, SharedLight.debugStaticLights.reverseLights, v_u_73_.additionalLightTypes.reverseLight)
-					Lights.applyAdditionalActiveLightType(v_u_72_, SharedLight.debugStaticLights.turnLightsLeft, v_u_73_.additionalLightTypes.turnLightLeft, true)
-					Lights.applyAdditionalActiveLightType(v_u_72_, SharedLight.debugStaticLights.turnLightsLeft, v_u_73_.additionalLightTypes.turnLightAny, true)
-					Lights.applyAdditionalActiveLightType(v_u_72_, SharedLight.debugStaticLights.turnLightsRight, v_u_73_.additionalLightTypes.turnLightRight, true)
-					Lights.applyAdditionalActiveLightType(v_u_72_, SharedLight.debugStaticLights.turnLightsRight, v_u_73_.additionalLightTypes.turnLightAny, true)
-					for _, v113_ in pairs(SharedLight.debugStaticLights) do
-						for _, v114_ in ipairs(v113_) do
-							v114_:setLightTypesMask(v_u_75_)
+				if numLightsToLoad == 0 then
+					Lights.applyAdditionalActiveLightType(dummyVehicle, SharedLight.debugStaticLights.topLights, spec.additionalLightTypes.topLight)
+					Lights.applyAdditionalActiveLightType(dummyVehicle, SharedLight.debugStaticLights.bottomLights, spec.additionalLightTypes.bottomLight)
+					Lights.applyAdditionalActiveLightType(dummyVehicle, SharedLight.debugStaticLights.brakeLights, spec.additionalLightTypes.brakeLight)
+					Lights.applyAdditionalActiveLightType(dummyVehicle, SharedLight.debugStaticLights.reverseLights, spec.additionalLightTypes.reverseLight)
+					Lights.applyAdditionalActiveLightType(dummyVehicle, SharedLight.debugStaticLights.turnLightsLeft, spec.additionalLightTypes.turnLightLeft, true)
+					Lights.applyAdditionalActiveLightType(dummyVehicle, SharedLight.debugStaticLights.turnLightsLeft, spec.additionalLightTypes.turnLightAny, true)
+					Lights.applyAdditionalActiveLightType(dummyVehicle, SharedLight.debugStaticLights.turnLightsRight, spec.additionalLightTypes.turnLightRight, true)
+					Lights.applyAdditionalActiveLightType(dummyVehicle, SharedLight.debugStaticLights.turnLightsRight, spec.additionalLightTypes.turnLightAny, true)
+					for _, staticLightsByType in pairs(SharedLight.debugStaticLights) do
+						for _, staticLight in ipairs(staticLightsByType) do
+							staticLight:setLightTypesMask(lightTypeMask)
 						end
 					end
-					for _, v115_ in ipairs(SharedLight.debugSharedLights) do
-						if v115_.staticLightCompound ~= nil then
-							v115_.staticLightCompound:setLightTypesMask(v_u_75_, v_u_72_)
+					for _, _sharedLight in ipairs(SharedLight.debugSharedLights) do
+						if _sharedLight.staticLightCompound == nil then
+							continue
 						end
+						_sharedLight.staticLightCompound:setLightTypesMask(lightTypeMask, dummyVehicle)
 					end
-					Logging.info("%d Static lights: %d loaded, %d failed to load", v_u_83_, v_u_87_, v_u_88_)
+					Logging.info("%d Static lights: %d loaded, %d failed to load", numLightsToLoadTotal, numLightsSuccess, numLightsFailed)
 				end
 			end)
-			if v_u_109_:loadFromXML(v91_, string.gsub(v90_.path, getAppBasePath(), ""), "") then
-				local v116_, v117_, v118_ = localToWorld(v91_, 0, 0, -0.2)
-				local v119_, v120_, v121_ = localRotationToWorld(v91_, -1.5707963267948966, 0, 0)
-				g_debugManager:addElement(DebugText3D.new():createWithWorldPos(v116_, v117_, v118_, v119_, v120_, v121_, v90_.filename, 0.07), nil, nil, math.huge)
-				g_debugManager:addElement(DebugGizmo.new():createWithNode(v91_, "", nil, nil, 0.1), nil, nil, math.huge)
-				v85_ = v99_
-				v84_ = v100_
-			else
-				v85_ = v99_
-				v84_ = v100_
+			local filename = string.gsub(file.path, getAppBasePath(), "")
+			if sharedLight:loadFromXML(linkNode, filename, "") then
+				local wx, wy, wz = localToWorld(linkNode, 0, 0, -0.2)
+				local rx, ry, rz = localRotationToWorld(linkNode, -1.5707963267948966, 0, 0)
+				g_debugManager:addElement(DebugText3D.new():createWithWorldPos(wx, wy, wz, rx, ry, rz, file.filename, 0.07), nil, nil, math.huge)
+				g_debugManager:addElement(DebugGizmo.new():createWithNode(linkNode, "", nil, nil, 0.1), nil, nil, math.huge)
 			end
 		end
 	end
 	BeaconLight.spawnDebugBeacons(SharedLight.debugRootNode)
 end
-
 function SharedLight.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#filename", "Shared light filename")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#linkNode", "Link node", "0>")
@@ -498,16 +472,15 @@ function SharedLight.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.VECTOR_N, basePath .. "#excludedLightTypes", "Excluded light types")
 	schema:register(XMLValueType.STRING, basePath .. ".rotationNode(?)#name", "Rotation node name")
 	schema:register(XMLValueType.VECTOR_ROT, basePath .. ".rotationNode(?)#rotation", "Rotation")
-	schema:register(XMLValueType.BOOL, basePath .. "#reverseLight", "All \'defaultLight\' nodes will be used as reverse light", false)
-	schema:register(XMLValueType.BOOL, basePath .. "#turnLightLeft", "All \'defaultLight\' nodes will be used as left turn light", false)
-	schema:register(XMLValueType.BOOL, basePath .. "#turnLightRight", "All \'defaultLight\' nodes will be used as right turn light", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#reverseLight", "All 'defaultLight' nodes will be used as reverse light", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#turnLightLeft", "All 'defaultLight' nodes will be used as left turn light", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#turnLightRight", "All 'defaultLight' nodes will be used as right turn light", false)
 	schema:register(XMLValueType.STRING, basePath .. ".function(?)#name", "Function name", nil, nil, StaticLightCompoundUVSlot.getAllOrderedByName())
 	schema:register(XMLValueType.INT, basePath .. ".function(?)#uvSlotIndex", "Custom UV slot index to assign the defined function name")
 	schema:register(XMLValueType.INT, basePath .. ".function(?)#uvOffset", "Vertical UV offset that is used while this light function is active (value range: 0-64 -> this represents the height of the texture with a resolution of 1/64). This is used for double usage of certain lights with different colors.", 0)
 	schema:register(XMLValueType.FLOAT, basePath .. ".function(?)#intensityScale", "Custom intensity scale for this light type (is multiplied by the intensity defined in the node)")
 	schema:register(XMLValueType.STRING, basePath .. ".function(?)#lightType", "Name of the light type to use", nil, nil, StaticLightCompoundLightType.getAllOrderedByName())
 end
-
 function SharedLight.registerExternalXMLPaths(schema)
 	schema:register(XMLValueType.STRING, "light.filename", "Path to i3d file", nil, true)
 	schema:register(XMLValueType.NODE_INDEX, "light.rootNode#node", "Node index", "0")

@@ -1,25 +1,21 @@
--- Local values: TreeAttachRequestEvent_mt
 TreeAttachRequestEvent = {}
 local TreeAttachRequestEvent_mt = Class(TreeAttachRequestEvent, Event)
 InitStaticEventClass(TreeAttachRequestEvent, "TreeAttachRequestEvent")
 function TreeAttachRequestEvent.emptyNew()
-	-- upvalues: (copy) TreeAttachRequestEvent_mt
-	return Event.new(TreeAttachRequestEvent_mt)
+	local self = Event.new(TreeAttachRequestEvent_mt)
+	return self
 end
-
--- Local values: self
 function TreeAttachRequestEvent.new(object, splitShapeId, x, y, z, ropeIndex, setupRope)
-	local v9_ = TreeAttachRequestEvent.emptyNew()
-	v9_.object = object
-	v9_.splitShapeId = splitShapeId
-	v9_.x = x
-	v9_.y = y
-	v9_.z = z
-	v9_.ropeIndex = ropeIndex
-	v9_.setupRope = setupRope
-	return v9_
+	local self = TreeAttachRequestEvent.emptyNew()
+	self.object = object
+	self.splitShapeId = splitShapeId
+	self.x = x
+	self.y = y
+	self.z = z
+	self.ropeIndex = ropeIndex
+	self.setupRope = setupRope
+	return self
 end
-
 function TreeAttachRequestEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.splitShapeId = readSplitShapeIdFromStream(streamId)
@@ -34,7 +30,6 @@ function TreeAttachRequestEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function TreeAttachRequestEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	writeSplitShapeIdToStream(streamId, self.splitShapeId)
@@ -48,25 +43,25 @@ function TreeAttachRequestEvent:writeStream(streamId, connection)
 		self.setupRope:writeStream(streamId)
 	end
 end
-
--- Local values: isAllowed, reason, isAllowed, reason
 function TreeAttachRequestEvent:run(connection)
 	if self.object ~= nil and self.object:getIsSynchronized() then
 		if self.object.getIsCarriageTreeAttachAllowed ~= nil then
-			local v17_, v18_ = self.object:getIsCarriageTreeAttachAllowed(self.splitShapeId)
-			if v17_ then
+			local isAllowed, reason = self.object:getIsCarriageTreeAttachAllowed(self.splitShapeId)
+			if isAllowed then
 				self.object:attachTreeToCarriage(self.splitShapeId, self.x, self.y, self.z, self.ropeIndex)
+				return
 			else
-				g_server:broadcastEvent(TreeAttachResponseEvent.new(self.object, v18_, self.ropeIndex), nil, nil, self.object, nil, { connection })
+				g_server:broadcastEvent(TreeAttachResponseEvent.new(self.object, reason, self.ropeIndex), nil, nil, self.object, nil, { connection })
+				return
 			end
 		end
 		if self.object.getIsWinchTreeAttachAllowed ~= nil then
-			local v19_, v20_ = self.object:getIsWinchTreeAttachAllowed(self.ropeIndex, self.splitShapeId)
-			if v19_ then
+			local isAllowed, reason = self.object:getIsWinchTreeAttachAllowed(self.ropeIndex, self.splitShapeId)
+			if isAllowed then
 				self.object:attachTreeToWinch(self.splitShapeId, self.x, self.y, self.z, self.ropeIndex, self.setupRopeData)
 				return
 			end
-			g_server:broadcastEvent(TreeAttachResponseEvent.new(self.object, v20_, self.ropeIndex), nil, nil, self.object, nil, { connection })
+			g_server:broadcastEvent(TreeAttachResponseEvent.new(self.object, reason, self.ropeIndex), nil, nil, self.object, nil, { connection })
 		end
 	end
 end

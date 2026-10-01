@@ -5,59 +5,57 @@ source("dataS/scripts/vehicles/specializations/events/TreeAttachEvent.lua")
 source("dataS/scripts/vehicles/specializations/events/TreeAttachRequestEvent.lua")
 source("dataS/scripts/vehicles/specializations/events/TreeAttachResponseEvent.lua")
 source("dataS/scripts/vehicles/specializations/events/TreeDetachEvent.lua")
-
 function YarderCarriage.prerequisitesPresent(specializations)
 	return true
 end
 function YarderCarriage.initSpecialization()
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("YarderCarriage")
-	v1_:register(XMLValueType.INT, "vehicle.yarderCarriage#maxNumTrees", "Max. number of trees that can be attached", 4)
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#maxTreeMass", "Max. total tree mass that can be attached (to)", 1)
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#length", "Total length off carriage to calculate the offset to start and end correctly", 2)
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#rollSpacing", "Spacing between the rolls to calculate the rotation correctly", 0.75)
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#liftSpeed", "Lifting speed [m/sec]", 2)
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#liftAcceleration", "Lifting acceleration (time in seconds until full speed is reached)", 0.75)
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage#pullRopeTargetNode", "Target connection node for pull rope")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage#pushRopeTargetNode", "Target connection node for push rope")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.ropeAlignmentNode(?)#node", "Node is aligned to the rope in x and y axis")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.joint#node", "Attach joint node")
-	v1_:register(XMLValueType.TIME, "vehicle.yarderCarriage.joint#attachTime", "Time until the tree is fully attached", 0.5)
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage.joint#minDistance", "Min. distance of the rope", 0.5)
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage.joint#maxDistance", "Max. distance of the rope", 10)
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope#originNode", "Rope origin node")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope#rootHook", "Root hook node")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope#rootHookReferenceNode", "Root hook reference node placed at the end of the hook")
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage.rope#treeRopeLength", "Length of the rope from the root hook to the tree", 1)
-	ForestryRope.registerXMLPaths(v1_, "vehicle.yarderCarriage.rope.mainRope")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope.attach#mainNode", "Outgoing node for main tree attach rope (used for dummy rope display)")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope.attach#additionalNode", "Outgoing node for additional tree attach rope (used for dummy rope display)")
-	ForestryRope.registerXMLPaths(v1_, "vehicle.yarderCarriage.rope.attach.mainRope")
-	ForestryRope.registerXMLPaths(v1_, "vehicle.yarderCarriage.rope.attach.additionalRope")
-	TargetTreeMarker.registerXMLPaths(v1_, "vehicle.yarderCarriage.rope.attach.marker")
-	v1_:register(XMLValueType.INT, "vehicle.yarderCarriage.rope.componentJoint#index", "Component joint index")
-	v1_:register(XMLValueType.VECTOR_ROT, "vehicle.yarderCarriage.rope.componentJoint#rotLimitInactive", "Component joint rot limit while tree(s) not attached")
-	v1_:register(XMLValueType.VECTOR_ROT, "vehicle.yarderCarriage.rope.componentJoint#rotLimitActive", "Component joint rot limit while tree(s) attached")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.additionalRopes.additionalRope(?)#referenceNode", "Node at the end of the hook for placement of the rope")
-	ForestryRope.registerXMLPaths(v1_, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).rope")
-	v1_:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#node", "Node to align to target point")
-	v1_:register(XMLValueType.BOOL, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#alignYRot", "Node is only aligned on y axis", false)
-	v1_:register(XMLValueType.BOOL, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#alignXRot", "Node is only aligned on x axis", false)
-	v1_:register(XMLValueType.ANGLE, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#minRot", "Min. rotation value for only y or x alignment", -180)
-	v1_:register(XMLValueType.ANGLE, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#maxRot", "Max. rotation value for only y or x alignment", 180)
-	v1_:register(XMLValueType.BOOL, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#alignToTarget", "Node is only aligned on all axis", true)
-	ObjectChangeUtil.registerObjectChangeXMLPaths(v1_, "vehicle.yarderCarriage.rope")
-	v1_:register(XMLValueType.FLOAT, "vehicle.yarderCarriage.treeHook#offset", "Hook offset from tree", 0.01)
-	v1_:register(XMLValueType.STRING, "vehicle.yarderCarriage.treeHook#tensionBeltType", "Name of tension belt type used for tree hook", "forestryTreeBelt")
-	ForestryHook.registerXMLPaths(v1_, "vehicle.yarderCarriage.treeHook")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.yarderCarriage.sounds", "attachTree")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.yarderCarriage.sounds", "detachTree")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.yarderCarriage.sounds", "lift")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.yarderCarriage.sounds", "lower")
-	SoundManager.registerSampleXMLPaths(v1_, "vehicle.yarderCarriage.sounds", "liftLimit")
-	v1_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("YarderCarriage")
+	schema:register(XMLValueType.INT, "vehicle.yarderCarriage#maxNumTrees", "Max. number of trees that can be attached", 4)
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#maxTreeMass", "Max. total tree mass that can be attached (to)", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#length", "Total length off carriage to calculate the offset to start and end correctly", 2)
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#rollSpacing", "Spacing between the rolls to calculate the rotation correctly", 0.75)
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#liftSpeed", "Lifting speed [m/sec]", 2)
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage#liftAcceleration", "Lifting acceleration (time in seconds until full speed is reached)", 0.75)
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage#pullRopeTargetNode", "Target connection node for pull rope")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage#pushRopeTargetNode", "Target connection node for push rope")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.ropeAlignmentNode(?)#node", "Node is aligned to the rope in x and y axis")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.joint#node", "Attach joint node")
+	schema:register(XMLValueType.TIME, "vehicle.yarderCarriage.joint#attachTime", "Time until the tree is fully attached", 0.5)
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage.joint#minDistance", "Min. distance of the rope", 0.5)
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage.joint#maxDistance", "Max. distance of the rope", 10)
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope#originNode", "Rope origin node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope#rootHook", "Root hook node")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope#rootHookReferenceNode", "Root hook reference node placed at the end of the hook")
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage.rope#treeRopeLength", "Length of the rope from the root hook to the tree", 1)
+	ForestryRope.registerXMLPaths(schema, "vehicle.yarderCarriage.rope.mainRope")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope.attach#mainNode", "Outgoing node for main tree attach rope (used for dummy rope display)")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.rope.attach#additionalNode", "Outgoing node for additional tree attach rope (used for dummy rope display)")
+	ForestryRope.registerXMLPaths(schema, "vehicle.yarderCarriage.rope.attach.mainRope")
+	ForestryRope.registerXMLPaths(schema, "vehicle.yarderCarriage.rope.attach.additionalRope")
+	TargetTreeMarker.registerXMLPaths(schema, "vehicle.yarderCarriage.rope.attach.marker")
+	schema:register(XMLValueType.INT, "vehicle.yarderCarriage.rope.componentJoint#index", "Component joint index")
+	schema:register(XMLValueType.VECTOR_ROT, "vehicle.yarderCarriage.rope.componentJoint#rotLimitInactive", "Component joint rot limit while tree(s) not attached")
+	schema:register(XMLValueType.VECTOR_ROT, "vehicle.yarderCarriage.rope.componentJoint#rotLimitActive", "Component joint rot limit while tree(s) attached")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.additionalRopes.additionalRope(?)#referenceNode", "Node at the end of the hook for placement of the rope")
+	ForestryRope.registerXMLPaths(schema, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).rope")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#node", "Node to align to target point")
+	schema:register(XMLValueType.BOOL, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#alignYRot", "Node is only aligned on y axis", false)
+	schema:register(XMLValueType.BOOL, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#alignXRot", "Node is only aligned on x axis", false)
+	schema:register(XMLValueType.ANGLE, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#minRot", "Min. rotation value for only y or x alignment", -180)
+	schema:register(XMLValueType.ANGLE, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#maxRot", "Max. rotation value for only y or x alignment", 180)
+	schema:register(XMLValueType.BOOL, "vehicle.yarderCarriage.additionalRopes.additionalRope(?).hookNode(?)#alignToTarget", "Node is only aligned on all axis", true)
+	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, "vehicle.yarderCarriage.rope")
+	schema:register(XMLValueType.FLOAT, "vehicle.yarderCarriage.treeHook#offset", "Hook offset from tree", 0.01)
+	schema:register(XMLValueType.STRING, "vehicle.yarderCarriage.treeHook#tensionBeltType", "Name of tension belt type used for tree hook", "forestryTreeBelt")
+	ForestryHook.registerXMLPaths(schema, "vehicle.yarderCarriage.treeHook")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.yarderCarriage.sounds", "attachTree")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.yarderCarriage.sounds", "detachTree")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.yarderCarriage.sounds", "lift")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.yarderCarriage.sounds", "lower")
+	SoundManager.registerSampleXMLPaths(schema, "vehicle.yarderCarriage.sounds", "liftLimit")
+	schema:setXMLSpecializationType()
 end
-
 function YarderCarriage.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getCarriageDimensions", YarderCarriage.getCarriageDimensions)
 	SpecializationUtil.registerFunction(vehicleType, "getCarriagePullRopeTargetNode", YarderCarriage.getCarriagePullRopeTargetNode)
@@ -85,12 +83,10 @@ function YarderCarriage.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "onYarderCarriageTreeShapeCut", YarderCarriage.onYarderCarriageTreeShapeCut)
 	SpecializationUtil.registerFunction(vehicleType, "onYarderCarriageTreeShapeMounted", YarderCarriage.onYarderCarriageTreeShapeMounted)
 end
-
 function YarderCarriage.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getDirtMultiplier", YarderCarriage.getDirtMultiplier)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getWearMultiplier", YarderCarriage.getWearMultiplier)
 end
-
 function YarderCarriage.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", YarderCarriage)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoadFinished", YarderCarriage)
@@ -101,689 +97,607 @@ function YarderCarriage.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onWriteUpdateStream", YarderCarriage)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostUpdate", YarderCarriage)
 end
-
--- Local values: spec
 function YarderCarriage:onLoad(savegame)
-	local v_u_6_ = self.spec_yarderCarriage
-	v_u_6_.maxNumTrees = self.xmlFile:getValue("vehicle.yarderCarriage#maxNumTrees", 4)
-	local v7_ = v_u_6_.maxNumTrees
-	local v8_ = math.sqrt(v7_)
-	v_u_6_.maxTreeBits = math.ceil(v8_)
-	v_u_6_.maxTreeMass = self.xmlFile:getValue("vehicle.yarderCarriage#maxTreeMass", 1)
-	v_u_6_.length = self.xmlFile:getValue("vehicle.yarderCarriage#length", 2)
-	v_u_6_.rollSpacing = self.xmlFile:getValue("vehicle.yarderCarriage#rollSpacing", 0.75)
-	v_u_6_.liftSpeed = self.xmlFile:getValue("vehicle.yarderCarriage#liftSpeed", 2) * 0.001
-	v_u_6_.liftAcceleration = 1 / self.xmlFile:getValue("vehicle.yarderCarriage#liftAcceleration", 0.75) * 0.001
-	v_u_6_.curLiftSpeedAlpha = 0
-	v_u_6_.curLiftSpeedLastDirection = 0
-	v_u_6_.pullRopeTargetNode = self.xmlFile:getValue("vehicle.yarderCarriage#pullRopeTargetNode", nil, self.components, self.i3dMappings)
-	v_u_6_.pushRopeTargetNode = self.xmlFile:getValue("vehicle.yarderCarriage#pushRopeTargetNode", nil, self.components, self.i3dMappings)
-	v_u_6_.ropeAlignmentNodes = {}
-	self.xmlFile:iterate("vehicle.yarderCarriage.ropeAlignmentNode", function(_, p9_)
-		-- upvalues: (copy) self, (copy) v_u_6_
-		local v10_ = {
-			["node"] = self.xmlFile:getValue(p9_ .. "#node", nil, self.components, self.i3dMappings)
-		}
-		if v10_.node ~= nil then
-			local v11_ = v_u_6_.ropeAlignmentNodes
-			table.insert(v11_, v10_)
+	local spec = self.spec_yarderCarriage
+	spec.maxNumTrees = self.xmlFile:getValue("vehicle.yarderCarriage#maxNumTrees", 4)
+	spec.maxTreeBits = math.ceil(math.sqrt(spec.maxNumTrees))
+	spec.maxTreeMass = self.xmlFile:getValue("vehicle.yarderCarriage#maxTreeMass", 1)
+	spec.length = self.xmlFile:getValue("vehicle.yarderCarriage#length", 2)
+	spec.rollSpacing = self.xmlFile:getValue("vehicle.yarderCarriage#rollSpacing", 0.75)
+	spec.liftSpeed = self.xmlFile:getValue("vehicle.yarderCarriage#liftSpeed", 2) * 0.001
+	spec.liftAcceleration = 1 / self.xmlFile:getValue("vehicle.yarderCarriage#liftAcceleration", 0.75) * 0.001
+	spec.curLiftSpeedAlpha = 0
+	spec.curLiftSpeedLastDirection = 0
+	spec.pullRopeTargetNode = self.xmlFile:getValue("vehicle.yarderCarriage#pullRopeTargetNode", nil, self.components, self.i3dMappings)
+	spec.pushRopeTargetNode = self.xmlFile:getValue("vehicle.yarderCarriage#pushRopeTargetNode", nil, self.components, self.i3dMappings)
+	spec.ropeAlignmentNodes = {}
+	self.xmlFile:iterate("vehicle.yarderCarriage.ropeAlignmentNode", function(index, key)
+		local entry = {}
+		entry.node = self.xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
+		if entry.node ~= nil then
+			table.insert(spec.ropeAlignmentNodes, entry)
 		end
 	end)
-	v_u_6_.joint = {}
-	v_u_6_.joint.node = self.xmlFile:getValue("vehicle.yarderCarriage.joint#node", nil, self.components, self.i3dMappings)
-	v_u_6_.joint.attachTime = self.xmlFile:getValue("vehicle.yarderCarriage.joint#attachTime", 0.5)
-	v_u_6_.joint.minDistance = self.xmlFile:getValue("vehicle.yarderCarriage.joint#minDistance", 0.5)
-	v_u_6_.joint.maxDistance = self.xmlFile:getValue("vehicle.yarderCarriage.joint#maxDistance", 20)
-	v_u_6_.joint.component = self:getParentComponent(v_u_6_.joint.node)
-	v_u_6_.rope = {}
-	v_u_6_.rope.originNode = self.xmlFile:getValue("vehicle.yarderCarriage.rope#originNode", nil, self.components, self.i3dMappings)
-	v_u_6_.rope.rootHook = self.xmlFile:getValue("vehicle.yarderCarriage.rope#rootHook", nil, self.components, self.i3dMappings)
-	v_u_6_.rope.rootHookReferenceNode = self.xmlFile:getValue("vehicle.yarderCarriage.rope#rootHookReferenceNode", nil, self.components, self.i3dMappings)
-	v_u_6_.rope.treeRopeLength = self.xmlFile:getValue("vehicle.yarderCarriage.rope#treeRopeLength", 1)
-	v_u_6_.rope.rootHookLength = 1
-	if v_u_6_.rope.rootHook ~= nil and v_u_6_.rope.rootHookReferenceNode ~= nil then
-		v_u_6_.rope.rootHookLength = calcDistanceFrom(v_u_6_.rope.rootHook, v_u_6_.rope.rootHookReferenceNode)
+	spec.joint = {}
+	spec.joint.node = self.xmlFile:getValue("vehicle.yarderCarriage.joint#node", nil, self.components, self.i3dMappings)
+	spec.joint.attachTime = self.xmlFile:getValue("vehicle.yarderCarriage.joint#attachTime", 0.5)
+	spec.joint.minDistance = self.xmlFile:getValue("vehicle.yarderCarriage.joint#minDistance", 0.5)
+	spec.joint.maxDistance = self.xmlFile:getValue("vehicle.yarderCarriage.joint#maxDistance", 20)
+	spec.joint.component = self:getParentComponent(spec.joint.node)
+	spec.rope = {}
+	spec.rope.originNode = self.xmlFile:getValue("vehicle.yarderCarriage.rope#originNode", nil, self.components, self.i3dMappings)
+	spec.rope.rootHook = self.xmlFile:getValue("vehicle.yarderCarriage.rope#rootHook", nil, self.components, self.i3dMappings)
+	spec.rope.rootHookReferenceNode = self.xmlFile:getValue("vehicle.yarderCarriage.rope#rootHookReferenceNode", nil, self.components, self.i3dMappings)
+	spec.rope.treeRopeLength = self.xmlFile:getValue("vehicle.yarderCarriage.rope#treeRopeLength", 1)
+	spec.rope.rootHookLength = 1
+	if spec.rope.rootHook ~= nil and spec.rope.rootHookReferenceNode ~= nil then
+		spec.rope.rootHookLength = calcDistanceFrom(spec.rope.rootHook, spec.rope.rootHookReferenceNode)
 	end
-	v_u_6_.rope.mainRope = ForestryRope.new(self, v_u_6_.rope.rootHook)
-	v_u_6_.rope.mainRope:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.rope.mainRope", self.baseDirectory)
-	v_u_6_.rope.attachMainNode = self.xmlFile:getValue("vehicle.yarderCarriage.rope.attach#mainNode", nil, self.components, self.i3dMappings)
-	v_u_6_.rope.attachMainRope = ForestryRope.new(self, v_u_6_.rope.attachMainNode)
-	v_u_6_.rope.attachMainRope:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.rope.attach.mainRope", self.baseDirectory)
-	v_u_6_.rope.attachMainRope:setVisibility(false)
-	v_u_6_.rope.attachAdditionalNode = self.xmlFile:getValue("vehicle.yarderCarriage.rope.attach#additionalNode", nil, self.components, self.i3dMappings)
-	v_u_6_.rope.attachAdditionalRope = ForestryRope.new(self, v_u_6_.rope.attachAdditionalNode)
-	v_u_6_.rope.attachAdditionalRope:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.rope.attach.additionalRope", self.baseDirectory)
-	v_u_6_.rope.attachAdditionalRope:setVisibility(false)
-	v_u_6_.rope.attachMarker = TargetTreeMarker.new(self, self.rootNode)
-	v_u_6_.rope.attachMarker:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.rope.attach.marker")
-	v_u_6_.rope.componentJointIndex = self.xmlFile:getValue("vehicle.yarderCarriage.rope.componentJoint#index")
-	v_u_6_.rope.componentJointLimitInactive = self.xmlFile:getValue("vehicle.yarderCarriage.rope.componentJoint#rotLimitInactive", "0 0 0", true)
-	v_u_6_.rope.componentJointLimitActive = self.xmlFile:getValue("vehicle.yarderCarriage.rope.componentJoint#rotLimitActive", nil, true)
-	v_u_6_.rope.changeObjects = {}
-	ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, "vehicle.yarderCarriage.rope", v_u_6_.rope.changeObjects, self.components, self)
-	ObjectChangeUtil.setObjectChanges(v_u_6_.rope.changeObjects, false, self, self.setMovingToolDirty)
-	v_u_6_.additionalRopes = {}
-	self.xmlFile:iterate("vehicle.yarderCarriage.additionalRopes.additionalRope", function(_, p12_)
-		-- upvalues: (copy) self, (copy) v_u_6_
-		local v_u_13_ = {
-			["referenceNode"] = self.xmlFile:getValue(p12_ .. "#referenceNode", nil, self.components, self.i3dMappings)
-		}
-		v_u_13_.rope = ForestryRope.new(self, v_u_13_.referenceNode)
-		v_u_13_.rope:loadFromXML(self.xmlFile, p12_ .. ".rope", self.baseDirectory)
-		v_u_13_.hookNodes = {}
-		self.xmlFile:iterate(p12_ .. ".hookNode", function(_, p14_)
-			-- upvalues: (ref) self, (copy) v_u_13_
-			local v15_ = {
-				["node"] = self.xmlFile:getValue(p14_ .. "#node", nil, self.components, self.i3dMappings),
-				["alignYRot"] = self.xmlFile:getValue(p14_ .. "#alignYRot", false),
-				["alignXRot"] = self.xmlFile:getValue(p14_ .. "#alignXRot", false),
-				["minRot"] = self.xmlFile:getValue(p14_ .. "#minRot", -180),
-				["maxRot"] = self.xmlFile:getValue(p14_ .. "#maxRot", 180),
-				["alignToTarget"] = self.xmlFile:getValue(p14_ .. "#alignToTarget", true),
-				["referenceFrame"] = createTransformGroup("hookNodeReferenceFrame")
-			}
-			link(getParent(v15_.node), v15_.referenceFrame)
-			setTranslation(v15_.referenceFrame, getTranslation(v15_.node))
-			setRotation(v15_.referenceFrame, getRotation(v15_.node))
-			setVisibility(v15_.node, false)
-			local v16_ = v_u_13_.hookNodes
-			table.insert(v16_, v15_)
+	spec.rope.mainRope = ForestryRope.new(self, spec.rope.rootHook)
+	spec.rope.mainRope:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.rope.mainRope", self.baseDirectory)
+	spec.rope.attachMainNode = self.xmlFile:getValue("vehicle.yarderCarriage.rope.attach#mainNode", nil, self.components, self.i3dMappings)
+	spec.rope.attachMainRope = ForestryRope.new(self, spec.rope.attachMainNode)
+	spec.rope.attachMainRope:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.rope.attach.mainRope", self.baseDirectory)
+	spec.rope.attachMainRope:setVisibility(false)
+	spec.rope.attachAdditionalNode = self.xmlFile:getValue("vehicle.yarderCarriage.rope.attach#additionalNode", nil, self.components, self.i3dMappings)
+	spec.rope.attachAdditionalRope = ForestryRope.new(self, spec.rope.attachAdditionalNode)
+	spec.rope.attachAdditionalRope:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.rope.attach.additionalRope", self.baseDirectory)
+	spec.rope.attachAdditionalRope:setVisibility(false)
+	spec.rope.attachMarker = TargetTreeMarker.new(self, self.rootNode)
+	spec.rope.attachMarker:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.rope.attach.marker")
+	spec.rope.componentJointIndex = self.xmlFile:getValue("vehicle.yarderCarriage.rope.componentJoint#index")
+	spec.rope.componentJointLimitInactive = self.xmlFile:getValue("vehicle.yarderCarriage.rope.componentJoint#rotLimitInactive", "0 0 0", true)
+	spec.rope.componentJointLimitActive = self.xmlFile:getValue("vehicle.yarderCarriage.rope.componentJoint#rotLimitActive", nil, true)
+	spec.rope.changeObjects = {}
+	ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, "vehicle.yarderCarriage.rope", spec.rope.changeObjects, self.components, self)
+	ObjectChangeUtil.setObjectChanges(spec.rope.changeObjects, false, self, self.setMovingToolDirty)
+	spec.additionalRopes = {}
+	self.xmlFile:iterate("vehicle.yarderCarriage.additionalRopes.additionalRope", function(_, key)
+		local entry = {}
+		entry.referenceNode = self.xmlFile:getValue(key .. "#referenceNode", nil, self.components, self.i3dMappings)
+		entry.rope = ForestryRope.new(self, entry.referenceNode)
+		entry.rope:loadFromXML(self.xmlFile, key .. ".rope", self.baseDirectory)
+		entry.hookNodes = {}
+		self.xmlFile:iterate(key .. ".hookNode", function(_, hookKey)
+			local hookNode = {}
+			hookNode.node = self.xmlFile:getValue(hookKey .. "#node", nil, self.components, self.i3dMappings)
+			hookNode.alignYRot = self.xmlFile:getValue(hookKey .. "#alignYRot", false)
+			hookNode.alignXRot = self.xmlFile:getValue(hookKey .. "#alignXRot", false)
+			hookNode.minRot = self.xmlFile:getValue(hookKey .. "#minRot", -180)
+			hookNode.maxRot = self.xmlFile:getValue(hookKey .. "#maxRot", 180)
+			hookNode.alignToTarget = self.xmlFile:getValue(hookKey .. "#alignToTarget", true)
+			hookNode.referenceFrame = createTransformGroup("hookNodeReferenceFrame")
+			link(getParent(hookNode.node), hookNode.referenceFrame)
+			setTranslation(hookNode.referenceFrame, getTranslation(hookNode.node))
+			setRotation(hookNode.referenceFrame, getRotation(hookNode.node))
+			setVisibility(hookNode.node, false)
+			table.insert(entry.hookNodes, hookNode)
 		end)
-		setVisibility(v_u_13_.referenceNode, false)
-		local v17_ = v_u_6_.additionalRopes
-		table.insert(v17_, v_u_13_)
+		setVisibility(entry.referenceNode, false)
+		table.insert(spec.additionalRopes, entry)
 	end)
-	v_u_6_.treeHook = {}
-	v_u_6_.treeHook.offset = self.xmlFile:getValue("vehicle.yarderCarriage.treeHook#offset", 0.01)
-	v_u_6_.treeHook.tensionBeltType = self.xmlFile:getValue("vehicle.yarderCarriage.treeHook#tensionBeltType", "forestryTreeBelt")
-	v_u_6_.treeHook.beltData = g_tensionBeltManager:getBeltData(v_u_6_.treeHook.tensionBeltType)
-	v_u_6_.treeHook.hookData = ForestryHook.new(self, self.rootNode)
-	v_u_6_.treeHook.hookData:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.treeHook", self.baseDirectory)
-	v_u_6_.treeHook.hookData:setVisibility(false)
-	v_u_6_.yarderTowerVehicle = nil
-	v_u_6_.treeRaycast = {}
-	v_u_6_.treeRaycast.hasStarted = false
-	v_u_6_.treeRaycast.foundTree = false
-	v_u_6_.treeRaycast.treeTargetPos = { 0, 0, 0 }
-	v_u_6_.treeRaycast.treeCenterPos = { 0, 0, 0 }
-	v_u_6_.treeRaycast.treeUp = { 0, 1, 0 }
-	v_u_6_.treeRaycast.treeRadius = 1
-	v_u_6_.attachedTrees = {}
-	v_u_6_.splitShapesToAttach = {}
-	v_u_6_.lastTransLimitY = 0
-	v_u_6_.lastTransLimitYTimeOffset = 0
-	v_u_6_.sampleLiftPlayedSent = false
-	v_u_6_.sampleLiftLimitPlayedSent = false
-	v_u_6_.sampleLowerPlayedSent = false
-	v_u_6_.samples = {}
+	spec.treeHook = {}
+	spec.treeHook.offset = self.xmlFile:getValue("vehicle.yarderCarriage.treeHook#offset", 0.01)
+	spec.treeHook.tensionBeltType = self.xmlFile:getValue("vehicle.yarderCarriage.treeHook#tensionBeltType", "forestryTreeBelt")
+	spec.treeHook.beltData = g_tensionBeltManager:getBeltData(spec.treeHook.tensionBeltType)
+	spec.treeHook.hookData = ForestryHook.new(self, self.rootNode)
+	spec.treeHook.hookData:loadFromXML(self.xmlFile, "vehicle.yarderCarriage.treeHook", self.baseDirectory)
+	spec.treeHook.hookData:setVisibility(false)
+	spec.yarderTowerVehicle = nil
+	spec.treeRaycast = {}
+	spec.treeRaycast.hasStarted = false
+	spec.treeRaycast.foundTree = false
+	spec.treeRaycast.treeTargetPos = { 0, 0, 0 }
+	spec.treeRaycast.treeCenterPos = { 0, 0, 0 }
+	spec.treeRaycast.treeUp = { 0, 1, 0 }
+	spec.treeRaycast.treeRadius = 1
+	spec.attachedTrees = {}
+	spec.splitShapesToAttach = {}
+	spec.lastTransLimitY = 0
+	spec.lastTransLimitYTimeOffset = 0
+	spec.sampleLiftPlayedSent = false
+	spec.sampleLiftLimitPlayedSent = false
+	spec.sampleLowerPlayedSent = false
+	spec.samples = {}
 	if self.isClient then
-		v_u_6_.samples.attachTree = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "attachTree", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_6_.samples.detachTree = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "detachTree", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_6_.samples.lift = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "lift", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_6_.samples.lower = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "lower", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
-		v_u_6_.samples.liftLimit = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "liftLimit", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.attachTree = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "attachTree", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.detachTree = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "detachTree", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.lift = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "lift", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.lower = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "lower", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+		spec.samples.liftLimit = g_soundManager:loadSampleFromXML(self.xmlFile, "vehicle.yarderCarriage.sounds", "liftLimit", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
 	end
-	v_u_6_.texts = {}
-	v_u_6_.texts.warningTooHeavy = g_i18n:getText("yarder_treeToHeavy")
+	spec.texts = {}
+	spec.texts.warningTooHeavy = g_i18n:getText("yarder_treeToHeavy")
 	self.isVehicleSaved = false
-	v_u_6_.dirtyFlag = self:getNextDirtyFlag()
+	spec.dirtyFlag = self:getNextDirtyFlag()
 	g_messageCenter:subscribe(MessageType.TREE_SHAPE_CUT, self.onYarderCarriageTreeShapeCut, self)
 	g_messageCenter:subscribe(MessageType.TREE_SHAPE_MOUNTED, self.onYarderCarriageTreeShapeMounted, self)
 end
-
--- Local values: spec
 function YarderCarriage:onLoadFinished(savegame)
-	local v19_ = self.spec_yarderCarriage
-	v19_.rope.mainRope:setTargetNode(v19_.rope.originNode)
-	v19_.rope.treeRope = v19_.rope.mainRope:clone(v19_.rope.rootHookReferenceNode)
-	v19_.rope.treeRope:setLength(v19_.rope.treeRopeLength)
+	local spec = self.spec_yarderCarriage
+	spec.rope.mainRope:setTargetNode(spec.rope.originNode)
+	spec.rope.treeRope = spec.rope.mainRope:clone(spec.rope.rootHookReferenceNode)
+	spec.rope.treeRope:setLength(spec.rope.treeRopeLength)
 end
-
--- Local values: spec, i, additionalRope
 function YarderCarriage:onDelete()
-	local v21_ = self.spec_yarderCarriage
-	if v21_.yarderTowerVehicle ~= nil then
-		v21_.yarderTowerVehicle.spec_yarderTower.carriage.vehicle = nil
+	local spec = self.spec_yarderCarriage
+	if spec.yarderTowerVehicle ~= nil then
+		spec.yarderTowerVehicle.spec_yarderTower.carriage.vehicle = nil
 	end
-	if #v21_.attachedTrees > 0 then
+	if 0 < #spec.attachedTrees then
 		self:detachTreeFromCarriage(nil, true)
 	end
 	if self.isClient then
-		g_soundManager:deleteSamples(v21_.samples)
+		g_soundManager:deleteSamples(spec.samples)
 	end
-	if v21_.treeHook.hookData ~= nil then
-		v21_.treeHook.hookData:delete()
+	if spec.treeHook.hookData ~= nil then
+		spec.treeHook.hookData:delete()
 	end
-	if v21_.rope.attachMarker ~= nil then
-		v21_.rope.attachMarker:delete()
+	if spec.rope.attachMarker ~= nil then
+		spec.rope.attachMarker:delete()
 	end
-	if v21_.rope.mainRope ~= nil then
-		v21_.rope.mainRope:delete()
+	if spec.rope.mainRope ~= nil then
+		spec.rope.mainRope:delete()
 	end
-	if v21_.rope.treeRope ~= nil then
-		v21_.rope.treeRope:delete()
+	if spec.rope.treeRope ~= nil then
+		spec.rope.treeRope:delete()
 	end
-	if v21_.rope.attachMainRope ~= nil then
-		v21_.rope.attachMainRope:delete()
+	if spec.rope.attachMainRope ~= nil then
+		spec.rope.attachMainRope:delete()
 	end
-	if v21_.rope.attachAdditionalRope ~= nil then
-		v21_.rope.attachAdditionalRope:delete()
+	if spec.rope.attachAdditionalRope ~= nil then
+		spec.rope.attachAdditionalRope:delete()
 	end
-	if v21_.additionalRopes ~= nil then
-		for v22_ = 1, #v21_.additionalRopes do
-			local v23_ = v21_.additionalRopes[v22_]
-			if v23_.rope ~= nil then
-				v23_.rope:delete()
+	if spec.additionalRopes ~= nil then
+		for i = 1, #spec.additionalRopes do
+			local additionalRope = spec.additionalRopes[i]
+			if additionalRope.rope == nil then
+				continue
 			end
+			additionalRope.rope:delete()
 		end
 	end
 end
-
--- Local values: spec, numTrees, i, x, y, z, splitShapeId, splitShapeId1, splitShapeId2
 function YarderCarriage:onReadStream(streamId, connection)
-	local v26_ = self.spec_yarderCarriage
+	local spec = self.spec_yarderCarriage
 	if streamReadBool(streamId) then
-		v26_.yarderTowerVehicle = NetworkUtil.readNodeObject(streamId)
-		v26_.yarderTowerVehicle.spec_yarderTower.carriage.vehicle = self
+		spec.yarderTowerVehicle = NetworkUtil.readNodeObject(streamId)
+		spec.yarderTowerVehicle.spec_yarderTower.carriage.vehicle = self
 	end
-	for _ = 1, streamReadUIntN(streamId, v26_.maxTreeBits) do
-		local v27_ = streamReadFloat32(streamId)
-		local v28_ = streamReadFloat32(streamId)
-		local v29_ = streamReadFloat32(streamId)
-		local v30_, v31_, v32_ = readSplitShapeIdFromStream(streamId)
-		if v30_ == 0 then
-			if v31_ ~= 0 then
-				local v33_ = v26_.splitShapesToAttach
-				table.insert(v33_, {
-					["splitShapeId1"] = v31_,
-					["splitShapeId2"] = v32_,
-					["x"] = v27_,
-					["y"] = v28_,
-					["z"] = v29_
-				})
-			end
+	local numTrees = streamReadUIntN(streamId, spec.maxTreeBits)
+	for i = 1, numTrees do
+		local x = streamReadFloat32(streamId)
+		local y = streamReadFloat32(streamId)
+		local z = streamReadFloat32(streamId)
+		local splitShapeId, splitShapeId1, splitShapeId2 = readSplitShapeIdFromStream(streamId)
+		if splitShapeId ~= 0 then
+			x, y, z = localToWorld(splitShapeId, x, y, z)
+			self:attachTreeToCarriage(splitShapeId, x, y, z, nil, true)
 		else
-			local v34_, v35_, v36_ = localToWorld(v30_, v27_, v28_, v29_)
-			self:attachTreeToCarriage(v30_, v34_, v35_, v36_, nil, true)
+			if splitShapeId1 == 0 then
+				continue
+			end
+			table.insert(spec.splitShapesToAttach, { splitShapeId1 = splitShapeId1, splitShapeId2 = splitShapeId2, x = x, y = y, z = z })
 		end
 	end
 end
-
--- Local values: spec, i, treeData, x, y, z
 function YarderCarriage:onWriteStream(streamId, connection)
-	local v39_ = self.spec_yarderCarriage
-	streamWriteBool(streamId, v39_.yarderTowerVehicle ~= nil)
-	if v39_.yarderTowerVehicle ~= nil then
-		NetworkUtil.writeNodeObject(streamId, v39_.yarderTowerVehicle)
+	local spec = self.spec_yarderCarriage
+	streamWriteBool(streamId, spec.yarderTowerVehicle ~= nil)
+	if spec.yarderTowerVehicle ~= nil then
+		NetworkUtil.writeNodeObject(streamId, spec.yarderTowerVehicle)
 	end
-	streamWriteUIntN(streamId, #v39_.attachedTrees, v39_.maxTreeBits)
-	for v40_ = 1, #v39_.attachedTrees do
-		local v41_ = v39_.attachedTrees[v40_]
-		local v42_, v43_, v44_ = worldToLocal(v41_.treeId, getWorldTranslation(v41_.hookData.hookId))
-		streamWriteFloat32(streamId, v42_)
-		streamWriteFloat32(streamId, v43_)
-		streamWriteFloat32(streamId, v44_)
-		writeSplitShapeIdToStream(streamId, v41_.treeId)
+	streamWriteUIntN(streamId, #spec.attachedTrees, spec.maxTreeBits)
+	for i = 1, #spec.attachedTrees do
+		local treeData = spec.attachedTrees[i]
+		local x, y, z = worldToLocal(treeData.treeId, getWorldTranslation(treeData.hookData.hookId))
+		streamWriteFloat32(streamId, x)
+		streamWriteFloat32(streamId, y)
+		streamWriteFloat32(streamId, z)
+		writeSplitShapeIdToStream(streamId, treeData.treeId)
 	end
 end
-
--- Local values: spec
 function YarderCarriage:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() and streamReadBool(streamId) then
-		local v48_ = self.spec_yarderCarriage
-		if streamReadBool(streamId) and not g_soundManager:getIsSamplePlaying(v48_.samples.lift) then
-			g_soundManager:playSample(v48_.samples.lift)
-			g_soundManager:stopSample(v48_.samples.lower)
-			v48_.lastTransLimitYTimeOffset = 250
+		local spec = self.spec_yarderCarriage
+		if streamReadBool(streamId) and not g_soundManager:getIsSamplePlaying(spec.samples.lift) then
+			g_soundManager:playSample(spec.samples.lift)
+			g_soundManager:stopSample(spec.samples.lower)
+			spec.lastTransLimitYTimeOffset = 250
 		end
 		if streamReadBool(streamId) then
-			g_soundManager:playSample(v48_.samples.liftLimit)
+			g_soundManager:playSample(spec.samples.liftLimit)
 		end
-		if streamReadBool(streamId) and not g_soundManager:getIsSamplePlaying(v48_.samples.lower) then
-			g_soundManager:playSample(v48_.samples.lower)
-			g_soundManager:stopSample(v48_.samples.lift)
-			v48_.lastTransLimitYTimeOffset = 250
+		if streamReadBool(streamId) and not g_soundManager:getIsSamplePlaying(spec.samples.lower) then
+			g_soundManager:playSample(spec.samples.lower)
+			g_soundManager:stopSample(spec.samples.lift)
+			spec.lastTransLimitYTimeOffset = 250
 		end
 	end
 end
-
--- Local values: spec
 function YarderCarriage:onWriteUpdateStream(streamId, connection, dirtyMask)
-	local v53_ = self.spec_yarderCarriage
-	if not connection:getIsServer() then
-		local v54_ = streamWriteBool
-		local v55_ = v53_.dirtyFlag
-		if v54_(streamId, bit32.band(dirtyMask, v55_) ~= 0) then
-			streamWriteBool(streamId, v53_.sampleLiftPlayedSent)
-			streamWriteBool(streamId, v53_.sampleLiftLimitPlayedSent)
-			streamWriteBool(streamId, v53_.sampleLowerPlayedSent)
-			v53_.sampleLiftPlayedSent = false
-			v53_.sampleLiftLimitPlayedSent = false
-			v53_.sampleLowerPlayedSent = false
-		end
+	local spec = self.spec_yarderCarriage
+	if not connection:getIsServer() and streamWriteBool(streamId, bit32.band(dirtyMask, spec.dirtyFlag) ~= 0) then
+		streamWriteBool(streamId, spec.sampleLiftPlayedSent)
+		streamWriteBool(streamId, spec.sampleLiftLimitPlayedSent)
+		streamWriteBool(streamId, spec.sampleLowerPlayedSent)
+		spec.sampleLiftPlayedSent = false
+		spec.sampleLiftLimitPlayedSent = false
+		spec.sampleLowerPlayedSent = false
 	end
 end
-
--- Local values: spec, i, treeData, distance, i, attachData, splitShapeId, x, y, z, attachRope
 function YarderCarriage:onPostUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v58_ = self.spec_yarderCarriage
+	local spec = self.spec_yarderCarriage
 	if self.isServer then
-		for v59_ = 1, #v58_.attachedTrees do
-			local v60_ = v58_.attachedTrees[v59_]
-			if v60_.limitDirty then
-				local v61_ = v60_.limitValue - v60_.speedScale * g_currentDt
-				v60_.limitValue = math.max(v61_, 0)
-				setJointTranslationLimit(v60_.jointIndex, 0, true, -v60_.limitValue, v60_.limitValue)
-				setJointTranslationLimit(v60_.jointIndex, 1, true, -v60_.transLimitY, v60_.limitValue)
-				setJointTranslationLimit(v60_.jointIndex, 2, true, -v60_.limitValue, v60_.limitValue)
-				if v60_.limitValue == 0 then
-					v60_.limitDirty = false
+		for i = 1, #spec.attachedTrees do
+			local treeData = spec.attachedTrees[i]
+			if treeData.limitDirty then
+				treeData.limitValue = math.max(treeData.limitValue - treeData.speedScale * g_currentDt, 0)
+				setJointTranslationLimit(treeData.jointIndex, 0, true, -treeData.limitValue, treeData.limitValue)
+				setJointTranslationLimit(treeData.jointIndex, 1, true, -treeData.transLimitY, treeData.limitValue)
+				setJointTranslationLimit(treeData.jointIndex, 2, true, -treeData.limitValue, treeData.limitValue)
+				if treeData.limitValue == 0 then
+					treeData.limitDirty = false
 				end
 			else
-				if v60_.treeId == nil or not entityExists(v60_.treeId) then
+				if treeData.treeId == nil or not entityExists(treeData.treeId) then
 					self:detachTreeFromCarriage()
-					break
+				else
+					local distance = calcDistanceFrom(spec.joint.node, treeData.hookData.hookId)
+					if treeData.transLimitY + YarderCarriage.ROPE_MAX_LIMIT_OFFSET < distance then
+						self:detachTreeFromCarriage()
+						break
+					end
 				end
-				if calcDistanceFrom(v58_.joint.node, v60_.hookData.hookId) > v60_.transLimitY + YarderCarriage.ROPE_MAX_LIMIT_OFFSET then
-					self:detachTreeFromCarriage()
-					break
+				self:updateTreeAttachRopes(dt)
+				if spec.treeRaycast.validTree ~= nil and not entityExists(spec.treeRaycast.validTree) then
+					spec.treeRaycast.validTree = nil
 				end
+				if spec.treeRaycast.validTree ~= spec.treeRaycast.lastValidTree then
+					spec.rope.attachMarker:setIsActive(spec.treeRaycast.validTree ~= nil)
+					spec.rope.attachMainRope:setVisibility(spec.treeRaycast.validTree ~= nil and #spec.attachedTrees == 0)
+					spec.rope.attachAdditionalRope:setVisibility(spec.treeRaycast.validTree ~= nil and 0 < #spec.attachedTrees)
+					spec.treeRaycast.lastValidTree = spec.treeRaycast.validTree
+				end
+				local attachRope = #spec.attachedTrees == 0 and spec.rope.attachMainRope or spec.rope.attachAdditionalRope
+				if spec.treeRaycast.validTree ~= nil and attachRope ~= nil then
+					attachRope:setTargetPosition(spec.treeRaycast.treeTargetPos[1], spec.treeRaycast.treeTargetPos[2], spec.treeRaycast.treeTargetPos[3])
+					spec.rope.attachMarker:setIsActive(true)
+					spec.rope.attachMarker:setPosition(spec.treeRaycast.treeCenterPos[1], spec.treeRaycast.treeCenterPos[2], spec.treeRaycast.treeCenterPos[3], spec.treeRaycast.treeUp[1], spec.treeRaycast.treeUp[2], spec.treeRaycast.treeUp[3], spec.treeRaycast.treeRadius)
+				end
+				if 0 < spec.lastTransLimitYTimeOffset then
+					spec.lastTransLimitYTimeOffset = spec.lastTransLimitYTimeOffset - dt
+					if spec.lastTransLimitYTimeOffset <= 0 then
+						spec.curLiftSpeedAlpha = 0
+						spec.curLiftSpeedLastDirection = 0
+						g_soundManager:stopSample(spec.samples.lower)
+						g_soundManager:stopSample(spec.samples.lift)
+					end
+				end
+				if 0 < #spec.attachedTrees or spec.treeRaycast.validTree ~= nil then
+					self:raiseActive()
+				end
+				return
 			end
 		end
 	else
-		for v62_ = #v58_.splitShapesToAttach, 1, -1 do
-			local v63_ = v58_.splitShapesToAttach[v62_]
-			local v64_ = resolveStreamSplitShapeId(v63_.splitShapeId1, v63_.splitShapeId2)
-			if v64_ ~= 0 then
-				local v65_, v66_, v67_ = localToWorld(v64_, v63_.x, v63_.y, v63_.z)
-				self:attachTreeToCarriage(v64_, v65_, v66_, v67_, nil, true)
-				table.remove(v58_.splitShapesToAttach, v62_)
+		for i = #spec.splitShapesToAttach, 1, -1 do
+			local attachData = spec.splitShapesToAttach[i]
+			local splitShapeId = resolveStreamSplitShapeId(attachData.splitShapeId1, attachData.splitShapeId2)
+			if splitShapeId == 0 then
+				continue
 			end
+			local x, y, z = localToWorld(splitShapeId, attachData.x, attachData.y, attachData.z)
+			self:attachTreeToCarriage(splitShapeId, x, y, z, nil, true)
+			table.remove(spec.splitShapesToAttach, i)
 		end
-	end
-	self:updateTreeAttachRopes(dt)
-	if v58_.treeRaycast.validTree ~= nil and not entityExists(v58_.treeRaycast.validTree) then
-		v58_.treeRaycast.validTree = nil
-	end
-	if v58_.treeRaycast.validTree ~= v58_.treeRaycast.lastValidTree then
-		v58_.rope.attachMarker:setIsActive(v58_.treeRaycast.validTree ~= nil)
-		local v68_ = v58_.rope.attachMainRope
-		local v69_
-		if v58_.treeRaycast.validTree == nil then
-			v69_ = false
-		else
-			v69_ = #v58_.attachedTrees == 0
-		end
-		v68_:setVisibility(v69_)
-		local v70_ = v58_.rope.attachAdditionalRope
-		local v71_
-		if v58_.treeRaycast.validTree == nil then
-			v71_ = false
-		else
-			v71_ = #v58_.attachedTrees > 0
-		end
-		v70_:setVisibility(v71_)
-		v58_.treeRaycast.lastValidTree = v58_.treeRaycast.validTree
-	end
-	local v72_ = #v58_.attachedTrees == 0 and v58_.rope.attachMainRope or v58_.rope.attachAdditionalRope
-	if v58_.treeRaycast.validTree ~= nil and v72_ ~= nil then
-		v72_:setTargetPosition(v58_.treeRaycast.treeTargetPos[1], v58_.treeRaycast.treeTargetPos[2], v58_.treeRaycast.treeTargetPos[3])
-		v58_.rope.attachMarker:setIsActive(true)
-		v58_.rope.attachMarker:setPosition(v58_.treeRaycast.treeCenterPos[1], v58_.treeRaycast.treeCenterPos[2], v58_.treeRaycast.treeCenterPos[3], v58_.treeRaycast.treeUp[1], v58_.treeRaycast.treeUp[2], v58_.treeRaycast.treeUp[3], v58_.treeRaycast.treeRadius)
-	end
-	if v58_.lastTransLimitYTimeOffset > 0 then
-		v58_.lastTransLimitYTimeOffset = v58_.lastTransLimitYTimeOffset - dt
-		if v58_.lastTransLimitYTimeOffset <= 0 then
-			v58_.curLiftSpeedAlpha = 0
-			v58_.curLiftSpeedLastDirection = 0
-			g_soundManager:stopSample(v58_.samples.lower)
-			g_soundManager:stopSample(v58_.samples.lift)
-		end
-	end
-	if #v58_.attachedTrees > 0 or v58_.treeRaycast.validTree ~= nil then
-		self:raiseActive()
 	end
 end
-
--- Local values: spec
 function YarderCarriage:getCarriageDimensions()
-	local v74_ = self.spec_yarderCarriage
-	return v74_.length, v74_.rollSpacing
+	local spec = self.spec_yarderCarriage
+	return spec.length, spec.rollSpacing
 end
-
 function YarderCarriage:getCarriagePullRopeTargetNode()
 	return self.spec_yarderCarriage.pullRopeTargetNode
 end
-
 function YarderCarriage:getCarriagePushRopeTargetNode()
 	return self.spec_yarderCarriage.pushRopeTargetNode
 end
-
 function YarderCarriage:setYarderTowerVehicle(vehicle)
 	self.spec_yarderCarriage.yarderTowerVehicle = vehicle
 end
-
--- Local values: _, _, z1, spec, i, nodeData, _, _, z2, alpha, offset, x, y, z, _
 function YarderCarriage:updateRopeAlignmentNodes(ropeNode, tx, ty, tz, maxOffset)
-	local _, _, v85_ = worldToLocal(ropeNode, tx, ty, tz)
-	local v86_ = self.spec_yarderCarriage
-	for v87_ = 1, #v86_.ropeAlignmentNodes do
-		local v88_ = v86_.ropeAlignmentNodes[v87_]
-		local _, _, v89_ = worldToLocal(ropeNode, getWorldTranslation(v88_.node))
-		local v90_ = v89_ / v85_
-		local v91_ = math.clamp(v90_, 0, 1) * 3.141592653589793
-		local v92_ = math.sin(v91_) * maxOffset
-		local v93_, v94_, v95_ = localToWorld(ropeNode, 0, -v92_, v89_)
-		local v96_, v97_, _ = worldToLocal(v88_.node, v93_, v94_, v95_)
-		translate(v88_.node, v96_, v97_, 0)
+	local _, _, z1 = worldToLocal(ropeNode, tx, ty, tz)
+	local spec = self.spec_yarderCarriage
+	for i = 1, #spec.ropeAlignmentNodes do
+		local nodeData = spec.ropeAlignmentNodes[i]
+		local _, _, z2 = worldToLocal(ropeNode, getWorldTranslation(nodeData.node))
+		local alpha = math.clamp(z2 / z1, 0, 1)
+		local offset = math.sin(alpha * 3.141592653589793) * maxOffset
+		local x, y, z = localToWorld(ropeNode, 0, -offset, z2)
+		local _ = nil
+		x, y, _ = worldToLocal(nodeData.node, x, y, z)
+		translate(nodeData.node, x, y, 0)
 	end
 end
-
--- Local values: spec, player, x1, _, z1, x2, _, z2, distance, cameraNode, x, y, z, dx, dy, dz
 function YarderCarriage:updateCarriageInRange()
 	if g_localPlayer ~= nil then
-		local v99_ = self.spec_yarderCarriage
-		local v100_ = g_localPlayer
-		local v101_, _, v102_ = getWorldTranslation(v100_.rootNode)
-		local v103_, _, v104_ = getWorldTranslation(v99_.rope.originNode)
-		if MathUtil.vector2Length(v101_ - v103_, v102_ - v104_) < v99_.joint.maxDistance then
-			if v100_:getIsHoldingHandTool() then
-				v99_.treeRaycast.validTree = nil
-				return
-			end
-			if #v99_.attachedTrees >= v99_.maxNumTrees then
-				v99_.treeRaycast.validTree = nil
-				return
-			end
-			if not v99_.treeRaycast.hasStarted then
-				v99_.treeRaycast.hasStarted = true
-				v99_.treeRaycast.foundTree = nil
-				local v105_ = v100_:getCurrentCameraNode()
-				local v106_, v107_, v108_ = localToWorld(v105_, 0, 0, 1)
-				local v109_, v110_, v111_ = localDirectionToWorld(v105_, 0, 0, -1)
-				raycastClosestAsync(v106_, v107_, v108_, v109_, v110_, v111_, YarderCarriage.TREE_RAYCAST_DISTANCE, "onCarriageTreeRaycastCallback", self, CollisionFlag.TREE)
-				return
+		local spec = self.spec_yarderCarriage
+		local player = g_localPlayer
+		local x1, _, z1 = getWorldTranslation(player.rootNode)
+		local x2, _, z2 = getWorldTranslation(spec.rope.originNode)
+		local distance = MathUtil.vector2Length(x1 - x2, z1 - z2)
+		if distance < spec.joint.maxDistance then
+			if player:getIsHoldingHandTool() then
+				spec.treeRaycast.validTree = nil
+			elseif #spec.attachedTrees >= spec.maxNumTrees then
+				spec.treeRaycast.validTree = nil
+			else
+				if not spec.treeRaycast.hasStarted then
+					spec.treeRaycast.hasStarted = true
+					spec.treeRaycast.foundTree = nil
+					local cameraNode = player:getCurrentCameraNode()
+					local x, y, z = localToWorld(cameraNode, 0, 0, 1)
+					local dx, dy, dz = localDirectionToWorld(cameraNode, 0, 0, -1)
+					raycastClosestAsync(x, y, z, dx, dy, dz, YarderCarriage.TREE_RAYCAST_DISTANCE, "onCarriageTreeRaycastCallback", self, CollisionFlag.TREE)
+				end
 			end
 		else
-			v99_.treeRaycast.validTree = nil
+			spec.treeRaycast.validTree = nil
 		end
 	end
 end
-
--- Local values: spec
 function YarderCarriage:onYarderCarriageUpdateEnd()
-	local v113_ = self.spec_yarderCarriage
-	v113_.treeRaycast.validTree = nil
-	v113_.treeRaycast.hasStarted = false
+	local spec = self.spec_yarderCarriage
+	spec.treeRaycast.validTree = nil
+	spec.treeRaycast.hasStarted = false
 	self:raiseActive()
 end
-
--- Local values: spec, rootTreeData, x1, y1, z1, x2, y2, z2, distance, dx, dy, dz, upX, upY, upZ, rootHookPosition, i, additionalRope, treeData, x2, y2, z2, j, hookNode, x, _, z, angle, _, y, z, angle, x, y, z
 function YarderCarriage:updateTreeAttachRopes(dt)
-	local v115_ = self.spec_yarderCarriage
-	local v116_ = v115_.attachedTrees[1]
-	if v116_ ~= nil and entityExists(v116_.treeId) then
-		local v117_, v118_, v119_ = getWorldTranslation(v115_.rope.originNode)
-		local v120_, v121_, v122_ = v116_.hookData:getRopeTargetPosition()
-		local v123_ = MathUtil.vector3Length(v120_ - v117_, v121_ - v118_, v122_ - v119_)
-		local v124_, v125_, v126_ = MathUtil.vector3Normalize(v120_ - v117_, v121_ - v118_, v122_ - v119_)
-		local v127_, v128_, v129_ = localDirectionToWorld(getParent(v115_.rope.originNode), 0, 1, 0)
-		I3DUtil.setWorldDirection(v115_.rope.originNode, v124_, v125_, v126_, v127_, v128_, v129_)
-		local v130_ = v123_ - v115_.rope.treeRopeLength - v115_.rope.rootHookLength
-		setTranslation(v115_.rope.rootHook, 0, 0, v130_)
-		v115_.rope.mainRope:setLength(v130_)
+	local spec = self.spec_yarderCarriage
+	local rootTreeData = spec.attachedTrees[1]
+	if rootTreeData ~= nil and entityExists(rootTreeData.treeId) then
+		local x1, y1, z1 = getWorldTranslation(spec.rope.originNode)
+		local x2, y2, z2 = rootTreeData.hookData:getRopeTargetPosition()
+		local distance = MathUtil.vector3Length(x2 - x1, y2 - y1, z2 - z1)
+		local dx, dy, dz = MathUtil.vector3Normalize(x2 - x1, y2 - y1, z2 - z1)
+		local upX, upY, upZ = localDirectionToWorld(getParent(spec.rope.originNode), 0, 1, 0)
+		I3DUtil.setWorldDirection(spec.rope.originNode, dx, dy, dz, upX, upY, upZ)
+		local rootHookPosition = distance - spec.rope.treeRopeLength - spec.rope.rootHookLength
+		setTranslation(spec.rope.rootHook, 0, 0, rootHookPosition)
+		spec.rope.mainRope:setLength(rootHookPosition)
 	end
-	for v131_ = 1, #v115_.additionalRopes do
-		local v132_ = v115_.additionalRopes[v131_]
-		local v133_ = v115_.attachedTrees[v131_ + 1]
-		if v133_ ~= nil and entityExists(v133_.treeId) then
-			local v134_, v135_, v136_ = v133_.hookData:getRopeTargetPosition()
-			for v137_ = 1, #v132_.hookNodes do
-				local v138_ = v132_.hookNodes[v137_]
-				if v138_.alignYRot then
-					local v139_, _, v140_ = worldToLocal(v138_.referenceFrame, v134_, v135_, v136_)
-					local v141_, v142_ = MathUtil.vector2Normalize(v139_, v140_)
-					local v143_ = math.atan2(v141_, v142_)
-					local v144_ = v138_.minRot
-					local v145_ = v138_.maxRot
-					local v146_ = math.clamp(v143_, v144_, v145_)
-					setRotation(v138_.node, 0, v146_, 0)
-				elseif v138_.alignXRot then
-					local _, v147_, v148_ = worldToLocal(v138_.referenceFrame, v134_, v135_, v136_)
-					local v149_, v150_ = MathUtil.vector2Normalize(v147_, v148_)
-					local v151_ = -math.atan2(v149_, v150_)
-					local v152_ = v138_.minRot
-					local v153_ = v138_.maxRot
-					local v154_ = math.clamp(v151_, v152_, v153_)
-					setRotation(v138_.node, v154_, 0, 0)
-				elseif v138_.alignToTarget then
-					local v155_, v156_, v157_ = worldToLocal(v138_.referenceFrame, v134_, v135_, v136_)
-					local v158_, v159_, v160_ = MathUtil.vector3Normalize(v155_, v156_, v157_)
-					setDirection(v138_.node, v158_, v159_, v160_, 0, 1, 0)
+	for i = 1, #spec.additionalRopes do
+		local additionalRope = spec.additionalRopes[i]
+		local treeData = spec.attachedTrees[i + 1]
+		if treeData ~= nil and entityExists(treeData.treeId) then
+			local x2, y2, z2 = treeData.hookData:getRopeTargetPosition()
+			for j = 1, #additionalRope.hookNodes do
+				local hookNode = additionalRope.hookNodes[j]
+				if hookNode.alignYRot then
+					local x, _, z = worldToLocal(hookNode.referenceFrame, x2, y2, z2)
+					x, z = MathUtil.vector2Normalize(x, z)
+					local angle = math.clamp(math.atan2(x, z), hookNode.minRot, hookNode.maxRot)
+					setRotation(hookNode.node, 0, angle, 0)
+				elseif hookNode.alignXRot then
+					local _, y, z = worldToLocal(hookNode.referenceFrame, x2, y2, z2)
+					y, z = MathUtil.vector2Normalize(y, z)
+					local angle = math.clamp(-math.atan2(y, z), hookNode.minRot, hookNode.maxRot)
+					setRotation(hookNode.node, angle, 0, 0)
+				elseif hookNode.alignToTarget then
+					local x, y, z = worldToLocal(hookNode.referenceFrame, x2, y2, z2)
+					x, y, z = MathUtil.vector3Normalize(x, y, z)
+					setDirection(hookNode.node, x, y, z, 0, 1, 0)
 				end
 			end
-			v132_.rope:setTargetNode(v133_.hookData:getRopeTarget(), false)
+			additionalRope.rope:setTargetNode(treeData.hookData:getRopeTarget(), false)
 		end
 	end
 end
-
--- Local values: spec, x2, y2, z2, distanceToJoint, i, rootTreeData, distanceToRoot, centerX, centerY, centerZ, upX, upY, upZ, radius
 function YarderCarriage:onCarriageTreeRaycastCallback(hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
-	if not (self.isDeleted or self.isDeleting) then
-		local v167_ = self.spec_yarderCarriage
-		if not v167_.treeRaycast.hasStarted then
-			v167_.treeRaycast.validTree = nil
-			return false
-		end
-		if hitObjectId ~= 0 and (getHasClassId(hitObjectId, ClassIds.SHAPE) and (getSplitType(hitObjectId) ~= 0 and getIsSplitShapeSplit(hitObjectId))) then
-			if isLast then
-				v167_.treeRaycast.hasStarted = false
-				local v168_, _, v169_ = getWorldTranslation(v167_.rope.originNode)
-				if MathUtil.vector2Length(x - v168_, z - v169_) > v167_.joint.maxDistance then
-					v167_.treeRaycast.validTree = nil
-					return false
-				end
-				if #v167_.attachedTrees > 0 then
-					for v170_ = 1, #v167_.attachedTrees do
-						if hitObjectId == v167_.attachedTrees[v170_].treeId then
-							v167_.treeRaycast.validTree = nil
-							return false
-						end
-					end
-					local v171_ = v167_.attachedTrees[1]
-					local v172_, v173_, v174_ = getWorldTranslation(v171_.hookData.hookId)
-					if MathUtil.vector3Length(x - v172_, y - v173_, z - v174_) > 2 then
-						v167_.treeRaycast.validTree = nil
+	if self.isDeleted or self.isDeleting then
+		return
+	end
+	local spec = self.spec_yarderCarriage
+	if not spec.treeRaycast.hasStarted then
+		spec.treeRaycast.validTree = nil
+		return false
+	elseif hitObjectId ~= 0 and (getHasClassId(hitObjectId, ClassIds.SHAPE) and (getSplitType(hitObjectId) ~= 0 and getIsSplitShapeSplit(hitObjectId))) then
+		if isLast then
+			spec.treeRaycast.hasStarted = false
+			local x2, y2, z2 = getWorldTranslation(spec.rope.originNode)
+			local distanceToJoint = MathUtil.vector2Length(x - x2, z - z2)
+			if spec.joint.maxDistance < distanceToJoint then
+				spec.treeRaycast.validTree = nil
+				return false
+			end
+			if 0 < #spec.attachedTrees then
+				for i = 1, #spec.attachedTrees do
+					if hitObjectId == spec.attachedTrees[i].treeId then
+						spec.treeRaycast.validTree = nil
 						return false
 					end
 				end
-				local v175_, v176_, v177_, v178_, v179_, v180_, v181_ = SplitShapeUtil.getTreeOffsetPosition(hitObjectId, x, y, z, 4, 0.15)
-				if v175_ == nil then
-					v167_.treeRaycast.validTree = nil
-				else
-					v167_.treeRaycast.validTree = hitObjectId
-					v167_.treeRaycast.treeTargetPos[1] = x
-					v167_.treeRaycast.treeTargetPos[2] = y
-					v167_.treeRaycast.treeTargetPos[3] = z
-					v167_.treeRaycast.treeCenterPos[1] = v175_
-					v167_.treeRaycast.treeCenterPos[2] = v176_
-					v167_.treeRaycast.treeCenterPos[3] = v177_
-					v167_.treeRaycast.treeUp[1] = v178_
-					v167_.treeRaycast.treeUp[2] = v179_
-					v167_.treeRaycast.treeUp[3] = v180_
-					v167_.treeRaycast.treeRadius = v181_
-					self:raiseActive()
+				local rootTreeData = spec.attachedTrees[1]
+				x2, y2, z2 = getWorldTranslation(rootTreeData.hookData.hookId)
+				local distanceToRoot = MathUtil.vector3Length(x - x2, y - y2, z - z2)
+				if 2 < distanceToRoot then
+					spec.treeRaycast.validTree = nil
+					return false
 				end
 			end
-			return false
-		end
-		if isLast then
-			v167_.treeRaycast.hasStarted = false
-			v167_.treeRaycast.validTree = nil
-		end
-	end
-end
-
--- Local values: spec, isAllowed, reason
-function YarderCarriage:onAttachTreeAction()
-	local v183_ = self.spec_yarderCarriage
-	if v183_.treeRaycast.validTree ~= nil then
-		if g_server == nil then
-			g_client:getServerConnection():sendEvent(TreeAttachRequestEvent.new(self, v183_.treeRaycast.validTree, v183_.treeRaycast.treeTargetPos[1], v183_.treeRaycast.treeTargetPos[2], v183_.treeRaycast.treeTargetPos[3]))
-		else
-			local v184_, v185_ = self:getIsCarriageTreeAttachAllowed(v183_.treeRaycast.validTree)
-			if v184_ then
-				self:attachTreeToCarriage(v183_.treeRaycast.validTree, v183_.treeRaycast.treeTargetPos[1], v183_.treeRaycast.treeTargetPos[2], v183_.treeRaycast.treeTargetPos[3])
+			local centerX, centerY, centerZ, upX, upY, upZ, radius = SplitShapeUtil.getTreeOffsetPosition(hitObjectId, x, y, z, 4, 0.15)
+			if centerX ~= nil then
+				spec.treeRaycast.validTree = hitObjectId
+				spec.treeRaycast.treeTargetPos[1] = x
+				spec.treeRaycast.treeTargetPos[2] = y
+				spec.treeRaycast.treeTargetPos[3] = z
+				spec.treeRaycast.treeCenterPos[1] = centerX
+				spec.treeRaycast.treeCenterPos[2] = centerY
+				spec.treeRaycast.treeCenterPos[3] = centerZ
+				spec.treeRaycast.treeUp[1] = upX
+				spec.treeRaycast.treeUp[2] = upY
+				spec.treeRaycast.treeUp[3] = upZ
+				spec.treeRaycast.treeRadius = radius
+				self:raiseActive()
 			else
-				self:showCarriageTreeMountFailedWarning(nil, v185_)
+				spec.treeRaycast.validTree = nil
 			end
 		end
-		v183_.treeRaycast.validTree = nil
+		return false
+	else
+		if isLast then
+			spec.treeRaycast.hasStarted = false
+			spec.treeRaycast.validTree = nil
+		end
+		return
 	end
 end
-
--- Local values: spec, treeData, centerX, _, _, newIndex, additionalRope, j, hookNode, componentJoint, limit
+function YarderCarriage:onAttachTreeAction()
+	local spec = self.spec_yarderCarriage
+	if spec.treeRaycast.validTree ~= nil then
+		if g_server ~= nil then
+			local isAllowed, reason = self:getIsCarriageTreeAttachAllowed(spec.treeRaycast.validTree)
+			if isAllowed then
+				self:attachTreeToCarriage(spec.treeRaycast.validTree, spec.treeRaycast.treeTargetPos[1], spec.treeRaycast.treeTargetPos[2], spec.treeRaycast.treeTargetPos[3])
+			else
+				self:showCarriageTreeMountFailedWarning(nil, reason)
+			end
+		else
+			g_client:getServerConnection():sendEvent(TreeAttachRequestEvent.new(self, spec.treeRaycast.validTree, spec.treeRaycast.treeTargetPos[1], spec.treeRaycast.treeTargetPos[2], spec.treeRaycast.treeTargetPos[3]))
+		end
+		spec.treeRaycast.validTree = nil
+	end
+end
 function YarderCarriage:attachTreeToCarriage(splitShapeId, x, y, z, ropeIndex, noEventSend)
-	local v192_ = self.spec_yarderCarriage
-	v192_.rope.attachMainRope:setVisibility(false)
-	v192_.rope.attachAdditionalRope:setVisibility(false)
-	local v193_ = {
-		["treeId"] = splitShapeId,
-		["hookData"] = v192_.treeHook.hookData:clone()
-	}
-	local v194_, _, _ = v193_.hookData:mountToTree(splitShapeId, x, y, z, 4)
-	if v194_ == nil then
-		v193_.hookData:delete()
+	local spec = self.spec_yarderCarriage
+	spec.rope.attachMainRope:setVisibility(false)
+	spec.rope.attachAdditionalRope:setVisibility(false)
+	local treeData = {}
+	treeData.treeId = splitShapeId
+	treeData.hookData = spec.treeHook.hookData:clone()
+	local centerX, _, _ = treeData.hookData:mountToTree(splitShapeId, x, y, z, 4)
+	if centerX == nil then
+		treeData.hookData:delete()
 	else
-		v193_.hookData:setTargetNode(v192_.rope.originNode, true)
+		treeData.hookData:setTargetNode(spec.rope.originNode, true)
 		if self.isServer then
-			local v195_, v196_ = self:createJoint(v193_.treeId, v193_.hookData.hookId)
-			v193_.jointIndex = v195_
-			v193_.transLimitY = v196_
-			v193_.limitValue = v193_.transLimitY
-			v193_.speedScale = v193_.transLimitY * (1 / v192_.joint.attachTime)
-			v193_.limitDirty = true
-			if #v192_.attachedTrees == 0 then
-				v192_.lastTransLimitY = v193_.transLimitY
+			treeData.jointIndex, treeData.transLimitY = self:createJoint(treeData.treeId, treeData.hookData.hookId)
+			treeData.limitValue = treeData.transLimitY
+			treeData.speedScale = treeData.transLimitY * (1 / spec.joint.attachTime)
+			treeData.limitDirty = true
+			if #spec.attachedTrees == 0 then
+				spec.lastTransLimitY = treeData.transLimitY
 			end
 		end
-		local v197_ = v192_.attachedTrees
-		table.insert(v197_, v193_)
-		ObjectChangeUtil.setObjectChanges(v192_.rope.changeObjects, true, self, self.setMovingToolDirty)
-		local v198_ = #v192_.attachedTrees
-		if v198_ > 1 and v192_.additionalRopes[v198_ - 1] ~= nil then
-			local v199_ = v192_.additionalRopes[v198_ - 1]
-			setVisibility(v199_.referenceNode, true)
-			for v200_ = 1, #v199_.hookNodes do
-				local v201_ = v199_.hookNodes[v200_]
-				setVisibility(v201_.node, true)
+		table.insert(spec.attachedTrees, treeData)
+		ObjectChangeUtil.setObjectChanges(spec.rope.changeObjects, true, self, self.setMovingToolDirty)
+		local newIndex = #spec.attachedTrees
+		if 1 < newIndex and spec.additionalRopes[newIndex - 1] ~= nil then
+			local additionalRope = spec.additionalRopes[newIndex - 1]
+			setVisibility(additionalRope.referenceNode, true)
+			for j = 1, #additionalRope.hookNodes do
+				local hookNode = additionalRope.hookNodes[j]
+				setVisibility(hookNode.node, true)
 			end
-			v193_.hookData:setTargetNode(v199_.referenceNode, true)
+			treeData.hookData:setTargetNode(additionalRope.referenceNode, true)
 		end
 		self:updateTreeAttachRopes(9999)
-		if v192_.samples.attachTree ~= nil and v192_.samples.attachTree.soundNode ~= nil then
-			setWorldTranslation(v192_.samples.attachTree.soundNode, x, y, z)
-			g_soundManager:playSample(v192_.samples.attachTree)
+		if spec.samples.attachTree ~= nil and spec.samples.attachTree.soundNode ~= nil then
+			setWorldTranslation(spec.samples.attachTree.soundNode, x, y, z)
+			g_soundManager:playSample(spec.samples.attachTree)
 		end
-		if v198_ == 1 and v192_.rope.componentJointIndex ~= nil then
-			local v202_ = self.componentJoints[v192_.rope.componentJointIndex]
-			local v203_ = v192_.rope.componentJointLimitActive
-			self:setComponentJointRotLimit(v202_, 1, -v203_[1], v203_[1])
-			self:setComponentJointRotLimit(v202_, 2, -v203_[2], v203_[2])
-			self:setComponentJointRotLimit(v202_, 3, -v203_[3], v203_[3])
+		if newIndex == 1 and spec.rope.componentJointIndex ~= nil then
+			local componentJoint = self.componentJoints[spec.rope.componentJointIndex]
+			local limit = spec.rope.componentJointLimitActive
+			self:setComponentJointRotLimit(componentJoint, 1, -limit[1], limit[1])
+			self:setComponentJointRotLimit(componentJoint, 2, -limit[2], limit[2])
+			self:setComponentJointRotLimit(componentJoint, 3, -limit[3], limit[3])
 		end
-		if v192_.yarderTowerVehicle ~= nil then
-			SpecializationUtil.raiseEvent(v192_.yarderTowerVehicle, "onYarderCarriageTreeAttached", splitShapeId)
+		if spec.yarderTowerVehicle ~= nil then
+			SpecializationUtil.raiseEvent(spec.yarderTowerVehicle, "onYarderCarriageTreeAttached", splitShapeId)
 		end
 		g_messageCenter:publish(MessageType.TREE_SHAPE_MOUNTED, splitShapeId, self)
 		self:raiseActive()
 		TreeAttachEvent.sendEvent(self, splitShapeId, x, y, z, nil, noEventSend)
 	end
 end
-
--- Local values: spec, constr, springForce, springDamping, distance
 function YarderCarriage:createJoint(shapeId, shapeJointId)
-	local v207_ = self.spec_yarderCarriage
-	local v208_ = JointConstructor.new()
-	v208_:setActors(v207_.joint.component, shapeId)
-	v208_:setJointTransforms(v207_.joint.node, shapeJointId)
-	v208_:setRotationLimit(0, -3.141592653589793, 3.141592653589793)
-	v208_:setRotationLimit(1, -3.141592653589793, 3.141592653589793)
-	v208_:setRotationLimit(2, -3.141592653589793, 3.141592653589793)
-	v208_:setEnableCollision(true)
-	v208_:setRotationLimitSpring(7500, 1500, 7500, 1500, 7500, 1500)
-	v208_:setTranslationLimitSpring(7500, 1500, 7500, 1500, 7500, 1500)
-	local v209_ = calcDistanceFrom(v207_.joint.node, shapeJointId)
-	v208_:setTranslationLimit(0, true, -v209_, v209_)
-	v208_:setTranslationLimit(1, true, -v209_, v209_)
-	v208_:setTranslationLimit(2, true, -v209_, v209_)
-	return v208_:finalize(), v209_
+	local spec = self.spec_yarderCarriage
+	local constr = JointConstructor.new()
+	constr:setActors(spec.joint.component, shapeId)
+	constr:setJointTransforms(spec.joint.node, shapeJointId)
+	constr:setRotationLimit(0, -3.141592653589793, 3.141592653589793)
+	constr:setRotationLimit(1, -3.141592653589793, 3.141592653589793)
+	constr:setRotationLimit(2, -3.141592653589793, 3.141592653589793)
+	constr:setEnableCollision(true)
+	local springForce = 7500
+	local springDamping = 1500
+	constr:setRotationLimitSpring(7500, 1500, 7500, 1500, 7500, 1500)
+	constr:setTranslationLimitSpring(7500, 1500, 7500, 1500, 7500, 1500)
+	local distance = calcDistanceFrom(spec.joint.node, shapeJointId)
+	constr:setTranslationLimit(0, true, -distance, distance)
+	constr:setTranslationLimit(1, true, -distance, distance)
+	constr:setTranslationLimit(2, true, -distance, distance)
+	return constr:finalize(), distance
 end
-
 function YarderCarriage:onDetachTreeAction()
 	self:detachTreeFromCarriage()
 end
-
--- Local values: spec, i, treeData, i, additionalRope, j, hookNode, componentJoint, limit
 function YarderCarriage:detachTreeFromCarriage(ropeIndex, noEventSend)
-	local v213_ = self.spec_yarderCarriage
-	if v213_.samples.detachTree ~= nil and (v213_.samples.detachTree.soundNode ~= nil and (v213_.attachedTrees[1] ~= nil and entityExists(v213_.attachedTrees[1].hookData.hookId))) then
-		setWorldTranslation(v213_.samples.detachTree.soundNode, getWorldTranslation(v213_.attachedTrees[1].hookData.hookId))
-		g_soundManager:playSample(v213_.samples.detachTree)
+	local spec = self.spec_yarderCarriage
+	if spec.samples.detachTree ~= nil and (spec.samples.detachTree.soundNode ~= nil and (spec.attachedTrees[1] ~= nil and entityExists(spec.attachedTrees[1].hookData.hookId))) then
+		setWorldTranslation(spec.samples.detachTree.soundNode, getWorldTranslation(spec.attachedTrees[1].hookData.hookId))
+		g_soundManager:playSample(spec.samples.detachTree)
 	end
-	for v214_ = #v213_.attachedTrees, 1, -1 do
-		local v215_ = v213_.attachedTrees[v214_]
+	for i = #spec.attachedTrees, 1, -1 do
+		local treeData = spec.attachedTrees[i]
 		if self.isServer then
-			removeJoint(v215_.jointIndex)
+			removeJoint(treeData.jointIndex)
 		end
-		v215_.hookData:delete()
-		table.remove(v213_.attachedTrees, v214_)
+		treeData.hookData:delete()
+		table.remove(spec.attachedTrees, i)
 	end
-	for v216_ = 1, #v213_.additionalRopes do
-		local v217_ = v213_.additionalRopes[v216_]
-		setVisibility(v217_.referenceNode, false)
-		for v218_ = 1, #v217_.hookNodes do
-			local v219_ = v217_.hookNodes[v218_]
-			setVisibility(v219_.node, false)
+	for i = 1, #spec.additionalRopes do
+		local additionalRope = spec.additionalRopes[i]
+		setVisibility(additionalRope.referenceNode, false)
+		for j = 1, #additionalRope.hookNodes do
+			local hookNode = additionalRope.hookNodes[j]
+			setVisibility(hookNode.node, false)
 		end
 	end
-	ObjectChangeUtil.setObjectChanges(v213_.rope.changeObjects, false, self, self.setMovingToolDirty)
-	if v213_.rope.componentJointIndex ~= nil then
-		local v220_ = self.componentJoints[v213_.rope.componentJointIndex]
-		local v221_ = v213_.rope.componentJointLimitInactive
-		self:setComponentJointRotLimit(v220_, 1, -v221_[1], v221_[1])
-		self:setComponentJointRotLimit(v220_, 2, -v221_[2], v221_[2])
-		self:setComponentJointRotLimit(v220_, 3, -v221_[3], v221_[3])
+	ObjectChangeUtil.setObjectChanges(spec.rope.changeObjects, false, self, self.setMovingToolDirty)
+	if spec.rope.componentJointIndex ~= nil then
+		local componentJoint = self.componentJoints[spec.rope.componentJointIndex]
+		local limit = spec.rope.componentJointLimitInactive
+		self:setComponentJointRotLimit(componentJoint, 1, -limit[1], limit[1])
+		self:setComponentJointRotLimit(componentJoint, 2, -limit[2], limit[2])
+		self:setComponentJointRotLimit(componentJoint, 3, -limit[3], limit[3])
 	end
 	TreeDetachEvent.sendEvent(self, nil, noEventSend)
 end
-
 function YarderCarriage:getNumAttachedTrees()
 	return #self.spec_yarderCarriage.attachedTrees
 end
-
 function YarderCarriage:getMaxNumAttachedTrees()
 	return self.spec_yarderCarriage.maxNumTrees
 end
-
--- Local values: spec, totalMass, i
 function YarderCarriage:getAttachedTreeMass()
-	local v225_ = self.spec_yarderCarriage
-	local v226_ = 0
-	for v227_ = 1, #v225_.attachedTrees do
-		v226_ = v226_ + getMass(v225_.attachedTrees[v227_].treeId)
+	local spec = self.spec_yarderCarriage
+	local totalMass = 0
+	for i = 1, #spec.attachedTrees do
+		totalMass = totalMass + getMass(spec.attachedTrees[i].treeId)
 	end
-	return v226_
+	return totalMass
 end
-
--- Local values: spec
 function YarderCarriage:getIsCarriageTreeAttachAllowed(splitShapeId)
-	local v230_ = self.spec_yarderCarriage
+	local spec = self.spec_yarderCarriage
 	if splitShapeId == nil or not entityExists(splitShapeId) then
 		return false, TreeAttachResponseEvent.TREE_ATTACH_FAIL_REASON_DEFAULT
-	elseif #v230_.attachedTrees >= v230_.maxNumTrees then
+	end
+	if spec.maxNumTrees <= #spec.attachedTrees then
 		return false, TreeAttachResponseEvent.TREE_ATTACH_FAIL_REASON_DEFAULT
-	elseif getMass(splitShapeId) + self:getAttachedTreeMass() > v230_.maxTreeMass then
+	elseif spec.maxTreeMass < getMass(splitShapeId) + self:getAttachedTreeMass() then
 		return false, TreeAttachResponseEvent.TREE_ATTACH_FAIL_REASON_TOO_HEAVY
 	elseif getUserAttribute(splitShapeId, "isTensionBeltMounted") == true then
 		return false, TreeAttachResponseEvent.TREE_ATTACH_FAIL_REASON_DEFAULT
@@ -791,185 +705,160 @@ function YarderCarriage:getIsCarriageTreeAttachAllowed(splitShapeId)
 		return true, TreeAttachResponseEvent.TREE_ATTACH_FAIL_REASON_DEFAULT
 	end
 end
-
--- Local values: spec
 function YarderCarriage:getIsTreeInMountRange()
-	local v232_ = self.spec_yarderCarriage
-	if v232_.treeRaycast.validTree == nil then
+	local spec = self.spec_yarderCarriage
+	if spec.treeRaycast.validTree == nil then
 		return false
-	elseif entityExists(v232_.treeRaycast.validTree) then
-		return #v232_.attachedTrees < v232_.maxNumTrees
+	elseif not entityExists(spec.treeRaycast.validTree) then
+		return false
+	elseif spec.maxNumTrees <= #spec.attachedTrees then
+		return false
 	else
-		return false
+		return true
 	end
 end
-
--- Local values: spec
 function YarderCarriage:showCarriageTreeMountFailedWarning(ropeIndex, reason)
-	local v235_ = self.spec_yarderCarriage
+	local spec = self.spec_yarderCarriage
 	if reason == TreeAttachResponseEvent.TREE_ATTACH_FAIL_REASON_TOO_HEAVY then
-		g_currentMission:showBlinkingWarning(string.format(v235_.texts.warningTooHeavy, v235_.maxTreeMass), 2500)
+		g_currentMission:showBlinkingWarning(string.format(spec.texts.warningTooHeavy, spec.maxTreeMass), 2500)
 	end
 end
-
--- Local values: spec, i, treeData, minDistance, distance, move
 function YarderCarriage:setCarriageLiftInput(direction)
 	if self.isServer then
-		local v238_ = self.spec_yarderCarriage
-		for v239_ = 1, #v238_.attachedTrees do
-			local v240_ = v238_.attachedTrees[v239_]
-			local v241_ = v238_.joint.minDistance
-			if v239_ > 1 then
-				local v242_ = v238_.attachedTrees[1].transLimitY
-				v241_ = math.max(v242_, v241_)
+		local spec = self.spec_yarderCarriage
+		for i = 1, #spec.attachedTrees do
+			local treeData = spec.attachedTrees[i]
+			local minDistance = spec.joint.minDistance
+			if 1 < i then
+				minDistance = math.max(spec.attachedTrees[1].transLimitY, minDistance)
 			end
-			if entityExists(v240_.treeId) then
-				local v243_ = calcDistanceFrom(v238_.joint.node, v240_.hookData.hookId)
-				if direction ~= v238_.curLiftSpeedLastDirection then
-					v238_.curLiftSpeedAlpha = 0
-					v238_.curLiftSpeedLastDirection = direction
+			if entityExists(treeData.treeId) then
+				local distance = calcDistanceFrom(spec.joint.node, treeData.hookData.hookId)
+				if direction ~= spec.curLiftSpeedLastDirection then
+					spec.curLiftSpeedAlpha = 0
+					spec.curLiftSpeedLastDirection = direction
 				end
-				local v244_ = v238_.curLiftSpeedAlpha + g_currentDt * v238_.liftAcceleration
-				v238_.curLiftSpeedAlpha = math.min(v244_, 1)
-				local v245_ = -(v238_.liftSpeed * v238_.curLiftSpeedAlpha) * g_currentDt * direction
-				local v246_ = v240_.transLimitY + v245_
-				local v247_ = v243_ + 0.3
-				local v248_ = math.max(v241_, v247_)
-				v240_.transLimitY = math.clamp(v246_, v241_, v248_)
-				setJointTranslationLimit(v240_.jointIndex, 1, true, -v240_.transLimitY, 0)
-				if v239_ == 1 and v240_.transLimitY ~= v238_.lastTransLimitY then
-					if v245_ < 0 then
-						if not g_soundManager:getIsSamplePlaying(v238_.samples.lift) then
-							g_soundManager:playSample(v238_.samples.lift)
-							g_soundManager:stopSample(v238_.samples.lower)
-							v238_.sampleLiftPlayedSent = true
-							v238_.sampleLowerPlayedSent = false
+				spec.curLiftSpeedAlpha = math.min(spec.curLiftSpeedAlpha + g_currentDt * spec.liftAcceleration, 1)
+				local move = -(spec.liftSpeed * spec.curLiftSpeedAlpha) * g_currentDt * direction
+				treeData.transLimitY = math.clamp(treeData.transLimitY + move, minDistance, math.max(minDistance, distance + 0.3))
+				setJointTranslationLimit(treeData.jointIndex, 1, true, -treeData.transLimitY, 0)
+				if i == 1 then
+					if treeData.transLimitY == spec.lastTransLimitY then
+						continue
+					end
+					if move < 0 then
+						if not g_soundManager:getIsSamplePlaying(spec.samples.lift) then
+							g_soundManager:playSample(spec.samples.lift)
+							g_soundManager:stopSample(spec.samples.lower)
+							spec.sampleLiftPlayedSent = true
+							spec.sampleLowerPlayedSent = false
 						end
-					elseif not g_soundManager:getIsSamplePlaying(v238_.samples.lower) then
-						g_soundManager:playSample(v238_.samples.lower)
-						g_soundManager:stopSample(v238_.samples.lift)
-						v238_.sampleLowerPlayedSent = true
-						v238_.sampleLiftPlayedSent = false
+					elseif not g_soundManager:getIsSamplePlaying(spec.samples.lower) then
+						g_soundManager:playSample(spec.samples.lower)
+						g_soundManager:stopSample(spec.samples.lift)
+						spec.sampleLowerPlayedSent = true
+						spec.sampleLiftPlayedSent = false
 					end
-					if v240_.transLimitY == v238_.joint.minDistance then
-						g_soundManager:playSample(v238_.samples.liftLimit)
-						v238_.sampleLiftLimitPlayedSent = true
+					if treeData.transLimitY == spec.joint.minDistance then
+						g_soundManager:playSample(spec.samples.liftLimit)
+						spec.sampleLiftLimitPlayedSent = true
 					end
-					v238_.lastTransLimitY = v240_.transLimitY
-					v238_.lastTransLimitYTimeOffset = 250
-					self:raiseDirtyFlags(v238_.dirtyFlag)
+					spec.lastTransLimitY = treeData.transLimitY
+					spec.lastTransLimitYTimeOffset = 250
+					self:raiseDirtyFlags(spec.dirtyFlag)
 				end
 			end
 		end
 	end
 end
-
 function YarderCarriage.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.VECTOR_TRANS, basePath .. ".attachedTree(?)#translation", "Main rope is active")
 	schema:register(XMLValueType.INT, basePath .. ".attachedTree(?)#splitShapePart1", "Split shape data part 1")
 	schema:register(XMLValueType.INT, basePath .. ".attachedTree(?)#splitShapePart2", "Split shape data part 2")
 	schema:register(XMLValueType.INT, basePath .. ".attachedTree(?)#splitShapePart3", "Split shape data part 3")
 end
-
--- Local values: spec, i, treeData, treeKey, splitShapePart1, splitShapePart2, splitShapePart3
 function YarderCarriage:saveAttachedTreesToXML(xmlFile, key, usedModNames)
-	local v254_ = self.spec_yarderCarriage
-	for v255_ = 1, #v254_.attachedTrees do
-		local v256_ = v254_.attachedTrees[v255_]
-		local v257_ = string.format("%s.attachedTree(%d)", key, v255_ - 1)
-		xmlFile:setValue(v257_ .. "#translation", getWorldTranslation(v256_.hookData.hookId))
-		local v258_, v259_, v260_ = getSaveableSplitShapeId(v256_.treeId)
-		if v258_ ~= 0 and v258_ ~= nil then
-			xmlFile:setValue(v257_ .. "#splitShapePart1", v258_)
-			xmlFile:setValue(v257_ .. "#splitShapePart2", v259_)
-			xmlFile:setValue(v257_ .. "#splitShapePart3", v260_)
+	local spec = self.spec_yarderCarriage
+	for i = 1, #spec.attachedTrees do
+		local treeData = spec.attachedTrees[i]
+		local treeKey = string.format("%s.attachedTree(%d)", key, i - 1)
+		xmlFile:setValue(treeKey .. "#translation", getWorldTranslation(treeData.hookData.hookId))
+		local splitShapePart1, splitShapePart2, splitShapePart3 = getSaveableSplitShapeId(treeData.treeId)
+		if splitShapePart1 == 0 or splitShapePart1 == nil then
+			continue
 		end
+		xmlFile:setValue(treeKey .. "#splitShapePart1", splitShapePart1)
+		xmlFile:setValue(treeKey .. "#splitShapePart2", splitShapePart2)
+		xmlFile:setValue(treeKey .. "#splitShapePart3", splitShapePart3)
 	end
 end
-
--- Local values: data
 function YarderCarriage.loadAttachedTreesFromXML(xmlFile, key)
-	local v_u_263_ = {}
-	xmlFile:iterate(key .. ".attachedTree", function(_, p264_)
-		-- upvalues: (copy) xmlFile, (copy) v_u_263_
-		local v265_ = xmlFile:getValue(p264_ .. "#translation", nil, true)
-		if v265_ ~= nil then
-			local v266_ = xmlFile:getValue(p264_ .. "#splitShapePart1")
-			if v266_ ~= nil then
-				local v267_ = v_u_263_
-				local v268_ = {
-					["translation"] = v265_,
-					["splitShapePart1"] = v266_,
-					["splitShapePart2"] = xmlFile:getValue(p264_ .. "#splitShapePart2"),
-					["splitShapePart3"] = xmlFile:getValue(p264_ .. "#splitShapePart3")
-				}
-				table.insert(v267_, v268_)
+	local data = {}
+	xmlFile:iterate(key .. ".attachedTree", function(_, treeKey)
+		local translation = xmlFile:getValue(treeKey .. "#translation", nil, true)
+		if translation ~= nil then
+			local splitShapePart1 = xmlFile:getValue(treeKey .. "#splitShapePart1")
+			if splitShapePart1 ~= nil then
+				local splitShapePart2 = xmlFile:getValue(treeKey .. "#splitShapePart2")
+				local splitShapePart3 = xmlFile:getValue(treeKey .. "#splitShapePart3")
+				table.insert(data, { translation = translation, splitShapePart1 = splitShapePart1, splitShapePart2 = splitShapePart2, splitShapePart3 = splitShapePart3 })
 			end
 		end
 	end)
-	return v_u_263_
+	return data
 end
-
--- Local values: i, treeData, shapeId, i, treeData, shapeId
 function YarderCarriage:resolveLoadedAttachedTrees(data)
-	for v271_ = 1, #data do
-		local v272_ = data[v271_]
-		local v273_ = getShapeFromSaveableSplitShapeId(v272_.splitShapePart1, v272_.splitShapePart2, v272_.splitShapePart3)
-		if v273_ == nil or v273_ == 0 then
+	for i = 1, #data do
+		local treeData = data[i]
+		local shapeId = getShapeFromSaveableSplitShapeId(treeData.splitShapePart1, treeData.splitShapePart2, treeData.splitShapePart3)
+		if shapeId == nil or shapeId == 0 then
 			return false
 		end
 	end
-	for v274_ = 1, #data do
-		local v275_ = data[v274_]
-		self:attachTreeToCarriage(getShapeFromSaveableSplitShapeId(v275_.splitShapePart1, v275_.splitShapePart2, v275_.splitShapePart3), v275_.translation[1], v275_.translation[2], v275_.translation[3], nil, true)
+	for i = 1, #data do
+		local treeData = data[i]
+		local shapeId = getShapeFromSaveableSplitShapeId(treeData.splitShapePart1, treeData.splitShapePart2, treeData.splitShapePart3)
+		self:attachTreeToCarriage(shapeId, treeData.translation[1], treeData.translation[2], treeData.translation[3], nil, true)
 	end
 	return true
 end
-
--- Local values: spec, i
 function YarderCarriage:onYarderCarriageTreeShapeCut(oldShape, shape)
 	if self.isServer then
-		local v278_ = self.spec_yarderCarriage
-		for v279_ = 1, #v278_.attachedTrees do
-			if v278_.attachedTrees[v279_].treeId == oldShape then
+		local spec = self.spec_yarderCarriage
+		for i = 1, #spec.attachedTrees do
+			if spec.attachedTrees[i].treeId == oldShape then
 				self:detachTreeFromCarriage()
 				return
 			end
 		end
 	end
 end
-
--- Local values: spec, i
 function YarderCarriage:onYarderCarriageTreeShapeMounted(shape, mountVehicle)
 	if mountVehicle ~= self and self.isServer then
-		local v283_ = self.spec_yarderCarriage
-		for v284_ = 1, #v283_.attachedTrees do
-			if v283_.attachedTrees[v284_].treeId == shape then
+		local spec = self.spec_yarderCarriage
+		for i = 1, #spec.attachedTrees do
+			if spec.attachedTrees[i].treeId == shape then
 				self:detachTreeFromCarriage()
 				return
 			end
 		end
 	end
 end
-
--- Local values: multiplier, spec
 function YarderCarriage:getDirtMultiplier(superFunc)
-	local v287_ = superFunc(self)
-	local v288_ = self.spec_yarderCarriage
-	if v288_.yarderTowerVehicle == nil then
-		return v287_
+	local multiplier = superFunc(self)
+	local spec = self.spec_yarderCarriage
+	if spec.yarderTowerVehicle ~= nil then
+		return spec.yarderTowerVehicle:getDirtMultiplier()
 	else
-		return v288_.yarderTowerVehicle:getDirtMultiplier()
+		return multiplier
 	end
 end
-
--- Local values: multiplier, spec
 function YarderCarriage:getWearMultiplier(superFunc)
-	local v291_ = superFunc(self)
-	local v292_ = self.spec_yarderCarriage
-	if v292_.yarderTowerVehicle == nil then
-		return v291_
+	local multiplier = superFunc(self)
+	local spec = self.spec_yarderCarriage
+	if spec.yarderTowerVehicle ~= nil then
+		return spec.yarderTowerVehicle:getDirtMultiplier()
 	else
-		return v292_.yarderTowerVehicle:getDirtMultiplier()
+		return multiplier
 	end
 end

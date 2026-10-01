@@ -1,137 +1,94 @@
--- Local values: data, old, POIInfoDisplay_mt, poiInfoDisplay, k, elem
-local v1_
-if POIInfoDisplay == nil then
-	v1_ = nil
-else
-	local v2_ = g_currentMission.hud.poiInfoDisplay
-	v1_ = {
-		["text"] = v2_.text,
-		["uiScale"] = v2_.uiScale
-	}
-	v2_:delete()
+local data = nil
+if POIInfoDisplay ~= nil then
+	local old = g_currentMission.hud.poiInfoDisplay
+	data = {}
+	data.text = old.text
+	data.uiScale = old.uiScale
+	old:delete()
 end
 POIInfoDisplay = {}
-local data = Class(POIInfoDisplay, HUDDisplayElement)
+local POIInfoDisplay_mt = Class(POIInfoDisplay, HUDDisplayElement)
 function POIInfoDisplay.new()
-	-- upvalues: (copy) data
-	local v4_ = POIInfoDisplay.createBackground()
-	local v5_ = POIInfoDisplay:superClass().new(v4_, nil, data)
-	v5_.text = ""
-	local v6_ = POIInfoDisplay.COLOR.BACKGROUND
-	local v7_, v8_, v9_, v10_ = unpack(v6_)
-	v5_.r = v7_
-	v5_.g = v8_
-	v5_.b = v9_
-	v5_.a = v10_
-	v5_:applyValues(1)
-	local v11_, v12_ = v5_:getPosition()
-	local v13_ = g_overlayManager:createOverlay(POIInfoDisplay.SLICE_IDS.ICON, v11_ + v5_.iconOffsetX, v12_ + v5_.iconOffsetY, v5_.iconSizeX, v5_.iconSizeY)
-	v13_:setColor(1, 1, 1, 1)
-	v5_:addChild(HUDElement.new(v13_))
-	return v5_
+	local backgroundOverlay = POIInfoDisplay.createBackground()
+	local self = POIInfoDisplay:superClass().new(backgroundOverlay, nil, POIInfoDisplay_mt)
+	self.text = ""
+	self.r, self.g, self.b, self.a = unpack(POIInfoDisplay.COLOR.BACKGROUND)
+	self:applyValues(1)
+	local posX, posY = self:getPosition()
+	local overlay = g_overlayManager:createOverlay(POIInfoDisplay.SLICE_IDS.ICON, posX + self.iconOffsetX, posY + self.iconOffsetY, self.iconSizeX, self.iconSizeY)
+	overlay:setColor(1, 1, 1, 1)
+	self:addChild(HUDElement.new(overlay))
+	return self
 end
-
 function POIInfoDisplay:setText(text)
 	self.text = text
 end
-
--- Local values: posX, posY, height, width
 function POIInfoDisplay:draw()
-	if self.text ~= "" then
-		local v17_, v18_ = self:getPosition()
-		local v19_ = self:getHeight()
+	if self.text == "" then
+		return
+	else
+		local posX, posY = self:getPosition()
+		local height = self:getHeight()
 		setTextAlignment(RenderText.ALIGN_LEFT)
 		setTextBold(false)
 		setTextColor(1, 1, 1, 1)
-		local v20_ = getTextWidth(self.textSize, self.text) + self.offsetLeft + self.offsetRight
-		drawFilledRectRound(v17_, v18_, v20_, v19_, self.uiScale, self.r, self.g, self.b, self.a)
-		renderText(v17_ + self.offsetLeft, v18_ + self.offsetBottom, self.textSize, self.text)
+		local width = getTextWidth(self.textSize, self.text)
+		width = width + self.offsetLeft + self.offsetRight
+		drawFilledRectRound(posX, posY, width, height, self.uiScale, self.r, self.g, self.b, self.a)
+		renderText(posX + self.offsetLeft, posY + self.offsetBottom, self.textSize, self.text)
 		POIInfoDisplay:superClass().draw(self)
 	end
 end
-
--- Local values: posX, posY
 function POIInfoDisplay:setScale(uiScale)
 	POIInfoDisplay:superClass().setScale(self, uiScale, uiScale)
 	self.uiScale = uiScale
-	local v23_, v24_ = POIInfoDisplay.getBackgroundPosition(uiScale)
-	self:setPosition(v23_, v24_)
+	local posX, posY = POIInfoDisplay.getBackgroundPosition(uiScale)
+	self:setPosition(posX, posY)
 	self:applyValues(uiScale)
 end
-
--- Local values: offsetLeft, _, offsetRight, _, _, offsetBottom, _, textSize, iconSizeX, iconSizeY, iconOffsetX, iconOffsetY
 function POIInfoDisplay:applyValues(uiScale)
-	local v27_, _ = getNormalizedScreenValues(POIInfoDisplay.POSITION.OFFSET_LEFT, 0)
-	self.offsetLeft = v27_ * uiScale
-	local v28_, _ = getNormalizedScreenValues(POIInfoDisplay.POSITION.OFFSET_RIGHT, 0)
-	self.offsetRight = v28_ * uiScale
-	local _, v29_ = getNormalizedScreenValues(0, POIInfoDisplay.POSITION.OFFSET_BOTTOM)
-	self.offsetBottom = v29_ * uiScale
-	local _, v30_ = getNormalizedScreenValues(0, POIInfoDisplay.SIZE.TEXT)
-	self.textSize = v30_ * uiScale
-	local v31_ = getNormalizedScreenValues
-	local v32_ = POIInfoDisplay.SIZE.ICON
-	local v33_, v34_ = v31_(unpack(v32_))
-	self.iconSizeX = v33_ * uiScale
-	self.iconSizeY = v34_ * uiScale
-	local v35_ = getNormalizedScreenValues
-	local v36_ = POIInfoDisplay.POSITION.ICON_OFFSET
-	local v37_, v38_ = v35_(unpack(v36_))
-	self.iconOffsetX = v37_ * uiScale
-	self.iconOffsetY = v38_ * uiScale
+	local offsetLeft, _ = getNormalizedScreenValues(POIInfoDisplay.POSITION.OFFSET_LEFT, 0)
+	self.offsetLeft = offsetLeft * uiScale
+	local offsetRight, _ = getNormalizedScreenValues(POIInfoDisplay.POSITION.OFFSET_RIGHT, 0)
+	self.offsetRight = offsetRight * uiScale
+	local _, offsetBottom = getNormalizedScreenValues(0, POIInfoDisplay.POSITION.OFFSET_BOTTOM)
+	self.offsetBottom = offsetBottom * uiScale
+	local _, textSize = getNormalizedScreenValues(0, POIInfoDisplay.SIZE.TEXT)
+	self.textSize = textSize * uiScale
+	local iconSizeX, iconSizeY = getNormalizedScreenValues(unpack(POIInfoDisplay.SIZE.ICON))
+	self.iconSizeX = iconSizeX * uiScale
+	self.iconSizeY = iconSizeY * uiScale
+	local iconOffsetX, iconOffsetY = getNormalizedScreenValues(unpack(POIInfoDisplay.POSITION.ICON_OFFSET))
+	self.iconOffsetX = iconOffsetX * uiScale
+	self.iconOffsetY = iconOffsetY * uiScale
 end
-
--- Local values: _, height, offsetX, offsetY, posX, posY
 function POIInfoDisplay.getBackgroundPosition(uiScale)
-	local v40_ = getNormalizedScreenValues
-	local v41_ = POIInfoDisplay.SIZE.SELF
-	local _, v42_ = v40_(unpack(v41_))
-	local v43_ = getNormalizedScreenValues
-	local v44_ = POIInfoDisplay.POSITION.SELF
-	local v45_, v46_ = v43_(unpack(v44_))
-	return v45_ * uiScale, 1 + v46_ * uiScale - v42_ * uiScale
+	local _, height = getNormalizedScreenValues(unpack(POIInfoDisplay.SIZE.SELF))
+	local offsetX, offsetY = getNormalizedScreenValues(unpack(POIInfoDisplay.POSITION.SELF))
+	local posX = offsetX * uiScale
+	local posY = 1 + offsetY * uiScale - height * uiScale
+	return posX, posY
 end
 function POIInfoDisplay.createBackground()
-	local v47_, v48_ = POIInfoDisplay.getBackgroundPosition(1)
-	local v49_ = getNormalizedScreenValues
-	local v50_ = POIInfoDisplay.SIZE.SELF
-	local v51_, v52_ = v49_(unpack(v50_))
-	return Overlay.new(nil, v47_, v48_, v51_, v52_)
+	local posX, posY = POIInfoDisplay.getBackgroundPosition(1)
+	local width, height = getNormalizedScreenValues(unpack(POIInfoDisplay.SIZE.SELF))
+	local overlay = Overlay.new(nil, posX, posY, width, height)
+	return overlay
 end
-POIInfoDisplay.SIZE = {
-	["SELF"] = { 340, 46 },
-	["BOX_MARGIN"] = 20,
-	["TEXT"] = 32,
-	["ICON"] = { 40, 40 }
-}
-POIInfoDisplay.POSITION = {
-	["ICON_OFFSET"] = { 15, 3 },
-	["SELF"] = { 33, -127 },
-	["OFFSET_LEFT"] = 61,
-	["OFFSET_RIGHT"] = 20,
-	["OFFSET_BOTTOM"] = 13
-}
-POIInfoDisplay.COLOR = {
-	["BACKGROUND"] = {
-		0,
-		0,
-		0,
-		0.4
-	}
-}
-POIInfoDisplay.SLICE_IDS = {
-	["ICON"] = "gui.exclamationCircle"
-}
-if v1_ ~= nil then
-	local v53_ = POIInfoDisplay.new()
-	v53_:setScale(v1_.uiScale)
-	v53_:setText(v1_.text)
-	for v54_, v55_ in ipairs(g_currentMission.hud.displayComponents) do
-		if v55_ == g_currentMission.hud.poiInfoDisplay then
-			g_currentMission.hud.displayComponents[v54_] = v53_
+POIInfoDisplay.SIZE = { SELF = { 340, 46 }, BOX_MARGIN = 20, TEXT = 32, ICON = { 40, 40 } }
+POIInfoDisplay.POSITION = { ICON_OFFSET = { 15, 3 }, SELF = { 33, -127 }, OFFSET_LEFT = 61, OFFSET_RIGHT = 20, OFFSET_BOTTOM = 13 }
+POIInfoDisplay.COLOR = { BACKGROUND = { 0, 0, 0, 0.4 } }
+POIInfoDisplay.SLICE_IDS = { ICON = "gui.exclamationCircle" }
+if data ~= nil then
+	local poiInfoDisplay = POIInfoDisplay.new()
+	poiInfoDisplay:setScale(data.uiScale)
+	poiInfoDisplay:setText(data.text)
+	for k, elem in ipairs(g_currentMission.hud.displayComponents) do
+		if elem == g_currentMission.hud.poiInfoDisplay then
+			g_currentMission.hud.displayComponents[k] = poiInfoDisplay
 			break
 		end
 	end
-	g_currentMission.hud.poiInfoDisplay = v53_
+	g_currentMission.hud.poiInfoDisplay = poiInfoDisplay
 	Logging.info("Reloaded")
 end

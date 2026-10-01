@@ -1,4 +1,3 @@
--- Local values: ConsumableManager_mt
 ConsumableManager = {}
 ConsumableManager.DEFAULT_FILENAME = "data/objects/consumables/consumables.xml"
 ConsumableManager.NUM_VARIATION_BITS = 9
@@ -6,355 +5,318 @@ ConsumableManager.MAX_NUM_VARIATIONS = 2 ^ ConsumableManager.NUM_VARIATION_BITS 
 ConsumableManager.xmlSchemaConsumable = nil
 ConsumableManager.xmlSchemaConsumables = nil
 local ConsumableManager_mt = Class(ConsumableManager, AbstractManager)
-
--- Upvalues: ConsumableManager_mt
--- Local values: self
 function ConsumableManager.new(customMt)
-	-- upvalues: (copy) ConsumableManager_mt
-	local v3_ = AbstractManager.new(customMt or ConsumableManager_mt)
-	v3_.types = {}
-	v3_.typesByName = {}
-	v3_.variations = {}
-	v3_.variationsByName = {}
-	v3_.sharedLoadRequestIds = {}
-	v3_.modConsumablesToLoad = {}
+	local self = AbstractManager.new(customMt or ConsumableManager_mt)
+	self.types = {}
+	self.typesByName = {}
+	self.variations = {}
+	self.variationsByName = {}
+	self.sharedLoadRequestIds = {}
+	self.modConsumablesToLoad = {}
 	ConsumableManager.xmlSchemaConsumable = XMLSchema.new("consumable")
 	ConsumableManager.registerConsumableXMLPaths(ConsumableManager.xmlSchemaConsumable)
 	ConsumableManager.xmlSchemaConsumables = XMLSchema.new("consumables")
 	ConsumableManager.registerConsumablesXMLPaths(ConsumableManager.xmlSchemaConsumables)
-	return v3_
+	return self
 end
-
--- Local values: consumablesXMLFile, _, key, type, _, key, filename, i, modConsumablesToLoad
 function ConsumableManager:loadMapData(xmlFile, missionInfo, baseDirectory)
 	ConsumableManager:superClass().loadMapData(self)
 	self.baseDirectory = baseDirectory
-	local v6_ = XMLFile.load("consumables", ConsumableManager.DEFAULT_FILENAME, ConsumableManager.xmlSchemaConsumables)
-	if v6_ ~= nil then
-		for _, v7_ in v6_:iterator("consumables.types.type") do
-			local v8_ = {
-				["name"] = v6_:getValue(v7_ .. "#name"),
-				["title"] = v6_:getValue(v7_ .. "#title")
-			}
-			if v8_.name == nil or v8_.title == nil then
-				Logging.xmlWarning(v6_, "Failed to load consumable type from xml. (%s)", v7_)
-			else
-				v8_.name = string.upper(v8_.name)
-				local v9_ = self.types
-				table.insert(v9_, v8_)
-				self.typesByName[v8_.name] = v8_
+	local consumablesXMLFile = XMLFile.load("consumables", ConsumableManager.DEFAULT_FILENAME, ConsumableManager.xmlSchemaConsumables)
+	if consumablesXMLFile ~= nil then
+		for _, key in consumablesXMLFile:iterator("consumables.types.type") do
+			local type = {}
+			type.name = consumablesXMLFile:getValue(key .. "#name")
+			type.title = consumablesXMLFile:getValue(key .. "#title")
+			if type.name ~= nil then
+				if type.title ~= nil then
+					type.name = string.upper(type.name)
+					table.insert(self.types, type)
+					self.typesByName[type.name] = type
+				else
+					Logging.xmlWarning(consumablesXMLFile, "Failed to load consumable type from xml. (%s)", key)
+				end
 			end
 		end
-		for _, v10_ in v6_:iterator("consumables.consumable") do
-			local v11_ = v6_:getValue(v10_ .. "#filename")
-			if v11_ ~= nil then
-				self:loadConsumableVariationsFromXML(Utils.getFilename(v11_, baseDirectory), nil, baseDirectory)
+		for _, key in consumablesXMLFile:iterator("consumables.consumable") do
+			local filename = consumablesXMLFile:getValue(key .. "#filename")
+			if filename == nil then
+				continue
 			end
+			filename = Utils.getFilename(filename, baseDirectory)
+			self:loadConsumableVariationsFromXML(filename, nil, baseDirectory)
 		end
-		v6_:delete()
+		consumablesXMLFile:delete()
 	end
-	for v12_ = #self.modConsumablesToLoad, 1, -1 do
-		local v13_ = self.modConsumablesToLoad[v12_]
-		self:loadConsumableVariationsFromXML(v13_.xmlFilename, v13_.customEnvironment, v13_.baseDirectory)
-		self.modConsumablesToLoad[v12_] = nil
+	for i = #self.modConsumablesToLoad, 1, -1 do
+		local modConsumablesToLoad = self.modConsumablesToLoad[i]
+		self:loadConsumableVariationsFromXML(modConsumablesToLoad.xmlFilename, modConsumablesToLoad.customEnvironment, modConsumablesToLoad.baseDirectory)
+		self.modConsumablesToLoad[i] = nil
 	end
 end
-
--- Local values: _, consumableVariation, i, sharedLoadRequestId
 function ConsumableManager:unloadMapData()
-	for _, v15_ in ipairs(self.variations) do
-		if v15_.node ~= nil then
-			delete(v15_.node)
+	for _, consumableVariation in ipairs(self.variations) do
+		if consumableVariation.node ~= nil then
+			delete(consumableVariation.node)
 		end
-		if v15_.consumingNode ~= nil then
-			delete(v15_.consumingNode)
+		if consumableVariation.consumingNode ~= nil then
+			delete(consumableVariation.consumingNode)
 		end
-		if v15_.tensionBeltNode ~= nil then
-			delete(v15_.tensionBeltNode)
+		if consumableVariation.tensionBeltNode == nil then
+			continue
 		end
+		delete(consumableVariation.tensionBeltNode)
 	end
 	self.variations = {}
-	for v16_ = 1, #self.sharedLoadRequestIds do
-		local v17_ = self.sharedLoadRequestIds[v16_]
-		g_i3DManager:releaseSharedI3DFile(v17_)
+	for i = 1, #self.sharedLoadRequestIds do
+		local sharedLoadRequestId = self.sharedLoadRequestIds[i]
+		g_i3DManager:releaseSharedI3DFile(sharedLoadRequestId)
 	end
 	self.sharedLoadRequestIds = {}
 	ConsumableManager:superClass().unloadMapData(self)
 end
-
 function ConsumableManager:addModConsumable(xmlFilename, customEnvironment, baseDirectory)
-	local v22_ = self.modConsumablesToLoad
-	table.insert(v22_, {
-		["xmlFilename"] = xmlFilename,
-		["customEnvironment"] = customEnvironment,
-		["baseDirectory"] = baseDirectory
-	})
+	table.insert(self.modConsumablesToLoad, { xmlFilename = xmlFilename, customEnvironment = customEnvironment, baseDirectory = baseDirectory })
 end
-
--- Local values: xmlFile, _, key, consumableVariation, nodePath, sharedLoadRequestId, consumingNodePath, sharedLoadRequestId, tensionBeltNodePath, sharedLoadRequestId, _, valueKey, name, valueStr, value, _, paramKey, name, shaderParameter
 function ConsumableManager:loadConsumableVariationsFromXML(xmlFilename, customEnvironment, baseDirectory)
-	Logging.devInfo("Loading Consumable from \'%s\'", xmlFilename)
-	local v27_ = XMLFile.load("Consumable", xmlFilename, ConsumableManager.xmlSchemaConsumable)
-	if v27_ ~= nil then
-		for _, v28_ in v27_:iterator("consumable.consumableVariation") do
-			if #self.variations >= ConsumableManager.MAX_NUM_VARIATIONS then
-				Logging.xmlWarning(v27_, "Max. num consumables variations reached, skip loading of \'%s\'", v28_)
+	Logging.devInfo("Loading Consumable from '%s'", xmlFilename)
+	local xmlFile = XMLFile.load("Consumable", xmlFilename, ConsumableManager.xmlSchemaConsumable)
+	if xmlFile ~= nil then
+		for _, key in xmlFile:iterator("consumable.consumableVariation") do
+			if ConsumableManager.MAX_NUM_VARIATIONS <= #self.variations then
+				Logging.xmlWarning(xmlFile, "Max. num consumables variations reached, skip loading of '%s'", key)
 			else
-				local v29_ = {
-					["type"] = v27_:getValue(v28_ .. "#type")
-				}
-				if v29_.type == nil then
-					Logging.xmlWarning(v27_, "Missing type in \'%s\'", v28_)
+				local consumableVariation = {}
+				consumableVariation.type = xmlFile:getValue(key .. "#type")
+				if consumableVariation.type == nil then
+					Logging.xmlWarning(xmlFile, "Missing type in '%s'", key)
 				else
-					v29_.name = v27_:getValue(v28_ .. "#name")
-					if v29_.name == nil then
-						Logging.xmlWarning(v27_, "Missing name in \'%s\'", v28_)
+					consumableVariation.name = xmlFile:getValue(key .. "#name")
+					if consumableVariation.name == nil then
+						Logging.xmlWarning(xmlFile, "Missing name in '%s'", key)
 					else
 						if customEnvironment ~= nil then
-							v29_.name = customEnvironment .. "." .. v29_.name
+							consumableVariation.name = customEnvironment .. "." .. consumableVariation.name
 						end
-						v29_.price = v27_:getValue(v28_ .. "#price", 0)
-						v29_.title = v27_:getValue(v28_ .. "#title", nil, customEnvironment)
-						if v29_.title == nil then
-							Logging.xmlWarning(v27_, "Missing title in \'%s\'", v28_)
+						consumableVariation.price = xmlFile:getValue(key .. "#price", 0)
+						consumableVariation.title = xmlFile:getValue(key .. "#title", nil, customEnvironment)
+						if consumableVariation.title == nil then
+							Logging.xmlWarning(xmlFile, "Missing title in '%s'", key)
 						else
-							v29_.unitText = v27_:getValue(v28_ .. "#unitText", nil, customEnvironment, false)
-							v29_.capacity = v27_:getValue(v28_ .. "#capacity", 1)
-							v29_.filename = v27_:getValue(v28_ .. ".object#filename")
-							if v29_.filename ~= nil then
-								v29_.filename = Utils.getFilename(v29_.filename, baseDirectory)
-								if v29_.filename ~= nil then
-									local v30_ = v27_:getValue(v28_ .. ".object#node")
-									if v30_ ~= nil then
-										local v31_ = g_i3DManager:loadSharedI3DFileAsync(v29_.filename, false, false, self.consumableI3DFileLoaded, self, { v29_, v30_, "node" })
-										local v32_ = self.sharedLoadRequestIds
-										table.insert(v32_, v31_)
+							consumableVariation.unitText = xmlFile:getValue(key .. "#unitText", nil, customEnvironment, false)
+							consumableVariation.capacity = xmlFile:getValue(key .. "#capacity", 1)
+							consumableVariation.filename = xmlFile:getValue(key .. ".object#filename")
+							if consumableVariation.filename ~= nil then
+								consumableVariation.filename = Utils.getFilename(consumableVariation.filename, baseDirectory)
+								if consumableVariation.filename ~= nil then
+									local nodePath = xmlFile:getValue(key .. ".object#node")
+									if nodePath ~= nil then
+										local sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(consumableVariation.filename, false, false, self.consumableI3DFileLoaded, self, { consumableVariation, nodePath, "node" })
+										table.insert(self.sharedLoadRequestIds, sharedLoadRequestId)
 									end
 								end
 							end
-							v29_.consumingFilename = v27_:getValue(v28_ .. ".consumingObject#filename")
-							if v29_.consumingFilename ~= nil then
-								v29_.consumingFilename = Utils.getFilename(v29_.consumingFilename, baseDirectory)
-								if v29_.consumingFilename ~= nil then
-									local v33_ = v27_:getValue(v28_ .. ".consumingObject#node")
-									if v33_ ~= nil then
-										local v34_ = g_i3DManager:loadSharedI3DFileAsync(v29_.consumingFilename, false, false, self.consumableI3DFileLoaded, self, { v29_, v33_, "consumingNode" })
-										local v35_ = self.sharedLoadRequestIds
-										table.insert(v35_, v34_)
+							consumableVariation.consumingFilename = xmlFile:getValue(key .. ".consumingObject#filename")
+							if consumableVariation.consumingFilename ~= nil then
+								consumableVariation.consumingFilename = Utils.getFilename(consumableVariation.consumingFilename, baseDirectory)
+								if consumableVariation.consumingFilename ~= nil then
+									local consumingNodePath = xmlFile:getValue(key .. ".consumingObject#node")
+									if consumingNodePath ~= nil then
+										local sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(consumableVariation.consumingFilename, false, false, self.consumableI3DFileLoaded, self, { consumableVariation, consumingNodePath, "consumingNode" })
+										table.insert(self.sharedLoadRequestIds, sharedLoadRequestId)
 									end
 								end
 							end
-							v29_.tensionBeltFilename = v27_:getValue(v28_ .. ".tensionBeltObject#filename")
-							if v29_.tensionBeltFilename ~= nil then
-								v29_.tensionBeltFilename = Utils.getFilename(v29_.tensionBeltFilename, baseDirectory)
-								if v29_.tensionBeltFilename ~= nil then
-									local v36_ = v27_:getValue(v28_ .. ".tensionBeltObject#node")
-									if v36_ ~= nil then
-										local v37_ = g_i3DManager:loadSharedI3DFileAsync(v29_.tensionBeltFilename, false, false, self.consumableI3DFileLoaded, self, { v29_, v36_, "tensionBeltNode" })
-										local v38_ = self.sharedLoadRequestIds
-										table.insert(v38_, v37_)
+							consumableVariation.tensionBeltFilename = xmlFile:getValue(key .. ".tensionBeltObject#filename")
+							if consumableVariation.tensionBeltFilename ~= nil then
+								consumableVariation.tensionBeltFilename = Utils.getFilename(consumableVariation.tensionBeltFilename, baseDirectory)
+								if consumableVariation.tensionBeltFilename ~= nil then
+									local tensionBeltNodePath = xmlFile:getValue(key .. ".tensionBeltObject#node")
+									if tensionBeltNodePath ~= nil then
+										local sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(consumableVariation.tensionBeltFilename, false, false, self.consumableI3DFileLoaded, self, { consumableVariation, tensionBeltNodePath, "tensionBeltNode" })
+										table.insert(self.sharedLoadRequestIds, sharedLoadRequestId)
 									end
 								end
 							end
-							v29_.metaData = {}
-							for _, v39_ in v27_:iterator(v28_ .. ".metaData.value") do
-								local v40_ = v27_:getValue(v39_ .. "#name")
-								if v40_ == nil then
-									Logging.xmlWarning(v27_, "Missing name in \'%s\'", v39_)
-								else
-									local v41_ = v27_:getValue(v39_ .. "#value")
-									if v41_ ~= nil then
-										local v42_
-										if v41_:contains(" ") then
-											v42_ = string.getVector(v41_)
-										else
-											v42_ = tonumber(v41_) or v41_
-										end
-										if v42_ == nil then
-											Logging.xmlWarning(v27_, "Invalid value in \'%s\'", v39_)
-										else
-											v29_.metaData[v40_] = v42_
-										end
+							consumableVariation.metaData = {}
+							for _, valueKey in xmlFile:iterator(key .. ".metaData.value") do
+								local name = xmlFile:getValue(valueKey .. "#name")
+								if name ~= nil then
+									local valueStr = xmlFile:getValue(valueKey .. "#value")
+									if valueStr == nil then
+										continue
 									end
-								end
-							end
-							v29_.shaderParameters = {}
-							for _, v43_ in v27_:iterator(v28_ .. ".shaderParameter") do
-								local v44_ = v27_:getValue(v43_ .. "#name")
-								if v44_ == nil then
-									Logging.xmlWarning(v27_, "Missing name in \'%s\'", v43_)
-								else
-									local v45_ = {
-										["name"] = v44_,
-										["materialSlotName"] = v27_:getValue(v43_ .. "#materialSlotName"),
-										["value"] = v27_:getValue(v43_ .. "#value", nil, true)
-									}
-									if v45_.value == nil then
-										Logging.xmlWarning(v27_, "Invalid value in \'%s\'", v43_)
+									local value = nil
+									if valueStr:contains(" ") then
+										value = string.getVector(valueStr)
 									else
-										local v46_ = v29_.shaderParameters
-										table.insert(v46_, v45_)
+										value = tonumber(valueStr) or valueStr
 									end
+									if value ~= nil then
+										consumableVariation.metaData[name] = value
+									else
+										Logging.xmlWarning(xmlFile, "Invalid value in '%s'", valueKey)
+									end
+								else
+									Logging.xmlWarning(xmlFile, "Missing name in '%s'", valueKey)
 								end
 							end
-							if self.variationsByName[v29_.name] == nil then
-								local v47_ = self.variations
-								table.insert(v47_, v29_)
-								v29_.index = #self.variations
-								self.variationsByName[v29_.name] = v29_
+							consumableVariation.shaderParameters = {}
+							for _, paramKey in xmlFile:iterator(key .. ".shaderParameter") do
+								local name = xmlFile:getValue(paramKey .. "#name")
+								if name ~= nil then
+									local shaderParameter = {}
+									shaderParameter.name = name
+									shaderParameter.materialSlotName = xmlFile:getValue(paramKey .. "#materialSlotName")
+									shaderParameter.value = xmlFile:getValue(paramKey .. "#value", nil, true)
+									if shaderParameter.value ~= nil then
+										table.insert(consumableVariation.shaderParameters, shaderParameter)
+									else
+										Logging.xmlWarning(xmlFile, "Invalid value in '%s'", paramKey)
+									end
+								else
+									Logging.xmlWarning(xmlFile, "Missing name in '%s'", paramKey)
+								end
+							end
+							if self.variationsByName[consumableVariation.name] == nil then
+								table.insert(self.variations, consumableVariation)
+								consumableVariation.index = #self.variations
+								self.variationsByName[consumableVariation.name] = consumableVariation
 							else
-								Logging.xmlWarning(v27_, "Consumable with name \'%s\' already registered", v29_.name)
+								Logging.xmlWarning(xmlFile, "Consumable with name '%s' already registered", consumableVariation.name)
 							end
 						end
 					end
 				end
 			end
 		end
-		v27_:delete()
+		xmlFile:delete()
 	end
 end
-
--- Local values: consumableVariation, nodePath, name, node
 function ConsumableManager:consumableI3DFileLoaded(i3dNode, failedReason, arguments)
-	local v50_ = arguments[1]
-	local v51_ = arguments[2]
-	local v52_ = arguments[3]
+	local consumableVariation = arguments[1]
+	local nodePath = arguments[2]
+	local name = arguments[3]
 	if i3dNode ~= nil and i3dNode ~= 0 then
-		local v53_ = I3DUtil.indexToObject(i3dNode, v51_, nil, nil)
-		if v53_ == nil then
-			printWarning(string.format("Warning: Unable to find consumable object \'%s\' for \'%s\'", v51_, v50_.name))
+		local node = I3DUtil.indexToObject(i3dNode, nodePath, nil, nil)
+		if node ~= nil then
+			setTranslation(node, 0, 0, 0)
+			setRotation(node, 0, 0, 0)
+			unlink(node)
+			consumableVariation[name] = node
 		else
-			setTranslation(v53_, 0, 0, 0)
-			setRotation(v53_, 0, 0, 0)
-			unlink(v53_)
-			v50_[v52_] = v53_
+			printWarning(string.format("Warning: Unable to find consumable object '%s' for '%s'", nodePath, consumableVariation.name))
 		end
 		delete(i3dNode)
 	end
 end
-
--- Local values: consumableVariation, mesh, tensionBeltMesh
 function ConsumableManager:getConsumableMeshByIndex(index, addTensionBeltMesh)
-	local v57_ = self.variations[index]
-	if v57_ == nil then
+	local consumableVariation = self.variations[index]
+	if consumableVariation == nil then
 		return nil
-	end
-	if v57_.node == nil then
+	elseif consumableVariation.node ~= nil then
+		local mesh = clone(consumableVariation.node, false, false, false)
+		if addTensionBeltMesh and consumableVariation.tensionBeltNode ~= nil then
+			local tensionBeltMesh = clone(consumableVariation.tensionBeltNode, false, false, false)
+			link(mesh, tensionBeltMesh)
+			return mesh, tensionBeltMesh
+		end
+		return mesh, nil
+	else
 		return nil, nil
 	end
-	local v58_ = clone(v57_.node, false, false, false)
-	if not addTensionBeltMesh or v57_.tensionBeltNode == nil then
-		return v58_, nil
-	end
-	local v59_ = clone(v57_.tensionBeltNode, false, false, false)
-	link(v58_, v59_)
-	return v58_, v59_
 end
-
--- Local values: consumableVariation, clonedNode, _, shaderParameter
 function ConsumableManager:getConsumableConsumingMeshByIndex(index)
-	local v62_ = self.variations[index]
-	if v62_ == nil then
+	local consumableVariation = self.variations[index]
+	if consumableVariation == nil then
 		return nil
-	end
-	if v62_.node == nil then
-		return nil
-	end
-	local v63_ = clone(v62_.consumingNode or v62_.node, false, false, false)
-	for _, v64_ in ipairs(v62_.shaderParameters) do
-		if v64_.materialSlotName == nil then
-			I3DUtil.setShaderParameterRec(v63_, v64_.name, v64_.value[1], v64_.value[2], v64_.value[3], v64_.value[4])
-		else
-			I3DUtil.setMaterialSlotShaderParameterRec(v63_, v64_.materialSlotName, v64_.name, v64_.value[1], v64_.value[2], v64_.value[3], v64_.value[4])
+	elseif consumableVariation.node ~= nil then
+		local clonedNode = clone(consumableVariation.consumingNode or consumableVariation.node, false, false, false)
+		for _, shaderParameter in ipairs(consumableVariation.shaderParameters) do
+			if shaderParameter.materialSlotName ~= nil then
+				I3DUtil.setMaterialSlotShaderParameterRec(clonedNode, shaderParameter.materialSlotName, shaderParameter.name, shaderParameter.value[1], shaderParameter.value[2], shaderParameter.value[3], shaderParameter.value[4])
+			else
+				I3DUtil.setShaderParameterRec(clonedNode, shaderParameter.name, shaderParameter.value[1], shaderParameter.value[2], shaderParameter.value[3], shaderParameter.value[4])
+			end
 		end
+		return clonedNode
+	else
+		return nil
 	end
-	return v63_
 end
-
--- Local values: consumableVariation
 function ConsumableManager:getConsumableVariationIndexByName(name, customEnvironment)
-	local v68_
-	if customEnvironment == nil then
-		v68_ = nil
+	local consumableVariation = nil
+	if customEnvironment ~= nil then
+		consumableVariation = self.variationsByName[customEnvironment .. "." .. name]
+	end
+	if consumableVariation == nil then
+		consumableVariation = self.variationsByName[name]
+	end
+	if consumableVariation == nil then
+		return 0
 	else
-		v68_ = self.variationsByName[customEnvironment .. "." .. name]
+		return consumableVariation.index
 	end
-	if v68_ == nil then
-		v68_ = self.variationsByName[name]
-	end
-	return v68_ == nil and 0 or v68_.index
 end
-
--- Local values: consumableVariation
 function ConsumableManager:getConsumableVariationNameByIndex(index)
-	local v71_ = self.variations[index]
-	return v71_ == nil and "UNKNOWN" or v71_.name
+	local consumableVariation = self.variations[index]
+	if consumableVariation == nil then
+		return "UNKNOWN"
+	else
+		return consumableVariation.name
+	end
 end
-
--- Local values: consumableVariation
 function ConsumableManager:getConsumableVariationCapacityAndUnitByIndex(index)
-	local v74_ = self.variations[index]
-	if v74_ == nil then
+	local consumableVariation = self.variations[index]
+	if consumableVariation ~= nil then
+		return consumableVariation.capacity, consumableVariation.unitText
+	else
 		return nil, nil
-	else
-		return v74_.capacity, v74_.unitText
 	end
 end
-
--- Local values: consumableVariation
 function ConsumableManager:getConsumableVariationShaderParameterByIndex(index)
-	local v77_ = self.variations[index]
-	if v77_ == nil then
+	local consumableVariation = self.variations[index]
+	if consumableVariation == nil then
 		return nil
 	else
-		return v77_.shaderParameters
+		return consumableVariation.shaderParameters
 	end
 end
-
--- Local values: consumableVariation
 function ConsumableManager:getConsumableVariationMetaDataByIndex(index)
-	local v80_ = self.variations[index]
-	if v80_ == nil then
+	local consumableVariation = self.variations[index]
+	if consumableVariation == nil then
 		return nil
 	else
-		return v80_.metaData
+		return consumableVariation.metaData
 	end
 end
-
--- Local values: variations, indexToVariationIndex, variationIndex, consumableVariation
 function ConsumableManager:getConsumableVariationsByType(typeName)
-	local v83_ = {}
-	local v84_ = {}
-	for v85_, v86_ in ipairs(self.variations) do
-		if v86_.type == typeName then
-			local v87_ = v86_.title
-			table.insert(v83_, v87_)
-			v84_[#v83_] = v85_
+	local variations = {}
+	local indexToVariationIndex = {}
+	for variationIndex, consumableVariation in ipairs(self.variations) do
+		if consumableVariation.type == typeName then
+			table.insert(variations, consumableVariation.title)
+			indexToVariationIndex[#variations] = variationIndex
 		end
 	end
-	return v83_, v84_
+	return variations, indexToVariationIndex
 end
-
--- Local values: consumableVariation
 function ConsumableManager:getConsumableVariationPriceByIndex(index)
-	local v90_ = self.variations[index]
-	if v90_ == nil then
+	local consumableVariation = self.variations[index]
+	if consumableVariation == nil then
 		return nil
 	else
-		return v90_.price
+		return consumableVariation.price
 	end
 end
-
--- Local values: type
 function ConsumableManager:getTypeTitle(typeName)
-	local v93_ = self.typesByName[typeName]
-	if v93_ == nil then
+	local type = self.typesByName[typeName]
+	if type == nil then
 		return nil
 	else
-		return v93_.title or typeName
+		return type.title or typeName
 	end
 end
-
 function ConsumableManager.registerConsumableXMLPaths(schema)
 	schema:register(XMLValueType.STRING, "consumable.consumableVariation(?)#type", "Name of the consumable type")
 	schema:register(XMLValueType.FLOAT, "consumable.consumableVariation(?)#price", "Price per unit", 0)
@@ -374,7 +336,6 @@ function ConsumableManager.registerConsumableXMLPaths(schema)
 	schema:register(XMLValueType.STRING, "consumable.consumableVariation(?).shaderParameter(?)#materialSlotName", "Material slot name which should receive the shader parameter (if not set, it will be applied to all materials)")
 	schema:register(XMLValueType.VECTOR_4, "consumable.consumableVariation(?).shaderParameter(?)#value", "Value")
 end
-
 function ConsumableManager.registerConsumablesXMLPaths(schema)
 	schema:register(XMLValueType.STRING, "consumables.types.type(?)#name", "Name of the consumable type")
 	schema:register(XMLValueType.L10N_STRING, "consumables.types.type(?)#title", "Name of the type to be shown in the UI")

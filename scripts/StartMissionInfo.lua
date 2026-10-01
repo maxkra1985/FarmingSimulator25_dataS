@@ -1,17 +1,10 @@
--- Local values: StartMissionInfo_mt
 StartMissionInfo = {}
 local StartMissionInfo_mt = Class(StartMissionInfo)
-
--- Upvalues: StartMissionInfo_mt
--- Local values: self
 function StartMissionInfo.new(subclass_mt)
-	-- upvalues: (copy) StartMissionInfo_mt
-	local v3_ = subclass_mt or StartMissionInfo_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_:reset()
-	return v4_
+	local self = setmetatable({}, subclass_mt or StartMissionInfo_mt)
+	self:reset()
+	return self
 end
-
 function StartMissionInfo:reset()
 	self.isMultiplayer = false
 	self.createGame = false

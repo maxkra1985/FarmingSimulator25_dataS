@@ -1,4 +1,3 @@
--- Local values: PlaceableHotspot_mt
 PlaceableHotspot = {}
 PlaceableHotspot.TYPE = {}
 PlaceableHotspot.TYPE.LOADING = 1
@@ -67,168 +66,47 @@ PlaceableHotspot.SLICE[PlaceableHotspot.TYPE.FISHPOND] = "mapHotspots.fishPond"
 PlaceableHotspot.SLICE[PlaceableHotspot.TYPE.FISHBREEDING] = "mapHotspots.fishBreeding"
 PlaceableHotspot.SLICE[PlaceableHotspot.TYPE.WILDLIFE] = "mapHotspots.wildlife"
 PlaceableHotspot.COLOR = {}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.UNLOADING] = {
-	0.2664,
-	0.0048,
-	0.1384,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.UNLOADING_TRAIN] = {
-	0.2664,
-	0.0048,
-	0.1384,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.UNLOADING_PALLET] = {
-	0.2664,
-	0.0048,
-	0.1384,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.PRODUCTION_POINT] = {
-	0.0065,
-	0.5583,
-	0.5711,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.SHOP] = {
-	0.6105,
-	0.5583,
-	0.0027,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.FARM] = {
-	0.6105,
-	0.5583,
-	0.0027,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.FUEL] = {
-	0.0203,
-	0.0685,
-	0.4287,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.ELECTRICITY] = {
-	0.0203,
-	0.0685,
-	0.4287,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.EXCLAMATION_MARK] = {
-	0.0027,
-	0.1981,
-	0.0152,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.LOADING] = {
-	0.0203,
-	0.0685,
-	0.4287,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.SHOP_ANIMAL] = {
-	0.6105,
-	0.5583,
-	0.0027,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.CHICKEN] = {
-	0.006,
-	0.1441,
-	0.1144,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.PIG] = {
-	0.006,
-	0.1441,
-	0.1144,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.SHEEP] = {
-	0.006,
-	0.1441,
-	0.1144,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.COW] = {
-	0.006,
-	0.1441,
-	0.1144,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.HORSE] = {
-	0.006,
-	0.1441,
-	0.1144,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.TRAIN] = {
-	0.6105,
-	0.5583,
-	0.0027,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.BEE] = {
-	0.006,
-	0.1441,
-	0.1144,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.FISHPOND] = {
-	0.006,
-	0.1441,
-	0.1144,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.FISHBREEDING] = {
-	0.006,
-	0.1441,
-	0.1144,
-	1
-}
-PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.WILDLIFE] = {
-	0.105,
-	0.105,
-	0.012,
-	1
-}
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.UNLOADING] = { 0.2664, 0.0048, 0.1384, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.UNLOADING_TRAIN] = { 0.2664, 0.0048, 0.1384, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.UNLOADING_PALLET] = { 0.2664, 0.0048, 0.1384, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.PRODUCTION_POINT] = { 0.0065, 0.5583, 0.5711, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.SHOP] = { 0.6105, 0.5583, 0.0027, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.FARM] = { 0.6105, 0.5583, 0.0027, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.FUEL] = { 0.0203, 0.0685, 0.4287, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.ELECTRICITY] = { 0.0203, 0.0685, 0.4287, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.EXCLAMATION_MARK] = { 0.0027, 0.1981, 0.0152, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.LOADING] = { 0.0203, 0.0685, 0.4287, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.SHOP_ANIMAL] = { 0.6105, 0.5583, 0.0027, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.CHICKEN] = { 0.006, 0.1441, 0.1144, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.PIG] = { 0.006, 0.1441, 0.1144, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.SHEEP] = { 0.006, 0.1441, 0.1144, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.COW] = { 0.006, 0.1441, 0.1144, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.HORSE] = { 0.006, 0.1441, 0.1144, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.TRAIN] = { 0.6105, 0.5583, 0.0027, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.BEE] = { 0.006, 0.1441, 0.1144, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.FISHPOND] = { 0.006, 0.1441, 0.1144, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.FISHBREEDING] = { 0.006, 0.1441, 0.1144, 1 }
+PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.WILDLIFE] = { 0.105, 0.105, 0.012, 1 }
 local PlaceableHotspot_mt = Class(PlaceableHotspot, MapHotspot)
-
--- Upvalues: PlaceableHotspot_mt
--- Local values: self
 function PlaceableHotspot.new(customMt)
-	-- upvalues: (copy) PlaceableHotspot_mt
-	local v3_ = MapHotspot.new(customMt or PlaceableHotspot_mt)
+	local self = MapHotspot.new(customMt or PlaceableHotspot_mt)
 	if Platform.isMobile then
-		local v4_, v5_ = getNormalizedScreenValues(90, 90)
-		v3_.width = v4_
-		v3_.height = v5_
-		v3_.clickArea = MapHotspot.getClickCircle(0.667)
+		self.width, self.height = getNormalizedScreenValues(90, 90)
+		self.clickArea = MapHotspot.getClickCircle(0.667)
 	else
-		local v6_, v7_ = getNormalizedScreenValues(50, 50)
-		v3_.width = v6_
-		v3_.height = v7_
-		v3_.clickArea = MapHotspot.getClickArea({
-			9,
-			13,
-			82,
-			82
-		}, { 100, 100 }, 0)
+		self.width, self.height = getNormalizedScreenValues(50, 50)
+		self.clickArea = MapHotspot.getClickArea({ 9, 13, 82, 82 }, { 100, 100 }, 0)
 	end
-	v3_.placeableType = PlaceableHotspot.TYPE.UNLOADING
-	v3_.iconSmall = g_overlayManager:createOverlay("mapHotspots.miniMapHotspot", 0, 0, v3_.width, v3_.height)
-	local v8_ = v3_.iconSmall
-	local v9_ = PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.UNLOADING]
-	v8_:setColor(unpack(v9_))
-	v3_.lastRenderedIcon = v3_.iconSmall
-	v3_.teleportWorldX = nil
-	v3_.teleportWorldY = nil
-	v3_.teleportWorldZ = nil
-	v3_.name = nil
-	return v3_
+	self.placeableType = PlaceableHotspot.TYPE.UNLOADING
+	self.iconSmall = g_overlayManager:createOverlay("mapHotspots.miniMapHotspot", 0, 0, self.width, self.height)
+	self.iconSmall:setColor(unpack(PlaceableHotspot.COLOR[PlaceableHotspot.TYPE.UNLOADING]))
+	self.lastRenderedIcon = self.iconSmall
+	self.teleportWorldX = nil
+	self.teleportWorldY = nil
+	self.teleportWorldZ = nil
+	self.name = nil
+	return self
 end
-
 function PlaceableHotspot:delete()
 	PlaceableHotspot:superClass().delete(self)
 	if self.iconSmall ~= nil then
@@ -236,132 +114,107 @@ function PlaceableHotspot:delete()
 		self.iconSmall = nil
 	end
 end
-
 function PlaceableHotspot:getCategory()
 	return PlaceableHotspot.CATEGORY_MAPPING[self.placeableType]
 end
-
 function PlaceableHotspot:setPlaceable(placeable)
 	self.placeable = placeable
 	self:createIcon()
 	self:setPlaceableType(self.placeableType)
 end
-
 function PlaceableHotspot:getPlaceable()
 	return self.placeable
 end
-
--- Local values: slice
 function PlaceableHotspot:setPlaceableType(placeableType)
 	self.placeableType = placeableType
 	if self.icon ~= nil then
-		local v17_ = g_overlayManager:getSliceInfoById(PlaceableHotspot.SLICE[placeableType])
-		if v17_ ~= nil then
-			self.icon:setUVs(v17_.uvs)
+		local slice = g_overlayManager:getSliceInfoById(PlaceableHotspot.SLICE[placeableType])
+		if slice ~= nil then
+			self.icon:setUVs(slice.uvs)
 		end
 	end
 	if self.iconSmall ~= nil then
-		local v18_ = self.iconSmall
-		local v19_ = PlaceableHotspot.COLOR[placeableType]
-		v18_:setColor(unpack(v19_))
+		self.iconSmall:setColor(unpack(PlaceableHotspot.COLOR[placeableType]))
 	end
 end
-
 function PlaceableHotspot:createIcon()
 	if self.icon ~= nil then
 		self.icon:delete()
 	end
 	self.icon = g_overlayManager:createOverlay(PlaceableHotspot.SLICE[self.placeableType], 0, 0, self.width, self.height)
 	if self.icon ~= nil then
-		local v21_ = self.icon
-		local v22_ = self.color
-		v21_:setColor(unpack(v22_))
+		self.icon:setColor(unpack(self.color))
 		self.icon:setScale(self.scale, self.scale)
 	end
 end
-
 function PlaceableHotspot:setTeleportWorldPosition(x, y, z)
 	self.teleportWorldX = x
 	self.teleportWorldY = y
 	self.teleportWorldZ = z
 end
-
--- Local values: y
 function PlaceableHotspot:getTeleportWorldPosition()
 	if self.teleportWorldX == nil then
 		return nil
+	else
+		local y = getTerrainHeightAtWorldPos(g_terrainNode, self.teleportWorldX, 0, self.teleportWorldZ)
+		return self.teleportWorldX, math.max(y, self.teleportWorldY), self.teleportWorldZ
 	end
-	local v28_ = getTerrainHeightAtWorldPos(g_terrainNode, self.teleportWorldX, 0, self.teleportWorldZ)
-	local v29_ = self.teleportWorldX
-	local v30_ = self.teleportWorldY
-	return v29_, math.max(v28_, v30_), self.teleportWorldZ
 end
-
 function PlaceableHotspot:getBeVisited()
 	return self.teleportWorldX ~= nil
 end
-
 function PlaceableHotspot:setScale(scale)
 	self.iconSmall:setScale(scale, scale)
 	MapHotspot.setScale(self, scale)
 end
-
 function PlaceableHotspot:getWidth()
 	return self.lastRenderedIcon.width
 end
-
 function PlaceableHotspot:getHeight()
 	return self.lastRenderedIcon.height
 end
-
 function PlaceableHotspot:getDimension()
 	return self.lastRenderedIcon.width, self.lastRenderedIcon.height
 end
-
--- Local values: icon, a, clickArea, width, height, radius
 function PlaceableHotspot:render(x, y, rotation, small)
-	local v42_ = self.icon
+	local icon = self.icon
 	if small then
-		v42_ = self.iconSmall
+		icon = self.iconSmall
 	end
-	self.lastRenderedIcon = v42_
-	if v42_ ~= nil then
-		local v43_ = self.isBlinking and IngameMap.alpha or 1
-		v42_:renderCustom(x, y, v42_.width, v42_.height, nil, nil, nil, v43_, nil, nil, nil, nil, rotation or 0, v42_.width * 0.5, v42_.height * 0.5)
+	self.lastRenderedIcon = icon
+	if icon ~= nil then
+		local a = self.isBlinking and IngameMap.alpha or 1
+		icon:renderCustom(x, y, icon.width, icon.height, nil, nil, nil, a, nil, nil, nil, nil, rotation or 0, icon.width * 0.5, icon.height * 0.5)
 	end
 	if MapHotspot.DEBUGGING then
-		local v44_ = self.clickArea
-		if v44_.areaType == MapHotspot.AREA.CIRCLE then
-			local v45_ = self:getWidth()
-			local v46_ = self:getHeight()
-			local v47_ = v45_ * (v44_.radiusFactor or 1)
-			drawOutlineCircle2D(x + v45_ * 0.5, y + v46_ * 0.5, v47_, 0.001, 40, 1, 0, 0, 1)
+		local clickArea = self.clickArea
+		if clickArea.areaType == MapHotspot.AREA.CIRCLE then
+			local width = self:getWidth()
+			local height = self:getHeight()
+			local radius = width * (clickArea.radiusFactor or 1)
+			drawOutlineCircle2D(x + width * 0.5, y + height * 0.5, radius, 0.001, 40, 1, 0, 0, 1)
 		end
 	end
 end
-
 function PlaceableHotspot:getName()
-	if self.name == nil then
-		if self.placeable == nil then
-			return nil
-		else
-			return self.placeable:getName()
-		end
-	else
+	if self.name ~= nil then
 		return self.name
+	elseif self.placeable ~= nil then
+		return self.placeable:getName()
+	else
+		return nil
 	end
 end
-
 function PlaceableHotspot:setName(name)
 	self.name = name
 end
-
 function PlaceableHotspot.getTypeByName(name)
 	if name == nil then
 		return nil
+	else
+		name = string.upper(name)
+		return PlaceableHotspot.TYPE[name]
 	end
-	local v52_ = string.upper(name)
-	return PlaceableHotspot.TYPE[v52_]
 end
 PlaceableHotspot.getWorldPosition = MapHotspot.getWorldPosition
 PlaceableHotspot.getWorldRotation = MapHotspot.getWorldRotation

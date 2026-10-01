@@ -1,103 +1,71 @@
--- Local values: TensionBeltManager_mt
 TensionBeltManager = {}
 local TensionBeltManager_mt = Class(TensionBeltManager)
-
--- Upvalues: TensionBeltManager_mt
--- Local values: self
 function TensionBeltManager.new(customMt)
-	-- upvalues: (copy) TensionBeltManager_mt
-	local v3_ = customMt or TensionBeltManager_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_:initDataStructures()
-	return v4_
+	local self = setmetatable({}, customMt or TensionBeltManager_mt)
+	self:initDataStructures()
+	return self
 end
-
 function TensionBeltManager:initDataStructures()
 	self.belts = {}
 	self.defaultBeltData = nil
 end
-
 function TensionBeltManager:unloadMapData()
 	self:initDataStructures()
 end
-
--- Local values: self, name, width, beltType, belt, i, node, _, _, z, _, _, z, _, _, z
 function TensionBeltManager.onCreateTensionBelt(_, id)
-	local v8_ = g_tensionBeltManager
-	local v9_ = Utils.getNoNil(getUserAttribute(id, "name"), "default")
-	local v10_ = Utils.getNoNil(getUserAttribute(id, "width"), 0.15)
-	local v11_ = v8_:getType(v9_)
-	if v8_.belts[v11_] == nil then
-		local v12_ = {
-			["width"] = v10_
-		}
-		for v13_ = 0, getNumOfChildren(id) - 1 do
-			local v14_ = getChildAt(id, v13_)
-			if getUserAttribute(v14_, "isMaterial") then
-				v12_.material = {
-					["materialId"] = getMaterial(v14_, 0),
-					["uvScale"] = Utils.getNoNil(getUserAttribute(v14_, "uvScale"), 0.1)
-				}
-			elseif getUserAttribute(v14_, "isDummyMaterial") then
-				v12_.dummyMaterial = {
-					["materialId"] = getMaterial(v14_, 0),
-					["uvScale"] = Utils.getNoNil(getUserAttribute(v14_, "uvScale"), 0.1)
-				}
-			elseif getUserAttribute(v14_, "isHook") then
-				if v12_.hook == nil then
-					local _, _, v15_ = getTranslation(getChildAt(v14_, 0))
-					v12_.hook = {
-						["node"] = v14_,
-						["sizeRatio"] = v15_
-					}
-				else
-					local _, _, v16_ = getTranslation(getChildAt(v14_, 0))
-					v12_.hook2 = {
-						["node"] = v14_,
-						["sizeRatio"] = v16_
-					}
-				end
-			elseif getUserAttribute(v14_, "isRatchet") then
-				local _, _, v17_ = getTranslation(getChildAt(v14_, 0))
-				v12_.ratchet = {
-					["node"] = v14_,
-					["sizeRatio"] = v17_
-				}
-			end
-		end
-		if v12_.material == nil then
-			printWarning("Warning: No material defined for tension belt type \'" .. v9_ .. "\'!")
-			return
-		elseif v12_.dummyMaterial == nil then
-			printWarning("Warning: No material defined for tension belt type \'" .. v9_ .. "\'!")
-		else
-			v8_.belts[v11_] = v12_
-			if v8_.defaultBeltData == nil then
-				v8_.defaultBeltData = v12_
-			end
-		end
-	else
-		printWarning("Warning: Tension belt type \'" .. v9_ .. "\' already exists!")
+	local self = g_tensionBeltManager
+	local name = Utils.getNoNil(getUserAttribute(id, "name"), "default")
+	local width = Utils.getNoNil(getUserAttribute(id, "width"), 0.15)
+	local beltType = self:getType(name)
+	if self.belts[beltType] ~= nil then
+		printWarning("Warning: Tension belt type '" .. name .. "' already exists!")
 		return
 	end
+	local belt = {}
+	belt.width = width
+	for i = 0, getNumOfChildren(id) - 1 do
+		local node = getChildAt(id, i)
+		if getUserAttribute(node, "isMaterial") then
+			belt.material = { materialId = getMaterial(node, 0), uvScale = Utils.getNoNil(getUserAttribute(node, "uvScale"), 0.1) }
+		elseif getUserAttribute(node, "isDummyMaterial") then
+			belt.dummyMaterial = { materialId = getMaterial(node, 0), uvScale = Utils.getNoNil(getUserAttribute(node, "uvScale"), 0.1) }
+		elseif getUserAttribute(node, "isHook") then
+			if belt.hook ~= nil then
+				local _, _, z = getTranslation(getChildAt(node, 0))
+				belt.hook2 = { node = node, sizeRatio = z }
+			else
+				local _, _, z = getTranslation(getChildAt(node, 0))
+				belt.hook = { node = node, sizeRatio = z }
+			end
+		elseif getUserAttribute(node, "isRatchet") then
+			local _, _, z = getTranslation(getChildAt(node, 0))
+			belt.ratchet = { node = node, sizeRatio = z }
+		end
+	end
+	if belt.material == nil then
+		printWarning("Warning: No material defined for tension belt type '" .. name .. "'!")
+	elseif belt.dummyMaterial == nil then
+		printWarning("Warning: No material defined for tension belt type '" .. name .. "'!")
+	else
+		self.belts[beltType] = belt
+		if self.defaultBeltData == nil then
+			self.defaultBeltData = belt
+		end
+	end
 end
-
 function TensionBeltManager:getType(beltName)
 	return "BELT_TYPE_" .. string.upper(beltName)
 end
-
--- Local values: beltType, beltData
 function TensionBeltManager:getBeltData(beltName)
 	if beltName == nil then
 		return self.defaultBeltData
+	end
+	local beltType = self:getType(beltName)
+	local beltData = self.belts[beltType]
+	if beltData == nil then
+		return self.defaultBeltData
 	else
-		local v21_ = self:getType(beltName)
-		local v22_ = self.belts[v21_]
-		if v22_ == nil then
-			return self.defaultBeltData
-		else
-			return v22_
-		end
+		return beltData
 	end
 end
 g_tensionBeltManager = TensionBeltManager.new()

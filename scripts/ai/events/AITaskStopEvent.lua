@@ -1,40 +1,33 @@
--- Local values: AITaskStopEvent_mt
 AITaskStopEvent = {}
 local AITaskStopEvent_mt = Class(AITaskStopEvent, Event)
 InitStaticEventClass(AITaskStopEvent, "AITaskStopEvent")
 function AITaskStopEvent.emptyNew()
-	-- upvalues: (copy) AITaskStopEvent_mt
-	return Event.new(AITaskStopEvent_mt)
+	local self = Event.new(AITaskStopEvent_mt)
+	return self
 end
-
--- Local values: self
 function AITaskStopEvent.new(job, task, wasJobStopped)
-	local v5_ = AITaskStopEvent.emptyNew()
-	v5_.job = job
-	v5_.wasJobStopped = wasJobStopped
-	v5_.task = task
-	return v5_
+	local self = AITaskStopEvent.emptyNew()
+	self.job = job
+	self.wasJobStopped = wasJobStopped
+	self.task = task
+	return self
 end
-
--- Local values: jobId, taskId, wasJobStopped
 function AITaskStopEvent:readStream(streamId, connection)
-	local v9_ = streamReadInt32(streamId)
-	local v10_ = streamReadUInt8(streamId)
-	local v11_ = streamReadBool(streamId)
-	self.job = g_currentMission.aiSystem:getJobById(v9_)
+	local jobId = streamReadInt32(streamId)
+	local taskId = streamReadUInt8(streamId)
+	local wasJobStopped = streamReadBool(streamId)
+	self.job = g_currentMission.aiSystem:getJobById(jobId)
 	if self.job ~= nil then
-		self.task = self.job:getTaskByIndex(v10_)
+		self.task = self.job:getTaskByIndex(taskId)
 	end
-	self.wasJobStopped = v11_
+	self.wasJobStopped = wasJobStopped
 	self:run(connection)
 end
-
 function AITaskStopEvent:writeStream(streamId, connection)
 	streamWriteInt32(streamId, self.job.jobId)
 	streamWriteUInt8(streamId, self.task.taskIndex)
 	streamWriteBool(streamId, self.wasJobStopped)
 end
-
 function AITaskStopEvent:run(connection)
 	if self.job == nil then
 		Logging.devWarning("AITaskStopEvent: Job not defined")

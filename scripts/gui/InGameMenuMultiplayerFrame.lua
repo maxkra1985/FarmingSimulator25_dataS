@@ -1,208 +1,139 @@
--- Local values: InGameMenuMultiplayerFrame_mt
 InGameMenuMultiplayerFrame = {}
 local InGameMenuMultiplayerFrame_mt = Class(InGameMenuMultiplayerFrame, TabbedMenuFrameElement)
-InGameMenuMultiplayerFrame.ELEMENT_NAME = {
-	["ROW_PLAYER_NAME"] = "playerName",
-	["ROW_FARM_NAME"] = "farmName",
-	["ROW_FARM_COLOR"] = "farmColor"
-}
-InGameMenuMultiplayerFrame.TRANSFER_AMOUNT = {
-	["SMALL"] = 5000,
-	["MEDIUM"] = 50000,
-	["LARGE"] = 250000
-}
-InGameMenuMultiplayerFrame.ELEMENT_NAME = {
-	["ROW_PLAYER_NAME"] = "playerName",
-	["ROW_FARM_NAME"] = "farmName",
-	["ROW_FARM_COLOR"] = "farmColor"
-}
-InGameMenuMultiplayerFrame.TRANSFER_AMOUNT = {
-	["SMALL"] = 5000,
-	["MEDIUM"] = 50000,
-	["LARGE"] = 250000
-}
+InGameMenuMultiplayerFrame.ELEMENT_NAME = { ROW_PLAYER_NAME = "playerName", ROW_FARM_NAME = "farmName", ROW_FARM_COLOR = "farmColor" }
+InGameMenuMultiplayerFrame.TRANSFER_AMOUNT = { SMALL = 5000, MEDIUM = 50000, LARGE = 250000 }
+InGameMenuMultiplayerFrame.ELEMENT_NAME = { ROW_PLAYER_NAME = "playerName", ROW_FARM_NAME = "farmName", ROW_FARM_COLOR = "farmColor" }
+InGameMenuMultiplayerFrame.TRANSFER_AMOUNT = { SMALL = 5000, MEDIUM = 50000, LARGE = 250000 }
 InGameMenuMultiplayerFrame.SUB_CATEGORY_FARMS = 1
 InGameMenuMultiplayerFrame.SUB_CATEGORY_USERS = 2
 function InGameMenuMultiplayerFrame.register()
-	local v2_ = InGameMenuMultiplayerFrame.new()
-	g_gui:loadGui("dataS/gui/InGameMenuMultiplayerFrame.xml", "MultiplayerFrame", v2_, true)
+	local inGameMenuMultiplayerFrame = InGameMenuMultiplayerFrame.new()
+	g_gui:loadGui("dataS/gui/InGameMenuMultiplayerFrame.xml", "MultiplayerFrame", inGameMenuMultiplayerFrame, true)
 end
-
--- Upvalues: InGameMenuMultiplayerFrame_mt
--- Local values: self
 function InGameMenuMultiplayerFrame.new(target, custom_mt)
-	-- upvalues: (copy) InGameMenuMultiplayerFrame_mt
-	local v5_ = TabbedMenuFrameElement.new(target, custom_mt or InGameMenuMultiplayerFrame_mt)
-	v5_.currentUser = User.new()
-	v5_.playerFarm = nil
-	v5_.player = nil
-	v5_.playerFarm = nil
-	v5_.hasAskedForPassword = false
-	v5_.timeSinceLastMoneyUpdate = 0
-	v5_.elementFarmIdMap = {}
-	v5_.farmIdBalanceMap = {}
-	v5_.farmIdPlayerCountMap = {}
-	v5_.newFarmListIndex = 0
-	v5_.hasCustomMenuButtons = true
-	v5_.menuButtonInfo = {}
-	v5_.selectedUserId = nil
-	v5_.selectedUserFarm = nil
-	v5_.isNavigatingUsers = false
-	v5_.users = {}
-	v5_.listRowUser = {}
-	v5_.permissionCheckboxes = {}
-	v5_.checkboxPermissions = {}
-	v5_.timeSinceLastRefresh = 0
-	return v5_
+	local self = TabbedMenuFrameElement.new(target, custom_mt or InGameMenuMultiplayerFrame_mt)
+	self.currentUser = User.new()
+	self.playerFarm = nil
+	self.player = nil
+	self.playerFarm = nil
+	self.hasAskedForPassword = false
+	self.timeSinceLastMoneyUpdate = 0
+	self.elementFarmIdMap = {}
+	self.farmIdBalanceMap = {}
+	self.farmIdPlayerCountMap = {}
+	self.newFarmListIndex = 0
+	self.hasCustomMenuButtons = true
+	self.menuButtonInfo = {}
+	self.selectedUserId = nil
+	self.selectedUserFarm = nil
+	self.isNavigatingUsers = false
+	self.users = {}
+	self.listRowUser = {}
+	self.permissionCheckboxes = {}
+	self.checkboxPermissions = {}
+	self.timeSinceLastRefresh = 0
+	return self
 end
-
--- Local values: newGui
 function InGameMenuMultiplayerFrame.createFromExistingGui(gui, guiName)
-	local v8_ = InGameMenuMultiplayerFrame.new()
+	local newGui = InGameMenuMultiplayerFrame.new()
 	g_gui.frames[gui.name].target:delete()
 	g_gui.frames[gui.name]:delete()
-	g_gui:loadGui(gui.xmlFilename, guiName, v8_, true)
-	return v8_
+	g_gui:loadGui(gui.xmlFilename, guiName, newGui, true)
+	return newGui
 end
-
--- Local values: subCategories, index, button, k, v
 function InGameMenuMultiplayerFrame:initialize()
 	InGameMenuMultiplayerFrame:superClass().initialize(self)
-	self.backButtonInfo = {
-		["inputAction"] = InputAction.MENU_BACK
-	}
-	self.nextPageButtonInfo = {
-		["inputAction"] = InputAction.MENU_PAGE_NEXT,
-		["text"] = g_i18n:getText("ui_ingameMenuNext"),
-		["callback"] = self.onPageNext
-	}
-	self.prevPageButtonInfo = {
-		["inputAction"] = InputAction.MENU_PAGE_PREV,
-		["text"] = g_i18n:getText("ui_ingameMenuPrev"),
-		["callback"] = self.onPagePrevious
-	}
+	self.backButtonInfo = { inputAction = InputAction.MENU_BACK }
+	self.nextPageButtonInfo = { inputAction = InputAction.MENU_PAGE_NEXT, text = g_i18n:getText("ui_ingameMenuNext"), callback = self.onPageNext }
+	self.prevPageButtonInfo = { inputAction = InputAction.MENU_PAGE_PREV, text = g_i18n:getText("ui_ingameMenuPrev"), callback = self.onPagePrevious }
 	self.joinMenuButton = {
-		["inputAction"] = InputAction.MENU_ACCEPT,
-		["text"] = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_JOIN_FARM),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACCEPT,
+		text = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_JOIN_FARM),
+		callback = function()
 			self:joinFarm(self.selectedFarmId)
-		end
+		end,
 	}
 	self.leaveMenuButton = {
-		["inputAction"] = InputAction.MENU_ACCEPT,
-		["text"] = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_LEAVE_FARM),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACCEPT,
+		text = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_LEAVE_FARM),
+		callback = function()
 			self:leaveFarm()
-		end
+		end,
 	}
 	self.editMenuButton = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_EDIT_FARM),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACTIVATE,
+		text = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_EDIT_FARM),
+		callback = function()
 			self:editFarm(self.selectedFarmId)
-		end
+		end,
 	}
 	self.createMenuButton = {
-		["inputAction"] = InputAction.MENU_ACCEPT,
-		["text"] = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_CREATE_FARM),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACCEPT,
+		text = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_CREATE_FARM),
+		callback = function()
 			self:createFarm()
-		end
+		end,
 	}
 	self.deleteMenuButton = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_DELETE_FARM),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_CANCEL,
+		text = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_DELETE_FARM),
+		callback = function()
 			self:deleteFarm(self.selectedFarmId)
-		end
+		end,
 	}
 	self.playerNameTemplate:unlinkElement()
-	local v10_ = {}
-	for v_u_11_, v12_ in pairs(self.subCategoryTabs) do
-		v12_:getDescendantByName("background").getIsSelected = function()
-			-- upvalues: (copy) v_u_11_, (copy) self
-			return v_u_11_ == self.subCategoryPaging:getState()
+	local subCategories = {}
+	for index, button in pairs(self.subCategoryTabs) do
+		button:getDescendantByName("background").getIsSelected = function()
+			return index == self.subCategoryPaging:getState()
 		end
-		function v12_.getIsSelected()
-			-- upvalues: (copy) v_u_11_, (copy) self
-			return v_u_11_ == self.subCategoryPaging:getState()
+		function button.getIsSelected()
+			return index == self.subCategoryPaging:getState()
 		end
-		local v13_ = tostring(v_u_11_)
-		table.insert(v10_, v13_)
+		table.insert(subCategories, tostring(index))
 	end
-	self.subCategoryPaging:setTexts(v10_)
+	self.subCategoryPaging:setTexts(subCategories)
 	self.subCategoryPaging:setSize(self.subCategoryBox.maxFlowSize + 140 * g_pixelSizeScaledX)
 	self:setupUserListFocusContext()
 	self.unblockButtonInfo = {
-		["inputAction"] = InputAction.MENU_EXTRA_1,
-		["text"] = g_i18n:getText("button_blocklist"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_EXTRA_1,
+		text = g_i18n:getText("button_blocklist"),
+		callback = function()
 			self:onButtonUnBan()
-		end
+		end,
 	}
 	self.unblockRemoteButtonInfo = {
-		["inputAction"] = InputAction.MENU_CANCEL,
-		["text"] = g_i18n:getText("button_blocklist"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_CANCEL,
+		text = g_i18n:getText("button_blocklist"),
+		callback = function()
 			self:onButtonUnBanRemote()
-		end
+		end,
 	}
 	self.adminButtonInfo = {
-		["inputAction"] = InputAction.MENU_ACTIVATE,
-		["text"] = g_i18n:getText("button_adminLogin"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_ACTIVATE,
+		text = g_i18n:getText("button_adminLogin"),
+		callback = function()
 			self:onButtonAdminLogin()
-		end
+		end,
 	}
 	self.inviteFriendsInfo = {
-		["inputAction"] = InputAction.MENU_EXTRA_2,
-		["text"] = g_i18n:getText("ui_inviteScreen"),
-		["callback"] = function()
-			-- upvalues: (copy) self
+		inputAction = InputAction.MENU_EXTRA_2,
+		text = g_i18n:getText("ui_inviteScreen"),
+		callback = function()
 			self:onButtonInviteFriends()
-		end
+		end,
 	}
-	self.permissionCheckboxes = {
-		[Farm.PERMISSION.BUY_VEHICLE] = self.buyVehiclePermissionCheckbox,
-		[Farm.PERMISSION.SELL_VEHICLE] = self.sellVehiclePermissionCheckbox,
-		[Farm.PERMISSION.RESET_VEHICLE] = self.resetVehiclePermissionCheckbox,
-		[Farm.PERMISSION.BUY_PLACEABLE] = self.buyPlaceablePermissionCheckbox,
-		[Farm.PERMISSION.SELL_PLACEABLE] = self.sellPlaceablePermissionCheckbox,
-		[Farm.PERMISSION.HIRE_ASSISTANT] = self.hireAssistantPermissionCheckbox,
-		[Farm.PERMISSION.MANAGE_CONTRACTS] = self.manageMissionsPermissionCheckbox,
-		[Farm.PERMISSION.MANAGE_PRODUCTIONS] = self.manageProductionsPermissionCheckbox,
-		[Farm.PERMISSION.TRADE_ANIMALS] = self.tradeAnimalsPermissionCheckbox,
-		[Farm.PERMISSION.CUT_TREES] = self.cutTreesPermissionCheckbox,
-		[Farm.PERMISSION.CREATE_FIELDS] = self.createFieldsPermissionCheckbox,
-		[Farm.PERMISSION.LANDSCAPING] = self.landscapingPermissionCheckbox
-	}
-	self.reportReasons = {
-		[ReportUserReason.PLAYER_NAME + 1] = g_i18n:getText("ui_reportPlayer_reason_name"),
-		[ReportUserReason.VOICE_CHAT + 1] = g_i18n:getText("ui_reportPlayer_reason_voice"),
-		[ReportUserReason.TEXT_CHAT + 1] = g_i18n:getText("ui_reportPlayer_reason_text"),
-		[ReportUserReason.BEHAVIOR + 1] = g_i18n:getText("ui_reportPlayer_reason_behavior"),
-		[ReportUserReason.CHEATING + 1] = g_i18n:getText("ui_reportPlayer_reason_cheating")
-	}
+	self.permissionCheckboxes = { [Farm.PERMISSION.BUY_VEHICLE] = self.buyVehiclePermissionCheckbox, [Farm.PERMISSION.SELL_VEHICLE] = self.sellVehiclePermissionCheckbox, [Farm.PERMISSION.RESET_VEHICLE] = self.resetVehiclePermissionCheckbox, [Farm.PERMISSION.BUY_PLACEABLE] = self.buyPlaceablePermissionCheckbox, [Farm.PERMISSION.SELL_PLACEABLE] = self.sellPlaceablePermissionCheckbox, [Farm.PERMISSION.HIRE_ASSISTANT] = self.hireAssistantPermissionCheckbox, [Farm.PERMISSION.MANAGE_CONTRACTS] = self.manageMissionsPermissionCheckbox, [Farm.PERMISSION.MANAGE_PRODUCTIONS] = self.manageProductionsPermissionCheckbox, [Farm.PERMISSION.TRADE_ANIMALS] = self.tradeAnimalsPermissionCheckbox, [Farm.PERMISSION.CUT_TREES] = self.cutTreesPermissionCheckbox, [Farm.PERMISSION.CREATE_FIELDS] = self.createFieldsPermissionCheckbox, [Farm.PERMISSION.LANDSCAPING] = self.landscapingPermissionCheckbox }
+	self.reportReasons = { [ReportUserReason.PLAYER_NAME + 1] = g_i18n:getText("ui_reportPlayer_reason_name"), [ReportUserReason.VOICE_CHAT + 1] = g_i18n:getText("ui_reportPlayer_reason_voice"), [ReportUserReason.TEXT_CHAT + 1] = g_i18n:getText("ui_reportPlayer_reason_text"), [ReportUserReason.BEHAVIOR + 1] = g_i18n:getText("ui_reportPlayer_reason_behavior"), [ReportUserReason.CHEATING + 1] = g_i18n:getText("ui_reportPlayer_reason_cheating") }
 	self.checkboxPermissions = {}
-	for v14_, v15_ in pairs(self.permissionCheckboxes) do
-		self.checkboxPermissions[v15_] = v14_
+	for k, v in pairs(self.permissionCheckboxes) do
+		self.checkboxPermissions[v] = k
 	end
 end
-
 function InGameMenuMultiplayerFrame:delete()
 	self.playerNameTemplate:delete()
 	InGameMenuMultiplayerFrame:superClass().delete(self)
 end
-
--- Local values: listIndex
 function InGameMenuMultiplayerFrame:onFrameOpen()
 	InGameMenuMultiplayerFrame:superClass().onFrameOpen(self)
 	g_messageCenter:subscribe(MessageType.FARM_CREATED, self.onFarmCreated, self)
@@ -221,22 +152,23 @@ function InGameMenuMultiplayerFrame:onFrameOpen()
 	self:setCurrentUserId(g_currentMission.playerUserId)
 	self.subCategoryPaging:setState(1, true)
 	self.selectedFarmId = nil
-	if self.farmList:getItemCount() > 0 then
-		local v18_ = self.playerFarm == nil and 1 or self:getListFarmIndex(self.playerFarm.farmId)
-		self.farmList:setSelectedIndex(v18_, true)
+	if 0 < self.farmList:getItemCount() then
+		local listIndex = 1
+		if self.playerFarm ~= nil then
+			listIndex = self:getListFarmIndex(self.playerFarm.farmId)
+		end
+		self.farmList:setSelectedIndex(listIndex, true)
 		FocusManager:setFocus(self.farmList)
 	else
 		self.farmList:setDisabled(true)
 		FocusManager:setFocus(self.subCategoryPaging)
 	end
 end
-
 function InGameMenuMultiplayerFrame:onFrameClose()
 	self.farms = {}
 	g_messageCenter:unsubscribeAll(self)
 	InGameMenuMultiplayerFrame:superClass().onFrameClose(self)
 end
-
 function InGameMenuMultiplayerFrame:reset()
 	InGameMenuMultiplayerFrame:superClass().reset(self)
 	self.currentUser = User.new()
@@ -249,369 +181,272 @@ function InGameMenuMultiplayerFrame:reset()
 	self.farmIdPlayerCountMap = {}
 	self.newFarmListIndex = 0
 end
-
 function InGameMenuMultiplayerFrame:setupUserListFocusContext()
 	function self.userList.onFocusEnter()
-		-- upvalues: (copy) self
 		self.isNavigatingUsers = true
 		self:updateMenuButtons()
 	end
 	function self.userList.onFocusLeave()
-		-- upvalues: (copy) self
 		self.isNavigatingUsers = false
 		self:updateMenuButtons()
 	end
 end
-
 function InGameMenuMultiplayerFrame:setCurrentUserId(currentUserId)
 	self.currentUserId = currentUserId
 	self.currentUser = g_currentMission.userManager:getUserByUserId(currentUserId) or self.currentUser
 	self:updateMenuButtons()
 end
-
--- Local values: sortedUsers
 function InGameMenuMultiplayerFrame:setUsers(users)
-	self.users = self:getSortedUsers(users)
+	local sortedUsers = self:getSortedUsers(users)
+	self.users = sortedUsers
 	self.shouldRebuildUserList = true
 	self:updateMenuButtons()
 end
-
--- Local values: sortedUsers, _, user, groupSortUsers
 function InGameMenuMultiplayerFrame:getSortedUsers(users)
-	local v28_ = {}
-	for _, v29_ in pairs(users) do
-		if not g_currentMission.connectedToDedicatedServer or v29_:getId() ~= g_currentMission:getServerUserId() then
-			table.insert(v28_, v29_)
+	local sortedUsers = {}
+	for _, user in pairs(users) do
+		if not g_currentMission.connectedToDedicatedServer or user:getId() ~= g_currentMission:getServerUserId() then
+			table.insert(sortedUsers, user)
 		end
 	end
-	table.sort(v28_, function(p30_, p31_)
-		-- upvalues: (copy) self
-		local v32_ = p30_:getId()
-		local v33_ = p31_:getId()
-		if v32_ == nil and v33_ == nil then
+	local groupSortUsers = function(user1, user2)
+		local user1Id = user1:getId()
+		local user2Id = user2:getId()
+		if user1Id == nil and user2Id == nil then
 			return false
-		else
-			local v34_ = g_farmManager:getFarmByUserId(v32_)
-			local v35_ = g_farmManager:getFarmByUserId(v33_)
-			if v34_ == nil and v35_ == nil then
-				if v32_ == nil then
-					return false
-				else
-					return v33_ == nil and true or v32_ < v33_
-				end
+		end
+		local farm1 = g_farmManager:getFarmByUserId(user1Id)
+		local farm2 = g_farmManager:getFarmByUserId(user2Id)
+		if farm1 == nil and farm2 == nil then
+			if user1Id == nil then
+				return false
+			elseif user2Id == nil then
+				return true
 			else
-				if v34_ == nil then
-					return false
-				end
-				if v35_ == nil then
-					return true
-				end
-				local v36_ = v34_.farmId
-				local v37_ = v35_.farmId
-				local v38_ = self.playerFarm ~= nil and v36_ == self.playerFarm.farmId and -math.huge or v36_
-				local v39_ = self.playerFarm ~= nil and v37_ == self.playerFarm.farmId and -math.huge or v37_
-				local v40_ = v38_ == FarmManager.SPECTATOR_FARM_ID and math.huge or v38_
-				local v41_ = v39_ == FarmManager.SPECTATOR_FARM_ID and math.huge or v39_
-				if v40_ ~= v41_ then
-					return v40_ < v41_
-				end
-				local v42_ = p30_:getNickname()
-				local v43_ = p31_:getNickname()
-				return v42_ == v43_ and true or v42_ < v43_
+				return user1Id < user2Id
 			end
 		end
-	end)
-	return v28_
+		if farm1 == nil then
+			return false
+		end
+		if farm2 == nil then
+			return true
+		end
+		local farm1Id = farm1.farmId
+		local farm2Id = farm2.farmId
+		if self.playerFarm ~= nil and farm1Id == self.playerFarm.farmId then
+			farm1Id = -math.huge
+		end
+		if self.playerFarm ~= nil and farm2Id == self.playerFarm.farmId then
+			farm2Id = -math.huge
+		end
+		if farm1Id == FarmManager.SPECTATOR_FARM_ID then
+			farm1Id = math.huge
+		end
+		if farm2Id == FarmManager.SPECTATOR_FARM_ID then
+			farm2Id = math.huge
+		end
+		if farm1Id ~= farm2Id then
+			return farm1Id < farm2Id
+		end
+		local nickname1 = user1:getNickname()
+		local nickname2 = user2:getNickname()
+		if nickname1 ~= nickname2 then
+			return nickname1 < nickname2
+		else
+			return true
+		end
+	end
+	table.sort(sortedUsers, groupSortUsers)
+	return sortedUsers
 end
-
 function InGameMenuMultiplayerFrame:setPlayer(player)
 	self.player = player
 end
-
 function InGameMenuMultiplayerFrame:setPlayerFarm(farm)
 	self.playerFarm = farm
 end
-
--- Local values: index, i, farm
 function InGameMenuMultiplayerFrame:getListFarmIndex(farmId)
-	local v50_ = 1
+	local index = 1
 	if farmId ~= FarmManager.SPECTATOR_FARM_ID then
-		for v51_, v52_ in ipairs(self.farms) do
-			if v52_.farmId == farmId then
-				return v51_
+		for i, farm in ipairs(self.farms) do
+			if farm.farmId == farmId then
+				return i
 			end
 		end
 	end
-	return v50_
+	return index
 end
-
--- Local values: farm
 function InGameMenuMultiplayerFrame:setFarmBalance(farmId, balance)
 	if balance == nil then
-		balance = g_farmManager:getFarmById(farmId):getBalance()
+		local farm = g_farmManager:getFarmById(farmId)
+		balance = farm:getBalance()
 	end
 	if self.farmIdBalanceMap[farmId] ~= nil then
 		self.farmIdBalanceMap[farmId]:setValue(balance)
 	end
 end
-
--- Local values: list, farms, spectatorFarm, _, farm
 function InGameMenuMultiplayerFrame:getSortedFarmList()
-	local v57_ = {}
-	local v58_ = g_farmManager:getFarms()
-	local v59_ = self.playerFarm
-	table.insert(v57_, v59_)
-	local v60_ = nil
-	for _, v61_ in pairs(v58_) do
-		if not v61_.isSpectator and (v61_ ~= self.playerFarm and v61_.showInFarmScreen) then
-			table.insert(v57_, v61_)
+	local list = {}
+	local farms = g_farmManager:getFarms()
+	local spectatorFarm = nil
+	table.insert(list, self.playerFarm)
+	for _, farm in pairs(farms) do
+		if not farm.isSpectator and (farm ~= self.playerFarm and farm.showInFarmScreen) then
+			table.insert(list, farm)
 		end
-		if v61_.isSpectator then
-			v60_ = v61_
+		if farm.isSpectator then
+			spectatorFarm = farm
 		end
 	end
-	if v60_:getNumActivePlayers() > 0 and v60_ ~= self.playerFarm then
-		table.insert(v57_, v60_)
+	if 0 < spectatorFarm:getNumActivePlayers() and spectatorFarm ~= self.playerFarm then
+		table.insert(list, spectatorFarm)
 	end
-	return v57_
+	return list
 end
-
--- Local values: isFarmManager, hasHighPrivilege, isOwnFarmSelected, isSpectatorSelected, isSelfSelected, isSelectedUserFarmManager, canManageSelectedFarm, isOtherAdminSelected, selectionIsUser, user, isContracting, texts, volumeText, i, rawVolume, canChangePermissions, permissions, permissionKey, checkbox
 function InGameMenuMultiplayerFrame:updateElements()
-	local v63_ = self.playerFarm:isUserFarmManager(self.currentUserId)
-	local v64_ = v63_ or self.currentUser:getIsMasterUser()
-	local v65_ = self.selectedUserFarm == self.playerFarm
-	local v66_ = self.selectedUserFarm.isSpectator
-	local v67_ = self.selectedUserId == self.currentUserId
-	local v68_
-	if self.selectedUserId == nil then
-		v68_ = false
-	else
-		v68_ = self.selectedUserFarm:isUserFarmManager(self.selectedUserId)
+	local isFarmManager = self.playerFarm:isUserFarmManager(self.currentUserId)
+	local hasHighPrivilege = isFarmManager or self.currentUser:getIsMasterUser()
+	local isOwnFarmSelected = self.selectedUserFarm == self.playerFarm
+	local isSpectatorSelected = self.selectedUserFarm.isSpectator
+	local isSelfSelected = self.selectedUserId == self.currentUserId
+	local isSelectedUserFarmManager = false
+	if self.selectedUserId ~= nil then
+		isSelectedUserFarmManager = self.selectedUserFarm:isUserFarmManager(self.selectedUserId)
 	end
-	local v69_ = v63_ and v65_ and v65_ or self.currentUser:getIsMasterUser()
-	local v70_ = self.selectedUserId ~= nil
-	local v71_, v72_
-	if v70_ then
-		v71_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-		if v71_ == nil or self.selectedUserId == self.currentUserId then
-			v72_ = false
+	local canManageSelectedFarm = isFarmManager and isOwnFarmSelected or self.currentUser:getIsMasterUser()
+	local isOtherAdminSelected = false
+	local selectionIsUser = self.selectedUserId ~= nil
+	local user = nil
+	if selectionIsUser then
+		user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+		if user ~= nil and self.selectedUserId ~= self.currentUserId then
+			user:getIsMasterUser()
+		end
+		isOtherAdminSelected = false
+	end
+	self.transferButton:setVisible(not selectionIsUser and not isOwnFarmSelected and isFarmManager and not isSpectatorSelected)
+	self.removeButton:setVisible(false)
+	self.promoteButton:setVisible(selectionIsUser and canManageSelectedFarm and not isSpectatorSelected and not isOtherAdminSelected)
+	self.promoteButton:setText(g_i18n:getText(isSelectedUserFarmManager and "button_mp_dimiss" or "button_mp_promote"))
+	local isContracting = self.selectedUserFarm:getIsContractingFor(self.playerFarm.farmId)
+	self.contractorButton:setVisible(not selectionIsUser and hasHighPrivilege and not isOwnFarmSelected and not isSpectatorSelected and not self.playerFarm.isSpectator)
+	self.contractorButton:setText(g_i18n:getText(isContracting and "button_mp_ungrant" or "button_mp_grant"))
+	self.kickButton:setVisible(selectionIsUser and not isSelfSelected and self.currentUser:getIsMasterUser())
+	self.blockFromServerButton:setVisible(selectionIsUser and not isSelfSelected and self.currentUser:getIsMasterUser() and not g_currentMission:getIsServer() and self.selectedUserId ~= g_currentMission:getServerUserId())
+	self.blockButton:setVisible(selectionIsUser and not isSelfSelected)
+	if selectionIsUser then
+		if user ~= nil then
+			self.blockButton:setText(g_i18n:getText(user:getIsBlocked() and "button_unblock" or "button_block"))
+		end
+	end
+	self.muteButton:setVisible(selectionIsUser and isSelfSelected and VoiceChatUtil.getHasRecordingDevice() and not VoiceChatUtil.getIsVoiceRestricted())
+	if selectionIsUser then
+		if user ~= nil then
+			self.muteButton:setText(g_i18n:getText(user:getVoiceMuted() and "button_unmute" or "button_mute"))
+		end
+	end
+	self.peerVolumeOption:setVisible(selectionIsUser and not isSelfSelected and not VoiceChatUtil.getIsVoiceRestricted())
+	if selectionIsUser then
+		local texts = { g_i18n:getText("button_mute") }
+		local volumeText = g_i18n:getText("ui_volumeSound")
+		for i = 1, 10 do
+			table.insert(texts, string.format("%s: %d%%", volumeText, i * 10))
+		end
+		self.peerVolumeOption:setTexts(texts)
+		local rawVolume = user ~= nil and user:getVoiceVolume() or 0
+		self.peerVolumeOption:setState(MathUtil.round(rawVolume / 0.1 + 1, 0))
+	end
+	if selectionIsUser then
+		if user ~= nil then
+			self.showProfileButton:setVisible(Platform.hasNativeProfiles and getPlatformIdsAreCompatible(user:getPlatformId(), getPlatformId()))
+			self.reportButton:setVisible(not isSelfSelected)
 		else
-			v72_ = v71_:getIsMasterUser()
+			self.showProfileButton:setVisible(false)
+			self.reportButton:setVisible(false)
 		end
-	else
-		v71_ = nil
-		v72_ = false
 	end
-	local v73_ = self.transferButton
-	local v74_ = not (v70_ or v65_)
-	if v74_ then
-		if v63_ then
-			v63_ = not v66_
-		end
-	else
-		v63_ = v74_
-	end
-	v73_:setVisible(v63_)
-	local v75_ = self.removeButton
-	local v76_ = v71_ ~= nil and (v70_ and (v69_ and not (v67_ or v66_)))
-	if v76_ then
-		local v77_ = v71_:getIsMasterUser()
-		if v77_ then
-			v77_ = not self.currentUser:getIsMasterUser()
-		end
-		v76_ = not v77_
-	end
-	v75_:setVisible(v76_)
-	local v78_ = self.promoteButton
-	local v79_
-	if v70_ then
-		if v69_ then
-			v79_ = not v66_
-			if v79_ then
-				v79_ = not v72_
+	if selectionIsUser then
+		if user ~= nil then
+			local canChangePermissions = not isSpectatorSelected and canManageSelectedFarm and not isSelectedUserFarmManager and not user:getIsMasterUser()
+			local permissions = self.selectedUserFarm:getUserPermissions(self.selectedUserId)
+			for permissionKey, checkbox in pairs(self.permissionCheckboxes) do
+				checkbox:setIsChecked(permissions[permissionKey] or user:getIsMasterUser(), true)
+				checkbox:setDisabled(not canChangePermissions)
+			end
+			self.permissionsBox:setVisible(true)
+			self.permissionsTitle:setVisible(true)
+			if self.subCategoryPaging:getState() == InGameMenuMultiplayerFrame.SUB_CATEGORY_USERS then
+				self.multiplayerSlider:setVisible(true)
 			end
 		else
-			v79_ = v69_
-		end
-	else
-		v79_ = v70_
-	end
-	v78_:setVisible(v79_)
-	self.promoteButton:setText(g_i18n:getText(v68_ and "button_mp_dimiss" or "button_mp_promote"))
-	local v80_ = self.selectedUserFarm:getIsContractingFor(self.playerFarm.farmId)
-	local v81_ = self.contractorButton
-	local v82_ = not v70_ and (v64_ and not (v65_ or v66_))
-	if v82_ then
-		v82_ = not self.playerFarm.isSpectator
-	end
-	v81_:setVisible(v82_)
-	self.contractorButton:setText(g_i18n:getText(v80_ and "button_mp_ungrant" or "button_mp_grant"))
-	local v83_ = self.kickButton
-	local v84_ = v70_ and not v67_
-	if v84_ then
-		v84_ = self.currentUser:getIsMasterUser()
-	end
-	v83_:setVisible(v84_)
-	local v85_ = self.blockFromServerButton
-	local v86_ = v70_ and not v67_ and (self.currentUser:getIsMasterUser() and not g_currentMission:getIsServer())
-	if v86_ then
-		v86_ = self.selectedUserId ~= g_currentMission:getServerUserId()
-	end
-	v85_:setVisible(v86_)
-	local v87_ = self.blockButton
-	local v88_
-	if v70_ then
-		v88_ = not v67_
-	else
-		v88_ = v70_
-	end
-	v87_:setVisible(v88_)
-	if v70_ then
-		self.blockButton:setText(g_i18n:getText((v71_ == nil or not v71_:getIsBlocked()) and "button_block" or "button_unblock"))
-	end
-	local v89_ = self.muteButton
-	local v90_ = v70_ and (v67_ and VoiceChatUtil.getHasRecordingDevice())
-	if v90_ then
-		v90_ = not VoiceChatUtil.getIsVoiceRestricted()
-	end
-	v89_:setVisible(v90_)
-	if v70_ then
-		self.muteButton:setText(g_i18n:getText((v71_ == nil or not v71_:getVoiceMuted()) and "button_mute" or "button_unmute"))
-	end
-	local v91_ = self.peerVolumeOption
-	local v92_ = v70_ and not v67_
-	if v92_ then
-		v92_ = not VoiceChatUtil.getIsVoiceRestricted()
-	end
-	v91_:setVisible(v92_)
-	if v70_ then
-		local v93_ = { g_i18n:getText("button_mute") }
-		local v94_ = g_i18n:getText("ui_volumeSound")
-		for v95_ = 1, 10 do
-			local v96_ = string.format
-			local v97_ = v95_ * 10
-			table.insert(v93_, v96_("%s: %d%%", v94_, v97_))
-		end
-		self.peerVolumeOption:setTexts(v93_)
-		local v98_ = v71_ == nil and 0 or (v71_:getVoiceVolume() or 0)
-		self.peerVolumeOption:setState(MathUtil.round(v98_ / 0.1 + 1, 0))
-	end
-	if v70_ and v71_ ~= nil then
-		local v99_ = self.showProfileButton
-		local v100_ = Platform.hasNativeProfiles
-		if v100_ then
-			v100_ = getPlatformIdsAreCompatible(v71_:getPlatformId(), getPlatformId())
-		end
-		v99_:setVisible(v100_)
-		local v101_ = self.reportButton
-		local v102_ = not v67_
-		if v102_ then
-			v102_ = not (Platform.hasNativeProfiles and getPlatformIdsAreCompatible(v71_:getPlatformId(), getPlatformId()))
-		end
-		v101_:setVisible(v102_)
-	else
-		self.showProfileButton:setVisible(false)
-		self.reportButton:setVisible(false)
-	end
-	if v70_ and v71_ ~= nil then
-		local v103_ = not v66_ and (v69_ and not v68_)
-		if v103_ then
-			v103_ = not v71_:getIsMasterUser()
-		end
-		local v104_ = self.selectedUserFarm:getUserPermissions(self.selectedUserId)
-		for v105_, v106_ in pairs(self.permissionCheckboxes) do
-			v106_:setIsChecked(v104_[v105_] or v71_:getIsMasterUser(), true)
-			v106_:setDisabled(not v103_)
-		end
-		self.permissionsBox:setVisible(true)
-		self.permissionsTitle:setVisible(true)
-		if self.subCategoryPaging:getState() == InGameMenuMultiplayerFrame.SUB_CATEGORY_USERS then
-			self.multiplayerSlider:setVisible(true)
-		end
-	else
-		self.permissionsBox:setVisible(false)
-		self.permissionsTitle:setVisible(false)
-		if self.subCategoryPaging:getState() == InGameMenuMultiplayerFrame.SUB_CATEGORY_USERS then
-			self.multiplayerSlider:setVisible(false)
+			self.permissionsBox:setVisible(false)
+			self.permissionsTitle:setVisible(false)
+			if self.subCategoryPaging:getState() == InGameMenuMultiplayerFrame.SUB_CATEGORY_USERS then
+				self.multiplayerSlider:setVisible(false)
+			end
 		end
 	end
 	self.actionsBox:invalidateLayout()
 	self.permissionsBox:invalidateLayout()
 end
-
 function InGameMenuMultiplayerFrame:updateMenuButtons()
-	if not g_gui.currentlyReloading then
+	if g_gui.currentlyReloading then
+		return
+	else
 		self.menuButtonInfo = { self.backButtonInfo, self.nextPageButtonInfo, self.prevPageButtonInfo }
 		if self.subCategoryPaging:getState() == InGameMenuMultiplayerFrame.SUB_CATEGORY_FARMS then
 			if self.farmList:getIsFocused() then
-				if self.selectedFarmId == nil then
-					if self.currentUser:getIsMasterUser() then
-						local v108_ = self.menuButtonInfo
-						local v109_ = self.createMenuButton
-						table.insert(v108_, v109_)
-					elseif g_currentMission ~= nil and (g_currentMission.connectedToDedicatedServer and not self.currentUser:getIsMasterUser()) then
-						local v110_ = self.menuButtonInfo
-						local v111_ = self.adminButtonInfo
-						table.insert(v110_, v111_)
-					end
-				else
+				if self.selectedFarmId ~= nil then
 					if self.selectedFarmId == self.playerFarm.farmId then
-						local v112_ = self.menuButtonInfo
-						local v113_ = self.leaveMenuButton
-						table.insert(v112_, v113_)
+						table.insert(self.menuButtonInfo, self.leaveMenuButton)
 					else
-						local v114_ = self.menuButtonInfo
-						local v115_ = self.joinMenuButton
-						table.insert(v114_, v115_)
+						table.insert(self.menuButtonInfo, self.joinMenuButton)
 					end
 					if self.currentUser:getIsMasterUser() then
-						local v116_ = self.menuButtonInfo
-						local v117_ = self.editMenuButton
-						table.insert(v116_, v117_)
-						local v118_ = self.menuButtonInfo
-						local v119_ = self.deleteMenuButton
-						table.insert(v118_, v119_)
-					elseif g_currentMission ~= nil and (g_currentMission.connectedToDedicatedServer and not self.currentUser:getIsMasterUser()) then
-						local v120_ = self.menuButtonInfo
-						local v121_ = self.adminButtonInfo
-						table.insert(v120_, v121_)
+						table.insert(self.menuButtonInfo, self.editMenuButton)
+						table.insert(self.menuButtonInfo, self.deleteMenuButton)
+					elseif g_currentMission ~= nil then
+						if g_currentMission.connectedToDedicatedServer and not self.currentUser:getIsMasterUser() then
+							table.insert(self.menuButtonInfo, self.adminButtonInfo)
+						end
+					end
+				elseif self.currentUser:getIsMasterUser() then
+					table.insert(self.menuButtonInfo, self.createMenuButton)
+				elseif g_currentMission ~= nil then
+					if g_currentMission.connectedToDedicatedServer and not self.currentUser:getIsMasterUser() then
+						table.insert(self.menuButtonInfo, self.adminButtonInfo)
 					end
 				end
 			end
 		else
-			if getNumOfBlockedUsers() > 0 then
-				local v122_ = self.menuButtonInfo
-				local v123_ = self.unblockButtonInfo
-				table.insert(v122_, v123_)
+			if 0 < getNumOfBlockedUsers() then
+				table.insert(self.menuButtonInfo, self.unblockButtonInfo)
 			end
 			if g_currentMission ~= nil then
 				if self.currentUser:getIsMasterUser() then
 					if g_currentMission.connectedToDedicatedServer then
-						local v124_ = self.menuButtonInfo
-						local v125_ = self.unblockRemoteButtonInfo
-						table.insert(v124_, v125_)
+						table.insert(self.menuButtonInfo, self.unblockRemoteButtonInfo)
 					end
-				elseif g_currentMission ~= nil and (g_currentMission.connectedToDedicatedServer and not self.currentUser:getIsMasterUser()) then
-					local v126_ = self.menuButtonInfo
-					local v127_ = self.adminButtonInfo
-					table.insert(v126_, v127_)
+				elseif g_currentMission ~= nil then
+					if g_currentMission.connectedToDedicatedServer and not self.currentUser:getIsMasterUser() then
+						table.insert(self.menuButtonInfo, self.adminButtonInfo)
+					end
 				end
 				if Platform.hasFriendInvitation and PlatformPrivilegeUtil.getCanInvitePlayer(g_currentMission) then
-					local v128_ = self.menuButtonInfo
-					local v129_ = self.inviteFriendsInfo
-					table.insert(v128_, v129_)
+					table.insert(self.menuButtonInfo, self.inviteFriendsInfo)
 				end
 			end
 		end
 		self:setMenuButtonInfoDirty()
 	end
 end
-
 function InGameMenuMultiplayerFrame:update(dt)
 	InGameMenuMultiplayerFrame:superClass().update(self, dt)
-	if self.subCategoryPaging:getState() == InGameMenuMultiplayerFrame.SUB_CATEGORY_USERS then
-		if self.timeSinceLastRefresh > 1000 then
+	if self.subCategoryPaging:getState() ~= InGameMenuMultiplayerFrame.SUB_CATEGORY_USERS then
+		return
+	else
+		if 1000 < self.timeSinceLastRefresh then
 			self.shouldRebuildUserList = true
 		end
 		self.timeSinceLastRefresh = self.timeSinceLastRefresh + dt
@@ -625,7 +460,6 @@ function InGameMenuMultiplayerFrame:update(dt)
 		end
 	end
 end
-
 function InGameMenuMultiplayerFrame:updateDisplay()
 	self.sortedFarms = self:getSortedFarmList()
 	self.userList:reloadData()
@@ -636,73 +470,60 @@ function InGameMenuMultiplayerFrame:updateDisplay()
 		self:updateMenuButtons()
 	end
 end
-
--- Local values: currentFarmId, text, title, callback, target
 function InGameMenuMultiplayerFrame:joinFarm(farmId)
-	local v135_ = self.playerFarm.farmId
-	if self.playerFarm ~= nil and farmId ~= v135_ then
-		if v135_ ~= FarmManager.SPECTATOR_FARM_ID then
-			local v136_ = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.LEAVE_FARM_CONFIRM), self.playerFarm.name)
-			local v137_ = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_LEAVE_FARM)
-			local v138_ = self.doJoinFarm
-			YesNoDialog.show(v138_, self, v136_, v137_)
+	local currentFarmId = self.playerFarm.farmId
+	if self.playerFarm ~= nil and farmId ~= currentFarmId then
+		if currentFarmId ~= FarmManager.SPECTATOR_FARM_ID then
+			local text = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.LEAVE_FARM_CONFIRM), self.playerFarm.name)
+			local title = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_LEAVE_FARM)
+			local callback = self.doJoinFarm
+			YesNoDialog.show(callback, self, text, title)
 			return
 		end
 		self:doJoinFarm(true, farmId)
 	end
 end
-
--- Local values: farm
 function InGameMenuMultiplayerFrame:doJoinFarm(yesNo)
 	if yesNo then
-		local v141_ = g_farmManager:getFarmById(self.selectedFarmId)
-		g_client:getServerConnection():sendEvent(PlayerSetFarmEvent.new(self.player, self.selectedFarmId, v141_.password))
+		local farm = g_farmManager:getFarmById(self.selectedFarmId)
+		g_client:getServerConnection():sendEvent(PlayerSetFarmEvent.new(self.player, self.selectedFarmId, farm.password))
 	end
 end
-
--- Local values: text, title, callback, target
 function InGameMenuMultiplayerFrame:leaveFarm()
-	local v143_ = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.LEAVE_FARM_CONFIRM), self.playerFarm.name)
-	local v144_ = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_LEAVE_FARM)
-	local v145_ = self.doLeaveFarm
-	YesNoDialog.show(v145_, self, v143_, v144_)
+	local text = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.LEAVE_FARM_CONFIRM), self.playerFarm.name)
+	local title = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_LEAVE_FARM)
+	local callback = self.doLeaveFarm
+	YesNoDialog.show(callback, self, text, title)
 end
-
 function InGameMenuMultiplayerFrame:doLeaveFarm(yesNo)
 	if yesNo then
 		g_client:getServerConnection():sendEvent(PlayerSetFarmEvent.new(self.player, FarmManager.SPECTATOR_FARM_ID))
 	end
 end
-
--- Local values: farm, canDestroy, messageCannotDestroy, text, title, callback, target
 function InGameMenuMultiplayerFrame:deleteFarm(farmId)
-	local v150_, v151_ = g_farmManager:getFarmById(farmId):canBeDestroyed()
-	if v150_ then
-		local v152_ = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DELETE_FARM_CONFIRM)
-		local v153_ = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_DELETE_FARM)
-		local v154_ = self.onDeleteFarmYesNo
-		YesNoDialog.show(v154_, self, v152_, v153_)
+	local farm = g_farmManager:getFarmById(farmId)
+	local canDestroy, messageCannotDestroy = farm:canBeDestroyed()
+	if canDestroy then
+		local text = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DELETE_FARM_CONFIRM)
+		local title = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_DELETE_FARM)
+		local callback = self.onDeleteFarmYesNo
+		YesNoDialog.show(callback, self, text, title)
 	else
-		InfoDialog.show(g_i18n:getText(v151_))
+		InfoDialog.show(g_i18n:getText(messageCannotDestroy))
 	end
 end
-
 function InGameMenuMultiplayerFrame:editFarm(farmId)
 	EditFarmDialog.show(farmId)
 end
-
 function InGameMenuMultiplayerFrame:createFarm()
 	EditFarmDialog.show()
 end
-
--- Local values: farms, _, farm
 function InGameMenuMultiplayerFrame:reloadFarms()
 	self.farms = {}
-	local v157_ = g_farmManager:getFarms()
-	for _, v158_ in ipairs(v157_) do
-		if v158_.showInFarmScreen then
-			local v159_ = self.farms
-			table.insert(v159_, v158_)
+	local farms = g_farmManager:getFarms()
+	for _, farm in ipairs(farms) do
+		if farm.showInFarmScreen then
+			table.insert(self.farms, farm)
 		end
 	end
 	self.farmList:reloadData()
@@ -716,34 +537,27 @@ function InGameMenuMultiplayerFrame:reloadFarms()
 			self.farmList:setDisabled(false)
 			self.multiplayerSlider:setVisible(true)
 		end
-		local v160_ = self.noFarmsText
-		local v161_
-		if #self.farms == 0 then
-			v161_ = not self.currentUser:getIsMasterUser()
-		else
-			v161_ = false
-		end
-		v160_:setVisible(v161_)
+		self.noFarmsText:setVisible(false)
 	end
 end
-
--- Local values: joinedFarm
 function InGameMenuMultiplayerFrame:onPlayerSetFarmAnswer(answerState, farmId, password)
 	if answerState == PlayerSetFarmAnswerEvent.STATE.OK then
-		g_farmManager:getFarmById(farmId).password = password
+		local joinedFarm = g_farmManager:getFarmById(farmId)
+		joinedFarm.password = password
 		self.hasAskedForPassword = false
 		self.farmList:setSelectedIndex(self:getListFarmIndex(farmId))
-	elseif answerState == PlayerSetFarmAnswerEvent.STATE.PASSWORD_REQUIRED then
-		if not self.hasAskedForPassword then
-			self.hasAskedForPassword = true
-			PasswordDialog.show(self.onFarmPasswordEntered, self, farmId, "", g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_JOIN_FARM))
-			return
+	else
+		if answerState == PlayerSetFarmAnswerEvent.STATE.PASSWORD_REQUIRED then
+			if not self.hasAskedForPassword then
+				self.hasAskedForPassword = true
+				PasswordDialog.show(self.onFarmPasswordEntered, self, farmId, "", g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.BUTTON_JOIN_FARM))
+				return
+			end
+			InfoDialog.show(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.WRONG_PASSWORD))
+			self.hasAskedForPassword = false
 		end
-		InfoDialog.show(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.WRONG_PASSWORD))
-		self.hasAskedForPassword = false
 	end
 end
-
 function InGameMenuMultiplayerFrame:onFarmPasswordEntered(password, hasConfirmed, farmId)
 	if hasConfirmed then
 		g_client:getServerConnection():sendEvent(PlayerSetFarmEvent.new(self.player, farmId, password))
@@ -751,88 +565,75 @@ function InGameMenuMultiplayerFrame:onFarmPasswordEntered(password, hasConfirmed
 		self.hasAskedForPassword = false
 	end
 end
-
 function InGameMenuMultiplayerFrame:onPermissionChanged(userId)
 	if userId == self.currentUserId then
 		self:updateMenuButtons()
 	end
 	self:updateDisplay()
 end
-
--- Local values: newIndex
 function InGameMenuMultiplayerFrame:onFarmCreated(newFarmId)
 	self:reloadFarms()
 	if self.currentUser:getIsMasterUser() then
-		local v174_ = self:getListFarmIndex(newFarmId)
-		self.farmList:setSelectedIndex(v174_, true)
+		local newIndex = self:getListFarmIndex(newFarmId)
+		self.farmList:setSelectedIndex(newIndex, true)
 	end
 end
-
 function InGameMenuMultiplayerFrame:onFarmsChanged(farmId)
 	self:reloadFarms()
 	self:updateDisplay()
 	self:onListSelectionChanged(self.userList, self.userList:getSelectedPath())
 end
-
 function InGameMenuMultiplayerFrame:onPlayerFarmChanged(player)
 	self:reloadFarms()
 	self:updateDisplay()
 	self:updateMenuButtons()
 end
-
 function InGameMenuMultiplayerFrame:onFarmMoneyChanged(farmId, balance)
 	if self.farmIdBalanceMap[farmId] ~= nil then
 		self.farmIdBalanceMap[farmId]:setValue(balance)
 	end
 end
-
 function InGameMenuMultiplayerFrame:onMasterUserAdded(user)
 	self:reloadFarms()
 	self:updateDisplay()
 	self:updateMenuButtons()
 end
-
--- Local values: farm
 function InGameMenuMultiplayerFrame:onDoubleClickFarm(list, section, index)
 	if index == self.newFarmListIndex then
 		self:createFarm()
 		return
+	end
+	local farm = self.farms[index]
+	if farm ~= nil then
+		self.selectedFarmId = farm.farmId
+		self:joinFarm(self.selectedFarmId)
 	else
-		local v183_ = self.farms[index]
-		if v183_ == nil then
-			Logging.warning("Farm does not exist anymore")
-		else
-			self.selectedFarmId = v183_.farmId
-			self:joinFarm(self.selectedFarmId)
+		Logging.warning("Farm does not exist anymore")
+	end
+end
+function InGameMenuMultiplayerFrame:onDeleteFarmYesNo(yes)
+	if yes then
+		local farm = g_farmManager:getFarmById(self.selectedFarmId)
+		if farm:canBeDestroyed() then
+			g_client:getServerConnection():sendEvent(FarmDestroyEvent.new(self.selectedFarmId))
 		end
 	end
 end
-
--- Local values: farm
-function InGameMenuMultiplayerFrame:onDeleteFarmYesNo(yes)
-	if yes and g_farmManager:getFarmById(self.selectedFarmId):canBeDestroyed() then
-		g_client:getServerConnection():sendEvent(FarmDestroyEvent.new(self.selectedFarmId))
-	end
-end
-
 function InGameMenuMultiplayerFrame:onClickUsers()
 	self.subCategoryPaging:setState(InGameMenuMultiplayerFrame.SUB_CATEGORY_USERS, true)
 	FocusManager:setFocus(self.userList)
 end
-
 function InGameMenuMultiplayerFrame:onClickFarms()
 	self.subCategoryPaging:setState(InGameMenuMultiplayerFrame.SUB_CATEGORY_FARMS, true)
-	if self.farmList:getItemCount() > 0 then
+	if 0 < self.farmList:getItemCount() then
 		FocusManager:setFocus(self.farmList)
 	else
 		FocusManager:setFocus(self.subCategoryPaging)
 	end
 end
-
--- Local values: index, page
 function InGameMenuMultiplayerFrame:updateSubCategoryPages(subCategoryIndex)
-	for v190_, v191_ in pairs(self.subCategoryPages) do
-		v191_:setVisible(v190_ == subCategoryIndex)
+	for index, page in pairs(self.subCategoryPages) do
+		page:setVisible(index == subCategoryIndex)
 	end
 	self:reloadFarms()
 	self:updateDisplay()
@@ -845,56 +646,46 @@ function InGameMenuMultiplayerFrame:updateSubCategoryPages(subCategoryIndex)
 	end
 	self:updateMenuButtons()
 end
-
--- Local values: user, text, title, callback, target
 function InGameMenuMultiplayerFrame:onButtonKick()
-	if self.selectedUserId == nil or self.selectedUserId == g_currentMission:getServerUserId() then
-		InfoDialog.show(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.INFO_CANNOT_KICK_SERVER))
-	else
-		local v193_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-		local v194_ = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_KICK_CONFIRM), v193_:getNickname())
-		local v195_ = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_KICK_TITLE)
-		local v196_ = self.onYesNoKick
-		YesNoDialog.show(v196_, self, v194_, v195_)
+	if self.selectedUserId ~= nil and self.selectedUserId ~= g_currentMission:getServerUserId() then
+		local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+		local text = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_KICK_CONFIRM), user:getNickname())
+		local title = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_KICK_TITLE)
+		local callback = self.onYesNoKick
+		YesNoDialog.show(callback, self, text, title)
+		return
 	end
+	InfoDialog.show(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.INFO_CANNOT_KICK_SERVER))
 end
-
 function InGameMenuMultiplayerFrame:onYesNoKick(yes)
 	if yes then
 		g_client:getServerConnection():sendEvent(KickBanEvent.new(true, self.selectedUserId))
 	end
 end
-
--- Local values: callbackFunc
 function InGameMenuMultiplayerFrame:onButtonUnBan()
-	UnBanDialog.show(function()
-		-- upvalues: (copy) self
+	local callbackFunc = function()
 		self:updateElements()
 		self:updateMenuButtons()
-	end, self, true)
+	end
+	UnBanDialog.show(callbackFunc, self, true)
 end
-
--- Local values: callbackFunc
 function InGameMenuMultiplayerFrame:onButtonUnBanRemote()
-	UnBanDialog.show(function()
-		-- upvalues: (copy) self
+	local callbackFunc = function()
 		self:updateElements()
 		self:updateMenuButtons()
-	end, self, false)
+	end
+	UnBanDialog.show(callbackFunc, self, false)
 end
-
--- Local values: user, nickname
 function InGameMenuMultiplayerFrame:onButtonShowProfile()
 	if self.selectedUserId ~= nil then
-		local v202_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-		local v203_ = v202_:getPlatformUserId()
-		if v203_ == "" then
-			v203_ = v202_:getNickname()
+		local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+		local nickname = user:getPlatformUserId()
+		if nickname == "" then
+			nickname = user:getNickname()
 		end
-		showUserProfile(v203_)
+		showUserProfile(nickname)
 	end
 end
-
 function InGameMenuMultiplayerFrame:onButtonInviteFriends()
 	if Platform.hasFriendInvitation then
 		if g_currentMission ~= nil then
@@ -904,295 +695,270 @@ function InGameMenuMultiplayerFrame:onButtonInviteFriends()
 		openMpFriendInvitation(1, 6)
 	end
 end
-
 function InGameMenuMultiplayerFrame:onButtonAdminLogin()
 	PasswordDialog.show(self.onAdminPassword, self, nil, "", g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.PROMPT_ADMIN_PASSWORD))
 end
-
--- Local values: permission
 function InGameMenuMultiplayerFrame:onClickPermission(state, binaryOption, isLeftButton)
-	local v208_ = self.checkboxPermissions[binaryOption]
-	self.selectedUserFarm:setUserPermission(self.selectedUserId, v208_, not isLeftButton)
+	local permission = self.checkboxPermissions[binaryOption]
+	self.selectedUserFarm:setUserPermission(self.selectedUserId, permission, not isLeftButton)
 end
-
 function InGameMenuMultiplayerFrame:onClickTransferButton()
 	TransferMoneyDialog.show(self.transferMoney, self, self.selectedUserFarm)
 end
-
 function InGameMenuMultiplayerFrame:transferMoney(amount)
-	if amount > 0 then
+	if 0 < amount then
 		g_farmManager:transferMoney(self.selectedUserFarm, amount)
 	end
 end
-
--- Local values: user, text, title, callback, target
 function InGameMenuMultiplayerFrame:onClickRemoveFromFarm()
-	local v213_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-	local v214_ = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_REMOVE_CONFIRM), v213_:getNickname())
-	local v215_ = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_REMOVE_TITLE)
-	local v216_ = self.onYesNoRemoveFromFarm
-	YesNoDialog.show(v216_, self, v214_, v215_)
+	local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+	local text = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_REMOVE_CONFIRM), user:getNickname())
+	local title = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_REMOVE_TITLE)
+	local callback = self.onYesNoRemoveFromFarm
+	YesNoDialog.show(callback, self, text, title)
 end
-
 function InGameMenuMultiplayerFrame:onYesNoRemoveFromFarm(yes)
 	if yes then
 		g_farmManager:removeUserFromFarm(self.selectedUserId)
 	end
 end
-
--- Local values: user, text, title, callback, target
 function InGameMenuMultiplayerFrame:onClickPromote()
-	if self.selectedUserFarm:isUserFarmManager(self.selectedUserId) then
+	if not self.selectedUserFarm:isUserFarmManager(self.selectedUserId) then
+		local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+		local text = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_PROMOTE_CONFIRM), user:getNickname())
+		local title = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_PROMOTE_TITLE)
+		local callback = self.onYesNoPromoteToFarmManager
+		YesNoDialog.show(callback, self, text, title)
+	else
 		self.selectedUserFarm:demoteUser(self.selectedUserId)
 		self:updateElements()
-	else
-		local v220_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-		local v221_ = string.format(g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_PROMOTE_CONFIRM), v220_:getNickname())
-		local v222_ = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_PROMOTE_TITLE)
-		local v223_ = self.onYesNoPromoteToFarmManager
-		YesNoDialog.show(v223_, self, v221_, v222_)
 	end
 end
-
 function InGameMenuMultiplayerFrame:onYesNoPromoteToFarmManager(yes)
 	if yes then
 		self.selectedUserFarm:promoteUser(self.selectedUserId)
 		self:updateElements()
 	end
 end
-
--- Local values: isContracting, confirmTextTemplateSymbol, text, title, callback, target
 function InGameMenuMultiplayerFrame:onClickContractor()
-	local v227_
-	if self.selectedUserFarm:getIsContractingFor(self.playerFarm.farmId) then
-		v227_ = InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_DENY_CONTRACTOR_CONFIRM
+	local isContracting = self.selectedUserFarm:getIsContractingFor(self.playerFarm.farmId)
+	local confirmTextTemplateSymbol = nil
+	if isContracting then
+		confirmTextTemplateSymbol = InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_DENY_CONTRACTOR_CONFIRM
 	else
-		v227_ = InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_GRANT_CONTRACTOR_CONFIRM
+		confirmTextTemplateSymbol = InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_GRANT_CONTRACTOR_CONFIRM
 	end
-	local v228_ = string.format(g_i18n:getText(v227_), self.selectedUserFarm.name)
-	local v229_ = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_CONTRACTOR_STATE_TITLE)
-	local v230_ = self.onYesNoToggleContractorState
-	YesNoDialog.show(v230_, self, v228_, v229_)
+	local text = string.format(g_i18n:getText(confirmTextTemplateSymbol), self.selectedUserFarm.name)
+	local title = g_i18n:getText(InGameMenuMultiplayerFrame.L10N_SYMBOL.DIALOG_CONTRACTOR_STATE_TITLE)
+	local callback = self.onYesNoToggleContractorState
+	YesNoDialog.show(callback, self, text, title)
 end
-
--- Local values: isContracting
 function InGameMenuMultiplayerFrame:onYesNoToggleContractorState(yes)
 	if yes then
-		local v233_ = self.selectedUserFarm:getIsContractingFor(self.playerFarm.farmId)
-		self.selectedUserFarm:setIsContractingFor(self.playerFarm.farmId, not v233_, false)
+		local isContracting = self.selectedUserFarm:getIsContractingFor(self.playerFarm.farmId)
+		self.selectedUserFarm:setIsContractingFor(self.playerFarm.farmId, not isContracting, false)
 	end
 end
-
 function InGameMenuMultiplayerFrame:onUserAdded()
 	self:updateDisplay()
 end
-
 function InGameMenuMultiplayerFrame:onUserRemoved()
 	self:reloadFarms()
 	self:updateDisplay()
 end
-
 function InGameMenuMultiplayerFrame:onContractingStateChanged()
 	self:updateDisplay()
 end
-
 function InGameMenuMultiplayerFrame:onAdminPassword(password, yes)
 	if yes then
 		g_client:getServerConnection():sendEvent(GetAdminEvent.new(password))
 	end
 end
-
 function InGameMenuMultiplayerFrame:onAdminLoginSuccess()
 	self:updateDisplay()
 	if self.playerFarm ~= nil and self.playerFarm.farmId ~= FarmManager.SPECTATOR_FARM_ID then
 		self.playerFarm:promoteUser(self.currentUserId)
 	end
 end
-
--- Local values: user, title, text, callback
 function InGameMenuMultiplayerFrame:onButtonBlock()
-	local v_u_241_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-	if v_u_241_:getIsBlocked() then
-		v_u_241_:unblock()
+	local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+	if user:getIsBlocked() then
+		user:unblock()
 		self:updateDisplay()
-		return
-	elseif Platform.hasNativeProfiles and getPlatformIdsAreCompatible(v_u_241_:getPlatformId(), getPlatformId()) then
-		v_u_241_:block()
 	else
-		local v242_ = g_i18n:getText("ui_doYouWantToBlockThisServer_title")
-		local v243_ = string.format(g_i18n:getText("ui_blockPlayerConfirm"), v_u_241_:getNickname())
-		YesNoDialog.show(function(p244_)
-			-- upvalues: (copy) v_u_241_, (copy) self
-			if p244_ then
-				g_currentMission:banUser(v_u_241_)
+		if Platform.hasNativeProfiles and getPlatformIdsAreCompatible(user:getPlatformId(), getPlatformId()) then
+			user:block()
+			return
+		end
+		local title = g_i18n:getText("ui_doYouWantToBlockThisServer_title")
+		local text = string.format(g_i18n:getText("ui_blockPlayerConfirm"), user:getNickname())
+		local callback = function(yes)
+			if yes then
+				g_currentMission:banUser(user)
 				self:updateDisplay()
 			end
-		end, nil, v243_, v242_)
+		end
+		YesNoDialog.show(callback, nil, text, title)
 	end
 end
-
--- Local values: user, text, title, callback
 function InGameMenuMultiplayerFrame:onButtonBlockFromServer()
-	local v246_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-	local v247_ = string.format(g_i18n:getText("ui_banConfirm"), v246_:getNickname())
-	local v248_ = g_i18n:getText("ui_banTitle")
-	YesNoDialog.show(function(p249_)
-		-- upvalues: (copy) self
-		if p249_ then
+	local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+	local text = string.format(g_i18n:getText("ui_banConfirm"), user:getNickname())
+	local title = g_i18n:getText("ui_banTitle")
+	local callback = function(yes)
+		if yes then
 			g_client:getServerConnection():sendEvent(KickBanEvent.new(false, self.selectedUserId))
 		end
-	end, nil, v247_, v248_)
+	end
+	YesNoDialog.show(callback, nil, text, title)
 end
-
--- Local values: user, title, text, options, callback
 function InGameMenuMultiplayerFrame:onButtonReport()
-	local v_u_251_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-	local v252_ = g_i18n:getText("ui_reportPlayer_title")
-	local v253_ = string.format(g_i18n:getText("ui_reportPlayer_confirm"), v_u_251_:getNickname())
-	local v254_ = self.reportReasons
-	OptionDialog.show(function(p255_)
-		-- upvalues: (copy) v_u_251_
-		if p255_ > 0 then
-			v_u_251_:report(p255_ - 1)
+	local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+	local title = g_i18n:getText("ui_reportPlayer_title")
+	local text = string.format(g_i18n:getText("ui_reportPlayer_confirm"), user:getNickname())
+	local options = self.reportReasons
+	local callback = function(item)
+		if 0 < item then
+			user:report(item - 1)
 		end
-	end, v253_, v252_, v254_)
+	end
+	OptionDialog.show(callback, text, title, options)
 end
-
--- Local values: user
 function InGameMenuMultiplayerFrame:onButtonMute()
-	local v257_ = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
-	if v257_:getVoiceMuted() then
-		v257_:setVoiceMuted(false)
+	local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+	if user:getVoiceMuted() then
+		user:setVoiceMuted(false)
 	else
-		v257_:setVoiceMuted(true)
+		user:setVoiceMuted(true)
 	end
 	self:updateDisplay()
 end
-
--- Local values: volume, user
 function InGameMenuMultiplayerFrame:onPeerVolumeChanged(state)
-	local v260_ = (state - 1) * 0.1
-	g_currentMission.userManager:getUserByUserId(self.selectedUserId):setVoiceVolume(v260_)
+	local volume = (state - 1) * 0.1
+	local user = g_currentMission.userManager:getUserByUserId(self.selectedUserId)
+	user:setVoiceVolume(volume)
 end
-
 function InGameMenuMultiplayerFrame:getNumberOfSections(list)
-	return list == self.userList and #self.sortedFarms or 1
+	if list == self.userList then
+		return #self.sortedFarms
+	else
+		return 1
+	end
 end
-
 function InGameMenuMultiplayerFrame:getCellTypeForItemInSection(list, section, index)
-	return list == self.userList and (index == 1 and "farm" or "user") or nil
+	if list == self.userList then
+		if index == 1 then
+			return "farm"
+		else
+			return "user"
+		end
+	end
+	return nil
 end
-
--- Local values: numFarms, farm
 function InGameMenuMultiplayerFrame:getNumberOfItemsInSection(list, section)
-	if list ~= self.farmList then
-		return #self.sortedFarms[section]:getActiveUsers() + 1
+	if list == self.farmList then
+		local numFarms = #self.farms
+		self.newFarmListIndex = nil
+		if numFarms < FarmManager.MAX_NUM_FARMS and self.currentUser:getIsMasterUser() then
+			numFarms = numFarms + 1
+			self.newFarmListIndex = numFarms
+		end
+		return numFarms
+	else
+		local farm = self.sortedFarms[section]
+		return #farm:getActiveUsers() + 1
 	end
-	local v269_ = #self.farms
-	self.newFarmListIndex = nil
-	if v269_ < FarmManager.MAX_NUM_FARMS and self.currentUser:getIsMasterUser() then
-		v269_ = v269_ + 1
-		self.newFarmListIndex = v269_
-	end
-	return v269_
 end
-
--- Local values: farm, farmId, playerNameLayout, i, _, player, userId, user, nickname, item, farm, userInfos, userInfo, user, isFarmManager, noMic
 function InGameMenuMultiplayerFrame:populateCellForItemInSection(list, section, index, cell)
 	if list == self.farmList then
-		local v275_ = self.farms[index]
-		cell:getAttribute("existingFarm"):setVisible(v275_ ~= nil)
-		cell:getAttribute("newFarm"):setVisible(v275_ == nil)
-		if v275_ ~= nil then
-			local v276_ = self.elementFarmIdMap[cell]
-			if v276_ ~= nil then
-				self.farmIdBalanceMap[v276_] = nil
+		local farm = self.farms[index]
+		cell:getAttribute("existingFarm"):setVisible(farm ~= nil)
+		cell:getAttribute("newFarm"):setVisible(farm == nil)
+		if farm ~= nil then
+			local farmId = self.elementFarmIdMap[cell]
+			if farmId ~= nil then
+				self.farmIdBalanceMap[farmId] = nil
 			end
-			cell:getAttribute("farmName"):setText(v275_.name)
-			cell:getAttribute("farmIcon"):setImageSlice(nil, v275_:getIconSliceId())
-			self.farmIdBalanceMap[v275_.farmId] = cell:getAttribute("farmBalance")
-			cell:getAttribute("farmBalance"):setValue(v275_:getBalance())
-			local v277_ = cell:getAttribute("playerNameLayout")
-			v277_:updateAbsolutePosition()
-			for _ = 1, #v277_.elements do
-				v277_.elements[1]:delete()
+			cell:getAttribute("farmName"):setText(farm.name)
+			cell:getAttribute("farmIcon"):setImageSlice(nil, farm:getIconSliceId())
+			self.farmIdBalanceMap[farm.farmId] = cell:getAttribute("farmBalance")
+			cell:getAttribute("farmBalance"):setValue(farm:getBalance())
+			local playerNameLayout = cell:getAttribute("playerNameLayout")
+			playerNameLayout:updateAbsolutePosition()
+			for i = 1, #playerNameLayout.elements do
+				playerNameLayout.elements[1]:delete()
 			end
-			for _, v278_ in ipairs(v275_:getActiveUsers()) do
-				local v279_ = v278_.userId
-				local v280_ = g_currentMission.userManager:getUserByUserId(v279_)
-				if v280_ ~= nil then
-					local v281_ = v280_:getNickname()
-					self.playerNameTemplate:clone(v277_):setText(v281_)
+			for _, player in ipairs(farm:getActiveUsers()) do
+				local userId = player.userId
+				local user = g_currentMission.userManager:getUserByUserId(userId)
+				if user == nil then
+					continue
 				end
+				local nickname = user:getNickname()
+				local item = self.playerNameTemplate:clone(playerNameLayout)
+				item:setText(nickname)
 			end
-			v277_:invalidateLayout()
-			self.elementFarmIdMap[cell] = v275_.farmId
-			return
+			playerNameLayout:invalidateLayout()
+			self.elementFarmIdMap[cell] = farm.farmId
 		end
 	else
-		local v282_ = self.sortedFarms[section]
+		local farm = self.sortedFarms[section]
 		if index == 1 then
-			if v282_.farmId == FarmManager.SPECTATOR_FARM_ID then
+			if farm.farmId == FarmManager.SPECTATOR_FARM_ID then
 				cell:getAttribute("title"):setText(g_i18n:getText("ui_noFarm"))
 				cell:getAttribute("farmBalance"):setVisible(false)
 			else
-				cell:getAttribute("title"):setText(v282_.name)
+				cell:getAttribute("title"):setText(farm.name)
 				cell:getAttribute("farmBalance"):setVisible(true)
-				cell:getAttribute("farmBalance"):setValue(v282_:getBalance())
+				cell:getAttribute("farmBalance"):setValue(farm:getBalance())
 			end
-			cell:getAttribute("dot").color = v282_:getColor()
+			cell:getAttribute("dot").color = farm:getColor()
 			return
 		end
-		local v283_ = v282_:getActiveUsers()[index - 1]
-		local v284_ = g_currentMission.userManager:getUserByUserId(v283_.userId)
-		if v284_ == nil then
+		local userInfos = farm:getActiveUsers()
+		local userInfo = userInfos[index - 1]
+		local user = g_currentMission.userManager:getUserByUserId(userInfo.userId)
+		if user == nil then
 			return
 		end
-		cell:getAttribute("playerName"):setText(v284_:getNickname())
-		cell:getAttribute("platform"):setPlatformId(v284_:getPlatformId())
-		if not g_currentMission.connectedToDedicatedServer or v284_:getId() ~= g_currentMission:getServerUserId() then
-			local v285_ = v282_:isUserFarmManager(v284_:getId())
-			local v286_ = voiceChatGetConnectionStatus(v284_:getUniqueUserId()) == VoiceChatConnectionStatus.UNAVAILABLE
-			cell:getAttribute("noMicrophone"):setVisible(v286_)
-			local v287_ = cell:getAttribute("muted")
-			local v288_ = not v286_
-			if v288_ then
-				v288_ = v284_:getVoiceMuted()
-			end
-			v287_:setVisible(v288_)
-			cell:getAttribute("farmManager"):setVisible(v285_)
-			cell:getAttribute("admin"):setVisible(v284_:getIsMasterUser())
+		cell:getAttribute("playerName"):setText(user:getNickname())
+		cell:getAttribute("platform"):setPlatformId(user:getPlatformId())
+		if not g_currentMission.connectedToDedicatedServer or user:getId() ~= g_currentMission:getServerUserId() then
+			local isFarmManager = farm:isUserFarmManager(user:getId())
+			local noMic = voiceChatGetConnectionStatus(user:getUniqueUserId()) == VoiceChatConnectionStatus.UNAVAILABLE
+			cell:getAttribute("noMicrophone"):setVisible(noMic)
+			cell:getAttribute("muted"):setVisible(not noMic and user:getVoiceMuted())
+			cell:getAttribute("farmManager"):setVisible(isFarmManager)
+			cell:getAttribute("admin"):setVisible(user:getIsMasterUser())
 			cell:getAttribute("admin").parent:invalidateLayout()
 		end
 	end
 end
-
--- Local values: farm, farm, user
 function InGameMenuMultiplayerFrame:onListSelectionChanged(list, section, index)
 	if list == self.farmList then
 		self.selectedFarmId = nil
 		if index ~= self.newFarmListIndex then
-			local v293_ = self.farms[index]
-			if v293_ ~= nil then
-				self.selectedFarmId = v293_.farmId
+			local farm = self.farms[index]
+			if farm ~= nil then
+				self.selectedFarmId = farm.farmId
 			end
 		end
 	else
-		local v294_ = self.sortedFarms[section]
+		local farm = self.sortedFarms[section]
 		self.actionsTitle:setVisible(false)
 		if index == 1 then
 			self.selectedUserId = nil
-			self.selectedUserFarm = v294_
+			self.selectedUserFarm = farm
 		else
-			local v295_ = v294_:getActiveUsers()[index - 1]
-			if v295_ ~= nil then
-				self.selectedUserId = v295_.userId
-				self.selectedUserFarm = v294_
-				if v295_.lastNickname == nil and v294_ ~= nil then
-					v294_:updateLastNickname(v295_.userId)
+			local user = farm:getActiveUsers()[index - 1]
+			if user ~= nil then
+				self.selectedUserId = user.userId
+				self.selectedUserFarm = farm
+				if user.lastNickname == nil and farm ~= nil then
+					farm:updateLastNickname(user.userId)
 				end
 				self.actionsTitle:setVisible(true)
-				self.actionsTitle:setText(v295_.lastNickname)
+				self.actionsTitle:setText(user.lastNickname)
 			end
 		end
 		if self.selectedUserFarm ~= nil and not self.isAutoReloading then
@@ -1202,36 +968,32 @@ function InGameMenuMultiplayerFrame:onListSelectionChanged(list, section, index)
 	self:updateMenuButtons()
 end
 InGameMenuMultiplayerFrame.L10N_SYMBOL = {
-	["PLAYER_COUNT"] = "ui_players",
-	["DELETE_FARM_CONFIRM"] = "ui_farmDeleteConfirmation",
-	["WRONG_PASSWORD"] = "ui_wrongPassword",
-	["BUTTON_CREATE_FARM"] = "button_mp_createFarm",
-	["BUTTON_JOIN_FARM"] = "button_mp_joinFarm",
-	["BUTTON_LEAVE_FARM"] = "button_mp_leaveFarm",
-	["BUTTON_DELETE_FARM"] = "button_mp_deleteFarm",
-	["BUTTON_EDIT_FARM"] = "button_mp_editFarm",
-	["LEAVE_FARM_CONFIRM"] = "ui_farmLeaveConfirmation",
-	["MONEY_BUTTON_TEMPLATE"] = "button_mp_transferMoney",
-	["BUTTON_UNBAN"] = "button_unban",
-	["BUTTON_ADMIN"] = "button_adminLogin",
-	["BUTTON_CONTRACT"] = "button_mp_grant",
-	["BUTTON_UNCONTRACT"] = "button_mp_ungrant",
-	["BUTTON_INVITE_FRIENDS"] = "ui_inviteScreen",
-	["PROMPT_ADMIN_PASSWORD"] = "button_adminLogin",
-	["INFO_CANNOT_BAN_SERVER"] = "ui_serverCannotBeBanned",
-	["INFO_CANNOT_KICK_SERVER"] = "ui_serverCannotBeKicked",
-	["DIALOG_KICK_TITLE"] = "ui_kickTitle",
-	["DIALOG_KICK_CONFIRM"] = "ui_kickConfirm",
-	["DIALOG_REMOVE_TITLE"] = "ui_removeFromFarmTitle",
-	["DIALOG_REMOVE_CONFIRM"] = "ui_removeFromFarmConfirm",
-	["DIALOG_PROMOTE_CONFIRM"] = "ui_promoteToFarmManagerConfirm",
-	["DIALOG_PROMOTE_TITLE"] = "ui_promoteToFarmManagerTitle",
-	["DIALOG_CONTRACTOR_STATE_TITLE"] = "ui_contractorStateChangeTitle",
-	["DIALOG_GRANT_CONTRACTOR_CONFIRM"] = "ui_contractorGrantConfirm",
-	["DIALOG_DENY_CONTRACTOR_CONFIRM"] = "ui_contractorUngrantConfirm"
+	PLAYER_COUNT = "ui_players",
+	DELETE_FARM_CONFIRM = "ui_farmDeleteConfirmation",
+	WRONG_PASSWORD = "ui_wrongPassword",
+	BUTTON_CREATE_FARM = "button_mp_createFarm",
+	BUTTON_JOIN_FARM = "button_mp_joinFarm",
+	BUTTON_LEAVE_FARM = "button_mp_leaveFarm",
+	BUTTON_DELETE_FARM = "button_mp_deleteFarm",
+	BUTTON_EDIT_FARM = "button_mp_editFarm",
+	LEAVE_FARM_CONFIRM = "ui_farmLeaveConfirmation",
+	MONEY_BUTTON_TEMPLATE = "button_mp_transferMoney",
+	BUTTON_UNBAN = "button_unban",
+	BUTTON_ADMIN = "button_adminLogin",
+	BUTTON_CONTRACT = "button_mp_grant",
+	BUTTON_UNCONTRACT = "button_mp_ungrant",
+	BUTTON_INVITE_FRIENDS = "ui_inviteScreen",
+	PROMPT_ADMIN_PASSWORD = "button_adminLogin",
+	INFO_CANNOT_BAN_SERVER = "ui_serverCannotBeBanned",
+	INFO_CANNOT_KICK_SERVER = "ui_serverCannotBeKicked",
+	DIALOG_KICK_TITLE = "ui_kickTitle",
+	DIALOG_KICK_CONFIRM = "ui_kickConfirm",
+	DIALOG_REMOVE_TITLE = "ui_removeFromFarmTitle",
+	DIALOG_REMOVE_CONFIRM = "ui_removeFromFarmConfirm",
+	DIALOG_PROMOTE_CONFIRM = "ui_promoteToFarmManagerConfirm",
+	DIALOG_PROMOTE_TITLE = "ui_promoteToFarmManagerTitle",
+	DIALOG_CONTRACTOR_STATE_TITLE = "ui_contractorStateChangeTitle",
+	DIALOG_GRANT_CONTRACTOR_CONFIRM = "ui_contractorGrantConfirm",
+	DIALOG_DENY_CONTRACTOR_CONFIRM = "ui_contractorUngrantConfirm",
 }
-InGameMenuMultiplayerFrame.PROFILE = {
-	["BALANCE_POSITIVE"] = "shopMoney",
-	["BALANCE_NEGATIVE"] = "shopMoneyNeg",
-	["CURRENT_PLAYER_TEXT"] = "ingameMenuMPUsersListRowTextCurrentPlayer"
-}
+InGameMenuMultiplayerFrame.PROFILE = { BALANCE_POSITIVE = "shopMoney", BALANCE_NEGATIVE = "shopMoneyNeg", CURRENT_PLAYER_TEXT = "ingameMenuMPUsersListRowTextCurrentPlayer" }

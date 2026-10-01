@@ -1,4 +1,3 @@
--- Local values: SmoothListElement_mt
 SmoothListElement = {}
 local SmoothListElement_mt = Class(SmoothListElement, GuiElement)
 Gui.registerGuiElement("SmoothList", SmoothListElement)
@@ -8,79 +7,73 @@ SmoothListElement.GAMEPAD_PAGE_START_END_TIME = 1000
 SmoothListElement.ALIGN_START = 0
 SmoothListElement.ALIGN_MIDDLE = 0.5
 SmoothListElement.ALIGN_END = 1
-
--- Upvalues: SmoothListElement_mt
--- Local values: self
 function SmoothListElement.new(target, custom_mt)
-	-- upvalues: (copy) SmoothListElement_mt
-	local v4_ = SmoothListElement:superClass().new(target, custom_mt or SmoothListElement_mt)
-	v4_:include(IndexChangeSubjectMixin)
-	v4_:include(PlaySampleMixin)
-	v4_.dataSource = nil
-	v4_.delegate = nil
-	v4_.cellCache = {}
-	v4_.sections = {}
-	v4_.clipping = true
-	v4_.isLoaded = false
-	v4_.updateChildrenState = false
-	v4_.sectionHeaderCellName = nil
-	v4_.isHorizontalList = false
-	v4_.useLateralFilling = false
-	v4_.numLateralItems = 1
-	v4_.listSectionSpacing = 0
-	v4_.listItemSpacing = 0
-	v4_.listItemLateralSpacing = 0
-	v4_.listItemAlignment = SmoothListElement.ALIGN_START
-	v4_.listItemAlignmentOffset = 0
-	v4_.lengthAxis = 2
-	v4_.widthAxis = 1
-	v4_.viewOffset = 0
-	v4_.targetViewOffset = 0
-	v4_.contentSize = 0
-	v4_.totalItemCount = 0
-	v4_.scrollViewOffsetDelta = 0
-	v4_.selectedIndex = 1
-	v4_.selectedSectionIndex = 1
-	v4_.supportsMouseScrolling = true
-	v4_.doubleClickInterval = 400
-	v4_.selectOnClick = false
-	v4_.ignoreMouse = false
-	v4_.showHighlights = false
-	v4_.selectOnScroll = false
-	v4_.itemizedScrollDelta = 0
-	v4_.listSmoothingDisabled = false
-	v4_.listSnappingEnabled = false
-	v4_.selectedWithoutFocus = true
-	v4_.selectionMarginItems = 0
-	v4_.ignoreFocusActivate = false
-	v4_.fillRowsWithEmptyItems = true
-	v4_.canReceiveFocusWhileEmpty = false
-	v4_.wrapAround = false
-	v4_.lastTouchPosX = nil
-	v4_.lastTouchPosY = nil
-	v4_.usedTouchId = nil
-	v4_.currentTouchDelta = 0
-	v4_.scrollSpeed = 0
-	v4_.initialScrollSpeed = 0
-	if v4_.isHorizontalList then
-		v4_.scrollSpeedInterval = GuiElement.SCROLL_SPEED_PIXEL_PER_MS * g_pixelSizeX
+	local self = SmoothListElement:superClass().new(target, custom_mt or SmoothListElement_mt)
+	self:include(IndexChangeSubjectMixin)
+	self:include(PlaySampleMixin)
+	self.dataSource = nil
+	self.delegate = nil
+	self.cellCache = {}
+	self.sections = {}
+	self.clipping = true
+	self.isLoaded = false
+	self.updateChildrenState = false
+	self.sectionHeaderCellName = nil
+	self.isHorizontalList = false
+	self.useLateralFilling = false
+	self.numLateralItems = 1
+	self.listSectionSpacing = 0
+	self.listItemSpacing = 0
+	self.listItemLateralSpacing = 0
+	self.listItemAlignment = SmoothListElement.ALIGN_START
+	self.listItemAlignmentOffset = 0
+	self.lengthAxis = 2
+	self.widthAxis = 1
+	self.viewOffset = 0
+	self.targetViewOffset = 0
+	self.contentSize = 0
+	self.totalItemCount = 0
+	self.scrollViewOffsetDelta = 0
+	self.selectedIndex = 1
+	self.selectedSectionIndex = 1
+	self.supportsMouseScrolling = true
+	self.doubleClickInterval = 400
+	self.selectOnClick = false
+	self.ignoreMouse = false
+	self.showHighlights = false
+	self.selectOnScroll = false
+	self.itemizedScrollDelta = 0
+	self.listSmoothingDisabled = false
+	self.listSnappingEnabled = false
+	self.selectedWithoutFocus = true
+	self.selectionMarginItems = 0
+	self.ignoreFocusActivate = false
+	self.fillRowsWithEmptyItems = true
+	self.canReceiveFocusWhileEmpty = false
+	self.wrapAround = false
+	self.lastTouchPosX = nil
+	self.lastTouchPosY = nil
+	self.usedTouchId = nil
+	self.currentTouchDelta = 0
+	self.scrollSpeed = 0
+	self.initialScrollSpeed = 0
+	if self.isHorizontalList then
+		self.scrollSpeedInterval = GuiElement.SCROLL_SPEED_PIXEL_PER_MS * g_pixelSizeX
 	else
-		v4_.scrollSpeedInterval = GuiElement.SCROLL_SPEED_PIXEL_PER_MS * g_pixelSizeY
+		self.scrollSpeedInterval = GuiElement.SCROLL_SPEED_PIXEL_PER_MS * g_pixelSizeY
 	end
-	v4_.supportsTouchScrolling = Platform.hasTouchInput
-	v4_.lastScrollDirection = 0
-	v4_.emptyIndicatorElement = nil
-	v4_.emptyIndicatorElementId = nil
-	v4_.totalTouchMoveDistance = 0
-	v4_.touchMoveDistanceThreshold = 30
-	v4_.gamepadPageStartTime = nil
-	v4_.gamepadPageStartTriggered = false
-	v4_.gamepadPageEndTime = nil
-	v4_.gamepadPageEndTriggered = false
-	return v4_
+	self.supportsTouchScrolling = Platform.hasTouchInput
+	self.lastScrollDirection = 0
+	self.emptyIndicatorElement = nil
+	self.emptyIndicatorElementId = nil
+	self.totalTouchMoveDistance = 0
+	self.touchMoveDistanceThreshold = 30
+	self.gamepadPageStartTime = nil
+	self.gamepadPageStartTriggered = false
+	self.gamepadPageEndTime = nil
+	self.gamepadPageEndTriggered = false
+	return self
 end
-
--- Local values: alignment, delegateName, dataSourceName
 function SmoothListElement:loadFromXML(xmlFile, key)
 	SmoothListElement:superClass().loadFromXML(self, xmlFile, key)
 	self:addCallback(xmlFile, key .. "#onScroll", "onScrollCallback")
@@ -95,12 +88,12 @@ function SmoothListElement:loadFromXML(xmlFile, key)
 	self.listItemSpacing = GuiUtils.getNormalizedValue(getXMLString(xmlFile, key .. "#listItemSpacing"), self.isHorizontalList, self.listItemSpacing)
 	self.listItemLateralSpacing = GuiUtils.getNormalizedValue(getXMLString(xmlFile, key .. "#listItemLateralSpacing"), not self.isHorizontalList, self.listItemLateralSpacing)
 	self.useLateralFilling = Utils.getNoNil(getXMLBool(xmlFile, key .. "#useLateralFilling"), self.useLateralFilling)
-	local v8_ = getXMLString(xmlFile, key .. "#listItemAlignment")
-	if v8_ ~= nil then
-		local v9_ = string.lower(v8_)
-		if v9_ == "end" then
+	local alignment = getXMLString(xmlFile, key .. "#listItemAlignment")
+	if alignment ~= nil then
+		alignment = string.lower(alignment)
+		if alignment == "end" then
 			self.listItemAlignment = SmoothListElement.ALIGN_END
-		elseif v9_ == "middle" then
+		elseif alignment == "middle" then
 			self.listItemAlignment = SmoothListElement.ALIGN_MIDDLE
 		else
 			self.listItemAlignment = SmoothListElement.ALIGN_START
@@ -123,24 +116,26 @@ function SmoothListElement:loadFromXML(xmlFile, key)
 	self.canReceiveFocusWhileEmpty = Utils.getNoNil(getXMLBool(xmlFile, key .. "#canReceiveFocusWhileEmpty"), self.canReceiveFocusWhileEmpty)
 	self.wrapAround = Utils.getNoNil(getXMLBool(xmlFile, key .. "#wrapAround"), self.wrapAround)
 	self.emptyIndicatorElementId = getXMLString(xmlFile, key .. "#emptyIndicatorId") or self.emptyIndicatorElementId
-	local v10_ = getXMLString(xmlFile, key .. "#listDelegate")
-	if v10_ == nil or v10_ == "self" then
+	local delegateName = getXMLString(xmlFile, key .. "#listDelegate")
+	if delegateName == nil or delegateName == "self" then
 		self.delegate = self.target
-	elseif v10_ ~= "nil" then
-		self.delegate = self.target[v10_]
+	else
+		if delegateName ~= "nil" then
+			self.delegate = self.target[delegateName]
+		end
 	end
-	local v11_ = getXMLString(xmlFile, key .. "#listDataSource")
-	if v11_ == nil or v11_ == "self" then
+	local dataSourceName = getXMLString(xmlFile, key .. "#listDataSource")
+	if dataSourceName == nil or dataSourceName == "self" then
 		self.dataSource = self.target
-	elseif v10_ ~= "nil" then
-		self.dataSource = self.target[v11_]
+	else
+		if delegateName ~= "nil" then
+			self.dataSource = self.target[dataSourceName]
+		end
 	end
 	self.sectionHeaderCellName = getXMLString(xmlFile, key .. "#listSectionHeader")
 	self.startClipperElementName = getXMLString(xmlFile, key .. "#startClipperElementName")
 	self.endClipperElementName = getXMLString(xmlFile, key .. "#endClipperElementName")
 end
-
--- Local values: alignment
 function SmoothListElement:loadProfile(profile, applyProfile)
 	SmoothListElement:superClass().loadProfile(self, profile, applyProfile)
 	self.isHorizontalList = profile:getBool("isHorizontalList", self.isHorizontalList)
@@ -151,12 +146,12 @@ function SmoothListElement:loadProfile(profile, applyProfile)
 	self.listItemSpacing = GuiUtils.getNormalizedValue(profile:getValue("listItemSpacing"), self.isHorizontalList, self.listItemSpacing)
 	self.listItemLateralSpacing = GuiUtils.getNormalizedValue(profile:getValue("listItemLateralSpacing"), not self.isHorizontalList, self.listItemLateralSpacing)
 	self.useLateralFilling = profile:getBool("useLateralFilling", self.useLateralFilling)
-	local v15_ = profile:getValue("listItemAlignment")
-	if v15_ ~= nil then
-		local v16_ = string.lower(v15_)
-		if v16_ == "end" then
+	local alignment = profile:getValue("listItemAlignment")
+	if alignment ~= nil then
+		alignment = string.lower(alignment)
+		if alignment == "end" then
 			self.listItemAlignment = SmoothListElement.ALIGN_END
-		elseif v16_ == "middle" then
+		elseif alignment == "middle" then
 			self.listItemAlignment = SmoothListElement.ALIGN_MIDDLE
 		else
 			self.listItemAlignment = SmoothListElement.ALIGN_START
@@ -179,20 +174,17 @@ function SmoothListElement:loadProfile(profile, applyProfile)
 	self.canReceiveFocusWhileEmpty = profile:getBool("canReceiveFocusWhileEmpty", self.canReceiveFocusWhileEmpty)
 	self.wrapAround = profile:getBool("wrapAround", self.wrapAround)
 end
-
--- Local values: cloned, name, cell, name, _
 function SmoothListElement:clone(parent, includeId, suppressOnCreate, blockFocusHandlingReload)
-	local v22_ = SmoothListElement:superClass().clone(self, parent, includeId, suppressOnCreate, blockFocusHandlingReload)
-	v22_.cellDatabase = {}
-	for v23_, v24_ in pairs(self.cellDatabase) do
-		v22_.cellDatabase[v23_] = v24_:clone(nil, nil, true)
+	local cloned = SmoothListElement:superClass().clone(self, parent, includeId, suppressOnCreate, blockFocusHandlingReload)
+	cloned.cellDatabase = {}
+	for name, cell in pairs(self.cellDatabase) do
+		cloned.cellDatabase[name] = cell:clone(nil, nil, true)
 	end
-	for v25_, _ in pairs(self.cellCache) do
-		v22_.cellCache[v25_] = {}
+	for name, _ in pairs(self.cellCache) do
+		cloned.cellCache[name] = {}
 	end
-	return v22_
+	return cloned
 end
-
 function SmoothListElement:copyAttributes(src)
 	SmoothListElement:superClass().copyAttributes(self, src)
 	self.dataSource = src.dataSource
@@ -233,7 +225,6 @@ function SmoothListElement:copyAttributes(src)
 	self.isLoaded = src.isLoaded
 	GuiMixin.cloneMixin(PlaySampleMixin, src, self)
 end
-
 function SmoothListElement:onGuiSetupFinished()
 	SmoothListElement:superClass().onGuiSetupFinished(self)
 	if self.startClipperElementName ~= nil then
@@ -253,75 +244,69 @@ function SmoothListElement:onGuiSetupFinished()
 		self.isLoaded = true
 	end
 end
-
--- Local values: numCellsInDatabase, i, element, name, name, cell
 function SmoothListElement:buildCellDatabase()
 	self.cellDatabase = {}
-	local v30_ = 0
-	for v31_ = #self.elements, 1, -1 do
-		local v32_ = self.elements[v31_]
-		local v33_ = v32_.name
-		if v32_:isa(ListItemElement) then
-			if v33_ == nil then
-				v32_.name = "autoCell" .. v31_
-				v33_ = v32_.name
+	local numCellsInDatabase = 0
+	for i = #self.elements, 1, -1 do
+		local element = self.elements[i]
+		local name = element.name
+		if element:isa(ListItemElement) then
+			if name == nil then
+				element.name = "autoCell" .. i
+				name = element.name
 			end
-			self.cellDatabase[v33_] = v32_
-			self.cellCache[v33_] = {}
-			v30_ = v30_ + 1
+			self.cellDatabase[name] = element
+			self.cellCache[name] = {}
+			numCellsInDatabase = numCellsInDatabase + 1
 		end
-		v32_:unlinkElement()
-		FocusManager:removeElement(v32_)
+		element:unlinkElement()
+		FocusManager:removeElement(element)
 	end
 	if self.sectionHeaderCellName ~= nil and self.cellDatabase[self.sectionHeaderCellName] == nil then
-		Logging.warning("List section header with name \'%s\' does not exist on \'%s\'", self.sectionHeaderCellName, self.profile)
+		Logging.warning("List section header with name '%s' does not exist on '%s'", self.sectionHeaderCellName, self.profile)
 		self.sectionHeaderCellName = nil
 	end
 	if self.sectionHeaderCellName ~= nil then
-		v30_ = v30_ - 1
+		numCellsInDatabase = numCellsInDatabase - 1
 	end
-	if self.dataSource.getEmptyCellType ~= nil and self.cellDatabase[self.dataSource:getEmptyCellType(self)] ~= nil or self.cellDatabase.empty then
-		v30_ = v30_ - 1
+	if self.dataSource.getEmptyCellType ~= nil and (self.cellDatabase[self.dataSource:getEmptyCellType(self)] ~= nil or self.cellDatabase.empty) then
+		numCellsInDatabase = numCellsInDatabase - 1
 	end
-	if v30_ == 1 then
-		for v34_, _ in pairs(self.cellDatabase) do
-			if v34_ ~= self.sectionHeaderCellName then
-				self.singularCellName = v34_
-				return
+	if numCellsInDatabase == 1 then
+		for name, cell in pairs(self.cellDatabase) do
+			if name == self.sectionHeaderCellName then
+				continue
 			end
+			self.singularCellName = name
+			return
 		end
 	end
 end
-
--- Local values: _, cell, _, elements, i
 function SmoothListElement:iterateOverDatabase(lambda)
 	if self.cellDatabase ~= nil then
-		for _, v37_ in pairs(self.cellDatabase) do
-			lambda(v37_)
+		for _, cell in pairs(self.cellDatabase) do
+			lambda(cell)
 		end
 	end
 	if self.cellCache ~= nil then
-		for _, v38_ in pairs(self.cellCache) do
-			for v39_ = 1, #v38_ do
-				lambda(v38_[v39_])
+		for _, elements in pairs(self.cellCache) do
+			for i = 1, #elements do
+				lambda(elements[i])
 			end
 		end
 	end
 end
-
--- Local values: name, elements, _, element, name, element
 function SmoothListElement:delete()
-	for _, v41_ in pairs(self.cellCache) do
-		for _, v42_ in ipairs(v41_) do
-			v42_:delete()
+	for name, elements in pairs(self.cellCache) do
+		for _, element in ipairs(elements) do
+			element:delete()
 		end
 	end
-	for _, v43_ in pairs(self.cellDatabase) do
-		v43_:delete()
+	for name, element in pairs(self.cellDatabase) do
+		element:delete()
 	end
 	SmoothListElement:superClass().delete(self)
 end
-
 function SmoothListElement:onOpen()
 	if self.setNextOpenIndex ~= nil then
 		self:setSoundSuppressed(true)
@@ -331,59 +316,52 @@ function SmoothListElement:onOpen()
 		self:setSoundSuppressed(false)
 	end
 end
-
 function SmoothListElement:onClose()
 	if self.isMovingToTarget then
 		self:scrollTo(self.targetViewOffset)
 	end
 end
-
 function SmoothListElement:setDataSource(dataSource)
 	self.dataSource = dataSource
 	if self.delegate == nil then
 		self.delegate = dataSource
 	end
 end
-
 function SmoothListElement:setDelegate(delegate)
 	self.delegate = delegate
 	if self.dataSource == nil then
 		self.dataSource = delegate
 	end
 end
-
--- Local values: cell, cache
 function SmoothListElement:dequeueReusableCell(name)
 	if self.cellDatabase[name] == nil then
 		return nil
-	end
-	local v52_ = self.cellCache[name]
-	local v53_
-	if #v52_ > 0 then
-		v53_ = v52_[#v52_]
-		v52_[#v52_] = nil
-		self:addElement(v53_)
 	else
-		v53_ = self.cellDatabase[name]:clone(self)
-		v53_.reusableName = name
+		local cell = nil
+		local cache = self.cellCache[name]
+		if 0 < #cache then
+			cell = cache[#cache]
+			cache[#cache] = nil
+			self:addElement(cell)
+		else
+			cell = self.cellDatabase[name]:clone(self)
+			cell.reusableName = name
+		end
+		FocusManager:loadElementFromCustomValues(cell)
+		return cell
 	end
-	FocusManager:loadElementFromCustomValues(v53_)
-	return v53_
 end
-
--- Local values: cache
 function SmoothListElement:queueReusableCell(cell)
 	if self.sections[cell.sectionIndex] ~= nil then
 		self.sections[cell.sectionIndex].cells[cell.indexInSection] = nil
 	end
 	cell.sectionIndex = nil
 	cell.indexInSection = nil
-	local v56_ = self.cellCache[cell.reusableName]
-	v56_[#v56_ + 1] = cell
+	local cache = self.cellCache[cell.reusableName]
+	cache[#cache + 1] = cell
 	cell:unlinkElement()
 	FocusManager:removeElement(cell)
 end
-
 function SmoothListElement:setTarget(target, originalTarget, callOnCreate)
 	SmoothListElement:superClass().setTarget(self, target, originalTarget, callOnCreate)
 	if self.delegate == originalTarget then
@@ -392,23 +370,23 @@ function SmoothListElement:setTarget(target, originalTarget, callOnCreate)
 	if self.dataSource == originalTarget then
 		self.dataSource = target
 	end
-	self:iterateOverDatabase(function(p61_)
-		-- upvalues: (copy) target, (copy) originalTarget, (copy) callOnCreate
-		p61_:setTarget(target, originalTarget, callOnCreate)
+	self:iterateOverDatabase(function(e)
+		e:setTarget(target, originalTarget, callOnCreate)
 	end)
 end
-
--- Local values: _, section, i, cell
 function SmoothListElement:reloadData(forceCellTypeUpdate)
-	if self.dataSource ~= nil then
+	if self.dataSource == nil then
+		return
+	else
 		self:setSoundSuppressed(true)
 		if forceCellTypeUpdate then
-			for _, v64_ in pairs(self.sections) do
-				for v65_ = #v64_.cells, 1, -1 do
-					local v66_ = v64_.cells[v65_]
-					if v66_ ~= nil then
-						self:queueReusableCell(v66_)
+			for _, section in pairs(self.sections) do
+				for i = #section.cells, 1, -1 do
+					local cell = section.cells[i]
+					if cell == nil then
+						continue
 					end
+					self:queueReusableCell(cell)
 				end
 			end
 		end
@@ -417,515 +395,478 @@ function SmoothListElement:reloadData(forceCellTypeUpdate)
 		self:setSoundSuppressed(false)
 	end
 end
-
 function SmoothListElement:reloadSection(section)
 	self:reloadData()
 end
-
--- Local values: total, numberOfSections, itemWidth, totalRows, currentLengthOffset, s, section, hasHeader, sectionOffset, lastRow, rowMaxLength, i, itemLength, row, column, needsAnotherRow, emptyCellName, emptyIndex, s, selectedSection, selectedIndex, sectionIndex, section, contentOffset, oldTotalItemCount
 function SmoothListElement:buildSectionInfo()
-	local v69_ = 0
-	local v70_ = self.dataSource.getNumberOfSections == nil and 1 or self.dataSource:getNumberOfSections(self)
-	local v71_ = self:getWidthOfItemFast(1, 1) + self.listItemLateralSpacing
-	if self.useLateralFilling and v71_ > 0 then
-		local v72_ = (self.absSize[self.widthAxis] + self.listItemLateralSpacing) / v71_
-		local v73_ = math.floor(v72_)
-		self.numLateralItems = math.max(v73_, 1)
-	else
-		v71_ = (self.absSize[self.widthAxis] - (self.numLateralItems - 1) * self.listItemLateralSpacing) / self.numLateralItems + self.listItemLateralSpacing
+	local total = 0
+	local numberOfSections = self.dataSource.getNumberOfSections == nil and 1 or self.dataSource:getNumberOfSections(self)
+	local itemWidth = self:getWidthOfItemFast(1, 1) + self.listItemLateralSpacing
+	if self.useLateralFilling then
+		if 0 < itemWidth then
+			self.numLateralItems = math.max(math.floor((self.absSize[self.widthAxis] + self.listItemLateralSpacing) / itemWidth), 1)
+		else
+			itemWidth = (self.absSize[self.widthAxis] - (self.numLateralItems - 1) * self.listItemLateralSpacing) / self.numLateralItems + self.listItemLateralSpacing
+		end
 	end
-	local v74_ = 0
-	local v75_ = 0
-	for v76_ = 1, v70_ do
-		if self.sections[v76_] == nil then
-			self.sections[v76_] = {
-				["cells"] = {}
-			}
+	local totalRows = 0
+	local currentLengthOffset = 0
+	for s = 1, numberOfSections do
+		if self.sections[s] == nil then
+			self.sections[s] = { cells = {} }
 		end
-		local v77_ = self.sections[v76_]
-		v77_.itemOffsets = {}
-		v77_.itemLateralOffsets = {}
-		local v78_ = self.sectionHeaderCellName ~= nil
-		if self.dataSource.getTitleForSectionHeader ~= nil and self.dataSource:getTitleForSectionHeader(self, v76_) == nil then
-			v78_ = false
+		local section = self.sections[s]
+		section.itemOffsets = {}
+		section.itemLateralOffsets = {}
+		local hasHeader = self.sectionHeaderCellName ~= nil
+		if self.dataSource.getTitleForSectionHeader ~= nil and self.dataSource:getTitleForSectionHeader(self, s) == nil then
+			hasHeader = false
 		end
-		local v79_ = v76_ > 1 and (self.listSectionSpacing or 0) or 0
-		v77_.startOffset = v74_
-		if v78_ then
-			v77_.startOffset = v74_ + v79_
-			v77_.itemOffsets[0] = v77_.startOffset
-			v74_ = v74_ + self.cellDatabase[self.sectionHeaderCellName].size[self.lengthAxis] + self.listItemSpacing + v79_
+		local sectionOffset = 1 < s and self.listSectionSpacing or 0
+		section.startOffset = currentLengthOffset
+		if hasHeader then
+			section.startOffset = currentLengthOffset + sectionOffset
+			section.itemOffsets[0] = section.startOffset
+			currentLengthOffset = currentLengthOffset + self.cellDatabase[self.sectionHeaderCellName].size[self.lengthAxis] + self.listItemSpacing + sectionOffset
 		end
-		v77_.numItems = self.dataSource:getNumberOfItemsInSection(self, v76_)
-		local v80_ = 1
-		local v81_ = 0
-		for v82_ = 1, v77_.numItems do
-			local v83_ = self:getLengthOfItemFast(v76_, v82_)
-			local v84_ = (v82_ - 1) / self.numLateralItems
-			local v85_ = math.floor(v84_) + 1
-			local v86_ = (v82_ - 1) % self.numLateralItems + 1
-			if v85_ < v77_.numItems / self.numLateralItems or v76_ < v70_ then
-				v83_ = v83_ + self.listItemSpacing
+		section.numItems = self.dataSource:getNumberOfItemsInSection(self, s)
+		local lastRow = 1
+		local rowMaxLength = 0
+		for i = 1, section.numItems do
+			local itemLength = self:getLengthOfItemFast(s, i)
+			local row = math.floor((i - 1) / self.numLateralItems) + 1
+			local column = (i - 1) % self.numLateralItems + 1
+			local needsAnotherRow = row < section.numItems / self.numLateralItems
+			if needsAnotherRow or s < numberOfSections then
+				itemLength = itemLength + self.listItemSpacing
 			end
-			if v85_ == v80_ then
-				v81_ = math.max(v81_, v83_)
+			if row ~= lastRow then
+				lastRow = row
+				currentLengthOffset = currentLengthOffset + rowMaxLength
+				totalRows = totalRows + 1
+				rowMaxLength = itemLength
 			else
-				v74_ = v74_ + v81_
-				v75_ = v75_ + 1
-				v81_ = v83_
-				v80_ = v85_
+				rowMaxLength = math.max(rowMaxLength, itemLength)
 			end
-			v77_.itemOffsets[v82_] = v74_
-			v77_.itemLateralOffsets[v82_] = v71_ * (v86_ - 1)
-			local v87_ = self.dataSource.getEmptyCellType == nil and "empty" or (self.dataSource:getEmptyCellType(self) or "empty")
-			if self.numLateralItems > 1 and (v82_ == v77_.numItems and (self.fillRowsWithEmptyItems and self.cellDatabase[v87_] ~= nil)) then
-				local v88_ = v82_ + 1
-				while v88_ % self.numLateralItems ~= 1 do
-					local v89_ = (v88_ - 1) % self.numLateralItems + 1
-					v77_.itemOffsets[v88_] = v74_
-					v77_.itemLateralOffsets[v88_] = v71_ * (v89_ - 1)
-					v88_ = v88_ + 1
+			section.itemOffsets[i] = currentLengthOffset
+			section.itemLateralOffsets[i] = itemWidth * (column - 1)
+			local emptyCellName = self.dataSource.getEmptyCellType ~= nil and self.dataSource:getEmptyCellType(self) or "empty"
+			if 1 < self.numLateralItems and (i == section.numItems and self.fillRowsWithEmptyItems) then
+				if self.cellDatabase[emptyCellName] == nil then
+					continue
+				end
+				local emptyIndex = i + 1
+				while emptyIndex % self.numLateralItems ~= 1 do
+					column = (emptyIndex - 1) % self.numLateralItems + 1
+					section.itemOffsets[emptyIndex] = currentLengthOffset
+					section.itemLateralOffsets[emptyIndex] = itemWidth * (column - 1)
+					emptyIndex = emptyIndex + 1
 				end
 			end
 		end
-		v74_ = v74_ + v81_
-		v75_ = v75_ + 1
-		v77_.endOffset = v74_
-		v69_ = v69_ + v77_.numItems
-		self.sections[v76_] = v77_
+		currentLengthOffset = currentLengthOffset + rowMaxLength
+		totalRows = totalRows + 1
+		section.endOffset = currentLengthOffset
+		total = total + section.numItems
+		self.sections[s] = section
 	end
-	for v90_ = #self.sections, v70_ + 1, -1 do
-		self.sections[v90_] = nil
+	for s = #self.sections, numberOfSections + 1, -1 do
+		self.sections[s] = nil
 	end
-	local v91_ = self.selectedSectionIndex
-	local v92_ = self.selectedIndex
-	if #self.sections > 0 then
-		local v93_ = #self.sections
-		local v94_ = math.clamp(v91_, 1, v93_)
-		if self.sections[v94_].numItems == 0 then
-			for v95_, v96_ in ipairs(self.sections) do
-				if v96_.numItems > 0 then
-					local v97_ = v96_.numItems
-					v92_ = math.clamp(v92_, 1, v97_)
-					v94_ = v95_
-					break
-				end
-			end
-		else
-			local v98_ = self.sections[v94_].numItems
-			v92_ = math.clamp(v92_, 1, v98_)
-		end
-		if v92_ == 0 then
-			self.selectedSectionIndex = 0
-			self.selectedIndex = 0
-		elseif self:getIsVisible() then
-			self:setSelectedItem(v94_, v92_, true)
-		else
-			self.setNextOpenIndex = v92_
-			self.setNextOpenSectionIndex = v94_
-		end
-	end
-	if v75_ > 0 then
-		if self.itemizedScrollDelta == nil or (self.itemizedScrollDelta <= 0 or (#self.sections ~= 1 or self.singularCellName == nil)) then
-			local v99_ = v74_ / v75_ * 0.4
-			local v100_ = self.absSize[self.lengthAxis] / 5
-			self.scrollViewOffsetDelta = math.max(v99_, v100_)
-		else
-			self.scrollViewOffsetDelta = (v74_ + self.listItemSpacing) / v75_ * self.itemizedScrollDelta
-		end
-	else
-		self.scrollViewOffsetDelta = 0
-	end
-	self.contentSize = v74_
-	local v101_ = self.absSize[self.lengthAxis] - v74_
-	if v101_ > 0 then
-		self.listItemAlignmentOffset = v101_ * self.listItemAlignment
-		if self.isHorizontalList then
-			self.listItemAlignmentOffset = self.listItemAlignmentOffset * -1
-		end
-	end
-	local v102_ = self.totalItemCount
-	self.totalItemCount = v69_
-	if self.emptyIndicatorElement == nil or (v102_ ~= 0 or self.totalItemCount <= 0) then
-		if self.emptyIndicatorElement ~= nil and (self.totalItemCount == 0 and v102_ > 0) then
-			self.emptyIndicatorElement:setVisible(true)
-		end
-	else
-		self.emptyIndicatorElement:setVisible(false)
-	end
-	local v103_ = self.viewOffset
-	local v104_ = self.contentSize - self.absSize[self.lengthAxis]
-	local v105_ = math.min(v103_, v104_)
-	self.viewOffset = math.max(v105_, 0)
-	local v106_ = self.targetViewOffset
-	local v107_ = self.contentSize - self.absSize[self.lengthAxis]
-	local v108_ = math.min(v106_, v107_)
-	self.targetViewOffset = math.max(v108_, 0)
-	self:updateScrollClippers()
-end
-
--- Local values: cellName, cell
-function SmoothListElement:getLengthOfItemFast(section, index)
-	local v112_ = self.singularCellName or self.dataSource:getCellTypeForItemInSection(self, section, index)
-	return self.cellDatabase[v112_].size[self.lengthAxis]
-end
-
--- Local values: cellName, cell
-function SmoothListElement:getWidthOfItemFast(section, index)
-	local v116_ = self.singularCellName or self.dataSource:getCellTypeForItemInSection(self, section, index)
-	return self.cellDatabase[v116_].size[self.widthAxis]
-end
-
--- Local values: viewEndOffset, firstSection, firstIndex, s, section, i, offset, itemLength, endOffset, lastSection, lastIndex, s, section, i, offset, e, element, s, i, currentOffset, section, element, titleAttribute, cellName, element, titleAttribute, emptyCellName, emptyIndex, emptyCell, _, cell
-function SmoothListElement:updateView(updateSlider, repopulate)
-	local v120_ = self.viewOffset + self.absSize[self.lengthAxis]
-	local v121_ = 0
-	local v122_ = 0
-	for v123_ = 1, #self.sections do
-		local v124_ = self.sections[v123_]
-		if self.viewOffset < v124_.endOffset then
-			v122_ = v123_
-			for v125_ = 0, v124_.numItems do
-				local v126_ = v124_.itemOffsets[v125_]
-				local v127_ = self:getLengthOfItemFast(v123_, v125_) or 0
-				if v126_ ~= nil then
-					v127_ = v126_ + v127_ or v127_
-				end
-				if v126_ ~= nil and (v127_ ~= nil and self.viewOffset + SmoothListElement.CHECK_OFFSET_EPSILON < v127_) then
-					v121_ = v125_
-					break
-				end
-			end
-			if v121_ == nil then
-				v121_ = v124_.numItems
-			end
-		end
-	end
-	local v128_ = 1
-	local v129_ = 0
-	for v130_ = #self.sections, math.max(v122_, 1), -1 do
-		local v131_ = self.sections[v130_]
-		if v131_.startOffset < v120_ then
-			for v132_ = v131_.numItems - 1, 0, -1 do
-				local v133_ = v131_.itemOffsets[v132_ + 1]
-				if v133_ ~= nil and v133_ < v120_ then
-					v128_ = v132_ + 1
-					break
-				end
-			end
-			if v128_ == nil then
-				v128_ = v131_.numItems
-				v129_ = v130_
-			else
-				v129_ = v130_
-			end
-		end
-	end
-	for v134_ = #self.elements, 1, -1 do
-		local v135_ = self.elements[v134_]
-		if v135_.sectionIndex < v122_ or (v129_ < v135_.sectionIndex or v135_.sectionIndex == v122_ and v135_.indexInSection < v121_) or (not v135_.isEmptyCell and (v135_.sectionIndex == v129_ and v128_ < v135_.indexInSection) or (not v135_.isEmptyCell and self.sections[v135_.sectionIndex].numItems < v135_.indexInSection or v135_.isEmptyCell)) then
-			self:queueReusableCell(v135_)
-		end
-	end
-	if v122_ == 0 or v129_ == 0 then
-		if updateSlider ~= false then
-			self:raiseSliderUpdateEvent()
-		end
-		return
-	end
-	local v136_ = self.sections[v122_].itemOffsets[v121_]
-	while v136_ - self.viewOffset < self.absSize[self.lengthAxis] do
-		local v137_ = self.sections[v122_]
-		if v121_ < v137_.numItems and (v137_.cells[v121_] ~= nil and v137_.cells[v121_].isEmptyCell) then
-			self:queueReusableCell(v137_.cells[v121_])
-			v137_.cells[v121_] = nil
-		end
-		if v137_.cells[v121_] == nil then
-			local v138_ = nil
-			if v121_ == 0 then
-				if self.sectionHeaderCellName ~= nil then
-					v138_ = self:dequeueReusableCell(self.sectionHeaderCellName)
-					v138_.isHeader = true
-					local v139_ = v138_:getAttribute("title")
-					if v139_ == nil or self.dataSource.getTitleForSectionHeader == nil then
-						if self.dataSource.populateSectionHeader ~= nil then
-							self.dataSource:populateSectionHeader(self, v122_, v138_)
+	local selectedSection = self.selectedSectionIndex
+	local selectedIndex = self.selectedIndex
+	if 0 < #self.sections then
+		selectedSection = math.clamp(selectedSection, 1, #self.sections)
+		if self.sections[selectedSection].numItems == 0 then
+			for sectionIndex, section in ipairs(self.sections) do
+				if 0 < section.numItems then
+					selectedIndex = math.clamp(selectedIndex, 1, section.numItems)
+					selectedSection = sectionIndex
+					if selectedIndex == 0 then
+						self.selectedSectionIndex = 0
+						self.selectedIndex = 0
+					elseif self:getIsVisible() then
+						self:setSelectedItem(selectedSection, selectedIndex, true)
+					else
+						self.setNextOpenIndex = selectedIndex
+						self.setNextOpenSectionIndex = selectedSection
+					end
+					if 0 < totalRows then
+						if self.itemizedScrollDelta ~= nil and (0 < self.itemizedScrollDelta and #self.sections == 1) then
+							if self.singularCellName ~= nil then
+								self.scrollViewOffsetDelta = (currentLengthOffset + self.listItemSpacing) / totalRows * self.itemizedScrollDelta
+							else
+								self.scrollViewOffsetDelta = math.max(currentLengthOffset / totalRows * 0.4, self.absSize[self.lengthAxis] / 5)
+							end
 						end
 					else
-						v139_:setText(self.dataSource:getTitleForSectionHeader(self, v122_))
+						self.scrollViewOffsetDelta = 0
 					end
-				end
-			else
-				v138_ = self:dequeueReusableCell(self.singularCellName or self.dataSource:getCellTypeForItemInSection(self, v122_, v121_))
-				self.dataSource:populateCellForItemInSection(self, v122_, v121_, v138_)
-				v138_:setAlternating(v121_ % 2 == 0)
-			end
-			v138_.sectionIndex = v122_
-			v138_.indexInSection = v121_
-			v137_.cells[v121_] = v138_
-			local v140_
-			if v122_ == self.selectedSectionIndex and v121_ == self.selectedIndex then
-				v140_ = self.selectedWithoutFocus or FocusManager:getFocusedElement() == self
-			else
-				v140_ = false
-			end
-			v138_:setSelected(v140_)
-		elseif repopulate then
-			local v141_ = v137_.cells[v121_]
-			if v121_ == 0 then
-				local v142_ = v141_:getAttribute("title")
-				if v142_ == nil or self.dataSource.getTitleForSectionHeader == nil then
-					if self.dataSource.populateSectionHeader ~= nil then
-						self.dataSource:populateSectionHeader(self, v122_, v141_)
+					self.contentSize = currentLengthOffset
+					local contentOffset = self.absSize[self.lengthAxis] - currentLengthOffset
+					if 0 < contentOffset then
+						self.listItemAlignmentOffset = contentOffset * self.listItemAlignment
+						if self.isHorizontalList then
+							self.listItemAlignmentOffset = self.listItemAlignmentOffset * -1
+						end
 					end
-				else
-					v142_:setText(self.dataSource:getTitleForSectionHeader(self, v122_))
+					local oldTotalItemCount = self.totalItemCount
+					self.totalItemCount = total
+					if self.emptyIndicatorElement ~= nil and oldTotalItemCount == 0 then
+						if 0 < self.totalItemCount then
+							self.emptyIndicatorElement:setVisible(false)
+						elseif self.emptyIndicatorElement ~= nil then
+							if self.totalItemCount == 0 and 0 < oldTotalItemCount then
+								self.emptyIndicatorElement:setVisible(true)
+							end
+						end
+					end
+					self.viewOffset = math.max(math.min(self.viewOffset, self.contentSize - self.absSize[self.lengthAxis]), 0)
+					self.targetViewOffset = math.max(math.min(self.targetViewOffset, self.contentSize - self.absSize[self.lengthAxis]), 0)
+					self:updateScrollClippers()
+					return
 				end
-			elseif v121_ <= v137_.numItems then
-				self.dataSource:populateCellForItemInSection(self, v122_, v121_, v141_)
-				v141_:setAlternating(v121_ % 2 == 0)
-				local v143_
-				if v122_ == self.selectedSectionIndex and v121_ == self.selectedIndex then
-					v143_ = self.selectedWithoutFocus or FocusManager:getFocusedElement() == self
-				else
-					v143_ = false
+			end
+		else
+			selectedIndex = math.clamp(selectedIndex, 1, self.sections[selectedSection].numItems)
+		end
+	end
+end
+function SmoothListElement:getLengthOfItemFast(section, index)
+	local cellName = self.singularCellName or self.dataSource:getCellTypeForItemInSection(self, section, index)
+	local cell = self.cellDatabase[cellName]
+	return cell.size[self.lengthAxis]
+end
+function SmoothListElement:getWidthOfItemFast(section, index)
+	local cellName = self.singularCellName or self.dataSource:getCellTypeForItemInSection(self, section, index)
+	local cell = self.cellDatabase[cellName]
+	return cell.size[self.widthAxis]
+end
+function SmoothListElement:updateView(updateSlider, repopulate)
+	local viewEndOffset = self.viewOffset + self.absSize[self.lengthAxis]
+	local firstSection = 0
+	local firstIndex = 0
+	for s = 1, #self.sections do
+		local section = self.sections[s]
+		if self.viewOffset < section.endOffset then
+			firstSection = s
+			for i = 0, section.numItems do
+				local offset = section.itemOffsets[i]
+				local itemLength = self:getLengthOfItemFast(s, i) or 0
+				local endOffset = offset ~= nil and offset + itemLength or itemLength
+				if offset ~= nil and (endOffset ~= nil and self.viewOffset + SmoothListElement.CHECK_OFFSET_EPSILON < endOffset) then
+					firstIndex = i
+					break
 				end
-				v141_:setSelected(v143_)
 			end
-		end
-		v121_ = v121_ + 1
-		local v144_ = self.dataSource.getEmptyCellType == nil and "empty" or (self.dataSource:getEmptyCellType(self) or "empty")
-		if self.fillRowsWithEmptyItems and (self.cellDatabase[v144_] ~= nil and (v137_.numItems < v121_ and self.numLateralItems > 1)) then
-			local v145_ = v121_
-			while v121_ % self.numLateralItems ~= 1 do
-				local v146_ = self:dequeueReusableCell(v144_)
-				v146_.sectionIndex = v122_
-				v146_.indexInSection = v121_
-				v146_.isEmptyCell = true
-				v146_.playHoverSoundOnFocus = false
-				v137_.cells[v121_] = v146_
-				v121_ = v121_ + 1
-			end
-			v121_ = v145_
-		end
-		if v122_ == v129_ and v128_ < v121_ then
-			break
-		end
-		if v137_.numItems < v121_ then
-			local v147_ = 0
-			v122_ = v122_ + 1
-			if v129_ < v122_ then
+			if firstIndex == nil then
+				firstIndex = section.numItems
 				break
 			end
-			v121_ = self.sections[v122_].itemOffsets[v147_] == nil and 1 or v147_
-			v136_ = self.sections[v122_].startOffset
-		else
-			v136_ = v137_.itemOffsets[v121_]
+		end
+		local lastSection = 0
+		local lastIndex = 1
+		for s = #self.sections, math.max(firstSection, 1), -1 do
+			local section = self.sections[s]
+			if section.startOffset < viewEndOffset then
+				lastSection = s
+				for i = section.numItems - 1, 0, -1 do
+					local offset = section.itemOffsets[i + 1]
+					if offset ~= nil and offset < viewEndOffset then
+						lastIndex = i + 1
+						break
+					end
+				end
+				if lastIndex == nil then
+					lastIndex = section.numItems
+					break
+				end
+			end
+			for e = #self.elements, 1, -1 do
+				local element = self.elements[e]
+				if element.sectionIndex < firstSection or lastSection < element.sectionIndex or element.sectionIndex == firstSection and element.indexInSection < firstIndex or not element.isEmptyCell and element.sectionIndex == lastSection and lastIndex < element.indexInSection or not element.isEmptyCell and self.sections[element.sectionIndex].numItems < element.indexInSection or element.isEmptyCell then
+					self:queueReusableCell(element)
+				end
+			end
+			if firstSection == 0 or lastSection == 0 then
+				if updateSlider ~= false then
+					self:raiseSliderUpdateEvent()
+				end
+				return
+			end
+			local s = firstSection
+			local i = firstIndex
+			local currentOffset = self.sections[s].itemOffsets[firstIndex]
+			while currentOffset - self.viewOffset < self.absSize[self.lengthAxis] do
+				local section = self.sections[s]
+				if i < section.numItems and (section.cells[i] ~= nil and section.cells[i].isEmptyCell) then
+					self:queueReusableCell(section.cells[i])
+					section.cells[i] = nil
+				end
+				if section.cells[i] == nil then
+					local element = nil
+					if i == 0 then
+						if self.sectionHeaderCellName ~= nil then
+							element = self:dequeueReusableCell(self.sectionHeaderCellName)
+							element.isHeader = true
+							local titleAttribute = element:getAttribute("title")
+							if titleAttribute ~= nil then
+								if self.dataSource.getTitleForSectionHeader ~= nil then
+									titleAttribute:setText(self.dataSource:getTitleForSectionHeader(self, s))
+								elseif self.dataSource.populateSectionHeader ~= nil then
+									self.dataSource:populateSectionHeader(self, s, element)
+								end
+							end
+						end
+					else
+						local cellName = self.singularCellName or self.dataSource:getCellTypeForItemInSection(self, s, i)
+						element = self:dequeueReusableCell(cellName)
+						self.dataSource:populateCellForItemInSection(self, s, i, element)
+						element:setAlternating(i % 2 == 0)
+					end
+					element.sectionIndex = s
+					element.indexInSection = i
+					section.cells[i] = element
+					element:setSelected(s == self.selectedSectionIndex and i == self.selectedIndex and not self.selectedWithoutFocus and FocusManager:getFocusedElement() == self)
+				elseif repopulate then
+					local element = section.cells[i]
+					if i == 0 then
+						local titleAttribute = element:getAttribute("title")
+						if titleAttribute ~= nil then
+							if self.dataSource.getTitleForSectionHeader ~= nil then
+								titleAttribute:setText(self.dataSource:getTitleForSectionHeader(self, s))
+							elseif self.dataSource.populateSectionHeader ~= nil then
+								self.dataSource:populateSectionHeader(self, s, element)
+							end
+						end
+					elseif i <= section.numItems then
+						self.dataSource:populateCellForItemInSection(self, s, i, element)
+						element:setAlternating(i % 2 == 0)
+						element:setSelected(s == self.selectedSectionIndex and i == self.selectedIndex and not self.selectedWithoutFocus and FocusManager:getFocusedElement() == self)
+					end
+				end
+				i = i + 1
+				local emptyCellName = self.dataSource.getEmptyCellType ~= nil and self.dataSource:getEmptyCellType(self) or "empty"
+				if self.fillRowsWithEmptyItems and (self.cellDatabase[emptyCellName] ~= nil and (section.numItems < i and 1 < self.numLateralItems)) then
+					local emptyIndex = i
+					while emptyIndex % self.numLateralItems ~= 1 do
+						local emptyCell = self:dequeueReusableCell(emptyCellName)
+						emptyCell.sectionIndex = s
+						emptyCell.indexInSection = emptyIndex
+						emptyCell.isEmptyCell = true
+						emptyCell.playHoverSoundOnFocus = false
+						section.cells[emptyIndex] = emptyCell
+						emptyIndex = emptyIndex + 1
+					end
+				end
+				if s == lastSection and lastIndex < i then
+					break
+				end
+				if section.numItems < i then
+					i = 0
+					s = s + 1
+					if lastSection < s then
+						break
+					end
+					if self.sections[s].itemOffsets[i] == nil then
+						i = 1
+					end
+					currentOffset = self.sections[s].startOffset
+				else
+					currentOffset = section.itemOffsets[i]
+				end
+			end
+			self.numVisibleItems = #self.elements
+			for _, cell in pairs(self.elements) do
+				self:updateCellPosition(cell)
+			end
+			if updateSlider ~= false then
+				self:raiseSliderUpdateEvent()
+			end
+			self:updateScrollClippers()
+			return
 		end
 	end
-	self.numVisibleItems = #self.elements
-	for _, v148_ in pairs(self.elements) do
-		self:updateCellPosition(v148_)
-	end
-	if updateSlider ~= false then
-		self:raiseSliderUpdateEvent()
-	end
-	self:updateScrollClippers()
 end
-
--- Local values: section, offset, lateralOffset, x, y, x, y
 function SmoothListElement:updateCellPosition(element)
-	local v151_ = self.sections[element.sectionIndex]
-	local v152_, v153_
+	local section = self.sections[element.sectionIndex]
+	local offset = nil
+	local lateralOffset = nil
 	if element.indexInSection == 0 then
-		v152_ = v151_.startOffset
-		v153_ = 0
+		offset = section.startOffset
+		lateralOffset = 0
 	else
-		v152_ = v151_.itemOffsets[element.indexInSection]
-		v153_ = v151_.itemLateralOffsets[element.indexInSection]
+		offset = section.itemOffsets[element.indexInSection]
+		lateralOffset = section.itemLateralOffsets[element.indexInSection]
 	end
 	if self.lengthAxis == 1 then
-		local v154_, v155_ = GuiUtils.alignToScreenPixels(v152_ - self.viewOffset - self.listItemAlignmentOffset, -v153_)
-		element:setPosition(v154_, v155_)
+		local x, y = GuiUtils.alignToScreenPixels(offset - self.viewOffset - self.listItemAlignmentOffset, -lateralOffset)
+		element:setPosition(x, y)
 	else
-		local v156_, v157_ = GuiUtils.alignToScreenPixels(v153_, self.viewOffset - v152_ - self.listItemAlignmentOffset)
-		element:setPosition(v156_, v157_)
+		local x, y = GuiUtils.alignToScreenPixels(lateralOffset, self.viewOffset - offset - self.listItemAlignmentOffset)
+		element:setPosition(x, y)
 	end
 end
-
 function SmoothListElement:scrollTo(offset, updateSlider)
-	local v161_ = self.contentSize - self.absSize[self.lengthAxis]
-	local v162_ = math.min(offset, v161_)
-	local v163_ = math.max(v162_, 0)
-	if v163_ ~= self.viewOffset then
-		self.viewOffset = v163_
-		self.targetViewOffset = v163_
+	offset = math.max(math.min(offset, self.contentSize - self.absSize[self.lengthAxis]), 0)
+	if offset ~= self.viewOffset then
+		self.viewOffset = offset
+		self.targetViewOffset = offset
 		self.isMovingToTarget = false
 		self:updateView(updateSlider)
 	end
 end
-
 function SmoothListElement:scrollToStartGamepad()
 	if self.gamepadPageStartTime == nil then
 		self.gamepadPageStartTime = g_time + SmoothListElement.GAMEPAD_PAGE_START_END_TIME
 	end
 	self.gamepadPageStartTriggered = true
-	if g_time >= self.gamepadPageStartTime then
+	if self.gamepadPageStartTime <= g_time then
 		self:scrollToStart()
 		self.gamepadPageStartTime = math.huge
 	end
 end
-
 function SmoothListElement:scrollToEndGamepad()
 	if self.gamepadPageEndTime == nil then
 		self.gamepadPageEndTime = g_time + SmoothListElement.GAMEPAD_PAGE_START_END_TIME
 	end
 	self.gamepadPageEndTriggered = true
-	if g_time >= self.gamepadPageEndTime then
+	if self.gamepadPageEndTime <= g_time then
 		self:scrollToEnd()
 		self.gamepadPageEndTime = math.huge
 	end
 end
-
 function SmoothListElement:scrollToStart()
-	if #self.sections == 1 or (Input.isKeyPressed(Input.KEY_lctrl) or g_inputBinding:getLastInputMode() ~= GS_INPUT_HELP_MODE_KEYBOARD) then
+	if #self.sections == 1 or Input.isKeyPressed(Input.KEY_lctrl) or g_inputBinding:getLastInputMode() ~= GS_INPUT_HELP_MODE_KEYBOARD then
 		self:setSelectedItem(1, 1)
-	else
-		self:setSelectedItem(self.selectedSectionIndex, 1)
-	end
-end
-
--- Local values: numSections, lastCellIndex
-function SmoothListElement:scrollToEnd()
-	local v168_ = #self.sections
-	local v169_ = self.sections[v168_].numItems
-	if v168_ == 1 or (Input.isKeyPressed(Input.KEY_lctrl) or g_inputBinding:getLastInputMode() ~= GS_INPUT_HELP_MODE_KEYBOARD) then
-		self:setSelectedItem(v168_, v169_)
-	else
-		local v170_ = self.sections[self.selectedSectionIndex].numItems
-		self:setSelectedItem(self.selectedSectionIndex, v170_)
-	end
-end
-
--- Local values: spacing, viewEndOffset, targetOffset, foundTargetOffset, sectionIndex, section, cellIndex, cellOffset, sectionIndex, section, cellIndex, cellOffset
-function SmoothListElement:scrollToPrevPage()
-	local v172_ = self.isHorizontalList and self.listItemLateralSpacing or self.listItemSpacing
-	local v173_ = self.viewOffset - v172_
-	if #self.sections ~= 1 and not Input.isKeyPressed(Input.KEY_lctrl) then
-		self:setSelectedItem(self.selectedSectionIndex - 1, 1)
 		return
 	end
-	local v174_ = false
-	local v175_ = nil
-	for v176_, v177_ in pairs(self.sections) do
-		if v173_ < v177_.endOffset or MathUtil.equalEpsilon(v177_.endOffset, self.viewOffset, SmoothListElement.CHECK_OFFSET_EPSILON) then
-			for v178_, v179_ in pairs(v177_.itemOffsets) do
-				v175_ = v179_ + self:getLengthOfItemFast(v176_, v178_) + v172_
-				if v173_ + SmoothListElement.CHECK_OFFSET_EPSILON < v175_ then
-					local v180_ = v175_ - self.absSize[self.lengthAxis] - v172_
-					local v181_ = self.contentSize - self.absSize[self.lengthAxis]
-					local v182_ = math.min(v180_, v181_)
-					v175_ = math.max(v182_, 0)
-					v174_ = true
+	self:setSelectedItem(self.selectedSectionIndex, 1)
+end
+function SmoothListElement:scrollToEnd()
+	local numSections = #self.sections
+	local lastCellIndex = self.sections[numSections].numItems
+	if numSections == 1 or Input.isKeyPressed(Input.KEY_lctrl) or g_inputBinding:getLastInputMode() ~= GS_INPUT_HELP_MODE_KEYBOARD then
+		self:setSelectedItem(numSections, lastCellIndex)
+		return
+	end
+	lastCellIndex = self.sections[self.selectedSectionIndex].numItems
+	self:setSelectedItem(self.selectedSectionIndex, lastCellIndex)
+end
+function SmoothListElement:scrollToPrevPage()
+	local spacing = self.isHorizontalList and self.listItemLateralSpacing or self.listItemSpacing
+	local viewEndOffset = self.viewOffset - spacing
+	if #self.sections == 1 or Input.isKeyPressed(Input.KEY_lctrl) then
+		local targetOffset = nil
+		local foundTargetOffset = false
+		for sectionIndex, section in pairs(self.sections) do
+			for cellIndex, cellOffset in pairs(section.itemOffsets) do
+				targetOffset = cellOffset + self:getLengthOfItemFast(sectionIndex, cellIndex) + spacing
+				if viewEndOffset + SmoothListElement.CHECK_OFFSET_EPSILON < targetOffset then
+					targetOffset = targetOffset - self.absSize[self.lengthAxis] - spacing
+					targetOffset = math.max(math.min(targetOffset, self.contentSize - self.absSize[self.lengthAxis]), 0)
+					foundTargetOffset = true
 					break
 				end
 			end
-			if v174_ then
-				break
+			if not foundTargetOffset then
+				continue
 			end
-		end
-	end
-	for v183_, v184_ in pairs(self.sections) do
-		if v175_ < v184_.endOffset or MathUtil.equalEpsilon(v184_.endOffset, v175_, SmoothListElement.CHECK_OFFSET_EPSILON) then
-			for v185_, v186_ in pairs(v184_.itemOffsets) do
-				if v175_ < v186_ or MathUtil.equalEpsilon(v186_, v175_, SmoothListElement.CHECK_OFFSET_EPSILON) then
-					self:setSelectedItem(v183_, v185_)
-					return
+			for sectionIndex, section in pairs(self.sections) do
+				if targetOffset < section.endOffset or MathUtil.equalEpsilon(section.endOffset, targetOffset, SmoothListElement.CHECK_OFFSET_EPSILON) then
+					for cellIndex, cellOffset in pairs(section.itemOffsets) do
+						if targetOffset < cellOffset or MathUtil.equalEpsilon(cellOffset, targetOffset, SmoothListElement.CHECK_OFFSET_EPSILON) then
+							self:setSelectedItem(sectionIndex, cellIndex)
+							return
+						end
+					end
 				end
 			end
+			return
 		end
 	end
+	self:setSelectedItem(self.selectedSectionIndex - 1, 1)
 end
-
--- Local values: targetOffset, spacing, viewEndOffset, sectionIndex, section, cellIndex, cellOffset, firstElementIndex
 function SmoothListElement:scrollToNextPage()
 	if #self.sections == 1 or Input.isKeyPressed(Input.KEY_lctrl) then
-		local v188_ = self.isHorizontalList and self.listItemLateralSpacing or self.listItemSpacing
-		local v189_ = self.viewOffset + self.absSize[self.lengthAxis] + v188_
-		for v190_, v191_ in pairs(self.sections) do
-			if v189_ < v191_.endOffset or MathUtil.equalEpsilon(v191_.endOffset, v189_, SmoothListElement.CHECK_OFFSET_EPSILON) then
-				for v192_, v194_ in pairs(v191_.itemOffsets) do
-					if v194_ + self:getLengthOfItemFast(v190_, v192_) + v188_ > v189_ + SmoothListElement.CHECK_OFFSET_EPSILON then
-						if v192_ - self.numLateralItems <= 0 and v191_.itemOffsets[0] ~= nil then
-							local v194_ = v191_.itemOffsets[0]
+		local targetOffset = nil
+		local spacing = self.isHorizontalList and self.listItemLateralSpacing or self.listItemSpacing
+		local viewEndOffset = self.viewOffset + self.absSize[self.lengthAxis] + spacing
+		for sectionIndex, section in pairs(self.sections) do
+			if viewEndOffset < section.endOffset or MathUtil.equalEpsilon(section.endOffset, viewEndOffset, SmoothListElement.CHECK_OFFSET_EPSILON) then
+				for cellIndex, cellOffset in pairs(section.itemOffsets) do
+					targetOffset = cellOffset + self:getLengthOfItemFast(sectionIndex, cellIndex) + spacing
+					if viewEndOffset + SmoothListElement.CHECK_OFFSET_EPSILON < targetOffset then
+						if cellIndex - self.numLateralItems <= 0 and section.itemOffsets[0] ~= nil then
+							local cellOffset = section.itemOffsets[0]
 						end
-						self:setSelectedItem(v190_, v192_)
-						self:smoothScrollTo(v194_)
+						self:setSelectedItem(sectionIndex, cellIndex)
+						self:smoothScrollTo(cellOffset)
 						return
 					end
 				end
-			elseif v190_ == #self.sections then
-				self:setSelectedItem(v190_, self.sections[v190_].numItems)
+			else
+				if sectionIndex == #self.sections then
+					self:setSelectedItem(sectionIndex, self.sections[sectionIndex].numItems)
+				end
 			end
 		end
-	else
-		self:setSelectedItem(self.selectedSectionIndex + 1, 1)
-		local v195_ = self.sections[self.selectedSectionIndex].itemOffsets[0] == nil and 1 or 0
-		self:smoothScrollTo(self.sections[self.selectedSectionIndex].itemOffsets[v195_])
+		return
 	end
+	self:setSelectedItem(self.selectedSectionIndex + 1, 1)
+	local firstElementIndex = self.sections[self.selectedSectionIndex].itemOffsets[0] ~= nil and 0 or 1
+	self:smoothScrollTo(self.sections[self.selectedSectionIndex].itemOffsets[firstElementIndex])
 end
-
 function SmoothListElement:smoothScrollTo(offset)
 	if self.listSmoothingDisabled then
 		self:scrollTo(offset)
 	end
-	local v198_ = self.contentSize - self.absSize[self.lengthAxis]
-	local v199_ = math.min(offset, v198_)
-	self.targetViewOffset = math.max(v199_, 0)
+	offset = math.max(math.min(offset, self.contentSize - self.absSize[self.lengthAxis]), 0)
+	self.targetViewOffset = offset
 	self.isMovingToTarget = true
 end
-
 function SmoothListElement:setSelectedIndex(index, forceChangeEvent, fast)
 	self:setSelectedItem(1, index, forceChangeEvent, fast)
 end
-
--- Local values: element, hasChanged
 function SmoothListElement:setSelectedItem(section, index, forceChangeEvent, fast)
 	if index == nil or section == nil then
 		return
-	elseif #self.sections < section or section < 1 then
+	end
+	if #self.sections < section or section < 1 then
 		return
-	elseif self.sections[section].numItems < index then
+	end
+	if self.sections[section].numItems < index then
 		return
 	else
-		local v209_ = self:getElementAtSectionIndex(section, index)
-		if v209_ == nil or v209_.allowSelected ~= false then
-			local v210_ = self.selectedIndex ~= index and true or self.selectedSectionIndex ~= section
-			local v211_ = index - self.selectedIndex
-			self.lastScrollDirection = math.sign(v211_)
-			self.selectedSectionIndex = section
-			self.selectedIndex = index
-			if v210_ then
-				self:makeCellVisible(self.selectedSectionIndex, self.selectedIndex, fast)
-			end
-			if not self.soundDisabled and (v210_ and (g_inputBinding:getLastInputMode() ~= GS_INPUT_HELP_MODE_TOUCH or not (self.inputDown or self.isMovingToTarget))) then
-				self:playSample(GuiSoundPlayer.SOUND_SAMPLES.CLICK)
-			end
-			if (v210_ or forceChangeEvent) and self.isLoaded then
-				self:notifyIndexChange(index, self.sections[1].numItems)
-				if self.delegate.onListSelectionChanged ~= nil then
-					self.delegate:onListSelectionChanged(self, section, index)
-				end
-			end
-			self:applyElementSelection()
+		local element = self:getElementAtSectionIndex(section, index)
+		if element ~= nil and element.allowSelected == false then
+			return
 		end
+		local hasChanged = self.selectedIndex ~= index or self.selectedSectionIndex ~= section
+		self.lastScrollDirection = math.sign(index - self.selectedIndex)
+		self.selectedSectionIndex = section
+		self.selectedIndex = index
+		if hasChanged then
+			self:makeCellVisible(self.selectedSectionIndex, self.selectedIndex, fast)
+		end
+		if not self.soundDisabled and (hasChanged and (g_inputBinding:getLastInputMode() ~= GS_INPUT_HELP_MODE_TOUCH or not self.inputDown and not self.isMovingToTarget)) then
+			self:playSample(GuiSoundPlayer.SOUND_SAMPLES.CLICK)
+		end
+		if (hasChanged or forceChangeEvent) and self.isLoaded then
+			self:notifyIndexChange(index, self.sections[1].numItems)
+			if self.delegate.onListSelectionChanged ~= nil then
+				self.delegate:onListSelectionChanged(self, section, index)
+			end
+		end
+		self:applyElementSelection()
 	end
 end
-
--- Local values: hasChanged, section, index
 function SmoothListElement:setHighlightedItem(element)
-	if self.showHighlights then
-		if self.highlightedElement ~= element then
+	if not self.showHighlights then
+		return
+	else
+		local hasChanged = self.highlightedElement ~= element
+		if hasChanged then
 			if self.highlightedElement ~= nil then
 				FocusManager:unsetHighlight(self.highlightedElement)
 			end
@@ -934,128 +875,86 @@ function SmoothListElement:setHighlightedItem(element)
 				FocusManager:setHighlight(element)
 			end
 			if self.delegate.onListHighlightChanged ~= nil then
-				local v214_, v215_
-				if element == nil then
-					v214_ = nil
-					v215_ = nil
-				else
-					v214_ = element.sectionIndex
-					v215_ = element.indexInSection
+				local section = nil
+				local index = nil
+				if element ~= nil then
+					section = element.sectionIndex
+					index = element.indexInSection
 				end
-				self.delegate:onListHighlightChanged(self, v214_, v215_)
+				self.delegate:onListHighlightChanged(self, section, index)
 			end
 		end
 	end
 end
-
--- Local values: focusAllowed, _, element
 function SmoothListElement:applyElementSelection()
-	local v217_ = self.selectedWithoutFocus or FocusManager:getFocusedElement() == self
-	for _, v218_ in pairs(self.elements) do
-		local v219_
-		if v217_ then
-			if v218_.sectionIndex == self.selectedSectionIndex then
-				v219_ = v218_.indexInSection == self.selectedIndex
-			else
-				v219_ = false
-			end
-		else
-			v219_ = v217_
-		end
-		v218_:setSelected(v219_)
+	local focusAllowed = self.selectedWithoutFocus or FocusManager:getFocusedElement() == self
+	for _, element in pairs(self.elements) do
+		element:setSelected(focusAllowed and element.sectionIndex == self.selectedSectionIndex and element.indexInSection == self.selectedIndex)
 	end
 end
-
--- Local values: i, element
 function SmoothListElement:clearElementSelection()
-	for v221_ = 1, #self.elements do
-		local v222_ = self.elements[v221_]
-		if v222_.setSelected ~= nil then
-			v222_:setSelected(false)
+	for i = 1, #self.elements do
+		local element = self.elements[i]
+		if element.setSelected == nil then
+			continue
 		end
+		element:setSelected(false)
 	end
 end
-
--- Local values: sectionInfo, showSectionHeader, cellStartOffset, row, firstOfNextRow, cellEndOffset, newOffset, viewSize, marginItemSize
 function SmoothListElement:makeCellVisible(section, index, fast)
-	local v227_ = self.sections[section]
-	if v227_ == nil then
+	local sectionInfo = self.sections[section]
+	if sectionInfo == nil then
+		return
+	end
+	local showSectionHeader = index <= self.numLateralItems and sectionInfo.itemOffsets[0] ~= nil
+	local cellStartOffset = sectionInfo.itemOffsets[index]
+	if cellStartOffset == nil then
 		return
 	else
-		local v228_
-		if index <= self.numLateralItems then
-			v228_ = v227_.itemOffsets[0] ~= nil
-		else
-			v228_ = false
+		local row = math.floor((index - 1) / self.numLateralItems) + 1
+		local firstOfNextRow = row * self.numLateralItems + 1
+		local cellEndOffset = sectionInfo.itemOffsets[firstOfNextRow]
+		if cellEndOffset == nil then
+			cellEndOffset = sectionInfo.endOffset
+		elseif section < #self.sections or index < sectionInfo.numItems then
+			cellEndOffset = cellEndOffset - self.listItemSpacing
 		end
-		local v229_ = v227_.itemOffsets[index]
-		if v229_ ~= nil then
-			local v230_ = (index - 1) / self.numLateralItems
-			local v231_ = (math.floor(v230_) + 1) * self.numLateralItems + 1
-			local v232_ = v227_.itemOffsets[v231_]
-			if v232_ == nil then
-				v232_ = v227_.endOffset
-			elseif section < #self.sections or index < v227_.numItems then
-				v232_ = v232_ - self.listItemSpacing
-			end
-			local _ = self.viewOffset
-			local v233_ = self.absSize[self.lengthAxis]
-			local v234_ = self.selectionMarginItems * (v232_ - v229_)
-			local v235_
-			if v229_ - v234_ < self.viewOffset then
-				if v228_ then
-					v235_ = v227_.itemOffsets[0]
-				else
-					v235_ = v229_ - v234_
-				end
+		local newOffset = self.viewOffset
+		local viewSize = self.absSize[self.lengthAxis]
+		local marginItemSize = self.selectionMarginItems * (cellEndOffset - cellStartOffset)
+		if cellStartOffset - marginItemSize < self.viewOffset then
+			if showSectionHeader then
+				newOffset = sectionInfo.itemOffsets[0]
 			else
-				if v232_ + v234_ <= self.viewOffset + v233_ then
-					return
-				end
-				v235_ = v232_ - v233_ + v234_
+				newOffset = cellStartOffset - marginItemSize
 			end
-			if not self.isMovingToTarget or self.targetViewOffset ~= v235_ then
-				if fast then
-					self:scrollTo(v235_)
-					return
-				end
-				self:smoothScrollTo(v235_)
+		elseif self.viewOffset + viewSize < cellEndOffset + marginItemSize then
+			newOffset = cellEndOffset - viewSize + marginItemSize
+		else
+			return
+		end
+		if not self.isMovingToTarget or self.targetViewOffset ~= newOffset then
+			if fast then
+				self:scrollTo(newOffset)
+				return
 			end
+			self:smoothScrollTo(newOffset)
 		end
 	end
 end
-
 function SmoothListElement:makeSelectedCellVisible()
 	self:makeCellVisible(self.selectedSectionIndex, self.selectedIndex)
 end
-
--- Local values: visible, visible
 function SmoothListElement:updateScrollClippers(initial)
 	if self.startClipperElement ~= nil then
-		local v238_ = self.visible
-		if v238_ then
-			if self.contentSize > 0 then
-				v238_ = self.viewOffset > 0.01
-			else
-				v238_ = false
-			end
-		end
-		self.startClipperElement:setVisible(v238_)
+		local visible = self.visible and 0 < self.contentSize and 0.01 < self.viewOffset
+		self.startClipperElement:setVisible(visible)
 	end
 	if self.endClipperElement ~= nil then
-		local v239_ = self.visible
-		if v239_ then
-			if self.contentSize > 0 then
-				v239_ = self.viewOffset - (self.contentSize - self.absSize[self.lengthAxis]) < -0.01
-			else
-				v239_ = false
-			end
-		end
-		self.endClipperElement:setVisible(v239_)
+		local visible = self.visible and 0 < self.contentSize and self.viewOffset - (self.contentSize - self.absSize[self.lengthAxis]) < -0.01
+		self.endClipperElement:setVisible(visible)
 	end
 end
-
--- Local values: isTouchActionActive, scrollSpeedAbs, delta, dir, speedToBreakRatio
 function SmoothListElement:update(dt)
 	SmoothListElement:superClass().update(self, dt)
 	if self.isMovingToTarget then
@@ -1064,40 +963,36 @@ function SmoothListElement:update(dt)
 		else
 			self.viewOffset = self.targetViewOffset
 		end
-		local v242_ = self.targetViewOffset - self.viewOffset
-		if math.abs(v242_) < 0.0005 then
+		if math.abs(self.targetViewOffset - self.viewOffset) < 0.0005 then
 			self.viewOffset = self.targetViewOffset
 			self.isMovingToTarget = false
 		end
 		self:updateView(true)
 	end
 	if self.supportsTouchScrolling then
-		local v243_ = self.usedTouchId ~= nil
-		local v244_ = self.scrollSpeed
-		local v245_ = math.abs(v244_)
-		if v243_ or v245_ > 0.0001 then
-			local v246_ = 0
-			if v243_ then
+		local isTouchActionActive = self.usedTouchId ~= nil
+		local scrollSpeedAbs = math.abs(self.scrollSpeed)
+		if isTouchActionActive or 0.0001 < scrollSpeedAbs then
+			local delta = 0
+			if isTouchActionActive then
 				self.scrollSpeed = self.currentTouchDelta / dt
-				v246_ = self.currentTouchDelta
+				delta = self.currentTouchDelta
 				if self.isHorizontalList then
-					v246_ = -v246_
+					delta = -delta
 				end
-			elseif self.listSnappingEnabled then
-				self.scrollSpeed = 0
+			elseif not self.listSnappingEnabled then
+				local dir = math.sign(self.scrollSpeed)
+				if self.isHorizontalList then
+					dir = -dir
+				end
+				local speedToBreakRatio = self.scrollSpeed / self.initialScrollSpeed
+				self.scrollSpeed = math.max(scrollSpeedAbs - dt * self.scrollSpeedInterval, 0) * dir
+				delta = self.scrollSpeed * speedToBreakRatio ^ 3 * dt
 			else
-				local v247_ = self.scrollSpeed
-				local v248_ = math.sign(v247_)
-				if self.isHorizontalList then
-					v248_ = -v248_
-				end
-				local v249_ = self.scrollSpeed / self.initialScrollSpeed
-				local v250_ = v245_ - dt * self.scrollSpeedInterval
-				self.scrollSpeed = math.max(v250_, 0) * v248_
-				v246_ = self.scrollSpeed * v249_ ^ 3 * dt
+				self.scrollSpeed = 0
 			end
-			if v246_ ~= 0 then
-				self:scrollTo(self.viewOffset + v246_)
+			if delta ~= 0 then
+				self:scrollTo(self.viewOffset + delta)
 			end
 			self.currentTouchDelta = 0
 		end
@@ -1115,27 +1010,21 @@ function SmoothListElement:update(dt)
 	self.gamepadPageStartTriggered = false
 	self.gamepadPageEndTriggered = false
 end
-
 function SmoothListElement:getSelectedElement()
 	return self:getElementAtSectionIndex(self.selectedSectionIndex, self.selectedIndex)
 end
-
 function SmoothListElement:getItemCount()
 	return self.totalItemCount
 end
-
 function SmoothListElement:getSelectedIndexInSection()
 	return self.selectedIndex
 end
-
 function SmoothListElement:getSelectedSection()
 	return self.selectedSectionIndex
 end
-
 function SmoothListElement:getSelectedPath()
 	return self.selectedSectionIndex, self.selectedIndex
 end
-
 function SmoothListElement:getElementAtSectionIndex(section, index)
 	if self.sections[section] == nil then
 		return nil
@@ -1143,115 +1032,106 @@ function SmoothListElement:getElementAtSectionIndex(section, index)
 		return self.sections[section].cells[index]
 	end
 end
-
 function SmoothListElement:raiseSliderUpdateEvent()
 	if self.sliderElement ~= nil then
 		self.sliderElement:onBindUpdate(self)
 	end
 end
-
--- Local values: newOffset, sliderDiff
 function SmoothListElement:onSliderValueChanged(slider, newValue, immediateMode)
 	if self.sections == nil then
 		return
+	end
+	local newOffset = 0
+	local sliderDiff = slider.maxValue - slider.minValue
+	if sliderDiff ~= 0 then
+		newOffset = (self.contentSize - self.absSize[self.lengthAxis]) / sliderDiff * (newValue - slider.minValue)
+	end
+	if immediateMode then
+		self:scrollTo(newOffset, false)
 	else
-		local v264_ = slider.maxValue - slider.minValue
-		local v265_ = v264_ == 0 and 0 or (self.contentSize - self.absSize[self.lengthAxis]) / v264_ * (newValue - slider.minValue)
-		if immediateMode then
-			self:scrollTo(v265_, false)
-		else
-			self:smoothScrollTo(v265_)
-		end
+		self:smoothScrollTo(newOffset)
 	end
 end
-
--- Local values: size
 function SmoothListElement:getViewOffsetPercentage()
-	local v267_ = self.contentSize - self.absSize[self.lengthAxis]
-	return v267_ == 0 and 1 or self.viewOffset / v267_
-end
-
--- Local values: previousSection, previousIndex, clickedSection, clickedIndex, notified, wasScrolling, wasAlreadySelected
-function SmoothListElement:activateInput()
-	if self.inputOverElement == nil then
-		self.lastClickTime = nil
+	local size = self.contentSize - self.absSize[self.lengthAxis]
+	if size ~= 0 then
+		return self.viewOffset / size
 	else
-		local v269_ = self.selectedSectionIndex
-		local v270_ = self.selectedIndex
-		local v271_, v272_
-		if self.listSnappingEnabled then
-			v271_ = self.inputOverElement.sectionIndex
-			v272_ = MathUtil.round(v270_ + 0.3 * self.lastScrollDirection, 0)
-		else
-			v271_ = self.inputOverElement.sectionIndex
-			v272_ = self.inputOverElement.indexInSection
-		end
-		local v273_ = false
-		if self.lastClickTime == nil or self.lastClickTime <= self.target.time - self.doubleClickInterval then
-			self.lastClickTime = self.target.time
-		else
-			if v271_ == v269_ and v272_ == v270_ then
-				self:notifyDoubleClick(v271_, v272_, self.inputOverElement)
-				self.usedTouchId = nil
-				v273_ = true
-			end
-			self.lastClickTime = nil
-		end
-		local v274_ = self.totalTouchMoveDistance > self.touchMoveDistanceThreshold
-		self.wasScrolling = v274_
-		local v275_ = self.selectedIndex == v272_
-		if not v274_ or self.selectOnScroll then
-			self:setSelectedItem(v271_, v272_)
-		end
-		if not (self.selectOnClick or (v273_ or v274_)) then
-			self:notifyClick(v271_, v272_, self.inputOverElement, v275_)
-			return
-		end
+		return 1
 	end
 end
-
+function SmoothListElement:activateInput()
+	if self.inputOverElement ~= nil then
+		local previousSection = self.selectedSectionIndex
+		local previousIndex = self.selectedIndex
+		local clickedSection = nil
+		local clickedIndex = nil
+		if self.listSnappingEnabled then
+			clickedSection = self.inputOverElement.sectionIndex
+			clickedIndex = MathUtil.round(previousIndex + 0.3 * self.lastScrollDirection, 0)
+		else
+			clickedSection = self.inputOverElement.sectionIndex
+			clickedIndex = self.inputOverElement.indexInSection
+		end
+		local notified = false
+		if self.lastClickTime ~= nil then
+			if self.target.time - self.doubleClickInterval < self.lastClickTime then
+				if clickedSection == previousSection and clickedIndex == previousIndex then
+					self:notifyDoubleClick(clickedSection, clickedIndex, self.inputOverElement)
+					self.usedTouchId = nil
+					notified = true
+				end
+				self.lastClickTime = nil
+			else
+				self.lastClickTime = self.target.time
+			end
+		end
+		local wasScrolling = self.touchMoveDistanceThreshold < self.totalTouchMoveDistance
+		self.wasScrolling = wasScrolling
+		local wasAlreadySelected = self.selectedIndex == clickedIndex
+		if not wasScrolling or self.selectOnScroll then
+			self:setSelectedItem(clickedSection, clickedIndex)
+		end
+		if not self.selectOnClick and (not notified and not wasScrolling) then
+			self:notifyClick(clickedSection, clickedIndex, self.inputOverElement, wasAlreadySelected)
+		end
+	else
+		self.lastClickTime = nil
+	end
+end
 function SmoothListElement:onInputDown()
 	self.inputDown = true
 	self.inputDownTimer = 0
 	FocusManager:setFocus(self)
 end
-
 function SmoothListElement:onInputUp()
 	self.inputDown = false
 	self.totalTouchMoveDistance = 0
 end
-
 function SmoothListElement:resetInput()
 	self.lastClickTime = nil
 	self.inputDown = false
 	self.lastClickTime = nil
 end
-
 function SmoothListElement:notifyDoubleClick(section, index, element)
 	self:raiseCallback("onDoubleClickCallback", self, section, index, element, true)
 end
-
 function SmoothListElement:notifyClick(section, index, element, wasAlreadySelected)
 	self:raiseCallback("onClickCallback", self, section, index, element, wasAlreadySelected)
 end
-
--- Local values: inputOverElement, deltaIndex, newIndex
 function SmoothListElement:mouseEvent(posX, posY, isDown, isUp, button, eventUsed)
 	if self:getIsActive() and not self.ignoreMouse then
-		eventUsed = SmoothListElement:superClass().mouseEvent(self, posX, posY, isDown, isUp, button, eventUsed) and true or eventUsed
-		if eventUsed or not GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2]) then
-			if self.inputOverElement ~= nil then
-				self.inputOverElement = nil
-				self:setHighlightedItem(nil)
+		if SmoothListElement:superClass().mouseEvent(self, posX, posY, isDown, isUp, button, eventUsed) then
+			eventUsed = true
+		end
+		if not eventUsed and GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2]) then
+			local inputOverElement = self:getElementAtScreenPosition(posX, posY)
+			if inputOverElement ~= nil and (inputOverElement.indexInSection == 0 or inputOverElement.isEmptyCell) then
+				inputOverElement = nil
 			end
-		else
-			local v295_ = self:getElementAtScreenPosition(posX, posY)
-			if v295_ ~= nil and (v295_.indexInSection == 0 or v295_.isEmptyCell) then
-				v295_ = nil
-			end
-			if self.inputOverElement ~= v295_ then
-				self:setHighlightedItem(v295_)
-				self.inputOverElement = v295_
+			if self.inputOverElement ~= inputOverElement then
+				self:setHighlightedItem(inputOverElement)
+				self.inputOverElement = inputOverElement
 			end
 			if isDown then
 				if button == Input.MOUSE_BUTTON_LEFT then
@@ -1260,49 +1140,54 @@ function SmoothListElement:mouseEvent(posX, posY, isDown, isUp, button, eventUse
 					eventUsed = self.inputOverElement ~= nil
 				end
 				if self.supportsMouseScrolling then
-					local v296_ = Input.isMouseButtonPressed(Input.MOUSE_BUTTON_WHEEL_UP) and -1 or (Input.isMouseButtonPressed(Input.MOUSE_BUTTON_WHEEL_DOWN) and 1 or 0)
-					if v296_ ~= 0 then
+					local deltaIndex = 0
+					if Input.isMouseButtonPressed(Input.MOUSE_BUTTON_WHEEL_UP) then
+						deltaIndex = -1
+					elseif Input.isMouseButtonPressed(Input.MOUSE_BUTTON_WHEEL_DOWN) then
+						deltaIndex = 1
+					end
+					if deltaIndex ~= 0 then
 						if self.selectOnScroll then
 							if #self.sections == 1 then
-								local v297_ = self.sections[1].numItems
-								local v298_ = self.selectedIndex + v296_
-								local v299_ = math.min(v297_, v298_)
-								self:setSelectedItem(1, (math.max(1, v299_)))
-								eventUsed = true
-							else
-								eventUsed = true
+								local newIndex = math.max(1, math.min(self.sections[1].numItems, self.selectedIndex + deltaIndex))
+								self:setSelectedItem(1, newIndex)
 							end
 						else
-							self:smoothScrollTo(self.targetViewOffset + v296_ * self.scrollViewOffsetDelta)
-							eventUsed = true
+							self:smoothScrollTo(self.targetViewOffset + deltaIndex * self.scrollViewOffsetDelta)
 						end
+						eventUsed = true
 					end
 				end
 			end
 			if isUp and (button == Input.MOUSE_BUTTON_LEFT and self.inputDown) then
 				self:onInputUp()
-				return self.inputOverElement ~= nil
+				eventUsed = self.inputOverElement ~= nil
+				return eventUsed
 			end
+			return eventUsed
+		end
+		if self.inputOverElement ~= nil then
+			self.inputOverElement = nil
+			self:setHighlightedItem(nil)
 		end
 	end
-	return eventUsed
 end
-
--- Local values: inputOverElement, wasScrolling, delta, lastTouchPosX, lastTouchPosY, distancePixels
 function SmoothListElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUsed)
 	if self:getIsActive() then
-		eventUsed = SmoothListElement:superClass().touchEvent(self, posX, posY, isDown, isUp, touchId, eventUsed) and true or eventUsed
+		if SmoothListElement:superClass().touchEvent(self, posX, posY, isDown, isUp, touchId, eventUsed) then
+			eventUsed = true
+		end
 		if not eventUsed and (self.usedTouchId == touchId or GuiUtils.checkOverlayOverlap(posX, posY, self.absPosition[1], self.absPosition[2], self.absSize[1], self.absSize[2], self.hotspot)) then
-			local v307_ = self:getElementAtScreenPosition(posX, posY)
-			if v307_ ~= nil and (v307_.indexInSection == 0 or v307_.isEmptyCell) then
-				v307_ = nil
+			local inputOverElement = self:getElementAtScreenPosition(posX, posY)
+			if inputOverElement ~= nil and (inputOverElement.indexInSection == 0 or inputOverElement.isEmptyCell) then
+				inputOverElement = nil
 			end
-			if self.inputOverElement ~= v307_ then
-				self:setHighlightedItem(v307_)
-				self.inputOverElement = v307_
+			if self.inputOverElement ~= inputOverElement then
+				self:setHighlightedItem(inputOverElement)
+				self.inputOverElement = inputOverElement
 			end
-			local v308_ = self.totalTouchMoveDistance > self.touchMoveDistanceThreshold
-			self.wasScrolling = v308_
+			local wasScrolling = self.touchMoveDistanceThreshold < self.totalTouchMoveDistance
+			self.wasScrolling = wasScrolling
 			if self.supportsTouchScrolling then
 				if self.usedTouchId == nil then
 					if not eventUsed and isDown then
@@ -1317,17 +1202,13 @@ function SmoothListElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUs
 						self.usedTouchId = nil
 						self.initialScrollSpeed = self.scrollSpeed
 					else
-						local v309_ = self.lastTouchPosX or posX
-						local v310_ = self.lastTouchPosY or posY
-						local v311_
-						if self.isHorizontalList then
-							v311_ = posX - v309_
-						else
-							v311_ = posY - v310_
-						end
-						self.currentTouchDelta = (self.currentTouchDelta or 0) + v311_
-						local v312_ = MathUtil.vector2Length((v309_ - posX) * g_screenWidth, (v310_ - posY) * g_screenHeight)
-						self.totalTouchMoveDistance = self.totalTouchMoveDistance + v312_
+						local delta = 0
+						local lastTouchPosX = self.lastTouchPosX or posX
+						local lastTouchPosY = self.lastTouchPosY or posY
+						delta = self.isHorizontalList and posX - lastTouchPosX or posY - lastTouchPosY
+						self.currentTouchDelta = (self.currentTouchDelta or 0) + delta
+						local distancePixels = MathUtil.vector2Length((lastTouchPosX - posX) * g_screenWidth, (lastTouchPosY - posY) * g_screenHeight)
+						self.totalTouchMoveDistance = self.totalTouchMoveDistance + distancePixels
 						self.lastTouchPosX = posX
 						self.lastTouchPosY = posY
 					end
@@ -1338,7 +1219,7 @@ function SmoothListElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUs
 				eventUsed = true
 			end
 			if isUp and self.inputDown then
-				if not v308_ then
+				if not wasScrolling then
 					self:activateInput()
 				end
 				self:onInputUp()
@@ -1348,31 +1229,27 @@ function SmoothListElement:touchEvent(posX, posY, isDown, isUp, touchId, eventUs
 	end
 	return eventUsed
 end
-
--- Local values: i, v
 function SmoothListElement:getElementAtScreenPosition(x, y)
-	for v316_ = #self.elements, 1, -1 do
-		local v317_ = self.elements[v316_]
-		if GuiUtils.checkOverlayOverlap(x, y, v317_.absPosition[1], v317_.absPosition[2], v317_.absSize[1], v317_.absSize[2], v317_.hotspot) then
-			return v317_, v317_.sectionIndex, v317_.indexInSection
+	for i = #self.elements, 1, -1 do
+		local v = self.elements[i]
+		if GuiUtils.checkOverlayOverlap(x, y, v.absPosition[1], v.absPosition[2], v.absSize[1], v.absSize[2], v.hotspot) then
+			return v, v.sectionIndex, v.indexInSection
 		end
 	end
 	return nil
 end
-
--- Local values: sectionIndex, section, index, row, column, targetSection, targetIndex, s, nRows, lastColumn, numRows, itemsInRow, numRows, lastColumnLength
 function SmoothListElement:shouldFocusChange(direction)
 	if self.totalItemCount == 0 then
 		return true
 	end
-	local v320_ = self.selectedSectionIndex
-	local v321_ = #self.sections
-	local v322_ = math.clamp(v320_, 1, v321_)
-	local v323_ = self.sections[v322_]
-	local v324_ = self.selectedIndex
-	local v325_ = (v324_ - 1) / self.numLateralItems
-	local v326_ = math.floor(v325_) + 1
-	local v327_ = (v324_ - 1) % self.numLateralItems + 1
+	local sectionIndex = self.selectedSectionIndex
+	sectionIndex = math.clamp(sectionIndex, 1, #self.sections)
+	local section = self.sections[sectionIndex]
+	local index = self.selectedIndex
+	local row = math.floor((index - 1) / self.numLateralItems) + 1
+	local column = (index - 1) % self.numLateralItems + 1
+	local targetSection = sectionIndex
+	local targetIndex = index
 	if self.isHorizontalList then
 		if direction == FocusManager.TOP then
 			direction = FocusManager.LEFT
@@ -1384,155 +1261,117 @@ function SmoothListElement:shouldFocusChange(direction)
 			direction = FocusManager.BOTTOM
 		end
 	end
-	local v328_, v329_
 	if direction == FocusManager.TOP then
-		v328_ = v324_ - self.numLateralItems
-		if v328_ < 1 then
-			if v322_ > 1 then
-				local v330_ = v322_
+		targetIndex = index - self.numLateralItems
+		if targetIndex < 1 then
+			if 1 < sectionIndex then
+				targetSection = sectionIndex
 				while true do
-					v329_ = v322_ - 1
-					if v329_ == 0 then
-						return true
-					end
-					local v331_ = self.sections[v329_]
-					local v332_ = (v331_.numItems - 1) / self.numLateralItems
-					local v333_ = math.floor(v332_)
-					local v334_ = v331_.numItems % self.numLateralItems
-					if v334_ == 0 then
-						local v335_ = v331_.numItems
-						local v336_ = self.numLateralItems
-						v334_ = math.min(v335_, v336_)
-					end
-					v328_ = v333_ * self.numLateralItems + math.min(v334_, v327_)
-					if v328_ > 0 then
+					targetSection = targetSection - 1
+					if targetSection == 0 then
 						break
 					end
-					v322_ = v329_
+					local s = self.sections[targetSection]
+					local nRows = math.floor((s.numItems - 1) / self.numLateralItems)
+					local lastColumn = s.numItems % self.numLateralItems
+					if lastColumn == 0 then
+						lastColumn = math.min(s.numItems, self.numLateralItems)
+					end
+					targetIndex = nRows * self.numLateralItems + math.min(lastColumn, column)
+					if not (0 < targetIndex) then
+						continue
+					end
+					if targetSection ~= sectionIndex or targetIndex ~= index then
+						if targetIndex == 0 then
+							self:makeCellVisible(targetSection, 0)
+							return true
+						else
+							self:setSelectedItem(targetSection, targetIndex)
+							return false
+						end
+					end
+					return true
 				end
-				v322_ = v330_
+				return true
 			elseif self.wrapAround then
-				v329_ = #self.sections
-				v328_ = self.sections[v329_] == nil and 0 or (self.sections[v329_].numItems or 0)
-			elseif v324_ == 1 and self.sections[v322_].itemOffsets[1] > 0 then
-				v329_ = v322_
-				v328_ = 0
+				targetSection = #self.sections
+				targetIndex = self.sections[targetSection] ~= nil and self.sections[targetSection].numItems or 0
 			else
-				v328_ = v324_
-				v329_ = v322_
+				targetIndex = index
+				if index == 1 and 0 < self.sections[targetSection].itemOffsets[1] then
+					targetIndex = 0
+				end
 			end
-		else
-			v329_ = v322_
 		end
 	elseif direction == FocusManager.BOTTOM then
-		v328_ = v324_ + self.numLateralItems
-		if v323_.numItems < v328_ then
-			local v337_ = (v323_.numItems - 1) / self.numLateralItems
-			local v338_ = math.floor(v337_) + 1
-			if v323_.numItems % self.numLateralItems == 0 or v326_ >= v338_ then
-				if v322_ < #self.sections then
-					local v339_ = v322_
-					while true do
-						v329_ = v322_ + 1
-						if #self.sections < v329_ then
-							return true
-						end
-						local v340_ = self.sections[v329_].numItems
-						v328_ = math.min(v340_, v327_)
-						if v328_ ~= 0 then
-							break
-						end
-						v322_ = v329_
-					end
-					v322_ = v339_
-				elseif self.wrapAround then
-					local v341_ = #self.sections
-					v329_ = math.min(v341_, 1)
-					v328_ = self.sections[v329_] == nil and 0 or 1
-				else
-					v328_ = v324_
-					v329_ = v322_
-				end
-			else
-				v328_ = v323_.numItems
-				v329_ = v322_
+		targetIndex = index + self.numLateralItems
+		if section.numItems < targetIndex then
+			local numRows = math.floor((section.numItems - 1) / self.numLateralItems) + 1
+			if section.numItems % self.numLateralItems ~= 0 and row < numRows then
+				targetIndex = section.numItems
 			end
-		else
-			v329_ = v322_
+			if sectionIndex < #self.sections then
+				targetSection = sectionIndex
+				while true do
+					targetSection = targetSection + 1
+					if #self.sections < targetSection then
+						break
+					end
+					targetIndex = math.min(self.sections[targetSection].numItems, column)
+					if targetIndex == 0 then
+						continue
+					end
+				end
+				return true
+			elseif self.wrapAround then
+				targetSection = math.min(#self.sections, 1)
+				targetIndex = self.sections[targetSection] ~= nil and 1 or 0
+			else
+				targetIndex = index
+			end
 		end
 	elseif direction == FocusManager.LEFT then
-		if v327_ > 1 then
-			v328_ = v324_ - 1
-			v329_ = v322_
-		else
-			v328_ = v324_
-			v329_ = v322_
+		if 1 < column then
+			targetIndex = index - 1
 		end
 	elseif direction == FocusManager.RIGHT then
-		local v342_ = self.numLateralItems
-		local v343_ = v323_.numItems / self.numLateralItems
-		local v344_ = math.floor(v343_)
-		local v345_ = v323_.numItems % self.numLateralItems
-		if v345_ > 0 then
-			v344_ = v344_ + 1
+		local itemsInRow = self.numLateralItems
+		local numRows = math.floor(section.numItems / self.numLateralItems)
+		local lastColumnLength = section.numItems % self.numLateralItems
+		if 0 < lastColumnLength then
+			numRows = numRows + 1
 		else
-			v345_ = self.numLateralItems
+			lastColumnLength = self.numLateralItems
 		end
-		if v326_ ~= v344_ then
-			v345_ = v342_
+		if row == numRows then
+			itemsInRow = lastColumnLength
 		end
-		if v327_ < v345_ then
-			v328_ = v324_ + 1
-			v329_ = v322_
-		else
-			v328_ = v324_
-			v329_ = v322_
+		if column < itemsInRow then
+			targetIndex = index + 1
 		end
-	else
-		v328_ = v324_
-		v329_ = v322_
-	end
-	if v329_ == v322_ and v328_ == v324_ then
-		return true
-	elseif v328_ == 0 then
-		self:makeCellVisible(v329_, 0)
-		return true
-	else
-		self:setSelectedItem(v329_, v328_)
-		return false
 	end
 end
-
 function SmoothListElement:canReceiveFocus()
-	local v347_ = self:getIsVisible() and self.handleFocus
-	if v347_ then
-		v347_ = self.disabled and true or false or self.canReceiveFocusWhileEmpty or self.totalItemCount > 0
-	end
-	return v347_
+	self:getIsVisible()
+	return false
 end
-
 function SmoothListElement:onFocusActivate()
 	if self.totalItemCount == 0 then
 		return
 	elseif self.ignoreFocusActivate then
 		return
-	elseif self.onClickCallback == nil then
-		if self.onDoubleClickCallback ~= nil then
-			self:notifyDoubleClick(self.selectedSectionIndex, self.selectedIndex, nil)
-		end
-	else
+	elseif self.onClickCallback ~= nil then
 		self:notifyClick(self.selectedSectionIndex, self.selectedIndex, self:getElementAtSectionIndex(self.selectedSectionIndex, self.selectedIndex))
-		return
+	elseif self.onDoubleClickCallback ~= nil then
+		self:notifyDoubleClick(self.selectedSectionIndex, self.selectedIndex, nil)
 	end
 end
-
 function SmoothListElement:onFocusEnter()
 	self:applyElementSelection()
 	if self.delegate.onListSelectionChanged ~= nil then
 		self.delegate:onListSelectionChanged(self, self.selectedSectionIndex, self.selectedIndex)
 	end
 end
-
 function SmoothListElement:onFocusLeave()
 	if not self.selectedWithoutFocus then
 		self:clearElementSelection()

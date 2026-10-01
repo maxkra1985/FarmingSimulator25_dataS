@@ -1,142 +1,118 @@
 Motorbike = {}
-
 function Motorbike.prerequisitesPresent(specializations)
-	local v2_ = SpecializationUtil.hasSpecialization(AnimatedVehicle, specializations)
-	if v2_ then
-		v2_ = SpecializationUtil.hasSpecialization(Motorized, specializations)
-	end
-	return v2_
+	return SpecializationUtil.hasSpecialization(AnimatedVehicle, specializations) and SpecializationUtil.hasSpecialization(Motorized, specializations)
 end
 function Motorbike.initSpecialization()
-	local v3_ = Vehicle.xmlSchema
-	v3_:setXMLSpecializationType("Motorbike")
-	v3_:register(XMLValueType.NODE_INDEX, "vehicle.motorbike.tilt#node", "Tilt Node")
-	v3_:register(XMLValueType.ANGLE, "vehicle.motorbike.tilt#maxTilt", "Max. tilt in corners", 0)
-	v3_:register(XMLValueType.ANGLE, "vehicle.motorbike.tilt#idleTilt", "Tilt while not driving", 0)
-	v3_:register(XMLValueType.ANGLE, "vehicle.motorbike.tilt#backwardTilt", "Tilt while going backward", 0)
-	v3_:register(XMLValueType.ANGLE, "vehicle.motorbike.tilt#tiltSpeed", "Tilt speed (deg/sec)", 5)
-	v3_:register(XMLValueType.STRING, "vehicle.motorbike.footAnimation#name", "Name of the foot animation")
-	v3_:register(XMLValueType.FLOAT, "vehicle.motorbike.footAnimation#speed", "Play speed of the animation", 1)
-	v3_:register(XMLValueType.FLOAT, "vehicle.motorbike.footAnimation#speedThreshold", "Speed threshold to play the animation", 1)
-	v3_:register(XMLValueType.STRING, "vehicle.motorbike.backwardAnimation#name", "Name of the backward walk animation")
-	v3_:register(XMLValueType.FLOAT, "vehicle.motorbike.backwardAnimation#speed", "Speed of the animation", 1)
-	v3_:register(XMLValueType.FLOAT, "vehicle.motorbike.steering#highSpeedScale", "Scale value for max. steering angle when above speed threshold", 0.5)
-	v3_:register(XMLValueType.FLOAT, "vehicle.motorbike.steering#highSpeedThreshold", "Threshold at which the steering is reduced to the defined scale", 20)
-	v3_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Motorbike")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.motorbike.tilt#node", "Tilt Node")
+	schema:register(XMLValueType.ANGLE, "vehicle.motorbike.tilt#maxTilt", "Max. tilt in corners", 0)
+	schema:register(XMLValueType.ANGLE, "vehicle.motorbike.tilt#idleTilt", "Tilt while not driving", 0)
+	schema:register(XMLValueType.ANGLE, "vehicle.motorbike.tilt#backwardTilt", "Tilt while going backward", 0)
+	schema:register(XMLValueType.ANGLE, "vehicle.motorbike.tilt#tiltSpeed", "Tilt speed (deg/sec)", 5)
+	schema:register(XMLValueType.STRING, "vehicle.motorbike.footAnimation#name", "Name of the foot animation")
+	schema:register(XMLValueType.FLOAT, "vehicle.motorbike.footAnimation#speed", "Play speed of the animation", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.motorbike.footAnimation#speedThreshold", "Speed threshold to play the animation", 1)
+	schema:register(XMLValueType.STRING, "vehicle.motorbike.backwardAnimation#name", "Name of the backward walk animation")
+	schema:register(XMLValueType.FLOAT, "vehicle.motorbike.backwardAnimation#speed", "Speed of the animation", 1)
+	schema:register(XMLValueType.FLOAT, "vehicle.motorbike.steering#highSpeedScale", "Scale value for max. steering angle when above speed threshold", 0.5)
+	schema:register(XMLValueType.FLOAT, "vehicle.motorbike.steering#highSpeedThreshold", "Threshold at which the steering is reduced to the defined scale", 20)
+	schema:setXMLSpecializationType()
 end
-
 function Motorbike.registerFunctions(vehicleType) end
-
 function Motorbike.registerOverwrittenFunctions(vehicleType) end
-
 function Motorbike.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Motorbike)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", Motorbike)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", Motorbike)
 	SpecializationUtil.registerEventListener(vehicleType, "onLeaveVehicle", Motorbike)
 end
-
--- Local values: spec
 function Motorbike:onLoad(savegame)
-	local v6_ = self.spec_motorbike
-	v6_.tilt = {}
-	v6_.tilt.node = self.xmlFile:getValue("vehicle.motorbike.tilt#node", nil, self.components, self.i3dMappings)
-	v6_.tilt.maxTilt = self.xmlFile:getValue("vehicle.motorbike.tilt#maxTilt", 0)
-	v6_.tilt.idleTilt = self.xmlFile:getValue("vehicle.motorbike.tilt#idleTilt", 0)
-	v6_.tilt.backwardTilt = self.xmlFile:getValue("vehicle.motorbike.tilt#backwardTilt", 0)
-	v6_.tilt.tiltSpeed = self.xmlFile:getValue("vehicle.motorbike.tilt#tiltSpeed", 5) * 0.001
-	v6_.tilt.currentValue = v6_.tilt.idleTilt
-	setRotation(v6_.tilt.node, 0, 0, v6_.tilt.currentValue)
-	v6_.footAnimation = {}
-	v6_.footAnimation.name = self.xmlFile:getValue("vehicle.motorbike.footAnimation#name")
-	v6_.footAnimation.speed = self.xmlFile:getValue("vehicle.motorbike.footAnimation#speed", 1)
-	v6_.footAnimation.speedThreshold = self.xmlFile:getValue("vehicle.motorbike.footAnimation#speedThreshold", 1)
-	v6_.footAnimation.state = false
-	v6_.backwardAnimation = {}
-	v6_.backwardAnimation.name = self.xmlFile:getValue("vehicle.motorbike.backwardAnimation#name")
-	v6_.backwardAnimation.speed = self.xmlFile:getValue("vehicle.motorbike.backwardAnimation#speed", 1)
-	v6_.backwardAnimation.state = false
-	v6_.backwardAnimation.maxBackwardSpeed = self:getMotor():getMaximumBackwardSpeed()
-	v6_.steering = {}
-	v6_.steering.highSpeedScale = self.xmlFile:getValue("vehicle.motorbike.steering#highSpeedScale", 0.5)
-	v6_.steering.highSpeedThreshold = self.xmlFile:getValue("vehicle.motorbike.steering#highSpeedThreshold", 20)
+	local spec = self.spec_motorbike
+	spec.tilt = {}
+	spec.tilt.node = self.xmlFile:getValue("vehicle.motorbike.tilt#node", nil, self.components, self.i3dMappings)
+	spec.tilt.maxTilt = self.xmlFile:getValue("vehicle.motorbike.tilt#maxTilt", 0)
+	spec.tilt.idleTilt = self.xmlFile:getValue("vehicle.motorbike.tilt#idleTilt", 0)
+	spec.tilt.backwardTilt = self.xmlFile:getValue("vehicle.motorbike.tilt#backwardTilt", 0)
+	spec.tilt.tiltSpeed = self.xmlFile:getValue("vehicle.motorbike.tilt#tiltSpeed", 5) * 0.001
+	spec.tilt.currentValue = spec.tilt.idleTilt
+	setRotation(spec.tilt.node, 0, 0, spec.tilt.currentValue)
+	spec.footAnimation = {}
+	spec.footAnimation.name = self.xmlFile:getValue("vehicle.motorbike.footAnimation#name")
+	spec.footAnimation.speed = self.xmlFile:getValue("vehicle.motorbike.footAnimation#speed", 1)
+	spec.footAnimation.speedThreshold = self.xmlFile:getValue("vehicle.motorbike.footAnimation#speedThreshold", 1)
+	spec.footAnimation.state = false
+	spec.backwardAnimation = {}
+	spec.backwardAnimation.name = self.xmlFile:getValue("vehicle.motorbike.backwardAnimation#name")
+	spec.backwardAnimation.speed = self.xmlFile:getValue("vehicle.motorbike.backwardAnimation#speed", 1)
+	spec.backwardAnimation.state = false
+	spec.backwardAnimation.maxBackwardSpeed = self:getMotor():getMaximumBackwardSpeed()
+	spec.steering = {}
+	spec.steering.highSpeedScale = self.xmlFile:getValue("vehicle.motorbike.steering#highSpeedScale", 0.5)
+	spec.steering.highSpeedThreshold = self.xmlFile:getValue("vehicle.motorbike.steering#highSpeedThreshold", 20)
 end
-
--- Local values: spec
 function Motorbike:onPostLoad(savegame)
-	local v8_ = self.spec_motorbike
-	v8_.steering.minRotTime = self.minRotTime
-	v8_.steering.maxRotTime = self.maxRotTime
-	v8_.steering.wheelSteeringDuration = self.wheelSteeringDuration
+	local spec = self.spec_motorbike
+	spec.steering.minRotTime = self.minRotTime
+	spec.steering.maxRotTime = self.maxRotTime
+	spec.steering.wheelSteeringDuration = self.wheelSteeringDuration
 end
-
--- Local values: spec, lastSpeed, targetTilt, direction, limit, currentValue, footAnimationState, animationTime, backwardAnimationState, steeringAngleScale
 function Motorbike:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v11_ = self.spec_motorbike
-	local v12_ = self:getLastSpeed()
-	local v13_
+	local spec = self.spec_motorbike
+	local lastSpeed = self:getLastSpeed()
+	local targetTilt = nil
 	if self.movingDirection < 0 then
-		v13_ = v11_.tilt.backwardTilt
-	elseif v12_ < 0.5 then
-		v13_ = v11_.tilt.idleTilt
+		targetTilt = spec.tilt.backwardTilt
+	elseif lastSpeed < 0.5 then
+		targetTilt = spec.tilt.idleTilt
 	else
-		local v14_ = v12_ / 50
-		v13_ = -math.min(v14_, 1) * self.rotatedTime * v11_.tilt.maxTilt
+		targetTilt = -math.min(lastSpeed / 50, 1) * self.rotatedTime * spec.tilt.maxTilt
 	end
-	local v15_ = v13_ - v11_.tilt.currentValue
-	local v16_ = math.sign(v15_)
-	local v17_ = (v16_ > 0 and math.min or math.max)(v11_.tilt.currentValue + v16_ * v11_.tilt.tiltSpeed * dt, v13_)
-	if v17_ ~= v11_.tilt.currentValue then
-		v11_.tilt.currentValue = v17_
-		setRotation(v11_.tilt.node, 0, 0, v11_.tilt.currentValue)
+	local direction = math.sign(targetTilt - spec.tilt.currentValue)
+	local limit = 0 < direction and math.min or math.max
+	local currentValue = limit(spec.tilt.currentValue + direction * spec.tilt.tiltSpeed * dt, targetTilt)
+	if currentValue ~= spec.tilt.currentValue then
+		spec.tilt.currentValue = currentValue
+		setRotation(spec.tilt.node, 0, 0, spec.tilt.currentValue)
 	end
-	local v18_ = v12_ < v11_.footAnimation.speedThreshold and true or self.movingDirection < 0
-	if v18_ ~= v11_.footAnimation.state then
-		v11_.footAnimation.state = v18_
-		local v19_ = self:getAnimationTime(v11_.footAnimation.name)
-		if v18_ then
-			self:playAnimation(v11_.footAnimation.name, -v11_.footAnimation.speed, v19_, true)
+	local footAnimationState = lastSpeed < spec.footAnimation.speedThreshold or self.movingDirection < 0
+	if footAnimationState ~= spec.footAnimation.state then
+		spec.footAnimation.state = footAnimationState
+		local animationTime = self:getAnimationTime(spec.footAnimation.name)
+		if footAnimationState then
+			self:playAnimation(spec.footAnimation.name, -spec.footAnimation.speed, animationTime, true)
 		else
-			self:playAnimation(v11_.footAnimation.name, v11_.footAnimation.speed, v19_, true)
+			self:playAnimation(spec.footAnimation.name, spec.footAnimation.speed, animationTime, true)
 		end
 	end
-	local v20_
-	if self.movingDirection < 0 then
-		v20_ = v12_ > 0.5
-	else
-		v20_ = false
-	end
-	if v20_ ~= v11_.backwardAnimation.state then
-		v11_.backwardAnimation.state = v20_
-		if v20_ then
-			self:playAnimation(v11_.backwardAnimation.name, v11_.backwardAnimation.speed, self:getAnimationTime(v11_.backwardAnimation.name), true)
+	local backwardAnimationState = self.movingDirection < 0 and 0.5 < lastSpeed
+	if backwardAnimationState ~= spec.backwardAnimation.state then
+		spec.backwardAnimation.state = backwardAnimationState
+		if backwardAnimationState then
+			self:playAnimation(spec.backwardAnimation.name, spec.backwardAnimation.speed, self:getAnimationTime(spec.backwardAnimation.name), true)
 		else
-			self:stopAnimation(v11_.backwardAnimation.name)
-			self:setAnimationTime(v11_.backwardAnimation.name, 0, true)
+			self:stopAnimation(spec.backwardAnimation.name)
+			self:setAnimationTime(spec.backwardAnimation.name, 0, true)
 		end
 	end
-	if v11_.backwardAnimation.state then
-		self:setAnimationSpeed(v11_.backwardAnimation.name, v11_.backwardAnimation.speed * (v12_ / v11_.backwardAnimation.maxBackwardSpeed))
+	if spec.backwardAnimation.state then
+		self:setAnimationSpeed(spec.backwardAnimation.name, spec.backwardAnimation.speed * (lastSpeed / spec.backwardAnimation.maxBackwardSpeed))
 	end
-	local v21_ = v11_.steering.highSpeedScale
-	local v22_ = v12_ / v11_.steering.highSpeedThreshold
-	local v23_ = v21_ + (1 - math.min(v22_, 1)) * (1 - v11_.steering.highSpeedScale)
-	self.minRotTime = v11_.steering.minRotTime * v23_
-	self.maxRotTime = v11_.steering.maxRotTime * v23_
-	self.wheelSteeringDuration = v11_.steering.wheelSteeringDuration * v23_
+	local steeringAngleScale = spec.steering.highSpeedScale + (1 - math.min(lastSpeed / spec.steering.highSpeedThreshold, 1)) * (1 - spec.steering.highSpeedScale)
+	self.minRotTime = spec.steering.minRotTime * steeringAngleScale
+	self.maxRotTime = spec.steering.maxRotTime * steeringAngleScale
+	self.wheelSteeringDuration = spec.steering.wheelSteeringDuration * steeringAngleScale
 end
-
--- Local values: _, dirY, _, positionX, positionY, positionZ, dirX, _, dirZ, yRot
 function Motorbike:onLeaveVehicle()
 	if self.isServer then
-		local _, v25_, _ = localDirectionToWorld(self.rootNode, 0, 1, 0)
-		if v25_ < 0.5 then
-			local v26_, v27_, v28_ = getWorldTranslation(self.rootNode)
-			local v29_, _, v30_ = localDirectionToWorld(self.rootNode, 0, 0, 1)
-			local v31_, v32_ = MathUtil.vector2Normalize(v29_, v30_)
-			local v33_ = MathUtil.getYRotationFromDirection(v31_, v32_)
+		local _, dirY, _ = localDirectionToWorld(self.rootNode, 0, 1, 0)
+		if dirY < 0.5 then
+			local positionX, positionY, positionZ = getWorldTranslation(self.rootNode)
+			local dirX, _, dirZ = localDirectionToWorld(self.rootNode, 0, 0, 1)
+			dirX, dirZ = MathUtil.vector2Normalize(dirX, dirZ)
+			local yRot = MathUtil.getYRotationFromDirection(dirX, dirZ)
 			self:removeFromPhysics()
-			self:setAbsolutePosition(v26_, v27_, v28_, 0, v33_, 0)
+			self:setAbsolutePosition(positionX, positionY, positionZ, 0, yRot, 0)
 			self:addToPhysics()
 		end
 	end

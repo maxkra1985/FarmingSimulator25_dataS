@@ -1,5 +1,4 @@
 FillPlaneUtil = {}
-
 function FillPlaneUtil.registerFillPlaneXMLPaths(schema, key)
 	schema:register(XMLValueType.NODE_INDEX, key .. "#node", "Node")
 	schema:register(XMLValueType.FLOAT, key .. "#capacity", "Visual capacity of the fill plane")
@@ -12,56 +11,49 @@ function FillPlaneUtil.registerFillPlaneXMLPaths(schema, key)
 	schema:register(XMLValueType.BOOL, key .. "#retessellateTop", "Retessellate top plane for better triangulation quality", false)
 	schema:register(XMLValueType.BOOL, key .. "#changeColor", "Fillplane supports color change", false)
 end
-
--- Local values: maxDelta, maxAllowedHeapAngle, maxPhysicalSurfaceAngle, maxSurfaceDistanceError, maxSubDivEdgeLength, syncMaxSubDivEdgeLength, allSidePlanes, retessellateTop, fillPlane
 function FillPlaneUtil.createFromXML(xmlFile, key, baseNode, capacity)
 	if baseNode == nil then
-		Logging.xmlWarning(xmlFile, "Missing node for fillplane for \'%s\'", key)
+		Logging.xmlWarning(xmlFile, "Missing node for fillplane for '%s'", key)
 		return nil
 	else
-		local v7_ = xmlFile:getValue(key .. "#maxDelta", 1)
-		local v8_ = xmlFile:getValue(key .. "#capacity", capacity)
-		local v9_ = xmlFile:getValue(key .. "#maxAllowedHeapAngle", 35)
-		local v10_ = xmlFile:getValue(key .. "#maxSurfaceDistanceError", 0.05)
-		local v11_ = xmlFile:getValue(key .. "#maxSubDivEdgeLength", 0.9)
-		local v12_ = xmlFile:getValue(key .. "#syncMaxSubDivEdgeLength", 1.35)
-		local v13_ = xmlFile:getValue(key .. "#allSidePlanes", true)
-		local v14_ = xmlFile:getValue(key .. "#retessellateTop", false)
-		local v15_ = createFillPlaneShape(baseNode, "fillPlane", v8_, v7_, v9_, 0.6108652381980153, v10_, v11_, v12_, v13_, v14_)
-		if v15_ == 0 or v15_ == nil then
-			Logging.xmlWarning(xmlFile, "Failed to create fillplane for \'%s\'", key)
+		local maxDelta = xmlFile:getValue(key .. "#maxDelta", 1)
+		capacity = xmlFile:getValue(key .. "#capacity", capacity)
+		local maxAllowedHeapAngle = xmlFile:getValue(key .. "#maxAllowedHeapAngle", 35)
+		local maxPhysicalSurfaceAngle = 0.6108652381980153
+		local maxSurfaceDistanceError = xmlFile:getValue(key .. "#maxSurfaceDistanceError", 0.05)
+		local maxSubDivEdgeLength = xmlFile:getValue(key .. "#maxSubDivEdgeLength", 0.9)
+		local syncMaxSubDivEdgeLength = xmlFile:getValue(key .. "#syncMaxSubDivEdgeLength", 1.35)
+		local allSidePlanes = xmlFile:getValue(key .. "#allSidePlanes", true)
+		local retessellateTop = xmlFile:getValue(key .. "#retessellateTop", false)
+		local fillPlane = createFillPlaneShape(baseNode, "fillPlane", capacity, maxDelta, maxAllowedHeapAngle, 0.6108652381980153, maxSurfaceDistanceError, maxSubDivEdgeLength, syncMaxSubDivEdgeLength, allSidePlanes, retessellateTop)
+		if fillPlane == 0 or fillPlane == nil then
+			Logging.xmlWarning(xmlFile, "Failed to create fillplane for '%s'", key)
 			return nil
-		else
-			link(baseNode, v15_)
-			return v15_
 		end
+		link(baseNode, fillPlane)
+		return fillPlane
 	end
 end
-
--- Local values: fillPlaneMaterial
 function FillPlaneUtil.assignDefaultMaterialsFromTerrain(fillPlane, terrainRootNodeId)
-	if getHasClassId(fillPlane, ClassIds.SHAPE) then
-		local v18_ = g_materialManager:getBaseMaterialByName("fillPlane")
-		if v18_ == nil then
-			Logging.error("Failed to assign material to fillplane. Base Material \'fillPlane\' not found!")
-			printCallstack()
-			return false
-		else
-			setMaterial(fillPlane, v18_, 0)
-			g_fillTypeManager:assignFillTypeTextureArraysFromTerrain(fillPlane, terrainRootNodeId, true, true, true)
-			return true
-		end
-	else
+	if not getHasClassId(fillPlane, ClassIds.SHAPE) then
 		Logging.error("Failed to assign material to fillplane %q, node is not of type SHAPE", getName(fillPlane))
 		printCallstack()
 		return false
 	end
+	local fillPlaneMaterial = g_materialManager:getBaseMaterialByName("fillPlane")
+	if fillPlaneMaterial == nil then
+		Logging.error("Failed to assign material to fillplane. Base Material 'fillPlane' not found!")
+		printCallstack()
+		return false
+	else
+		setMaterial(fillPlane, fillPlaneMaterial, 0)
+		g_fillTypeManager:assignFillTypeTextureArraysFromTerrain(fillPlane, terrainRootNodeId, true, true, true)
+		return true
+	end
 end
-
--- Local values: textureArrayIndex
 function FillPlaneUtil.setFillType(fillPlane, fillTypeIndex)
-	local v21_ = g_fillTypeManager:getTextureArrayIndexByFillTypeIndex(fillTypeIndex)
-	if v21_ ~= nil then
-		setShaderParameter(fillPlane, "fillTypeId", v21_ - 1, 0, 0, 0, false)
+	local textureArrayIndex = g_fillTypeManager:getTextureArrayIndexByFillTypeIndex(fillTypeIndex)
+	if textureArrayIndex ~= nil then
+		setShaderParameter(fillPlane, "fillTypeId", textureArrayIndex - 1, 0, 0, 0, false)
 	end
 end

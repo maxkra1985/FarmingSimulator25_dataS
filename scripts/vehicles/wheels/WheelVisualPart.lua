@@ -1,135 +1,119 @@
--- Local values: WheelVisualPart_mt
 WheelVisualPart = {}
 local WheelVisualPart_mt = Class(WheelVisualPart)
-
--- Upvalues: WheelVisualPart_mt
--- Local values: self
 function WheelVisualPart.new(name, visualWheel, linkNode, customMt)
-	-- upvalues: (copy) WheelVisualPart_mt
-	local v6_ = customMt or WheelVisualPart_mt
-	local v7_ = setmetatable({}, v6_)
-	v7_.name = name
-	v7_.visualWheel = visualWheel
-	v7_.linkNode = linkNode
-	return v7_
+	local self = setmetatable({}, customMt or WheelVisualPart_mt)
+	self.name = name
+	self.visualWheel = visualWheel
+	self.linkNode = linkNode
+	return self
 end
-
 function WheelVisualPart:delete()
 	if self.sharedLoadRequestId ~= nil then
 		g_i3DManager:releaseSharedI3DFile(self.sharedLoadRequestId)
 	end
 end
-
--- Local values: visualPartXMLFile, rootName, i, materialKey, materialXMLFile, _, material, material
 function WheelVisualPart:loadFromXML(xmlObject, key)
 	self.filename = xmlObject:getValue(key .. "#filename")
-	if self.filename == nil then
-		return false
-	end
-	self.filename = Utils.getFilename(self.filename, self.visualWheel.baseDirectory)
-	if self.filename:contains(".xml") then
-		local v12_ = XMLFile.load("visualPartXML", self.filename)
-		if v12_ == nil then
-			xmlObject:xmlWarning(key .. "#filename", "Unable to load visual wheel part from xml file \'%s\'!", self.filename)
-			return false
-		end
-		local v13_ = v12_:getRootName()
-		self.filename = v12_:getString(v13_ .. ".file#name")
-		if self.filename == nil then
-			Logging.xmlError(v12_, "Unable to load visual wheel part from xml file. Missing file definition.")
-			return false
-		end
+	if self.filename ~= nil then
 		self.filename = Utils.getFilename(self.filename, self.visualWheel.baseDirectory)
-		if self.filename == nil then
-			Logging.xmlError(v12_, "Unable to load visual wheel part from xml file. Unknown i3d file.")
-			return false
+		if self.filename:contains(".xml") then
+			local visualPartXMLFile = XMLFile.load("visualPartXML", self.filename)
+			if visualPartXMLFile ~= nil then
+				local rootName = visualPartXMLFile:getRootName()
+				self.filename = visualPartXMLFile:getString(rootName .. ".file#name")
+				if self.filename ~= nil then
+					self.filename = Utils.getFilename(self.filename, self.visualWheel.baseDirectory)
+					if self.filename == nil then
+						Logging.xmlError(visualPartXMLFile, "Unable to load visual wheel part from xml file. Unknown i3d file.")
+						return false
+					end
+					if self.visualWheel.isLeft then
+						self.indexPath = visualPartXMLFile:getString(rootName .. ".file#leftNode")
+					else
+						self.indexPath = visualPartXMLFile:getString(rootName .. ".file#rightNode")
+					end
+					if self.indexPath == nil then
+						Logging.xmlError(visualPartXMLFile, "Unable to load visual wheel part from xml file. Missing node definition.")
+						return false
+					end
+					visualPartXMLFile:delete()
+				else
+					Logging.xmlError(visualPartXMLFile, "Unable to load visual wheel part from xml file. Missing file definition.")
+					return false
+				end
+			else
+				xmlObject:xmlWarning(key .. "#filename", "Unable to load visual wheel part from xml file '%s'!", self.filename)
+				return false
+			end
 		end
 		if self.visualWheel.isLeft then
-			self.indexPath = v12_:getString(v13_ .. ".file#leftNode")
+			self.indexPath = xmlObject:getValueAlternative(key .. "#nodeLeft", key .. "#node", self.indexPath)
 		else
-			self.indexPath = v12_:getString(v13_ .. ".file#rightNode")
+			self.indexPath = xmlObject:getValueAlternative(key .. "#nodeRight", key .. "#node", self.indexPath)
 		end
-		if self.indexPath == nil then
-			Logging.xmlError(v12_, "Unable to load visual wheel part from xml file. Missing node definition.")
-			return false
+		self.widthAndDiam = xmlObject:getValue(key .. "#widthAndDiam", nil, true)
+		self.offset = xmlObject:getValue(key .. "#offset", 0)
+		self.scale = xmlObject:getValue(key .. "#scale", nil, true)
+		self.holeScale = xmlObject:getValue(key .. "#holeScale")
+		self.mass = xmlObject:getValue(key .. "#mass")
+		self.isInverted = xmlObject:getValue(key .. "#isInverted", false)
+		self.materials = {}
+		local i = 0
+		while true do
+			local materialKey = string.format("%s.material(%d)", key, i)
+			local materialXMLFile, _ = xmlObject:getXMLFileAndPropertyKey(materialKey)
+			if materialXMLFile == nil then
+				break
+			end
+			local material = VehicleMaterial.new(self.visualWheel.baseDirectory)
+			if material:loadFromXML(xmlObject, materialKey, self.visualWheel.vehicle.customEnvironment) then
+				table.insert(self.materials, material)
+			end
+			i = i + 1
 		end
-		v12_:delete()
-	end
-	if self.visualWheel.isLeft then
-		self.indexPath = xmlObject:getValueAlternative(key .. "#nodeLeft", key .. "#node", self.indexPath)
+		local material = VehicleMaterial.new(self.visualWheel.baseDirectory)
+		if material:loadShortFromXML(xmlObject, key, self.visualWheel.vehicle.customEnvironment) then
+			material.targetMaterialSlotName = material.targetMaterialSlotName or self:getDefaultMaterialSlotName()
+			table.insert(self.materials, material)
+		end
+		self.sharedLoadRequestId = self.visualWheel.vehicle:loadSubSharedI3DFile(self.filename, false, false, self.onPartI3DLoaded, self)
+		return true
 	else
-		self.indexPath = xmlObject:getValueAlternative(key .. "#nodeRight", key .. "#node", self.indexPath)
+		return false
 	end
-	self.widthAndDiam = xmlObject:getValue(key .. "#widthAndDiam", nil, true)
-	self.offset = xmlObject:getValue(key .. "#offset", 0)
-	self.scale = xmlObject:getValue(key .. "#scale", nil, true)
-	self.holeScale = xmlObject:getValue(key .. "#holeScale")
-	self.mass = xmlObject:getValue(key .. "#mass")
-	self.isInverted = xmlObject:getValue(key .. "#isInverted", false)
-	self.materials = {}
-	local v14_ = 0
-	while true do
-		local v15_ = string.format("%s.material(%d)", key, v14_)
-		local v16_, _ = xmlObject:getXMLFileAndPropertyKey(v15_)
-		if v16_ == nil then
-			break
-		end
-		local v17_ = VehicleMaterial.new(self.visualWheel.baseDirectory)
-		if v17_:loadFromXML(xmlObject, v15_, self.visualWheel.vehicle.customEnvironment) then
-			local v18_ = self.materials
-			table.insert(v18_, v17_)
-		end
-		v14_ = v14_ + 1
-	end
-	local v19_ = VehicleMaterial.new(self.visualWheel.baseDirectory)
-	if v19_:loadShortFromXML(xmlObject, key, self.visualWheel.vehicle.customEnvironment) then
-		v19_.targetMaterialSlotName = v19_.targetMaterialSlotName or self:getDefaultMaterialSlotName()
-		local v20_ = self.materials
-		table.insert(v20_, v19_)
-	end
-	self.sharedLoadRequestId = self.visualWheel.vehicle:loadSubSharedI3DFile(self.filename, false, false, self.onPartI3DLoaded, self)
-	return true
 end
-
--- Local values: _, material
 function WheelVisualPart:postLoad()
-	for _, v22_ in ipairs(self.materials) do
-		v22_:apply(self.node)
+	for _, material in ipairs(self.materials) do
+		material:apply(self.node)
 	end
 end
-
 function WheelVisualPart:getDefaultMaterialSlotName()
 	if self.name == "innerRim" then
 		return "rim_inner_mat"
-	end
-	if self.name == "outerRim" then
+	elseif self.name == "outerRim" then
 		return "rim_outer_mat"
-	end
-	if self.name == "additional" then
+	elseif self.name == "additional" then
 		return "rim_additional_mat"
-	end
-	if self.name == "connector" then
+	elseif self.name == "connector" then
 		return "rim_bolt_mat"
+	else
+		return
 	end
 end
-
--- Local values: node
 function WheelVisualPart:onPartI3DLoaded(i3dNode, failedReason, args)
 	if i3dNode ~= 0 then
-		local v26_ = I3DUtil.indexToObject(i3dNode, self.indexPath)
-		if v26_ ~= nil then
-			self:setNode(v26_)
+		local node = I3DUtil.indexToObject(i3dNode, self.indexPath)
+		if node ~= nil then
+			self:setNode(node)
 		end
 		delete(i3dNode)
 	end
 end
-
--- Local values: direction, scaleX, scaleZY
 function WheelVisualPart:setNode(node)
 	self.node = node
 	link(self.linkNode, self.node)
-	local v29_ = self.visualWheel.isLeft and 1 or -1
-	setTranslation(self.node, self.offset * v29_, 0, 0)
+	local direction = self.visualWheel.isLeft and 1 or -1
+	setTranslation(self.node, self.offset * direction, 0, 0)
 	if self.scale ~= nil then
 		setScale(self.node, self.scale[1], self.scale[2], self.scale[3])
 	end
@@ -137,9 +121,9 @@ function WheelVisualPart:setNode(node)
 		if self:getHasShaderParameterRec(self.node, "widthAndDiam") then
 			self:setShaderParameterRec(self.node, "widthAndDiam", self.widthAndDiam[1], self.widthAndDiam[2], nil, nil)
 		else
-			local v30_ = MathUtil.inchToM(self.widthAndDiam[1])
-			local v31_ = MathUtil.inchToM(self.widthAndDiam[2])
-			setScale(self.node, v30_, v31_, v31_)
+			local scaleX = MathUtil.inchToM(self.widthAndDiam[1])
+			local scaleZY = MathUtil.inchToM(self.widthAndDiam[2])
+			setScale(self.node, scaleX, scaleZY, scaleZY)
 		end
 	end
 	if self.holeScale ~= nil and self:getHasShaderParameterRec(self.node, "widthAndDiam") then
@@ -149,34 +133,30 @@ function WheelVisualPart:setNode(node)
 		setRotation(self.node, 0, 0, 3.141592653589793)
 	end
 end
-
--- Local values: numChildren, i
 function WheelVisualPart:setShaderParameterRec(node, shaderParameterName, x, y, z, w)
 	if getHasClassId(node, ClassIds.SHAPE) then
 		setShaderParameter(node, shaderParameterName, x, y, z, w, false, -1)
 	end
-	for v39_ = 1, getNumOfChildren(node) do
-		self:setShaderParameterRec(getChildAt(node, v39_ - 1), shaderParameterName, x, y, z, w)
+	local numChildren = getNumOfChildren(node)
+	for i = 1, numChildren do
+		self:setShaderParameterRec(getChildAt(node, i - 1), shaderParameterName, x, y, z, w)
 	end
 end
-
--- Local values: numChildren, i
 function WheelVisualPart:getHasShaderParameterRec(node, shaderParameterName)
 	if getHasClassId(node, ClassIds.SHAPE) and getHasShaderParameter(node, "widthAndDiam") then
 		return true
 	end
-	for v43_ = 1, getNumOfChildren(node) do
-		if self:getHasShaderParameterRec(getChildAt(node, v43_ - 1), shaderParameterName) then
+	local numChildren = getNumOfChildren(node)
+	for i = 1, numChildren do
+		if self:getHasShaderParameterRec(getChildAt(node, i - 1), shaderParameterName) then
 			return true
 		end
 	end
 	return false
 end
-
 function WheelVisualPart:getMass()
 	return self.mass or 0
 end
-
 function WheelVisualPart.registerXMLPaths(schema, key, name)
 	schema:register(XMLValueType.STRING, key .. "#filename", name .. " - Path to i3d file")
 	schema:register(XMLValueType.STRING, key .. "#node", name .. " - Index in i3d file", "0|0")

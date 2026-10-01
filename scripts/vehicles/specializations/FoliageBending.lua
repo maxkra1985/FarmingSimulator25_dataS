@@ -1,41 +1,39 @@
 FoliageBending = {}
 FoliageBending.BENDING_NODE_XML_KEY = "vehicle.foliageBending.bendingNode(?)"
-
 function FoliageBending.prerequisitesPresent(specializations)
 	return true
 end
 function FoliageBending.initSpecialization()
-	local v1_ = Vehicle.xmlSchema
-	v1_:setXMLSpecializationType("FoliageBending")
-	local v2_ = FoliageBending.BENDING_NODE_XML_KEY
-	v1_:register(XMLValueType.NODE_INDEX, v2_ .. "#node", "Bending node")
-	v1_:register(XMLValueType.FLOAT, v2_ .. "#minX", "Min. width")
-	v1_:register(XMLValueType.FLOAT, v2_ .. "#maxX", "Max. width")
-	v1_:register(XMLValueType.FLOAT, v2_ .. "#minZ", "Min. length")
-	v1_:register(XMLValueType.FLOAT, v2_ .. "#maxZ", "Max. length")
-	v1_:register(XMLValueType.FLOAT, v2_ .. "#yOffset", "Y translation offset")
-	v1_:setXMLSpecializationType()
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("FoliageBending")
+	local key = FoliageBending.BENDING_NODE_XML_KEY
+	schema:register(XMLValueType.NODE_INDEX, key .. "#node", "Bending node")
+	schema:register(XMLValueType.FLOAT, key .. "#minX", "Min. width")
+	schema:register(XMLValueType.FLOAT, key .. "#maxX", "Max. width")
+	schema:register(XMLValueType.FLOAT, key .. "#minZ", "Min. length")
+	schema:register(XMLValueType.FLOAT, key .. "#maxZ", "Max. length")
+	schema:register(XMLValueType.FLOAT, key .. "#yOffset", "Y translation offset")
+	schema:setXMLSpecializationType()
 end
 function FoliageBending.postInitSpecialization()
-	local v3_ = Vehicle.xmlSchema
-	v3_:setXMLSpecializationType("FoliageBending")
-	for _, v4_ in pairs(g_vehicleConfigurationManager:getConfigurations()) do
-		local v5_ = v4_.configurationKey .. "(?)"
-		v3_:setXMLSharedRegistration("foliageBendingModifier", v5_)
-		v3_:register(XMLValueType.INT, v5_ .. ".foliageBendingModifier(?)#index", "Bending node index")
-		v3_:register(XMLValueType.VECTOR_N, v5_ .. ".foliageBendingModifier(?)#indices", "Bending node indices")
-		v3_:register(XMLValueType.FLOAT, v5_ .. ".foliageBendingModifier(?)#minX", "Min. width")
-		v3_:register(XMLValueType.FLOAT, v5_ .. ".foliageBendingModifier(?)#maxX", "Max. width")
-		v3_:register(XMLValueType.FLOAT, v5_ .. ".foliageBendingModifier(?)#minZ", "Min. length")
-		v3_:register(XMLValueType.FLOAT, v5_ .. ".foliageBendingModifier(?)#maxZ", "Max. length")
-		v3_:register(XMLValueType.FLOAT, v5_ .. ".foliageBendingModifier(?)#yOffset", "Y translation offset")
-		v3_:register(XMLValueType.BOOL, v5_ .. ".foliageBendingModifier(?)#isActive", "Bending node is active", true)
-		v3_:register(XMLValueType.BOOL, v5_ .. ".foliageBendingModifier(?)#overwrite", "Overwrite the bending node values and do not use the max values", true)
-		v3_:resetXMLSharedRegistration("foliageBendingModifier", v5_)
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("FoliageBending")
+	for name, configDesc in pairs(g_vehicleConfigurationManager:getConfigurations()) do
+		local basePath = configDesc.configurationKey .. "(?)"
+		schema:setXMLSharedRegistration("foliageBendingModifier", basePath)
+		schema:register(XMLValueType.INT, basePath .. ".foliageBendingModifier(?)#index", "Bending node index")
+		schema:register(XMLValueType.VECTOR_N, basePath .. ".foliageBendingModifier(?)#indices", "Bending node indices")
+		schema:register(XMLValueType.FLOAT, basePath .. ".foliageBendingModifier(?)#minX", "Min. width")
+		schema:register(XMLValueType.FLOAT, basePath .. ".foliageBendingModifier(?)#maxX", "Max. width")
+		schema:register(XMLValueType.FLOAT, basePath .. ".foliageBendingModifier(?)#minZ", "Min. length")
+		schema:register(XMLValueType.FLOAT, basePath .. ".foliageBendingModifier(?)#maxZ", "Max. length")
+		schema:register(XMLValueType.FLOAT, basePath .. ".foliageBendingModifier(?)#yOffset", "Y translation offset")
+		schema:register(XMLValueType.BOOL, basePath .. ".foliageBendingModifier(?)#isActive", "Bending node is active", true)
+		schema:register(XMLValueType.BOOL, basePath .. ".foliageBendingModifier(?)#overwrite", "Overwrite the bending node values and do not use the max values", true)
+		schema:resetXMLSharedRegistration("foliageBendingModifier", basePath)
 	end
-	v3_:setXMLSpecializationType()
+	schema:setXMLSpecializationType()
 end
-
 function FoliageBending.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "loadBendingNodeFromXML", FoliageBending.loadBendingNodeFromXML)
 	SpecializationUtil.registerFunction(vehicleType, "loadBendingNodeModifierFromXML", FoliageBending.loadBendingNodeModifierFromXML)
@@ -43,90 +41,74 @@ function FoliageBending.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "deactivateBendingNodes", FoliageBending.deactivateBendingNodes)
 	SpecializationUtil.registerFunction(vehicleType, "getFoliageBendingNodeByIndex", FoliageBending.getFoliageBendingNodeByIndex)
 end
-
 function FoliageBending.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", FoliageBending)
 	SpecializationUtil.registerEventListener(vehicleType, "onDelete", FoliageBending)
 	SpecializationUtil.registerEventListener(vehicleType, "onActivate", FoliageBending)
 	SpecializationUtil.registerEventListener(vehicleType, "onDeactivate", FoliageBending)
 end
-
--- Local values: spec, i, key, bendingNode, name, id, configDesc, key, _, modifierKey, _, modifier, _, modifierBendingNodeIndex, bendingNode
 function FoliageBending:onPostLoad(savegame)
-	local v9_ = self.spec_foliageBending
-	v9_.bendingNodes = {}
-	local v10_ = 0
+	local spec = self.spec_foliageBending
+	spec.bendingNodes = {}
+	local i = 0
 	while true do
-		local v11_ = string.format("vehicle.foliageBending.bendingNode(%d)", v10_)
-		if not self.xmlFile:hasProperty(v11_) then
+		local key = string.format("vehicle.foliageBending.bendingNode(%d)", i)
+		if not self.xmlFile:hasProperty(key) then
 			break
 		end
-		local v12_ = {}
-		if self:loadBendingNodeFromXML(self.xmlFile, v11_, v12_) then
-			local v13_ = v9_.bendingNodes
-			table.insert(v13_, v12_)
-			v12_.index = #v9_.bendingNodes
+		local bendingNode = {}
+		if self:loadBendingNodeFromXML(self.xmlFile, key, bendingNode) then
+			table.insert(spec.bendingNodes, bendingNode)
+			bendingNode.index = #spec.bendingNodes
 		end
-		v10_ = v10_ + 1
+		i = i + 1
 	end
-	for v14_, v15_ in pairs(self.configurations) do
-		local v16_ = g_vehicleConfigurationManager:getConfigurationDescByName(v14_)
-		local v17_ = string.format("%s(%d).foliageBendingModifier", v16_.configurationKey, v15_ - 1)
-		for _, v18_ in self.xmlFile:iterator(v17_) do
-			self:loadBendingNodeModifierFromXML(self.xmlFile, v18_)
+	for name, id in pairs(self.configurations) do
+		local configDesc = g_vehicleConfigurationManager:getConfigurationDescByName(name)
+		local key = string.format("%s(%d).foliageBendingModifier", configDesc.configurationKey, id - 1)
+		for _, modifierKey in self.xmlFile:iterator(key) do
+			self:loadBendingNodeModifierFromXML(self.xmlFile, modifierKey)
 		end
 	end
-	if v9_.bendingModifiers ~= nil then
-		for _, v19_ in ipairs(v9_.bendingModifiers) do
-			for _, v20_ in ipairs(v19_.indices) do
-				local v21_ = v9_.bendingNodes[v20_]
-				if v21_ == nil then
-					Logging.xmlWarning(self.xmlFile, "Undefined bendingNode index \'%d\' for bending modifier \'%s\'!", v20_, v19_.key)
-				else
-					if v19_.overwrite then
-						v21_.minX = v19_.minX or v21_.minX
-						v21_.maxX = v19_.maxX or v21_.maxX
-						v21_.minZ = v19_.minZ or v21_.minZ
-						v21_.maxZ = v19_.maxZ or v21_.maxZ
-						v21_.yOffset = v19_.yOffset or v21_.yOffset
+	if spec.bendingModifiers ~= nil then
+		for _, modifier in ipairs(spec.bendingModifiers) do
+			for _, modifierBendingNodeIndex in ipairs(modifier.indices) do
+				local bendingNode = spec.bendingNodes[modifierBendingNodeIndex]
+				if bendingNode ~= nil then
+					if modifier.overwrite then
+						bendingNode.minX = modifier.minX or bendingNode.minX
+						bendingNode.maxX = modifier.maxX or bendingNode.maxX
+						bendingNode.minZ = modifier.minZ or bendingNode.minZ
+						bendingNode.maxZ = modifier.maxZ or bendingNode.maxZ
+						bendingNode.yOffset = modifier.yOffset or bendingNode.yOffset
 					else
-						local v22_ = v21_.minX
-						local v23_ = v19_.minX or v21_.minX
-						v21_.minX = math.min(v22_, v23_)
-						local v24_ = v21_.maxX
-						local v25_ = v19_.maxX or v21_.maxX
-						v21_.maxX = math.max(v24_, v25_)
-						local v26_ = v21_.minZ
-						local v27_ = v19_.minZ or v21_.minZ
-						v21_.minZ = math.min(v26_, v27_)
-						local v28_ = v21_.maxZ
-						local v29_ = v19_.maxZ or v21_.maxZ
-						v21_.maxZ = math.max(v28_, v29_)
-						local v30_ = v21_.yOffset
-						local v31_ = v19_.yOffset or v21_.yOffset
-						v21_.yOffset = math.max(v30_, v31_)
+						bendingNode.minX = math.min(bendingNode.minX, modifier.minX or bendingNode.minX)
+						bendingNode.maxX = math.max(bendingNode.maxX, modifier.maxX or bendingNode.maxX)
+						bendingNode.minZ = math.min(bendingNode.minZ, modifier.minZ or bendingNode.minZ)
+						bendingNode.maxZ = math.max(bendingNode.maxZ, modifier.maxZ or bendingNode.maxZ)
+						bendingNode.yOffset = math.max(bendingNode.yOffset, modifier.yOffset or bendingNode.yOffset)
 					end
-					if not v19_.isActive then
-						v21_.isActive = false
+					if modifier.isActive then
+						continue
 					end
+					bendingNode.isActive = false
+				else
+					Logging.xmlWarning(self.xmlFile, "Undefined bendingNode index '%d' for bending modifier '%s'!", modifierBendingNodeIndex, modifier.key)
 				end
 			end
 		end
-		v9_.bendingModifiers = nil
+		spec.bendingModifiers = nil
 	end
 end
-
 function FoliageBending:onDelete()
 	self:deactivateBendingNodes()
 end
-
--- Local values: node
 function FoliageBending:loadBendingNodeFromXML(xmlFile, key, bendingNode)
-	local v37_ = xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
-	if v37_ == nil then
-		v37_ = self.rootNode
+	local node = xmlFile:getValue(key .. "#node", nil, self.components, self.i3dMappings)
+	if node == nil then
+		node = self.rootNode
 	end
-	bendingNode.node = v37_
+	bendingNode.node = node
 	bendingNode.key = key
 	bendingNode.minX = xmlFile:getValue(key .. "#minX", -1)
 	bendingNode.maxX = xmlFile:getValue(key .. "#maxX", 1)
@@ -136,69 +118,57 @@ function FoliageBending:loadBendingNodeFromXML(xmlFile, key, bendingNode)
 	bendingNode.isActive = true
 	return true
 end
-
--- Local values: modifier, spec
 function FoliageBending:loadBendingNodeModifierFromXML(xmlFile, key)
-	local v41_ = {
-		["index"] = xmlFile:getValue(key .. "#index"),
-		["indices"] = xmlFile:getValue(key .. "#indices", nil, true)
-	}
-	if v41_.index == nil and v41_.indices == nil then
-		Logging.xmlWarning(self.xmlFile, "Missing bending node index for bending modifier \'%s\'", key)
-	else
-		v41_.indices = v41_.indices or {}
-		if v41_.index ~= nil then
-			local v42_ = v41_.indices
-			local v43_ = v41_.index
-			table.insert(v42_, v43_)
-		end
-		v41_.minX = xmlFile:getValue(key .. "#minX")
-		v41_.maxX = xmlFile:getValue(key .. "#maxX")
-		v41_.minZ = xmlFile:getValue(key .. "#minZ")
-		v41_.maxZ = xmlFile:getValue(key .. "#maxZ")
-		v41_.yOffset = xmlFile:getValue(key .. "#yOffset")
-		v41_.isActive = xmlFile:getValue(key .. "#isActive", true)
-		v41_.overwrite = xmlFile:getValue(key .. "#overwrite", true)
-		local v44_ = self.spec_foliageBending
-		if v44_.bendingModifiers == nil then
-			v44_.bendingModifiers = {}
-		end
-		local v45_ = v44_.bendingModifiers
-		table.insert(v45_, v41_)
+	local modifier = {}
+	modifier.index = xmlFile:getValue(key .. "#index")
+	modifier.indices = xmlFile:getValue(key .. "#indices", nil, true)
+	if modifier.index == nil and modifier.indices == nil then
+		Logging.xmlWarning(self.xmlFile, "Missing bending node index for bending modifier '%s'", key)
+		return
 	end
+	modifier.indices = modifier.indices or {}
+	if modifier.index ~= nil then
+		table.insert(modifier.indices, modifier.index)
+	end
+	modifier.minX = xmlFile:getValue(key .. "#minX")
+	modifier.maxX = xmlFile:getValue(key .. "#maxX")
+	modifier.minZ = xmlFile:getValue(key .. "#minZ")
+	modifier.maxZ = xmlFile:getValue(key .. "#maxZ")
+	modifier.yOffset = xmlFile:getValue(key .. "#yOffset")
+	modifier.isActive = xmlFile:getValue(key .. "#isActive", true)
+	modifier.overwrite = xmlFile:getValue(key .. "#overwrite", true)
+	local spec = self.spec_foliageBending
+	if spec.bendingModifiers == nil then
+		spec.bendingModifiers = {}
+	end
+	table.insert(spec.bendingModifiers, modifier)
 end
-
--- Local values: spec, _, bendingNode
 function FoliageBending:activateBendingNodes()
-	local v47_ = self.spec_foliageBending
-	for _, v48_ in ipairs(v47_.bendingNodes) do
-		if v48_.isActive and (v48_.id == nil and g_currentMission.foliageBendingSystem) then
-			v48_.id = g_currentMission.foliageBendingSystem:createRectangle(v48_.minX, v48_.maxX, v48_.minZ, v48_.maxZ, v48_.yOffset, v48_.node)
+	local spec = self.spec_foliageBending
+	for _, bendingNode in ipairs(spec.bendingNodes) do
+		if bendingNode.isActive and (bendingNode.id == nil and g_currentMission.foliageBendingSystem) then
+			bendingNode.id = g_currentMission.foliageBendingSystem:createRectangle(bendingNode.minX, bendingNode.maxX, bendingNode.minZ, bendingNode.maxZ, bendingNode.yOffset, bendingNode.node)
 		end
 	end
 end
-
--- Local values: spec, _, bendingNode
 function FoliageBending:deactivateBendingNodes()
-	local v50_ = self.spec_foliageBending
-	if v50_.bendingNodes ~= nil then
-		for _, v51_ in ipairs(v50_.bendingNodes) do
-			if v51_.id ~= nil then
-				g_currentMission.foliageBendingSystem:destroyObject(v51_.id)
-				v51_.id = nil
+	local spec = self.spec_foliageBending
+	if spec.bendingNodes ~= nil then
+		for _, bendingNode in ipairs(spec.bendingNodes) do
+			if bendingNode.id == nil then
+				continue
 			end
+			g_currentMission.foliageBendingSystem:destroyObject(bendingNode.id)
+			bendingNode.id = nil
 		end
 	end
 end
-
 function FoliageBending:getFoliageBendingNodeByIndex(index)
 	return self.spec_foliageBending.bendingNodes[index]
 end
-
 function FoliageBending:onActivate()
 	self:activateBendingNodes()
 end
-
 function FoliageBending:onDeactivate()
 	self:deactivateBendingNodes()
 end

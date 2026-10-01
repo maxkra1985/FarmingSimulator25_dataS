@@ -4,50 +4,48 @@ Consumable.CONSUME_LEVEL_RESOLUTION = 2 ^ Consumable.CONSUME_LEVEL_NUM_BITS - 1
 source("dataS/scripts/vehicles/specializations/events/ConsumableRefillEvent.lua")
 source("dataS/scripts/vehicles/specializations/activatables/ConsumableActivatable.lua")
 Consumable.CONFIG_NAMES = { "consumable", "consumable2" }
-
 function Consumable.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(FillUnit, specializations)
 end
 function Consumable.initSpecialization()
-	for _, v2_ in ipairs(Consumable.CONFIG_NAMES) do
-		g_vehicleConfigurationManager:addConfigurationType(v2_, g_i18n:getText("shop_configuration"), "consumable", VehicleConfigurationItem)
+	for _, configName in ipairs(Consumable.CONFIG_NAMES) do
+		g_vehicleConfigurationManager:addConfigurationType(configName, g_i18n:getText("shop_configuration"), "consumable", VehicleConfigurationItem)
 	end
-	local v3_ = Vehicle.xmlSchema
-	v3_:setXMLSpecializationType("Consumable")
-	for _, v4_ in ipairs(Consumable.CONFIG_NAMES) do
-		v3_:register(XMLValueType.STRING, "vehicle.consumable." .. v4_ .. "Configurations#typeName", "Name of the consumable type that can be filled")
-		v3_:register(XMLValueType.STRING, "vehicle.consumable." .. v4_ .. "Configurations." .. v4_ .. "Configuration(?)#consumableName", "Consumable Name")
+	local schema = Vehicle.xmlSchema
+	schema:setXMLSpecializationType("Consumable")
+	for _, configName in ipairs(Consumable.CONFIG_NAMES) do
+		schema:register(XMLValueType.STRING, "vehicle.consumable." .. configName .. "Configurations#typeName", "Name of the consumable type that can be filled")
+		schema:register(XMLValueType.STRING, "vehicle.consumable." .. configName .. "Configurations." .. configName .. "Configuration(?)#consumableName", "Consumable Name")
 	end
-	v3_:register(XMLValueType.STRING, "vehicle.consumable.type(?)#typeName", "Name of the consumable type that can be filled")
-	v3_:register(XMLValueType.STRING, "vehicle.consumable.type(?)#defaultConsumableName", "Name of the consumable that is loaded by default, if not given the tool spawns empty")
-	v3_:register(XMLValueType.INT, "vehicle.consumable.type(?)#fillUnitIndex", "Fill unit index of the consumable fill unit", 1)
-	v3_:register(XMLValueType.BOOL, "vehicle.consumable.type(?)#allowRefillDialog", "Defines if the type can be refilled via the UI dialog", true)
-	v3_:register(XMLValueType.BOOL, "vehicle.consumable.type(?)#showWarning", "Show warning if the consumable is empty", true)
-	v3_:register(XMLValueType.BOOL, "vehicle.consumable.type(?).consuming#useScale", "Scale the consuming meshes based on the fill level", false)
-	v3_:register(XMLValueType.BOOL, "vehicle.consumable.type(?).consuming#useAmount", "Apply the fill level to the \'amount\' shader parameter", false)
-	v3_:register(XMLValueType.BOOL, "vehicle.consumable.type(?).consuming#useHideByIndex", "Apply hideByIndex shader parameter to the consuming mesh", false)
-	v3_:register(XMLValueType.FLOAT, "vehicle.consumable.type(?).consuming#hideByIndexOffset", "Offset for the hide by index fill level", 0)
-	v3_:register(XMLValueType.STRING, "vehicle.consumable.type(?).consuming.animation(?)#name", "Name of the animation that is set based on the consuming fill level")
-	v3_:register(XMLValueType.FLOAT, "vehicle.consumable.type(?).consuming.animation(?)#numLoops", "Number of times the animation is looping for the capacity of the consuming slots", 1)
-	v3_:register(XMLValueType.INT, "vehicle.consumable.type(?).consuming.animation(?)#numSteps", "If defined, the animation will move in steps")
-	v3_:register(XMLValueType.FLOAT, "vehicle.consumable.type(?).consuming.animation(?)#speedScale", "Speed of the animation", 1)
-	v3_:register(XMLValueType.NODE_INDEX, "vehicle.consumable.type(?).slot(?)#node", "Link node of visual slot")
-	v3_:register(XMLValueType.BOOL, "vehicle.consumable.type(?).slot(?)#isConsumingSlot", "Slot is a consuming slot (different 3d model without packing if available)", false)
-	v3_:register(XMLValueType.BOOL, "vehicle.consumable.type(?).slot(?)#useTensionBeltMesh", "A tension belt mesh will be loaded for this slot if available", "\'true\' for pallets")
-	v3_:register(XMLValueType.NODE_INDEX, "vehicle.consumable.type(?).shaderParameterNode(?)#node", "Shader parameter defined in the consumable variation will be applied here as well")
-	ObjectChangeUtil.registerObjectChangeXMLPaths(v3_, "vehicle.consumable.type(?)")
-	v3_:setXMLSpecializationType()
-	local v5_ = Vehicle.xmlSchemaSavegame
-	v5_:register(XMLValueType.STRING, "vehicles.vehicle(?).consumable.type(?)#typeName", "Consumer type name")
-	v5_:register(XMLValueType.FLOAT, "vehicles.vehicle(?).consumable.type(?)#consumingFillLevel", "Fill Level of consuming slots")
-	v5_:register(XMLValueType.STRING, "vehicles.vehicle(?).consumable.type(?)#consumingVariationName", "Name of the variation that is currently loaded on the consuming slots")
-	v5_:register(XMLValueType.STRING, "vehicles.vehicle(?).consumable.type(?).storageSlot(?)#consumableVariation", "Currently loaded consumer variation for slot")
+	schema:register(XMLValueType.STRING, "vehicle.consumable.type(?)#typeName", "Name of the consumable type that can be filled")
+	schema:register(XMLValueType.STRING, "vehicle.consumable.type(?)#defaultConsumableName", "Name of the consumable that is loaded by default, if not given the tool spawns empty")
+	schema:register(XMLValueType.INT, "vehicle.consumable.type(?)#fillUnitIndex", "Fill unit index of the consumable fill unit", 1)
+	schema:register(XMLValueType.BOOL, "vehicle.consumable.type(?)#allowRefillDialog", "Defines if the type can be refilled via the UI dialog", true)
+	schema:register(XMLValueType.BOOL, "vehicle.consumable.type(?)#showWarning", "Show warning if the consumable is empty", true)
+	schema:register(XMLValueType.BOOL, "vehicle.consumable.type(?).consuming#useScale", "Scale the consuming meshes based on the fill level", false)
+	schema:register(XMLValueType.BOOL, "vehicle.consumable.type(?).consuming#useAmount", "Apply the fill level to the 'amount' shader parameter", false)
+	schema:register(XMLValueType.BOOL, "vehicle.consumable.type(?).consuming#useHideByIndex", "Apply hideByIndex shader parameter to the consuming mesh", false)
+	schema:register(XMLValueType.FLOAT, "vehicle.consumable.type(?).consuming#hideByIndexOffset", "Offset for the hide by index fill level", 0)
+	schema:register(XMLValueType.STRING, "vehicle.consumable.type(?).consuming.animation(?)#name", "Name of the animation that is set based on the consuming fill level")
+	schema:register(XMLValueType.FLOAT, "vehicle.consumable.type(?).consuming.animation(?)#numLoops", "Number of times the animation is looping for the capacity of the consuming slots", 1)
+	schema:register(XMLValueType.INT, "vehicle.consumable.type(?).consuming.animation(?)#numSteps", "If defined, the animation will move in steps")
+	schema:register(XMLValueType.FLOAT, "vehicle.consumable.type(?).consuming.animation(?)#speedScale", "Speed of the animation", 1)
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.consumable.type(?).slot(?)#node", "Link node of visual slot")
+	schema:register(XMLValueType.BOOL, "vehicle.consumable.type(?).slot(?)#isConsumingSlot", "Slot is a consuming slot (different 3d model without packing if available)", false)
+	schema:register(XMLValueType.BOOL, "vehicle.consumable.type(?).slot(?)#useTensionBeltMesh", "A tension belt mesh will be loaded for this slot if available", "'true' for pallets")
+	schema:register(XMLValueType.NODE_INDEX, "vehicle.consumable.type(?).shaderParameterNode(?)#node", "Shader parameter defined in the consumable variation will be applied here as well")
+	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, "vehicle.consumable.type(?)")
+	schema:setXMLSpecializationType()
+	local schemaSavegame = Vehicle.xmlSchemaSavegame
+	local key = "vehicles.vehicle(?).consumable"
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).consumable" .. ".type(?)#typeName", "Consumer type name")
+	schemaSavegame:register(XMLValueType.FLOAT, "vehicles.vehicle(?).consumable" .. ".type(?)#consumingFillLevel", "Fill Level of consuming slots")
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).consumable" .. ".type(?)#consumingVariationName", "Name of the variation that is currently loaded on the consuming slots")
+	schemaSavegame:register(XMLValueType.STRING, "vehicles.vehicle(?).consumable" .. ".type(?).storageSlot(?)#consumableVariation", "Currently loaded consumer variation for slot")
 end
-
 function Consumable.registerEvents(vehicleType)
 	SpecializationUtil.registerEvent(vehicleType, "onConsumableVariationChanged")
 end
-
 function Consumable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getConsumableVariationIndexByFillUnitIndex", Consumable.getConsumableVariationIndexByFillUnitIndex)
 	SpecializationUtil.registerFunction(vehicleType, "setConsumableSlotVariationIndex", Consumable.setConsumableSlotVariationIndex)
@@ -56,13 +54,11 @@ function Consumable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getShowConsumableEmptyWarning", Consumable.getShowConsumableEmptyWarning)
 	SpecializationUtil.registerFunction(vehicleType, "getCustomFillTriggerSpeedFactor", Consumable.getCustomFillTriggerSpeedFactor)
 end
-
 function Consumable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "addFillUnitFillLevel", Consumable.addFillUnitFillLevel)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getFillUnitFreeCapacity", Consumable.getFillUnitFreeCapacity)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "collectPalletTensionBeltNodes", Consumable.collectPalletTensionBeltNodes)
 end
-
 function Consumable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", Consumable)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", Consumable)
@@ -79,191 +75,179 @@ function Consumable.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onAddedFillUnitTrigger", Consumable)
 	SpecializationUtil.registerEventListener(vehicleType, "onRemovedFillUnitTrigger", Consumable)
 end
-
--- Local values: spec, _, typeKey, type, _, slotKey, slot, _, animationKey, animation, _, paramKey, node, _, configName, configsKey, configurationId, typeName, type, configKey
 function Consumable:onLoad(savegame)
-	local v11_ = self.spec_consumable
-	v11_.animationsDirty = false
-	v11_.types = {}
-	v11_.typesByName = {}
-	for _, v12_ in self.xmlFile:iterator("vehicle.consumable.type") do
-		local v13_ = {
-			["typeName"] = self.xmlFile:getValue(v12_ .. "#typeName")
-		}
-		if v13_.typeName == nil then
-			Logging.xmlWarning(self.xmlFile, "Missing type name in \'%s\'", v12_)
+	local spec = self.spec_consumable
+	spec.animationsDirty = false
+	spec.types = {}
+	spec.typesByName = {}
+	for _, typeKey in self.xmlFile:iterator("vehicle.consumable.type") do
+		local type = {}
+		type.typeName = self.xmlFile:getValue(typeKey .. "#typeName")
+		if type.typeName == nil then
+			Logging.xmlWarning(self.xmlFile, "Missing type name in '%s'", typeKey)
 		else
-			v13_.fillUnitIndex = self.xmlFile:getValue(v12_ .. "#fillUnitIndex")
-			if v13_.fillUnitIndex == nil then
-				Logging.xmlWarning(self.xmlFile, "Missing fillUnitIndex in \'%s\'", v12_)
-			elseif self:getFillUnitByIndex(v13_.fillUnitIndex) == nil then
-				Logging.xmlWarning(self.xmlFile, "Invalid fillUnitIndex in \'%s\'", v12_)
+			type.fillUnitIndex = self.xmlFile:getValue(typeKey .. "#fillUnitIndex")
+			if type.fillUnitIndex == nil then
+				Logging.xmlWarning(self.xmlFile, "Missing fillUnitIndex in '%s'", typeKey)
+			elseif self:getFillUnitByIndex(type.fillUnitIndex) == nil then
+				Logging.xmlWarning(self.xmlFile, "Invalid fillUnitIndex in '%s'", typeKey)
 			else
-				v13_.defaultConsumableName = self.xmlFile:getValue(v12_ .. "#defaultConsumableName")
-				v13_.allowRefillDialog = self.xmlFile:getValue(v12_ .. "#allowRefillDialog", true)
-				v13_.showWarning = self.xmlFile:getValue(v12_ .. "#showWarning", true)
-				v13_.slots = {}
-				v13_.storageSlots = {}
-				v13_.consumingSlots = {}
-				for _, v14_ in self.xmlFile:iterator(v12_ .. ".slot") do
-					local v15_ = {
-						["node"] = self.xmlFile:getValue(v14_ .. "#node", nil, self.components, self.i3dMappings),
-						["isConsumingSlot"] = self.xmlFile:getValue(v14_ .. "#isConsumingSlot", false),
-						["useTensionBeltMesh"] = self.xmlFile:getValue(v14_ .. "#useTensionBeltMesh", self.setPalletTensionBeltNodesDirty ~= nil),
-						["mesh"] = nil,
-						["consumingMesh"] = nil,
-						["consumableVariationIndex"] = 0
-					}
-					if v15_.isConsumingSlot then
-						local v16_ = v13_.consumingSlots
-						table.insert(v16_, v15_)
+				type.defaultConsumableName = self.xmlFile:getValue(typeKey .. "#defaultConsumableName")
+				type.allowRefillDialog = self.xmlFile:getValue(typeKey .. "#allowRefillDialog", true)
+				type.showWarning = self.xmlFile:getValue(typeKey .. "#showWarning", true)
+				type.slots = {}
+				type.storageSlots = {}
+				type.consumingSlots = {}
+				for _, slotKey in self.xmlFile:iterator(typeKey .. ".slot") do
+					local slot = {}
+					slot.node = self.xmlFile:getValue(slotKey .. "#node", nil, self.components, self.i3dMappings)
+					slot.isConsumingSlot = self.xmlFile:getValue(slotKey .. "#isConsumingSlot", false)
+					slot.useTensionBeltMesh = self.xmlFile:getValue(slotKey .. "#useTensionBeltMesh", self.setPalletTensionBeltNodesDirty ~= nil)
+					slot.mesh = nil
+					slot.consumingMesh = nil
+					slot.consumableVariationIndex = 0
+					if slot.isConsumingSlot then
+						table.insert(type.consumingSlots, slot)
 					else
-						local v17_ = v13_.storageSlots
-						table.insert(v17_, v15_)
+						table.insert(type.storageSlots, slot)
 					end
-					local v18_ = v13_.slots
-					table.insert(v18_, v15_)
+					table.insert(type.slots, slot)
 				end
-				v13_.useScale = self.xmlFile:getValue(v12_ .. ".consuming#useScale", false)
-				v13_.useAmount = self.xmlFile:getValue(v12_ .. ".consuming#useAmount", false)
-				v13_.useHideByIndex = self.xmlFile:getValue(v12_ .. ".consuming#useHideByIndex", false)
-				v13_.hideByIndexOffset = self.xmlFile:getValue(v12_ .. ".consuming#hideByIndexOffset", 0)
-				v13_.animations = {}
-				for _, v19_ in self.xmlFile:iterator(v12_ .. ".consuming.animation") do
-					local v20_ = {
-						["name"] = self.xmlFile:getValue(v19_ .. "#name")
-					}
-					if v20_.name ~= nil then
-						local v21_ = self.xmlFile:getValue(v19_ .. "#numLoops", 1)
-						v20_.numLoops = math.max(v21_, 1)
-						v20_.numSteps = self.xmlFile:getValue(v19_ .. "#numSteps")
-						v20_.speedScale = self.xmlFile:getValue(v19_ .. "#speedScale", 1) * 0.001
-						v20_.currentTime = 0
-						local v22_ = v13_.animations
-						table.insert(v22_, v20_)
+				type.useScale = self.xmlFile:getValue(typeKey .. ".consuming#useScale", false)
+				type.useAmount = self.xmlFile:getValue(typeKey .. ".consuming#useAmount", false)
+				type.useHideByIndex = self.xmlFile:getValue(typeKey .. ".consuming#useHideByIndex", false)
+				type.hideByIndexOffset = self.xmlFile:getValue(typeKey .. ".consuming#hideByIndexOffset", 0)
+				type.animations = {}
+				for _, animationKey in self.xmlFile:iterator(typeKey .. ".consuming.animation") do
+					local animation = {}
+					animation.name = self.xmlFile:getValue(animationKey .. "#name")
+					if animation.name == nil then
+						continue
 					end
+					animation.numLoops = math.max(self.xmlFile:getValue(animationKey .. "#numLoops", 1), 1)
+					animation.numSteps = self.xmlFile:getValue(animationKey .. "#numSteps")
+					animation.speedScale = self.xmlFile:getValue(animationKey .. "#speedScale", 1) * 0.001
+					animation.currentTime = 0
+					table.insert(type.animations, animation)
 				end
-				v13_.numSlots = #v13_.slots
-				v13_.numStorageSlots = #v13_.storageSlots
-				v13_.numConsumingSlots = #v13_.consumingSlots
-				v13_.objectChanges = {}
-				ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, v12_, v13_.objectChanges, self.components, self)
-				ObjectChangeUtil.setObjectChanges(v13_.objectChanges, false, self, self.setMovingToolDirty)
-				v13_.shaderParameterNodes = {}
-				for _, v23_ in self.xmlFile:iterator(v12_ .. ".shaderParameterNode") do
-					local v24_ = self.xmlFile:getValue(v23_ .. "#node", nil, self.components, self.i3dMappings)
-					if v24_ ~= nil then
-						local v25_ = v13_.shaderParameterNodes
-						table.insert(v25_, v24_)
+				type.numSlots = #type.slots
+				type.numStorageSlots = #type.storageSlots
+				type.numConsumingSlots = #type.consumingSlots
+				type.objectChanges = {}
+				ObjectChangeUtil.loadObjectChangeFromXML(self.xmlFile, typeKey, type.objectChanges, self.components, self)
+				ObjectChangeUtil.setObjectChanges(type.objectChanges, false, self, self.setMovingToolDirty)
+				type.shaderParameterNodes = {}
+				for _, paramKey in self.xmlFile:iterator(typeKey .. ".shaderParameterNode") do
+					local node = self.xmlFile:getValue(paramKey .. "#node", nil, self.components, self.i3dMappings)
+					if node == nil then
+						continue
 					end
+					table.insert(type.shaderParameterNodes, node)
 				end
-				v13_.consumingFillLevel = 0
-				v13_.consumingFillLevelSent = 0
-				v13_.consumingVariationIndex = 0
-				v13_.lastConsumedVariationIndex = 0
-				v13_.isDirty = false
-				self:setFillUnitCapacity(v13_.fillUnitIndex, v13_.numStorageSlots + v13_.numConsumingSlots, true)
-				self:setFillUnitCapacityToDisplay(v13_.fillUnitIndex, v13_.numStorageSlots + v13_.numConsumingSlots)
-				local v26_ = v11_.types
-				table.insert(v26_, v13_)
-				v13_.index = #v11_.types
-				v11_.typesByName[v13_.typeName] = v13_
+				type.consumingFillLevel = 0
+				type.consumingFillLevelSent = 0
+				type.consumingVariationIndex = 0
+				type.lastConsumedVariationIndex = 0
+				type.isDirty = false
+				self:setFillUnitCapacity(type.fillUnitIndex, type.numStorageSlots + type.numConsumingSlots, true)
+				self:setFillUnitCapacityToDisplay(type.fillUnitIndex, type.numStorageSlots + type.numConsumingSlots)
+				table.insert(spec.types, type)
+				type.index = #spec.types
+				spec.typesByName[type.typeName] = type
 			end
 		end
 	end
-	for _, v27_ in ipairs(Consumable.CONFIG_NAMES) do
-		local v28_ = string.format("vehicle.consumable.%sConfigurations", v27_)
-		if self.xmlFile:hasProperty(v28_) then
-			local v29_ = self.configurations[v27_] or 1
-			local v30_ = self.xmlFile:getValue(v28_ .. "#typeName")
-			if v30_ ~= nil then
-				local v31_ = v11_.typesByName[v30_]
-				if v31_ == nil then
-					Logging.xmlWarning(self.xmlFile, "Consumable type name \'%s\' not found for configuration \'%s\'", v30_, v27_)
-				else
-					local v32_ = string.format("%s.%sConfiguration(%d)", v28_, v27_, v29_ - 1)
-					v31_.defaultConsumableName = self.xmlFile:getValue(v32_ .. "#consumableName")
-				end
+	for _, configName in ipairs(Consumable.CONFIG_NAMES) do
+		local configsKey = string.format("vehicle.consumable.%sConfigurations", configName)
+		if self.xmlFile:hasProperty(configsKey) then
+			local configurationId = self.configurations[configName] or 1
+			local typeName = self.xmlFile:getValue(configsKey .. "#typeName")
+			if typeName == nil then
+				continue
+			end
+			local type = spec.typesByName[typeName]
+			if type ~= nil then
+				local configKey = string.format("%s.%sConfiguration(%d)", configsKey, configName, configurationId - 1)
+				type.defaultConsumableName = self.xmlFile:getValue(configKey .. "#consumableName")
+			else
+				Logging.xmlWarning(self.xmlFile, "Consumable type name '%s' not found for configuration '%s'", typeName, configName)
 			end
 		end
 	end
-	v11_.activatable = ConsumableActivatable.new(self)
-	v11_.dirtyFlag = self:getNextDirtyFlag()
+	spec.activatable = ConsumableActivatable.new(self)
+	spec.dirtyFlag = self:getNextDirtyFlag()
 end
-
--- Local values: spec, key, _, typeKey, typeName, type, consumingVariationName, slotIndex, slotKey, consumableVariation, consumableVariationIndex, typeIndex, type
 function Consumable:onPostLoad(savegame)
-	local v35_ = self.spec_consumable
-	if savegame == nil then
-		if not self.vehicleLoadingData:getCustomParameter("spawnEmpty") then
-			for _, v36_ in ipairs(v35_.types) do
-				if v36_.defaultConsumableName ~= nil then
-					self:addFillUnitFillLevel(self:getOwnerFarmId(), v36_.fillUnitIndex, v36_.numStorageSlots, self:getFillUnitFirstSupportedFillType(v36_.fillUnitIndex), ToolType.UNDEFINED, nil)
-					v36_.consumingFillLevel = 1
-					v36_.consumingVariationIndex = g_consumableManager:getConsumableVariationIndexByName(v36_.defaultConsumableName, self.customEnvironment)
-					self:updateConsumable(v36_.typeName, 0)
+	local spec = self.spec_consumable
+	if savegame ~= nil then
+		if not savegame.resetVehicles then
+			local key = savegame.key .. ".consumable"
+			for _, typeKey in savegame.xmlFile:iterator(key .. ".type") do
+				local typeName = savegame.xmlFile:getValue(typeKey .. "#typeName")
+				local type = spec.typesByName[typeName]
+				if type == nil then
+					continue
 				end
+				type.consumingFillLevel = savegame.xmlFile:getValue(typeKey .. "#consumingFillLevel", 0)
+				local consumingVariationName = savegame.xmlFile:getValue(typeKey .. "#consumingVariationName")
+				type.consumingVariationIndex = g_consumableManager:getConsumableVariationIndexByName(consumingVariationName, self.customEnvironment)
+				for slotIndex, slotKey in savegame.xmlFile:iterator(typeKey .. ".storageSlot") do
+					local consumableVariation = savegame.xmlFile:getValue(slotKey .. "#consumableVariation")
+					if consumableVariation == nil then
+						continue
+					end
+					local consumableVariationIndex = g_consumableManager:getConsumableVariationIndexByName(consumableVariation, self.customEnvironment)
+					self:setConsumableSlotVariationIndex(type.index, slotIndex, consumableVariationIndex)
+				end
+				self:updateConsumable(type.typeName, 0)
+				if self.updatePalletStraps == nil then
+					continue
+				end
+				self:updatePalletStraps()
 			end
 		end
-	elseif not savegame.resetVehicles then
-		local v37_ = savegame.key .. ".consumable"
-		for _, v38_ in savegame.xmlFile:iterator(v37_ .. ".type") do
-			local v39_ = savegame.xmlFile:getValue(v38_ .. "#typeName")
-			local v40_ = v35_.typesByName[v39_]
-			if v40_ ~= nil then
-				v40_.consumingFillLevel = savegame.xmlFile:getValue(v38_ .. "#consumingFillLevel", 0)
-				local v41_ = savegame.xmlFile:getValue(v38_ .. "#consumingVariationName")
-				v40_.consumingVariationIndex = g_consumableManager:getConsumableVariationIndexByName(v41_, self.customEnvironment)
-				for v42_, v43_ in savegame.xmlFile:iterator(v38_ .. ".storageSlot") do
-					local v44_ = savegame.xmlFile:getValue(v43_ .. "#consumableVariation")
-					if v44_ ~= nil then
-						local v45_ = g_consumableManager:getConsumableVariationIndexByName(v44_, self.customEnvironment)
-						self:setConsumableSlotVariationIndex(v40_.index, v42_, v45_)
-					end
-				end
-				self:updateConsumable(v40_.typeName, 0)
-				if self.updatePalletStraps ~= nil then
-					self:updatePalletStraps()
-				end
+	elseif not self.vehicleLoadingData:getCustomParameter("spawnEmpty") then
+		for typeIndex, type in ipairs(spec.types) do
+			if type.defaultConsumableName == nil then
+				continue
 			end
+			self:addFillUnitFillLevel(self:getOwnerFarmId(), type.fillUnitIndex, type.numStorageSlots, self:getFillUnitFirstSupportedFillType(type.fillUnitIndex), ToolType.UNDEFINED, nil)
+			type.consumingFillLevel = 1
+			type.consumingVariationIndex = g_consumableManager:getConsumableVariationIndexByName(type.defaultConsumableName, self.customEnvironment)
+			self:updateConsumable(type.typeName, 0)
 		end
 	end
 	Consumable.updateActivatable(self)
 end
-
--- Local values: spec
 function Consumable:onDelete()
-	local v47_ = self.spec_consumable
-	g_currentMission.activatableObjectsSystem:removeActivatable(v47_.activatable)
+	local spec = self.spec_consumable
+	g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
 end
-
--- Local values: spec, typeIndex, type, typeKey, slotIndex, slot, slotKey
 function Consumable:saveToXMLFile(xmlFile, key, usedModNames)
-	local v51_ = self.spec_consumable
-	for v52_, v53_ in ipairs(v51_.types) do
-		local v54_ = string.format("%s.type(%d)", key, v52_ - 1)
-		xmlFile:setValue(v54_ .. "#typeName", v53_.typeName)
-		xmlFile:setValue(v54_ .. "#consumingFillLevel", v53_.consumingFillLevel)
-		xmlFile:setValue(v54_ .. "#consumingVariationName", g_consumableManager:getConsumableVariationNameByIndex(v53_.consumingVariationIndex))
-		for v55_, v56_ in ipairs(v53_.storageSlots) do
-			xmlFile:setValue(string.format("%s.storageSlot(%d)", v54_, v55_ - 1) .. "#consumableVariation", g_consumableManager:getConsumableVariationNameByIndex(v56_.consumableVariationIndex))
+	local spec = self.spec_consumable
+	for typeIndex, type in ipairs(spec.types) do
+		local typeKey = string.format("%s.type(%d)", key, typeIndex - 1)
+		xmlFile:setValue(typeKey .. "#typeName", type.typeName)
+		xmlFile:setValue(typeKey .. "#consumingFillLevel", type.consumingFillLevel)
+		xmlFile:setValue(typeKey .. "#consumingVariationName", g_consumableManager:getConsumableVariationNameByIndex(type.consumingVariationIndex))
+		for slotIndex, slot in ipairs(type.storageSlots) do
+			local slotKey = string.format("%s.storageSlot(%d)", typeKey, slotIndex - 1)
+			xmlFile:setValue(slotKey .. "#consumableVariation", g_consumableManager:getConsumableVariationNameByIndex(slot.consumableVariationIndex))
 		end
 	end
 end
-
--- Local values: spec, typeIndex, type, slotIndex, slot, consumableVariationIndex
 function Consumable:onReadStream(streamId, connection)
 	if connection:getIsServer() then
-		local v60_ = self.spec_consumable
-		for _, v61_ in ipairs(v60_.types) do
-			if v61_.numConsumingSlots > 0 then
-				v61_.consumingFillLevel = streamReadUIntN(streamId, Consumable.CONSUME_LEVEL_NUM_BITS) / Consumable.CONSUME_LEVEL_RESOLUTION
-				v61_.consumingVariationIndex = streamReadUIntN(streamId, ConsumableManager.NUM_VARIATION_BITS)
-				self:updateConsumable(v61_.typeName, 0)
+		local spec = self.spec_consumable
+		for typeIndex, type in ipairs(spec.types) do
+			if 0 < type.numConsumingSlots then
+				type.consumingFillLevel = streamReadUIntN(streamId, Consumable.CONSUME_LEVEL_NUM_BITS) / Consumable.CONSUME_LEVEL_RESOLUTION
+				type.consumingVariationIndex = streamReadUIntN(streamId, ConsumableManager.NUM_VARIATION_BITS)
+				self:updateConsumable(type.typeName, 0)
 			end
-			for v62_, _ in ipairs(v61_.storageSlots) do
-				local v63_ = streamReadUIntN(streamId, ConsumableManager.NUM_VARIATION_BITS)
-				self:setConsumableSlotVariationIndex(v61_.index, v62_, v63_)
+			for slotIndex, slot in ipairs(type.storageSlots) do
+				local consumableVariationIndex = streamReadUIntN(streamId, ConsumableManager.NUM_VARIATION_BITS)
+				self:setConsumableSlotVariationIndex(type.index, slotIndex, consumableVariationIndex)
 			end
 		end
 		if self.updatePalletStraps ~= nil then
@@ -271,116 +255,105 @@ function Consumable:onReadStream(streamId, connection)
 		end
 	end
 end
-
--- Local values: spec, typeIndex, type, _, slot
 function Consumable:onWriteStream(streamId, connection)
 	if not connection:getIsServer() then
-		local v67_ = self.spec_consumable
-		for _, v68_ in ipairs(v67_.types) do
-			if v68_.numConsumingSlots > 0 then
-				local v69_ = streamWriteUIntN
-				local v70_ = v68_.consumingFillLevel * Consumable.CONSUME_LEVEL_RESOLUTION
-				v69_(streamId, math.floor(v70_), Consumable.CONSUME_LEVEL_NUM_BITS)
-				streamWriteUIntN(streamId, v68_.consumingVariationIndex, ConsumableManager.NUM_VARIATION_BITS)
+		local spec = self.spec_consumable
+		for typeIndex, type in ipairs(spec.types) do
+			if 0 < type.numConsumingSlots then
+				streamWriteUIntN(streamId, math.floor(type.consumingFillLevel * Consumable.CONSUME_LEVEL_RESOLUTION), Consumable.CONSUME_LEVEL_NUM_BITS)
+				streamWriteUIntN(streamId, type.consumingVariationIndex, ConsumableManager.NUM_VARIATION_BITS)
 			end
-			for _, v71_ in ipairs(v68_.storageSlots) do
-				streamWriteUIntN(streamId, v71_.consumableVariationIndex, ConsumableManager.NUM_VARIATION_BITS)
+			for _, slot in ipairs(type.storageSlots) do
+				streamWriteUIntN(streamId, slot.consumableVariationIndex, ConsumableManager.NUM_VARIATION_BITS)
 			end
 		end
 	end
 end
-
--- Local values: spec, typeIndex, type, slotIndex, slot, consumableVariationIndex
 function Consumable:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
-		local v75_ = self.spec_consumable
+		local spec = self.spec_consumable
 		if streamReadBool(streamId) then
-			for _, v76_ in ipairs(v75_.types) do
+			for typeIndex, type in ipairs(spec.types) do
 				if streamReadBool(streamId) then
-					v76_.consumingFillLevel = streamReadUIntN(streamId, Consumable.CONSUME_LEVEL_NUM_BITS) / Consumable.CONSUME_LEVEL_RESOLUTION
-					v76_.consumingVariationIndex = streamReadUIntN(streamId, ConsumableManager.NUM_VARIATION_BITS)
-					self:updateConsumable(v76_.typeName, 0)
+					type.consumingFillLevel = streamReadUIntN(streamId, Consumable.CONSUME_LEVEL_NUM_BITS) / Consumable.CONSUME_LEVEL_RESOLUTION
+					type.consumingVariationIndex = streamReadUIntN(streamId, ConsumableManager.NUM_VARIATION_BITS)
+					self:updateConsumable(type.typeName, 0)
 				end
 				if streamReadBool(streamId) then
-					for v77_, _ in ipairs(v76_.storageSlots) do
-						local v78_ = streamReadUIntN(streamId, ConsumableManager.NUM_VARIATION_BITS)
-						self:setConsumableSlotVariationIndex(v76_.index, v77_, v78_)
+					for slotIndex, slot in ipairs(type.storageSlots) do
+						local consumableVariationIndex = streamReadUIntN(streamId, ConsumableManager.NUM_VARIATION_BITS)
+						self:setConsumableSlotVariationIndex(type.index, slotIndex, consumableVariationIndex)
 					end
-					if self.updatePalletStraps ~= nil then
-						self:updatePalletStraps()
+					if self.updatePalletStraps == nil then
+						continue
 					end
+					self:updatePalletStraps()
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, typeIndex, type, anySlotDirty, _, slot, _, slot
 function Consumable:onWriteUpdateStream(streamId, connection, dirtyMask)
 	if not connection:getIsServer() then
-		local v83_ = self.spec_consumable
-		local v84_ = streamWriteBool
-		local v85_ = v83_.dirtyFlag
-		if v84_(streamId, bit32.band(dirtyMask, v85_) ~= 0) then
-			for _, v86_ in ipairs(v83_.types) do
-				if streamWriteBool(streamId, v86_.isDirty) then
-					local v87_ = streamWriteUIntN
-					local v88_ = v86_.consumingFillLevel * Consumable.CONSUME_LEVEL_RESOLUTION
-					v87_(streamId, math.floor(v88_), Consumable.CONSUME_LEVEL_NUM_BITS)
-					streamWriteUIntN(streamId, v86_.consumingVariationIndex, ConsumableManager.NUM_VARIATION_BITS)
+		local spec = self.spec_consumable
+		if streamWriteBool(streamId, bit32.band(dirtyMask, spec.dirtyFlag) ~= 0) then
+			for typeIndex, type in ipairs(spec.types) do
+				if streamWriteBool(streamId, type.isDirty) then
+					streamWriteUIntN(streamId, math.floor(type.consumingFillLevel * Consumable.CONSUME_LEVEL_RESOLUTION), Consumable.CONSUME_LEVEL_NUM_BITS)
+					streamWriteUIntN(streamId, type.consumingVariationIndex, ConsumableManager.NUM_VARIATION_BITS)
 				end
-				local v89_ = false
-				for _, v90_ in ipairs(v86_.storageSlots) do
-					if v90_.isDirty then
-						v89_ = true
+				local anySlotDirty = false
+				for _, slot in ipairs(type.storageSlots) do
+					if slot.isDirty then
+						anySlotDirty = true
 						break
 					end
 				end
-				if streamWriteBool(streamId, v89_) then
-					for _, v91_ in ipairs(v86_.storageSlots) do
-						streamWriteUIntN(streamId, v91_.consumableVariationIndex, ConsumableManager.NUM_VARIATION_BITS)
+				if streamWriteBool(streamId, anySlotDirty) then
+					for _, slot in ipairs(type.storageSlots) do
+						streamWriteUIntN(streamId, slot.consumableVariationIndex, ConsumableManager.NUM_VARIATION_BITS)
 					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, typeIndex, type, _, slot
 function Consumable:onDirtyMaskCleared()
-	local v93_ = self.spec_consumable
-	if v93_.types ~= nil then
-		for _, v94_ in ipairs(v93_.types) do
-			v94_.isDirty = false
-			for _, v95_ in ipairs(v94_.storageSlots) do
-				v95_.isDirty = false
+	local spec = self.spec_consumable
+	if spec.types ~= nil then
+		for typeIndex, type in ipairs(spec.types) do
+			type.isDirty = false
+			for _, slot in ipairs(type.storageSlots) do
+				slot.isDirty = false
 			end
 		end
 	end
 end
-
--- Local values: spec, typeIndex, type, _, animation, direction, limit
 function Consumable:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v98_ = self.spec_consumable
-	if v98_.types ~= nil and v98_.animationsDirty then
-		v98_.animationsDirty = false
-		for _, v99_ in ipairs(v98_.types) do
-			for _, v100_ in ipairs(v99_.animations) do
-				if v100_.isDirty then
-					local v101_ = v100_.targetTime - v100_.currentTime
-					local v102_ = math.sign(v101_)
-					v100_.currentTime = (v102_ > 0 and math.min or math.max)(v100_.currentTime + v102_ * dt * v100_.speedScale, v100_.targetTime)
-					if v100_.currentTime > 1 and v100_.targetTime > 1 then
-						v100_.currentTime = v100_.currentTime - 1
-						v100_.targetTime = v100_.targetTime - 1
-					elseif v100_.currentTime < 0 and v100_.targetTime < 0 then
-						v100_.currentTime = v100_.currentTime + 1
-						v100_.targetTime = v100_.targetTime + 1
+	local spec = self.spec_consumable
+	if spec.types ~= nil and spec.animationsDirty then
+		spec.animationsDirty = false
+		for typeIndex, type in ipairs(spec.types) do
+			for _, animation in ipairs(type.animations) do
+				if animation.isDirty then
+					local direction = math.sign(animation.targetTime - animation.currentTime)
+					local limit = 0 < direction and math.min or math.max
+					animation.currentTime = limit(animation.currentTime + direction * dt * animation.speedScale, animation.targetTime)
+					if 1 < animation.currentTime then
+						if 1 < animation.targetTime then
+							animation.currentTime = animation.currentTime - 1
+							animation.targetTime = animation.targetTime - 1
+						elseif animation.currentTime < 0 then
+							if animation.targetTime < 0 then
+								animation.currentTime = animation.currentTime + 1
+								animation.targetTime = animation.targetTime + 1
+							end
+						end
 					end
-					self:setAnimationTime(v100_.name, v100_.currentTime, true)
-					v100_.isDirty = v100_.targetTime ~= v100_.currentTime
-					if v100_.isDirty then
-						v98_.animationsDirty = true
+					self:setAnimationTime(animation.name, animation.currentTime, true)
+					animation.isDirty = animation.targetTime ~= animation.currentTime
+					if animation.isDirty then
+						spec.animationsDirty = true
 						self:raiseActive()
 					end
 				end
@@ -388,345 +361,325 @@ function Consumable:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelecti
 		end
 	end
 end
-
--- Local values: spec, typeIndex, type, text
 function Consumable:onDraw(isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
-	local v104_ = self.spec_consumable
-	if v104_.types ~= nil then
-		for _, v105_ in ipairs(v104_.types) do
-			if v105_.showWarning and (v105_.numConsumingSlots > 0 and (v105_.consumingFillLevel == 0 and (self:getFillUnitFillLevel(v105_.fillUnitIndex) == 0 and self:getShowConsumableEmptyWarning(v105_.typeName)))) then
-				local v106_ = string.format(g_i18n:getText("warning_consumableEmpty"), g_consumableManager:getTypeTitle(v105_.typeName))
-				g_currentMission:showBlinkingWarning(v106_, 500)
+	local spec = self.spec_consumable
+	if spec.types ~= nil then
+		for typeIndex, type in ipairs(spec.types) do
+			if type.showWarning and (0 < type.numConsumingSlots and (type.consumingFillLevel == 0 and (self:getFillUnitFillLevel(type.fillUnitIndex) == 0 and self:getShowConsumableEmptyWarning(type.typeName)))) then
+				local text = string.format(g_i18n:getText("warning_consumableEmpty"), g_consumableManager:getTypeTitle(type.typeName))
+				g_currentMission:showBlinkingWarning(text, 500)
 				return
 			end
 		end
 	end
 end
-
--- Local values: spec, fillLevel, typeIndex, type, numFilledSlots, slotIndex, slot, delta, consumableVariationIndex, specFillUnit, trigger, i, slotIndex, slot, fillConsumingSlots, i, slotIndex, slot
 function Consumable:onFillUnitFillLevelChanged(fillUnitIndex, fillLevelDelta, fillType, toolType, fillPositionData, appliedDelta)
 	if self.isServer then
-		local v109_ = self.spec_consumable
-		if v109_.types ~= nil then
-			local v110_ = self:getFillUnitFillLevel(fillUnitIndex)
-			for _, v111_ in ipairs(v109_.types) do
-				if fillUnitIndex == v111_.fillUnitIndex then
-					local v112_ = 0
-					for _, v113_ in ipairs(v111_.storageSlots) do
-						if v113_.consumableVariationIndex ~= 0 then
-							v112_ = v112_ + 1
+		local spec = self.spec_consumable
+		if spec.types ~= nil then
+			local fillLevel = self:getFillUnitFillLevel(fillUnitIndex)
+			for typeIndex, type in ipairs(spec.types) do
+				if fillUnitIndex == type.fillUnitIndex then
+					local numFilledSlots = 0
+					for slotIndex, slot in ipairs(type.storageSlots) do
+						if slot.consumableVariationIndex == 0 then
+							continue
 						end
+						numFilledSlots = numFilledSlots + 1
 					end
-					local v114_ = v110_ - v112_
-					local v115_ = math.abs(v114_)
-					if v111_.numStorageSlots > 0 then
-						v115_ = math.floor(v115_)
+					local delta = math.abs(fillLevel - numFilledSlots)
+					if 0 < type.numStorageSlots then
+						delta = math.floor(delta)
 					end
-					if v115_ > 0 then
-						if v112_ < v110_ then
-							local v116_ = nil
-							local v117_ = self.spec_fillUnit
-							if v117_.fillTrigger.isFilling then
-								local v118_ = v117_.fillTrigger.currentTrigger
-								if v118_ ~= nil and v118_.sourceObject.getConsumableVariationIndexByFillUnitIndex ~= nil then
-									v116_ = v118_.sourceObject:getConsumableVariationIndexByFillUnitIndex(v118_.fillUnitIndex)
+					if 0 < delta then
+						if numFilledSlots < fillLevel then
+							local consumableVariationIndex = nil
+							local specFillUnit = self.spec_fillUnit
+							if specFillUnit.fillTrigger.isFilling then
+								local trigger = specFillUnit.fillTrigger.currentTrigger
+								if trigger ~= nil and trigger.sourceObject.getConsumableVariationIndexByFillUnitIndex ~= nil then
+									consumableVariationIndex = trigger.sourceObject:getConsumableVariationIndexByFillUnitIndex(trigger.fillUnitIndex)
 								end
 							end
-							if v116_ == nil and v111_.consumingVariationIndex ~= 0 then
-								v116_ = v111_.consumingVariationIndex
+							if consumableVariationIndex == nil and type.consumingVariationIndex ~= 0 then
+								consumableVariationIndex = type.consumingVariationIndex
 							end
-							if v116_ == nil then
-								v116_ = v111_.defaultConsumableName == nil and 1 or g_consumableManager:getConsumableVariationIndexByName(v111_.defaultConsumableName, self.customEnvironment)
+							if consumableVariationIndex == nil then
+								if type.defaultConsumableName ~= nil then
+									consumableVariationIndex = g_consumableManager:getConsumableVariationIndexByName(type.defaultConsumableName, self.customEnvironment)
+								else
+									consumableVariationIndex = 1
+								end
 							end
-							if v111_.numStorageSlots > 0 then
-								for _ = 1, v115_ do
-									for v119_ = #v111_.storageSlots, 1, -1 do
-										if v111_.storageSlots[v119_].consumableVariationIndex == 0 then
-											self:setConsumableSlotVariationIndex(v111_.index, v119_, v116_)
+							if 0 < type.numStorageSlots then
+								for i = 1, delta do
+									for slotIndex = #type.storageSlots, 1, -1 do
+										local slot = type.storageSlots[slotIndex]
+										if slot.consumableVariationIndex == 0 then
+											self:setConsumableSlotVariationIndex(type.index, slotIndex, consumableVariationIndex)
 											break
 										end
 									end
 								end
 							end
-							v111_.lastConsumedVariationIndex = v116_
-							local v120_ = v111_.numStorageSlots == 0
-							self:updateConsumable(v111_.typeName, 0, nil, v120_)
+							type.lastConsumedVariationIndex = consumableVariationIndex
+							local fillConsumingSlots = type.numStorageSlots == 0
+							self:updateConsumable(type.typeName, 0, nil, fillConsumingSlots)
 						else
-							for _ = 1, v115_ do
-								for v121_, v122_ in ipairs(v111_.storageSlots) do
-									if v122_.consumableVariationIndex ~= 0 then
-										v111_.lastConsumedVariationIndex = v122_.consumableVariationIndex
-										self:setConsumableSlotVariationIndex(v111_.index, v121_, 0)
+							for i = 1, delta do
+								for slotIndex, slot in ipairs(type.storageSlots) do
+									if slot.consumableVariationIndex ~= 0 then
+										type.lastConsumedVariationIndex = slot.consumableVariationIndex
+										self:setConsumableSlotVariationIndex(type.index, slotIndex, 0)
 										break
 									end
 								end
 							end
 						end
-						if self.updatePalletStraps ~= nil then
-							self:updatePalletStraps()
+						if self.updatePalletStraps == nil then
+							continue
 						end
+						self:updatePalletStraps()
 					end
 				end
 			end
 		end
 	end
 end
-
--- Local values: spec, typeIndex, type
 function Consumable:onFillUnitIsFillingStateChanged(isFilling)
 	if not isFilling then
-		local v125_ = self.spec_consumable
-		if v125_.types ~= nil then
-			for _, v126_ in ipairs(v125_.types) do
-				if v126_.consumingFillLevel == 0 then
-					self:updateConsumable(v126_.typeName, 0, nil, true)
+		local spec = self.spec_consumable
+		if spec.types ~= nil then
+			for typeIndex, type in ipairs(spec.types) do
+				if type.consumingFillLevel == 0 then
+					self:updateConsumable(type.typeName, 0, nil, true)
 				else
-					self:updateConsumable(v126_.typeName, 0, nil, false)
+					self:updateConsumable(type.typeName, 0, nil, false)
 				end
 			end
 		end
 	end
 end
-
 function Consumable:onAddedFillUnitTrigger(fillTypeIndex, fillUnitIndex, numTriggers)
 	Consumable.updateActivatable(self)
 end
-
 function Consumable:onRemovedFillUnitTrigger(numTriggers)
 	Consumable.updateActivatable(self)
 end
-
--- Local values: spec, typeIndex, type, i, slot
 function Consumable:getConsumableVariationIndexByFillUnitIndex(fillUnitIndex)
-	local v131_ = self.spec_consumable
-	if v131_.types ~= nil then
-		for _, v132_ in ipairs(v131_.types) do
-			if v132_.fillUnitIndex == fillUnitIndex then
-				for _, v133_ in ipairs(v132_.storageSlots) do
-					if v133_.consumableVariationIndex ~= 0 then
-						return v133_.consumableVariationIndex
+	local spec = self.spec_consumable
+	if spec.types ~= nil then
+		for typeIndex, type in ipairs(spec.types) do
+			if type.fillUnitIndex == fillUnitIndex then
+				for i, slot in ipairs(type.storageSlots) do
+					if slot.consumableVariationIndex == 0 then
+						continue
 					end
+					return slot.consumableVariationIndex
 				end
-				return v132_.lastConsumedVariationIndex
+				return type.lastConsumedVariationIndex
 			end
 		end
 	end
 	return nil
 end
-
--- Local values: spec, type, slot, mesh, tensionBeltMesh
 function Consumable:setConsumableSlotVariationIndex(typeIndex, slotIndex, variationIndex)
-	local v138_ = variationIndex or 0
-	local v139_ = self.spec_consumable
-	local v140_ = v139_.types[typeIndex]
-	if v140_ ~= nil then
-		local v141_ = v140_.storageSlots[slotIndex]
-		if v141_ ~= nil and v138_ ~= v141_.consumableVariationIndex then
-			v141_.consumableVariationIndex = v138_
-			v141_.isDirty = true
-			if v141_.node ~= nil then
-				if v141_.mesh ~= nil then
+	variationIndex = variationIndex or 0
+	local spec = self.spec_consumable
+	local type = spec.types[typeIndex]
+	if type ~= nil then
+		local slot = type.storageSlots[slotIndex]
+		if slot ~= nil and variationIndex ~= slot.consumableVariationIndex then
+			slot.consumableVariationIndex = variationIndex
+			slot.isDirty = true
+			if slot.node ~= nil then
+				if slot.mesh ~= nil then
 					if self.removeAllSubWashableNodes ~= nil then
-						self:removeAllSubWashableNodes(v141_.mesh)
+						self:removeAllSubWashableNodes(slot.mesh)
 					end
 					if self.removeAllSubWearableNodes ~= nil then
-						self:removeAllSubWearableNodes(v141_.mesh)
+						self:removeAllSubWearableNodes(slot.mesh)
 					end
-					delete(v141_.mesh)
-					v141_.mesh = nil
-					if v141_.tensionBeltMesh ~= nil then
-						v141_.tensionBeltMesh = nil
+					delete(slot.mesh)
+					slot.mesh = nil
+					if slot.tensionBeltMesh ~= nil then
+						slot.tensionBeltMesh = nil
 						if self.setPalletTensionBeltNodesDirty ~= nil then
 							self:setPalletTensionBeltNodesDirty()
 						end
 					end
 				end
-				local v142_, v143_ = g_consumableManager:getConsumableMeshByIndex(v141_.consumableVariationIndex, v141_.useTensionBeltMesh)
-				if v142_ ~= nil then
-					link(v141_.node, v142_)
-					setTranslation(v142_, 0, 0, 0)
-					setRotation(v142_, 0, 0, 0)
-					v141_.mesh = v142_
+				local mesh, tensionBeltMesh = g_consumableManager:getConsumableMeshByIndex(slot.consumableVariationIndex, slot.useTensionBeltMesh)
+				if mesh ~= nil then
+					link(slot.node, mesh)
+					setTranslation(mesh, 0, 0, 0)
+					setRotation(mesh, 0, 0, 0)
+					slot.mesh = mesh
 					if self.addAllSubWashableNodes ~= nil then
-						self:addAllSubWashableNodes(v142_)
+						self:addAllSubWashableNodes(mesh)
 					end
 					if self.addAllSubWearableNodes ~= nil then
-						self:addAllSubWearableNodes(v142_)
+						self:addAllSubWearableNodes(mesh)
 					end
-					if v143_ ~= nil then
-						v141_.tensionBeltMesh = v143_
+					if tensionBeltMesh ~= nil then
+						slot.tensionBeltMesh = tensionBeltMesh
 						if self.setPalletTensionBeltNodesDirty ~= nil then
 							self:setPalletTensionBeltNodesDirty()
 						end
 					end
 				end
 			end
-			self:raiseDirtyFlags(v139_.dirtyFlag)
+			self:raiseDirtyFlags(spec.dirtyFlag)
 		end
 	end
 end
-
--- Local values: spec, type, fillLevel, delta, index, slot, shaderParameters, _, shaderParameter, _, node, metaData, consumingMesh, numChildren, i, child, _, animation, targetTime, divider, diff, fillLevel, totalFillLevel
 function Consumable:updateConsumable(typeName, delta, consumingInProgress, fillConsumingSlots)
-	local v149_ = self.spec_consumable
-	local v150_ = v149_.typesByName[typeName]
-	if v150_ ~= nil and v150_.numConsumingSlots ~= 0 then
-		local v151_ = v150_.consumingFillLevel + delta / v150_.numConsumingSlots
-		v150_.consumingFillLevel = math.clamp(v151_, 0, 1)
-		if (fillConsumingSlots or fillConsumingSlots == nil and v150_.consumingFillLevel == 0) and self:getFillUnitFillLevel(v150_.fillUnitIndex) > 0 then
-			local v152_ = self:addFillUnitFillLevel(self:getOwnerFarmId(), v150_.fillUnitIndex, -v150_.numConsumingSlots, self:getFillUnitFillType(v150_.fillUnitIndex), ToolType.UNDEFINED, nil)
-			local v153_ = v150_.consumingFillLevel + -v152_ / v150_.numConsumingSlots
-			local v154_ = v150_.numConsumingSlots
-			v150_.consumingFillLevel = math.min(v153_, v154_)
-			v150_.consumingVariationIndex = v150_.lastConsumedVariationIndex
+	local spec = self.spec_consumable
+	local type = spec.typesByName[typeName]
+	if type ~= nil and type.numConsumingSlots ~= 0 then
+		type.consumingFillLevel = math.clamp(type.consumingFillLevel + delta / type.numConsumingSlots, 0, 1)
+		if fillConsumingSlots or fillConsumingSlots == nil and type.consumingFillLevel == 0 then
+			local fillLevel = self:getFillUnitFillLevel(type.fillUnitIndex)
+			if 0 < fillLevel then
+				local delta = self:addFillUnitFillLevel(self:getOwnerFarmId(), type.fillUnitIndex, -type.numConsumingSlots, self:getFillUnitFillType(type.fillUnitIndex), ToolType.UNDEFINED, nil)
+				type.consumingFillLevel = math.min(type.consumingFillLevel + -delta / type.numConsumingSlots, type.numConsumingSlots)
+				type.consumingVariationIndex = type.lastConsumedVariationIndex
+			end
 		end
-		for v155_, v156_ in ipairs(v150_.consumingSlots) do
-			if v156_.consumingMesh == nil or v150_.consumingVariationIndex ~= v156_.consumableVariationIndex then
-				v156_.consumableVariationIndex = v150_.consumingVariationIndex
-				if v155_ == 1 then
-					local v157_ = g_consumableManager:getConsumableVariationShaderParameterByIndex(v156_.consumableVariationIndex)
-					if v157_ ~= nil then
-						for _, v158_ in ipairs(v157_) do
-							for _, v159_ in ipairs(v150_.shaderParameterNodes) do
-								I3DUtil.setShaderParameterRec(v159_, v158_.name, v158_.value[1], v158_.value[2], v158_.value[3], v158_.value[4])
+		for index, slot in ipairs(type.consumingSlots) do
+			if slot.consumingMesh == nil or type.consumingVariationIndex ~= slot.consumableVariationIndex then
+				slot.consumableVariationIndex = type.consumingVariationIndex
+				if index == 1 then
+					local shaderParameters = g_consumableManager:getConsumableVariationShaderParameterByIndex(slot.consumableVariationIndex)
+					if shaderParameters ~= nil then
+						for _, shaderParameter in ipairs(shaderParameters) do
+							for _, node in ipairs(type.shaderParameterNodes) do
+								I3DUtil.setShaderParameterRec(node, shaderParameter.name, shaderParameter.value[1], shaderParameter.value[2], shaderParameter.value[3], shaderParameter.value[4])
 							end
 						end
 					end
-					local v160_ = g_consumableManager:getConsumableVariationMetaDataByIndex(v156_.consumableVariationIndex)
-					if v160_ ~= nil then
-						SpecializationUtil.raiseEvent(self, "onConsumableVariationChanged", v156_.consumableVariationIndex, v160_)
+					local metaData = g_consumableManager:getConsumableVariationMetaDataByIndex(slot.consumableVariationIndex)
+					if metaData ~= nil then
+						SpecializationUtil.raiseEvent(self, "onConsumableVariationChanged", slot.consumableVariationIndex, metaData)
 					end
 				end
-				if v156_.node ~= nil then
-					if v156_.consumingMesh ~= nil then
+				if slot.node ~= nil then
+					if slot.consumingMesh ~= nil then
 						if self.removeAllSubWashableNodes ~= nil then
-							self:removeAllSubWashableNodes(v156_.consumingMesh)
+							self:removeAllSubWashableNodes(slot.consumingMesh)
 						end
 						if self.removeAllSubWearableNodes ~= nil then
-							self:removeAllSubWearableNodes(v156_.consumingMesh)
+							self:removeAllSubWearableNodes(slot.consumingMesh)
 						end
-						delete(v156_.consumingMesh)
-						v156_.consumingMesh = nil
+						delete(slot.consumingMesh)
+						slot.consumingMesh = nil
 					end
-					local v161_ = g_consumableManager:getConsumableConsumingMeshByIndex(v156_.consumableVariationIndex)
-					if v161_ ~= nil then
-						link(v156_.node, v161_)
-						setTranslation(v161_, 0, 0, 0)
-						setRotation(v161_, 0, 0, 0)
-						v156_.consumingMesh = v161_
+					local consumingMesh = g_consumableManager:getConsumableConsumingMeshByIndex(slot.consumableVariationIndex)
+					if consumingMesh ~= nil then
+						link(slot.node, consumingMesh)
+						setTranslation(consumingMesh, 0, 0, 0)
+						setRotation(consumingMesh, 0, 0, 0)
+						slot.consumingMesh = consumingMesh
 						if self.addAllSubWashableNodes ~= nil then
-							self:addAllSubWashableNodes(v161_)
+							self:addAllSubWashableNodes(consumingMesh)
 						end
 						if self.addAllSubWearableNodes ~= nil then
-							self:addAllSubWearableNodes(v161_)
+							self:addAllSubWearableNodes(consumingMesh)
 						end
 					end
 				end
 			end
-			if v156_.consumingMesh ~= nil then
-				if v150_.useScale then
-					local v162_ = setScale
-					local v163_ = v156_.consumingMesh
-					local v164_ = v150_.consumingFillLevel
-					local v165_ = math.max(v164_, 0.1)
-					local v166_ = v150_.consumingFillLevel
-					v162_(v163_, v165_, 1, (math.max(v166_, 0.1)))
+			if slot.consumingMesh == nil then
+				continue
+			end
+			if type.useScale then
+				setScale(slot.consumingMesh, math.max(type.consumingFillLevel, 0.1), 1, math.max(type.consumingFillLevel, 0.1))
+			end
+			if type.useAmount then
+				if getHasClassId(slot.consumingMesh, ClassIds.SHAPE) and getHasShaderParameter(slot.consumingMesh, "amount") then
+					g_animationManager:setPrevShaderParameter(slot.consumingMesh, "amount", type.consumingFillLevel, 0, 0, 0, false, "prevAmount")
 				end
-				if v150_.useAmount then
-					if getHasClassId(v156_.consumingMesh, ClassIds.SHAPE) and getHasShaderParameter(v156_.consumingMesh, "amount") then
-						g_animationManager:setPrevShaderParameter(v156_.consumingMesh, "amount", v150_.consumingFillLevel, 0, 0, 0, false, "prevAmount")
+				local numChildren = getNumOfChildren(slot.consumingMesh)
+				for i = 1, numChildren do
+					local child = getChildAt(slot.consumingMesh, i - 1)
+					if getHasClassId(child, ClassIds.SHAPE) and getHasShaderParameter(child, "amount") then
+						g_animationManager:setPrevShaderParameter(child, "amount", type.consumingFillLevel, 0, 0, 0, false, "prevAmount")
 					end
-					for v167_ = 1, getNumOfChildren(v156_.consumingMesh) do
-						local v168_ = getChildAt(v156_.consumingMesh, v167_ - 1)
-						if getHasClassId(v168_, ClassIds.SHAPE) and getHasShaderParameter(v168_, "amount") then
-							g_animationManager:setPrevShaderParameter(v168_, "amount", v150_.consumingFillLevel, 0, 0, 0, false, "prevAmount")
-						end
-					end
-				end
-				if v150_.useHideByIndex then
-					local v169_ = I3DUtil.setHideByIndexRec
-					local v170_ = v156_.consumingMesh
-					local v171_ = v150_.consumingFillLevel + v150_.hideByIndexOffset
-					v169_(v170_, (math.clamp(v171_, 0, 1)))
-				end
-				if consumingInProgress ~= true then
-					setVisibility(v156_.consumingMesh, v150_.consumingFillLevel > 0)
 				end
 			end
+			if type.useHideByIndex then
+				I3DUtil.setHideByIndexRec(slot.consumingMesh, math.clamp(type.consumingFillLevel + type.hideByIndexOffset, 0, 1))
+			end
+			if consumingInProgress == true then
+				continue
+			end
+			setVisibility(slot.consumingMesh, 0 < type.consumingFillLevel)
 		end
-		for _, v172_ in ipairs(v150_.animations) do
-			local v173_
-			if v172_.numSteps == nil then
-				local v174_ = 1 / v172_.numLoops
-				local v175_ = (1 - v150_.consumingFillLevel) % v174_ / v174_
-				v173_ = math.clamp(v175_, 0, 1)
+		for _, animation in ipairs(type.animations) do
+			local targetTime = nil
+			if animation.numSteps == nil then
+				local divider = 1 / animation.numLoops
+				targetTime = math.clamp((1 - type.consumingFillLevel) % divider / divider, 0, 1)
 			else
-				local v176_ = v150_.consumingFillLevel * v172_.numSteps
-				v173_ = 1 - math.ceil(v176_) / v172_.numSteps
+				targetTime = 1 - math.ceil(type.consumingFillLevel * animation.numSteps) / animation.numSteps
 			end
-			local v177_ = v173_ - v172_.currentTime
-			local v178_ = math.abs(v177_)
-			if v172_.currentTime < v173_ then
-				local v179_ = v173_ - 1 - v172_.currentTime
-				if math.abs(v179_) < v178_ then
-					v173_ = v173_ - 1
+			local diff = math.abs(targetTime - animation.currentTime)
+			if animation.currentTime < targetTime then
+				if math.abs(targetTime - 1 - animation.currentTime) < diff then
+					targetTime = targetTime - 1
 				end
-			else
-				local v180_ = v173_ + 1 - v172_.currentTime
-				if math.abs(v180_) < v178_ then
-					v172_.currentTime = v172_.currentTime - 1
-					self:setAnimationTime(v172_.name, v172_.currentTime, true)
-				end
+			elseif math.abs(targetTime + 1 - animation.currentTime) < diff then
+				animation.currentTime = animation.currentTime - 1
+				self:setAnimationTime(animation.name, animation.currentTime, true)
 			end
-			v172_.targetTime = v173_
-			v172_.isDirty = v172_.targetTime ~= v172_.currentTime
-			if v172_.isDirty then
-				v149_.animationsDirty = true
+			animation.targetTime = targetTime
+			animation.isDirty = animation.targetTime ~= animation.currentTime
+			if animation.isDirty then
+				spec.animationsDirty = true
 				self:raiseActive()
 			end
 		end
 		if consumingInProgress ~= true then
-			ObjectChangeUtil.setObjectChanges(v150_.objectChanges, v150_.consumingFillLevel > 0, self, self.setMovingToolDirty)
+			ObjectChangeUtil.setObjectChanges(type.objectChanges, 0 < type.consumingFillLevel, self, self.setMovingToolDirty)
 		end
-		local v181_ = self:getFillUnitFillLevel(v150_.fillUnitIndex) + v150_.consumingFillLevel * v150_.numConsumingSlots
-		local v182_ = v150_.fillUnitIndex
-		local v183_ = math.min(v181_, self:getFillUnitCapacity(v182_))
-		self:setFillUnitFillLevelToDisplay(v150_.fillUnitIndex, v183_, true)
-		if MathUtil.round(v150_.consumingFillLevel * Consumable.CONSUME_LEVEL_RESOLUTION) ~= MathUtil.round(v150_.consumingFillLevelSent * Consumable.CONSUME_LEVEL_RESOLUTION) then
-			self:raiseDirtyFlags(v149_.dirtyFlag)
-			v150_.consumingFillLevelSent = v150_.consumingFillLevel
-			v150_.isDirty = true
+		local fillLevel = self:getFillUnitFillLevel(type.fillUnitIndex)
+		local totalFillLevel = math.min(fillLevel + type.consumingFillLevel * type.numConsumingSlots, self:getFillUnitCapacity(type.fillUnitIndex))
+		self:setFillUnitFillLevelToDisplay(type.fillUnitIndex, totalFillLevel, true)
+		if MathUtil.round(type.consumingFillLevel * Consumable.CONSUME_LEVEL_RESOLUTION) ~= MathUtil.round(type.consumingFillLevelSent * Consumable.CONSUME_LEVEL_RESOLUTION) then
+			self:raiseDirtyFlags(spec.dirtyFlag)
+			type.consumingFillLevelSent = type.consumingFillLevel
+			type.isDirty = true
 		end
 	end
 	if consumingInProgress ~= true then
 		Consumable.updateActivatable(self)
 	end
 end
-
--- Local values: spec, type
 function Consumable:getConsumableIsAvailable(typeName)
-	local v186_ = self.spec_consumable.typesByName[typeName]
-	return v186_ == nil and true or v186_.consumingFillLevel > 0
-end
-
--- Local values: spec, type
-function Consumable:getShowConsumableEmptyWarning(typeName)
-	local v189_ = self.spec_consumable.typesByName[typeName]
-	if v189_ == nil then
-		return false
+	local spec = self.spec_consumable
+	local type = spec.typesByName[typeName]
+	if type ~= nil then
+		return 0 < type.consumingFillLevel
 	else
-		return v189_.consumingFillLevel == 0
+		return true
 	end
 end
-
--- Local values: spec, i, type, slotIndex, slot
+function Consumable:getShowConsumableEmptyWarning(typeName)
+	local spec = self.spec_consumable
+	local type = spec.typesByName[typeName]
+	if type ~= nil then
+		return type.consumingFillLevel == 0
+	else
+		return false
+	end
+end
 function Consumable:getCustomFillTriggerSpeedFactor(fillTrigger, fillUnitIndex, fillType)
-	local v192_ = self.spec_consumable
-	if v192_.types ~= nil then
-		for _, v193_ in ipairs(v192_.types) do
-			if v193_.fillUnitIndex == fillUnitIndex and v193_.numConsumingSlots > 0 then
-				for _, v194_ in ipairs(v193_.storageSlots) do
-					if v194_.consumableVariationIndex == 0 then
+	local spec = self.spec_consumable
+	if spec.types ~= nil then
+		for i, type in ipairs(spec.types) do
+			if type.fillUnitIndex == fillUnitIndex and 0 < type.numConsumingSlots then
+				for slotIndex, slot in ipairs(type.storageSlots) do
+					if slot.consumableVariationIndex == 0 then
 						return 1
 					end
 				end
@@ -736,69 +689,66 @@ function Consumable:getCustomFillTriggerSpeedFactor(fillTrigger, fillUnitIndex, 
 	end
 	return 1
 end
-function Consumable.addFillUnitFillLevel(p195_, p196_, p197_, p198_, p199_, p200_, ...)
-	if p199_ > 0 then
-		local v201_ = p195_.spec_consumable
-		if v201_.types ~= nil then
-			for _, v202_ in ipairs(v201_.types) do
-				if v202_.fillUnitIndex == p198_ then
-					local v203_ = v202_.numConsumingSlots * (1 - v202_.consumingFillLevel) + v202_.numStorageSlots + 1e-6 - p195_:getFillUnitFillLevel(p198_)
-					p199_ = math.min(p199_, v203_)
+function Consumable:addFillUnitFillLevel(superFunc, farmId, fillUnitIndex, fillLevelDelta, fillTypeIndex, ...)
+	if 0 < fillLevelDelta then
+		local spec = self.spec_consumable
+		if spec.types ~= nil then
+			for i, type in ipairs(spec.types) do
+				if type.fillUnitIndex == fillUnitIndex then
+					local max = type.numConsumingSlots * (1 - type.consumingFillLevel) + type.numStorageSlots + 0.000001
+					local fillLevel = self:getFillUnitFillLevel(fillUnitIndex)
+					fillLevelDelta = math.min(fillLevelDelta, max - fillLevel)
 				end
 			end
 		end
 	end
-	return p196_(p195_, p197_, p198_, p199_, p200_, ...)
+	return superFunc(self, farmId, fillUnitIndex, fillLevelDelta, fillTypeIndex, ...)
 end
-function Consumable.getFillUnitFreeCapacity(p204_, p205_, p206_, ...)
-	local v207_ = p204_.spec_consumable
-	if v207_.types ~= nil then
-		for _, v208_ in ipairs(v207_.types) do
-			if v208_.fillUnitIndex == p206_ then
-				local v209_ = p204_:getFillUnitFillLevel(p206_)
-				local v210_ = v208_.numStorageSlots + v208_.numConsumingSlots
-				if v208_.consumingFillLevel ~= 0 and v208_.numStorageSlots ~= 0 then
-					v210_ = v208_.numStorageSlots
+function Consumable:getFillUnitFreeCapacity(superFunc, fillUnitIndex, ...)
+	local spec = self.spec_consumable
+	if spec.types ~= nil then
+		for i, type in ipairs(spec.types) do
+			if type.fillUnitIndex == fillUnitIndex then
+				local fillLevel = self:getFillUnitFillLevel(fillUnitIndex)
+				local capacity = type.numStorageSlots + type.numConsumingSlots
+				if type.consumingFillLevel ~= 0 and type.numStorageSlots ~= 0 then
+					capacity = type.numStorageSlots
 				end
-				return v210_ + 1e-6 - v209_
+				return capacity + 0.000001 - fillLevel
 			end
 		end
 	end
-	return p205_(p204_, p206_, ...)
+	return superFunc(self, fillUnitIndex, ...)
 end
-
--- Local values: spec, i, type, index, slot
 function Consumable:collectPalletTensionBeltNodes(superFunc, nodes)
 	superFunc(self, nodes)
-	local v214_ = self.spec_consumable
-	if v214_.types ~= nil then
-		for _, v215_ in ipairs(v214_.types) do
-			for _, v216_ in ipairs(v215_.storageSlots) do
-				if v216_.tensionBeltMesh ~= nil then
-					local v217_ = v216_.tensionBeltMesh
-					table.insert(nodes, v217_)
+	local spec = self.spec_consumable
+	if spec.types ~= nil then
+		for i, type in ipairs(spec.types) do
+			for index, slot in ipairs(type.storageSlots) do
+				if slot.tensionBeltMesh == nil then
+					continue
 				end
+				table.insert(nodes, slot.tensionBeltMesh)
 			end
 		end
 	end
 end
-
--- Local values: spec, showActivatable, i, type
 function Consumable:updateActivatable()
-	local v219_ = self.spec_consumable
-	local v220_ = false
-	for _, v221_ in ipairs(v219_.types) do
-		if v221_.consumingFillLevel == 0 and v221_.allowRefillDialog then
-			v220_ = true
+	local spec = self.spec_consumable
+	local showActivatable = false
+	for i, type in ipairs(spec.types) do
+		if type.consumingFillLevel == 0 and type.allowRefillDialog then
+			showActivatable = true
 		end
 	end
 	if #self.spec_fillUnit.fillTrigger.triggers ~= 0 then
-		v220_ = false
+		showActivatable = false
 	end
-	if v220_ then
-		v219_.activatable:updateActivateText()
-		g_currentMission.activatableObjectsSystem:addActivatable(v219_.activatable)
+	if showActivatable then
+		spec.activatable:updateActivateText()
+		g_currentMission.activatableObjectsSystem:addActivatable(spec.activatable)
 	else
-		g_currentMission.activatableObjectsSystem:removeActivatable(v219_.activatable)
+		g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
 	end
 end

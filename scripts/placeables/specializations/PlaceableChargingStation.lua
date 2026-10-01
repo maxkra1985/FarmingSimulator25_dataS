@@ -1,19 +1,15 @@
 PlaceableChargingStation = {}
-
 function PlaceableChargingStation.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(PlaceableBuyingStation, specializations)
 end
-
 function PlaceableChargingStation.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "getIsCharging", PlaceableChargingStation.getIsCharging)
 	SpecializationUtil.registerFunction(placeableType, "getChargeState", PlaceableChargingStation.getChargeState)
 end
-
 function PlaceableChargingStation.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableChargingStation)
 	SpecializationUtil.registerEventListener(placeableType, "onUpdate", PlaceableChargingStation)
 end
-
 function PlaceableChargingStation.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("BuyingStation")
 	BuyingStation.registerXMLPaths(schema, basePath .. ".buyingStation")
@@ -27,130 +23,125 @@ function PlaceableChargingStation.registerXMLPaths(schema, basePath)
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".chargingStation.sounds", "fill")
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec, j, loadTrigger
 function PlaceableChargingStation:onLoad(savegame)
-	local v7_ = self.spec_chargingStation
-	v7_.chargeIndicatorIntensity = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#intensity", 20)
-	v7_.chargeIndicatorBlinkSpeed = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#blinkSpeed", 5)
-	v7_.chargeIndicatorNode = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#node", nil, self.components, self.i3dMappings)
-	if v7_.chargeIndicatorNode ~= nil then
-		setShaderParameter(v7_.chargeIndicatorNode, "lightControl", v7_.chargeIndicatorIntensity, 0, 0, 0, false)
-		setShaderParameter(v7_.chargeIndicatorNode, "emitColor", 1, 1, 0, 0, false)
+	local spec = self.spec_chargingStation
+	spec.chargeIndicatorIntensity = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#intensity", 20)
+	spec.chargeIndicatorBlinkSpeed = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#blinkSpeed", 5)
+	spec.chargeIndicatorNode = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#node", nil, self.components, self.i3dMappings)
+	if spec.chargeIndicatorNode ~= nil then
+		setShaderParameter(spec.chargeIndicatorNode, "lightControl", spec.chargeIndicatorIntensity, 0, 0, 0, false)
+		setShaderParameter(spec.chargeIndicatorNode, "emitColor", 1, 1, 0, 0, false)
 	end
-	v7_.chargeIndicatorLight = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#light", nil, self.components, self.i3dMappings)
-	if v7_.chargeIndicatorLight then
-		setLightColor(v7_.chargeIndicatorLight, 0, 0, 0)
+	spec.chargeIndicatorLight = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#light", nil, self.components, self.i3dMappings)
+	if spec.chargeIndicatorLight then
+		setLightColor(spec.chargeIndicatorLight, 0, 0, 0)
 	end
-	v7_.chargeIndicatorColorFull = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#colorFull", "0 1 0 1", true)
-	v7_.chargeIndicatorColorEmpty = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#colorEmpty", "1 1 0 1", true)
-	v7_.chargeIndicatorLightColor = v7_.chargeIndicatorColorFull
-	v7_.interactionRadius = self.xmlFile:getValue("placeable.chargingStation#interactionRadius", 5)
-	v7_.loadTrigger = nil
-	v7_.buyingStation = self:getBuyingStation()
-	if v7_.buyingStation ~= nil then
-		for v8_ = 1, #v7_.buyingStation.loadTriggers do
-			local v9_ = v7_.buyingStation.loadTriggers[v8_]
-			v7_.loadTrigger = v9_
-			v7_.fillSample = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.chargingStation.sounds", "fill", self.baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, nil)
-			if v7_.fillSample ~= nil and v9_.samples.load == nil then
-				v9_.samples.load = v7_.fillSample
+	spec.chargeIndicatorColorFull = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#colorFull", "0 1 0 1", true)
+	spec.chargeIndicatorColorEmpty = self.xmlFile:getValue("placeable.chargingStation.chargeIndicator#colorEmpty", "1 1 0 1", true)
+	spec.chargeIndicatorLightColor = spec.chargeIndicatorColorFull
+	spec.interactionRadius = self.xmlFile:getValue("placeable.chargingStation#interactionRadius", 5)
+	spec.loadTrigger = nil
+	spec.buyingStation = self:getBuyingStation()
+	if spec.buyingStation ~= nil then
+		for j = 1, #spec.buyingStation.loadTriggers do
+			local loadTrigger = spec.buyingStation.loadTriggers[j]
+			spec.loadTrigger = loadTrigger
+			spec.fillSample = g_soundManager:loadSampleFromXML(self.xmlFile, "placeable.chargingStation.sounds", "fill", self.baseDirectory, self.components, 0, AudioGroup.ENVIRONMENT, self.i3dMappings, nil)
+			if spec.fillSample == nil then
+				continue
+			end
+			if loadTrigger.samples.load == nil then
+				loadTrigger.samples.load = spec.fillSample
 			end
 		end
 	end
 end
-
--- Local values: spec
 function PlaceableChargingStation:getIsCharging()
-	local v11_ = self.spec_chargingStation
-	if v11_.loadTrigger == nil then
-		return false
+	local spec = self.spec_chargingStation
+	if spec.loadTrigger ~= nil then
+		return spec.loadTrigger.isLoading
 	else
-		return v11_.loadTrigger.isLoading
+		return false
 	end
 end
-
--- Local values: spec, index, vehicle, fillUnitIndex
 function PlaceableChargingStation:getChargeState()
-	local v13_ = self.spec_chargingStation
-	if v13_.loadTrigger ~= nil then
-		local v14_ = next(v13_.loadTrigger.fillableObjects)
-		if v14_ ~= nil then
-			local v15_ = v13_.loadTrigger.fillableObjects[v14_].object
-			if v15_.getConsumerFillUnitIndex ~= nil then
-				local v16_ = v15_:getConsumerFillUnitIndex(FillType.ELECTRICCHARGE)
-				if v16_ ~= nil then
-					return v15_:getFillUnitFillLevel(v16_), v15_:getFillUnitCapacity(v16_)
+	local spec = self.spec_chargingStation
+	if spec.loadTrigger ~= nil then
+		local index = next(spec.loadTrigger.fillableObjects)
+		if index ~= nil then
+			local vehicle = spec.loadTrigger.fillableObjects[index].object
+			if vehicle.getConsumerFillUnitIndex ~= nil then
+				local fillUnitIndex = vehicle:getConsumerFillUnitIndex(FillType.ELECTRICCHARGE)
+				if fillUnitIndex ~= nil then
+					return vehicle:getFillUnitFillLevel(fillUnitIndex), vehicle:getFillUnitCapacity(fillUnitIndex)
 				end
 			end
 		end
 	end
 	return 0, 1
 end
-
--- Local values: spec, isActive, color, fillLevel, capacity, blinkSpeed, alpha, blinkFrequency, blinkTimeOffset, _, _, allowDisplay, localPlayer, distance, playerVehicle, _, object, fillLevel, capacity, fillLevelToFill, literPerSecond, seconds, minutes, hours, percentage, chargingInfoText
 function PlaceableChargingStation:onUpdate(dt)
-	local v18_ = self.spec_chargingStation
-	if v18_.loadTrigger ~= nil then
-		local v19_ = next(v18_.loadTrigger.fillableObjects) ~= nil
-		if v18_.chargeIndicatorNode ~= nil then
-			if v19_ then
-				local v20_ = v18_.chargeIndicatorColorEmpty
-				local v21_, v22_ = self:getChargeState()
-				if v21_ / v22_ > 0.95 then
-					v20_ = v18_.chargeIndicatorColorFull
+	local spec = self.spec_chargingStation
+	if spec.loadTrigger ~= nil then
+		local isActive = next(spec.loadTrigger.fillableObjects) ~= nil
+		if spec.chargeIndicatorNode ~= nil then
+			if isActive then
+				local color = spec.chargeIndicatorColorEmpty
+				local fillLevel, capacity = self:getChargeState()
+				if 0.95 < fillLevel / capacity then
+					color = spec.chargeIndicatorColorFull
 				end
-				setShaderParameter(v18_.chargeIndicatorNode, "colorScale", v20_[1], v20_[2], v20_[3], v20_[4], false)
-				v18_.chargeIndicatorLightColor = v20_
+				setShaderParameter(spec.chargeIndicatorNode, "colorScale", color[1], color[2], color[3], color[4], false)
+				spec.chargeIndicatorLightColor = color
 			end
-			local v23_ = v18_.loadTrigger.isLoading and (v18_.chargeIndicatorBlinkSpeed or 0) or 0
-			setShaderParameter(v18_.chargeIndicatorNode, "blinkSimple", v23_, 0, 0, 0, false)
-			setShaderParameter(v18_.chargeIndicatorNode, "lightControl", v19_ and (v18_.chargeIndicatorIntensity or 0) or 0, 0, 0, 0, false)
-			if v18_.chargeIndicatorLight ~= nil then
-				local v24_
-				if v19_ then
-					local v25_, v26_, _, _ = getShaderParameter(v18_.chargeIndicatorNode, "blinkSimple")
-					local v27_ = v25_ * getShaderTimeSec() + v26_
-					local v28_ = math.fmod(v27_, 1) - 0.5
-					local v29_ = 4 * math.abs(v28_) - 0.8
-					v24_ = math.clamp(v29_, 0, 1)
-				else
-					v24_ = 0
+			local blinkSpeed = spec.loadTrigger.isLoading and spec.chargeIndicatorBlinkSpeed or 0
+			setShaderParameter(spec.chargeIndicatorNode, "blinkSimple", blinkSpeed, 0, 0, 0, false)
+			setShaderParameter(spec.chargeIndicatorNode, "lightControl", isActive and spec.chargeIndicatorIntensity or 0, 0, 0, 0, false)
+			if spec.chargeIndicatorLight ~= nil then
+				local alpha = 0
+				if isActive then
+					local blinkFrequency, blinkTimeOffset, _, _ = getShaderParameter(spec.chargeIndicatorNode, "blinkSimple")
+					alpha = math.clamp(4 * math.abs(math.fmod(blinkFrequency * getShaderTimeSec() + blinkTimeOffset, 1) - 0.5) - 0.8, 0, 1)
 				end
-				setLightColor(v18_.chargeIndicatorLight, v18_.chargeIndicatorLightColor[1] * v24_, v18_.chargeIndicatorLightColor[2] * v24_, v18_.chargeIndicatorLightColor[3] * v24_)
+				setLightColor(spec.chargeIndicatorLight, spec.chargeIndicatorLightColor[1] * alpha, spec.chargeIndicatorLightColor[2] * alpha, spec.chargeIndicatorLightColor[3] * alpha)
 			end
 		end
-		if v18_.loadTrigger.isLoading then
-			local v30_ = false
-			local v31_ = g_localPlayer
-			if v31_ == nil or v31_:getIsInVehicle() then
-				local v32_ = v31_:getCurrentVehicle()
-				if v32_ ~= nil then
-					for _, v33_ in pairs(v18_.loadTrigger.fillableObjects) do
-						if v33_.object == v32_ then
-							v30_ = true
+		if spec.loadTrigger.isLoading then
+			local allowDisplay = false
+			local localPlayer = g_localPlayer
+			if localPlayer ~= nil then
+				if not localPlayer:getIsInVehicle() then
+					local distance = calcDistanceFrom(localPlayer.rootNode, self.rootNode)
+					if distance < spec.interactionRadius then
+						allowDisplay = true
+					end
+				else
+					local playerVehicle = localPlayer:getCurrentVehicle()
+					if playerVehicle ~= nil then
+						for _, object in pairs(spec.loadTrigger.fillableObjects) do
+							if object.object == playerVehicle then
+								allowDisplay = true
+							end
 						end
 					end
 				end
-			elseif calcDistanceFrom(v31_.rootNode, self.rootNode) < v18_.interactionRadius then
-				v30_ = true
 			end
-			if v30_ then
-				local v34_, v35_ = self:getChargeState()
-				local v36_ = (v35_ - v34_) / (v18_.loadTrigger.fillLitersPerMS * 1000)
-				if v36_ >= 1 then
-					local v37_ = v36_ / 60
-					local v38_ = math.floor(v37_)
-					local v39_ = v38_ / 60
-					local v40_ = math.floor(v39_)
-					local v41_ = v38_ - v40_ * 60
-					local v42_ = v34_ / v35_ * 100
-					local v43_ = string.namedFormat(g_i18n:getText("info_chargeTime"), "hours", v40_, "minutes", v41_, "percentage", v42_)
-					g_currentMission:addExtraPrintText(v43_)
+			if allowDisplay then
+				local fillLevel, capacity = self:getChargeState()
+				local fillLevelToFill = capacity - fillLevel
+				local literPerSecond = spec.loadTrigger.fillLitersPerMS * 1000
+				local seconds = fillLevelToFill / literPerSecond
+				if 1 <= seconds then
+					local minutes = math.floor(seconds / 60)
+					local hours = math.floor(minutes / 60)
+					minutes = minutes - hours * 60
+					local percentage = fillLevel / capacity * 100
+					local chargingInfoText = string.namedFormat(g_i18n:getText("info_chargeTime"), "hours", hours, "minutes", minutes, "percentage", percentage)
+					g_currentMission:addExtraPrintText(chargingInfoText)
 				end
 			end
 		end
-		if v19_ then
+		if isActive then
 			self:raiseActive()
 		end
 	end

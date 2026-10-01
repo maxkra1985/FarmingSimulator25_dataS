@@ -1,31 +1,25 @@
--- Local values: AISetModeEvent_mt
 AISetModeEvent = {}
 local AISetModeEvent_mt = Class(AISetModeEvent, Event)
 InitStaticEventClass(AISetModeEvent, "AISetModeEvent")
 function AISetModeEvent.emptyNew()
-	-- upvalues: (copy) AISetModeEvent_mt
-	return Event.new(AISetModeEvent_mt)
+	local self = Event.new(AISetModeEvent_mt)
+	return self
 end
-
--- Local values: self
 function AISetModeEvent.new(vehicle, aiMode)
-	local v4_ = AISetModeEvent.emptyNew()
-	v4_.vehicle = vehicle
-	v4_.aiMode = aiMode
-	return v4_
+	local self = AISetModeEvent.emptyNew()
+	self.vehicle = vehicle
+	self.aiMode = aiMode
+	return self
 end
-
 function AISetModeEvent:readStream(streamId, connection)
 	self.vehicle = NetworkUtil.readNodeObject(streamId)
 	self.aiMode = streamReadUIntN(streamId, AIModeSelection.NUM_BITS) + 1
 	self:run(connection)
 end
-
 function AISetModeEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.vehicle)
 	streamWriteUIntN(streamId, self.aiMode - 1, AIModeSelection.NUM_BITS)
 end
-
 function AISetModeEvent:run(connection)
 	if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
 		self.vehicle:setAIModeSelection(self.aiMode, true)
@@ -34,7 +28,6 @@ function AISetModeEvent:run(connection)
 		g_server:broadcastEvent(AISetModeEvent.new(self.vehicle, self.aiMode), nil, connection, self.vehicle)
 	end
 end
-
 function AISetModeEvent.sendEvent(vehicle, aiMode, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

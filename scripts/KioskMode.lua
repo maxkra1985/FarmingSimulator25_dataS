@@ -1,21 +1,8 @@
--- Local values: localDeleteFile, localDeleteFolder, KioskMode_mt
 local localDeleteFile = deleteFile
 local localDeleteFolder = deleteFolder
 KioskMode = {}
 KioskMode.GAMEPAD_NAME = "JoyWarrior Gamepad 32"
-KioskMode.BIT_TO_BUTTON_ID = {
-	[1] = 7,
-	[2] = 6,
-	[3] = 5,
-	[4] = 4,
-	[5] = 3,
-	[6] = 2,
-	[7] = 1,
-	[8] = 0,
-	[15] = 8,
-	[16] = 9,
-	[17] = 10
-}
+KioskMode.BIT_TO_BUTTON_ID = { 7, 6, 5, 4, 3, 2, 1, 0, [15] = 8, [16] = 9, [17] = 10 }
 function KioskMode.EMPTY_FUNC() end
 KioskMode.END_SLIDE_BAR_POSITION = "576px 130px"
 KioskMode.END_SLIDE_BAR_SIZE = "768px 13px"
@@ -23,245 +10,205 @@ KioskMode.END_SLIDE_TEXT_SIZE = "22px"
 KioskMode.END_SLIDE_TEXT_OFFSET = "13px"
 KioskMode.END_SLIDE_BUTTON_OFFSET = "14px"
 local KioskMode_mt = Class(KioskMode)
-
--- Upvalues: KioskMode_mt
--- Local values: self, path
 function KioskMode.new(customMt)
-	-- upvalues: (copy) KioskMode_mt
-	local v5_ = customMt or KioskMode_mt
-	local v6_ = setmetatable({}, v5_)
-	v6_.configPaths = { "dataS/kioskMode/", "data/kioskMode/", getUserProfileAppPath() .. "kioskMode/" }
-	v6_.profileSelectorGamepadId = nil
-	v6_.currentProfile = nil
-	v6_.profiles = {}
-	v6_.maskToProfile = {}
-	v6_.settings = {}
-	v6_.nextLanguageRestartTimer = nil
-	v6_.nextLanguageIndex = nil
-	v6_.maps = {}
-	return v6_
+	local self = setmetatable({}, customMt or KioskMode_mt)
+	local path = "kioskMode/"
+	self.configPaths = { "dataS/" .. "kioskMode/", "data/" .. "kioskMode/", getUserProfileAppPath() .. "kioskMode/" }
+	self.profileSelectorGamepadId = nil
+	self.currentProfile = nil
+	self.profiles = {}
+	self.maskToProfile = {}
+	self.settings = {}
+	self.nextLanguageRestartTimer = nil
+	self.nextLanguageIndex = nil
+	self.maps = {}
+	return self
 end
-
--- Local values: mapping, generatedMasks, hashedMasks, printResult, bitmask, target, masks, i, mask, str, k
 function KioskMode:generateBitmasks()
-	local v_u_7_ = {
-		1,
-		2,
-		3,
-		4,
-		5,
-		6,
-		7,
-		8,
-		15,
-		16,
-		17
-	}
-	local v_u_8_ = {}
-	local v_u_9_ = {}
-	local function v_u_15_(p10_, _)
-		-- upvalues: (copy) v_u_7_, (copy) v_u_9_, (copy) v_u_8_
-		local v11_ = 0
-		for v12_, v13_ in ipairs(p10_) do
-			if v13_ == 1 then
-				v11_ = Utils.setBit(v11_, v_u_7_[v12_])
+	local mapping = { 1, 2, 3, 4, 5, 6, 7, 8, 15, 16, 17 }
+	local generatedMasks = {}
+	local hashedMasks = {}
+	local printResult = function(target, n)
+		local bitMask = 0
+		for k, v in ipairs(target) do
+			if v == 1 then
+				bitMask = Utils.setBit(bitMask, mapping[k])
 			end
 		end
-		if v_u_9_[v11_] == nil then
-			local v14_ = v_u_8_
-			table.insert(v14_, v11_)
-			v_u_9_[v11_] = true
+		if hashedMasks[bitMask] == nil then
+			table.insert(generatedMasks, bitMask)
+			hashedMasks[bitMask] = true
 		else
-			Logging.warning("Mask %s already exists", table.concat(p10_, ""))
+			Logging.warning("Mask %s already exists", table.concat(target, ""))
 		end
 	end
-	local function v_u_19_(p16_, p17_, p18_)
-		-- upvalues: (copy) v_u_15_, (copy) v_u_19_
-		if p18_ == p16_ then
-			v_u_15_(p17_, p16_)
+	local function bitmask(n, target, i)
+		if i == n then
+			printResult(target, n)
 		else
-			p17_[p18_] = 0
-			v_u_19_(p16_, p17_, p18_ + 1)
-			p17_[p18_] = 1
-			v_u_19_(p16_, p17_, p18_ + 1)
+			target[i] = 0
+			bitmask(n, target, i + 1)
+			target[i] = 1
+			bitmask(n, target, i + 1)
 		end
 	end
-	local v20_ = { 0 }
-	v_u_19_(12, v20_, 2)
-	v20_[1] = 1
-	v_u_19_(12, v20_, 2)
-	for _, v21_ in ipairs(v_u_8_) do
-		local v22_ = ""
-		for v23_ = 1, 20 do
-			if (v23_ - 1) % 5 == 0 then
-				v22_ = v22_ .. " "
+	local target = {}
+	masks[1] = 0
+	bitmask(12, masks, 2)
+	masks[1] = 1
+	bitmask(12, masks, 2)
+	for i, mask in ipairs(generatedMasks) do
+		local str = ""
+		for k = 1, 20 do
+			if (k - 1) % 5 == 0 then
+				str = str .. " "
 			end
-			if v23_ == 18 then
-				v22_ = v22_ .. "0"
-			elseif KioskMode.BIT_TO_BUTTON_ID[v23_] == nil then
-				v22_ = v22_ .. (math.random() > 0.5 and 1 or 0)
+			if k == 18 then
+				str = str .. "0"
+			elseif KioskMode.BIT_TO_BUTTON_ID[k] == nil then
+				str = str .. (0.5 < math.random() and 1 or 0)
 			else
-				v22_ = v22_ .. (Utils.isBitSet(v21_, v23_) and 1 or 0)
+				str = str .. (Utils.isBitSet(mask, k) and 1 or 0)
 			end
 		end
-		print(string.format("%s", v22_))
+		print(string.format("%s", str))
 	end
 end
-
 function KioskMode:delete()
 	self:disposeVideo()
 end
-
--- Upvalues: localDeleteFile
--- Local values: isLoaded, _, path, inputBinding, gameSettings
 function KioskMode:load()
-	-- upvalues: (copy) localDeleteFile
 	if StartParams.getIsSet("kioskDisabled") then
 		return false
 	end
-	local v26_ = false
-	for _, v27_ in ipairs(self.configPaths) do
-		if self:loadFromPath(v27_) then
-			v26_ = true
+	local isLoaded = false
+	for _, path in ipairs(self.configPaths) do
+		if self:loadFromPath(path) then
+			isLoaded = true
 		end
 	end
-	if not v26_ then
+	if not isLoaded then
 		return false
-	end
-	InGameMenu.makeIsAIEnabledPredicate = KioskMode.inj_inGameMenu_makeIsAIEnabledPredicate
-	InGameMenu.makeIsPricesEnabledPredicate = KioskMode.inj_inGameMenu_makeIsPricesEnabledPredicate
-	InGameMenu.makeIsAnimalsEnabledPredicate = KioskMode.inj_inGameMenu_makeIsAnimalsEnabledPredicate
-	InGameMenu.makeIsContractsEnabledPredicate = KioskMode.inj_inGameMenu_makeIsContractsEnabledPredicate
-	InGameMenu.makeIsGarageEnabledPredicate = KioskMode.inj_inGameMenu_makeIsGarageEnabledPredicate
-	InGameMenu.makeIsSettingsEnabledPredicate = KioskMode.inj_inGameMenu_makeIsSettingsEnabledPredicate
-	InGameMenu.makeIsHelpEnabledPredicate = KioskMode.inj_inGameMenu_makeIsHelpEnabledPredicate
-	InGameMenuSettingsFrame.initializeButtons = Utils.overwrittenFunction(InGameMenuSettingsFrame.initializeButtons, KioskMode.inj_inGameMenuSettingsFrame_initializeButtons)
-	MapManager.addMapItem = Utils.overwrittenFunction(MapManager.addMapItem, KioskMode.inj_mapManager_addMapItem)
-	function loadMods()
-		haveModsChanged()
-	end
-	InputBinding.loadModActions = Utils.overwrittenFunction(InputBinding.loadModActions, KioskMode.inj_inputBinding_loadModActions)
-	InputBinding.loadModBindingDefaults = Utils.overwrittenFunction(InputBinding.loadModBindingDefaults, KioskMode.inj_inputBinding_loadModBindingDefaults)
-	Gui.changeScreen = Utils.overwrittenFunction(Gui.changeScreen, KioskMode.inj_gui_changeScreen)
-	Gui.showGui = Utils.overwrittenFunction(Gui.showGui, KioskMode.inj_gui_showGui)
-	MessageCenter.publish = Utils.overwrittenFunction(MessageCenter.publish, KioskMode.inj_messageCenter_publish)
-	if Platform.isPC and StartParams.getIsSet("kioskModeResetFiles") then
-		local v28_ = getUserProfileAppPath() .. "inputBinding.xml"
-		if fileExists(v28_) then
-			localDeleteFile(v28_)
+	else
+		InGameMenu.makeIsAIEnabledPredicate = KioskMode.inj_inGameMenu_makeIsAIEnabledPredicate
+		InGameMenu.makeIsPricesEnabledPredicate = KioskMode.inj_inGameMenu_makeIsPricesEnabledPredicate
+		InGameMenu.makeIsAnimalsEnabledPredicate = KioskMode.inj_inGameMenu_makeIsAnimalsEnabledPredicate
+		InGameMenu.makeIsContractsEnabledPredicate = KioskMode.inj_inGameMenu_makeIsContractsEnabledPredicate
+		InGameMenu.makeIsGarageEnabledPredicate = KioskMode.inj_inGameMenu_makeIsGarageEnabledPredicate
+		InGameMenu.makeIsSettingsEnabledPredicate = KioskMode.inj_inGameMenu_makeIsSettingsEnabledPredicate
+		InGameMenu.makeIsHelpEnabledPredicate = KioskMode.inj_inGameMenu_makeIsHelpEnabledPredicate
+		InGameMenuSettingsFrame.initializeButtons = Utils.overwrittenFunction(InGameMenuSettingsFrame.initializeButtons, KioskMode.inj_inGameMenuSettingsFrame_initializeButtons)
+		MapManager.addMapItem = Utils.overwrittenFunction(MapManager.addMapItem, KioskMode.inj_mapManager_addMapItem)
+		function loadMods()
+			haveModsChanged()
 		end
-		local v29_ = getUserProfileAppPath() .. "gameSettings.xml"
-		if fileExists(v29_) then
-			localDeleteFile(v29_)
-		end
-	end
-	function modDownloadManagerLoaded()
-		return false
-	end
-	return true
-end
-
--- Local values: configFileName, zipFilePath, xmlFile, defaultConfigFile, _, key, name, configFile, mask, bitCount, bitsStr, len, i, bit, usedProfile, profile
-function KioskMode:loadFromPath(path)
-	local v32_ = path .. "kioskMode.xml"
-	if not fileExists(v32_) then
-		return false
-	end
-	local v33_ = #path - 1
-	local v34_ = string.sub(path, 1, v33_) .. ".zip"
-	if folderExists(path) and fileExists(v34_) then
-		Logging.error("Kiosk mode config directory %q also has a zip file with the same name %q next to it overriding any changes made in the directory. Delete or rename the zip file!", path, v34_)
-		return false
-	end
-	local v35_ = XMLFile.load("KioskMode", v32_, nil)
-	if v35_ == nil then
-		return false
-	end
-	local v36_ = Utils.getFilename(v35_:getString("kioskMode.defaultProfile.configFile", ""), path)
-	if not fileExists(v36_) then
-		Logging.xmlWarning(v35_, "KioskMode:loadFromPath - default config file \'%s\' not found", v36_)
-		return false
-	end
-	self.defaultConfigFile = v36_
-	for _, v37_ in v35_:iterator("kioskMode.profiles.profile") do
-		local v38_ = v35_:getString(v37_ .. "#name", "")
-		local v39_ = Utils.getFilename(v35_:getString(v37_ .. ".configFile", ""), path)
-		if fileExists(v39_) then
-			local v40_ = 0
-			local v41_ = 1
-			local v42_ = v35_:getString(v37_ .. "#bits", "")
-			if v42_:len() == 23 then
-				for v43_ = 1, v42_:len() do
-					local v44_ = v42_:sub(v43_, v43_)
-					if v44_ ~= " " then
-						if tonumber(v44_) == 1 then
-							if KioskMode.BIT_TO_BUTTON_ID[v41_] == nil then
-								if v41_ == 18 then
-									Logging.xmlWarning(v35_, "KioskMode:loadFromPath - Bit %d cannot be used. Please replace it with 0 for profile \'%s\'", v41_, v38_)
-								end
-							else
-								v40_ = Utils.setBit(v40_, v41_)
-							end
-						end
-						v41_ = v41_ + 1
-					end
-				end
-				if self.maskToProfile[v40_] == nil then
-					local v45_ = {
-						["id"] = #self.profiles + 1,
-						["name"] = v38_,
-						["mask"] = v40_,
-						["configFile"] = v39_
-					}
-					self.maskToProfile[v40_] = v45_
-					local v46_ = self.profiles
-					table.insert(v46_, v45_)
-				else
-					local v47_ = self.maskToProfile[v40_]
-					Logging.xmlWarning(v35_, "KioskMode:loadFromPath - %s mask already used for profile \'%s\'. Ignoring this profile", v38_, v47_.name)
-				end
-			else
-				Logging.xmlWarning(v35_, "KioskMode:loadFromPath - invalid bitsformat (##### ##### ##### #####) for profile \'%s\'. Ignoring this profile", v38_)
+		InputBinding.loadModActions = Utils.overwrittenFunction(InputBinding.loadModActions, KioskMode.inj_inputBinding_loadModActions)
+		InputBinding.loadModBindingDefaults = Utils.overwrittenFunction(InputBinding.loadModBindingDefaults, KioskMode.inj_inputBinding_loadModBindingDefaults)
+		Gui.changeScreen = Utils.overwrittenFunction(Gui.changeScreen, KioskMode.inj_gui_changeScreen)
+		Gui.showGui = Utils.overwrittenFunction(Gui.showGui, KioskMode.inj_gui_showGui)
+		MessageCenter.publish = Utils.overwrittenFunction(MessageCenter.publish, KioskMode.inj_messageCenter_publish)
+		if Platform.isPC and StartParams.getIsSet("kioskModeResetFiles") then
+			local inputBinding = getUserProfileAppPath() .. "inputBinding.xml"
+			if fileExists(inputBinding) then
+				localDeleteFile(inputBinding)
 			end
-		else
-			Logging.xmlWarning(v35_, "KioskMode:loadFromPath - config file \'%s\' for profile \'%s\' not found. Ignoring this profile", v39_, v38_)
+			local gameSettings = getUserProfileAppPath() .. "gameSettings.xml"
+			if fileExists(gameSettings) then
+				localDeleteFile(gameSettings)
+			end
 		end
+		function modDownloadManagerLoaded()
+			return false
+		end
+		return true
 	end
-	v35_:delete()
-	if #self.profiles == 0 then
-		Logging.xmlWarning(v35_, "KioskMode:loadFromPath - No profiles defined!")
+end
+function KioskMode:loadFromPath(path)
+	local configFileName = path .. "kioskMode.xml"
+	if not fileExists(configFileName) then
 		return false
 	end
-	self.configFileName = v32_
-	local v48_ = g_dlcsDirectories
-	local v49_ = {
-		["path"] = path .. "pdlc/",
-		["isLoaded"] = true
-	}
-	table.insert(v48_, v49_)
-	return true
+	local zipFilePath = string.sub(path, 1, #path - 1) .. ".zip"
+	if folderExists(path) and fileExists(zipFilePath) then
+		Logging.error("Kiosk mode config directory %q also has a zip file with the same name %q next to it overriding any changes made in the directory. Delete or rename the zip file!", path, zipFilePath)
+		return false
+	end
+	local xmlFile = XMLFile.load("KioskMode", configFileName, nil)
+	if xmlFile == nil then
+		return false
+	end
+	local defaultConfigFile = Utils.getFilename(xmlFile:getString("kioskMode.defaultProfile.configFile", ""), path)
+	if not fileExists(defaultConfigFile) then
+		Logging.xmlWarning(xmlFile, "KioskMode:loadFromPath - default config file '%s' not found", defaultConfigFile)
+		return false
+	end
+	self.defaultConfigFile = defaultConfigFile
+	for _, key in xmlFile:iterator("kioskMode.profiles.profile") do
+		local name = xmlFile:getString(key .. "#name", "")
+		local configFile = Utils.getFilename(xmlFile:getString(key .. ".configFile", ""), path)
+		if not fileExists(configFile) then
+			Logging.xmlWarning(xmlFile, "KioskMode:loadFromPath - config file '%s' for profile '%s' not found. Ignoring this profile", configFile, name)
+		else
+			local mask = 0
+			local bitCount = 1
+			local bitsStr = xmlFile:getString(key .. "#bits", "")
+			local len = bitsStr:len()
+			if len ~= 23 then
+				Logging.xmlWarning(xmlFile, "KioskMode:loadFromPath - invalid bitsformat (##### ##### ##### #####) for profile '%s'. Ignoring this profile", name)
+			else
+				for i = 1, bitsStr:len() do
+					local bit = bitsStr:sub(i, i)
+					if bit == " " then
+						continue
+					end
+					bit = tonumber(bit)
+					if bit == 1 then
+						if KioskMode.BIT_TO_BUTTON_ID[bitCount] ~= nil then
+							mask = Utils.setBit(mask, bitCount)
+						elseif bitCount == 18 then
+							Logging.xmlWarning(xmlFile, "KioskMode:loadFromPath - Bit %d cannot be used. Please replace it with 0 for profile '%s'", bitCount, name)
+						end
+					end
+					bitCount = bitCount + 1
+				end
+				if self.maskToProfile[mask] ~= nil then
+					local usedProfile = self.maskToProfile[mask]
+					Logging.xmlWarning(xmlFile, "KioskMode:loadFromPath - %s mask already used for profile '%s'. Ignoring this profile", name, usedProfile.name)
+				else
+					local profile = { name = name, mask = mask, configFile = configFile }
+					profile.id = #self.profiles + 1
+					self.maskToProfile[mask] = profile
+					table.insert(self.profiles, profile)
+				end
+			end
+		end
+	end
+	xmlFile:delete()
+	if #self.profiles == 0 then
+		Logging.xmlWarning(xmlFile, "KioskMode:loadFromPath - No profiles defined!")
+		return false
+	else
+		self.configFileName = configFileName
+		table.insert(g_dlcsDirectories, { path = path .. "pdlc/", isLoaded = true })
+		return true
+	end
 end
-
--- Local values: xmlFileObj, xmlFile
 function KioskMode:loadInputActions()
 	if self.configFileName ~= nil then
-		local v51_ = XMLFile.load("KioskMode Inputs", self.configFileName)
-		local v52_ = v51_:getHandle()
-		g_inputBinding:loadActionsFromXMLPath(v52_, "kioskMode.input.actions", g_i18n, nil)
-		v51_:delete()
+		local xmlFileObj = XMLFile.load("KioskMode Inputs", self.configFileName)
+		local xmlFile = xmlFileObj:getHandle()
+		g_inputBinding:loadActionsFromXMLPath(xmlFile, "kioskMode.input.actions", g_i18n, nil)
+		xmlFileObj:delete()
 	end
 end
-
--- Local values: xmlFileObj, xmlFile
 function KioskMode:loadInputBindings()
 	if self.configFileName ~= nil then
-		local v54_ = XMLFile.load("KioskMode Inputs", self.configFileName)
-		local v55_ = v54_:getHandle()
-		g_inputBinding:loadActionBindingsFromXMLPath(v55_, "kioskMode.input.bindings", true, nil, true, true)
-		v54_:delete()
+		local xmlFileObj = XMLFile.load("KioskMode Inputs", self.configFileName)
+		local xmlFile = xmlFileObj:getHandle()
+		g_inputBinding:loadActionBindingsFromXMLPath(xmlFile, "kioskMode.input.bindings", true, nil, true, true)
+		xmlFileObj:delete()
 	end
 end
-
 function KioskMode:initializedGUIClasses()
 	MainScreen.onOpen = Utils.appendedFunction(MainScreen.onOpen, KioskMode.inj_mainScreen_onOpen)
 	MainScreen.update = Utils.overwrittenFunction(MainScreen.update, KioskMode.inj_mainScreen_update)
@@ -278,7 +225,6 @@ function KioskMode:initializedGUIClasses()
 	NewGameScreen.update = Utils.appendedFunction(NewGameScreen.update, KioskMode.inj_newGameScreen_update)
 	InGameMenuMapFrame.updateInputGlyphs = Utils.appendedFunction(InGameMenuMapFrame.updateInputGlyphs, KioskMode.inj_inGameMenuMapFrame_updateInputGlyphs)
 end
-
 function KioskMode:init()
 	self:initProfileSelectorGamepad()
 	HUD.createDisplayComponents = Utils.appendedFunction(HUD.createDisplayComponents, KioskMode.inj_hud_createDisplayComponents)
@@ -297,7 +243,7 @@ function KioskMode:init()
 	StoreManager.getDefaultStoreItemsFilename = Utils.overwrittenFunction(StoreManager.getDefaultStoreItemsFilename, KioskMode.inj_storeManager_getDefaultStoreItemsFilename)
 	ProductionPointActivatable.run = Utils.overwrittenFunction(ProductionPointActivatable.run, KioskMode.inj_productionPointActivatable_run)
 	Farm.setInitialEconomy = Utils.appendedFunction(Farm.setInitialEconomy, KioskMode.inj_Farm_setInitialEconomy)
-	function MissionManager.update(screen) end
+	function MissionManager.update(dt) end
 	function SavegameController.getCanDeleteGame()
 		return false
 	end
@@ -316,231 +262,221 @@ function KioskMode:init()
 		g_gameSettings:save()
 	end
 end
-
--- Local values: numOfGamepads, i, gamepadName, oldGetIsDeviceSupported
 function KioskMode:initProfileSelectorGamepad()
-	for v58_ = 0, getNumOfGamepads() - 1 do
-		local v59_ = getGamepadName(v58_)
-		if v59_ == KioskMode.GAMEPAD_NAME then
-			Logging.info("KioskMode:initProfileSelectorGamepad - Found Gaming Station with gamepad \'%s\'", v59_)
-			self.profileSelectorGamepadId = v58_
+	local numOfGamepads = getNumOfGamepads()
+	for i = 0, numOfGamepads - 1 do
+		local gamepadName = getGamepadName(i)
+		if gamepadName == KioskMode.GAMEPAD_NAME then
+			Logging.info("KioskMode:initProfileSelectorGamepad - Found Gaming Station with gamepad '%s'", gamepadName)
+			self.profileSelectorGamepadId = i
 		end
 	end
 	if self.profileSelectorGamepadId ~= nil then
-		local v_u_60_ = InputDevice.getIsDeviceSupported
-		function InputDevice.getIsDeviceSupported(p61_, p62_)
-			-- upvalues: (copy) v_u_60_
-			if v_u_60_(p61_, p62_) then
-				return p62_ ~= KioskMode.GAMEPAD_NAME
-			else
+		local oldGetIsDeviceSupported = InputDevice.getIsDeviceSupported
+		function InputDevice.getIsDeviceSupported(engineDeviceId, deviceName)
+			if not oldGetIsDeviceSupported(engineDeviceId, deviceName) then
 				return false
+			elseif deviceName == KioskMode.GAMEPAD_NAME then
+				return false
+			else
+				return true
 			end
 		end
 	end
 	return self.profileSelectorGamepadId ~= nil
 end
-
--- Local values: xmlFile, path, savegamePath, logo, endSlide, timescales, newTimescales, mapsStr, mapIds, _, id, storeItems, videos, duration, videosDirectory, files, _, file, videoPath, playtimeSeconds, mods
 function KioskMode:loadProfileConfig(configFileName)
-	Logging.info("KioskMode:loadProfileConfig - Loading profile config \'%s\'", configFileName)
-	local v_u_65_ = XMLFile.load("KioskMode Profile", configFileName)
-	local v66_ = Utils.getDirectory(configFileName)
-	self.settings.canSelectSavegame = v_u_65_:getBool("config.canSelectSavegame", false)
-	self.settings.canSelectMods = v_u_65_:getBool("config.canSelectMods", false)
+	Logging.info("KioskMode:loadProfileConfig - Loading profile config '%s'", configFileName)
+	local xmlFile = XMLFile.load("KioskMode Profile", configFileName)
+	local path = Utils.getDirectory(configFileName)
+	self.settings.canSelectSavegame = xmlFile:getBool("config.canSelectSavegame", false)
+	self.settings.canSelectMods = xmlFile:getBool("config.canSelectMods", false)
 	if not self.settings.canSelectSavegame then
-		local v67_ = v_u_65_:getString("config.savegame")
-		if v67_ ~= nil then
-			v67_ = Utils.getFilename(v67_, v66_)
+		local savegamePath = xmlFile:getString("config.savegame")
+		if savegamePath ~= nil then
+			savegamePath = Utils.getFilename(savegamePath, path)
 		end
-		self:setSavegame(v67_)
-		self.settings.savegame = v67_
+		self:setSavegame(savegamePath)
+		self.settings.savegame = savegamePath
 	end
-	local v68_ = v_u_65_:getString("config.logo")
-	if v68_ ~= nil then
-		self.settings.logoFilename = Utils.getFilename(v68_, v66_)
-		self.settings.logoWidth = v_u_65_:getInt("config.logo#width", 600)
-		self.settings.logoHeight = v_u_65_:getInt("config.logo#height", 150)
+	local logo = xmlFile:getString("config.logo")
+	if logo ~= nil then
+		self.settings.logoFilename = Utils.getFilename(logo, path)
+		self.settings.logoWidth = xmlFile:getInt("config.logo#width", 600)
+		self.settings.logoHeight = xmlFile:getInt("config.logo#height", 150)
 	end
-	self.settings.logoEnabled = v68_ ~= nil
-	local v69_ = v_u_65_:getString("config.endSlide")
-	if v69_ ~= nil then
-		self.settings.endSlide = Utils.getFilename(v69_, v66_)
+	self.settings.logoEnabled = logo ~= nil
+	local endSlide = xmlFile:getString("config.endSlide")
+	if endSlide ~= nil then
+		self.settings.endSlide = Utils.getFilename(endSlide, path)
 	end
-	self.settings.tourEnabled = v_u_65_:getBool("config.tourEnabled", false)
-	self.settings.aiEnabled = v_u_65_:getBool("config.aiEnabled", true)
-	self.settings.aiWorkerEnabled = v_u_65_:getBool("config.aiWorkerEnabled", true)
-	self.settings.mainMenuEnabled = v_u_65_:getBool("config.mainMenuEnabled", false)
-	self.settings.watermarkEnabled = v_u_65_:getBool("config.watermarkEnabled", false)
-	self.settings.ingameMenuEnabled = v_u_65_:getBool("config.ingameMenuEnabled", true)
-	self.settings.reloadEnabled = v_u_65_:getBool("config.reloadEnabled", false)
-	self.settings.animalShopEnabled = v_u_65_:getBool("config.shopsEnabled.animals", false)
-	self.settings.vehicleShopEnabled = v_u_65_:getBool("config.shopsEnabled.vehicles", false)
-	self.settings.farmlandShopEnabled = v_u_65_:getBool("config.shopsEnabled.farmlands", false)
-	self.settings.placeableShopEnabled = v_u_65_:getBool("config.shopsEnabled.placeables", false)
-	self.settings.wardrobeShopEnabled = v_u_65_:getBool("config.shopsEnabled.wardrobe", false)
-	self.settings.productionEnabled = v_u_65_:getBool("config.productionEnabled", true)
-	self.settings.trainEnabled = v_u_65_:getBool("config.trainEnabled", false)
-	self.settings.riceFieldEnabled = v_u_65_:getBool("config.riceFieldEnabled", true)
-	self.settings.helpLineTriggerEnabled = v_u_65_:getBool("config.helpLineTriggerEnabled", true)
-	self.settings.extendedDrivingHelp = v_u_65_:getBool("config.extendedDrivingHelp", false)
-	self.settings.alwaysDay = v_u_65_:getBool("config.alwaysDay", false)
-	self.settings.startMoney = v_u_65_:getInt("config.startMoney", 1000000)
-	self.settings.skipMainMenu = v_u_65_:getBool("config.skipMainMenu", false)
-	self.settings.farmlandsBuyAll = v_u_65_:getBool("config.farmlandsBuyAll", false)
-	self.settings.startVehicleIndex = v_u_65_:getInt("config.startVehicleIndex", nil)
-	self.settings.playerCanToggleCamera = v_u_65_:getBool("config.player.canToggleCamera", false)
+	self.settings.tourEnabled = xmlFile:getBool("config.tourEnabled", false)
+	self.settings.aiEnabled = xmlFile:getBool("config.aiEnabled", true)
+	self.settings.aiWorkerEnabled = xmlFile:getBool("config.aiWorkerEnabled", true)
+	self.settings.mainMenuEnabled = xmlFile:getBool("config.mainMenuEnabled", false)
+	self.settings.watermarkEnabled = xmlFile:getBool("config.watermarkEnabled", false)
+	self.settings.ingameMenuEnabled = xmlFile:getBool("config.ingameMenuEnabled", true)
+	self.settings.reloadEnabled = xmlFile:getBool("config.reloadEnabled", false)
+	self.settings.animalShopEnabled = xmlFile:getBool("config.shopsEnabled.animals", false)
+	self.settings.vehicleShopEnabled = xmlFile:getBool("config.shopsEnabled.vehicles", false)
+	self.settings.farmlandShopEnabled = xmlFile:getBool("config.shopsEnabled.farmlands", false)
+	self.settings.placeableShopEnabled = xmlFile:getBool("config.shopsEnabled.placeables", false)
+	self.settings.wardrobeShopEnabled = xmlFile:getBool("config.shopsEnabled.wardrobe", false)
+	self.settings.productionEnabled = xmlFile:getBool("config.productionEnabled", true)
+	self.settings.trainEnabled = xmlFile:getBool("config.trainEnabled", false)
+	self.settings.riceFieldEnabled = xmlFile:getBool("config.riceFieldEnabled", true)
+	self.settings.helpLineTriggerEnabled = xmlFile:getBool("config.helpLineTriggerEnabled", true)
+	self.settings.extendedDrivingHelp = xmlFile:getBool("config.extendedDrivingHelp", false)
+	self.settings.alwaysDay = xmlFile:getBool("config.alwaysDay", false)
+	self.settings.startMoney = xmlFile:getInt("config.startMoney", 1000000)
+	self.settings.skipMainMenu = xmlFile:getBool("config.skipMainMenu", false)
+	self.settings.farmlandsBuyAll = xmlFile:getBool("config.farmlandsBuyAll", false)
+	self.settings.startVehicleIndex = xmlFile:getInt("config.startVehicleIndex", nil)
+	self.settings.playerCanToggleCamera = xmlFile:getBool("config.player.canToggleCamera", false)
 	if KioskMode.TIMESCALE_BACKUP == nil then
 		KioskMode.TIMESCALE_BACKUP = Platform.gameplay.timeScaleSettings
 		KioskMode.TIMESCALE_DEV_BACKUP = Platform.gameplay.timeScaleDevSettings
 	end
 	Platform.gameplay.timeScaleSettings = KioskMode.TIMESCALE_BACKUP
 	Platform.gameplay.timeScaleDevSettings = KioskMode.TIMESCALE_DEV_BACKUP
-	local v70_ = v_u_65_:getString("config.timescales", nil)
-	if v70_ ~= nil then
-		local v71_ = string.getVector(v70_)
-		if #v71_ > 0 then
-			Platform.gameplay.timeScaleSettings = v71_
+	local timescales = xmlFile:getString("config.timescales", nil)
+	if timescales ~= nil then
+		local newTimescales = string.getVector(timescales)
+		if 0 < #newTimescales then
+			Platform.gameplay.timeScaleSettings = newTimescales
 			Platform.gameplay.timeScaleDevSettings = {}
 		end
 	end
-	local v72_ = v_u_65_:getString("config.maps", "")
-	local v73_ = string.split(v72_, " ")
+	local mapsStr = xmlFile:getString("config.maps", "")
+	local mapIds = string.split(mapsStr, " ")
 	self.settings.maps = nil
-	for _, v74_ in ipairs(v73_) do
+	for _, id in ipairs(mapIds) do
 		if self.settings.maps == nil then
 			self.settings.maps = {}
 		end
-		self.settings.maps[v74_] = true
+		self.settings.maps[id] = true
 	end
 	self:updateAvailableMaps()
-	local v75_ = v_u_65_:getString("config.storeItems", "")
-	local v76_
-	if v75_ == "" then
-		v76_ = nil
+	local storeItems = xmlFile:getString("config.storeItems", "")
+	if storeItems ~= "" then
+		storeItems = Utils.getFilename(storeItems, path)
 	else
-		v76_ = Utils.getFilename(v75_, v66_)
+		storeItems = nil
 	end
-	self.settings.storeItems = v76_
-	local v77_ = nil
-	local v78_ = v_u_65_:getString("config.videos", "")
-	local v79_
-	if v78_ == "" then
-		v79_ = nil
-	else
-		local v80_ = Utils.getFilename(v78_, v66_)
-		local v81_ = Files.new(v80_).files
-		for _, v82_ in ipairs(v81_) do
-			local v83_ = v80_ .. "/" .. v82_.filename
-			if fileExists(v83_) then
-				v77_ = v77_ == nil and {} or v77_
-				local v84_ = v80_ .. "/" .. v82_.filename
-				table.insert(v77_, v84_)
+	self.settings.storeItems = storeItems
+	local videos = nil
+	local duration = nil
+	local videosDirectory = xmlFile:getString("config.videos", "")
+	if videosDirectory ~= "" then
+		videosDirectory = Utils.getFilename(videosDirectory, path)
+		local files = Files.new(videosDirectory).files
+		for _, file in ipairs(files) do
+			local videoPath = videosDirectory .. "/" .. file.filename
+			if fileExists(videoPath) then
+				if videos == nil then
+					videos = {}
+				end
+				table.insert(videos, videosDirectory .. "/" .. file.filename)
 			end
 		end
-		v79_ = v_u_65_:getInt("config.videos#inactiveDurationSeconds", 180) * 1000
-		if v77_ == nil or #v77_ == 0 then
-			Logging.warning("KioskMode: No videos found in \'%s\'", v80_)
-			v77_ = nil
-			v79_ = nil
+		duration = xmlFile:getInt("config.videos#inactiveDurationSeconds", 180) * 1000
+		if videos == nil or #videos == 0 then
+			videos = nil
+			duration = nil
+			Logging.warning("KioskMode: No videos found in '%s'", videosDirectory)
 		end
 	end
-	self.settings.videos = v77_
-	self.settings.videoTimer = v79_
-	local v85_ = v_u_65_:getFloat("config.playtimeSeconds")
-	if v85_ ~= nil then
-		self.settings.playtimeDuration = v85_ * 1000
+	self.settings.videos = videos
+	self.settings.videoTimer = duration
+	local playtimeSeconds = xmlFile:getFloat("config.playtimeSeconds")
+	if playtimeSeconds ~= nil then
+		self.settings.playtimeDuration = playtimeSeconds * 1000
 	end
-	self.settings.playtimeEnabled = v85_ ~= nil
-	local v_u_86_ = {}
-	v_u_65_:iterate("config.mods.mod", function(_, p87_)
-		-- upvalues: (copy) v_u_65_, (copy) v_u_86_
-		local v88_ = v_u_65_:getString(p87_)
-		if v88_ ~= nil then
-			local v89_ = v_u_86_
-			table.insert(v89_, v88_)
+	self.settings.playtimeEnabled = playtimeSeconds ~= nil
+	local mods = {}
+	xmlFile:iterate("config.mods.mod", function(_, key)
+		local modId = xmlFile:getString(key)
+		if modId ~= nil then
+			table.insert(mods, modId)
 		end
 	end)
-	self.settings.mods = v_u_86_
+	self.settings.mods = mods
 	self:openMainMenu()
 	self:setupMainMenu()
-	v_u_65_:delete()
+	xmlFile:delete()
 end
-function KioskMode.update(p90_, p91_)
-	if (p90_.profileSelectorGamepadId ~= nil or (StartParams.getIsSet("kioskProfileId") or StartParams.getIsSet("kioskProfileName"))) and (g_gui.currentGuiName == "MainScreen" and p90_.currentProfile == nil) then
-		local v92_ = p90_:getProfile()
-		if v92_ ~= nil then
-			p90_:loadProfileConfig(v92_.configFile)
-			p90_.currentProfile = v92_
+function KioskMode:update(dt)
+	if (self.profileSelectorGamepadId ~= nil or StartParams.getIsSet("kioskProfileId") or StartParams.getIsSet("kioskProfileName")) and (g_gui.currentGuiName == "MainScreen" and self.currentProfile == nil) then
+		local profile = self:getProfile()
+		if profile ~= nil then
+			self:loadProfileConfig(profile.configFile)
+			self.currentProfile = profile
 		end
 	end
-	if GS_PLATFORM_PC and (p90_.nextLanguageRestartTimer ~= nil and p90_.nextLanguageRestartTimer < g_time) then
+	if GS_PLATFORM_PC and (self.nextLanguageRestartTimer ~= nil and self.nextLanguageRestartTimer < g_time) then
 		doRestart(false, "")
 	end
-	if g_currentMission ~= nil and p90_.playtimeReloadTimer ~= nil then
-		p90_.playtimeReloadTimer = p90_.playtimeReloadTimer - p91_
-		if p90_.playtimeReloadTimer <= 0 then
-			p90_.playtimeReloadTimer = nil
-			p90_:onPlaytimeReload()
+	if g_currentMission ~= nil and self.playtimeReloadTimer ~= nil then
+		self.playtimeReloadTimer = self.playtimeReloadTimer - dt
+		if self.playtimeReloadTimer <= 0 then
+			self.playtimeReloadTimer = nil
+			self:onPlaytimeReload()
 		end
 	end
-	if p90_.currentVideoIndex == nil then
-		if p90_.videoStartTimer ~= nil then
-			p90_.videoStartTimer = p90_.videoStartTimer - p91_
-			if p90_.videoStartTimer < 0 then
-				p90_:nextVideo()
-				return
+	if self.currentVideoIndex == nil then
+		if self.videoStartTimer ~= nil then
+			self.videoStartTimer = self.videoStartTimer - dt
+			if self.videoStartTimer < 0 then
+				self:nextVideo()
 			end
 		end
 	else
-		if p90_.videoOverlay ~= nil and isVideoOverlayPlaying(p90_.videoOverlay) then
-			updateVideoOverlay(p90_.videoOverlay)
+		if self.videoOverlay ~= nil and isVideoOverlayPlaying(self.videoOverlay) then
+			updateVideoOverlay(self.videoOverlay)
 			return
 		end
-		if p90_.videoOverlay ~= nil then
-			p90_:disposeVideo()
-			p90_:nextVideo()
+		if self.videoOverlay ~= nil then
+			self:disposeVideo()
+			self:nextVideo()
 		end
 	end
 end
-
--- Local values: timeLeft, langName, name, isNotFading, isUIVisible, left, right
 function KioskMode:draw()
 	self:drawEndSlide()
 	if self.nextLanguageIndex ~= nil then
 		setTextAlignment(RenderText.ALIGN_CENTER)
 		setTextBold(true)
 		setTextColor(0, 0, 0, 1)
-		local v94_ = (self.nextLanguageRestartTimer - g_time) / 1000
-		local v95_ = math.ceil(v94_)
-		local v96_ = getLanguageName(self.nextLanguageIndex)
-		renderText(0.5 + 2 * g_pixelSizeX, 0.75 - g_pixelSizeY, 0.025, string.format("Changing Language.\nNew language after restart will be \'%s\'. \nRestarting in %d seconds...", v96_, v95_))
+		local timeLeft = math.ceil((self.nextLanguageRestartTimer - g_time) / 1000)
+		local langName = getLanguageName(self.nextLanguageIndex)
+		renderText(0.5 + 2 * g_pixelSizeX, 0.75 - g_pixelSizeY, 0.025, string.format("Changing Language.\nNew language after restart will be '%s'. \nRestarting in %d seconds...", langName, timeLeft))
 		setTextColor(1, 1, 1, 1)
-		renderText(0.5, 0.75, 0.025, string.format("Changing Language.\nNew language after restart will be \'%s\'. \nRestarting in %d seconds...", v96_, v95_))
+		renderText(0.5, 0.75, 0.025, string.format("Changing Language.\nNew language after restart will be '%s'. \nRestarting in %d seconds...", langName, timeLeft))
 		setTextAlignment(RenderText.ALIGN_LEFT)
 		setTextBold(false)
 	end
 	if g_gui.currentGuiName == "MainScreen" and self.currentProfile ~= nil then
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		local v97_ = self.currentProfile.name
+		local name = self.currentProfile.name
 		setTextColor(0, 0, 0, 0.75)
-		renderText(0.01, 0.9585, 0.011, v97_)
+		renderText(0.01, 0.9585, 0.011, name)
 		setTextColor(1, 1, 1, 1)
-		renderText(0.01, 0.96, 0.011, v97_)
+		renderText(0.01, 0.96, 0.011, name)
 	end
 	if g_currentMission ~= nil and g_currentMission.hud ~= nil then
-		local v98_ = not g_currentMission.hud:getIsFading()
-		local v99_ = g_gui:getIsGuiVisible()
-		if self:getSetting("logoEnabled") and (not v99_ and v98_) then
+		local isNotFading = not g_currentMission.hud:getIsFading()
+		local isUIVisible = g_gui:getIsGuiVisible()
+		if self:getSetting("logoEnabled") and (not isUIVisible and isNotFading) then
 			g_currentMission.hud.kioskModeLogoElement:draw()
 		end
 		if self.playtimeReloadTimer ~= nil then
-			local v100_ = string.format("%0.1d:", self.playtimeReloadTimer / 60000)
-			local v101_ = string.format("%0.2d", self.playtimeReloadTimer / 1000 % 60)
+			local left = string.format("%0.1d:", self.playtimeReloadTimer / 60000)
+			local right = string.format("%0.2d", self.playtimeReloadTimer / 1000 % 60)
 			setTextBold(true)
 			setTextAlignment(RenderText.ALIGN_RIGHT)
-			renderText(0.5, v99_ and 0.85 or 0.932, 0.05, v100_)
+			renderText(0.5, isUIVisible and 0.85 or 0.932, 0.05, left)
 			setTextAlignment(RenderText.ALIGN_LEFT)
-			renderText(0.5, v99_ and 0.85 or 0.932, 0.05, v101_)
+			renderText(0.5, isUIVisible and 0.85 or 0.932, 0.05, right)
 			setTextBold(false)
 		end
 	end
@@ -559,189 +495,163 @@ function KioskMode:draw()
 		renderOverlay(self.videoOverlay, 0, 0, 1, 1)
 	end
 end
-
--- Local values: endSlide, isLoadingScreen, progress, barPosition, barSize, barX, barY, barWidth, barHeight, textSize, textOffset, percentageY, isReady, button, buttonOffset, buttonX, buttonY
 function KioskMode:drawEndSlide()
-	local v103_ = self:getEndSlideOnLoad()
-	local v104_
-	if v103_ == nil then
-		v104_ = false
+	local endSlide = self:getEndSlideOnLoad()
+	local isLoadingScreen = endSlide ~= nil and g_gui.currentGuiName == "MPLoadingScreen"
+	if not isLoadingScreen then
+		if self.endSlideOverlay ~= nil then
+			self.endSlideOverlay:delete()
+			self.endSlideOverlay = nil
+		end
 	else
-		v104_ = g_gui.currentGuiName == "MPLoadingScreen"
-	end
-	if v104_ then
 		if self.endSlideOverlay == nil then
-			self.endSlideOverlay = Overlay.new(v103_, 0, 0, 1, g_screenAspectRatio)
+			self.endSlideOverlay = Overlay.new(endSlide, 0, 0, 1, g_screenAspectRatio)
 		end
 		new2DLayer()
 		self.endSlideOverlay:render()
-		local v105_ = g_mpLoadingScreen ~= nil and g_mpLoadingScreen.totalLoadPercentage or 0
-		local v106_ = math.clamp(v105_, 0, 1)
-		local v107_ = GuiUtils.getNormalizedScreenValues(KioskMode.END_SLIDE_BAR_POSITION)
-		local v108_ = GuiUtils.getNormalizedScreenValues(KioskMode.END_SLIDE_BAR_SIZE)
-		local v109_ = v107_[1]
-		local v110_ = v107_[2]
-		local v111_ = v108_[1]
-		local v112_ = v108_[2]
-		drawFilledRect(v109_, v110_, v111_, v112_, 0, 0, 0, 0.5)
-		drawFilledRect(v109_, v110_, v111_ * v106_, v112_, 1, 1, 1, 1)
-		local v113_ = GuiUtils.getNormalizedValue(KioskMode.END_SLIDE_TEXT_SIZE, false)
-		local v114_ = GuiUtils.getNormalizedValue(KioskMode.END_SLIDE_TEXT_OFFSET, false)
+		local progress = g_mpLoadingScreen ~= nil and g_mpLoadingScreen.totalLoadPercentage or 0
+		progress = math.clamp(progress, 0, 1)
+		local barPosition = GuiUtils.getNormalizedScreenValues(KioskMode.END_SLIDE_BAR_POSITION)
+		local barSize = GuiUtils.getNormalizedScreenValues(KioskMode.END_SLIDE_BAR_SIZE)
+		local barX = barPosition[1]
+		local barY = barPosition[2]
+		local barWidth = barSize[1]
+		local barHeight = barSize[2]
+		drawFilledRect(barX, barY, barWidth, barHeight, 0, 0, 0, 0.5)
+		drawFilledRect(barX, barY, barWidth * progress, barHeight, 1, 1, 1, 1)
+		local textSize = GuiUtils.getNormalizedValue(KioskMode.END_SLIDE_TEXT_SIZE, false)
+		local textOffset = GuiUtils.getNormalizedValue(KioskMode.END_SLIDE_TEXT_OFFSET, false)
 		setTextAlignment(RenderText.ALIGN_CENTER)
 		setTextBold(true)
 		setTextColor(1, 1, 1, 1)
-		local v115_ = v110_ + v112_ + v114_
-		renderText(0.5, v115_, v113_, string.format("%d%%", v106_ * 100))
+		local percentageY = barY + barHeight + textOffset
+		renderText(0.5, percentageY, textSize, string.format("%d%%", progress * 100))
 		setTextAlignment(RenderText.ALIGN_LEFT)
 		setTextBold(false)
-		local v116_
-		if g_mpLoadingScreen == nil or g_mpLoadingScreen.button == nil then
-			v116_ = false
-		else
-			v116_ = g_mpLoadingScreen.state == MPLoadingScreen.STATE_READY
+		local isReady = g_mpLoadingScreen ~= nil and g_mpLoadingScreen.button ~= nil and g_mpLoadingScreen.state == MPLoadingScreen.STATE_READY
+		if isReady then
+			local button = g_mpLoadingScreen.button
+			local buttonOffset = GuiUtils.getNormalizedValue(KioskMode.END_SLIDE_BUTTON_OFFSET, false)
+			local buttonX = 0.5 - button.absSize[1] / 2
+			local buttonY = barY - buttonOffset - button.absSize[2]
+			button:setAbsolutePosition(buttonX, buttonY)
+			button:draw()
 		end
-		if v116_ then
-			local v117_ = g_mpLoadingScreen.button
-			local v118_ = GuiUtils.getNormalizedValue(KioskMode.END_SLIDE_BUTTON_OFFSET, false)
-			v117_:setAbsolutePosition(0.5 - v117_.absSize[1] / 2, v110_ - v118_ - v117_.absSize[2])
-			v117_:draw()
-		end
-	elseif self.endSlideOverlay ~= nil then
-		self.endSlideOverlay:delete()
-		self.endSlideOverlay = nil
 	end
 end
-
 function KioskMode:getSetting(name)
 	return self.settings[name]
 end
-
--- Local values: profileId, profile, name, nameUpper, _, profile, mask, bit, buttonId, value, profile
 function KioskMode:getProfile()
 	if StartParams.getIsSet("kioskProfileId") then
-		local v122_ = StartParams.getValue
-		local v123_ = tonumber(v122_("kioskProfileId"))
-		local v124_ = self.profiles[v123_]
-		if v124_ ~= nil then
-			return v124_
-		end
-		if not self.startParamProfileIdWarningShown then
-			self.startParamProfileIdWarningShown = true
-			Logging.error("Invalid kioskProfileId \'%s\'!", v123_)
-		end
-		return nil
-	else
-		if not StartParams.getIsSet("kioskProfileName") then
-			if self.profileSelectorGamepadId ~= nil then
-				local v125_ = 0
-				for v126_, v127_ in pairs(KioskMode.BIT_TO_BUTTON_ID) do
-					if getInputButton(v127_, self.profileSelectorGamepadId) > 0 then
-						v125_ = Utils.setBit(v125_, v126_)
-					end
-				end
-				local v128_ = self.maskToProfile[v125_]
-				if v128_ ~= nil then
-					return v128_
-				end
+		local profileId = tonumber(StartParams.getValue("kioskProfileId"))
+		local profile = self.profiles[profileId]
+		if profile ~= nil then
+			return profile
+		else
+			if not self.startParamProfileIdWarningShown then
+				self.startParamProfileIdWarningShown = true
+				Logging.error("Invalid kioskProfileId '%s'!", profileId)
 			end
 			return nil
 		end
-		local v129_ = StartParams.getValue("kioskProfileName")
-		local v130_ = string.upper(v129_)
-		for _, v131_ in pairs(self.profiles) do
-			if string.upper(v131_.name) == v130_ then
-				return v131_
+	elseif StartParams.getIsSet("kioskProfileName") then
+		local name = StartParams.getValue("kioskProfileName")
+		local nameUpper = string.upper(name)
+		for _, profile in pairs(self.profiles) do
+			if string.upper(profile.name) == nameUpper then
+				return profile
 			end
 		end
 		if not self.startParamProfileNameWarningShown then
 			self.startParamProfileNameWarningShown = true
-			Logging.error("Invalid kioskProfileName \'%s\'!", v129_)
+			Logging.error("Invalid kioskProfileName '%s'!", name)
+		end
+		return nil
+	else
+		if self.profileSelectorGamepadId ~= nil then
+			local mask = 0
+			for bit, buttonId in pairs(KioskMode.BIT_TO_BUTTON_ID) do
+				local value = getInputButton(buttonId, self.profileSelectorGamepadId)
+				if 0 < value then
+					mask = Utils.setBit(mask, bit)
+				end
+			end
+			local profile = self.maskToProfile[mask]
+			if profile ~= nil then
+				return profile
+			end
 		end
 		return nil
 	end
 end
-
--- Upvalues: localDeleteFolder
--- Local values: savegamePath, newFiles, _, file, savegamePath
 function KioskMode:setSavegame(path)
-	-- upvalues: (copy) localDeleteFolder
-	if path == nil then
-		if not GS_IS_CONSOLE_VERSION then
-			localDeleteFolder(getUserProfileAppPath() .. "savegame1")
-		end
-	else
+	if path ~= nil then
 		if GS_IS_CONSOLE_VERSION then
 			saveSetFixedSavegame(path)
 			return
 		end
-		local v133_ = getUserProfileAppPath() .. "savegame1"
-		localDeleteFolder(v133_)
-		createFolder(v133_)
-		local v134_ = Files.new(path).files
-		for _, v135_ in ipairs(v134_) do
-			copyFile(path .. "/" .. v135_.filename, v133_ .. "/" .. v135_.filename, true)
+		local savegamePath = getUserProfileAppPath() .. "savegame1"
+		localDeleteFolder(savegamePath)
+		createFolder(savegamePath)
+		local newFiles = Files.new(path).files
+		for _, file in ipairs(newFiles) do
+			copyFile(path .. "/" .. file.filename, savegamePath .. "/" .. file.filename, true)
 		end
-		if not fileExists(v133_ .. "/careerSavegame.xml") then
-			Logging.error("Failed to copy savegame from \'%s\' to \'%s\'!", path, v133_)
-			return
+		if not fileExists(savegamePath .. "/careerSavegame.xml") then
+			Logging.error("Failed to copy savegame from '%s' to '%s'!", path, savegamePath)
 		end
+	elseif not GS_IS_CONSOLE_VERSION then
+		local savegamePath = getUserProfileAppPath() .. "savegame1"
+		localDeleteFolder(savegamePath)
 	end
 end
-
--- Local values: mainMenuEnabled, areButtonsDisabled
 function KioskMode:setupMainMenu()
-	local v137_ = not self:getSetting("mainMenuEnabled")
+	local mainMenuEnabled = self:getSetting("mainMenuEnabled")
+	local areButtonsDisabled = not mainMenuEnabled
 	g_mainScreen.careerButton:setDisabled(self:getSetting("bscSPAutoStart"))
-	g_mainScreen.multiplayerButton:setDisabled(v137_)
-	g_mainScreen.downloadModsButton:setDisabled(v137_)
-	g_mainScreen.achievementsButton:setDisabled(v137_)
-	if Platform.isConsole then
-		g_mainScreen.settingsButton:setDisabled(true)
+	g_mainScreen.multiplayerButton:setDisabled(areButtonsDisabled)
+	g_mainScreen.downloadModsButton:setDisabled(areButtonsDisabled)
+	g_mainScreen.achievementsButton:setDisabled(areButtonsDisabled)
+	if not Platform.isConsole then
+		g_mainScreen.settingsButton:setDisabled(areButtonsDisabled)
 	else
-		g_mainScreen.settingsButton:setDisabled(v137_)
+		g_mainScreen.settingsButton:setDisabled(true)
 	end
-	g_mainScreen.quitButton:setDisabled(v137_)
-	g_mainScreen.storeButton:setDisabled(v137_)
+	g_mainScreen.quitButton:setDisabled(areButtonsDisabled)
+	g_mainScreen.storeButton:setDisabled(areButtonsDisabled)
 	g_mainScreen.buttonBox:invalidateLayout()
 end
-
 function KioskMode:addRegisteredMaps(map)
 	table.addElement(self.maps, map)
 end
-
--- Local values: mapIds, _, map
 function KioskMode:updateAvailableMaps()
-	local v141_ = self.settings.maps
+	local mapIds = self.settings.maps
 	table.clear(g_mapManager.maps)
-	for _, v142_ in ipairs(self.maps) do
-		if v141_ == nil or v141_[v142_.id] == true then
-			local v143_ = g_mapManager.maps
-			table.insert(v143_, v142_)
-			g_mapManager.idToMap[v142_.id] = v142_
+	for _, map in ipairs(self.maps) do
+		if mapIds == nil or mapIds[map.id] == true then
+			table.insert(g_mapManager.maps, map)
+			g_mapManager.idToMap[map.id] = map
 		end
 	end
 end
-
--- Local values: wasVideoPlaying
 function KioskMode:resetVideoTimer()
-	if self:getSetting("videos") == nil then
+	if self:getSetting("videos") ~= nil then
+		local wasVideoPlaying = self.videoOverlay ~= nil
+		self.videoStartTimer = self:getSetting("videoTimer")
+		self:disposeVideo()
+		self.currentVideoIndex = nil
+		return wasVideoPlaying
+	else
 		return false
 	end
-	local v145_ = self.videoOverlay ~= nil
-	self.videoStartTimer = self:getSetting("videoTimer")
-	self:disposeVideo()
-	self.currentVideoIndex = nil
-	return v145_
 end
-
 function KioskMode:openMainMenu()
 	self:resetVideoTimer()
 end
-
 function KioskMode:closeMainMenu()
 	self.videoStartTimer = nil
 end
-
 function KioskMode:disposeVideo()
 	if self.videoOverlay ~= nil and isVideoOverlayPlaying(self.videoOverlay) then
 		stopVideoOverlay(self.videoOverlay)
@@ -749,10 +659,9 @@ function KioskMode:disposeVideo()
 		self.videoOverlay = nil
 	end
 end
-
 function KioskMode:nextVideo()
 	self:disposeVideo()
-	if self.currentVideoIndex == nil or self.currentVideoIndex >= #self:getSetting("videos") then
+	if self.currentVideoIndex == nil or #self:getSetting("videos") <= self.currentVideoIndex then
 		self.currentVideoIndex = 1
 	else
 		self.currentVideoIndex = self.currentVideoIndex + 1
@@ -761,406 +670,392 @@ function KioskMode:nextVideo()
 	self.videoOverlay = createVideoOverlay(self.settings.videos[self.currentVideoIndex], false, 1)
 	playVideoOverlay(self.videoOverlay)
 end
-
 function KioskMode:onResetFiles()
 	if GS_PLATFORM_PC then
 		doRestart(false, "-kioskModeResetFiles")
 	end
 end
-
 function KioskMode:onStartVideos()
 	if g_gui.currentGuiName == "MainScreen" then
 		g_kioskMode:nextVideo()
 	end
 end
-
--- Local values: currentLanguage, nextIndex, k, v
 function KioskMode:onToggleLanguage(actionName, inputValue, callbackState, isAnalog, isMouse, deviceCategory, binding)
 	if GS_PLATFORM_PC and g_gui.currentGuiName == "MainScreen" then
-		local v151_ = getLanguage()
-		local v152_ = nil
-		for v153_, v154_ in ipairs(g_availableLanguagesTable) do
-			if v154_ == v151_ then
-				v152_ = v153_ + math.sign(inputValue)
+		local currentLanguage = getLanguage()
+		local nextIndex = nil
+		for k, v in ipairs(g_availableLanguagesTable) do
+			if v == currentLanguage then
+				nextIndex = k + math.sign(inputValue)
 			end
 		end
-		local v155_ = (v152_ == nil or #g_availableLanguagesTable < v152_) and 1 or (v152_ < 1 and #g_availableLanguagesTable or v152_)
-		local v156_ = g_availableLanguagesTable[v155_]
-		g_kioskMode.nextLanguageIndex = v156_
+		if nextIndex == nil or #g_availableLanguagesTable < nextIndex then
+			nextIndex = 1
+		else
+			if nextIndex < 1 then
+				nextIndex = #g_availableLanguagesTable
+			end
+		end
+		currentLanguage = g_availableLanguagesTable[nextIndex]
+		g_kioskMode.nextLanguageIndex = currentLanguage
 		g_kioskMode.nextLanguageRestartTimer = g_time + 5000
-		setLanguage(v156_)
+		setLanguage(currentLanguage)
 		g_kioskMode:resetVideoTimer()
 	end
 end
-
 function KioskMode:onReloadSavegame()
 	if g_kioskMode:getSetting("reloadEnabled") or self.playtimeReloadTimer ~= nil then
 		OnInGameMenuMenu()
 	end
 end
-
 function KioskMode:getEndSlideOnLoad()
-	if StartParams.getIsSet("kioskEndSlide") then
-		return self.settings.endSlide
-	else
+	if not StartParams.getIsSet("kioskEndSlide") then
 		return nil
+	else
+		return self.settings.endSlide
 	end
 end
-
--- Local values: restartArgs
 function KioskMode:onPlaytimeReload()
-	if g_currentMission ~= nil then
-		local v160_ = self.settings.endSlide == nil and "" or "-kioskEndSlide"
-		OnInGameMenuMenu(nil, nil, v160_)
+	if g_currentMission == nil then
+		return
+	else
+		local restartArgs = ""
+		if self.settings.endSlide ~= nil then
+			restartArgs = "-kioskEndSlide"
+		end
+		OnInGameMenuMenu(nil, nil, restartArgs)
 	end
 end
-
--- Local values: originalOnClickOk
 function KioskMode.inj_mpLoadingScreen_onReadyToStart(screen, superFunc)
 	if g_kioskMode:getEndSlideOnLoad() == nil then
 		superFunc(screen)
 	else
-		local v163_ = screen.onClickOk
+		local originalOnClickOk = screen.onClickOk
 		screen.onClickOk = KioskMode.EMPTY_FUNC
 		superFunc(screen)
-		screen.onClickOk = v163_
+		screen.onClickOk = originalOnClickOk
 	end
 end
-
--- Local values: _, eventId
 function KioskMode:registerGlobalInputActionEvents()
 	if GS_PLATFORM_PC then
-		local _, v164_ = g_inputBinding:registerActionEvent(InputAction.KIOSK_MODE_RESET_FILES, g_kioskMode, g_kioskMode.onResetFiles, false, true, false, true)
-		g_inputBinding:setActionEventTextVisibility(v164_, false)
-		local _, v165_ = g_inputBinding:registerActionEvent(InputAction.KIOSK_MODE_RELOAD_GAME, g_kioskMode, g_kioskMode.onReloadSavegame, false, true, false, true)
-		g_inputBinding:setActionEventTextVisibility(v165_, false)
-		local _, v166_ = g_inputBinding:registerActionEvent(InputAction.KIOSK_MODE_TOGGLE_LANGUAGE, nil, g_kioskMode.onToggleLanguage, false, true, false, true)
-		g_inputBinding:setActionEventTextVisibility(v166_, false)
-		local _, v167_ = g_inputBinding:registerActionEvent(InputAction.KIOSK_MODE_START_VIDEOS, nil, g_kioskMode.onStartVideos, false, true, false, true)
-		g_inputBinding:setActionEventTextVisibility(v167_, false)
+		local _, eventId = g_inputBinding:registerActionEvent(InputAction.KIOSK_MODE_RESET_FILES, g_kioskMode, g_kioskMode.onResetFiles, false, true, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.KIOSK_MODE_RELOAD_GAME, g_kioskMode, g_kioskMode.onReloadSavegame, false, true, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.KIOSK_MODE_TOGGLE_LANGUAGE, nil, g_kioskMode.onToggleLanguage, false, true, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
+		_, eventId = g_inputBinding:registerActionEvent(InputAction.KIOSK_MODE_START_VIDEOS, nil, g_kioskMode.onStartVideos, false, true, false, true)
+		g_inputBinding:setActionEventTextVisibility(eventId, false)
 	end
 end
-function KioskMode.inj_mapManager_addMapItem(p168_, p169_, ...)
-	local v170_ = p169_(p168_, ...)
-	if v170_ then
-		local v171_ = table.remove(p168_.maps, #p168_.maps)
-		p168_.idToMap[v171_.id] = nil
-		g_kioskMode:addRegisteredMaps(v171_)
+function KioskMode.inj_mapManager_addMapItem(mapManager, superFunc, ...)
+	local success = superFunc(mapManager, ...)
+	if success then
+		local map = table.remove(mapManager.maps, #mapManager.maps)
+		mapManager.idToMap[map.id] = nil
+		g_kioskMode:addRegisteredMaps(map)
 	end
 	g_kioskMode:updateAvailableMaps()
-	return v170_
+	return success
 end
-function KioskMode.inj_Farm_setInitialEconomy(p172_, ...)
-	if not p172_.isSpectator then
-		p172_.money = g_kioskMode:getSetting("startMoney")
-		Logging.info("Set Kiosk-Mode farm startmoney: %d", p172_.money)
+function KioskMode.inj_Farm_setInitialEconomy(farm, ...)
+	if not farm.isSpectator then
+		farm.money = g_kioskMode:getSetting("startMoney")
+		Logging.info("Set Kiosk-Mode farm startmoney: %d", farm.money)
 	end
 end
-function KioskMode.inj_ingameMap_registerInput(p173_, p174_, ...)
-	if not g_kioskMode:getSetting("logoEnabled") then
-		p174_(p173_, ...)
-	end
-end
-function KioskMode.inj_inGameMenuMapFrame_updateInputGlyphs(p175_, ...)
-	local v176_ = g_kioskMode:getSetting("farmlandShopEnabled")
-	p175_.buttonSwitchMapMode:setDisabled(not v176_)
-end
-function KioskMode.inj_storeManager_getDefaultStoreItemsFilename(p177_, p178_, ...)
-	local v179_ = g_kioskMode:getSetting("storeItems")
-	if v179_ == nil then
-		return p178_(p177_, ...)
+function KioskMode.inj_ingameMap_registerInput(ingameMap, superFunc, ...)
+	if g_kioskMode:getSetting("logoEnabled") then
+		return
 	else
-		return v179_
+		superFunc(ingameMap, ...)
 	end
 end
-function KioskMode.inj_environment_load(p180_, p181_, ...)
-	local v182_ = p181_(p180_, ...)
+function KioskMode.inj_inGameMenuMapFrame_updateInputGlyphs(ingameMenu, ...)
+	local farmlandShopEnabled = g_kioskMode:getSetting("farmlandShopEnabled")
+	ingameMenu.buttonSwitchMapMode:setDisabled(not farmlandShopEnabled)
+end
+function KioskMode.inj_storeManager_getDefaultStoreItemsFilename(storeManager, superFunc, ...)
+	local storeConfig = g_kioskMode:getSetting("storeItems")
+	if storeConfig ~= nil then
+		return storeConfig
+	else
+		return superFunc(storeManager, ...)
+	end
+end
+function KioskMode.inj_environment_load(environment, superFunc, ...)
+	local success = superFunc(environment, ...)
 	if g_kioskMode:getSetting("alwaysDay") then
-		p180_.dayNightCycle = false
+		environment.dayNightCycle = false
 	end
-	return v182_
+	return success
 end
-function KioskMode.inj_loanTrigger_new(p183_, p184_, ...)
-	local v185_ = p184_(p183_)
-	v185_.isEnabled = g_kioskMode:getSetting("vehicleShopEnabled")
-	return v185_
+function KioskMode.inj_loanTrigger_new(id, superFunc, ...)
+	local loanTrigger = superFunc(id)
+	loanTrigger.isEnabled = g_kioskMode:getSetting("vehicleShopEnabled")
+	return loanTrigger
 end
-function KioskMode.inj_shopTrigger_new(p186_, p187_, ...)
-	local v188_ = p187_(p186_)
-	v188_.isEnabled = g_kioskMode:getSetting("vehicleShopEnabled")
-	return v188_
+function KioskMode.inj_shopTrigger_new(id, superFunc, ...)
+	local shopTrigger = superFunc(id)
+	shopTrigger.isEnabled = g_kioskMode:getSetting("vehicleShopEnabled")
+	return shopTrigger
 end
-function KioskMode.inj_vehicleSellingPoint_load(p189_, p190_, ...)
-	local v191_ = p190_(p189_, ...)
-	p189_.isEnabled = g_kioskMode:getSetting("vehicleShopEnabled")
-	return v191_
+function KioskMode.inj_vehicleSellingPoint_load(vehicleSellingPoint, superFunc, ...)
+	local ret = superFunc(vehicleSellingPoint, ...)
+	vehicleSellingPoint.isEnabled = g_kioskMode:getSetting("vehicleShopEnabled")
+	return ret
 end
-function KioskMode.inj_animalLoadingTrigger_load(p192_, p193_, ...)
-	local v194_ = p193_(p192_, ...)
-	p192_.isEnabled = g_kioskMode:getSetting("animalShopEnabled")
-	return v194_
+function KioskMode.inj_animalLoadingTrigger_load(animalTrigger, superFunc, ...)
+	local ret = superFunc(animalTrigger, ...)
+	animalTrigger.isEnabled = g_kioskMode:getSetting("animalShopEnabled")
+	return ret
 end
-
-function KioskMode.inj_fsBaseMission_getIsAutoSaveSupported(screen)
+function KioskMode.inj_fsBaseMission_getIsAutoSaveSupported(mission)
 	return false
 end
-
-function KioskMode.inj_playerInputComponent_registerGlobalPlayerActionEvents(screen)
-	g_kioskMode:getSetting("reloadEnabled")
-end
-function KioskMode.inj_playerInputComponent_getCanToggleCamera(p195_, p196_, ...)
-	if g_kioskMode:getSetting("playerCanToggleCamera") then
-		return p196_(p195_, ...)
-	else
+function KioskMode.inj_playerInputComponent_registerGlobalPlayerActionEvents(player) end
+function KioskMode.inj_playerInputComponent_getCanToggleCamera(player, superFunc, ...)
+	if not g_kioskMode:getSetting("playerCanToggleCamera") then
 		return false
+	else
+		return superFunc(player, ...)
 	end
 end
-
 function KioskMode.inj_fsBaseMission_update(mission, dt)
 	if g_kioskMode.tryToEnterVehicle ~= nil then
 		g_localPlayer:requestToEnterVehicle(g_kioskMode.tryToEnterVehicle)
 		g_kioskMode.tryToEnterVehicle = nil
 	end
 end
-function KioskMode.inj_player00_onStartMission()
+function KioskMode.inj_mission00_onStartMission()
 	if g_kioskMode:getSetting("playtimeEnabled") then
 		g_kioskMode.playtimeReloadTimer = g_kioskMode:getSetting("playtimeDuration")
 	end
 	if g_kioskMode:getSetting("farmlandsBuyAll") then
 		g_currentMission:playerOwnsAllFields()
 	end
-	local v197_ = g_kioskMode:getSetting("startVehicleIndex")
-	if v197_ ~= nil then
-		local v198_ = g_currentMission.vehicleSystem.enterables[v197_]
-		if v198_ ~= nil then
-			g_kioskMode.tryToEnterVehicle = v198_
+	local startVehicleIndex = g_kioskMode:getSetting("startVehicleIndex")
+	if startVehicleIndex ~= nil then
+		local vehicle = g_currentMission.vehicleSystem.enterables[startVehicleIndex]
+		if vehicle ~= nil then
+			g_kioskMode.tryToEnterVehicle = vehicle
 		end
 	end
 	if not g_kioskMode:getSetting("helpLineTriggerEnabled") then
 		g_currentMission:setShowHelpTrigger(false)
 	end
 end
-
-function KioskMode.inj_inGameMenu_makeIsAIEnabledPredicate(screen)
+function KioskMode.inj_inGameMenu_makeIsAIEnabledPredicate(ingameMenu)
 	return function()
 		return g_kioskMode:getSetting("aiEnabled")
 	end
 end
-
-function KioskMode.inj_inGameMenu_makeIsPricesEnabledPredicate(screen)
+function KioskMode.inj_inGameMenu_makeIsPricesEnabledPredicate(ingameMenu)
 	return function()
 		return false
 	end
 end
-
-function KioskMode.inj_inGameMenu_makeIsAnimalsEnabledPredicate(screen)
+function KioskMode.inj_inGameMenu_makeIsAnimalsEnabledPredicate(ingameMenu)
 	return function()
 		return false
 	end
 end
-
-function KioskMode.inj_inGameMenu_makeIsContractsEnabledPredicate(screen)
+function KioskMode.inj_inGameMenu_makeIsContractsEnabledPredicate(ingameMenu)
 	return function()
 		return false
 	end
 end
-
-function KioskMode.inj_inGameMenu_makeIsGarageEnabledPredicate(screen)
+function KioskMode.inj_inGameMenu_makeIsGarageEnabledPredicate(ingameMenu)
 	return function()
 		return false
 	end
 end
-
-function KioskMode.inj_inGameMenu_makeIsSettingsEnabledPredicate(screen)
+function KioskMode.inj_inGameMenu_makeIsSettingsEnabledPredicate(ingameMenu)
 	return function()
 		return false
 	end
 end
-
-function KioskMode.inj_inGameMenu_makeIsHelpEnabledPredicate(screen)
+function KioskMode.inj_inGameMenu_makeIsHelpEnabledPredicate(ingameMenu)
 	return function()
 		return false
 	end
 end
-
 function KioskMode.inj_inGameMenuSettingsFrame_initializeButtons(frame)
 	frame.saveButton = nil
 end
-
 function KioskMode.inj_inputBinding_loadModActions(inputBinding, superFunc)
 	superFunc(inputBinding)
 	g_kioskMode:loadInputActions()
 end
-
 function KioskMode.inj_inputBinding_loadModBindingDefaults(inputBinding, superFunc)
 	superFunc(inputBinding)
 	g_kioskMode:loadInputBindings()
 end
-
 function KioskMode:inj_productionPointActivatable_run(superFunc)
-	if g_kioskMode:getSetting("productionEnabled") then
-		superFunc(self)
-	else
+	if not g_kioskMode:getSetting("productionEnabled") then
 		InfoDialog.show(g_i18n:getText("ui_featureDisabled"))
+	else
+		superFunc(self)
 	end
 end
-
 function KioskMode:inj_railroadCallerActivatable_run(superFunc)
-	if g_kioskMode:getSetting("trainEnabled") then
-		superFunc(self)
-	else
+	if not g_kioskMode:getSetting("trainEnabled") then
 		InfoDialog.show(g_i18n:getText("ui_featureDisabled"))
+	else
+		superFunc(self)
 	end
 end
-function KioskMode.inj_specializationManager_addSpecialization(p208_, _, p209_, ...)
-	if p208_ == g_specializationManager then
-		if p209_ == "AIJobVehicle" then
+function KioskMode.inj_specializationManager_addSpecialization(specializationManager, name, className, ...)
+	if specializationManager == g_specializationManager then
+		if className == "AIJobVehicle" then
 			if not g_kioskMode:getSetting("aiEnabled") then
-				local v_u_210_ = AIJobVehicle.onRegisterActionEvents
-				function AIJobVehicle.onRegisterActionEvents(p211_, p212_, p213_)
-					-- upvalues: (copy) v_u_210_
-					if p211_.isClient then
-						p211_:clearActionEventsTable(p211_.spec_aiJobVehicle.actionEvents)
+				local old = AIJobVehicle.onRegisterActionEvents
+				function AIJobVehicle.onRegisterActionEvents(vehicle, isActiveForInput, isActiveForInputIgnoreSelection)
+					if vehicle.isClient then
+						local spec = vehicle.spec_aiJobVehicle
+						vehicle:clearActionEventsTable(spec.actionEvents)
 					end
-					if g_kioskMode:getSetting("aiEnabled") then
-						if g_kioskMode:getSetting("ingameMenuEnabled") or p211_:getStartableAIJob() ~= nil then
-							v_u_210_(p211_, p212_, p213_)
-						end
-					else
+					if not g_kioskMode:getSetting("aiEnabled") then
 						return
+					else
+						if not g_kioskMode:getSetting("ingameMenuEnabled") then
+							local startableJob = vehicle:getStartableAIJob()
+							if startableJob == nil then
+								return
+							end
+						end
+						old(vehicle, isActiveForInput, isActiveForInputIgnoreSelection)
 					end
 				end
 			end
 			if not g_kioskMode:getSetting("aiWorkerEnabled") then
-				local v_u_214_ = AIJobVehicle.onRegisterActionEvents
-				function AIJobVehicle.toggleAIVehicle(p215_)
-					-- upvalues: (copy) v_u_214_
-					if g_kioskMode:getSetting("aiWorkerEnabled") then
-						v_u_214_(p215_)
-					else
+				local old = AIJobVehicle.onRegisterActionEvents
+				function AIJobVehicle.toggleAIVehicle(vehicle)
+					if not g_kioskMode:getSetting("aiWorkerEnabled") then
 						InfoDialog.show(g_i18n:getText("ui_featureDisabled"))
-					end
-				end
-				return
-			end
-		elseif p209_ == "Drivable" and g_kioskMode:getSetting("extendedDrivingHelp") then
-			local v_u_216_ = Drivable.onRegisterActionEvents
-			function Drivable.onRegisterActionEvents(p217_, p218_, p219_)
-				-- upvalues: (copy) v_u_216_
-				v_u_216_(p217_, p218_, p219_)
-				local v220_ = p217_.spec_drivable
-				for _, v221_ in pairs(v220_.actionEvents) do
-					local v222_ = v221_.actionEventId
-					local v223_ = g_inputBinding.events[v222_]
-					if v223_.displayPriority == GS_PRIO_VERY_LOW then
-						g_inputBinding:setActionEventTextPriority(v222_, GS_PRIO_VERY_HIGH)
-					elseif v223_.displayPriority == GS_PRIO_LOW then
-						g_inputBinding:setActionEventTextPriority(v222_, GS_PRIO_HIGH)
-					end
-					if not v223_.displayIsVisible then
-						g_inputBinding:setActionEventTextVisibility(v222_, true)
+					else
+						old(vehicle)
 					end
 				end
 			end
-			return
+		elseif className == "Drivable" then
+			if g_kioskMode:getSetting("extendedDrivingHelp") then
+				local old = Drivable.onRegisterActionEvents
+				function Drivable.onRegisterActionEvents(vehicle, isActiveForInput, isActiveForInputIgnoreSelection)
+					old(vehicle, isActiveForInput, isActiveForInputIgnoreSelection)
+					local spec = vehicle.spec_drivable
+					for inputAction, data in pairs(spec.actionEvents) do
+						local actionEventId = data.actionEventId
+						local event = g_inputBinding.events[actionEventId]
+						if event.displayPriority == GS_PRIO_VERY_LOW then
+							g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_VERY_HIGH)
+						elseif event.displayPriority == GS_PRIO_LOW then
+							g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
+						end
+						if event.displayIsVisible then
+							continue
+						end
+						g_inputBinding:setActionEventTextVisibility(actionEventId, true)
+					end
+				end
+			end
 		end
-	elseif p208_ == g_placeableSpecializationManager then
-		if p209_ == "PlaceableWardrobe" then
+	elseif specializationManager == g_placeableSpecializationManager then
+		if className == "PlaceableWardrobe" then
 			if not g_kioskMode:getSetting("wardrobeShopEnabled") then
 				function WardrobeActivatable.run()
 					InfoDialog.show(g_i18n:getText("ui_featureDisabled"))
 				end
-				return
 			end
-		elseif p209_ == "PlaceableRiceField" and not g_kioskMode:getSetting("riceFieldEnabled") then
-			function PlaceableRiceFieldActivatable.run()
-				InfoDialog.show(g_i18n:getText("ui_featureDisabled"))
+		elseif className == "PlaceableRiceField" then
+			if not g_kioskMode:getSetting("riceFieldEnabled") then
+				function PlaceableRiceFieldActivatable.run()
+					InfoDialog.show(g_i18n:getText("ui_featureDisabled"))
+				end
 			end
 		end
 	end
 end
-function KioskMode.inj_ingameMenu00_getIsTourSupported(p224_, p225_)
-	if g_kioskMode:getSetting("tourEnabled") then
-		return p225_(p224_)
-	else
+function KioskMode.inj_mission00_getIsTourSupported(mission, superFunc)
+	if not g_kioskMode:getSetting("tourEnabled") then
 		return false
+	else
+		return superFunc(mission)
 	end
 end
-
--- Local values: width, height, filename, overlay
 function KioskMode.inj_hud_createDisplayComponents(hud, uiScale)
 	if g_kioskMode:getSetting("logoEnabled") then
 		hud.ingameMap:setIsVisible(false)
-		local v227_ = g_kioskMode:getSetting("logoWidth")
-		local v228_ = g_kioskMode:getSetting("logoHeight")
-		local v229_ = g_kioskMode:getSetting("logoFilename")
-		local v230_, v231_ = getNormalizedScreenValues(v227_, v228_)
-		local v232_ = Overlay.new(v229_, g_safeFrameOffsetX, g_safeFrameOffsetY, v230_, v231_)
-		hud.kioskModeLogoElement = HUDElement.new(v232_)
-		local v233_ = hud.displayComponents
-		local v234_ = hud.kioskModeLogoElement
-		table.insert(v233_, v234_)
+		local width = g_kioskMode:getSetting("logoWidth")
+		local height = g_kioskMode:getSetting("logoHeight")
+		local filename = g_kioskMode:getSetting("logoFilename")
+		width, height = getNormalizedScreenValues(width, height)
+		local overlay = Overlay.new(filename, g_safeFrameOffsetX, g_safeFrameOffsetY, width, height)
+		hud.kioskModeLogoElement = HUDElement.new(overlay)
+		table.insert(hud.displayComponents, hud.kioskModeLogoElement)
 	end
 end
-
 function KioskMode.inj_inGameMenuMobileSettingsFrame_onFrameOpen(frame)
 	frame.multiGraphics:setDisabled(true)
 	frame.checkGyroscope:setDisabled(true)
 	frame.checkTilt:setDisabled(true)
 end
-
 function KioskMode.inj_careerScreen_updateButtons(screen)
 	if screen.buttonDelete then
 		screen.buttonDelete:setDisabled(true)
 	end
 end
-
--- Local values: _, modItem, _, modName, modItem
 function KioskMode.inj_modSelectionScreenn_update(screen, dt)
-	if not g_kioskMode:getSetting("canSelectMods") then
-		for _, v238_ in pairs(screen.selectedMods) do
-			screen:setItemState(v238_, false)
+	if g_kioskMode:getSetting("canSelectMods") then
+		return
+	else
+		for _, modItem in pairs(screen.selectedMods) do
+			screen:setItemState(modItem, false)
 		end
-		for _, v239_ in pairs(g_kioskMode:getSetting("mods")) do
-			local v240_ = g_modManager:getModByName(v239_)
-			if v240_ ~= nil then
-				if screen:shouldShowModInList(v240_) then
-					screen:setItemState(v240_, true)
-				else
-					Logging.error("Mod \'%s\' is not available for current kiosk mode setup", v240_.title)
-				end
+		for _, modName in pairs(g_kioskMode:getSetting("mods")) do
+			local modItem = g_modManager:getModByName(modName)
+			if modItem == nil then
+				continue
+			end
+			if screen:shouldShowModInList(modItem) then
+				screen:setItemState(modItem, true)
+			else
+				Logging.error("Mod '%s' is not available for current kiosk mode setup", modItem.title)
 			end
 		end
 		screen:onClickOk()
 	end
 end
-
--- Local values: info, map
 function KioskMode.inj_newGameScreen_update(screen, dt)
-	local v242_ = screen.startMissionInfo or g_startMissionInfo
+	local info = screen.startMissionInfo or g_startMissionInfo
 	if g_mapManager:getNumOfMaps() == 1 then
-		v242_.mapId = g_mapManager:getMapDataByIndex(1).id
+		local map = g_mapManager:getMapDataByIndex(1)
+		info.mapId = map.id
 	end
-	v242_.initialMoney = g_kioskMode:getSetting("startMoney") or 100000
+	info.initialMoney = g_kioskMode:getSetting("startMoney") or 100000
 	screen:onClickOk()
 end
-
--- Local values: savegameController, savegame
 function KioskMode.inj_careerScreen_update(screen, dt)
-	if not g_kioskMode:getSetting("canSelectSavegame") then
+	if g_kioskMode:getSetting("canSelectSavegame") then
+		return
+	else
 		screen.selectedIndex = 1
-		screen:startSavegame(((screen.savegameController or g_savegameController):getSavegame(screen.selectedIndex)))
+		local savegameController = screen.savegameController or g_savegameController
+		local savegame = savegameController:getSavegame(screen.selectedIndex)
+		screen:startSavegame(savegame)
 	end
 end
-
 function KioskMode.inj_mainScreen_inputEvent(screen, superFunc, action, value, eventUsed)
-	return superFunc(screen, action, value, action == InputAction.KIOSK_MODE_START_VIDEOS and true or (g_kioskMode:resetVideoTimer() and true or eventUsed))
+	if action == InputAction.KIOSK_MODE_START_VIDEOS then
+		eventUsed = true
+	elseif g_kioskMode:resetVideoTimer() then
+		eventUsed = true
+	end
+	return superFunc(screen, action, value, eventUsed)
 end
-
 function KioskMode.inj_mainScreen_onClose(screen)
 	g_kioskMode:closeMainMenu()
 end
-
 function KioskMode.inj_mainScreen_update(screen, superFunc, dt)
 	if g_kioskMode:getSetting("skipMainMenu") then
 		screen:onCareerClick()
@@ -1168,56 +1063,60 @@ function KioskMode.inj_mainScreen_update(screen, superFunc, dt)
 		superFunc(screen, dt)
 	end
 end
-
 function KioskMode.inj_mainScreen_onOpen(screen)
 	g_kioskMode:openMainMenu()
 end
-function KioskMode.inj_gui_changeScreen(p252_, p253_, p254_, p255_, ...)
-	if p255_ == InGameMenu then
-		if not g_kioskMode:getSetting("screenEnabled") then
+function KioskMode.inj_gui_changeScreen(gui, superFunc, sourceScreen, screenClass, ...)
+	if screenClass == InGameMenu then
+		if not g_kioskMode:getSetting("ingameMenuEnabled") then
 			return
 		end
-	elseif p255_ == ShopMenu then
+	elseif screenClass == ShopMenu then
 		if not g_kioskMode:getSetting("vehicleShopEnabled") then
 			return
 		end
-	elseif p255_ == WardrobeScreen then
+	elseif screenClass == WardrobeScreen then
 		if not g_kioskMode:getSetting("wardrobeShopEnabled") then
 			return
 		end
-	elseif p255_ == ConstructionScreen then
+	elseif screenClass == ConstructionScreen then
 		if not g_kioskMode:getSetting("placeableShopEnabled") then
 			return
 		end
-	elseif p255_ == AnimalScreen and not g_kioskMode:getSetting("animalShopEnabled") then
-		return
-	end
-	return p253_(p252_, p254_, p255_, ...)
-end
-function KioskMode.inj_gui_showGui(p256_, p257_, p258_, ...)
-	if p258_ == "InGameMenu" then
-		if not g_kioskMode:getSetting("screenEnabled") then
+	elseif screenClass == AnimalScreen then
+		if not g_kioskMode:getSetting("animalShopEnabled") then
 			return
 		end
-	elseif p258_ == "ShopMenu" then
+	end
+	return superFunc(gui, sourceScreen, screenClass, ...)
+end
+function KioskMode.inj_gui_showGui(gui, superFunc, screenName, ...)
+	if screenName == "InGameMenu" then
+		if not g_kioskMode:getSetting("ingameMenuEnabled") then
+			return
+		end
+	elseif screenName == "ShopMenu" then
 		if not g_kioskMode:getSetting("vehicleShopEnabled") then
 			return
 		end
-	elseif p258_ == "WardrobeScreen" then
+	elseif screenName == "WardrobeScreen" then
 		if not g_kioskMode:getSetting("wardrobeShopEnabled") then
 			return
 		end
-	elseif p258_ == "ConstructionScreen" then
+	elseif screenName == "ConstructionScreen" then
 		if not g_kioskMode:getSetting("placeableShopEnabled") then
 			return
 		end
-	elseif p258_ == "AnimalScreen" and not g_kioskMode:getSetting("animalShopEnabled") then
+	elseif screenName == "AnimalScreen" then
+		if not g_kioskMode:getSetting("animalShopEnabled") then
+			return
+		end
+	end
+	return superFunc(gui, screenName, ...)
+end
+function KioskMode.inj_messageCenter_publish(messageCenter, superFunc, msg, ...)
+	if not g_kioskMode:getSetting("ingameMenuEnabled") and msg == MessageType.GUI_INGAME_OPEN_AI_SCREEN then
 		return
 	end
-	return p257_(p256_, p258_, ...)
-end
-function KioskMode.inj_messageCenter_publish(p259_, p260_, p261_, ...)
-	if g_kioskMode:getSetting("screenEnabled") or p261_ ~= MessageType.GUI_INGAME_OPEN_AI_SCREEN then
-		return p260_(p259_, p261_, ...)
-	end
+	return superFunc(messageCenter, msg, ...)
 end

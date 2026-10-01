@@ -1,137 +1,99 @@
-
--- Local values: all, names, allOrdered, allOrderedByName, k, v, numBits, maxValue, i
 function Enum(enum)
-	local v_u_2_ = {}
-	local v_u_3_ = {}
-	local v_u_4_ = {}
-	local v_u_5_ = {}
-	for v6_, v7_ in pairs(enum) do
-		if v7_ == 0 then
+	local all = {}
+	local names = {}
+	local allOrdered = {}
+	local allOrderedByName = {}
+	for k, v in pairs(enum) do
+		if v == 0 then
 			Logging.error("Try to create an enum with item value 0. Enums have to be 1-based")
 			printCallstack()
 		end
-		v_u_2_[v6_] = v7_
-		v_u_3_[v7_] = v6_
-		table.insert(v_u_4_, v7_)
-		table.insert(v_u_5_, v6_)
+		all[k] = v
+		names[v] = k
+		table.insert(allOrdered, v)
+		table.insert(allOrderedByName, k)
 	end
-	table.sort(v_u_4_)
-	table.sort(v_u_5_)
-	
--- Upvalues: enum
-function enum.getByName(name)
-		-- upvalues: (copy) enum
+	table.sort(allOrdered)
+	table.sort(allOrderedByName)
+	function enum.getByName(name)
 		if name == nil then
 			return nil
+		end
+		name = string.upper(name)
+		if ClassUtil.getIsValidIndexName(name) then
+			return enum[name]
 		else
-			local v9_ = string.upper(name)
-			if ClassUtil.getIsValidIndexName(v9_) then
-				return enum[v9_]
-			else
-				return nil
-			end
+			return nil
 		end
 	end
-	
--- Upvalues: names
-function enum.getName(id)
-		-- upvalues: (copy) v_u_3_
-		return v_u_3_[id]
+	function enum.getName(id)
+		return names[id]
 	end
 	function enum.getAll()
-		-- upvalues: (copy) v_u_2_
-		return v_u_2_
+		return all
 	end
 	function enum.getAllOrdered()
-		-- upvalues: (copy) v_u_4_
-		return v_u_4_
+		return allOrdered
 	end
 	function enum.getAllOrderedByName()
-		-- upvalues: (copy) v_u_5_
-		return v_u_5_
+		return allOrderedByName
 	end
 	function enum.getAllNames()
-		-- upvalues: (copy) v_u_3_
-		return table.concat(v_u_3_, ", ")
+		return table.concat(names, ", ")
 	end
-	local v11_ = unpack
-	local v12_ = math.max(v11_(v_u_4_)) - 1
-	local v_u_13_ = 1
-	for _ = 1, 31 do
-		if v12_ <= 2 ^ v_u_13_ - 1 then
+	local numBits = 1
+	local maxValue = math.max(unpack(allOrdered)) - 1
+	for i = 1, 31 do
+		if maxValue <= 2 ^ numBits - 1 then
 			break
 		end
-		v_u_13_ = v_u_13_ + 1
+		numBits = numBits + 1
 	end
 	function enum.getNumBits()
-		-- upvalues: (ref) v_u_13_
-		return v_u_13_
+		return numBits
 	end
-	
--- Upvalues: numBits
--- Local values: value
-function enum.writeStream(streamId, id)
-		-- upvalues: (ref) v_u_13_
-		local v16_ = id - 1
-		streamWriteUIntN(streamId, v16_, v_u_13_)
+	function enum.writeStream(streamId, id)
+		local value = id - 1
+		streamWriteUIntN(streamId, value, numBits)
 	end
-	
--- Upvalues: numBits
--- Local values: value
-function enum.readStream(streamId)
-		-- upvalues: (ref) v_u_13_
-		return streamReadUIntN(streamId, v_u_13_) + 1
+	function enum.readStream(streamId)
+		local value = streamReadUIntN(streamId, numBits)
+		return value + 1
 	end
-	
--- Upvalues: enum
--- Local values: wrapped, name
-function enum.loadFromXMLFile(xmlFile, key)
-		-- upvalues: (copy) enum
-		local v20_
+	function enum.loadFromXMLFile(xmlFile, key)
+		local wrapped = false
 		if type(xmlFile) == "number" then
 			xmlFile = XMLFile.wrap(xmlFile)
-			v20_ = true
-		else
-			v20_ = false
+			wrapped = true
 		end
-		local v21_ = xmlFile:getString(key)
-		if v20_ then
+		local name = xmlFile:getString(key)
+		if wrapped then
 			xmlFile:delete()
 		end
-		return enum.getByName(v21_)
+		return enum.getByName(name)
 	end
-	
--- Upvalues: enum, allOrdered, names
--- Local values: valueName, _, v, wrapped
-function enum.saveToXMLFile(xmlFile, key, id)
-		-- upvalues: (copy) enum, (copy) v_u_4_, (copy) v_u_3_
-		local v25_ = enum.getName(id)
-		if v25_ == nil then
+	function enum.saveToXMLFile(xmlFile, key, id)
+		local valueName = enum.getName(id)
+		if valueName == nil then
 			Logging.warning("Enum.saveToXMLFile(): Unable to get name for value %q, enum:", id)
-			for _, v26_ in ipairs(v_u_4_) do
-				printWarning("    " .. v_u_3_[v26_] .. ":" .. v26_)
+			for _, v in ipairs(allOrdered) do
+				printWarning("    " .. names[v] .. ":" .. v)
 			end
 			printCallstack()
 		else
-			local v27_
+			local wrapped = false
 			if type(xmlFile) == "number" then
 				xmlFile = XMLFile.wrap(xmlFile)
-				v27_ = true
-			else
-				v27_ = false
+				wrapped = true
 			end
-			xmlFile:setString(key, v25_)
-			if v27_ then
+			xmlFile:setString(key, valueName)
+			if wrapped then
 				xmlFile:delete()
 			end
 		end
 	end
-	
--- Upvalues: allOrderedByName
--- Local values: values
-function enum.registerXMLPath(schema, path, description, defaultValue, isRequired)
-		-- upvalues: (copy) v_u_5_
-		local v33_ = v_u_5_
-		schema:register(XMLValueType.STRING, path, description, defaultValue, isRequired, v33_)
+	function enum.registerXMLPath(schema, path, description, defaultValue, isRequired)
+		local values = allOrderedByName
+		schema:register(XMLValueType.STRING, path, description, defaultValue, isRequired, values)
 	end
 end

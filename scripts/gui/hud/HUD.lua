@@ -1,4 +1,3 @@
--- Local values: HUD_mt
 source("dataS/scripts/gui/hud/mapHotspots/MapHotspot.lua")
 source("dataS/scripts/gui/hud/mapHotspots/AIHotspot.lua")
 source("dataS/scripts/gui/hud/mapHotspots/AIPlaceableMarkerHotspot.lua")
@@ -49,69 +48,51 @@ source("dataS/scripts/gui/hud/InfoDisplayKeyValueBoxMobile.lua")
 source("dataS/scripts/gui/hud/WarningDisplay.lua")
 HUD = {}
 local HUD_mt = Class(HUD)
-HUD.CONTEXT_PRIORITY = {
-	["LOW"] = 1,
-	["MEDIUM"] = 2,
-	["HIGH"] = 3
-}
-HUD.GAME_INFO_PART = {
-	["NONE"] = 0,
-	["MONEY"] = 1,
-	["TIME"] = 2,
-	["TEMPERATURE"] = 4,
-	["WEATHER"] = 8,
-	["TUTORIAL"] = 16
-}
+HUD.CONTEXT_PRIORITY = { LOW = 1, MEDIUM = 2, HIGH = 3 }
+HUD.GAME_INFO_PART = { NONE = 0, MONEY = 1, TIME = 2, TEMPERATURE = 4, WEATHER = 8, TUTORIAL = 16 }
 HUD.ACHIEVEMENT_DISPLAY_DURATION = 5000
 HUD.FADE_FOLLOW_DELAY = 100
-
--- Upvalues: HUD_mt
--- Local values: self, uiScale, messageCenter
 function HUD.new(customMt)
-	-- upvalues: (copy) HUD_mt
-	local v3_ = customMt or HUD_mt
-	local v4_ = setmetatable({}, v3_)
-	local v5_ = g_gameSettings:getValue(GameSettings.SETTING.UI_SCALE)
-	v4_.ingameMap = nil
-	v4_.gameInfoDisplay = nil
-	v4_.inputHelp = nil
-	v4_.speedMeter = nil
-	v4_.fillLevelsDisplay = nil
-	v4_.sideNotifications = nil
-	v4_.topNotification = nil
-	v4_.chatDisplay = nil
-	v4_.speakerDisplay = nil
-	v4_.warningDisplay = nil
-	v4_.ingameMessage = nil
-	v4_.achievementMessage = nil
-	v4_.contextActionDisplay = nil
-	v4_.gamePausedDisplay = nil
-	v4_.vehicleNameDisplay = nil
-	v4_.fadeScreenElement = nil
-	v4_.fadeAnimation = TweenSequence.NO_SEQUENCE
-	v4_.fadeFollowDelay = 0
-	v4_.showVehicleInfo = true
-	v4_.isVisible = true
-	v4_.controlledVehicle = nil
-	v4_.isControllingPlayer = true
-	v4_.displayComponents = {}
-	v4_:createDisplayComponents(v5_)
-	v4_.moneyChanges = {}
+	local self = setmetatable({}, customMt or HUD_mt)
+	local uiScale = g_gameSettings:getValue(GameSettings.SETTING.UI_SCALE)
+	self.ingameMap = nil
+	self.gameInfoDisplay = nil
+	self.inputHelp = nil
+	self.speedMeter = nil
+	self.fillLevelsDisplay = nil
+	self.sideNotifications = nil
+	self.topNotification = nil
+	self.chatDisplay = nil
+	self.speakerDisplay = nil
+	self.warningDisplay = nil
+	self.ingameMessage = nil
+	self.achievementMessage = nil
+	self.contextActionDisplay = nil
+	self.gamePausedDisplay = nil
+	self.vehicleNameDisplay = nil
+	self.fadeScreenElement = nil
+	self.fadeAnimation = TweenSequence.NO_SEQUENCE
+	self.fadeFollowDelay = 0
+	self.showVehicleInfo = true
+	self.isVisible = true
+	self.controlledVehicle = nil
+	self.isControllingPlayer = true
+	self.displayComponents = {}
+	self:createDisplayComponents(uiScale)
+	self.moneyChanges = {}
 	IntroductionHelpHUDUtil.init()
-	IntroductionHelpHUDUtil.setScale(v5_)
-	local v6_ = g_messageCenter
-	v6_:subscribe(MessageType.ACHIEVEMENT_UNLOCKED, v4_.showAchievementMessage, v4_)
-	v6_:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.SHOW_HELP_MENU], v4_.setInputHelpVisible, v4_)
-	v6_:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.UI_SCALE], v4_.onUIScaleChanged, v4_)
-	addConsoleCommand("gsHudVisibility", "Toggle HUd visibility", "consoleCommandToggleVisibility", v4_)
+	IntroductionHelpHUDUtil.setScale(uiScale)
+	local messageCenter = g_messageCenter
+	messageCenter:subscribe(MessageType.ACHIEVEMENT_UNLOCKED, self.showAchievementMessage, self)
+	messageCenter:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.SHOW_HELP_MENU], self.setInputHelpVisible, self)
+	messageCenter:subscribe(MessageType.SETTING_CHANGED[GameSettings.SETTING.UI_SCALE], self.onUIScaleChanged, self)
+	addConsoleCommand("gsHudVisibility", "Toggle HUd visibility", "consoleCommandToggleVisibility", self)
 	if g_isDevelopmentVersion then
-		addConsoleCommand("gsHUDToggleUIScale", "toggles ui scale", "consoleCommandToggleUIScale", v4_)
-		addConsoleCommand("gsHUDCoordinatesToggle", "toggles coordinates displayed in the bottom left of the screen", "consoleCommandToggleCoordinates", v4_)
+		addConsoleCommand("gsHUDToggleUIScale", "toggles ui scale", "consoleCommandToggleUIScale", self)
+		addConsoleCommand("gsHUDCoordinatesToggle", "toggles coordinates displayed in the bottom left of the screen", "consoleCommandToggleCoordinates", self)
 	end
-	return v4_
+	return self
 end
-
--- Local values: nameFadeTween, fadeOverlay
 function HUD:createDisplayComponents(uiScale)
 	self.gameInfoDisplay = GameInfoDisplay.new()
 	self.gameInfoDisplay:setScale(uiScale)
@@ -176,29 +157,23 @@ function HUD:createDisplayComponents(uiScale)
 	self.displayComponents.gamePausedDisplay = self.gamePausedDisplay
 	self.vehicleNameDisplay = HUDTextDisplay.new(0.5, g_safeFrameOffsetY, HUD.TEXT_SIZE.VEHICLE_NAME, RenderText.ALIGN_CENTER, HUD.COLOR.VEHICLE_NAME, true)
 	self.vehicleNameDisplay:setTextShadow(true, HUD.COLOR.VEHICLE_NAME_SHADOW)
-	local v9_ = TweenSequence.new(self.vehicleNameDisplay)
-	v9_:addTween(Tween.new(self.vehicleNameDisplay.setAlpha, 0, 1, HUD.ANIMATION.VEHICLE_NAME_FADE))
-	v9_:addInterval(HUD.ANIMATION.VEHICLE_NAME_SHOW)
-	v9_:addTween(Tween.new(self.vehicleNameDisplay.setAlpha, 1, 0, HUD.ANIMATION.VEHICLE_NAME_FADE))
-	self.vehicleNameDisplay:setAnimation(v9_)
+	local nameFadeTween = TweenSequence.new(self.vehicleNameDisplay)
+	nameFadeTween:addTween(Tween.new(self.vehicleNameDisplay.setAlpha, 0, 1, HUD.ANIMATION.VEHICLE_NAME_FADE))
+	nameFadeTween:addInterval(HUD.ANIMATION.VEHICLE_NAME_SHOW)
+	nameFadeTween:addTween(Tween.new(self.vehicleNameDisplay.setAlpha, 1, 0, HUD.ANIMATION.VEHICLE_NAME_FADE))
+	self.vehicleNameDisplay:setAnimation(nameFadeTween)
 	self.vehicleNameDisplay:setVisible(false, false)
-	local v10_ = self.displayComponents
-	local v11_ = self.vehicleNameDisplay
-	table.insert(v10_, v11_)
-	local v12_ = g_overlayManager:createOverlay(g_plainColorSliceId, 0, 0, 1, 1)
-	v12_:setColor(0, 0, 0, 0)
-	self.fadeScreenElement = HUDElement.new(v12_)
-	local v13_ = self.displayComponents
-	local v14_ = self.fadeScreenElement
-	table.insert(v13_, v14_)
+	table.insert(self.displayComponents, self.vehicleNameDisplay)
+	local fadeOverlay = g_overlayManager:createOverlay(g_plainColorSliceId, 0, 0, 1, 1)
+	fadeOverlay:setColor(0, 0, 0, 0)
+	self.fadeScreenElement = HUDElement.new(fadeOverlay)
+	table.insert(self.displayComponents, self.fadeScreenElement)
 end
-
--- Local values: k, v
 function HUD:delete()
-	for v16_, v17_ in pairs(self.displayComponents) do
-		if v17_ then
-			v17_:delete()
-			self.displayComponents[v16_] = nil
+	for k, v in pairs(self.displayComponents) do
+		if v then
+			v:delete()
+			self.displayComponents[k] = nil
 		end
 	end
 	IntroductionHelpHUDUtil.delete()
@@ -207,168 +182,151 @@ function HUD:delete()
 	removeConsoleCommand("gsHUDToggleUIScale")
 	removeConsoleCommand("gsHUDCoordinatesToggle")
 end
-
--- Local values: _, element
 function HUD:setScale(scale)
-	for _, v20_ in pairs(self.displayComponents) do
-		if v20_.setScale ~= nil then
-			v20_:setScale(scale, scale)
+	for _, element in pairs(self.displayComponents) do
+		if element.setScale == nil then
+			continue
 		end
+		element:setScale(scale, scale)
 	end
 	IntroductionHelpHUDUtil.setScale(scale)
 end
-
 function HUD:drawControlledEntityHUD()
 	if self.isVisible then
-		if self.controlledVehicle == nil then
-			if self.isControllingPlayer and self.player ~= nil then
+		if self.controlledVehicle ~= nil then
+			if self.showVehicleInfo then
+				self.controlledVehicle:draw()
+			end
+		elseif self.isControllingPlayer then
+			if self.player ~= nil then
 				self.player:draw()
 				self.infoDisplay:draw()
 			end
-		elseif self.showVehicleInfo then
-			self.controlledVehicle:draw()
 		end
 		self.fillLevelsDisplay:draw()
 		self.speedMeter:draw()
 		self.contextActionDisplay:draw()
 	end
 end
-
 function HUD:drawInputHelp(offsetX, offsetY)
 	if self.isVisible and (not self.ingameMessage:getVisible() and self.fadeFollowDelay <= 0) then
 		self.inputHelp:draw(offsetX, offsetY)
 	end
 end
-
 function HUD:drawTopNotification()
 	self.topNotification:draw()
 end
-
 function HUD:drawBlinkingWarning()
 	if self.warningDisplay ~= nil then
 		self.warningDisplay:draw()
 	end
 end
-
 function HUD:drawPOIInfo() end
-
 function HUD:drawFading()
 	if self.fadeScreenElement:getVisible() and not g_gui:getIsMenuVisible() then
 		self.fadeScreenElement:draw()
 	end
 end
-
 function HUD:drawOverlayAtPositionWithDimensions(overlay, screenX, screenY, screenWidth, screenHeight)
 	overlay:setDimension(screenWidth, screenHeight)
 	overlay:setPosition(screenX, screenY)
 	overlay:render()
 end
-
 function HUD:drawOverlayAtPosition(overlay, screenX, screenY)
 	overlay:setPosition(screenX, screenY)
 	overlay:render()
 end
-
 function HUD:drawSideNotification()
 	self.sideNotifications:draw()
 end
-
--- Local values: x, y, z
 function HUD:drawBaseHUD()
 	self.ingameMap:draw()
 	self.gameInfoDisplay:draw()
 	self:drawSideNotification()
 	self.achievementMessage:draw()
 	if g_isDevelopmentVersion and (g_localPlayer ~= nil and not self.hideCoordinates) then
-		local v38_, v39_, v40_ = g_localPlayer:getPosition()
+		local x, y, z = g_localPlayer:getPosition()
 		setTextBold(false)
 		setTextAlignment(RenderText.ALIGN_LEFT)
-		renderText(0.003, 0.003, 0.012, string.format("<%.02f %0.2f %0.2f>", v38_, v39_, v40_))
+		renderText(0.003, 0.003, 0.012, string.format("<%.02f %0.2f %0.2f>", x, y, z))
 	end
 end
-
 function HUD:drawCommunicationDisplay()
 	if self.isVisible and not self:getIsFading() then
 		self.chatDisplay:draw()
 		self.speakerDisplay:draw()
 	end
 end
-
 function HUD:drawGamePaused(beforeMissionStart)
 	self.gamePausedDisplay:draw(beforeMissionStart)
 end
-
--- Local values: hasVehicle, isObstructed
 function HUD:drawVehicleName()
-	local v45_ = self.currentVehicleName ~= nil
-	local v46_ = self.ingameMessage:getVisible() or self.contextActionDisplay:getVisible()
-	if not g_gui:getIsMenuVisible() and (v45_ and not v46_) then
+	local hasVehicle = self.currentVehicleName ~= nil
+	local isObstructed = self.ingameMessage:getVisible() or self.contextActionDisplay:getVisible()
+	if not g_gui:getIsMenuVisible() and (hasVehicle and not isObstructed) then
 		self.vehicleNameDisplay:draw()
 	end
 end
-
 function HUD:drawInGameMessageAndIcon()
 	self.ingameMessage:draw()
 end
-
 function HUD:showInGameMessage(title, message, duration, controlGlyphs, callback, callbackTarget)
 	self.ingameMessage:showMessage(title, message, duration, controlGlyphs, callback, callbackTarget)
 end
-
 function HUD:isInGameMessageVisible()
 	return self.ingameMessage:getVisible()
 end
-
 function HUD:showBlinkingWarning(text, durationMs, customIdentifier)
-	if text ~= nil then
-		self.warningDisplay:addWarning(text, durationMs or 2000, customIdentifier)
+	if text == nil then
+		return
+	else
+		durationMs = durationMs or 2000
+		self.warningDisplay:addWarning(text, durationMs, customIdentifier)
 	end
 end
-
 function HUD:addMoneyChange(moneyType, amount)
 	if self.moneyChanges[moneyType.id] == nil then
 		self.moneyChanges[moneyType.id] = 0
 	end
 	self.moneyChanges[moneyType.id] = self.moneyChanges[moneyType.id] + amount
 end
-
--- Local values: change, sound
 function HUD:showMoneyChange(moneyType, text)
 	if self.moneyChanges[moneyType.id] ~= nil and self.moneyChanges[moneyType.id] ~= 0 then
-		local v66_ = self.moneyChanges[moneyType.id]
+		local change = self.moneyChanges[moneyType.id]
 		if text == nil then
 			text = g_i18n:getText(moneyType.title, moneyType.customEnv)
 		end
-		local v67_ = (text == nil or text == "") and "" or " (" .. text .. ")"
-		if v66_ > 0 then
-			local v68_ = GuiSoundPlayer.SOUND_SAMPLES.TRANSACTION
-			if moneyType == MoneyType.COLLECTIBLE then
-				v68_ = GuiSoundPlayer.SOUND_SAMPLES.COLLECTIBLE
+		if text ~= nil then
+			if text ~= "" then
+				text = " (" .. text .. ")"
+			else
+				text = ""
 			end
-			self:addSideNotification(FSBaseMission.INGAME_NOTIFICATION_OK, string.format("+ %s%s", g_i18n:formatMoney(v66_, 0, true), v67_), nil, v68_)
-		elseif v66_ <= -1 then
-			self:addSideNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, string.format("- %s%s", g_i18n:formatMoney(math.abs(v66_), 0, true), v67_), nil, GuiSoundPlayer.SOUND_SAMPLES.TRANSACTION)
+		end
+		if 0 < change then
+			local sound = GuiSoundPlayer.SOUND_SAMPLES.TRANSACTION
+			if moneyType == MoneyType.COLLECTIBLE then
+				sound = GuiSoundPlayer.SOUND_SAMPLES.COLLECTIBLE
+			end
+			self:addSideNotification(FSBaseMission.INGAME_NOTIFICATION_OK, string.format("+ %s%s", g_i18n:formatMoney(change, 0, true), text), nil, sound)
+		elseif change <= -1 then
+			self:addSideNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, string.format("- %s%s", g_i18n:formatMoney(math.abs(change), 0, true), text), nil, GuiSoundPlayer.SOUND_SAMPLES.TRANSACTION)
 		end
 		self.moneyChanges[moneyType.id] = 0
 	end
 end
-
 function HUD:addExtraPrintText(text)
 	self.inputHelp:addHelpText(text)
 end
-
 function HUD:addHelpExtension(extension)
 	self.inputHelp:addHelpExtension(extension)
 end
-
 function HUD:addInfoExtension(extension)
 	self.inputHelp:addInfoExtension(extension)
 end
-
 function HUD:removeInfoExtension(extension)
 	self.inputHelp:removeInfoExtension(extension)
 end
-
 function HUD:showVehicleName(vehicleName)
 	self.vehicleNameDisplay:setVisible(false, true)
 	self.currentVehicleName = vehicleName
@@ -376,42 +334,33 @@ function HUD:showVehicleName(vehicleName)
 	self.vehicleNameDisplay:setVisible(true, true)
 	self.vehicleNameTextTime = HUD.ANIMATION.VEHICLE_NAME_SHOW + HUD.ANIMATION.VEHICLE_NAME_FADE * 2
 end
-
 function HUD:addSideNotification(color, text, duration, sound)
 	self.sideNotifications:addNotification(text, color, duration or 12000)
 	if sound ~= nil then
 		g_gui.guiSoundPlayer:playSample(sound)
 	end
 end
-
 function HUD:addSideNotificationProgressBar(title, text, progress)
 	return self.sideNotifications:addProgressBar(title, text, progress)
 end
-
 function HUD:removeSideNotificationProgressBar(progressBar)
 	self.sideNotifications:removeProgressBar(progressBar)
 end
-
 function HUD:markSideNotificationProgressBarForDrawing(progressBar)
 	self.sideNotifications:markProgressBarForDrawing(progressBar)
 end
-
 function HUD:setIsSaving(isSaving)
 	self.sideNotifications:setIsSaving(isSaving)
 end
-
 function HUD:addTopNotification(title, text, info, iconFilename, duration)
 	self.topNotification:setNotification(title, text, info, iconFilename, duration)
 end
-
 function HUD:hideTopNotification()
 	self.topNotification:hide()
 end
-
 function HUD:getIsFading()
-	return not self.fadeAnimation:getFinished() or self.fadeScreenElement:getAlpha() > 0
+	return not self.fadeAnimation:getFinished() or 0 < self.fadeScreenElement:getAlpha()
 end
-
 function HUD:onPauseGameChange(isPaused, pauseText)
 	if isPaused ~= nil then
 		self.ingameMessage:setPaused(isPaused)
@@ -419,85 +368,59 @@ function HUD:onPauseGameChange(isPaused, pauseText)
 	end
 	self.gamePausedDisplay:setPauseText(pauseText)
 end
-
 function HUD:setIsVisible(isVisible)
 	self.isVisible = isVisible
 end
-
 function HUD:setInputHelpVisible(isVisible, skipAnimation)
 	self.inputHelp:setVisible(isVisible)
 end
-
 function HUD:onUIScaleChanged(uiScale)
 	self:setScale(uiScale)
 end
-
 function HUD:setInfoVisible(isVisible)
 	self.infoDisplay:setEnabled(isVisible)
 end
-
 function HUD:getIsVisible()
 	return self.isVisible
 end
-
 function HUD:setControlledVehicle(vehicle)
 	self.controlledVehicle = vehicle
 	self.inputHelp:setVehicle(vehicle)
 	self.speedMeter:setVehicle(vehicle)
-	local v116_ = self.speedMeter
-	local v117_
-	if vehicle == nil then
-		v117_ = false
-	else
-		v117_ = vehicle.spec_motorized ~= nil
-	end
-	v116_:setVisible(v117_, true)
+	self.speedMeter:setVisible(vehicle ~= nil and vehicle.spec_motorized ~= nil, true)
 	self.fillLevelsDisplay:setVehicle(vehicle)
 	self.fillLevelsDisplay:setVisible(vehicle ~= nil)
 end
-
 function HUD:setIsControllingPlayer(isControllingPlayer)
 	self.isControllingPlayer = isControllingPlayer
 end
-
 function HUD:setMoneyUnit(unit) end
-
 function HUD:showAchievementMessage(achievementName, achievementDescription, iconFilename, iconUVs)
 	self.achievementMessage:showMessage(achievementName, achievementDescription, iconFilename, iconUVs, HUD.ACHIEVEMENT_DISPLAY_DURATION)
 end
-
--- Local values: actionText
 function HUD:showAttachContext(attachVehicleName)
-	local v127_ = g_i18n:getText("input_ATTACH")
-	self.contextActionDisplay:setContext(InputAction.ATTACH, ContextActionDisplay.CONTEXT_ICON.ATTACH, attachVehicleName, HUD.CONTEXT_PRIORITY.LOW, v127_)
+	local actionText = g_i18n:getText("input_ATTACH")
+	self.contextActionDisplay:setContext(InputAction.ATTACH, ContextActionDisplay.CONTEXT_ICON.ATTACH, attachVehicleName, HUD.CONTEXT_PRIORITY.LOW, actionText)
 end
-
--- Local values: actionText
 function HUD:showTipContext(fillTypeName)
-	local v130_ = g_i18n:getText("input_TOGGLE_TIPSTATE")
-	self.contextActionDisplay:setContext(InputAction.TOGGLE_TIPSTATE, ContextActionDisplay.CONTEXT_ICON.TIP, fillTypeName, HUD.CONTEXT_PRIORITY.MEDIUM, v130_)
+	local actionText = g_i18n:getText("input_TOGGLE_TIPSTATE")
+	self.contextActionDisplay:setContext(InputAction.TOGGLE_TIPSTATE, ContextActionDisplay.CONTEXT_ICON.TIP, fillTypeName, HUD.CONTEXT_PRIORITY.MEDIUM, actionText)
 end
-
--- Local values: actionText
 function HUD:showFuelContext(fuelingVehicleName)
-	local v133_ = g_i18n:getText("action_refuel")
-	self.contextActionDisplay:setContext(InputAction.ACTIVATE_OBJECT, ContextActionDisplay.CONTEXT_ICON.FUEL, fuelingVehicleName, HUD.CONTEXT_PRIORITY.HIGH, v133_)
+	local actionText = g_i18n:getText("action_refuel")
+	self.contextActionDisplay:setContext(InputAction.ACTIVATE_OBJECT, ContextActionDisplay.CONTEXT_ICON.FUEL, fuelingVehicleName, HUD.CONTEXT_PRIORITY.HIGH, actionText)
 end
-
--- Local values: actionText, targetText
 function HUD:showFillDogBowlContext(dogName)
-	local v136_ = g_i18n:getText("action_doghouseFillbowl")
-	self.contextActionDisplay:setContext(InputAction.ACTIVATE_OBJECT, ContextActionDisplay.CONTEXT_ICON.FILL_BOWL, dogName or "", HUD.CONTEXT_PRIORITY.LOW, v136_)
+	local actionText = g_i18n:getText("action_doghouseFillbowl")
+	local targetText = dogName or ""
+	self.contextActionDisplay:setContext(InputAction.ACTIVATE_OBJECT, ContextActionDisplay.CONTEXT_ICON.FILL_BOWL, targetText, HUD.CONTEXT_PRIORITY.LOW, actionText)
 end
-
 function HUD:setPlayer(player)
 	self.player = player
 end
-
 function HUD:updateMessage(dt)
 	self.ingameMessage:update(dt)
 end
-
 function HUD:update(dt)
 	if not self.fadeAnimation:getFinished() then
 		self.fadeAnimation:update(dt)
@@ -515,21 +438,17 @@ function HUD:update(dt)
 		self.ingameMap:setHasUnreadMessages(self.chatDisplay:getHasNewMessages())
 	end
 end
-
 function HUD:updateBlinkingWarning(dt)
 	if self.warningDisplay ~= nil then
 		self.warningDisplay:update(dt)
 	end
 end
-
 function HUD:updateMap(dt)
 	self.ingameMap:update(dt)
 end
-
 function HUD:postUpdateMap(dt)
 	self.ingameMap:postUpdate(dt)
 end
-
 function HUD:updateVehicleName(dt)
 	if self.currentVehicleName ~= nil then
 		self.vehicleNameTextTime = self.vehicleNameTextTime - dt
@@ -540,91 +459,75 @@ function HUD:updateVehicleName(dt)
 		end
 	end
 end
-
--- Local values: startAlpha, endAlpha, callbackClosure, seq, tween
 function HUD:fadeScreen(direction, duration, callbackFunc, callbackTarget, arguments)
-	local v157_, v158_
+	local startAlpha = 0
+	local endAlpha = 1
 	if direction <= 0 then
-		v157_ = 1
-		v158_ = 0
-	else
-		v157_ = 0
-		v158_ = 1
+		startAlpha = 1
+		endAlpha = 0
 	end
-	local v159_ = TweenSequence.new(self.fadeScreenElement)
-	local v160_ = Tween.new(self.fadeScreenElement.setAlpha, v157_, v158_, duration)
-	v160_:setCurve(Tween.CURVE.EASE_IN)
-	v159_:addTween(v160_)
-	v159_:addCallback(function()
-		-- upvalues: (copy) callbackFunc, (copy) callbackTarget, (copy) arguments, (copy) self
+	local callbackClosure = function()
 		if callbackFunc ~= nil then
 			callbackFunc(callbackTarget, arguments)
 		end
 		self.fadeFollowDelay = HUD.FADE_FOLLOW_DELAY
-	end)
-	v159_:start()
-	self.fadeAnimation = v159_
+	end
+	local seq = TweenSequence.new(self.fadeScreenElement)
+	local tween = Tween.new(self.fadeScreenElement.setAlpha, startAlpha, endAlpha, duration)
+	tween:setCurve(Tween.CURVE.EASE_IN)
+	seq:addTween(tween)
+	seq:addCallback(callbackClosure)
+	seq:start()
+	self.fadeAnimation = seq
 end
-
 function HUD:loadIngameMap(ingameMapFilename, ingameMapWidth, ingameMapHeight, fieldColor, grassFieldColor)
 	self.ingameMap:loadMap(ingameMapFilename, ingameMapWidth, ingameMapHeight, fieldColor, grassFieldColor)
 end
-
 function HUD:setIngameMapSize(sizeIndex)
 	if Platform.isMobile then
 		sizeIndex = sizeIndex ~= IngameMapState.OFF
 	end
 	self.ingameMap:toggleSize(sizeIndex)
 end
-
 function HUD:getIngameMap()
 	return self.ingameMap
 end
-
 function HUD:mouseEvent(posX, posY, isDown, isUp, button) end
-
 function HUD:setMissionInfo(missionInfo)
 	self.missionInfo = missionInfo
 	self.fillLevelsDisplay:resetFillTypes()
 end
-
 function HUD:scrollChatMessages(delta)
 	self.chatDisplay:scrollChatMessages(delta)
 end
-
 function HUD:setChatDisplayVisible(isVisible)
 	self.chatDisplay:setVisible(isVisible)
 end
-
 function HUD:setChatMessagesReference(chatMessages)
 	self.chatDisplay:setChatMessages(chatMessages)
 end
-
 function HUD:addChatMessage(msg, sender, farmId)
 	self.chatDisplay:addMessage(msg, sender, farmId)
 	self.chatDisplay:setVisible(true)
 end
-
 function HUD:registerInput()
 	self.ingameMap:registerInput()
 end
-
 function HUD:addMapHotspot(hotspot)
 	return self.ingameMap:addMapHotspot(hotspot)
 end
-
 function HUD:removeMapHotspot(hotspot)
 	self.ingameMap:removeMapHotspot(hotspot)
 end
-
--- Local values: uiScale, newUIScale
 function HUD:consoleCommandToggleUIScale()
-	local v187_ = g_gameSettings:getValue(GameSettings.SETTING.UI_SCALE) + 0.05
-	local v188_ = v187_ > 1.04 and 0.5 or v187_
-	g_gameSettings:setValue(SettingsModel.SETTING.UI_SCALE, v188_, false)
-	return string.format("New UI Scale: %d%%", v188_ * 100)
+	local uiScale = g_gameSettings:getValue(GameSettings.SETTING.UI_SCALE)
+	local newUIScale = uiScale + 0.05
+	if 1.04 < newUIScale then
+		newUIScale = 0.5
+	end
+	g_gameSettings:setValue(SettingsModel.SETTING.UI_SCALE, newUIScale, false)
+	return string.format("New UI Scale: %d%%", newUIScale * 100)
 end
-
 function HUD:consoleCommandToggleVisibility()
 	self:setIsVisible(not self:getIsVisible())
 	if self:getIsVisible() then
@@ -632,73 +535,12 @@ function HUD:consoleCommandToggleVisibility()
 		return "HUD is now visible"
 	else
 		g_noHudModeEnabled = true
-		return "Warning: HUD is now disabled. Use \'gsHudVisibility\' to enable again"
+		return "Warning: HUD is now disabled. Use 'gsHudVisibility' to enable again"
 	end
 end
-
 function HUD:consoleCommandToggleCoordinates()
 	self.hideCoordinates = not self.hideCoordinates
 end
-HUD.COLOR = {
-	["BACKGROUND"] = {
-		0.00439,
-		0.00478,
-		0.00368,
-		0.65
-	},
-	["BACKGROUND_DARK"] = {
-		0.00439,
-		0.00478,
-		0.00368,
-		0.9
-	},
-	["ACTIVE"] = {
-		0.2384,
-		0.4621,
-		0.0015,
-		1
-	},
-	["AVAILABLE"] = {
-		1,
-		0.4287,
-		0.0006,
-		1
-	},
-	["INACTIVE"] = {
-		1,
-		1,
-		1,
-		0.3
-	},
-	["DEFAULT"] = {
-		1,
-		1,
-		1,
-		1
-	},
-	["FRAME_BACKGROUND"] = {
-		0.01,
-		0.01,
-		0.01,
-		0.6
-	},
-	["VEHICLE_NAME"] = {
-		1,
-		1,
-		1,
-		1
-	},
-	["VEHICLE_NAME_SHADOW"] = {
-		0,
-		0,
-		0,
-		1
-	}
-}
-HUD.TEXT_SIZE = {
-	["VEHICLE_NAME"] = 36
-}
-HUD.ANIMATION = {
-	["VEHICLE_NAME_FADE"] = 1000,
-	["VEHICLE_NAME_SHOW"] = 3000
-}
+HUD.COLOR = { BACKGROUND = { 0.00439, 0.00478, 0.00368, 0.65 }, BACKGROUND_DARK = { 0.00439, 0.00478, 0.00368, 0.9 }, ACTIVE = { 0.2384, 0.4621, 0.0015, 1 }, AVAILABLE = { 1, 0.4287, 0.0006, 1 }, INACTIVE = { 1, 1, 1, 0.3 }, DEFAULT = { 1, 1, 1, 1 }, FRAME_BACKGROUND = { 0.01, 0.01, 0.01, 0.6 }, VEHICLE_NAME = { 1, 1, 1, 1 }, VEHICLE_NAME_SHADOW = { 0, 0, 0, 1 } }
+HUD.TEXT_SIZE = { VEHICLE_NAME = 36 }
+HUD.ANIMATION = { VEHICLE_NAME_FADE = 1000, VEHICLE_NAME_SHOW = 3000 }

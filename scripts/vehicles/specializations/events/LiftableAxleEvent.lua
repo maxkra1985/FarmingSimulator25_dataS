@@ -1,21 +1,17 @@
--- Local values: LiftableAxleEvent_mt
 LiftableAxleEvent = {}
 local LiftableAxleEvent_mt = Class(LiftableAxleEvent, Event)
 InitStaticEventClass(LiftableAxleEvent, "LiftableAxleEvent")
 function LiftableAxleEvent.emptyNew()
-	-- upvalues: (copy) LiftableAxleEvent_mt
-	return Event.new(LiftableAxleEvent_mt)
+	local self = Event.new(LiftableAxleEvent_mt)
+	return self
 end
-
--- Local values: self
 function LiftableAxleEvent.new(object, state, fixedHeight)
-	local v5_ = LiftableAxleEvent.emptyNew()
-	v5_.object = object
-	v5_.state = state
-	v5_.fixedHeight = fixedHeight
-	return v5_
+	local self = LiftableAxleEvent.emptyNew()
+	self.object = object
+	self.state = state
+	self.fixedHeight = fixedHeight
+	return self
 end
-
 function LiftableAxleEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.state = streamReadBool(streamId)
@@ -26,7 +22,6 @@ function LiftableAxleEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function LiftableAxleEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	streamWriteBool(streamId, self.state)
@@ -34,13 +29,11 @@ function LiftableAxleEvent:writeStream(streamId, connection)
 		streamWriteFloat32(streamId, self.fixedHeight)
 	end
 end
-
 function LiftableAxleEvent:run(connection)
 	if self.object ~= nil and self.object:getIsSynchronized() then
 		self.object:setLiftableAxleState(self.state, self.fixedHeight, nil, true)
 	end
 end
-
 function LiftableAxleEvent.sendEvent(object, state, fixedHeight, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

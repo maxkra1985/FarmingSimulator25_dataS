@@ -1,4 +1,3 @@
--- Local values: percentagePerMs, MPLoadingScreen_mt
 MPLoadingScreen = {}
 MPLoadingScreen.STATE_NONE = 0
 MPLoadingScreen.STATE_CONNECTING = 1
@@ -10,107 +9,48 @@ MPLoadingScreen.STATE_READY = 6
 MPLoadingScreen.STATE_PORT_TESTING = 7
 MPLoadingScreen.NUM_GAMEPLAY_HINTS = 4
 MPLoadingScreen.SAVEGAME_LOADING_DIALOG_DELAY = 500
-local v1_ = 0.000015833333333333333
-MPLoadingScreen.LOAD_TARGETS = {
-	["WAIT_FOR_ACCEPT"] = 1,
-	["VEHICLE_VALIDATION"] = 2,
-	["SPECIALIZATIONS"] = 3,
-	["STORE"] = 4,
-	["DATA"] = 5,
-	["MAP"] = 6,
-	["TERRAIN"] = 7,
-	["ADDITIONAL_FILES"] = 8,
-	["VEHICLES"] = 9,
-	["FINISHED"] = 10
-}
+local percentagePerMs = 0.000015833333333333333
+MPLoadingScreen.LOAD_TARGETS = { WAIT_FOR_ACCEPT = 1, VEHICLE_VALIDATION = 2, SPECIALIZATIONS = 3, STORE = 4, DATA = 5, MAP = 6, TERRAIN = 7, ADDITIONAL_FILES = 8, VEHICLES = 9, FINISHED = 10 }
 MPLoadingScreen.LOAD_TARGET_DATA = {}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.WAIT_FOR_ACCEPT] = {
-	["percentage"] = 0,
-	["percentagePerMs"] = 0,
-	["nextStepText"] = nil,
-	["nextStepTextMultiplayer"] = "ui_loading_connectingToServer"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.VEHICLE_VALIDATION] = {
-	["percentage"] = 0.1,
-	["percentagePerMs"] = v1_,
-	["nextStepText"] = "ui_loading_data"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.SPECIALIZATIONS] = {
-	["percentage"] = 0.15,
-	["percentagePerMs"] = v1_,
-	["nextStepText"] = "ui_loading_store"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.STORE] = {
-	["percentage"] = 0.2,
-	["percentagePerMs"] = v1_,
-	["nextStepText"] = "ui_loading_map"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.DATA] = {
-	["percentage"] = 0.4,
-	["percentagePerMs"] = v1_,
-	["nextStepText"] = "ui_loading_map"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.MAP] = {
-	["percentage"] = 0.55,
-	["percentagePerMs"] = v1_,
-	["nextStepText"] = "ui_loading_map"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.TERRAIN] = {
-	["percentage"] = 0.58,
-	["percentagePerMs"] = v1_,
-	["nextStepText"] = "ui_loading_map"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.ADDITIONAL_FILES] = {
-	["percentage"] = 0.6,
-	["percentagePerMs"] = 0,
-	["nextStepText"] = "ui_loading_vehicles"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.VEHICLES] = {
-	["percentage"] = 0.9,
-	["percentagePerMs"] = 0,
-	["nextStepText"] = "ui_loading_compilingShaders",
-	["nextStepTextConsole"] = "ui_loading_vehicles"
-}
-MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.FINISHED] = {
-	["percentage"] = 1,
-	["percentagePerMs"] = 0,
-	["nextStepText"] = "ui_loading_finished"
-}
-local percentagePerMs = Class(MPLoadingScreen, ScreenElement)
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.WAIT_FOR_ACCEPT] = { percentage = 0, percentagePerMs = 0, nextStepText = nil, nextStepTextMultiplayer = "ui_loading_connectingToServer" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.VEHICLE_VALIDATION] = { percentage = 0.1, percentagePerMs = percentagePerMs, nextStepText = "ui_loading_data" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.SPECIALIZATIONS] = { percentage = 0.15, percentagePerMs = percentagePerMs, nextStepText = "ui_loading_store" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.STORE] = { percentage = 0.2, percentagePerMs = percentagePerMs, nextStepText = "ui_loading_map" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.DATA] = { percentage = 0.4, percentagePerMs = percentagePerMs, nextStepText = "ui_loading_map" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.MAP] = { percentage = 0.55, percentagePerMs = percentagePerMs, nextStepText = "ui_loading_map" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.TERRAIN] = { percentage = 0.58, percentagePerMs = percentagePerMs, nextStepText = "ui_loading_map" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.ADDITIONAL_FILES] = { percentage = 0.6, percentagePerMs = 0, nextStepText = "ui_loading_vehicles" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.VEHICLES] = { percentage = 0.9, percentagePerMs = 0, nextStepText = "ui_loading_compilingShaders", nextStepTextConsole = "ui_loading_vehicles" }
+MPLoadingScreen.LOAD_TARGET_DATA[MPLoadingScreen.LOAD_TARGETS.FINISHED] = { percentage = 1, percentagePerMs = 0, nextStepText = "ui_loading_finished" }
+local MPLoadingScreen_mt = Class(MPLoadingScreen, ScreenElement)
 function MPLoadingScreen.register()
-	local v3_ = MPLoadingScreen.new()
-	g_gui:loadGui("dataS/gui/MPLoadingScreen.xml", "MPLoadingScreen", v3_)
-	return v3_
+	local mpLoadingScreen = MPLoadingScreen.new()
+	g_gui:loadGui("dataS/gui/MPLoadingScreen.xml", "MPLoadingScreen", mpLoadingScreen)
+	return mpLoadingScreen
 end
-
--- Upvalues: MPLoadingScreen_mt
--- Local values: self
 function MPLoadingScreen.new(target, custom_mt)
-	-- upvalues: (copy) percentagePerMs
-	local v6_ = ScreenElement.new(target, custom_mt or percentagePerMs)
-	v6_.acceptCancelTimer = -1
-	v6_.actionTimerCount = -1
-	v6_.doLoad = false
-	v6_.preSimulateCount = -1
-	v6_.preSimulateSteps = 5
-	v6_.loadFunction = OnLoadingScreen
-	v6_.isClient = false
-	v6_.isBackAllowed = false
-	v6_.currentGameplayHint = nil
-	v6_.currentGameplayHints = nil
-	v6_.isCancel = true
-	v6_.gameplayHintDuration = 6500
-	v6_.gameplayHintTime = v6_.gameplayHintDuration
-	v6_.savegameLoadingDialogDelay = -1
-	v6_.state = MPLoadingScreen.STATE_NONE
-	v6_.currentTarget = MPLoadingScreen.LOAD_TARGETS.WAIT_FOR_ACCEPT
-	return v6_
+	local self = ScreenElement.new(target, custom_mt or MPLoadingScreen_mt)
+	self.acceptCancelTimer = -1
+	self.actionTimerCount = -1
+	self.doLoad = false
+	self.preSimulateCount = -1
+	self.preSimulateSteps = 5
+	self.loadFunction = OnLoadingScreen
+	self.isClient = false
+	self.isBackAllowed = false
+	self.currentGameplayHint = nil
+	self.currentGameplayHints = nil
+	self.isCancel = true
+	self.gameplayHintDuration = 6500
+	self.gameplayHintTime = self.gameplayHintDuration
+	self.savegameLoadingDialogDelay = -1
+	self.state = MPLoadingScreen.STATE_NONE
+	self.currentTarget = MPLoadingScreen.LOAD_TARGETS.WAIT_FOR_ACCEPT
+	return self
 end
-
 function MPLoadingScreen:onCreate()
 	self.button = self.buttonOkPC
 end
-
 function MPLoadingScreen:onOpen()
 	MPLoadingScreen:superClass().onOpen(self)
 	self.button:setVisible(false)
@@ -129,15 +69,12 @@ function MPLoadingScreen:onOpen()
 	self:hitLoadingTarget(MPLoadingScreen.LOAD_TARGETS.WAIT_FOR_ACCEPT)
 	enterCpuBoostMode()
 end
-
 function MPLoadingScreen:onClose()
 	MPLoadingScreen:superClass().onClose(self)
 	self.mapSelectionPreview:setImageFilename("dataS/menu/black.png")
 	g_messageCenter:unsubscribe(MessageType.ENQUEUED_ALL_LOADINGS, self)
 	leaveCpuBoostMode()
 end
-
--- Local values: restartScreen
 function MPLoadingScreen:cancelLoading(showConnectionLost)
 	saveReadSavegameFinish("", self)
 	leaveCpuBoostMode()
@@ -146,14 +83,14 @@ function MPLoadingScreen:cancelLoading(showConnectionLost)
 		netShutdown(0, 0)
 		g_gui:changeScreen(nil, self.returnScreenClass or MultiplayerScreen)
 	elseif self.isClient then
-		if g_currentMission == nil then
-			self:cleanup()
-		else
+		if g_currentMission ~= nil then
 			OnInGameMenuMenu()
+		else
+			self:cleanup()
 		end
 		if masterServerConnectFront == nil then
-			local v12_ = RestartManager.START_SCREEN_MULTIPLAYER
-			RestartManager:setStartScreen(v12_)
+			local restartScreen = RestartManager.START_SCREEN_MULTIPLAYER
+			RestartManager:setStartScreen(restartScreen)
 			doRestart(false, "")
 		else
 			g_gui:changeScreen(nil, self.returnScreenClass or MultiplayerScreen)
@@ -168,13 +105,11 @@ function MPLoadingScreen:cancelLoading(showConnectionLost)
 		InfoDialog.show(g_i18n:getText("ui_connectionLost"))
 	end
 end
-
 function MPLoadingScreen:onClickCancel()
 	if self.isCancel and (self.missionDynamicInfo.isMultiplayer and self.missionDynamicInfo.isClient) then
 		self:cancelLoading()
 	end
 end
-
 function MPLoadingScreen:onClickOk(element)
 	MPLoadingScreen:superClass().onClickOk(self)
 	if self.state == MPLoadingScreen.STATE_READY then
@@ -199,18 +134,17 @@ function MPLoadingScreen:onClickOk(element)
 			Profiler.setIsReady()
 		end
 		g_messageCenter:publish(MessageType.CURRENT_MISSION_LOADED)
-		if g_dedicatedServer == nil and (Platform.hasWardrobe and not Profiler.IS_INITIALIZED) and (g_currentMission:getIsServer() and not self.missionInfo.isValid or not g_currentMission:getIsServer() and self.knownPlayerOnServer == false) then
+		if g_dedicatedServer == nil and (Platform.hasWardrobe and (not Profiler.IS_INITIALIZED and (g_currentMission:getIsServer() and (not self.missionInfo.isValid or not g_currentMission:getIsServer() and self.knownPlayerOnServer == false)))) then
 			self:openWardrobe()
 		end
 	end
 end
-
--- Local values: dlcsVerified, targetData, nextData, maxTarget, maxAdditionalPercentage, additionalPercentage, pendingObjects, ratio, percentage, ratio, locaString, text, numRemainingShaders, percentage, loadPercentage, hints
 function MPLoadingScreen:update(dt)
 	MPLoadingScreen:superClass().update(self, dt)
 	if storeHaveDlcsChanged() then
 		g_forceNeedsDlcsAndModsReload = true
-		if not verifyDlcs() then
+		local dlcsVerified = verifyDlcs()
+		if not dlcsVerified then
 			OnInGameMenuMenu()
 			InfoDialog.show(g_i18n:getText("ui_storageDeviceWithDlcsRemoved"), self.dlcProblemOnQuitOk, self)
 			return
@@ -218,60 +152,63 @@ function MPLoadingScreen:update(dt)
 	end
 	if GS_PLATFORM_PLAYSTATION and self.missionDynamicInfo.isMultiplayer then
 		if getMultiplayerAvailability() == MultiplayerAvailability.NOT_AVAILABLE then
-			if g_currentMission == nil then
+			if g_currentMission ~= nil then
+				OnInGameMenuMenu()
+			else
 				self:cleanup()
 				g_gui:showGui("MainScreen")
-			else
-				OnInGameMenuMenu()
 			end
 		end
 		if getNetworkError() then
-			if g_currentMission == nil then
+			if g_currentMission ~= nil then
+				OnInGameMenuMenu(nil, true)
+			else
 				self:cleanup()
 				ConnectionFailedDialog.showMasterServerConnectionFailedReason(MasterServerConnection.FAILED_CONNECTION_LOST, "MainScreen")
-			else
-				OnInGameMenuMenu(nil, true)
 			end
 		end
 	end
-	local v17_ = MPLoadingScreen.LOAD_TARGET_DATA[self.currentTarget]
-	local v18_ = MPLoadingScreen.LOAD_TARGET_DATA[self.currentTarget + 1]
-	local v19_ = v18_ ~= nil and v18_.percentage or v17_.percentage
-	local v20_ = v19_ - v17_.percentage
-	local v21_ = 0
-	if self.currentTarget == MPLoadingScreen.LOAD_TARGETS.ADDITIONAL_FILES and self.totalPendingObjects ~= nil then
-		local v22_ = self:getNumPendingObjects()
-		if v22_ > 0 and self.totalPendingObjects > 0 then
-			local v23_ = v22_ / self.totalPendingObjects
-			v21_ = (1 - math.clamp(v23_, 0, 1)) * v20_
-		else
-			self:hitLoadingTarget(MPLoadingScreen.LOAD_TARGETS.VEHICLES)
+	local targetData = MPLoadingScreen.LOAD_TARGET_DATA[self.currentTarget]
+	local nextData = MPLoadingScreen.LOAD_TARGET_DATA[self.currentTarget + 1]
+	local maxTarget = nextData ~= nil and nextData.percentage or targetData.percentage
+	local maxAdditionalPercentage = maxTarget - targetData.percentage
+	local additionalPercentage = 0
+	if self.currentTarget == MPLoadingScreen.LOAD_TARGETS.ADDITIONAL_FILES then
+		if self.totalPendingObjects ~= nil then
+			local pendingObjects = self:getNumPendingObjects()
+			if 0 < pendingObjects then
+				if 0 < self.totalPendingObjects then
+					local ratio = pendingObjects / self.totalPendingObjects
+					local percentage = 1 - math.clamp(ratio, 0, 1)
+					additionalPercentage = percentage * maxAdditionalPercentage
+				else
+					self:hitLoadingTarget(MPLoadingScreen.LOAD_TARGETS.VEHICLES)
+				end
+			end
+		elseif self.currentTarget == MPLoadingScreen.LOAD_TARGETS.VEHICLES then
+			local ratio = 0
+			local locaString = targetData.nextStepText
+			if Platform.isConsole then
+				locaString = targetData.nextStepTextConsole or locaString
+			end
+			local text = g_i18n:getText(locaString)
+			if 0 < self.numRemainingShaders then
+				local numRemainingShaders = getRemainingShadersToWarmup()
+				ratio = numRemainingShaders / self.numRemainingShaders
+				text = string.format("%s\n(%d/%d)", text, math.max(0, self.numRemainingShaders - numRemainingShaders), self.numRemainingShaders)
+			end
+			self.loadingInfo:setText(text)
+			local percentage = 1 - math.clamp(ratio, 0, 1)
+			additionalPercentage = percentage * maxAdditionalPercentage
 		end
-	elseif self.currentTarget == MPLoadingScreen.LOAD_TARGETS.VEHICLES then
-		local v24_ = 0
-		local v25_ = v17_.nextStepText
-		if Platform.isConsole then
-			v25_ = v17_.nextStepTextConsole or v25_
-		end
-		local v26_ = g_i18n:getText(v25_)
-		if self.numRemainingShaders > 0 then
-			local v27_ = getRemainingShadersToWarmup()
-			v24_ = v27_ / self.numRemainingShaders
-			local v28_ = string.format
-			local v29_ = self.numRemainingShaders - v27_
-			v26_ = v28_("%s\n(%d/%d)", v26_, math.max(0, v29_), self.numRemainingShaders)
-		end
-		self.loadingInfo:setText(v26_)
-		v21_ = (1 - math.clamp(v24_, 0, 1)) * v20_
 	end
-	self.loadPercentage = self.loadPercentage + v17_.percentagePerMs * dt
-	local v30_ = self.loadPercentage + v21_
-	local v31_ = math.min(v30_, v19_)
-	self.totalLoadPercentage = v31_
-	self.loadingBar.absSize[1] = self.loadingBar.parent.absSize[1] * v31_
-	self.loadingBarPercentage:setText(string.format("%d%%", v31_ * 100))
+	self.loadPercentage = self.loadPercentage + targetData.percentagePerMs * dt
+	local loadPercentage = math.min(self.loadPercentage + additionalPercentage, maxTarget)
+	self.totalLoadPercentage = loadPercentage
+	self.loadingBar.absSize[1] = self.loadingBar.parent.absSize[1] * loadPercentage
+	self.loadingBarPercentage:setText(string.format("%d%%", loadPercentage * 100))
 	if self.state == MPLoadingScreen.STATE_WAIT_FOR_ACCEPT then
-		if GS_PLATFORM_PLAYSTATION and self.acceptCancelTimer > 0 then
+		if GS_PLATFORM_PLAYSTATION and 0 < self.acceptCancelTimer then
 			self.acceptCancelTimer = self.acceptCancelTimer - dt
 			if self.acceptCancelTimer <= 0 then
 				print("Waited too long for accept ... cancelling entire process")
@@ -284,13 +221,13 @@ function MPLoadingScreen:update(dt)
 	if self.state == MPLoadingScreen.STATE_WAIT_FOR_MISSION then
 		self:onReadyToStart()
 	end
-	if self.actionTimerCount >= 0 then
+	if 0 <= self.actionTimerCount then
 		self.actionTimerCount = self.actionTimerCount - 1
 		if self.actionTimerCount < 0 then
 			if self.doLoad then
 				self.doLoad = false
 				g_currentMission:onConnectionRequestAcceptedLoad(self.loadConnection)
-			elseif self.preSimulateCount >= 0 then
+			elseif 0 <= self.preSimulateCount then
 				self.preSimulateCount = self.preSimulateCount - 1
 				if self.preSimulateCount < 0 then
 					simulatePhysics(false)
@@ -302,30 +239,28 @@ function MPLoadingScreen:update(dt)
 			end
 		end
 	end
-	if self.currentGameplayHints == nil then
-		if g_gameplayHintManager:getIsLoaded() then
-			local v32_ = g_gameplayHintManager:getRandomGameplayHint(MPLoadingScreen.NUM_GAMEPLAY_HINTS)
-			if v32_ ~= nil then
-				self.currentGameplayHints = v32_
-				self.currentGameplayHint = 1
-				self.hintStateBox:setPageCount(MPLoadingScreen.NUM_GAMEPLAY_HINTS)
-				self:setGameplayHint(self.currentGameplayHints, self.currentGameplayHint)
-			end
-			self.gameplayHintTime = self.gameplayHintDuration
-			self.gameplayHintText:setVisible(true)
-		end
-	else
+	if self.currentGameplayHints ~= nil then
 		self.gameplayHintTime = self.gameplayHintTime - dt
 		if self.gameplayHintTime <= 0 then
 			self.gameplayHintTime = self.gameplayHintDuration
 			self.currentGameplayHint = self.currentGameplayHint + 1
-			if self.currentGameplayHint > #self.currentGameplayHints then
+			if #self.currentGameplayHints < self.currentGameplayHint then
 				self.currentGameplayHint = 1
 			end
 			self:setGameplayHint(self.currentGameplayHints, self.currentGameplayHint)
 		end
+	elseif g_gameplayHintManager:getIsLoaded() then
+		local hints = g_gameplayHintManager:getRandomGameplayHint(MPLoadingScreen.NUM_GAMEPLAY_HINTS)
+		if hints ~= nil then
+			self.currentGameplayHints = hints
+			self.currentGameplayHint = 1
+			self.hintStateBox:setPageCount(MPLoadingScreen.NUM_GAMEPLAY_HINTS)
+			self:setGameplayHint(self.currentGameplayHints, self.currentGameplayHint)
+		end
+		self.gameplayHintTime = self.gameplayHintDuration
+		self.gameplayHintText:setVisible(true)
 	end
-	if self.savegameLoadingDialogDelay > 0 then
+	if 0 < self.savegameLoadingDialogDelay then
 		self.savegameLoadingDialogDelay = self.savegameLoadingDialogDelay - dt
 		if self.savegameLoadingDialogDelay <= 0 then
 			self.loadingDialog = g_gui:showDialog("InfoDialog")
@@ -335,29 +270,24 @@ function MPLoadingScreen:update(dt)
 		end
 	end
 end
-
 function MPLoadingScreen:openWardrobe()
 	g_wardrobeScreen:setNextOpenIsNewCharacter()
 	g_gui:changeScreen(nil, WardrobeScreen)
 end
-
 function MPLoadingScreen:dlcProblemOnQuitOk()
 	if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "InfoDialog" then
 		g_gui:showGui("MainScreen")
 	end
 end
-
--- Local values: savegame
 function MPLoadingScreen:loadSavegameAndStart()
-	local v34_ = self.missionInfo
-	if v34_.isValid then
+	local savegame = self.missionInfo
+	if savegame.isValid then
 		self.savegameLoadingDialogDelay = MPLoadingScreen.SAVEGAME_LOADING_DIALOG_DELAY
-		saveReadSavegameStart(v34_.savegameIndex, "onSavegameLoaded", self)
+		saveReadSavegameStart(savegame.savegameIndex, "onSavegameLoaded", self)
 	else
 		self:onSavegameLoaded(Savegame.ERROR_OK, nil)
 	end
 end
-
 function MPLoadingScreen:loadGameRelatedData()
 	g_asyncTaskManager:setAllowedTimePerFrame(33.333333333333336)
 	g_asyncTaskManager:addTask(function()
@@ -400,7 +330,6 @@ function MPLoadingScreen:loadGameRelatedData()
 		g_workAreaTypeManager:loadMapData()
 	end)
 end
-
 function MPLoadingScreen:unloadGameRelatedData()
 	g_specializationManager:unloadMapData()
 	g_placeableSpecializationManager:unloadMapData()
@@ -418,7 +347,6 @@ function MPLoadingScreen:unloadGameRelatedData()
 	g_splitShapeManager:unloadMapData()
 	g_xmlManager:unloadMapData()
 end
-
 function MPLoadingScreen:startClient()
 	self:loadGameRelatedData()
 	resetSplitShapes()
@@ -428,13 +356,11 @@ function MPLoadingScreen:startClient()
 	Logging.info("Starting multiplayer client game...")
 	self:setButtonState(MPLoadingScreen.STATE_CONNECTING)
 	g_asyncTaskManager:addTask(function()
-		-- upvalues: (copy) self
 		g_client = Client.new()
 		g_masterServerConnection:setCallbackTarget(self)
 		masterServerRequestServerDetails(self.missionDynamicInfo.serverId)
 	end)
 end
-
 function MPLoadingScreen:startLocal()
 	Logging.info("Starting singleplayer game...")
 	self.isClient = false
@@ -445,15 +371,13 @@ function MPLoadingScreen:startLocal()
 	end)
 	self:initializeLoading()
 end
-
 function MPLoadingScreen:showPortTesting()
 	self:setMapTitleAndPreview()
 	self:setButtonState(MPLoadingScreen.STATE_PORT_TESTING)
 	g_gui:showGui("MPLoadingScreen")
 end
-
 function MPLoadingScreen:startServer()
-	Logging.info("Starting multiplayer server game %s ...", g_dedicatedServer == nil and "(Self-hosted)" or "(Dedicated Server)")
+	Logging.info("Starting multiplayer server game %s ...", g_dedicatedServer ~= nil and "(Dedicated Server)" or "(Self-hosted)")
 	self.isClient = false
 	self:setButtonState(MPLoadingScreen.STATE_LOADING)
 	self.serverName = self.missionDynamicInfo.serverName
@@ -461,7 +385,6 @@ function MPLoadingScreen:startServer()
 	self.capacity = self.missionDynamicInfo.capacity
 	self.mods = self.missionDynamicInfo.mods
 	g_asyncTaskManager:addTask(function()
-		-- upvalues: (copy) self
 		g_server = Server.new()
 		g_client = Client.new()
 		g_server:start(self.missionDynamicInfo.serverPort, self.missionDynamicInfo.serverAddress, self.missionDynamicInfo.capacity)
@@ -473,7 +396,6 @@ function MPLoadingScreen:startServer()
 		g_connectToMasterServerScreen:connectToFront()
 	end)
 end
-
 function MPLoadingScreen:loadWithConnection(connection, knownPlayerOnServer)
 	self:setButtonState(MPLoadingScreen.STATE_SYNCHRONIZING)
 	self:hitLoadingTarget(self.currentTarget, false)
@@ -482,31 +404,25 @@ function MPLoadingScreen:loadWithConnection(connection, knownPlayerOnServer)
 	self.loadConnection = connection
 	self.knownPlayerOnServer = knownPlayerOnServer
 end
-
 function MPLoadingScreen:onWaitingForAccept()
 	if self.isClient then
 		self:setButtonState(MPLoadingScreen.STATE_WAIT_FOR_ACCEPT)
 		self.acceptCancelTimer = 120000
 	end
 end
-
 function MPLoadingScreen:onWaitingForDynamicData()
 	self:setButtonState(MPLoadingScreen.STATE_LOADING)
 end
-
 function MPLoadingScreen:reloadAsNewSavegame()
 	self.missionInfo:loadDefaults()
 	g_careerScreen:startSavegame(self.missionInfo)
 end
-
 function MPLoadingScreen:onCancelSavegameLoading()
 	self:cancelLoading()
 	g_gui:changeScreen(nil, self.returnScreenClass or CareerScreen)
 end
-
--- Local values: savegame
 function MPLoadingScreen:onSavegameLoaded(errorCode, savegameDirectory)
-	if self.savegameLoadingDialogDelay > 0 then
+	if 0 < self.savegameLoadingDialogDelay then
 		self.savegameLoadingDialogDelay = -1
 	end
 	if self.loadingDialog ~= nil then
@@ -514,199 +430,190 @@ function MPLoadingScreen:onSavegameLoaded(errorCode, savegameDirectory)
 	end
 	if errorCode == Savegame.ERROR_OK then
 		self:loadGameRelatedData()
-		local v49_ = self.missionInfo
-		if v49_.isValid then
-			v49_:setSavegameDirectory(savegameDirectory)
+		local savegame = self.missionInfo
+		if savegame.isValid then
+			savegame:setSavegameDirectory(savegameDirectory)
 		else
-			v49_:setSavegameDirectory(nil)
+			savegame:setSavegameDirectory(nil)
 		end
-		if v49_.environmentXML == nil or not fileExists(v49_.environmentXML) then
-			v49_.environmentXMLLoad = v49_.defaultEnvironmentXMLFilename
+		if savegame.environmentXML == nil or not fileExists(savegame.environmentXML) then
+			savegame.environmentXMLLoad = savegame.defaultEnvironmentXMLFilename
 		else
-			v49_.environmentXMLLoad = v49_.environmentXML
+			savegame.environmentXMLLoad = savegame.environmentXML
 		end
-		if v49_.vehiclesXML == nil or not fileExists(v49_.vehiclesXML) then
-			v49_.vehiclesXMLLoad = v49_.defaultVehiclesXMLFilename
+		if savegame.vehiclesXML == nil or not fileExists(savegame.vehiclesXML) then
+			savegame.vehiclesXMLLoad = savegame.defaultVehiclesXMLFilename
 		else
-			v49_.vehiclesXMLLoad = v49_.vehiclesXML
+			savegame.vehiclesXMLLoad = savegame.vehiclesXML
 		end
-		if v49_.handToolsXML == nil or not fileExists(v49_.handToolsXML) then
-			v49_.handToolsXMLLoad = v49_.defaultHandToolsXMLFilename
+		if savegame.handToolsXML == nil or not fileExists(savegame.handToolsXML) then
+			savegame.handToolsXMLLoad = savegame.defaultHandToolsXMLFilename
 		else
-			v49_.handToolsXMLLoad = v49_.handToolsXML
+			savegame.handToolsXMLLoad = savegame.handToolsXML
 		end
-		if v49_.placeablesXML == nil or not fileExists(v49_.placeablesXML) then
-			v49_.placeablesXMLLoad = v49_.defaultPlaceablesXMLFilename
+		if savegame.placeablesXML == nil or not fileExists(savegame.placeablesXML) then
+			savegame.placeablesXMLLoad = savegame.defaultPlaceablesXMLFilename
 		else
-			v49_.placeablesXMLLoad = v49_.placeablesXML
+			savegame.placeablesXMLLoad = savegame.placeablesXML
 		end
-		if v49_.itemsXML == nil or not fileExists(v49_.itemsXML) then
-			v49_.itemsXMLLoad = v49_.defaultItemsXMLFilename
+		if savegame.itemsXML == nil or not fileExists(savegame.itemsXML) then
+			savegame.itemsXMLLoad = savegame.defaultItemsXMLFilename
 		else
-			v49_.itemsXMLLoad = v49_.itemsXML
+			savegame.itemsXMLLoad = savegame.itemsXML
 		end
-		if v49_.aiSystemXML == nil or not fileExists(v49_.aiSystemXML) then
-			v49_.aiSystemXMLLoad = nil
+		if savegame.aiSystemXML == nil or not fileExists(savegame.aiSystemXML) then
+			savegame.aiSystemXMLLoad = nil
 		else
-			v49_.aiSystemXMLLoad = v49_.aiSystemXML
+			savegame.aiSystemXMLLoad = savegame.aiSystemXML
 		end
-		if v49_.navigationSystemXML == nil or not fileExists(v49_.navigationSystemXML) then
-			v49_.navigationSystemXMLLoad = nil
+		if savegame.navigationSystemXML == nil or not fileExists(savegame.navigationSystemXML) then
+			savegame.navigationSystemXMLLoad = nil
 		else
-			v49_.navigationSystemXMLLoad = v49_.navigationSystemXML
+			savegame.navigationSystemXMLLoad = savegame.navigationSystemXML
 		end
-		if v49_.onCreateObjectsXML == nil or not fileExists(v49_.onCreateObjectsXML) then
-			v49_.onCreateObjectsXMLLoad = nil
+		if savegame.onCreateObjectsXML == nil or not fileExists(savegame.onCreateObjectsXML) then
+			savegame.onCreateObjectsXMLLoad = nil
 		else
-			v49_.onCreateObjectsXMLLoad = v49_.onCreateObjectsXML
+			savegame.onCreateObjectsXMLLoad = savegame.onCreateObjectsXML
 		end
-		if v49_.economyXML == nil or not fileExists(v49_.economyXML) then
-			v49_.economyXMLLoad = nil
+		if savegame.economyXML == nil or not fileExists(savegame.economyXML) then
+			savegame.economyXMLLoad = nil
 		else
-			v49_.economyXMLLoad = v49_.economyXML
+			savegame.economyXMLLoad = savegame.economyXML
 		end
-		if v49_.farmlandXML == nil or not fileExists(v49_.farmlandXML) then
-			v49_.farmlandXMLLoad = nil
+		if savegame.farmlandXML == nil or not fileExists(savegame.farmlandXML) then
+			savegame.farmlandXMLLoad = nil
 		else
-			v49_.farmlandXMLLoad = v49_.farmlandXML
+			savegame.farmlandXMLLoad = savegame.farmlandXML
 		end
-		if v49_.npcXML == nil or not fileExists(v49_.npcXML) then
-			v49_.npcXMLLoad = nil
+		if savegame.npcXML == nil or not fileExists(savegame.npcXML) then
+			savegame.npcXMLLoad = nil
 		else
-			v49_.npcXMLLoad = v49_.npcXML
+			savegame.npcXMLLoad = savegame.npcXML
 		end
-		if v49_.missionsXML == nil or not fileExists(v49_.missionsXML) then
-			v49_.missionsXMLLoad = nil
+		if savegame.missionsXML == nil or not fileExists(savegame.missionsXML) then
+			savegame.missionsXMLLoad = nil
 		else
-			v49_.missionsXMLLoad = v49_.missionsXML
+			savegame.missionsXMLLoad = savegame.missionsXML
 		end
-		if v49_.farmsXML == nil or not fileExists(v49_.farmsXML) then
-			v49_.farmsXMLLoad = nil
+		if savegame.farmsXML == nil or not fileExists(savegame.farmsXML) then
+			savegame.farmsXMLLoad = nil
 		else
-			v49_.farmsXMLLoad = v49_.farmsXML
+			savegame.farmsXMLLoad = savegame.farmsXML
 		end
-		if v49_.guidedTourXML == nil or not fileExists(v49_.guidedTourXML) then
-			v49_.guidedTourXMLLoad = nil
+		if savegame.guidedTourXML == nil or not fileExists(savegame.guidedTourXML) then
+			savegame.guidedTourXMLLoad = nil
 		else
-			v49_.guidedTourXMLLoad = v49_.guidedTourXML
+			savegame.guidedTourXMLLoad = savegame.guidedTourXML
 		end
-		if v49_.playersXML == nil or not fileExists(v49_.playersXML) then
-			v49_.playersXMLLoad = nil
+		if savegame.playersXML == nil or not fileExists(savegame.playersXML) then
+			savegame.playersXMLLoad = nil
 		else
-			v49_.playersXMLLoad = v49_.playersXML
+			savegame.playersXMLLoad = savegame.playersXML
 		end
-		if v49_.treeMarkerXML == nil or not fileExists(v49_.treeMarkerXML) then
-			v49_.treeMarkerXMLLoad = nil
+		if savegame.treeMarkerXML == nil or not fileExists(savegame.treeMarkerXML) then
+			savegame.treeMarkerXMLLoad = nil
 		else
-			v49_.treeMarkerXMLLoad = v49_.treeMarkerXML
+			savegame.treeMarkerXMLLoad = savegame.treeMarkerXML
 		end
-		if v49_.destructibleMapObjectsXML == nil or not fileExists(v49_.destructibleMapObjectsXML) then
-			v49_.destructibleMapObjectsXMLLoad = nil
+		if savegame.destructibleMapObjectsXML == nil or not fileExists(savegame.destructibleMapObjectsXML) then
+			savegame.destructibleMapObjectsXMLLoad = nil
 		else
-			v49_.destructibleMapObjectsXMLLoad = v49_.destructibleMapObjectsXML
+			savegame.destructibleMapObjectsXMLLoad = savegame.destructibleMapObjectsXML
 		end
-		if v49_.fieldsXML == nil or not fileExists(v49_.fieldsXML) then
-			v49_.fieldsXMLLoad = nil
+		if savegame.fieldsXML == nil or not fileExists(savegame.fieldsXML) then
+			savegame.fieldsXMLLoad = nil
 		else
-			v49_.fieldsXMLLoad = v49_.fieldsXML
+			savegame.fieldsXMLLoad = savegame.fieldsXML
 		end
-		if v49_.densityMapHeightXML == nil or not fileExists(v49_.densityMapHeightXML) then
-			v49_.densityMapHeightXMLLoad = nil
+		if savegame.densityMapHeightXML == nil or not fileExists(savegame.densityMapHeightXML) then
+			savegame.densityMapHeightXMLLoad = nil
 		else
-			v49_.densityMapHeightXMLLoad = v49_.densityMapHeightXML
+			savegame.densityMapHeightXMLLoad = savegame.densityMapHeightXML
 		end
-		if v49_.treePlantXML == nil or not fileExists(v49_.treePlantXML) then
-			v49_.treePlantXMLLoad = nil
+		if savegame.treePlantXML == nil or not fileExists(savegame.treePlantXML) then
+			savegame.treePlantXMLLoad = nil
 		else
-			v49_.treePlantXMLLoad = v49_.treePlantXML
+			savegame.treePlantXMLLoad = savegame.treePlantXML
 		end
 		if self.missionDynamicInfo.isMultiplayer then
 			self:startServer()
+			return
 		else
 			self:startLocal()
-		end
-	else
-		if errorCode == Savegame.ERROR_DATA_CORRUPT then
-			if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
-				YesNoDialog.show(self.onYesNoSavegameCorrupted, self, g_i18n:getText("ui_savegameCorrupt"), nil, g_i18n:getText("button_continue"), g_i18n:getText("button_cancel"))
-				return
-			end
-		elseif errorCode == Savegame.ERROR_LOAD_INVALID_USER then
-			if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
-				YesNoDialog.show(self.onYesNoSavegameCorrupted, self, g_i18n:getText("ui_savegameInvalidUser"), nil, g_i18n:getText("button_continue"), g_i18n:getText("button_cancel"))
-				return
-			end
-		elseif errorCode == Savegame.ERROR_CLOUD_CONFLICT then
-			if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
-				InfoDialog.show(g_i18n:getText("ui_savegameLoadCloudConflict"), self.onOkSavegameCloudConflict, self)
-				return
-			end
-		elseif errorCode == Savegame.ERROR_CANCELLED then
-			if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
-				self:cancelLoading()
-			end
-		elseif g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
-			InfoDialog.show(g_i18n:getText("ui_savegameLoadFailed"), self.onOkSavegameLoadFailed, self)
 			return
 		end
-		return
+	end
+	if errorCode == Savegame.ERROR_DATA_CORRUPT then
+		if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
+			YesNoDialog.show(self.onYesNoSavegameCorrupted, self, g_i18n:getText("ui_savegameCorrupt"), nil, g_i18n:getText("button_continue"), g_i18n:getText("button_cancel"))
+		end
+	elseif errorCode == Savegame.ERROR_LOAD_INVALID_USER then
+		if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
+			YesNoDialog.show(self.onYesNoSavegameCorrupted, self, g_i18n:getText("ui_savegameInvalidUser"), nil, g_i18n:getText("button_continue"), g_i18n:getText("button_cancel"))
+		end
+	elseif errorCode == Savegame.ERROR_CLOUD_CONFLICT then
+		if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
+			InfoDialog.show(g_i18n:getText("ui_savegameLoadCloudConflict"), self.onOkSavegameCloudConflict, self)
+		end
+	elseif errorCode ~= Savegame.ERROR_CANCELLED then
+		if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
+			InfoDialog.show(g_i18n:getText("ui_savegameLoadFailed"), self.onOkSavegameLoadFailed, self)
+		end
+	elseif g_gui:getIsGuiVisible() then
+		if g_gui.currentGuiName == "MPLoadingScreen" then
+			self:cancelLoading()
+		end
 	end
 end
-
--- Local values: text, callback, target, yesText, noText
 function MPLoadingScreen:onSaveGameLoadingFinished(errorCode)
 	if errorCode == Savegame.ERROR_OK then
 		if g_currentMission:getIsServer() then
 			g_messageCenter:publish(MessageType.SAVEGAME_LOADED)
-			if g_currentMission.preSimulateTime > 0 then
+			if 0 < g_currentMission.preSimulateTime then
 				simulatePhysics(true)
 				extraUpdatePhysics(g_currentMission.preSimulateTime / self.preSimulateSteps)
 				self.actionTimerCount = 1
 				self.preSimulateCount = self.preSimulateSteps - 1
+				return
 			else
 				self:onReadyToStart()
+				return
 			end
-		else
-			self:onReadyToStart()
-			return
 		end
+		self:onReadyToStart()
 	else
 		if errorCode == Savegame.ERROR_DATA_CORRUPT then
 			if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
-				local v52_ = g_i18n:getText("ui_savegameCorrupt")
-				local v53_ = self.onYesNoSavegameCorrupted
-				local v54_ = g_i18n:getText("button_continue")
-				local v55_ = g_i18n:getText("button_cancel")
-				YesNoDialog.show(v53_, self, v52_, nil, v54_, v55_)
-				return
+				local text = g_i18n:getText("ui_savegameCorrupt")
+				local callback = self.onYesNoSavegameCorrupted
+				local yesText = g_i18n:getText("button_continue")
+				local noText = g_i18n:getText("button_cancel")
+				YesNoDialog.show(callback, self, text, nil, yesText, noText)
 			end
 		elseif errorCode == Savegame.ERROR_LOAD_INVALID_USER then
 			if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
 				YesNoDialog.show(self.onYesNoSavegameCorrupted, self, g_i18n:getText("ui_savegameInvalidUser"), nil, g_i18n:getText("button_continue"), g_i18n:getText("button_cancel"))
-				return
 			end
-		elseif errorCode == Savegame.ERROR_CANCELLED then
+		elseif errorCode ~= Savegame.ERROR_CANCELLED then
 			if g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
+				InfoDialog.show(g_i18n:getText("ui_savegameLoadFailed"), self.onOkSavegameLoadFailed, self)
+			end
+		elseif g_gui:getIsGuiVisible() then
+			if g_gui.currentGuiName == "MPLoadingScreen" then
 				self:cancelLoading()
 			end
-		elseif g_gui:getIsGuiVisible() and g_gui.currentGuiName == "MPLoadingScreen" then
-			InfoDialog.show(g_i18n:getText("ui_savegameLoadFailed"), self.onOkSavegameLoadFailed, self)
-			return
 		end
-		return
 	end
 end
-
 function MPLoadingScreen:onOkSavegameLoadFailed()
 	self:cancelLoading()
 end
-
 function MPLoadingScreen:onOkSavegameCloudConflict()
 	self:cancelLoading()
 	g_gui:changeScreen(nil, self.returnScreenClass or CareerScreen)
 	g_savegameController:tryToResolveConflict(self.missionInfo.savegameIndex)
 end
-
 function MPLoadingScreen:onYesNoSavegameCorrupted(yes)
 	if yes then
 		self:cancelLoading()
@@ -716,23 +623,19 @@ function MPLoadingScreen:onYesNoSavegameCorrupted(yes)
 		self:cancelLoading()
 	end
 end
-
 function MPLoadingScreen:onFinishedReceivingDynamicData()
 	if self.missionInfo.isValid then
 		g_asyncTaskManager:addTask(function()
-			-- upvalues: (copy) self
 			saveReadSavegameFinish("onSaveGameLoadingFinished", self)
 		end)
 	else
 		self:onSaveGameLoadingFinished(Savegame.ERROR_OK)
 	end
 end
-
--- Local values: numRemainingShaders, numPendingObjects
 function MPLoadingScreen:onReadyToStart()
-	local v62_ = getRemainingShadersToWarmup()
-	local v63_ = self:getNumPendingObjects()
-	if g_currentMission:canStartMission() and (v62_ == 0 and v63_ == 0) then
+	local numRemainingShaders = getRemainingShadersToWarmup()
+	local numPendingObjects = self:getNumPendingObjects()
+	if g_currentMission:canStartMission() and (numRemainingShaders == 0 and numPendingObjects == 0) then
 		setIs3DAudioRenderingEnabled(true)
 		setIs3DGraphicsRenderingEnabled(true)
 		self.mpLoadingAnimation:setVisible(false)
@@ -740,21 +643,18 @@ function MPLoadingScreen:onReadyToStart()
 		self.isCancel = false
 		self:setButtonState(MPLoadingScreen.STATE_READY)
 		self:hitLoadingTarget(MPLoadingScreen.LOAD_TARGETS.FINISHED)
-		if g_dedicatedServer ~= nil or (Platform.autoStartAfterLoad or (Profiler.IS_INITIALIZED or StartParams.getIsSet("autoStart"))) then
+		if g_dedicatedServer ~= nil or Platform.autoStartAfterLoad or Profiler.IS_INITIALIZED or StartParams.getIsSet("autoStart") then
 			self:onClickOk()
-			return
 		end
-	else
-		self:setButtonState(MPLoadingScreen.STATE_WAIT_FOR_MISSION)
+		return
 	end
+	self:setButtonState(MPLoadingScreen.STATE_WAIT_FOR_MISSION)
 end
-
 function MPLoadingScreen:initializeLoading()
 	g_gameStateManager:setGameState(GameState.LOADING)
 	self:setMapTitleAndPreview()
 	Object.resetObjectIds()
 	g_asyncTaskManager:addTask(function()
-		-- upvalues: (copy) self
 		if self.missionInfo:isa(FSCareerMissionInfo) then
 			InitClientOnce()
 			masterServerConnectFront = nil
@@ -765,21 +665,23 @@ function MPLoadingScreen:initializeLoading()
 			masterServerAddServerModEnd = nil
 			masterServerRequestConnectionToServer = nil
 			netConnect = nil
-			if #self.missionDynamicInfo.mods > 0 then
-				if self.missionInfo.map.prohibitOtherMods and not g_isDevelopmentVersion then
-					local v65_ = g_mapManager:getModNameFromMapId(self.missionInfo.mapId)
-					local v66_ = { (g_modManager:getModByName(v65_)) }
-					self.missionDynamicInfo.mods = v66_
-				else
-					table.sort(self.missionDynamicInfo.mods, MPLoadingScreen.modSortFunc)
-				end
-				local v67_ = false
-				for _, v68_ in ipairs(self.missionDynamicInfo.mods) do
-					if not (v67_ or (v68_.isDLC or v68_.isFreeDLC)) then
-						setReflectionMapCustomCamera = nil
-						v67_ = true
+			if 0 < #self.missionDynamicInfo.mods then
+				if self.missionInfo.map.prohibitOtherMods then
+					if not g_isDevelopmentVersion then
+						local mapModName = g_mapManager:getModNameFromMapId(self.missionInfo.mapId)
+						local mapMod = g_modManager:getModByName(mapModName)
+						self.missionDynamicInfo.mods = { mapMod }
+					else
+						table.sort(self.missionDynamicInfo.mods, MPLoadingScreen.modSortFunc)
 					end
-					loadMod(v68_.modName, v68_.modDir, v68_.modFile, v68_.title)
+				end
+				local dlcsLoaded = false
+				for _, modItem in ipairs(self.missionDynamicInfo.mods) do
+					if not dlcsLoaded and (not modItem.isDLC and not modItem.isFreeDLC) then
+						dlcsLoaded = true
+						setReflectionMapCustomCamera = nil
+					end
+					loadMod(modItem.modName, modItem.modDir, modItem.modFile, modItem.title)
 				end
 			end
 		end
@@ -791,7 +693,6 @@ function MPLoadingScreen:initializeLoading()
 		g_xmlManager:initSchemas()
 	end)
 	g_asyncTaskManager:addTask(function()
-		-- upvalues: (copy) self
 		g_vehicleTypeManager:validateTypes()
 		self:hitLoadingTarget(MPLoadingScreen.LOAD_TARGETS.VEHICLE_VALIDATION)
 	end)
@@ -847,7 +748,6 @@ function MPLoadingScreen:initializeLoading()
 		g_handToolSpecializationManager:postInitSpecializations()
 	end)
 	g_asyncTaskManager:addTask(function()
-		-- upvalues: (copy) self
 		self:hitLoadingTarget(MPLoadingScreen.LOAD_TARGETS.SPECIALIZATIONS)
 	end)
 	g_asyncTaskManager:addTask(function()
@@ -860,19 +760,16 @@ function MPLoadingScreen:initializeLoading()
 	setIs3DGraphicsRenderingEnabled(false)
 	self.loadFunction(self.missionInfo, self.missionDynamicInfo, self)
 end
-
--- Local values: mapName, balanceText, playTimeText, mapPreview, name, map
 function MPLoadingScreen:setMapTitleAndPreview()
-	local v70_ = ""
-	local v71_ = ""
-	local v72_ = ""
-	local v73_ = self.mapSelectionPreview.overlay.filename
+	local mapName = ""
+	local balanceText = ""
+	local playTimeText = ""
+	local mapPreview = self.mapSelectionPreview.overlay.filename
 	if self.missionInfo ~= nil then
-		local v74_ = self.gameTitle or self.missionInfo.savegameName
-		self.savegameTitle:setText(v74_)
+		local name = self.gameTitle or self.missionInfo.savegameName
+		self.savegameTitle:setText(name)
 		if self.missionInfo.name then
-			local v75_ = self.missionInfo.name
-			v70_ = tostring(v75_)
+			mapName = tostring(self.missionInfo.name)
 		end
 		if self.missionDynamicInfo.isClient then
 			self.balanceText:setVisible(false)
@@ -880,83 +777,73 @@ function MPLoadingScreen:setMapTitleAndPreview()
 			self.balanceSeparator:setVisible(false)
 			self.playTimeSeparator:setVisible(false)
 		else
-			v71_ = g_i18n:formatMoney(self.missionInfo.money or self.missionInfo.initialMoney)
-			v72_ = g_i18n:formatMinutes(self.missionInfo.playTime)
+			balanceText = g_i18n:formatMoney(self.missionInfo.money or self.missionInfo.initialMoney)
+			playTimeText = g_i18n:formatMinutes(self.missionInfo.playTime)
 		end
-		local v76_ = g_mapManager:getMapById(self.missionInfo.mapId)
-		if v76_ ~= nil then
-			v73_ = v76_.iconFilename
+		local map = g_mapManager:getMapById(self.missionInfo.mapId)
+		if map ~= nil then
+			mapPreview = map.iconFilename
 			if self.missionInfo:isa(FSCareerMissionInfo) then
-				v70_ = v76_.title
+				mapName = map.title
 			end
 		end
 	end
-	self.mapSelectionPreview:setImageFilename(v73_)
-	self.mapNameText:setText(v70_)
-	self.balanceText:setText(v71_)
-	self.playTimeText:setText(v72_)
+	self.mapSelectionPreview:setImageFilename(mapPreview)
+	self.mapNameText:setText(mapName)
+	self.balanceText:setText(balanceText)
+	self.playTimeText:setText(playTimeText)
 	self.infoLayout:invalidateLayout()
 end
-
--- Local values: missingMods, numMissingsMods, i, modItem, parts, text, i, modItem
 function MPLoadingScreen:onServerInfoDetails(id, name, language, capacity, numPlayers, mapName, mapId, hasPassword, isLanServer, modTitles, modHashes, allowCrossPlay, platformId, password)
-	if id ~= self.missionDynamicInfo.serverId then
-		local v83_ = Logging.warning
-		local v84_ = tostring(id)
-		local v85_ = tostring(name)
-		local v86_ = self.missionDynamicInfo.serverId
-		v83_("Invalid server id \'%s\' for server \'%s\'. Requested server id \'%s\'!", v84_, v85_, (tostring(v86_)))
-		g_deepLinkingInfo = nil
-		self:showFailedToConnectDialog()
-		return
-	end
-	local v87_ = ""
-	local v88_ = 0
-	for v89_ = 1, #modHashes do
-		if g_modManager:getModByFileHash(modHashes[v89_]) == nil then
-			local v90_ = modTitles[v89_]:split(";")
-			if v87_:len() ~= 0 then
-				v87_ = v87_ .. ", "
+	if id == self.missionDynamicInfo.serverId then
+		local missingMods = ""
+		local numMissingsMods = 0
+		for i = 1, #modHashes do
+			local modItem = g_modManager:getModByFileHash(modHashes[i])
+			local parts = modTitles[i]:split(";")
+			missingMods = missingMods .. parts[1]
+			numMissingsMods = numMissingsMods + 1
+			if modItem ~= nil or missingMods:len() == 0 and not (4 <= numMissingsMods) then
+			else
+				missingMods = missingMods .. ", "
 			end
-			v87_ = v87_ .. v90_[1]
-			v88_ = v88_ + 1
-			if v88_ >= 4 then
-				break
+			if 0 < numMissingsMods then
+				local text = g_i18n:getText("ui_notAllModsAvailable")
+				text = text .. "\n" .. missingMods
+				g_deepLinkingInfo = nil
+				self:showFailedToConnectDialog(text)
+				return
+			elseif not self.missionInfo:setMapId(mapId) then
+				g_deepLinkingInfo = nil
+				self:showFailedToConnectDialog()
+				return
+			else
+				self.missionDynamicInfo.mods = {}
+				for i = 1, #modHashes do
+					local modItem = g_modManager:getModByFileHash(modHashes[i])
+					table.insert(self.missionDynamicInfo.mods, modItem)
+				end
+				g_deepLinkingInfo = nil
+				self.gameTitle = name
+				self:setMapTitleAndPreview()
+				masterServerRequestConnectionToServer(self.missionDynamicInfo.password, id, "onNatPunchSuceeded", "onNatPunchFailed", self)
+				return
 			end
 		end
-	end
-	if v88_ > 0 then
-		local v91_ = g_i18n:getText("ui_notAllModsAvailable") .. "\n" .. v87_
-		g_deepLinkingInfo = nil
-		self:showFailedToConnectDialog(v91_)
-		return
-	elseif self.missionInfo:setMapId(mapId) then
-		self.missionDynamicInfo.mods = {}
-		for v92_ = 1, #modHashes do
-			local v93_ = g_modManager:getModByFileHash(modHashes[v92_])
-			local v94_ = self.missionDynamicInfo.mods
-			table.insert(v94_, v93_)
-		end
-		g_deepLinkingInfo = nil
-		self.gameTitle = name
-		self:setMapTitleAndPreview()
-		masterServerRequestConnectionToServer(self.missionDynamicInfo.password, id, "onNatPunchSuceeded", "onNatPunchFailed", self)
 	else
+		Logging.warning("Invalid server id '%s' for server '%s'. Requested server id '%s'!", tostring(id), tostring(name), tostring(self.missionDynamicInfo.serverId))
 		g_deepLinkingInfo = nil
 		self:showFailedToConnectDialog()
 	end
 end
-
 function MPLoadingScreen:showFailedToConnectDialog(text)
 	ConnectionFailedDialog.show(text or g_i18n:getText("ui_failedToConnectToGame"), g_connectionFailedDialog.onOkCallback, g_connectionFailedDialog, { "JoinGameScreen" })
 	self:cleanup()
 end
-
 function MPLoadingScreen:onServerInfoDetailsFailed(reason)
 	g_deepLinkingInfo = nil
 	self:showFailedToConnectDialog()
 end
-
 function MPLoadingScreen:onNatPunchSuceeded(ip, port, platformSessionId, relayHeader)
 	print("nat punch suceeded")
 	self.missionDynamicInfo.serverAddress = ip
@@ -965,13 +852,10 @@ function MPLoadingScreen:onNatPunchSuceeded(ip, port, platformSessionId, relayHe
 	self.missionDynamicInfo.relayHeader = relayHeader
 	self:initializeLoading()
 end
-
 function MPLoadingScreen:onNatPunchFailed(reason)
 	ConnectionFailedDialog.showMasterServerConnectionFailedReason(reason, "JoinGameScreen")
 	self:cleanup()
 end
-
--- Local values: i, modItem, modTitleStr, map
 function MPLoadingScreen:onMasterServerConnectionReady()
 	if self.missionDynamicInfo.isClient then
 		masterServerRequestConnectionToServer(self.missionDynamicInfo.password, self.missionDynamicInfo.serverId, "onNatPunchSuceeded", "onNatPunchFailed", self)
@@ -979,31 +863,29 @@ function MPLoadingScreen:onMasterServerConnectionReady()
 		g_masterServerConnection:setCallbackTarget(self)
 		log("STARTING MP Game")
 		masterServerAddServerModStart()
-		for v106_ = 1, #self.missionDynamicInfo.mods do
-			local v107_ = self.missionDynamicInfo.mods[v106_]
-			local v108_ = v107_.fileHash ~= nil
-			assert(v108_)
-			local v109_ = ServerDetailScreen.packModInfo(v107_.title, v107_.version, v107_.author, v107_.modName)
-			log("    adding mod", v109_, v107_.fileHash)
-			masterServerAddServerMod(v109_, v107_.fileHash)
+		for i = 1, #self.missionDynamicInfo.mods do
+			local modItem = self.missionDynamicInfo.mods[i]
+			assert(modItem.fileHash ~= nil)
+			local modTitleStr = ServerDetailScreen.packModInfo(modItem.title, modItem.version, modItem.author, modItem.modName)
+			log("    adding mod", modTitleStr, modItem.fileHash)
+			masterServerAddServerMod(modTitleStr, modItem.fileHash)
 		end
 		masterServerAddServerModEnd()
-		local v110_ = g_mapManager:getMapById(self.missionInfo.mapId)
-		masterServerAddServer(self.missionDynamicInfo.serverName, self.missionDynamicInfo.password, self.missionDynamicInfo.capacity, 0, v110_.title, self.missionInfo.mapId, self.missionDynamicInfo.allowOnlyFriends, g_createGameScreen.usePendingInvites, self.missionDynamicInfo.allowCrossPlay)
+		local map = g_mapManager:getMapById(self.missionInfo.mapId)
+		masterServerAddServer(self.missionDynamicInfo.serverName, self.missionDynamicInfo.password, self.missionDynamicInfo.capacity, 0, map.title, self.missionInfo.mapId, self.missionDynamicInfo.allowOnlyFriends, g_createGameScreen.usePendingInvites, self.missionDynamicInfo.allowCrossPlay)
 		self:initializeLoading()
 	end
 end
-
--- Local values: nextScreen
 function MPLoadingScreen:onMasterServerConnectionFailed(reason)
-	local v113_ = g_currentMission == nil
-	assert(v113_)
+	assert(g_currentMission == nil)
 	saveReadSavegameFinish("", self)
 	self:cleanup()
-	local v114_ = self.isClient and "MultiplayerScreen" or "CreateGameScreen"
-	ConnectionFailedDialog.showMasterServerConnectionFailedReason(reason, v114_)
+	local nextScreen = "CreateGameScreen"
+	if self.isClient then
+		nextScreen = "MultiplayerScreen"
+	end
+	ConnectionFailedDialog.showMasterServerConnectionFailedReason(reason, nextScreen)
 end
-
 function MPLoadingScreen:cleanup()
 	self:unloadGameRelatedData()
 	g_masterServerConnection:disconnectFromMasterServer()
@@ -1013,98 +895,92 @@ function MPLoadingScreen:cleanup()
 		g_client:delete()
 		g_client = nil
 	end
-	if g_server == nil then
-		g_connectionManager:shutdownAll()
-	else
+	if g_server ~= nil then
 		g_server:delete()
 		g_server = nil
+	else
+		g_connectionManager:shutdownAll()
 	end
 end
-
 function MPLoadingScreen:setMissionInfo(missionInfo, missionDynamicInfo)
 	self.missionInfo = missionInfo
 	self.missionDynamicInfo = missionDynamicInfo
 	self.preSimulateCount = -1
 	self.doLoad = false
 end
-
--- Local values: text
 function MPLoadingScreen:setGameplayHint(currentGameplayHints, id)
 	if currentGameplayHints[id] ~= nil then
-		local v122_ = string.gsub(currentGameplayHints[id], "$CURRENCY_SYMBOL", g_i18n:getCurrencySymbol(true))
-		self.gameplayHintText:setText(v122_)
+		local text = string.gsub(currentGameplayHints[id], "$CURRENCY_SYMBOL", g_i18n:getCurrencySymbol(true))
+		self.gameplayHintText:setText(text)
 		self.hintStateBox:setPageIndex(id)
 	end
 end
-
--- Local values: isDlc1, isDlc2
 function MPLoadingScreen.modSortFunc(mod1, mod2)
-	local v125_ = mod1.isDLC or mod1.isFreeDLC
-	if v125_ == (mod2.isDLC or mod2.isFreeDLC) then
+	local isDlc1 = mod1.isDLC or mod1.isFreeDLC
+	local isDlc2 = mod2.isDLC or mod2.isFreeDLC
+	if isDlc1 == isDlc2 then
 		return string.lower(mod1.modName) < string.lower(mod2.modName)
+	elseif isDlc1 then
+		return true
 	else
-		return v125_ and true or false
+		return false
 	end
 end
-
--- Local values: isStartButtonVisible, isCancelButtonVisible
 function MPLoadingScreen:setButtonState(state)
 	self.state = state
-	local v128_ = false
-	local v129_ = false
+	local isStartButtonVisible = false
+	local isCancelButtonVisible = false
 	if self.state == MPLoadingScreen.STATE_CONNECTING then
-		v129_ = true
+		isCancelButtonVisible = true
 	elseif self.state == MPLoadingScreen.STATE_LOADING then
 		if self.missionDynamicInfo.isMultiplayer and self.isClient then
-			v129_ = true
+			isCancelButtonVisible = true
 		end
 	elseif self.state == MPLoadingScreen.STATE_READY then
+		isStartButtonVisible = true
 		FocusManager:setFocus(self.buttonOkPC)
-		v128_ = true
 	elseif self.state == MPLoadingScreen.STATE_PORT_TESTING then
-		v129_ = true
+		isCancelButtonVisible = true
 	elseif self.state == MPLoadingScreen.STATE_SYNCHRONIZING or self.state == MPLoadingScreen.STATE_LOADING then
 		if self.missionDynamicInfo.isMultiplayer and self.isClient then
-			v129_ = true
+			isCancelButtonVisible = true
 		end
-	elseif self.state == MPLoadingScreen.STATE_WAIT_FOR_ACCEPT then
-		v129_ = true
+	else
+		if self.state == MPLoadingScreen.STATE_WAIT_FOR_ACCEPT then
+			isCancelButtonVisible = true
+		end
 	end
-	self.buttonOkPC:setVisible(v128_)
-	self.buttonDeletePC:setVisible(v129_)
+	self.buttonOkPC:setVisible(isStartButtonVisible)
+	self.buttonDeletePC:setVisible(isCancelButtonVisible)
 end
-
--- Local values: numPendingVehicles, numPendingPlaceables, numPendingHandTools
 function MPLoadingScreen:getNumPendingObjects()
 	if g_currentMission == nil then
 		return 0
+	else
+		local numPendingVehicles = g_currentMission.vehicleSystem:getNumPendingVehicles()
+		local numPendingPlaceables = g_currentMission.placeableSystem:getNumPendingPlaceables()
+		local numPendingHandTools = g_currentMission.handToolSystem:getNumPendingHandTools()
+		return numPendingVehicles + numPendingPlaceables + numPendingHandTools
 	end
-	local v130_ = g_currentMission.vehicleSystem:getNumPendingVehicles()
-	local v131_ = g_currentMission.placeableSystem:getNumPendingPlaceables()
-	local v132_ = g_currentMission.handToolSystem:getNumPendingHandTools()
-	return v130_ + v131_ + v132_
 end
-
 function MPLoadingScreen:onEnqueuedAllLoadings()
 	self.totalPendingObjects = self:getNumPendingObjects()
 end
-
--- Local values: targetData, text
 function MPLoadingScreen:hitLoadingTarget(target, updatePercentage)
 	self.currentTarget = target
-	local v137_ = MPLoadingScreen.LOAD_TARGET_DATA[target]
-	if v137_ ~= nil then
+	local targetData = MPLoadingScreen.LOAD_TARGET_DATA[target]
+	if targetData ~= nil then
 		if updatePercentage == nil or updatePercentage then
-			self.loadPercentage = v137_.percentage or self.loadPercentage
+			self.loadPercentage = targetData.percentage or self.loadPercentage
 		end
-		local v138_ = v137_.nextStepText
+		local text = targetData.nextStepText
 		if Platform.isConsole then
-			v138_ = v137_.nextStepTextConsole or v138_
+			text = targetData.nextStepTextConsole or text
 		end
 		if self.missionDynamicInfo.isMultiplayer then
-			v138_ = v137_.nextStepTextMultiplayer or v138_
+			text = targetData.nextStepTextMultiplayer or text
 		end
-		self.loadingInfo:setText(v138_ == nil and "" or (g_i18n:getText(v138_) or ""))
+		self.loadingInfo:setText(text ~= nil and g_i18n:getText(text) or "")
 	end
 	if target == MPLoadingScreen.LOAD_TARGETS.VEHICLES then
 		self.numRemainingShaders = getRemainingShadersToWarmup()

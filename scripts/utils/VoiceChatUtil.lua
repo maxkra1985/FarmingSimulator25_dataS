@@ -1,32 +1,26 @@
 VoiceChatUtil = {}
-VoiceChatUtil.MODE = {
-	["DISABLED"] = 1,
-	["VOICE_ACTIVITY"] = 2,
-	["PUSH_TO_TALK"] = 3
-}
-
+VoiceChatUtil.MODE = { DISABLED = 1, VOICE_ACTIVITY = 2, PUSH_TO_TALK = 3 }
 function VoiceChatUtil.setOutputVolume(volume)
 	voiceChatSetMasterVolume(volume)
 end
 function VoiceChatUtil.getOutputVolume()
 	return voiceChatGetMasterVolume()
 end
-
 function VoiceChatUtil.setInputVolume(volume)
 	voiceChatSetRecordingVolume(volume)
 end
 function VoiceChatUtil.getInputVolume()
 	return voiceChatGetRecordingVolume()
 end
-
 function VoiceChatUtil.setInputMode(mode)
 	if mode == VoiceChatUtil.MODE.DISABLED then
 		voiceChatSetRecordingMode(VoiceChatRecordingMode.DISABLED)
-		return
 	elseif mode == VoiceChatUtil.MODE.VOICE_ACTIVITY then
 		voiceChatSetRecordingMode(VoiceChatRecordingMode.AUTOMATIC)
-	elseif mode == VoiceChatUtil.MODE.PUSH_TO_TALK then
-		voiceChatSetRecordingMode(VoiceChatRecordingMode.MUTED)
+	else
+		if mode == VoiceChatUtil.MODE.PUSH_TO_TALK then
+			voiceChatSetRecordingMode(VoiceChatRecordingMode.MUTED)
+		end
 	end
 end
 function VoiceChatUtil.getInputMode()
@@ -36,7 +30,6 @@ function VoiceChatUtil.getInputMode()
 		return g_gameSettings:getValue(SettingsModel.SETTING.VOICE_MODE)
 	end
 end
-
 function VoiceChatUtil.setIsPushToTalkPressed(pressed)
 	if g_currentMission ~= nil and (g_currentMission.missionDynamicInfo.isMultiplayer and VoiceChatUtil.getInputMode() == VoiceChatUtil.MODE.PUSH_TO_TALK) then
 		if pressed then
@@ -46,20 +39,21 @@ function VoiceChatUtil.setIsPushToTalkPressed(pressed)
 		voiceChatSetRecordingMode(VoiceChatRecordingMode.MUTED)
 	end
 end
-
 function VoiceChatUtil.setUserVolume(uuid, volume)
 	voiceChatSetUserVolume(uuid, volume)
 end
-
 function VoiceChatUtil.getUserVolume(uuid)
 	return voiceChatGetUserVolume(uuid)
 end
-
 function VoiceChatUtil.getIsSpeakerActive(uuid)
 	return voiceChatGetConnectionStatus(uuid) == VoiceChatConnectionStatus.ACTIVE
 end
 function VoiceChatUtil.getHasRecordingDevice()
-	return not Platform.hasRecordingDeviceDetection and true or voiceChatGetHasRecordingDevice()
+	if Platform.hasRecordingDeviceDetection then
+		return voiceChatGetHasRecordingDevice()
+	else
+		return true
+	end
 end
 function VoiceChatUtil.getIsVoiceRestricted()
 	return not getAllowVoiceCommunication(false)
@@ -68,10 +62,13 @@ function VoiceChatUtil.showVoiceRestrictedPopup()
 	getAllowVoiceCommunication(true)
 end
 function VoiceChatUtil.getInputSensitivity()
-	local v9_ = voiceChatGetAutoActivationSensitivity()
-	return v9_ < 0 and -1 or 1 - v9_
+	local raw = voiceChatGetAutoActivationSensitivity()
+	if raw < 0 then
+		return -1
+	else
+		return 1 - raw
+	end
 end
-
 function VoiceChatUtil.setInputSensitivity(value)
 	voiceChatSetAutoActivationSensitivity(value)
 end

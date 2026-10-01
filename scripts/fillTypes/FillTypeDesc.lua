@@ -1,313 +1,281 @@
--- Local values: FillTypeDesc_mt
 FillTypeDesc = {}
 local FillTypeDesc_mt = Class(FillTypeDesc)
-
--- Upvalues: FillTypeDesc_mt
--- Local values: self
 function FillTypeDesc.new(customMt)
-	-- upvalues: (copy) FillTypeDesc_mt
-	local v3_ = customMt or FillTypeDesc_mt
-	local v4_ = setmetatable({}, v3_)
-	v4_.index = nil
-	v4_.name = "UNKNOWN"
-	v4_.title = "Unknown"
-	v4_.unitShort = ""
-	v4_.achievementName = nil
-	v4_.showOnPriceTable = false
-	v4_.pricePerLiter = 0
-	v4_.massPerLiter = 0.001
-	v4_.maxPhysicalSurfaceAngle = 0.5235987755982988
-	v4_.hudOverlayFilename = nil
-	v4_.textureArrayIndex = nil
-	v4_.layerTextures = {}
-	v4_.layerTextures.diffuseMapFilename = nil
-	v4_.layerTextures.normalMapFilename = nil
-	v4_.layerTextures.heightMapFilename = nil
-	v4_.layerTextures.displacementMapFilename = nil
-	v4_.layerTextures.distanceFilename = nil
-	v4_.layerTextures.isValid = false
-	v4_.layerParameters = {}
-	v4_.layerParameters.unitSize = 4
-	v4_.layerParameters.displacementMaxHeight = 0.2
-	v4_.layerParameters.blendContrast = 0.5
-	v4_.layerParameters.noiseScale = 0.5
-	v4_.layerParameters.fillBlendStart = 1
-	v4_.layerParameters.porosityAtZeroRoughness = 0
-	v4_.layerParameters.porosityAtFullRoughness = 0
-	v4_.layerParameters.firmness = 0.5
-	v4_.layerParameters.viscosity = 0.5
-	v4_.layerParameters.firmnessWet = 0.5
-	v4_.hudFilename = nil
-	v4_.palletFilename = nil
-	v4_.previousHourPrice = 0
-	v4_.startPricePerLiter = 0
-	v4_.totalAmount = 0
-	v4_.economy = {}
-	v4_.economy.factors = {}
-	v4_.economy.history = {}
-	v4_.economy.sychronizeData = true
-	v4_.prioritizedEffectType = "ShaderPlaneEffect"
-	v4_.fillSmokeColor = nil
-	v4_.fruitSmokeColor = nil
-	v4_.particles = {}
-	v4_.alphaClip = {}
-	v4_.alphaClip.value = 0.5
-	v4_.alphaClip.sharpness = 0.5
-	v4_.alphaClip.gradientScale = 1
-	v4_.alphaClip.alphaScale = 1
-	v4_.alphaClip.beltAlphaScale = 1
-	v4_.finalized = false
-	return v4_
+	local self = setmetatable({}, customMt or FillTypeDesc_mt)
+	self.index = nil
+	self.name = "UNKNOWN"
+	self.title = "Unknown"
+	self.unitShort = ""
+	self.achievementName = nil
+	self.showOnPriceTable = false
+	self.pricePerLiter = 0
+	self.massPerLiter = 0.001
+	self.maxPhysicalSurfaceAngle = 0.5235987755982988
+	self.hudOverlayFilename = nil
+	self.textureArrayIndex = nil
+	self.layerTextures = {}
+	self.layerTextures.diffuseMapFilename = nil
+	self.layerTextures.normalMapFilename = nil
+	self.layerTextures.heightMapFilename = nil
+	self.layerTextures.displacementMapFilename = nil
+	self.layerTextures.distanceFilename = nil
+	self.layerTextures.isValid = false
+	self.layerParameters = {}
+	self.layerParameters.unitSize = 4
+	self.layerParameters.displacementMaxHeight = 0.2
+	self.layerParameters.blendContrast = 0.5
+	self.layerParameters.noiseScale = 0.5
+	self.layerParameters.fillBlendStart = 1
+	self.layerParameters.porosityAtZeroRoughness = 0
+	self.layerParameters.porosityAtFullRoughness = 0
+	self.layerParameters.firmness = 0.5
+	self.layerParameters.viscosity = 0.5
+	self.layerParameters.firmnessWet = 0.5
+	self.hudFilename = nil
+	self.palletFilename = nil
+	self.previousHourPrice = 0
+	self.startPricePerLiter = 0
+	self.totalAmount = 0
+	self.economy = {}
+	self.economy.factors = {}
+	self.economy.history = {}
+	self.economy.sychronizeData = true
+	self.prioritizedEffectType = "ShaderPlaneEffect"
+	self.fillSmokeColor = nil
+	self.fruitSmokeColor = nil
+	self.particles = {}
+	self.alphaClip = {}
+	self.alphaClip.value = 0.5
+	self.alphaClip.sharpness = 0.5
+	self.alphaClip.gradientScale = 1
+	self.alphaClip.alphaScale = 1
+	self.alphaClip.beltAlphaScale = 1
+	self.finalized = false
+	return self
 end
-
--- Local values: economicCurve, period, _, particleKey, particle
 function FillTypeDesc:loadFromXMLFile(xmlFile, key, baseDirectory, customEnvironment)
 	self.name = xmlFile:getValue(key .. "#name")
 	if not ClassUtil.getIsValidIndexName(self.name) then
-		Logging.warning("\'%s\' is not a valid name for a fillType. Ignoring fillType!", self.name)
+		Logging.warning("'%s' is not a valid name for a fillType. Ignoring fillType!", self.name)
 		return false
-	end
-	self.name = string.upper(self.name)
-	self.title = xmlFile:getValue(key .. "#title", self.title, customEnvironment)
-	self.achievementName = xmlFile:getValue(key .. "#achievementName", self.achievementName)
-	self.showOnPriceTable = xmlFile:getValue(key .. "#showOnPriceTable", self.showOnPriceTable)
-	self.unitShort = xmlFile:getValue(key .. "#unitShort", self.unitShort, customEnvironment)
-	self.isBulkType = xmlFile:getValue(key .. "#isBulkType", false)
-	self.isPalletType = xmlFile:getValue(key .. "#isPalletType", false)
-	self.isBaleType = xmlFile:getValue(key .. "#isBaleType", false)
-	self.massPerLiter = xmlFile:getValue(key .. ".physics#massPerLiter", self.massPerLiter * 1000) * 0.001
-	self.maxPhysicalSurfaceAngle = Utils.getNoNilRad(xmlFile:getValue(key .. ".physics#maxPhysicalSurfaceAngle"), self.maxPhysicalSurfaceAngle)
-	self.hudOverlayFilename = xmlFile:getValue(key .. ".image#hud", nil, baseDirectory) or self.hudOverlayFilename
-	self.palletFilename = xmlFile:getValue(key .. ".pallet#filename", nil, baseDirectory) or self.palletFilename
-	self.pricePerLiter = xmlFile:getValue(key .. ".economy#pricePerLiter", self.pricePerLiter)
-	local v_u_10_ = {}
-	xmlFile:iterate(key .. ".economy.factors.factor", function(_, p11_)
-		-- upvalues: (copy) xmlFile, (copy) v_u_10_
-		local v12_ = xmlFile:getValue(p11_ .. "#period")
-		local v13_ = xmlFile:getValue(p11_ .. "#value")
-		if v12_ ~= nil and v13_ ~= nil then
-			v_u_10_[v12_] = v13_
-		end
-	end)
-	for v14_ = SeasonPeriod.EARLY_SPRING, SeasonPeriod.LATE_WINTER do
-		self.economy.factors[v14_] = v_u_10_[v14_] or (self.economy.factors[v14_] or 1)
-		self.economy.history[v14_] = self.economy.factors[v14_] * self.pricePerLiter
-	end
-	self.layerTextures.diffuseMapFilename = xmlFile:getValue(key .. ".textures#diffuse", nil, baseDirectory) or self.layerTextures.diffuseMapFilename
-	self.layerTextures.normalMapFilename = xmlFile:getValue(key .. ".textures#normal", nil, baseDirectory) or self.layerTextures.normalMapFilename
-	self.layerTextures.heightMapFilename = xmlFile:getValue(key .. ".textures#height", nil, baseDirectory) or self.layerTextures.heightMapFilename
-	self.layerTextures.displacementMapFilename = xmlFile:getValue(key .. ".textures#displacement", nil, baseDirectory) or self.layerTextures.displacementMapFilename
-	self.layerTextures.distanceFilename = xmlFile:getValue(key .. ".textures#distance", nil, baseDirectory) or self.layerTextures.distanceFilename
-	local v15_ = self.layerTextures
-	local v16_
-	if self.layerTextures.diffuseMapFilename == nil or (self.layerTextures.normalMapFilename == nil or self.layerTextures.heightMapFilename == nil) then
-		v16_ = false
 	else
-		v16_ = self.layerTextures.displacementMapFilename ~= nil
-	end
-	v15_.isValid = v16_
-	self.layerParameters.unitSize = xmlFile:getValue(key .. ".textures#unitSize", self.layerParameters.unitSize)
-	self.layerParameters.displacementMaxHeight = xmlFile:getValue(key .. ".textures#displacementMaxHeight", self.layerParameters.displacementMaxHeight)
-	self.layerParameters.blendContrast = xmlFile:getValue(key .. ".textures#blendContrast", self.layerParameters.blendContrast)
-	self.layerParameters.noiseScale = xmlFile:getValue(key .. ".textures#noiseScale", self.layerParameters.noiseScale)
-	self.layerParameters.fillBlendStart = xmlFile:getValue(key .. ".textures#fillBlendStart", self.layerParameters.fillBlendStart)
-	self.layerParameters.porosityAtZeroRoughness = xmlFile:getValue(key .. ".textures#porosityAtZeroRoughness", self.layerParameters.porosityAtZeroRoughness)
-	self.layerParameters.porosityAtFullRoughness = xmlFile:getValue(key .. ".textures#porosityAtFullRoughness", self.layerParameters.porosityAtFullRoughness)
-	self.layerParameters.firmness = xmlFile:getValue(key .. ".textures#firmness", self.layerParameters.firmness)
-	self.layerParameters.viscosity = xmlFile:getValue(key .. ".textures#viscosity", self.layerParameters.viscosity)
-	self.layerParameters.firmnessWet = xmlFile:getValue(key .. ".textures#firmnessWet", self.layerParameters.firmness)
-	self.prioritizedEffectType = xmlFile:getValue(key .. ".effects#prioritizedEffectType", self.prioritizedEffectType)
-	self.fillSmokeColor = xmlFile:getValue(key .. ".effects#fillSmokeColor", self.fillSmokeColor, true)
-	self.fruitSmokeColor = xmlFile:getValue(key .. ".effects#fruitSmokeColor", self.fruitSmokeColor, true)
-	for _, v17_ in xmlFile:iterator(key .. ".effects.particle") do
-		local v18_ = {
-			["particleType"] = xmlFile:getValue(v17_ .. "#particleType")
-		}
-		if v18_.particleType == nil then
-			Logging.xmlWarning(xmlFile, "Missing particleType in \'%s\'", v17_)
-		else
-			v18_.filename = xmlFile:getValue(v17_ .. "#filename", nil, baseDirectory)
-			if v18_.filename == nil then
-				Logging.xmlWarning(xmlFile, "Missing filename in \'%s\'", v17_)
+		self.name = string.upper(self.name)
+		self.title = xmlFile:getValue(key .. "#title", self.title, customEnvironment)
+		self.achievementName = xmlFile:getValue(key .. "#achievementName", self.achievementName)
+		self.showOnPriceTable = xmlFile:getValue(key .. "#showOnPriceTable", self.showOnPriceTable)
+		self.unitShort = xmlFile:getValue(key .. "#unitShort", self.unitShort, customEnvironment)
+		self.isBulkType = xmlFile:getValue(key .. "#isBulkType", false)
+		self.isPalletType = xmlFile:getValue(key .. "#isPalletType", false)
+		self.isBaleType = xmlFile:getValue(key .. "#isBaleType", false)
+		self.massPerLiter = xmlFile:getValue(key .. ".physics#massPerLiter", self.massPerLiter * 1000) * 0.001
+		self.maxPhysicalSurfaceAngle = Utils.getNoNilRad(xmlFile:getValue(key .. ".physics#maxPhysicalSurfaceAngle"), self.maxPhysicalSurfaceAngle)
+		self.hudOverlayFilename = xmlFile:getValue(key .. ".image#hud", nil, baseDirectory) or self.hudOverlayFilename
+		self.palletFilename = xmlFile:getValue(key .. ".pallet#filename", nil, baseDirectory) or self.palletFilename
+		self.pricePerLiter = xmlFile:getValue(key .. ".economy#pricePerLiter", self.pricePerLiter)
+		local economicCurve = {}
+		xmlFile:iterate(key .. ".economy.factors.factor", function(_, factorKey)
+			local period = xmlFile:getValue(factorKey .. "#period")
+			local factor = xmlFile:getValue(factorKey .. "#value")
+			if period ~= nil and factor ~= nil then
+				economicCurve[period] = factor
+			end
+		end)
+		for period = SeasonPeriod.EARLY_SPRING, SeasonPeriod.LATE_WINTER do
+			self.economy.factors[period] = economicCurve[period] or self.economy.factors[period] or 1
+			self.economy.history[period] = self.economy.factors[period] * self.pricePerLiter
+		end
+		self.layerTextures.diffuseMapFilename = xmlFile:getValue(key .. ".textures#diffuse", nil, baseDirectory) or self.layerTextures.diffuseMapFilename
+		self.layerTextures.normalMapFilename = xmlFile:getValue(key .. ".textures#normal", nil, baseDirectory) or self.layerTextures.normalMapFilename
+		self.layerTextures.heightMapFilename = xmlFile:getValue(key .. ".textures#height", nil, baseDirectory) or self.layerTextures.heightMapFilename
+		self.layerTextures.displacementMapFilename = xmlFile:getValue(key .. ".textures#displacement", nil, baseDirectory) or self.layerTextures.displacementMapFilename
+		self.layerTextures.distanceFilename = xmlFile:getValue(key .. ".textures#distance", nil, baseDirectory) or self.layerTextures.distanceFilename
+		self.layerTextures.isValid = self.layerTextures.diffuseMapFilename ~= nil and self.layerTextures.normalMapFilename ~= nil and self.layerTextures.heightMapFilename ~= nil and self.layerTextures.displacementMapFilename ~= nil
+		self.layerParameters.unitSize = xmlFile:getValue(key .. ".textures#unitSize", self.layerParameters.unitSize)
+		self.layerParameters.displacementMaxHeight = xmlFile:getValue(key .. ".textures#displacementMaxHeight", self.layerParameters.displacementMaxHeight)
+		self.layerParameters.blendContrast = xmlFile:getValue(key .. ".textures#blendContrast", self.layerParameters.blendContrast)
+		self.layerParameters.noiseScale = xmlFile:getValue(key .. ".textures#noiseScale", self.layerParameters.noiseScale)
+		self.layerParameters.fillBlendStart = xmlFile:getValue(key .. ".textures#fillBlendStart", self.layerParameters.fillBlendStart)
+		self.layerParameters.porosityAtZeroRoughness = xmlFile:getValue(key .. ".textures#porosityAtZeroRoughness", self.layerParameters.porosityAtZeroRoughness)
+		self.layerParameters.porosityAtFullRoughness = xmlFile:getValue(key .. ".textures#porosityAtFullRoughness", self.layerParameters.porosityAtFullRoughness)
+		self.layerParameters.firmness = xmlFile:getValue(key .. ".textures#firmness", self.layerParameters.firmness)
+		self.layerParameters.viscosity = xmlFile:getValue(key .. ".textures#viscosity", self.layerParameters.viscosity)
+		self.layerParameters.firmnessWet = xmlFile:getValue(key .. ".textures#firmnessWet", self.layerParameters.firmness)
+		self.prioritizedEffectType = xmlFile:getValue(key .. ".effects#prioritizedEffectType", self.prioritizedEffectType)
+		self.fillSmokeColor = xmlFile:getValue(key .. ".effects#fillSmokeColor", self.fillSmokeColor, true)
+		self.fruitSmokeColor = xmlFile:getValue(key .. ".effects#fruitSmokeColor", self.fruitSmokeColor, true)
+		for _, particleKey in xmlFile:iterator(key .. ".effects.particle") do
+			local particle = {}
+			particle.particleType = xmlFile:getValue(particleKey .. "#particleType")
+			if particle.particleType ~= nil then
+				particle.filename = xmlFile:getValue(particleKey .. "#filename", nil, baseDirectory)
+				if particle.filename ~= nil then
+					particle.useFillTexture = xmlFile:getValue(particleKey .. "#useFillTexture", false)
+					particle.emitCountScale = xmlFile:getValue(particleKey .. "#emitCountScale", 1)
+					particle.spriteScaleX = xmlFile:getValue(particleKey .. "#spriteScaleX")
+					particle.spriteScaleY = xmlFile:getValue(particleKey .. "#spriteScaleY")
+					self.particles[particle.particleType] = particle
+				else
+					Logging.xmlWarning(xmlFile, "Missing filename in '%s'", particleKey)
+				end
 			else
-				v18_.useFillTexture = xmlFile:getValue(v17_ .. "#useFillTexture", false)
-				v18_.emitCountScale = xmlFile:getValue(v17_ .. "#emitCountScale", 1)
-				v18_.spriteScaleX = xmlFile:getValue(v17_ .. "#spriteScaleX")
-				v18_.spriteScaleY = xmlFile:getValue(v17_ .. "#spriteScaleY")
-				self.particles[v18_.particleType] = v18_
+				Logging.xmlWarning(xmlFile, "Missing particleType in '%s'", particleKey)
 			end
 		end
-	end
-	self.alphaClip = {}
-	self.alphaClip.value = xmlFile:getValue(key .. ".effects.alphaClip#value", self.alphaClip.value)
-	self.alphaClip.sharpness = xmlFile:getValue(key .. ".effects.alphaClip#sharpness", self.alphaClip.sharpness)
-	self.alphaClip.gradientScale = xmlFile:getValue(key .. ".effects.alphaClip#gradientScale", self.alphaClip.gradientScale)
-	self.alphaClip.alphaScale = xmlFile:getValue(key .. ".effects.alphaClip#alphaScale", self.alphaClip.alphaScale)
-	self.alphaClip.beltAlphaScale = xmlFile:getValue(key .. ".effects.alphaClip#beltAlphaScale", self.alphaClip.beltAlphaScale)
-	return true
-end
-
--- Local values: _, particle, i3dNode, sharedLoadRequestId, failedReason
-function FillTypeDesc:finalize(force)
-	if not self.finalized or force then
-		self.finalized = true
-		for _, v21_ in pairs(self.particles) do
-			if force then
-				local v22_, v23_, v24_ = g_i3DManager:loadSharedI3DFile(v21_.filename, false, false)
-				self:particleShapeI3DFileLoaded(v22_, v24_, v21_)
-				v21_.sharedLoadRequestId = v23_
-			else
-				v21_.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(v21_.filename, false, false, self.particleShapeI3DFileLoaded, self, v21_)
-			end
-		end
-	end
-end
-
--- Local values: node
-function FillTypeDesc:particleShapeI3DFileLoaded(i3dNode, failedReason, particle)
-	if i3dNode == 0 then
-		return
-	elseif getNumOfChildren(i3dNode) == 0 then
-		Logging.error("i3d file %q does not contain a shape", particle.filename)
-		delete(i3dNode)
-		return
-	else
-		local v27_ = getChildAt(i3dNode, 0)
-		if getHasClassId(v27_, ClassIds.SHAPE) then
-			particle.shape = v27_
-			unlink(particle.shape)
-			setVisibility(particle.shape, false)
-			particle.materialId = getMaterial(particle.shape, 0)
-			delete(i3dNode)
-		else
-			Logging.error("node %q in %q is not a shape", getName(v27_), particle.filename)
-			delete(i3dNode)
-		end
-	end
-end
-
--- Local values: _, particle
-function FillTypeDesc:delete()
-	for _, v29_ in pairs(self.particles) do
-		if v29_.sharedLoadRequestId ~= nil then
-			g_i3DManager:releaseSharedI3DFile(v29_.sharedLoadRequestId)
-			v29_.sharedLoadRequestId = nil
-		end
-		if v29_.shape ~= nil then
-			delete(v29_.shape)
-			v29_.shape = nil
-		end
-		v29_.materialId = nil
-	end
-end
-
--- Local values: layerTextures, layerParameters
-function FillTypeDesc:addTerrainFillLayer(terrainRootNodeId, index)
-	local v33_ = self.layerTextures
-	if not v33_.isValid then
-		Logging.error("Failed to create terrain fill layer. Fill type \'%s\' does not have textures defined!", self.name)
-		return false
-	end
-	local v34_ = self.layerParameters
-	addTerrainFillLayer(terrainRootNodeId, self.name, v33_.diffuseMapFilename, v33_.normalMapFilename, v33_.heightMapFilename, v33_.displacementMapFilename, v34_.unitSize, v34_.displacementMaxHeight, v34_.blendContrast, v34_.noiseScale, v34_.fillBlendStart, v34_.porosityAtZeroRoughness, v34_.porosityAtFullRoughness, v34_.firmness, v34_.viscosity, v34_.firmnessWet)
-	self.textureArrayIndex = index
-	return true
-end
-
-function FillTypeDesc:addDistanceTexture(distanceConstr, index)
-	if self.layerTextures.distanceFilename == nil or self.layerTextures.distanceFilename:len() <= 0 then
-		Logging.error("Failed to create density height map distance texture array. Fill type \'%s\' does not have distance texture defined!", self.name)
-		return false
-	else
-		distanceConstr:addTexture(index, self.layerTextures.distanceFilename, 3)
+		self.alphaClip = {}
+		self.alphaClip.value = xmlFile:getValue(key .. ".effects.alphaClip#value", self.alphaClip.value)
+		self.alphaClip.sharpness = xmlFile:getValue(key .. ".effects.alphaClip#sharpness", self.alphaClip.sharpness)
+		self.alphaClip.gradientScale = xmlFile:getValue(key .. ".effects.alphaClip#gradientScale", self.alphaClip.gradientScale)
+		self.alphaClip.alphaScale = xmlFile:getValue(key .. ".effects.alphaClip#alphaScale", self.alphaClip.alphaScale)
+		self.alphaClip.beltAlphaScale = xmlFile:getValue(key .. ".effects.alphaClip#beltAlphaScale", self.alphaClip.beltAlphaScale)
 		return true
 	end
 end
-
+function FillTypeDesc:finalize(force)
+	if not self.finalized or force then
+		self.finalized = true
+		for _, particle in pairs(self.particles) do
+			if force then
+				local i3dNode, sharedLoadRequestId, failedReason = g_i3DManager:loadSharedI3DFile(particle.filename, false, false)
+				self:particleShapeI3DFileLoaded(i3dNode, failedReason, particle)
+				particle.sharedLoadRequestId = sharedLoadRequestId
+			else
+				particle.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(particle.filename, false, false, self.particleShapeI3DFileLoaded, self, particle)
+			end
+		end
+	end
+end
+function FillTypeDesc:particleShapeI3DFileLoaded(i3dNode, failedReason, particle)
+	if i3dNode == 0 then
+		return
+	end
+	if getNumOfChildren(i3dNode) == 0 then
+		Logging.error("i3d file %q does not contain a shape", particle.filename)
+		delete(i3dNode)
+		return
+	end
+	local node = getChildAt(i3dNode, 0)
+	if not getHasClassId(node, ClassIds.SHAPE) then
+		Logging.error("node %q in %q is not a shape", getName(node), particle.filename)
+		delete(i3dNode)
+	else
+		particle.shape = node
+		unlink(particle.shape)
+		setVisibility(particle.shape, false)
+		particle.materialId = getMaterial(particle.shape, 0)
+		delete(i3dNode)
+	end
+end
+function FillTypeDesc:delete()
+	for _, particle in pairs(self.particles) do
+		if particle.sharedLoadRequestId ~= nil then
+			g_i3DManager:releaseSharedI3DFile(particle.sharedLoadRequestId)
+			particle.sharedLoadRequestId = nil
+		end
+		if particle.shape ~= nil then
+			delete(particle.shape)
+			particle.shape = nil
+		end
+		particle.materialId = nil
+	end
+end
+function FillTypeDesc:addTerrainFillLayer(terrainRootNodeId, index)
+	local layerTextures = self.layerTextures
+	if layerTextures.isValid then
+		local layerParameters = self.layerParameters
+		addTerrainFillLayer(terrainRootNodeId, self.name, layerTextures.diffuseMapFilename, layerTextures.normalMapFilename, layerTextures.heightMapFilename, layerTextures.displacementMapFilename, layerParameters.unitSize, layerParameters.displacementMaxHeight, layerParameters.blendContrast, layerParameters.noiseScale, layerParameters.fillBlendStart, layerParameters.porosityAtZeroRoughness, layerParameters.porosityAtFullRoughness, layerParameters.firmness, layerParameters.viscosity, layerParameters.firmnessWet)
+		self.textureArrayIndex = index
+		return true
+	else
+		Logging.error("Failed to create terrain fill layer. Fill type '%s' does not have textures defined!", self.name)
+		return false
+	end
+end
+function FillTypeDesc:addDistanceTexture(distanceConstr, index)
+	if self.layerTextures.distanceFilename ~= nil and 0 < self.layerTextures.distanceFilename:len() then
+		distanceConstr:addTexture(index, self.layerTextures.distanceFilename, 3)
+		return true
+	end
+	Logging.error("Failed to create density height map distance texture array. Fill type '%s' does not have distance texture defined!", self.name)
+	return false
+end
 function FillTypeDesc:getTextureUnitSize()
 	return self.layerParameters.unitSize
 end
-
 function FillTypeDesc:getBeltEffectAlphaClipScale()
 	return self.alphaClip.beltAlphaScale
 end
-
--- Local values: customEmitCountScale, particleUseFillTextureArray, particle, effectMaterial, color, _, _, _, a
 function FillTypeDesc:setParticleSystemFillType(particleSystem, particleType, materialType, useFruitColor, emitCountScale, alphaScale)
-	local v47_ = nil
+	local customEmitCountScale = nil
 	if materialType ~= nil then
-		local v48_ = true
-		local v49_ = self.particles[particleType]
-		if v49_ ~= nil and v49_.shape ~= nil then
-			setParticleShape(getGeometry(particleSystem.shape), v49_.shape)
-			setMaterial(particleSystem.shape, v49_.materialId, 0)
-			v47_ = particleSystem.emitterShapeSize / particleSystem.defaultEmitterShapeSize * emitCountScale * v49_.emitCountScale
-			ParticleUtil.initEmitterScale(particleSystem, v47_)
-			if v49_.spriteScaleX ~= nil then
-				ParticleUtil.setParticleSystemSpriteScaleX(particleSystem, v49_.spriteScaleX)
+		local particleUseFillTextureArray = true
+		local particle = self.particles[particleType]
+		if particle ~= nil and particle.shape ~= nil then
+			setParticleShape(getGeometry(particleSystem.shape), particle.shape)
+			setMaterial(particleSystem.shape, particle.materialId, 0)
+			customEmitCountScale = particleSystem.emitterShapeSize / particleSystem.defaultEmitterShapeSize * emitCountScale * particle.emitCountScale
+			ParticleUtil.initEmitterScale(particleSystem, customEmitCountScale)
+			if particle.spriteScaleX ~= nil then
+				ParticleUtil.setParticleSystemSpriteScaleX(particleSystem, particle.spriteScaleX)
 			end
-			if v49_.spriteScaleY ~= nil then
-				ParticleUtil.setParticleSystemSpriteScaleY(particleSystem, v49_.spriteScaleY)
+			if particle.spriteScaleY ~= nil then
+				ParticleUtil.setParticleSystemSpriteScaleY(particleSystem, particle.spriteScaleY)
 			end
-			if not v49_.useFillTexture then
-				v48_ = false
+			if not particle.useFillTexture then
+				particleUseFillTextureArray = false
 			end
 		end
-		if v48_ then
-			local v50_ = g_materialManager:getBaseMaterialByName(materialType)
-			if v50_ == nil then
-				Logging.error("Failed to assign material to shader plane effect. Base Material \'%s\' not found!", materialType)
-			else
-				ParticleUtil.setMaterial(particleSystem, v50_)
-				setMaterial(particleSystem.shape, v50_, 0)
-				if getMaterialCustomShaderFilename(v50_):contains("psSubUVShader") then
+		if particleUseFillTextureArray then
+			local effectMaterial = g_materialManager:getBaseMaterialByName(materialType)
+			if effectMaterial ~= nil then
+				ParticleUtil.setMaterial(particleSystem, effectMaterial)
+				setMaterial(particleSystem.shape, effectMaterial, 0)
+				if getMaterialCustomShaderFilename(effectMaterial):contains("psSubUVShader") then
 					g_fillTypeManager:assignCustomFillTypeTextureArraysFromTerrain(particleSystem.shape, g_terrainNode, "fillTypeColorMap", "", "")
 				else
 					g_fillTypeManager:assignFillTypeTextureArraysFromTerrain(particleSystem.shape, g_terrainNode, true, true, true)
 				end
+			else
+				Logging.error("Failed to assign material to shader plane effect. Base Material '%s' not found!", materialType)
 			end
 			if self.textureArrayIndex ~= nil then
 				setShaderParameter(particleSystem.shape, "fillTypeId", self.textureArrayIndex - 1, 0, 0, 0, false)
 			end
 		end
 		if string.lower(particleType):contains("smoke") or string.lower(materialType):contains("smoke") then
-			local v51_
-			if useFruitColor then
-				v51_ = self.fruitSmokeColor or self.fillSmokeColor
+			local color = nil
+			if not useFruitColor then
+				color = self.fillSmokeColor
 			else
-				v51_ = self.fillSmokeColor
+				color = self.fruitSmokeColor or self.fillSmokeColor
 			end
-			if v51_ == nil then
+			if color ~= nil then
 				if getHasShaderParameter(particleSystem.shape, "colorAlpha") then
-					local _, _, _, v52_ = getShaderParameter(particleSystem.shape, "colorAlpha")
-					setShaderParameter(particleSystem.shape, "colorAlpha", nil, nil, nil, v52_ * (alphaScale or 1), false)
+					setShaderParameter(particleSystem.shape, "colorAlpha", color[1], color[2], color[3], color[4] * (alphaScale or 1), false)
 				end
 			elseif getHasShaderParameter(particleSystem.shape, "colorAlpha") then
-				setShaderParameter(particleSystem.shape, "colorAlpha", v51_[1], v51_[2], v51_[3], v51_[4] * (alphaScale or 1), false)
+				local _, _, _, a = getShaderParameter(particleSystem.shape, "colorAlpha")
+				setShaderParameter(particleSystem.shape, "colorAlpha", nil, nil, nil, a * (alphaScale or 1), false)
 			end
 		end
 		if getHasShaderParameter(particleSystem.shape, "alphaClip") then
 			setShaderParameter(particleSystem.shape, "alphaClip", self.alphaClip.value, self.alphaClip.sharpness, self.alphaClip.gradientScale, self.alphaClip.alphaScale, false)
 		end
 	end
-	return v47_
+	return customEmitCountScale
 end
-
--- Local values: fillTypesXMLFile
 function FillTypeDesc:reloadData()
 	if self.index ~= FillType.UNKNOWN then
 		if self.xmlFilename ~= nil then
 			self:delete()
-			local v54_ = XMLFile.load("fillTypes", self.xmlFilename, FillTypeManager.xmlSchema)
-			self:loadFromXMLFile(v54_, self.xmlKey, self.xmlBaseDirectory, self.xmlCustomEnvironment)
-			v54_:delete()
+			local fillTypesXMLFile = XMLFile.load("fillTypes", self.xmlFilename, FillTypeManager.xmlSchema)
+			self:loadFromXMLFile(fillTypesXMLFile, self.xmlKey, self.xmlBaseDirectory, self.xmlCustomEnvironment)
+			fillTypesXMLFile:delete()
 			self:finalize(true)
 			return
 		end
 		Logging.error("Failed to reload fillType data. Only possible with -scriptDebug!")
 	end
 end
-
 function FillTypeDesc.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. "#name", "Name of fill type")
 	schema:register(XMLValueType.L10N_STRING, basePath .. "#title", "Display name of fill type")

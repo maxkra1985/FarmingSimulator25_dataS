@@ -1,14 +1,9 @@
--- Local values: AIMessageErrorNoVineFound_mt
 AIMessageErrorNoVineFound = {}
 local AIMessageErrorNoVineFound_mt = Class(AIMessageErrorNoVineFound, AIMessage)
-
--- Upvalues: AIMessageErrorNoVineFound_mt
--- Local values: self
 function AIMessageErrorNoVineFound.new(customMt)
-	-- upvalues: (copy) AIMessageErrorNoVineFound_mt
-	return AIMessage.new(customMt or AIMessageErrorNoVineFound_mt)
+	local self = AIMessage.new(customMt or AIMessageErrorNoVineFound_mt)
+	return self
 end
-
 function AIMessageErrorNoVineFound:getI18NText()
 	return g_i18n:getText("ai_messageErrorNoVineFound")
 end

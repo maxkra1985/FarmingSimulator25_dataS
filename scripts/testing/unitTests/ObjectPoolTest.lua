@@ -3,45 +3,47 @@ function ObjectPoolTest.test_constructor()
 	Assert.throwsError(function()
 		ObjectPool.new(100)
 	end)
-	local v1_ = ObjectPool.new()
-	Assert.areEqual(v1_.objectConstructor, ObjectPool.EMPTY_TABLE_CONSTRUCTOR, "Default object pool constructor was not used!")
+	local objectPool = ObjectPool.new()
+	Assert.areEqual(objectPool.objectConstructor, ObjectPool.EMPTY_TABLE_CONSTRUCTOR, "Default object pool constructor was not used!")
 end
 function ObjectPoolTest.test_length()
-	local v2_ = ObjectPool.new()
-	local v3_ = {}
-	for _ = 1, 20 do
-		local v4_ = v2_:getOrCreateNext()
-		Assert.isNotNil(v4_, "Object created from pool was nil.")
-		table.insert(v3_, v4_)
+	local objectPool = ObjectPool.new()
+	local createdObjects = {}
+	for i = 1, 20 do
+		local createdObject = objectPool:getOrCreateNext()
+		Assert.isNotNil(createdObject, "Object created from pool was nil.")
+		table.insert(createdObjects, createdObject)
 	end
-	for v5_ = 1, 20 do
-		v2_:returnToPool((table.remove(v3_)))
-		Assert.areEqual(v2_:getLength(), v5_)
+	for i = 1, 20 do
+		local returningItem = table.remove(createdObjects)
+		objectPool:returnToPool(returningItem)
+		Assert.areEqual(objectPool:getLength(), i)
 	end
 end
 function ObjectPoolTest.test_duplicates()
-	local v6_ = ObjectPool.new()
-	local v7_ = v6_:getOrCreateNext()
-	Assert.isNotNil(v7_, "Object created from pool was nil.")
-	local v8_ = v6_:returnToPool(v7_)
-	Assert.isTrue(v8_, "Object could not be added to empty pool.")
-	local v9_ = v6_:returnToPool(v7_)
-	Assert.isFalse(v9_, "Duplicate object was accepted.")
-	local v10_ = v6_:getOrCreateNext()
-	Assert.areEqual(v10_, v7_, "Got a different object out of pool than was put in")
-	local v11_ = v6_:returnToPool(v10_)
-	Assert.isTrue(v11_, "Object could not be re-added to pool.")
+	local objectPool = ObjectPool.new()
+	local createdObject = objectPool:getOrCreateNext()
+	Assert.isNotNil(createdObject, "Object created from pool was nil.")
+	local result = objectPool:returnToPool(createdObject)
+	Assert.isTrue(result, "Object could not be added to empty pool.")
+	result = objectPool:returnToPool(createdObject)
+	Assert.isFalse(result, "Duplicate object was accepted.")
+	local secondCreatedObject = objectPool:getOrCreateNext()
+	Assert.areEqual(secondCreatedObject, createdObject, "Got a different object out of pool than was put in")
+	result = objectPool:returnToPool(secondCreatedObject)
+	Assert.isTrue(result, "Object could not be re-added to pool.")
 end
 function ObjectPoolTest.test_addNil()
-	local v12_ = ObjectPool.new():returnToPool(nil)
-	Assert.isFalse(v12_, "Object pool accepted nil value.")
+	local objectPool = ObjectPool.new()
+	local result = objectPool:returnToPool(nil)
+	Assert.isFalse(result, "Object pool accepted nil value.")
 end
 function ObjectPoolTest.test_instanceReset()
-	local v13_ = ObjectPool.new()
-	local v14_ = v13_:getOrCreateNext()
-	v14_.testValue = true
-	v13_:returnToPool(v14_)
-	local v15_ = v13_:getOrCreateNext()
-	Assert.areEqual(v14_, v15_, "Table was not properly pooled, different value was given on second function call!")
-	Assert.isNil(v14_.testValue, "Table was not cleared when pooled!")
+	local objectPool = ObjectPool.new()
+	local value = objectPool:getOrCreateNext()
+	value.testValue = true
+	objectPool:returnToPool(value)
+	local secondValue = objectPool:getOrCreateNext()
+	Assert.areEqual(value, secondValue, "Table was not properly pooled, different value was given on second function call!")
+	Assert.isNil(value.testValue, "Table was not cleared when pooled!")
 end

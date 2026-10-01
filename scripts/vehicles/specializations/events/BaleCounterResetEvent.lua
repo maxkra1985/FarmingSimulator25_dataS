@@ -1,28 +1,22 @@
--- Local values: BaleCounterResetEvent_mt
 BaleCounterResetEvent = {}
 local BaleCounterResetEvent_mt = Class(BaleCounterResetEvent, Event)
 InitStaticEventClass(BaleCounterResetEvent, "BaleCounterResetEvent")
 function BaleCounterResetEvent.emptyNew()
-	-- upvalues: (copy) BaleCounterResetEvent_mt
-	return Event.new(BaleCounterResetEvent_mt)
+	local self = Event.new(BaleCounterResetEvent_mt)
+	return self
 end
-
--- Local values: self
 function BaleCounterResetEvent.new(object)
-	local v3_ = BaleCounterResetEvent.emptyNew()
-	v3_.object = object
-	return v3_
+	local self = BaleCounterResetEvent.emptyNew()
+	self.object = object
+	return self
 end
-
 function BaleCounterResetEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self:run(connection)
 end
-
 function BaleCounterResetEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 end
-
 function BaleCounterResetEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -31,7 +25,6 @@ function BaleCounterResetEvent:run(connection)
 		self.object:doBaleCounterReset(true)
 	end
 end
-
 function BaleCounterResetEvent.sendEvent(vehicle, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

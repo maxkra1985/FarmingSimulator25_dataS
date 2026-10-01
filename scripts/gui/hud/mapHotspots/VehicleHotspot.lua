@@ -1,4 +1,3 @@
--- Local values: refSize, VehicleHotspot_mt
 VehicleHotspot = {}
 VehicleHotspot.TYPE = {}
 VehicleHotspot.TYPE.TRACTOR = 1
@@ -48,146 +47,56 @@ VehicleHotspot.SLICE[VehicleHotspot.TYPE.TRAIN] = "mapHotspots.train"
 VehicleHotspot.SLICE[VehicleHotspot.TYPE.MOTORBIKE] = "mapHotspots.motorbike"
 VehicleHotspot.SLICE[VehicleHotspot.TYPE.WOOD_HARVESTER] = "mapHotspots.woodHarvester"
 VehicleHotspot.SLICE[VehicleHotspot.TYPE.BOAT] = "mapHotspots.ferry"
-local v1_ = { 100, 100 }
+local refSize = { 100, 100 }
 VehicleHotspot.CLICK_AREAS = {}
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TRACTOR] = MapHotspot.getClickArea({
-	29,
-	18,
-	42,
-	64
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TRUCK] = MapHotspot.getClickArea({
-	32,
-	5,
-	40,
-	90
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.CAR] = MapHotspot.getClickArea({
-	33,
-	23,
-	34,
-	54
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.HARVESTER] = MapHotspot.getClickArea({
-	28,
-	3,
-	44,
-	94
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.WHEELLOADER] = MapHotspot.getClickArea({
-	30,
-	8,
-	40,
-	84
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TRAILER] = MapHotspot.getClickArea({
-	15,
-	37,
-	70,
-	26
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TOOL] = MapHotspot.getClickArea({
-	35,
-	37,
-	30,
-	26
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TOOL_TRAILED] = MapHotspot.getClickArea({
-	31,
-	18,
-	38,
-	64
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.CUTTER] = MapHotspot.getClickArea({
-	32,
-	29,
-	36,
-	42
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.OTHER] = MapHotspot.getClickArea({
-	34,
-	34,
-	32,
-	32
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.HORSE] = MapHotspot.getClickArea({
-	30,
-	11,
-	40,
-	78
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TRAIN] = MapHotspot.getClickArea({
-	35,
-	6,
-	30,
-	88
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.MOTORBIKE] = MapHotspot.getClickArea({
-	35,
-	6,
-	30,
-	88
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.WOOD_HARVESTER] = MapHotspot.getClickArea({
-	28,
-	3,
-	44,
-	94
-}, v1_, 0)
-VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.BOAT] = MapHotspot.getClickArea({
-	29,
-	18,
-	42,
-	64
-}, v1_, 0)
-local refSize = Class(VehicleHotspot, MapHotspot)
-
--- Upvalues: VehicleHotspot_mt
--- Local values: self
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TRACTOR] = MapHotspot.getClickArea({ 29, 18, 42, 64 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TRUCK] = MapHotspot.getClickArea({ 32, 5, 40, 90 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.CAR] = MapHotspot.getClickArea({ 33, 23, 34, 54 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.HARVESTER] = MapHotspot.getClickArea({ 28, 3, 44, 94 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.WHEELLOADER] = MapHotspot.getClickArea({ 30, 8, 40, 84 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TRAILER] = MapHotspot.getClickArea({ 15, 37, 70, 26 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TOOL] = MapHotspot.getClickArea({ 35, 37, 30, 26 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TOOL_TRAILED] = MapHotspot.getClickArea({ 31, 18, 38, 64 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.CUTTER] = MapHotspot.getClickArea({ 32, 29, 36, 42 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.OTHER] = MapHotspot.getClickArea({ 34, 34, 32, 32 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.HORSE] = MapHotspot.getClickArea({ 30, 11, 40, 78 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.TRAIN] = MapHotspot.getClickArea({ 35, 6, 30, 88 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.MOTORBIKE] = MapHotspot.getClickArea({ 35, 6, 30, 88 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.WOOD_HARVESTER] = MapHotspot.getClickArea({ 28, 3, 44, 94 }, refSize, 0)
+VehicleHotspot.CLICK_AREAS[VehicleHotspot.TYPE.BOAT] = MapHotspot.getClickArea({ 29, 18, 42, 64 }, refSize, 0)
+local VehicleHotspot_mt = Class(VehicleHotspot, MapHotspot)
 function VehicleHotspot.new(customMt)
-	-- upvalues: (copy) refSize
-	local v4_ = MapHotspot.new(customMt or refSize)
+	local self = MapHotspot.new(customMt or VehicleHotspot_mt)
 	if Platform.isMobile then
-		local v5_, v6_ = getNormalizedScreenValues(120, 120)
-		v4_.width = v5_
-		v4_.height = v6_
+		self.width, self.height = getNormalizedScreenValues(120, 120)
 	else
-		local v7_, v8_ = getNormalizedScreenValues(60, 60)
-		v4_.width = v7_
-		v4_.height = v8_
+		self.width, self.height = getNormalizedScreenValues(60, 60)
 	end
-	v4_.vehicleType = VehicleHotspot.TYPE.OTHER
-	return v4_
+	self.vehicleType = VehicleHotspot.TYPE.OTHER
+	return self
 end
-
 function VehicleHotspot:getCategory()
 	return VehicleHotspot.CATEGORY_MAPPING[self.vehicleType]
 end
-
 function VehicleHotspot:setVehicle(vehicle)
 	self.vehicle = vehicle
 	if self.icon ~= nil then
 		self.icon:delete()
 	end
 	self.icon = g_overlayManager:createOverlay("mapHotspots.tractor", 0, 0, self.width, self.height)
-	local v12_ = self.icon
-	local v13_ = self.color
-	v12_:setColor(unpack(v13_))
+	self.icon:setColor(unpack(self.color))
 	self.icon:setScale(self.scale, self.scale)
 	self:setVehicleType(self.vehicleType)
 end
-
 function VehicleHotspot:getVehicle()
 	return self.vehicle
 end
-
--- Local values: slice
 function VehicleHotspot:setVehicleType(vehicleType)
 	self.vehicleType = vehicleType
 	if self.icon ~= nil then
-		local v17_ = g_overlayManager:getSliceInfoById(VehicleHotspot.SLICE[vehicleType])
-		if v17_ ~= nil then
-			self.icon:setUVs(v17_.uvs)
+		local slice = g_overlayManager:getSliceInfoById(VehicleHotspot.SLICE[vehicleType])
+		if slice ~= nil then
+			self.icon:setUVs(slice.uvs)
 		end
 	end
 	if Platform.isMobile then
@@ -196,36 +105,34 @@ function VehicleHotspot:setVehicleType(vehicleType)
 		self.clickArea = VehicleHotspot.CLICK_AREAS[vehicleType]
 	end
 end
-
--- Local values: x, _, z
 function VehicleHotspot:getWorldPosition()
 	if self.vehicle == nil or self.vehicle:getIsBeingDeleted() then
 		return nil, nil
 	end
-	local v19_, _, v20_ = self.vehicle:getMapHotspotPosition()
-	return v19_, v20_
+	local x, _, z = self.vehicle:getMapHotspotPosition()
+	return x, z
 end
-
 function VehicleHotspot:getWorldRotation()
-	return (self.vehicle == nil or self.vehicle:getIsBeingDeleted()) and 0 or self.vehicle:getMapHotspotRotation(false)
+	if self.vehicle == nil or self.vehicle:getIsBeingDeleted() then
+		return 0
+	end
+	return self.vehicle:getMapHotspotRotation(false)
 end
-
 function VehicleHotspot.getTypeByName(name)
 	if name == nil then
 		return nil
+	else
+		name = string.upper(name)
+		return VehicleHotspot.TYPE[name]
 	end
-	local v23_ = string.upper(name)
-	return VehicleHotspot.TYPE[v23_]
 end
-
--- Local values: farm, color
 function VehicleHotspot:setOwnerFarmId(farmId)
 	MapHotspot.setOwnerFarmId(self, farmId)
 	if g_currentMission.missionDynamicInfo.isMultiplayer then
-		local v26_ = g_farmManager:getFarmById(self.ownerFarmId)
-		if v26_ ~= nil then
-			local v27_ = Farm.COLORS[v26_.color]
-			self:setColor(v27_[1], v27_[2], v27_[3])
+		local farm = g_farmManager:getFarmById(self.ownerFarmId)
+		if farm ~= nil then
+			local color = Farm.COLORS[farm.color]
+			self:setColor(color[1], color[2], color[3])
 			return
 		end
 		self:setColor(1, 1, 1)

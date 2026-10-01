@@ -1,21 +1,17 @@
--- Local values: ExtendedSowingMachineRateEvent_mt
 ExtendedSowingMachineRateEvent = {}
 local ExtendedSowingMachineRateEvent_mt = Class(ExtendedSowingMachineRateEvent, Event)
 InitEventClass(ExtendedSowingMachineRateEvent, "ExtendedSowingMachineRateEvent")
 function ExtendedSowingMachineRateEvent.emptyNew()
-	-- upvalues: (copy) ExtendedSowingMachineRateEvent_mt
-	return Event.new(ExtendedSowingMachineRateEvent_mt)
+	local self = Event.new(ExtendedSowingMachineRateEvent_mt)
+	return self
 end
-
--- Local values: self
 function ExtendedSowingMachineRateEvent.new(object, automaticMode, manualValue)
-	local v5_ = ExtendedSowingMachineRateEvent.emptyNew()
-	v5_.object = object
-	v5_.automaticMode = automaticMode
-	v5_.manualValue = manualValue
-	return v5_
+	local self = ExtendedSowingMachineRateEvent.emptyNew()
+	self.object = object
+	self.automaticMode = automaticMode
+	self.manualValue = manualValue
+	return self
 end
-
 function ExtendedSowingMachineRateEvent:readStream(streamId, connection)
 	self.object = NetworkUtil.readNodeObject(streamId)
 	self.automaticMode = streamReadBool(streamId)
@@ -24,14 +20,12 @@ function ExtendedSowingMachineRateEvent:readStream(streamId, connection)
 	end
 	self:run(connection)
 end
-
 function ExtendedSowingMachineRateEvent:writeStream(streamId, connection)
 	NetworkUtil.writeNodeObject(streamId, self.object)
 	if not streamWriteBool(streamId, self.automaticMode) then
 		streamWriteUIntN(streamId, self.manualValue, 2)
 	end
 end
-
 function ExtendedSowingMachineRateEvent:run(connection)
 	if not connection:getIsServer() then
 		g_server:broadcastEvent(self, false, connection, self.object)
@@ -43,7 +37,6 @@ function ExtendedSowingMachineRateEvent:run(connection)
 		end
 	end
 end
-
 function ExtendedSowingMachineRateEvent.sendEvent(object, automaticMode, manualValue, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then

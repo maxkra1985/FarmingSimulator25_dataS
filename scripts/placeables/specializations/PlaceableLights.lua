@@ -1,13 +1,10 @@
--- Local values: PlaceableLightsActivatable_mt
 PlaceableLights = {}
 source("dataS/scripts/placeables/specializations/events/PlaceableLightsStateEvent.lua")
 PlaceableLights.MAX_NUM_BITS = 5
 PlaceableLights.MAX_NUM_GROUPS = 2 ^ PlaceableLights.MAX_NUM_BITS
-
-function PlaceableLights.prerequisitesPresent(self)
+function PlaceableLights.prerequisitesPresent(specializations)
 	return true
 end
-
 function PlaceableLights.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "lightSetupChanged", PlaceableLights.lightSetupChanged)
 	SpecializationUtil.registerFunction(placeableType, "getUseHighProfile", PlaceableLights.getUseHighProfile)
@@ -16,7 +13,6 @@ function PlaceableLights.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "sharedLightLoaded", PlaceableLights.sharedLightLoaded)
 	SpecializationUtil.registerFunction(placeableType, "updateLightState", PlaceableLights.updateLightState)
 end
-
 function PlaceableLights.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableLights)
 	SpecializationUtil.registerEventListener(placeableType, "onDelete", PlaceableLights)
@@ -24,7 +20,6 @@ function PlaceableLights.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onReadStream", PlaceableLights)
 	SpecializationUtil.registerEventListener(placeableType, "onFinalizePlacement", PlaceableLights)
 end
-
 function PlaceableLights.registerXMLPaths(schema, basePath)
 	schema:setXMLSpecializationType("Lights")
 	schema:register(XMLValueType.STRING, basePath .. ".lights.sharedLight(?)#filename", "Path to shared light xml file")
@@ -52,442 +47,386 @@ function PlaceableLights.registerXMLPaths(schema, basePath)
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".lights.group(?).sounds", "toggle")
 	schema:setXMLSpecializationType()
 end
-
--- Local values: spec, xmlFile, environmentMaskSystem, getNodeShaderLightIntensity, loadRealLight
 function PlaceableLights:onLoad(savegame)
-	local v_u_6_ = self.spec_lights
-	local v_u_7_ = self.xmlFile
-	local v_u_8_ = g_currentMission.environment.environmentMaskSystem
-	v_u_6_.sharedLights = {}
-	v_u_6_.groups = {}
-	v_u_6_.triggerToGroup = {}
-	v_u_6_.activatable = PlaceableLightsActivatable.new(self)
+	local spec = self.spec_lights
+	local xmlFile = self.xmlFile
+	local environmentMaskSystem = g_currentMission.environment.environmentMaskSystem
+	spec.sharedLights = {}
+	spec.groups = {}
+	spec.triggerToGroup = {}
+	spec.activatable = PlaceableLightsActivatable.new(self)
 	g_messageCenter:subscribe(MessageType.SETTING_CHANGED.lightsProfile, self.lightSetupChanged, self)
-	v_u_7_:iterate("placeable.lights.group", function(_, p9_)
-		-- upvalues: (copy) v_u_7_, (copy) self, (copy) v_u_6_, (copy) v_u_8_
-		local v10_ = {
-			["triggerNode"] = v_u_7_:getValue(p9_ .. "#triggerNode", nil, self.components, self.i3dMappings)
-		}
-		if v10_.triggerNode ~= nil then
-			addTrigger(v10_.triggerNode, "lightsTriggerCallback", self)
-			v_u_6_.triggerToGroup[v10_.triggerNode] = v10_
+	xmlFile:iterate("placeable.lights.group", function(lightIndex, lightGroupKey)
+		local group = {}
+		group.triggerNode = xmlFile:getValue(lightGroupKey .. "#triggerNode", nil, self.components, self.i3dMappings)
+		if group.triggerNode ~= nil then
+			addTrigger(group.triggerNode, "lightsTriggerCallback", self)
+			spec.triggerToGroup[group.triggerNode] = group
 		end
-		local v11_ = v_u_7_:getValue(p9_ .. "#inputAction", "INTERACT")
-		v10_.inputAction = InputAction[v11_] or InputAction.INTERACT
-		v10_.name = v_u_7_:getValue(p9_ .. "#name", "action_placeableLightShed", self.customEnvironment)
-		v10_.activateText = v_u_7_:getValue(p9_ .. "#activateText", "action_placeableLightPos", self.customEnvironment)
-		v10_.deactivateText = v_u_7_:getValue(p9_ .. "#deactivateText", "action_placeableLightNeg", self.customEnvironment)
-		local v12_ = v_u_7_:getValue(p9_ .. "#activateTime", nil)
-		if v12_ ~= nil then
-			v10_.activateMinute = Utils.getMinuteOfDayFromTime(v12_)
-			if v10_.activateMinute == nil then
-				Logging.xmlWarning(v_u_7_, "Invalid activateTime string \'%s\' given for group \'%s\'. Use \'hh:mm\' format", v12_, p9_)
+		local inputActionName = xmlFile:getValue(lightGroupKey .. "#inputAction", "INTERACT")
+		group.inputAction = InputAction[inputActionName] or InputAction.INTERACT
+		group.name = xmlFile:getValue(lightGroupKey .. "#name", "action_placeableLightShed", self.customEnvironment)
+		group.activateText = xmlFile:getValue(lightGroupKey .. "#activateText", "action_placeableLightPos", self.customEnvironment)
+		group.deactivateText = xmlFile:getValue(lightGroupKey .. "#deactivateText", "action_placeableLightNeg", self.customEnvironment)
+		local activateTimeStr = xmlFile:getValue(lightGroupKey .. "#activateTime", nil)
+		if activateTimeStr ~= nil then
+			group.activateMinute = Utils.getMinuteOfDayFromTime(activateTimeStr)
+			if group.activateMinute == nil then
+				Logging.xmlWarning(xmlFile, "Invalid activateTime string '%s' given for group '%s'. Use 'hh:mm' format", activateTimeStr, lightGroupKey)
 			else
-				local v13_ = v10_.activateMinute
-				v10_.activateMinute = math.max(1, v13_)
+				group.activateMinute = math.max(1, group.activateMinute)
 			end
 		end
-		local v14_ = v_u_7_:getValue(p9_ .. "#deactivateTime", nil)
-		if v14_ ~= nil then
-			v10_.deactivateMinute = Utils.getMinuteOfDayFromTime(v14_)
-			if v10_.deactivateMinute == nil then
-				Logging.xmlWarning(v_u_7_, "Invalid deactivateTime string \'%s\' given for group \'%s\'. Use \'hh:mm\' format", v14_, p9_)
+		local deactivateTimeStr = xmlFile:getValue(lightGroupKey .. "#deactivateTime", nil)
+		if deactivateTimeStr ~= nil then
+			group.deactivateMinute = Utils.getMinuteOfDayFromTime(deactivateTimeStr)
+			if group.deactivateMinute == nil then
+				Logging.xmlWarning(xmlFile, "Invalid deactivateTime string '%s' given for group '%s'. Use 'hh:mm' format", deactivateTimeStr, lightGroupKey)
 			else
-				local v15_ = v10_.deactivateMinute
-				v10_.deactivateMinute = math.max(1, v15_)
+				group.deactivateMinute = math.max(1, group.deactivateMinute)
 			end
 		end
-		v10_.weatherRequiredMask = v_u_8_:getWeatherMaskFromFlagNames(v_u_7_:getValue(p9_ .. "#weatherRequiredFlags", nil))
-		v10_.weatherPreventMask = v_u_8_:getWeatherMaskFromFlagNames(v_u_7_:getValue(p9_ .. "#weatherPreventFlags", nil))
+		group.weatherRequiredMask = environmentMaskSystem:getWeatherMaskFromFlagNames(xmlFile:getValue(lightGroupKey .. "#weatherRequiredFlags", nil))
+		group.weatherPreventMask = environmentMaskSystem:getWeatherMaskFromFlagNames(xmlFile:getValue(lightGroupKey .. "#weatherPreventFlags", nil))
 		if self.isClient then
-			v10_.samples = {}
-			v10_.samples.toggle = g_soundManager:loadSampleFromXML(v_u_7_, p9_ .. ".sounds", "toggle", self.baseDirectory, self.components, 1, AudioGroup.ENVIRONMENT, self.i3dMappings, nil)
+			group.samples = {}
+			group.samples.toggle = g_soundManager:loadSampleFromXML(xmlFile, lightGroupKey .. ".sounds", "toggle", self.baseDirectory, self.components, 1, AudioGroup.ENVIRONMENT, self.i3dMappings, nil)
 		end
-		local v16_
-		if v10_.activateMinute == nil then
-			v16_ = false
-		else
-			v16_ = v10_.deactivateMinute
-		end
-		if v16_ == nil or v10_.deactivateMinute == nil and v10_.activateMinute ~= nil then
-			Logging.xmlWarning(v_u_7_, "Incomplete automatic toggle time in \'%s\'", p9_)
+		if false == nil or group.deactivateMinute == nil and group.activateMinute ~= nil then
+			Logging.xmlWarning(xmlFile, "Incomplete automatic toggle time in '%s'", lightGroupKey)
 			return
+		end
+		group.hasManualLights = group.triggerNode ~= nil
+		group.isActive = false
+		group.playerInRange = false
+		if #spec.groups < PlaceableLights.MAX_NUM_GROUPS then
+			table.insert(spec.groups, group)
+			group.index = #spec.groups
 		else
-			v10_.hasManualLights = v10_.triggerNode ~= nil
-			v10_.isActive = false
-			v10_.playerInRange = false
-			if #v_u_6_.groups < PlaceableLights.MAX_NUM_GROUPS then
-				local v17_ = v_u_6_.groups
-				table.insert(v17_, v10_)
-				v10_.index = #v_u_6_.groups
-			else
-				Logging.xmlWarning(v_u_7_, "Too many light groups registered. Max. %d are allowed", PlaceableLights.MAX_NUM_GROUPS)
-			end
+			Logging.xmlWarning(xmlFile, "Too many light groups registered. Max. %d are allowed", PlaceableLights.MAX_NUM_GROUPS)
 		end
 	end)
-	v_u_7_:iterate("placeable.lights.sharedLight", function(_, p18_)
-		-- upvalues: (copy) v_u_7_, (copy) self, (copy) v_u_6_
-		local v_u_19_ = {}
-		local v20_ = v_u_7_:getValue(p18_ .. "#filename")
-		if v20_ ~= nil then
-			v_u_19_.xmlFilename = Utils.getFilename(v20_, self.baseDirectory)
-			v_u_19_.groupIndex = v_u_7_:getValue(p18_ .. "#groupIndex", 1)
-			v_u_19_.color = v_u_7_:getValue(p18_ .. "#color", nil, true)
-			v_u_19_.linkNode = v_u_7_:getValue(p18_ .. "#linkNode", "0>", self.components, self.i3dMappings)
-			local v21_ = v_u_6_.groups[v_u_19_.groupIndex]
-			if v21_ == nil then
-				Logging.xmlError(v_u_7_, "Group index \'%d\' in \'%s\' does not exist", v_u_19_.groupIndex, p18_)
+	xmlFile:iterate("placeable.lights.sharedLight", function(lightIndex, lightKey)
+		local sharedLight = {}
+		local xmlFilename = xmlFile:getValue(lightKey .. "#filename")
+		if xmlFilename ~= nil then
+			sharedLight.xmlFilename = Utils.getFilename(xmlFilename, self.baseDirectory)
+			sharedLight.groupIndex = xmlFile:getValue(lightKey .. "#groupIndex", 1)
+			sharedLight.color = xmlFile:getValue(lightKey .. "#color", nil, true)
+			sharedLight.linkNode = xmlFile:getValue(lightKey .. "#linkNode", "0>", self.components, self.i3dMappings)
+			local group = spec.groups[sharedLight.groupIndex]
+			if group == nil then
+				Logging.xmlError(xmlFile, "Group index '%d' in '%s' does not exist", sharedLight.groupIndex, lightKey)
 				return
 			end
-			if v_u_19_.linkNode ~= nil then
-				v_u_7_:iterate(p18_ .. ".rotationNode", function(_, p22_)
-					-- upvalues: (ref) v_u_7_, (copy) v_u_19_
-					local v23_ = v_u_7_:getValue(p22_ .. "#name")
-					local v24_ = v_u_7_:getValue(p22_ .. "#rotation", nil, true)
-					if v23_ ~= nil and v24_ ~= nil then
-						v_u_19_.rotations = v_u_19_.rotations or {}
-						v_u_19_.rotations[v23_] = v24_
+			if sharedLight.linkNode ~= nil then
+				xmlFile:iterate(lightKey .. ".rotationNode", function(rotIndex, rotKey)
+					local name = xmlFile:getValue(rotKey .. "#name")
+					local rotation = xmlFile:getValue(rotKey .. "#rotation", nil, true)
+					if name ~= nil and rotation ~= nil then
+						sharedLight.rotations = sharedLight.rotations or {}
+						sharedLight.rotations[name] = rotation
 					end
 				end)
-				local v25_ = XMLFile.load("placeableSharedLight", v_u_19_.xmlFilename, SharedLight.xmlSchema)
-				if v25_ ~= nil then
-					local v26_ = v25_:getValue("light.filename")
-					if v26_ ~= nil then
-						local v27_ = self:createLoadingTask(v_u_6_)
-						local v28_ = Utils.getFilename(v26_, self.baseDirectory)
-						v_u_19_.lightXMLFile = v25_
-						v_u_19_.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(v28_, false, false, self.sharedLightLoaded, self, {
-							["sharedLight"] = v_u_19_,
-							["lightXMLFile"] = v25_,
-							["loadingTask"] = v27_,
-							["group"] = v21_,
-							["filename"] = v28_
-						})
-						local v29_ = v_u_6_.sharedLights
-						table.insert(v29_, v_u_19_)
+				local lightXMLFile = XMLFile.load("placeableSharedLight", sharedLight.xmlFilename, SharedLight.xmlSchema)
+				if lightXMLFile ~= nil then
+					local filename = lightXMLFile:getValue("light.filename")
+					if filename ~= nil then
+						local loadingTask = self:createLoadingTask(spec)
+						filename = Utils.getFilename(filename, self.baseDirectory)
+						local arguments = { sharedLight = sharedLight, lightXMLFile = lightXMLFile, loadingTask = loadingTask, group = group, filename = filename }
+						sharedLight.lightXMLFile = lightXMLFile
+						sharedLight.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(filename, false, false, self.sharedLightLoaded, self, arguments)
+						table.insert(spec.sharedLights, sharedLight)
 						return
 					end
-					Logging.xmlWarning(v25_, "Missing light i3d filename!")
-					v25_:delete()
+					Logging.xmlWarning(lightXMLFile, "Missing light i3d filename!")
+					lightXMLFile:delete()
 				end
 			end
 		end
 	end)
-	v_u_6_.lightShapes = {}
-	v_u_7_:iterate("placeable.lights.lightShape", function(_, p30_)
-		-- upvalues: (copy) v_u_7_, (copy) self, (copy) v_u_6_
-		local v31_ = {
-			["groupIndex"] = v_u_7_:getValue(p30_ .. "#groupIndex", 1),
-			["node"] = v_u_7_:getValue(p30_ .. "#node", "0>", self.components, self.i3dMappings)
-		}
-		if v31_.node ~= nil then
-			local v32_ = v_u_7_
-			local v33_ = p30_ .. "#intensity"
-			local v34_ = v31_.node
-			v31_.intensity = v32_:getValue(v33_, not (getHasClassId(v34_, ClassIds.SHAPE) and getHasShaderParameter(v34_, "lightControl")) and 1 or getShaderParameter(v34_, "lightControl"))
-			local v35_ = v_u_6_.groups[v31_.groupIndex]
-			if v35_ == nil then
-				Logging.xmlError(v_u_7_, "Group index \'%d\' in \'%s\' does not exist", v31_.groupIndex, p30_)
-			elseif not v35_.hasManualLights then
-				if v35_.activateMinute ~= nil then
-					setVisibilityConditionMinuteOfDay(v31_.node, v35_.activateMinute, v35_.deactivateMinute)
-				end
-				if v35_.weatherRequiredMask ~= nil or v35_.weatherPreventMask ~= nil then
-					setVisibilityConditionWeatherMask(v31_.node, v35_.weatherRequiredMask or 0, v35_.weatherPreventMask or 0)
-				end
-				setVisibilityConditionRenderInvisible(v31_.node, true)
-				setVisibilityConditionVisibleShaderParameter(v31_.node, v31_.intensity)
+	spec.lightShapes = {}
+	local getNodeShaderLightIntensity = function(node)
+		if getHasClassId(node, ClassIds.SHAPE) and getHasShaderParameter(node, "lightControl") then
+			local x = getShaderParameter(node, "lightControl")
+			return x
+		end
+		return 1
+	end
+	xmlFile:iterate("placeable.lights.lightShape", function(lightIndex, lightKey)
+		local lightShape = {}
+		lightShape.groupIndex = xmlFile:getValue(lightKey .. "#groupIndex", 1)
+		lightShape.node = xmlFile:getValue(lightKey .. "#node", "0>", self.components, self.i3dMappings)
+		if lightShape.node ~= nil then
+			local _v28 = lightKey
+			local node = lightShape.node
+			if getHasClassId(node, ClassIds.SHAPE) and getHasShaderParameter(node, "lightControl") then
+				local x = getShaderParameter(node, "lightControl")
 			end
-			local v36_ = v_u_6_.lightShapes
-			table.insert(v36_, v31_)
+			lightShape.intensity = xmlFile:getValue(_v28 .. "#intensity", _v28)
+			local group = spec.groups[lightShape.groupIndex]
+			if group == nil then
+				Logging.xmlError(xmlFile, "Group index '%d' in '%s' does not exist", lightShape.groupIndex, lightKey)
+			elseif not group.hasManualLights then
+				if group.activateMinute ~= nil then
+					setVisibilityConditionMinuteOfDay(lightShape.node, group.activateMinute, group.deactivateMinute)
+				end
+				if group.weatherRequiredMask ~= nil or group.weatherPreventMask ~= nil then
+					setVisibilityConditionWeatherMask(lightShape.node, group.weatherRequiredMask or 0, group.weatherPreventMask or 0)
+				end
+				setVisibilityConditionRenderInvisible(lightShape.node, true)
+				setVisibilityConditionVisibleShaderParameter(lightShape.node, lightShape.intensity)
+			end
+			table.insert(spec.lightShapes, lightShape)
 		end
 	end)
-	v_u_6_.realLights = {
-		["low"] = {},
-		["high"] = {}
-	}
-	local function v_u_41_(p37_, p38_)
-		-- upvalues: (copy) v_u_7_, (copy) self, (copy) v_u_6_
-		local v39_ = {
-			["node"] = v_u_7_:getValue(p37_ .. "#node", nil, self.components, self.i3dMappings)
-		}
-		if v39_.node ~= nil then
-			v39_.groupIndex = v_u_7_:getValue(p37_ .. "#groupIndex", 1)
-			local v40_ = v_u_6_.groups[v39_.groupIndex]
-			if v40_ == nil then
-				Logging.xmlError(v_u_7_, "Group index \'%d\' in \'%s\' does not exist", v39_.groupIndex, p37_)
+	spec.realLights = { low = {}, high = {} }
+	local loadRealLight = function(realLightKey, insertTable)
+		local realLight = {}
+		realLight.node = xmlFile:getValue(realLightKey .. "#node", nil, self.components, self.i3dMappings)
+		if realLight.node ~= nil then
+			realLight.groupIndex = xmlFile:getValue(realLightKey .. "#groupIndex", 1)
+			local group = spec.groups[realLight.groupIndex]
+			if group == nil then
+				Logging.xmlError(xmlFile, "Group index '%d' in '%s' does not exist", realLight.groupIndex, realLightKey)
 				return
 			end
-			if v40_.activateMinute ~= nil then
-				setVisibilityConditionMinuteOfDay(v39_.node, v40_.activateMinute, v40_.deactivateMinute)
+			if group.activateMinute ~= nil then
+				setVisibilityConditionMinuteOfDay(realLight.node, group.activateMinute, group.deactivateMinute)
 			end
-			if v40_.weatherRequiredMask ~= nil or v40_.weatherPreventMask ~= nil then
-				setVisibilityConditionWeatherMask(v39_.node, v40_.weatherRequiredMask or 0, v40_.weatherPreventMask or 0)
+			if group.weatherRequiredMask ~= nil or group.weatherPreventMask ~= nil then
+				setVisibilityConditionWeatherMask(realLight.node, group.weatherRequiredMask or 0, group.weatherPreventMask or 0)
 			end
-			table.insert(p38_, v39_)
+			table.insert(insertTable, realLight)
 		end
 	end
-	v_u_7_:iterate("placeable.lights.realLights.low.light", function(_, p42_)
-		-- upvalues: (copy) v_u_41_, (copy) v_u_6_
-		v_u_41_(p42_, v_u_6_.realLights.low)
+	xmlFile:iterate("placeable.lights.realLights.low.light", function(lightIndex, lightKey)
+		loadRealLight(lightKey, spec.realLights.low)
 	end)
-	v_u_7_:iterate("placeable.lights.realLights.high.light", function(_, p43_)
-		-- upvalues: (copy) v_u_41_, (copy) v_u_6_
-		v_u_41_(p43_, v_u_6_.realLights.high)
+	xmlFile:iterate("placeable.lights.realLights.high.light", function(lightIndex, lightKey)
+		loadRealLight(lightKey, spec.realLights.high)
 	end)
 end
-
 function PlaceableLights:onFinalizePlacement()
 	self:lightSetupChanged()
 end
-
--- Local values: sharedLight, lightXMLFile, loadingTask, lightGroup, i3dFilename
 function PlaceableLights:sharedLightLoaded(i3dNode, failedReason, args)
-	local v_u_48_ = args.sharedLight
-	local v_u_49_ = args.lightXMLFile
-	local v50_ = args.loadingTask
-	local v_u_51_ = args.group
-	local v52_ = args.filename
+	local sharedLight = args.sharedLight
+	local lightXMLFile = args.lightXMLFile
+	local loadingTask = args.loadingTask
+	local lightGroup = args.group
+	local i3dFilename = args.filename
 	if i3dNode ~= nil and i3dNode ~= 0 then
 		if self.loadingState == PlaceableLoadingState.OK then
-			v_u_48_.node = v_u_49_:getValue("light.rootNode#node", "0", i3dNode)
-			v_u_48_.i3dFilename = v52_
-			v_u_48_.lightShapes = {}
-			v_u_49_:iterate("light.defaultLight", function(_, p53_)
-				-- upvalues: (copy) v_u_49_, (copy) i3dNode, (copy) v_u_51_, (copy) v_u_48_
-				local v54_ = {
-					["node"] = v_u_49_:getValue(p53_ .. "#node", nil, i3dNode)
-				}
-				if v54_.node == nil then
-					Logging.xmlWarning(v_u_49_, "Could not find node for \'%s\'!", p53_)
-				else
-					if getHasShaderParameter(v54_.node, "lightControl") then
-						v54_.intensity = v_u_49_:getValue(p53_ .. "#intensity", 5)
-						if v_u_51_.hasManualLights then
-							setShaderParameter(v54_.node, "lightControl", 0, 0, 0, 0, false)
+			sharedLight.node = lightXMLFile:getValue("light.rootNode#node", "0", i3dNode)
+			sharedLight.i3dFilename = i3dFilename
+			sharedLight.lightShapes = {}
+			lightXMLFile:iterate("light.defaultLight", function(lightIndex, lightKey)
+				local lightShape = {}
+				lightShape.node = lightXMLFile:getValue(lightKey .. "#node", nil, i3dNode)
+				if lightShape.node ~= nil then
+					if getHasShaderParameter(lightShape.node, "lightControl") then
+						lightShape.intensity = lightXMLFile:getValue(lightKey .. "#intensity", 5)
+						if lightGroup.hasManualLights then
+							setShaderParameter(lightShape.node, "lightControl", 0, 0, 0, 0, false)
 						else
-							if v_u_51_.activateMinute ~= nil then
-								setVisibilityConditionMinuteOfDay(v54_.node, v_u_51_.activateMinute, v_u_51_.deactivateMinute)
+							if lightGroup.activateMinute ~= nil then
+								setVisibilityConditionMinuteOfDay(lightShape.node, lightGroup.activateMinute, lightGroup.deactivateMinute)
 							end
-							if v_u_51_.weatherRequiredMask ~= nil or v_u_51_.weatherPreventMask ~= nil then
-								setVisibilityConditionWeatherMask(v54_.node, v_u_51_.weatherRequiredMask or 0, v_u_51_.weatherPreventMask or 0)
+							if lightGroup.weatherRequiredMask ~= nil or lightGroup.weatherPreventMask ~= nil then
+								setVisibilityConditionWeatherMask(lightShape.node, lightGroup.weatherRequiredMask or 0, lightGroup.weatherPreventMask or 0)
 							end
-							setVisibilityConditionRenderInvisible(v54_.node, true)
-							setVisibilityConditionVisibleShaderParameter(v54_.node, v54_.intensity)
+							setVisibilityConditionRenderInvisible(lightShape.node, true)
+							setVisibilityConditionVisibleShaderParameter(lightShape.node, lightShape.intensity)
 						end
-						local v55_ = v_u_48_.lightShapes
-						table.insert(v55_, v54_)
+						table.insert(sharedLight.lightShapes, lightShape)
 					else
-						Logging.xmlWarning(v_u_49_, "Node \'%s\' has no shaderparameter \'lightControl\'. Ignoring node!", getName(v54_.node))
+						Logging.xmlWarning(lightXMLFile, "Node '%s' has no shaderparameter 'lightControl'. Ignoring node!", getName(lightShape.node))
 					end
-					if v_u_48_.color ~= nil and getHasShaderParameter(v54_.node, "colorScale") then
-						setShaderParameter(v54_.node, "colorScale", v_u_48_.color[1], v_u_48_.color[2], v_u_48_.color[3], 0, false)
-						return
+					if sharedLight.color ~= nil and getHasShaderParameter(lightShape.node, "colorScale") then
+						setShaderParameter(lightShape.node, "colorScale", sharedLight.color[1], sharedLight.color[2], sharedLight.color[3], 0, false)
+					end
+				else
+					Logging.xmlWarning(lightXMLFile, "Could not find node for '%s'!", lightKey)
+				end
+			end)
+			lightXMLFile:iterate("light.rotationNode", function(rotIndex, rotKey)
+				local name = lightXMLFile:getValue(rotKey .. "#name")
+				if name ~= nil then
+					local node = lightXMLFile:getValue(rotKey .. "#node", nil, i3dNode)
+					if sharedLight.rotations ~= nil and sharedLight.rotations[name] ~= nil then
+						setRotation(node, unpack(sharedLight.rotations[name]))
 					end
 				end
 			end)
-			v_u_49_:iterate("light.rotationNode", function(_, p56_)
-				-- upvalues: (copy) v_u_49_, (copy) i3dNode, (copy) v_u_48_
-				local v57_ = v_u_49_:getValue(p56_ .. "#name")
-				if v57_ ~= nil then
-					local v58_ = v_u_49_:getValue(p56_ .. "#node", nil, i3dNode)
-					if v_u_48_.rotations ~= nil and v_u_48_.rotations[v57_] ~= nil then
-						local v59_ = setRotation
-						local v60_ = v_u_48_.rotations[v57_]
-						v59_(v58_, unpack(v60_))
-					end
-				end
-			end)
-			v_u_48_.rotations = nil
-			link(v_u_48_.linkNode, v_u_48_.node)
+			sharedLight.rotations = nil
+			link(sharedLight.linkNode, sharedLight.node)
 		end
 		delete(i3dNode)
 	end
-	v_u_49_:delete()
-	v_u_48_.lightXMLFile = nil
-	self:finishLoadingTask(v50_)
+	lightXMLFile:delete()
+	sharedLight.lightXMLFile = nil
+	self:finishLoadingTask(loadingTask)
 end
-
--- Local values: spec, _, light, _, group
 function PlaceableLights:onDelete()
-	local v62_ = self.spec_lights
-	if v62_.sharedLights ~= nil then
-		for _, v63_ in ipairs(v62_.sharedLights) do
-			if v63_.lightXMLFile ~= nil then
-				v63_.lightXMLFile:delete()
-				v63_.lightXMLFile = nil
+	local spec = self.spec_lights
+	if spec.sharedLights ~= nil then
+		for _, light in ipairs(spec.sharedLights) do
+			if light.lightXMLFile ~= nil then
+				light.lightXMLFile:delete()
+				light.lightXMLFile = nil
 			end
-			if v63_.sharedLoadRequestId ~= nil then
-				g_i3DManager:releaseSharedI3DFile(v63_.sharedLoadRequestId)
-				v63_.sharedLoadRequestId = nil
+			if light.sharedLoadRequestId == nil then
+				continue
 			end
+			g_i3DManager:releaseSharedI3DFile(light.sharedLoadRequestId)
+			light.sharedLoadRequestId = nil
 		end
-		v62_.sharedLights = {}
+		spec.sharedLights = {}
 	end
 	g_messageCenter:unsubscribeAll(self)
-	g_currentMission.activatableObjectsSystem:removeActivatable(v62_.activatable)
-	if v62_.groups ~= nil then
-		for _, v64_ in ipairs(v62_.groups) do
-			if v64_.triggerNode ~= nil then
-				removeTrigger(v64_.triggerNode)
+	g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
+	if spec.groups ~= nil then
+		for _, group in ipairs(spec.groups) do
+			if group.triggerNode ~= nil then
+				removeTrigger(group.triggerNode)
 			end
-			g_soundManager:deleteSamples(v64_.samples)
+			g_soundManager:deleteSamples(group.samples)
 		end
-		v62_.groups = {}
+		spec.groups = {}
 	end
 end
-
--- Local values: spec, k, group
 function PlaceableLights:onReadStream(streamId, connection)
-	local v67_ = self.spec_lights
-	for v68_, v69_ in ipairs(v67_.groups) do
-		if v69_.hasManualLights then
-			self:setGroupIsActive(v68_, streamReadBool(streamId), true)
+	local spec = self.spec_lights
+	for k, group in ipairs(spec.groups) do
+		if group.hasManualLights then
+			self:setGroupIsActive(k, streamReadBool(streamId), true)
 		end
 	end
 end
-
--- Local values: spec, _, group
 function PlaceableLights:onWriteStream(streamId, connection)
-	local v72_ = self.spec_lights
-	for _, v73_ in ipairs(v72_.groups) do
-		if v73_.hasManualLights then
-			streamWriteBool(streamId, v73_.isActive)
+	local spec = self.spec_lights
+	for _, group in ipairs(spec.groups) do
+		if group.hasManualLights then
+			streamWriteBool(streamId, group.isActive)
 		end
 	end
 end
-
-function Pl-- Local values: lightsProfile
-aceableLights.getUseHighProfile(self)
-	local v74_ = g_gameSettings:getValue(GameSettings.SETTING.LIGHTS_PROFILE)
-	return Utils.getNoNil(Platform.gameplay.lightsProfile, v74_) >= GS_PROFILE_HIGH
+function PlaceableLights:getUseHighProfile()
+	local lightsProfile = g_gameSettings:getValue(GameSettings.SETTING.LIGHTS_PROFILE)
+	lightsProfile = Utils.getNoNil(Platform.gameplay.lightsProfile, lightsProfile)
+	return GS_PROFILE_HIGH <= lightsProfile
 end
-
--- Local values: spec, group
 function PlaceableLights:setGroupIsActive(groupIndex, isActive, noEventSend)
-	local v79_ = self.spec_lights.groups[groupIndex]
-	if v79_ ~= nil then
-		v79_.isActive = Utils.getNoNil(isActive, not v79_.isActive)
-		self:updateLightState(groupIndex, v79_.isActive)
-		PlaceableLightsStateEvent.sendEvent(self, groupIndex, v79_.isActive, noEventSend)
+	local spec = self.spec_lights
+	local group = spec.groups[groupIndex]
+	if group ~= nil then
+		group.isActive = Utils.getNoNil(isActive, not group.isActive)
+		self:updateLightState(groupIndex, group.isActive)
+		PlaceableLightsStateEvent.sendEvent(self, groupIndex, group.isActive, noEventSend)
 		if self.isClient then
-			g_soundManager:playSample(v79_.samples.toggle, 1)
+			g_soundManager:playSample(group.samples.toggle, 1)
 		end
 	end
 end
-
--- Local values: spec, group, _, sharedLight, j, lightShape, _, lightShape, activeLightSetup, inactiveLightSetup, _, realLight, _, realLight
 function PlaceableLights:updateLightState(groupIndex, isActive)
-	local v83_ = self.spec_lights
-	local v84_ = v83_.groups[groupIndex]
-	if v84_.hasManualLights then
-		for _, v85_ in ipairs(v83_.sharedLights) do
-			if v85_.groupIndex == groupIndex then
-				for v86_ = 1, #v85_.lightShapes do
-					local v87_ = v85_.lightShapes[v86_]
-					setShaderParameter(v87_.node, "lightControl", isActive and v87_.intensity or 0, 0, 0, 0, false)
+	local spec = self.spec_lights
+	local group = spec.groups[groupIndex]
+	if group.hasManualLights then
+		for _, sharedLight in ipairs(spec.sharedLights) do
+			if sharedLight.groupIndex == groupIndex then
+				for j = 1, #sharedLight.lightShapes do
+					local lightShape = sharedLight.lightShapes[j]
+					setShaderParameter(lightShape.node, "lightControl", isActive and lightShape.intensity or 0, 0, 0, 0, false)
 				end
 			end
 		end
-		for _, v88_ in ipairs(v83_.lightShapes) do
-			if v88_.groupIndex == groupIndex then
-				setShaderParameter(v88_.node, "lightControl", isActive and v88_.intensity or 0, 0, 0, 0, false)
+		for _, lightShape in ipairs(spec.lightShapes) do
+			if lightShape.groupIndex == groupIndex then
+				setShaderParameter(lightShape.node, "lightControl", isActive and lightShape.intensity or 0, 0, 0, 0, false)
 			end
 		end
 	end
-	local v89_ = v83_.realLights.low
-	local v90_ = v83_.realLights.high
+	local activeLightSetup = spec.realLights.low
+	local inactiveLightSetup = spec.realLights.high
 	if self:getUseHighProfile() then
-		v89_ = v83_.realLights.high
-		v90_ = v83_.realLights.low
+		activeLightSetup = spec.realLights.high
+		inactiveLightSetup = spec.realLights.low
 	end
-	for _, v91_ in ipairs(v89_) do
-		if v91_.groupIndex == groupIndex then
-			setVisibility(v91_.node, not v84_.hasManualLights or isActive)
+	for _, realLight in ipairs(activeLightSetup) do
+		if realLight.groupIndex == groupIndex then
+			setVisibility(realLight.node, not group.hasManualLights or isActive)
 		end
 	end
-	for _, v92_ in ipairs(v90_) do
-		if v92_.groupIndex == groupIndex then
-			setVisibility(v92_.node, false)
+	for _, realLight in ipairs(inactiveLightSetup) do
+		if realLight.groupIndex == groupIndex then
+			setVisibility(realLight.node, false)
 		end
 	end
 end
-
--- Local values: spec, group, player, inRangeOfOtherGroups, _, otherGroup
 function PlaceableLights:lightsTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay)
-	local v98_ = self.spec_lights
-	local v99_ = v98_.triggerToGroup[triggerId]
-	if v99_ ~= nil and (onEnter or onLeave) then
-		local v100_ = g_localPlayer
-		if v100_ ~= nil and otherId == v100_.rootNode then
+	local spec = self.spec_lights
+	local group = spec.triggerToGroup[triggerId]
+	if group ~= nil and (onEnter or onLeave) then
+		local player = g_localPlayer
+		if player ~= nil and otherId == player.rootNode then
 			if onEnter then
-				v99_.playerInRange = true
-				g_currentMission.activatableObjectsSystem:addActivatable(v98_.activatable)
-				v98_.activatable:setGroupIndex(v99_.index)
+				group.playerInRange = true
+				g_currentMission.activatableObjectsSystem:addActivatable(spec.activatable)
+				spec.activatable:setGroupIndex(group.index)
 				return
 			end
-			v99_.playerInRange = false
-			local v101_ = false
-			for _, v102_ in ipairs(v98_.groups) do
-				v101_ = v101_ or v102_.playerInRange
+			group.playerInRange = false
+			local inRangeOfOtherGroups = false
+			for _, otherGroup in ipairs(spec.groups) do
+				inRangeOfOtherGroups = inRangeOfOtherGroups or otherGroup.playerInRange
 			end
-			if not v101_ then
-				g_currentMission.activatableObjectsSystem:removeActivatable(v98_.activatable)
+			if not inRangeOfOtherGroups then
+				g_currentMission.activatableObjectsSystem:removeActivatable(spec.activatable)
 			end
 		end
 	end
 end
-
--- Local values: spec, k, group
 function PlaceableLights:lightSetupChanged()
-	local v104_ = self.spec_lights
-	for v105_, v106_ in ipairs(v104_.groups) do
-		self:updateLightState(v105_, v106_.isActive)
+	local spec = self.spec_lights
+	for k, group in ipairs(spec.groups) do
+		self:updateLightState(k, group.isActive)
 	end
 end
 PlaceableLightsActivatable = {}
-local v_u_107_ = Class(PlaceableLightsActivatable)
-
--- Upvalues: PlaceableLightsActivatable_mt
--- Local values: self
+local PlaceableLightsActivatable_mt = Class(PlaceableLightsActivatable)
 function PlaceableLightsActivatable.new(placeable)
-	-- upvalues: (copy) v_u_107_
-	local v109_ = v_u_107_
-	local v110_ = setmetatable({}, v109_)
-	v110_.placeable = placeable
-	v110_.groupIndex = 1
-	v110_.activateText = ""
-	return v110_
+	local self = setmetatable({}, PlaceableLightsActivatable_mt)
+	self.placeable = placeable
+	self.groupIndex = 1
+	self.activateText = ""
+	return self
 end
-
 function PlaceableLightsActivatable:setGroupIndex(groupIndex)
 	self.groupIndex = groupIndex or 1
 	self:updateActivateText()
 end
-
 function PlaceableLightsActivatable:run()
 	self.placeable:setGroupIsActive(self.groupIndex)
 	self:updateActivateText()
 end
-
--- Local values: group
 function PlaceableLightsActivatable:updateActivateText()
-	local v115_ = self.placeable.spec_lights.groups[self.groupIndex]
-	if v115_.triggerNode ~= nil then
-		if v115_.isActive then
-			self.activateText = string.format(v115_.deactivateText, v115_.name)
+	local group = self.placeable.spec_lights.groups[self.groupIndex]
+	if group.triggerNode ~= nil then
+		if group.isActive then
+			self.activateText = string.format(group.deactivateText, group.name)
 			return
 		end
-		self.activateText = string.format(v115_.activateText, v115_.name)
+		self.activateText = string.format(group.activateText, group.name)
 	end
 end
-
--- Local values: group, tx, ty, tz
 function PlaceableLightsActivatable:getDistance(x, y, z)
-	local v120_ = self.placeable.spec_lights.groups[self.groupIndex]
-	if v120_.triggerNode == nil then
+	local group = self.placeable.spec_lights.groups[self.groupIndex]
+	if group.triggerNode ~= nil then
+		local tx, ty, tz = getWorldTranslation(group.triggerNode)
+		return MathUtil.vector3Length(x - tx, y - ty, z - tz)
+	else
 		return math.huge
 	end
-	local v121_, v122_, v123_ = getWorldTranslation(v120_.triggerNode)
-	return MathUtil.vector3Length(x - v121_, y - v122_, z - v123_)
 end
