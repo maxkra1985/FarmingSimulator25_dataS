@@ -18,6 +18,7 @@ function WildlifeManager.new()
 	self.species = {}
 	self.nameToSpecies = {}
 	self.modSpecies = {}
+	self.nameToSpawnNodes = {}
 	self.usedBudget = 0
 	self.maximumBudget = 100
 	self.speciesSpawnPending = false
@@ -35,6 +36,7 @@ function WildlifeManager:unloadMapData()
 	table.clear(self.nameToGroup)
 	table.clear(self.nameToSpecies)
 	table.clear(self.modSpecies)
+	table.clear(self.nameToSpawnNodes)
 	removeConsoleCommand("gsWildlifeSpawn")
 	removeConsoleCommand("gsWildlifeDebugToggle")
 end
@@ -110,6 +112,29 @@ function WildlifeManager:addGroup(groupName, maxNumInstances)
 		self.nameToGroup[groupNameUpper] = group
 		return group
 	end
+end
+function WildlifeManager.onCreateSpawnGroup(_, node)
+	g_wildlifeManager:addSpawnGroup(node)
+end
+function WildlifeManager:addSpawnGroup(node)
+	local speciesName = getUserAttribute(node, "species")
+	if speciesName == nil then
+		Logging.error("Wildlife spawn group has no 'species' defined (node '%s', id %d)", I3DUtil.getNodePath(node), node)
+	else
+		local speciesNameUpper = string.upper(speciesName)
+		local spawnNodes = self.nameToSpawnNodes[speciesNameUpper]
+		if spawnNodes == nil then
+			spawnNodes = {}
+			self.nameToSpawnNodes[speciesNameUpper] = spawnNodes
+		end
+		local numChildren = getNumOfChildren(node)
+		for i = 0, numChildren - 1 do
+			table.insert(spawnNodes, getChildAt(node, i))
+		end
+	end
+end
+function WildlifeManager:getSpawnNodes(speciesName)
+	return self.nameToSpawnNodes[string.upper(speciesName)]
 end
 function WildlifeManager:loadSpecies(filename, baseDirectory)
 	local species = WildlifeUtil.createFromXMLFilename(filename, baseDirectory)

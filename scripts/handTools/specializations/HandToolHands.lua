@@ -215,7 +215,7 @@ function HandToolHands:onUpdate(dt)
 				end
 				if spec.football == nil then
 					local x, y, z = getWorldTranslation(carryingPlayer.graphicsComponent.graphicsRootNode)
-					overlapSphere(x, y, z, HandToolHands.FOOTBALL_DETECTION_RADIUS, "findFootballCallback", self, CollisionFlag.DYNAMIC_OBJECT, true, false, false)
+					overlapSphere(x, y, z, HandToolHands.FOOTBALL_DETECTION_RADIUS, "findFootballCallback", self, CollisionFlag.DYNAMIC_OBJECT, true, true, false, false)
 				end
 			end
 			local canShoot = false
@@ -504,9 +504,10 @@ function HandToolHands:throwHeldItemWithForceVector(dirX, dirY, dirZ, throwForce
 		object.thrownFromPosition = { playerPositionX, playerPositionY, playerPositionZ }
 	end
 	if not self.isServer then
+		self:onHeldItemJointBroken(nil, nil, true)
 		return
 	end
-	self:dropHeldItem()
+	self:dropHeldItem(true)
 	local mass = HandToolHands.calculateItemMass(heldItemNode)
 	if mass == nil then
 		return
@@ -653,7 +654,8 @@ function HandToolHands:createItemJoint()
 		joint:setTranslationLimitSpring(translationLimitSpring[1], translationLimitDamper[1], translationLimitSpring[2], translationLimitDamper[2], translationLimitSpring[3], translationLimitDamper[3])
 		if not spec.hasSuperStrength then
 			local forceAcceleration = 4
-			local forceLimit = forceAcceleration * mass * 40
+			local breakForceFactor = HandToolHands.calculateItemJointBreakForceFactor(spec.heldItemNode)
+			local forceLimit = forceAcceleration * mass * 40 * breakForceFactor
 			joint:setBreakable(forceLimit, forceLimit)
 		end
 		spec.heldItemJointId = joint:finalize()
@@ -726,6 +728,14 @@ function HandToolHands.calculateItemMass(itemNode)
 		mass = object:getTotalMass()
 	end
 	return mass or getMass(itemNode)
+end
+function HandToolHands.calculateItemJointBreakForceFactor(itemNode)
+	local object = g_currentMission:getNodeObject(itemNode)
+	if object == nil or object.getHandsJointBreakForceFactor == nil then
+		return 1
+	end
+	local factor = object:getHandsJointBreakForceFactor()
+	return factor
 end
 function HandToolHands:onDebugDraw()
 	local kinematicNode, rotationNode = self:getKinematicNode()

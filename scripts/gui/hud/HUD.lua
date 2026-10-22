@@ -44,8 +44,8 @@ source("dataS/scripts/gui/hud/HUDRoundedBarElement.lua")
 source("dataS/scripts/gui/hud/InfoDisplay.lua")
 source("dataS/scripts/gui/hud/InfoDisplayBox.lua")
 source("dataS/scripts/gui/hud/InfoDisplayKeyValueBox.lua")
-source("dataS/scripts/gui/hud/InfoDisplayKeyValueBoxMobile.lua")
 source("dataS/scripts/gui/hud/WarningDisplay.lua")
+source("dataS/scripts/gui/hud/IntroductionHelpHUDUtil.lua")
 HUD = {}
 local HUD_mt = Class(HUD)
 HUD.CONTEXT_PRIORITY = { LOW = 1, MEDIUM = 2, HIGH = 3 }

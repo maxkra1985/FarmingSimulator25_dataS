@@ -5,8 +5,11 @@ AnimalClusterHorse.NUM_BITS_RIDING = 7
 AnimalClusterHorse.NUM_BITS_DIRT = 7
 AnimalClusterHorse.DAILY_RIDING_TIME = 300000
 AnimalClusterHorse.BRUSH_DELTA = -20
+AnimalClusterHorse.MAX_RIDING = 100
+AnimalClusterHorse.MAX_DIRT = 100
 function AnimalClusterHorse.new(customMt)
 	local self = AnimalCluster.new(customMt or AnimalClusterHorse_mt)
+	self.maxNumAnimals = 1
 	self.fitness = 0
 	self.riding = 0
 	self.dirt = 0
@@ -137,6 +140,36 @@ function AnimalClusterHorse:changeDirt(delta)
 	self.dirt = math.clamp(math.floor(self.dirt + delta), 0, 100)
 	if 0 < math.abs(self.dirt - old) then
 		self:setDirty()
+	end
+end
+function AnimalClusterHorse:getSupportsExercise()
+	return self:getRidableFilename() ~= nil
+end
+function AnimalClusterHorse:getNeedsExercise()
+	self:getSupportsExercise()
+	return false
+end
+function AnimalClusterHorse:applyExercise()
+	if not self:getNeedsExercise() then
+		return false
+	else
+		self:changeRiding(AnimalClusterHorse.MAX_RIDING - self.riding)
+		return true
+	end
+end
+function AnimalClusterHorse:getSupportsGrooming()
+	return Platform.gameplay.needHorseCleaning
+end
+function AnimalClusterHorse:getNeedsGrooming()
+	self:getSupportsGrooming()
+	return false
+end
+function AnimalClusterHorse:applyGrooming()
+	if not self:getNeedsGrooming() then
+		return false
+	else
+		self:changeDirt(-AnimalClusterHorse.MAX_DIRT)
+		return true
 	end
 end
 function AnimalClusterHorse:getSellPrice()

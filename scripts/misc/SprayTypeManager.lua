@@ -12,7 +12,34 @@ function SprayTypeManager:initDataStructures()
 	self.nameToIndex = {}
 	self.indexToName = {}
 	self.fillTypeIndexToSprayType = {}
+	self.modSprayTypesToLoad = {}
 	SprayType = self.nameToIndex
+end
+function SprayTypeManager:addModSprayTypes(xmlFilename, baseDirectory, customEnvironment)
+	table.insert(self.modSprayTypesToLoad, { xmlFilename, baseDirectory, customEnvironment })
+end
+function SprayTypeManager:loadModSprayTypes()
+	if #self.modSprayTypesToLoad == 0 then
+		return
+	else
+		for _, data in ipairs(self.modSprayTypesToLoad) do
+			local xmlFilename = data[1]
+			local _ = data[2]
+			local customEnvironment = data[3]
+			local xmlFile = loadXMLFile("sprayTypes", xmlFilename)
+			if xmlFile == nil or xmlFile == 0 then
+				continue
+			end
+			local numSprayTypesBefore = self.numSprayTypes
+			self:loadSprayTypes(xmlFile, nil, false)
+			delete(xmlFile)
+			local numLoaded = self.numSprayTypes - numSprayTypesBefore
+			if 0 < numLoaded then
+				Logging.info("Loaded %d spray type(s) from mod: %s", numLoaded, customEnvironment)
+			end
+		end
+		self.modSprayTypesToLoad = {}
+	end
 end
 function SprayTypeManager:loadDefaultTypes()
 	local xmlFile = loadXMLFile("sprayTypes", "data/maps/maps_sprayTypes.xml")

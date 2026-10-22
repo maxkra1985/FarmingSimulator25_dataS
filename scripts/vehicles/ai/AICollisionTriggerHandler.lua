@@ -155,6 +155,40 @@ function AICollisionTriggerHandler:generateTriggerPath(vehicle, trigger, movingD
 	end
 	trigger.isValid = true
 end
+function AICollisionTriggerHandler:countHitObject(objectId, trigger)
+	local player = g_currentMission.playerSystem:getPlayerByRootNode(objectId)
+	if player ~= nil then
+		trigger.hitCounter = trigger.hitCounter + 1
+		return
+	end
+	local object = g_currentMission.nodeToObject[objectId]
+	if object ~= nil and self.collisionTriggerByVehicle[object] ~= nil then
+		return
+	end
+	if getHasTrigger(objectId) then
+		return
+	end
+	local isOwnVehicle = object ~= nil and object.getRootVehicle ~= nil and object:getRootVehicle() == self.rootVehicle
+	if isOwnVehicle then
+		return
+	end
+	local isMovingObstacle = false
+	if object ~= nil then
+		isMovingObstacle = false
+		if object.getIsAIMovingObstacle ~= nil then
+			isMovingObstacle = object:getIsAIMovingObstacle()
+		end
+	end
+	if isMovingObstacle then
+		trigger.hitCounter = trigger.hitCounter + 1
+	elseif getRigidBodyType(objectId) ~= RigidBodyType.DYNAMIC then
+		trigger.hitStaticCounter = trigger.hitStaticCounter + 1
+	else
+		if bit32.band(getCollisionFilterGroup(objectId), CollisionFlag.VEHICLE) ~= 0 then
+			trigger.hitCounter = trigger.hitCounter + 1
+		end
+	end
+end
 function AICollisionTriggerHandler:onVehicleCollisionDistanceCallback(distance, objectId, subShapeIndex, isLast, trigger)
 	if g_currentMission ~= nil and self.collisionTriggerByVehicle ~= nil then
 		for vehicle, _ in pairs(self.collisionTriggerByVehicle) do
@@ -163,19 +197,7 @@ function AICollisionTriggerHandler:onVehicleCollisionDistanceCallback(distance, 
 			end
 		end
 		if objectId ~= 0 then
-			local player = g_currentMission.playerSystem:getPlayerByRootNode(objectId)
-			if player ~= nil then
-				trigger.hitCounter = trigger.hitCounter + 1
-			else
-				local vehicle = g_currentMission.nodeToObject[objectId]
-				if (vehicle == nil or self.collisionTriggerByVehicle[vehicle] == nil) and (not getHasTrigger(objectId) and (vehicle == nil or vehicle.getRootVehicle == nil or vehicle:getRootVehicle() ~= self.rootVehicle)) then
-					if getRigidBodyType(objectId) ~= RigidBodyType.DYNAMIC then
-						trigger.hitStaticCounter = trigger.hitStaticCounter + 1
-					elseif bit32.band(getCollisionFilterGroup(objectId), CollisionFlag.VEHICLE) ~= 0 then
-						trigger.hitCounter = trigger.hitCounter + 1
-					end
-				end
-			end
+			self:countHitObject(objectId, trigger)
 		end
 		if objectId == 0 or isLast then
 			local hasCollision = 0 < trigger.hitCounter

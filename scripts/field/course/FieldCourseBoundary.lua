@@ -270,7 +270,20 @@ function FieldCourseBoundary:draw(r, g, b, offset)
 		end
 	end
 end
+function FieldCourseBoundary.removeCoincidentPositions(boundaryLine)
+	local cleanedLine = {}
+	for _, position in ipairs(boundaryLine) do
+		local lastPosition = cleanedLine[#cleanedLine]
+		local isCoincident = lastPosition ~= nil and position[1] == lastPosition[1] and position[2] == lastPosition[2]
+		if isCoincident then
+			continue
+		end
+		table.insert(cleanedLine, position)
+	end
+	return cleanedLine
+end
 function FieldCourseBoundary.generateSegmentsByBoundaryLine(boundaryLine, segmentSplitAngle)
+	boundaryLine = FieldCourseBoundary.removeCoincidentPositions(boundaryLine)
 	local numBoundaryPositions = #boundaryLine
 	if numBoundaryPositions < 4 then
 		return nil, false
@@ -825,7 +838,7 @@ end
 function FieldCourseBoundary:segmentCollisionOverlapCallback(nodeId, subShapeIndex, isLast)
 	if nodeId ~= 0 then
 		local object = g_currentMission:getNodeObject(nodeId)
-		if object == nil or object.spec_vine == nil then
+		if object == nil or object.spec_vine == nil and object.harvestVine then
 			local x, _, z = getWorldTranslation(nodeId)
 			table.insert(self.segmentCollisionCheckHitPoints, { x, z })
 			if VehicleDebug.state == VehicleDebug.DEBUG_AI then

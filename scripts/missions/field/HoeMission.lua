@@ -128,6 +128,9 @@ function HoeMission.isAvailableForField(field, mission)
 			return false
 		end
 		local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
+		if fruitTypeDesc.useForHarvestMissionsOnly then
+			return false
+		end
 		if fruitTypeDesc:getIsCatchCrop() then
 			return false
 		end

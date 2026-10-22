@@ -94,13 +94,17 @@ function HarvestMission:delete()
 	HarvestMission:superClass().delete(self)
 end
 function HarvestMission:writeStream(streamId, connection)
-	NetworkUtil.writeNodeObject(streamId, self.sellingStation)
+	if streamWriteBool(streamId, self.sellingStation ~= nil) then
+		NetworkUtil.writeNodeObject(streamId, self.sellingStation)
+	end
 	streamWriteUIntN(streamId, self.fillTypeIndex, FillTypeManager.SEND_NUM_BITS)
 	streamWriteUIntN(streamId, self.fruitTypeIndex or 0, FruitTypeManager.SEND_NUM_BITS)
 	HarvestMission:superClass().writeStream(self, streamId, connection)
 end
 function HarvestMission:readStream(streamId, connection)
-	self.pendingSellingStationId = NetworkUtil.readNodeObjectId(streamId)
+	if streamReadBool(streamId) then
+		self.pendingSellingStationId = NetworkUtil.readNodeObjectId(streamId)
+	end
 	self.fillTypeIndex = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 	self.fruitTypeIndex = streamReadUIntN(streamId, FruitTypeManager.SEND_NUM_BITS)
 	if self.fruitTypeIndex ~= nil and self.fruitTypeIndex == FruitType.ONION then
@@ -437,7 +441,9 @@ function HarvestMission:fillSold(fillDelta)
 end
 function HarvestMission:getRewardPerHa()
 	local data = g_missionManager:getMissionTypeDataByName(HarvestMission.NAME)
-	return data.rewardPerFruitHa[self.fruitTypeIndex] or data.rewardPerHa
+	local rewardPerHa = data.rewardPerFruitHa[self.fruitTypeIndex] or data.rewardPerHa
+	local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(self.fruitTypeIndex)
+	return rewardPerHa * fruitTypeDesc.harvestMissionRewardScale
 end
 function HarvestMission:getStealingCosts()
 	if self.finishState ~= MissionFinishState.SUCCESS and self.isServer then
@@ -584,7 +590,8 @@ function HarvestMission.isAvailableForField(field, mission)
 			return false
 		end
 		local growthState = fieldState.growthState
-		if not fruitTypeDesc:getIsHarvestReady(growthState) then
+		local isHarvestReady = fruitTypeDesc:getIsHarvestReady(growthState) or fruitTypeDesc:getIsPreparable(growthState)
+		if not isHarvestReady then
 			return false
 		end
 	end

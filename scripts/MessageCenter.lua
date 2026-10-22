@@ -97,10 +97,12 @@ function MessageCenter:publish(messageType, ...)
 				else
 					info.callback(info.callbackTarget, info.argument, ...)
 				end
-				if info.isOneShot then
-					table.remove(subscribers, i)
-				else
-					i = i + 1
+				if subscribers[i] == info then
+					if info.isOneShot then
+						table.remove(subscribers, i)
+					else
+						i = i + 1
+					end
 				end
 			end
 		end

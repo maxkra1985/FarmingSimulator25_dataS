@@ -113,6 +113,7 @@ function TrafficSystem.new(isServer, isClient, customMt)
 	self.trafficSystemId = nil
 	self.isEnabled = false
 	self.debugIsEnabled = false
+	self.debugConfiguredVehicleNames = nil
 	self.trafficSystemDirtyFlag = self:getNextDirtyFlag()
 	addConsoleCommand("gsTrafficSystemToggleDebug", "Enables debug rendering for the collision geometry", "consoleCommandToggleDebugRendering", self)
 	addConsoleCommand("gsTrafficSystemValidate", "Validates traffic system setup", "consoleCommandValidate", self)
@@ -207,10 +208,33 @@ end
 function TrafficSystem:onDaylightChanged()
 	self:updateNightTimeRange()
 end
+function TrafficSystem:buildDebugConfiguredVehicleNames()
+	local configuredVehicleNames = {}
+	local xmlFile = XMLFile.load("trafficSystemDebugConfig", self.xmlFilename, TrafficSystem.xmlSchema)
+	if xmlFile ~= nil then
+		for _, vehicleKey in xmlFile:iterator("trafficSystem.vehicles.vehicle") do
+			local probability = xmlFile:getFloat(vehicleKey .. "#probability", 0)
+			if 0 < probability then
+				local filename = xmlFile:getString(vehicleKey .. "#filename")
+				if filename == nil then
+					continue
+				end
+				table.insert(configuredVehicleNames, Utils.getFilenameFromPath(filename))
+			end
+		end
+		self.debugMaxNumVehicles = xmlFile:getInt("trafficSystem#maxNumVehicles") or 30
+		xmlFile:delete()
+	end
+	self.debugConfiguredVehicleNames = configuredVehicleNames
+end
 function TrafficSystem:drawDebug()
 	local trafficVehiclesRootNode = getChild(getRootNode(), "TrafficSystemVehicles")
 	if trafficVehiclesRootNode ~= 0 then
-		local textLineNumber = 0
+		local configuredVehicleNames = self.debugConfiguredVehicleNames or {}
+		local spawnedVehicleNames = {}
+		local numberDrivingCars = 0
+		local parkedCarCountsPerType = {}
+		local parkedCarCountTotal = 0
 		for i = 0, getNumOfChildren(trafficVehiclesRootNode) - 1 do
 			local trafficVehicle = getChildAt(trafficVehiclesRootNode, i)
 			local x, y, z = getWorldTranslation(trafficVehicle)
@@ -220,12 +244,51 @@ function TrafficSystem:drawDebug()
 				DebugGizmo.renderAtPosition(x, y, z, dx, dy, dz, 0, 1, 0, name, false)
 			end
 			if getRigidBodyType(trafficVehicle) == RigidBodyType.KINEMATIC then
-				renderText(0.85, 0.7 - textLineNumber * 0.012, 0.012, name)
-				renderText(0.92, 0.7 - textLineNumber * 0.012, 0.012, string.format("%d %d %d", x, y, z))
-				textLineNumber = textLineNumber + 1
+				renderText(0.86, 0.88 - numberDrivingCars * 0.012, 0.012, name)
+				if getIsInCameraFrustum(trafficVehicle, g_cameraManager:getActiveCamera(), g_screenAspectRatio) then
+					setTextColor(0, 1, 0, 1)
+				end
+				renderText(0.94, 0.88 - numberDrivingCars * 0.012, 0.012, string.format("%d %d %d", x, y, z))
+				setTextColor(1, 1, 1, 1)
+				local matchedName = Utils.getClosestMatchingString(name, configuredVehicleNames, 5, false)
+				if matchedName ~= nil then
+					spawnedVehicleNames[matchedName] = true
+				end
+				numberDrivingCars = numberDrivingCars + 1
+			else
+				parkedCarCountsPerType[name] = (parkedCarCountsPerType[name] or 0) + 1
+				parkedCarCountTotal = parkedCarCountTotal + 1
 			end
 		end
+		setTextBold(true)
+		renderText(0.86, 0.893, 0.013, string.format("driving cars (%d/%d)", numberDrivingCars, self.debugMaxNumVehicles))
+		local sortedParkedCars = table.toList(parkedCarCountsPerType)
+		table.sort(sortedParkedCars)
+		renderText(0.86, 0.51, 0.013, string.format("parked cars (types: %d, total: %d)", #sortedParkedCars, parkedCarCountTotal))
+		setTextBold(false)
+		for parkedCarIndex, name in ipairs(sortedParkedCars) do
+			renderText(0.86, 0.51 - parkedCarIndex * 0.012, 0.012, name)
+			renderText(0.94, 0.51 - parkedCarIndex * 0.012, 0.012, string.format("%2d", parkedCarCountsPerType[name]))
+		end
+		self:drawDebugNotSpawnedVehicles(configuredVehicleNames, spawnedVehicleNames)
 	end
+end
+function TrafficSystem:drawDebugNotSpawnedVehicles(configuredVehicleNames, spawnedVehicleNames)
+	local textSize = 0.012
+	local textPositionX = 0.78
+	local textPositionY = 0.893
+	setTextBold(true)
+	renderText(0.78, 0.893, 0.012, "Not spawned driving")
+	setTextBold(false)
+	local textLineNumber = 0
+	for _, configuredVehicleName in ipairs(configuredVehicleNames) do
+		if spawnedVehicleNames[configuredVehicleName] then
+			continue
+		end
+		textLineNumber = textLineNumber + 1
+		renderText(0.78, 0.893 - textLineNumber * 0.012, 0.012, configuredVehicleName)
+	end
+	setTextColor(1, 1, 1, 1)
 end
 function TrafficSystem:validateSplines()
 	local debugElementsGroupName = "trafficSystemValidation"
@@ -347,8 +410,11 @@ function TrafficSystem:consoleCommandToggleDebugRendering()
 		executeConsoleCommand("enableTrafficDebugRendering " .. tostring(self.debugIsEnabled), true)
 	end
 	if self.debugIsEnabled then
+		self:buildDebugConfiguredVehicleNames()
 		g_debugManager:addDrawable(self)
 	else
+		self.debugConfiguredVehicleNames = nil
+		self.debugMaxNumVehicles = nil
 		g_debugManager:removeDrawable(self)
 	end
 	return "TrafficSystem Debug: " .. tostring(self.debugIsEnabled)

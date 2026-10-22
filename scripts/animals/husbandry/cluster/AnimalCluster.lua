@@ -58,12 +58,28 @@ function AnimalCluster:readStream(streamId, connection)
 	self.age = streamReadUIntN(streamId, AnimalCluster.NUM_BITS_AGE)
 	self.health = streamReadUIntN(streamId, AnimalCluster.NUM_BITS_HEALTH)
 	self.reproduction = streamReadUIntN(streamId, AnimalCluster.NUM_BITS_REPRODUCTION)
+	if streamReadBool(streamId) then
+		self.pendingSpawnX = streamReadFloat32(streamId)
+		self.pendingSpawnY = streamReadFloat32(streamId)
+		self.pendingSpawnZ = streamReadFloat32(streamId)
+		self.pendingSpawnRX = streamReadFloat32(streamId)
+		self.pendingSpawnRY = streamReadFloat32(streamId)
+		self.pendingSpawnRZ = streamReadFloat32(streamId)
+	end
 end
 function AnimalCluster:writeStream(streamId, connection)
 	streamWriteUIntN(streamId, self.numAnimals, AnimalCluster.NUM_BITS_NUM_ANIMALS)
 	streamWriteUIntN(streamId, math.floor(self.age), AnimalCluster.NUM_BITS_AGE)
 	streamWriteUIntN(streamId, math.floor(self.health), AnimalCluster.NUM_BITS_HEALTH)
 	streamWriteUIntN(streamId, math.floor(self.reproduction), AnimalCluster.NUM_BITS_REPRODUCTION)
+	if streamWriteBool(streamId, self.pendingSpawnX ~= nil) then
+		streamWriteFloat32(streamId, self.pendingSpawnX)
+		streamWriteFloat32(streamId, self.pendingSpawnY)
+		streamWriteFloat32(streamId, self.pendingSpawnZ)
+		streamWriteFloat32(streamId, self.pendingSpawnRX)
+		streamWriteFloat32(streamId, self.pendingSpawnRY)
+		streamWriteFloat32(streamId, self.pendingSpawnRZ)
+	end
 end
 function AnimalCluster:readUpdateStream(streamId, connection) end
 function AnimalCluster:writeUpdateStream(streamId, connection) end
@@ -73,7 +89,7 @@ function AnimalCluster:onPeriodChanged()
 end
 function AnimalCluster:clone()
 	local ret = self.new()
-	self.maxNumAnimals = 2 ^ AnimalCluster.NUM_BITS_NUM_ANIMALS - 1
+	ret.maxNumAnimals = self.maxNumAnimals
 	ret.age = self.age
 	ret.health = self.health
 	ret.reproduction = self.reproduction
@@ -85,6 +101,9 @@ function AnimalCluster:setClusterSystem(clusterSystem)
 end
 function AnimalCluster:getNumAnimals()
 	return self.numAnimals
+end
+function AnimalCluster:getMaxNumAnimals()
+	return self.maxNumAnimals
 end
 function AnimalCluster:changeNumAnimals(delta)
 	local old = self.numAnimals
@@ -102,6 +121,9 @@ function AnimalCluster:getAge()
 end
 function AnimalCluster:getAgeFactor()
 	return math.clamp(self.age / 60, 0, 1)
+end
+function AnimalCluster:getVisual()
+	return g_currentMission.animalSystem:getVisualByAge(self:getSubTypeIndex(), self:getAge())
 end
 function AnimalCluster:changeAge(delta)
 	local old = self.age
@@ -231,6 +253,29 @@ function AnimalCluster:getHash()
 end
 function AnimalCluster:getMergeSupport()
 	return true
+end
+function AnimalCluster:setPendingSpawnWorldPosition(x, y, z, rx, ry, rz)
+	self.pendingSpawnX = x
+	self.pendingSpawnY = y
+	self.pendingSpawnZ = z
+	self.pendingSpawnRX = rx
+	self.pendingSpawnRY = ry
+	self.pendingSpawnRZ = rz
+end
+function AnimalCluster:getPendingSpawnWorldPosition()
+	if self.pendingSpawnX == nil then
+		return nil
+	else
+		return self.pendingSpawnX, self.pendingSpawnY, self.pendingSpawnZ, self.pendingSpawnRX, self.pendingSpawnRY, self.pendingSpawnRZ
+	end
+end
+function AnimalCluster:clearPendingSpawnWorldPosition()
+	self.pendingSpawnX = nil
+	self.pendingSpawnY = nil
+	self.pendingSpawnZ = nil
+	self.pendingSpawnRX = nil
+	self.pendingSpawnRY = nil
+	self.pendingSpawnRZ = nil
 end
 function AnimalCluster:showInfo(box)
 	local animalSystem = g_currentMission.animalSystem

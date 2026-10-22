@@ -62,6 +62,7 @@ function Pipe.registers(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. "#foldMinState", "Fold min. state", 1)
 	schema:register(XMLValueType.INT, basePath .. "#foldMaxState", "Fold max. state", "Num. of states")
 	schema:register(XMLValueType.BOOL, basePath .. "#aiFoldedPipeUsesTrailerSpace", "Defines if the folded pipe uses the space of the trailer to discharge", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#autoFoldWithFoldable", "Pipe is automatically extended/retracted with the foldable fold state. Disables the manual toggle action.", false)
 end
 function Pipe.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "loadUnloadingTriggers", Pipe.loadUnloadingTriggers)
@@ -110,6 +111,7 @@ function Pipe.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onMovingToolChanged", Pipe)
 	SpecializationUtil.registerEventListener(vehicleType, "onRegisterActionEvents", Pipe)
 	SpecializationUtil.registerEventListener(vehicleType, "onDischargeStateChanged", Pipe)
+	SpecializationUtil.registerEventListener(vehicleType, "onFoldStateChanged", Pipe)
 	SpecializationUtil.registerEventListener(vehicleType, "onAIImplementPrepareForTransport", Pipe)
 	SpecializationUtil.registerEventListener(vehicleType, "onRootVehicleChanged", Pipe)
 end
@@ -239,6 +241,7 @@ function Pipe:onLoad(savegame)
 	spec.foldMinState = self.xmlFile:getValue(baseKey .. "#foldMinState", 1)
 	spec.foldMaxState = self.xmlFile:getValue(baseKey .. "#foldMaxState", spec.numStates)
 	spec.aiFoldedPipeUsesTrailerSpace = self.xmlFile:getValue(baseKey .. "#aiFoldedPipeUsesTrailerSpace", false)
+	spec.autoFoldWithFoldable = self.xmlFile:getValue(baseKey .. "#autoFoldWithFoldable", false)
 	spec.texts = {}
 	spec.texts.warningFoldingPipe = g_i18n:getText("warning_foldingNotWhilePipeExtended")
 	spec.texts.turnOnStateWarning = string.format(self.xmlFile:getValue(baseKey .. "#turnOnStateWarning", "warning_firstSetPipeState", self.customEnvironment), self.typeDesc)
@@ -257,6 +260,9 @@ function Pipe:onLoad(savegame)
 	if not self.isServer then
 		SpecializationUtil.removeEventListener(self, "onUpdateTick", Pipe)
 	end
+	if not spec.autoFoldWithFoldable then
+		SpecializationUtil.removeEventListener(self, "onFoldStateChanged", Pipe)
+	end
 end
 function Pipe:onPostLoad(savegame)
 	local spec = self.spec_pipe
@@ -272,7 +278,17 @@ function Pipe:onPostLoad(savegame)
 				targetTime = 1
 			end
 			self:setAnimationTime(spec.animation.name, targetTime, true)
+			return
 		end
+	end
+	if spec.autoFoldWithFoldable and self.spec_foldable ~= nil then
+		local specFoldable = self.spec_foldable
+		local direction = 0.5 < specFoldable.foldAnimTime and 1 or -1
+		local targetState = nil
+		targetState = direction == specFoldable.turnOnFoldDirection and spec.numStates or 1
+		self:setPipeState(targetState, true)
+		self:updatePipeNodes(999999)
+		spec.currentState = spec.targetState
 	end
 end
 function Pipe:onDelete()
@@ -1187,9 +1203,13 @@ function Pipe:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSel
 		local spec = self.spec_pipe
 		self:clearActionEventsTable(spec.actionEvents)
 		if isActiveForInputIgnoreSelection and spec.hasMovablePipe then
-			local _, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.TOGGLE_PIPE, self, Pipe.actionEventTogglePipe, false, true, false, true, nil)
-			g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
-			self:updateActionEventText()
+			local _ = nil
+			local actionEventId = nil
+			if not spec.autoFoldWithFoldable then
+				_, actionEventId = self:addPoweredActionEvent(spec.actionEvents, InputAction.TOGGLE_PIPE, self, Pipe.actionEventTogglePipe, false, true, false, true, nil)
+				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_HIGH)
+				self:updateActionEventText()
+			end
 			if spec.toggleableDischargeToGround then
 				_, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.TOGGLE_TIPSTATE_GROUND, self, Pipe.actionEventToggleDischargeToGround, false, true, false, true, nil)
 				g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_NORMAL)
@@ -1216,6 +1236,15 @@ function Pipe:onDischargeStateChanged(state)
 		end
 	end
 end
+function Pipe:onFoldStateChanged(direction, moveToMiddle)
+	local spec = self.spec_pipe
+	local specFoldable = self.spec_foldable
+	if not (moveToMiddle and direction ~= specFoldable.turnOnFoldDirection) then
+		local targetState = nil
+		targetState = direction == specFoldable.turnOnFoldDirection and spec.numStates or 1
+		self:setPipeState(targetState)
+	end
+end
 function Pipe:onAIImplementPrepareForTransport()
 	local spec = self.spec_pipe
 	if spec.hasMovablePipe and self:getIsPipeStateChangeAllowed(1) then
@@ -1234,7 +1263,9 @@ function Pipe:onRootVehicleChanged(rootVehicle)
 				local autoAimState, _ = next(spec.autoAimingStates)
 				spec.controlledAction = actionController:registerAction("pipe", nil, 2)
 				spec.controlledAction:setCallback(self, Pipe.actionControllerPipeEvent)
-				spec.controlledAction:addAIEventListener(self, "onAIFieldWorkerEnd", -1)
+				if not spec.autoFoldWithFoldable then
+					spec.controlledAction:addAIEventListener(self, "onAIFieldWorkerEnd", -1)
+				end
 				spec.controlledAction:setFinishedFunctions(self, Pipe.getCurrentPipeState, autoAimState, 1)
 				return
 			end

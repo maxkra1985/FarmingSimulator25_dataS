@@ -33,6 +33,7 @@ function ProductionPoint.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. ".productions.production(?).outputs.output(?)#fillType", "Output fillType", nil, true)
 	schema:register(XMLValueType.FLOAT, basePath .. ".productions.production(?).outputs.output(?)#amount", "Produced amount per cycle", 1)
 	schema:register(XMLValueType.BOOL, basePath .. ".productions.production(?).outputs.output(?)#sellDirectly", "Directly sell produced amount", false)
+	schema:register(XMLValueType.BOOL, basePath .. ".productions.production(?).outputs.output(?)#isPrimary", "Marks this output as the main product of the production (used e.g. for the icon in the UI). If not set, the output with the highest amount is used", false)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".playerTrigger#node", "", "")
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".sounds", "active")
 	SoundManager.registerSampleXMLPaths(schema, basePath .. ".sounds", "idle")
@@ -112,17 +113,17 @@ function ProductionPoint:load(components, xmlFile, key, customEnv, i3dMappings)
 		end
 		table.insert(usedProdIds, production.id)
 		local cyclesPerMonth = xmlFile:getValue(productionKey .. "#cyclesPerMonth")
-		local _v115 = productionKey .. "#cyclesPerHour"
-		local cyclesPerHour = xmlFile:getValue(_v115)
+		local _v114 = productionKey .. "#cyclesPerHour"
+		local cyclesPerHour = xmlFile:getValue(_v114)
 		local cyclesPerMinute = xmlFile:getValue(productionKey .. "#cyclesPerMinute")
-		production.cyclesPerMinute = _v115
+		production.cyclesPerMinute = _v114
 		production.cyclesPerHour = cyclesPerHour or production.cyclesPerMinute * 60
 		production.cyclesPerMonth = cyclesPerMonth or production.cyclesPerHour * 24
 		local costsPerActiveMinute = xmlFile:getValue(productionKey .. "#costsPerActiveMinute")
-		local _v129 = productionKey .. "#costsPerActiveHour"
-		local costsPerActiveHour = xmlFile:getValue(_v129)
+		local _v130 = productionKey .. "#costsPerActiveHour"
+		local costsPerActiveHour = xmlFile:getValue(_v130)
 		local costsPerActiveMonth = xmlFile:getValue(productionKey .. "#costsPerActiveMonth")
-		production.costsPerActiveMinute = _v129
+		production.costsPerActiveMinute = _v130
 		production.costsPerActiveHour = costsPerActiveHour or production.costsPerActiveMinute * 60
 		production.costsPerActiveMonth = costsPerActiveMonth or production.costsPerActiveHour * 24
 		production.status = ProductionPoint.PROD_STATUS.INACTIVE
@@ -147,23 +148,34 @@ function ProductionPoint:load(components, xmlFile, key, customEnv, i3dMappings)
 		production.outputs = {}
 		production.primaryProductFillType = nil
 		local maxOutputAmount = 0
+		local hasExplicitPrimaryProduct = false
 		xmlFile:iterate(productionKey .. ".outputs.output", function(outputIndex, outputKey)
 			local output = {}
 			local fillTypeString = xmlFile:getValue(outputKey .. "#fillType")
 			output.type = g_fillTypeManager:getFillTypeIndexByName(fillTypeString)
 			if output.type == nil then
 				Logging.xmlError(xmlFile, "Unable to load fillType '%s' for '%s'", fillTypeString, outputKey)
+				return
+			end
+			output.sellDirectly = xmlFile:getValue(outputKey .. "#sellDirectly", false)
+			if not output.sellDirectly then
+				self.outputFillTypeIds[output.type] = true
+				table.addElement(self.outputFillTypeIdsArray, output.type)
 			else
-				output.sellDirectly = xmlFile:getValue(outputKey .. "#sellDirectly", false)
-				if not output.sellDirectly then
-					self.outputFillTypeIds[output.type] = true
-					table.addElement(self.outputFillTypeIdsArray, output.type)
-				else
-					self.soldFillTypesToPayOut[output.type] = 0
-				end
-				output.amount = xmlFile:getValue(outputKey .. "#amount", 1)
-				table.insert(production.outputs, output)
-				if maxOutputAmount < output.amount then
+				self.soldFillTypesToPayOut[output.type] = 0
+			end
+			output.amount = xmlFile:getValue(outputKey .. "#amount", 1)
+			table.insert(production.outputs, output)
+			local isPrimary = xmlFile:getBool(outputKey .. "#isPrimary", false)
+			if isPrimary and hasExplicitPrimaryProduct then
+				Logging.xmlWarning(xmlFile, "Multiple outputs marked as primary for production '%s'. Only the first one is used", productionKey)
+				isPrimary = false
+			end
+			if isPrimary then
+				production.primaryProductFillType = output.type
+				hasExplicitPrimaryProduct = true
+			else
+				if not hasExplicitPrimaryProduct and maxOutputAmount < output.amount then
 					production.primaryProductFillType = output.type
 					maxOutputAmount = output.amount
 				end

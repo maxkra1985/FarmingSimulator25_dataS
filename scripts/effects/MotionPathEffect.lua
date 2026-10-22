@@ -10,6 +10,8 @@ function MotionPathEffect.new(customMt)
 	self.state = MotionPathEffect.STATE_OFF
 	self.fadeIn = 0
 	self.fadeOut = 0
+	self.minFade = 0
+	self.maxFade = 1
 	self.numRows = 0
 	self.rowLength = 0
 	self.lastSharedEffect = nil
@@ -91,9 +93,12 @@ function MotionPathEffect:loadEffectAttributes(xmlFile, key, node, i3dNode, i3dM
 		self.shapeScale = xmlFile:getValue(key .. ".motionPathEffect#shapeScale")
 		self.maxShapeScale = xmlFile:getValue(key .. ".motionPathEffect#maxShapeScale")
 		self.fadeOutScale = xmlFile:getValue(key .. ".motionPathEffect#fadeOutScale", 1)
-		self.minFade = xmlFile:getValue(key .. ".motionPathEffect#minFade", 0)
+		self.minFade = xmlFile:getValue(key .. ".motionPathEffect#minFade", self.minFade)
 		self.inversedFadeOut = xmlFile:getValue(key .. ".motionPathEffect#inversedFadeOut", false)
 		self.scrollLength = xmlFile:getValue(key .. ".motionPathEffect#scrollLength", 1)
+		self.fadeRange = xmlFile:getValue(key .. ".motionPathEffect#fadeRange", nil, true)
+		self.fadeSpeedScale = xmlFile:getValue(key .. ".motionPathEffect#fadeSpeedScale")
+		self.maxDistance = xmlFile:getValue(key .. ".motionPathEffect#maxDistance")
 		self.delay = xmlFile:getValue(key .. ".motionPathEffect#delay", 0)
 		self.startDelay = xmlFile:getValue(key .. ".motionPathEffect#startDelay", self.delay) * 1000
 		self.stopDelay = xmlFile:getValue(key .. ".motionPathEffect#stopDelay", self.delay) * 1000
@@ -108,6 +113,9 @@ function MotionPathEffect:loadEffectAttributes(xmlFile, key, node, i3dNode, i3dM
 		end
 		self.speedReferenceAnimation = xmlFile:getValue(key .. ".motionPathEffect#speedReferenceAnimation")
 		self.speedReferenceAnimationOffset = xmlFile:getValue(key .. ".motionPathEffect#speedReferenceAnimationOffset", 0)
+		self.speedReferenceNode = I3DUtil.indexToObject(Utils.getNoNil(node, self.rootNodes), xmlFile:getValue(key .. ".motionPathEffect#speedReferenceNode"), i3dMapping)
+		self.speedReferenceNodeParameter = xmlFile:getValue(key .. ".motionPathEffect#speedReferenceNodeParameter", "scrollPos")
+		self.speedReferenceNodeScale = xmlFile:getValue(key .. ".motionPathEffect#speedReferenceNodeScale", 1)
 		self.visibilityX = xmlFile:getValue(key .. ".motionPathEffect#visibilityX", "50 -50", true)
 		self.visibilityY = xmlFile:getValue(key .. ".motionPathEffect#visibilityY", "50 -50", true)
 		self.visibilityZ = xmlFile:getValue(key .. ".motionPathEffect#visibilityZ", "50 -50", true)
@@ -160,13 +168,24 @@ function MotionPathEffect:update(dt)
 	self.pathPosition = (self.pathPosition + dt * 0.001 * effectSpeed) % self.scrollLength
 	if self.speedReferenceAnimation ~= nil then
 		self.pathPosition = self.parent:getAnimationTime(self.speedReferenceAnimation) + self.speedReferenceAnimationOffset
+	elseif self.speedReferenceNode ~= nil then
+		local _ = nil
+		self.pathPosition, _, _, _ = getShaderParameter(self.speedReferenceNode, self.speedReferenceNodeParameter)
+		self.pathPosition = self.pathPosition * self.speedReferenceNodeScale
 	end
 	if self.state == MotionPathEffect.STATE_TURNING_ON then
 		self.currentStartDelay = math.max(self.currentStartDelay - dt, 0)
 		if self.currentStartDelay == 0 then
-			self.fadeIn = math.clamp(self.fadeIn + dt * 0.001 * effectSpeed, self.minFade, 1)
+			local fadeSpeedScale = self.fadeSpeedScale or 1
+			if self.fadeRange ~= nil then
+				self.fadeIn = math.max(self.fadeIn, self.fadeRange[1])
+				if self.fadeRange[2] < self.fadeIn then
+					self.fadeIn = self.maxFade
+				end
+			end
+			self.fadeIn = math.clamp(self.fadeIn + dt * 0.001 * effectSpeed * fadeSpeedScale, self.minFade, self.maxFade)
 			self.fadeOut = self.minFade
-			if self.fadeIn == 1 then
+			if self.maxFade <= self.fadeIn then
 				self.state = MotionPathEffect.STATE_ON
 				if 0 < self.currentStopDelay then
 					self.state = MotionPathEffect.STATE_TURNING_OFF
@@ -177,15 +196,16 @@ function MotionPathEffect:update(dt)
 	if self.state == MotionPathEffect.STATE_TURNING_OFF then
 		self.currentStopDelay = math.max(self.currentStopDelay - dt, 0)
 		if self.currentStopDelay == 0 then
+			local fadeSpeedScale = self.fadeSpeedScale or 1
 			local finished = false
 			if not self.inversedFadeOut then
-				self.fadeIn = math.clamp(self.fadeIn + dt * 0.001 * effectSpeed, self.minFade, 1)
-				self.fadeOut = math.clamp(self.fadeOut + dt * 0.001 * effectSpeed, self.minFade, 1)
-				if self.fadeOut == 1 then
+				self.fadeIn = math.clamp(self.fadeIn + dt * 0.001 * effectSpeed * fadeSpeedScale, self.minFade, self.maxFade)
+				self.fadeOut = math.clamp(self.fadeOut + dt * 0.001 * effectSpeed * fadeSpeedScale, self.minFade, self.maxFade)
+				if self.maxFade <= self.fadeOut then
 					finished = true
 				end
 			else
-				self.fadeIn = math.clamp(self.fadeIn - dt * 0.001 * math.abs(effectSpeed), self.minFade, 1)
+				self.fadeIn = math.clamp(self.fadeIn - dt * 0.001 * math.abs(effectSpeed * fadeSpeedScale), self.minFade, self.maxFade)
 				self.fadeOut = self.minFade
 				if self.fadeIn == self.minFade then
 					finished = true
@@ -226,7 +246,9 @@ function MotionPathEffect:start()
 		if 0.5 < self.fadeOut then
 			self.fadeIn = self.minFade
 		end
-		self.currentStartDelay = self.startDelay
+		if self.fadeIn <= self.minFade then
+			self.currentStartDelay = self.startDelay
+		end
 	end
 	self.currentStopDelay = 0
 	return true
@@ -253,10 +275,23 @@ function MotionPathEffect:getIsVisible()
 	return self.minFade < self.fadeIn
 end
 function MotionPathEffect:getIsFullyVisible()
-	return self.fadeIn == 1
+	return self.maxFade <= self.fadeIn
 end
 function MotionPathEffect:setDensity(density)
 	self.lastDensityReal = density
+end
+function MotionPathEffect:setDistance(distance)
+	if self.maxDistance ~= nil then
+		self.maxFade = math.clamp(distance / self.maxDistance, 0, 1)
+		self.maxFade = MathUtil.round(self.maxFade * 20) / 20
+		self.maxFade = math.max(self.maxFade, self.minFade)
+		self.fadeIn = math.min(self.fadeIn, self.maxFade)
+		self.fadeOut = math.min(self.fadeOut, self.maxFade)
+		if self.state == MotionPathEffect.STATE_ON and self.fadeIn < self.maxFade then
+			self.state = MotionPathEffect.STATE_TURNING_ON
+			self.currentStartDelay = 0
+		end
+	end
 end
 function MotionPathEffect:getIsSharedEffectMatching(sharedEffect, alternativeCheck)
 	for i = 1, #sharedEffect.effectTypes do
@@ -441,8 +476,14 @@ function MotionPathEffect.registerEffectXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#fadeOutScale", "(MotionPathEffect) Fade out speed multiplicator", 1)
 	schema:register(XMLValueType.BOOL, basePath .. ".motionPathEffect#inversedFadeOut", "(MotionPathEffect) Using inversed fade in as fade out", false)
 	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#scrollLength", "(MotionPathEffect) Scroll length to wrap around", 1)
+	schema:register(XMLValueType.VECTOR_2, basePath .. ".motionPathEffect#fadeRange", "(MotionPathEffect) Defines the range of fading, so the fade starts already at value X and ends already at value Y")
+	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#fadeSpeedScale", "(MotionPathEffect) Speed scale that is affecting only the fading process of the effect independent of actual speedScale attribute.")
+	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#maxDistance", "(MotionPathEffect) Max. Distance of the effect in meter (If defined the effect is controlled by distance to the ground or trailer if available. E.g. for dischargable)")
 	schema:register(XMLValueType.STRING, basePath .. ".motionPathEffect#speedReferenceAnimation", "(MotionPathEffect) This animation will be used for the effect speed")
 	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#speedReferenceAnimationOffset", "(MotionPathEffect) Time offset to apply", 0)
+	schema:register(XMLValueType.STRING, basePath .. ".motionPathEffect#speedReferenceNode", "(MotionPathEffect) Shader parameter of this node is used as motion path effect speed")
+	schema:register(XMLValueType.STRING, basePath .. ".motionPathEffect#speedReferenceNodeParameter", "(MotionPathEffect) Shader parameter to use (x component)", "scrollPos")
+	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#speedReferenceNodeScale", "(MotionPathEffect) Scale applied to shader parameter value", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#delay", "(MotionPathEffect) Start and stop delay", 0)
 	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#startDelay", "(MotionPathEffect) Start delay", "value of #delay")
 	schema:register(XMLValueType.FLOAT, basePath .. ".motionPathEffect#stopDelay", "(MotionPathEffect) Stop delay", "value of #delay")

@@ -19,6 +19,8 @@ function PlaceableNewFence.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "getAllowExtendingOnly", PlaceableNewFence.getAllowExtendingOnly)
 	SpecializationUtil.registerFunction(placeableType, "getMaxCornerAngle", PlaceableNewFence.getMaxCornerAngle)
 	SpecializationUtil.registerFunction(placeableType, "getHasParallelSnapping", PlaceableNewFence.getHasParallelSnapping)
+	SpecializationUtil.registerFunction(placeableType, "getIsBuildLocked", PlaceableNewFence.getIsBuildLocked)
+	SpecializationUtil.registerFunction(placeableType, "setBuildLocked", PlaceableNewFence.setBuildLocked)
 end
 function PlaceableNewFence.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getIsOnFarmland", PlaceableNewFence.getIsOnFarmland)
@@ -28,6 +30,7 @@ function PlaceableNewFence.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "previewNodeDestructionNodes", PlaceableNewFence.previewNodeDestructionNodes)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "setOwnerFarmId", PlaceableNewFence.setOwnerFarmId)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getOwnerFarmId", PlaceableNewFence.getOwnerFarmId)
+	SpecializationUtil.registerOverwrittenFunction(placeableType, "canBeSold", PlaceableNewFence.canBeSold)
 end
 function PlaceableNewFence.registerEventListeners(placeableType)
 	SpecializationUtil.registerEventListener(placeableType, "onLoad", PlaceableNewFence)
@@ -50,6 +53,7 @@ end
 function PlaceableNewFence:onLoad(savegame)
 	local spec = self.spec_newFence
 	local xmlFile = self.xmlFile
+	spec.buildLockCount = 0
 	local i3dFilename = xmlFile:getValue("placeable.base.filename")
 	if string.isNilOrWhitespace(i3dFilename) then
 		Logging.xmlError(xmlFile, "Unable to load fence, no i3d filename given at 'placeable.base.filename'!")
@@ -174,7 +178,25 @@ function PlaceableNewFence:getMaxVerticalGateAngle()
 	return spec.maxVerticalGateAngle
 end
 function PlaceableNewFence:getSnapDistance()
-	return nil
+	local spec = self.spec_newFence
+	local fence = spec.fence
+	if fence == nil then
+		return nil
+	end
+	local segment = fence:getSegment(1)
+	if segment ~= nil then
+		return segment:getSnapDistance()
+	end
+	local templateId = fence:getSegmentTemplates()[1]
+	if templateId == nil then
+		return nil
+	else
+		local metadata = fence:getSegmentTemplateById(templateId)
+		if metadata.parallelSnapping ~= nil and metadata.parallelSnapping.snapDistance ~= nil then
+			return metadata.parallelSnapping.snapDistance
+		end
+		return metadata.snapDistance
+	end
 end
 function PlaceableNewFence:getSnapAngle()
 	return nil
@@ -242,3 +264,22 @@ function PlaceableNewFence:performNodeDestruction(superFunc, node)
 	return destroyedNode, destroyPlaceable
 end
 function PlaceableNewFence:collectPickObjects(superFunc, node) end
+function PlaceableNewFence:canBeSold(superFunc)
+	if self:getIsBuildLocked() then
+		return false, g_i18n:getText("shop_messageObjectInUse")
+	else
+		return superFunc(self)
+	end
+end
+function PlaceableNewFence:getIsBuildLocked()
+	local spec = self.spec_newFence
+	return 0 < spec.buildLockCount
+end
+function PlaceableNewFence:setBuildLocked(isLocked)
+	local spec = self.spec_newFence
+	if isLocked then
+		spec.buildLockCount = spec.buildLockCount + 1
+	else
+		spec.buildLockCount = math.max(spec.buildLockCount - 1, 0)
+	end
+end

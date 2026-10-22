@@ -1321,10 +1321,10 @@ function ShopConfigScreen:getOrCreateConfigItem(type)
 		item = self.configItemCache[#self.configItemCache]
 		self.configItemCache[#self.configItemCache] = nil
 		self.configurationLayout:addElement(item)
+		item:reloadFocusHandling(true)
 	end
 	item.isLargeConfigItem = false
 	item:setVisible(true)
-	item.focusId = nil
 	local option = false
 	local color = false
 	local yesNoOption = false
@@ -1361,10 +1361,10 @@ function ShopConfigScreen:getOrCreateLargeConfigItem(type)
 		item = self.configItemCacheLarge[#self.configItemCacheLarge]
 		self.configItemCacheLarge[#self.configItemCacheLarge] = nil
 		self.configurationLayout:addElement(item)
+		item:reloadFocusHandling(true)
 	end
 	item.isLargeConfigItem = true
 	item:setVisible(true)
-	item.focusId = nil
 	local focusableElement = item:getDescendantByName("option")
 	focusableElement.forceFocusScrollToTop = self.focusableElementForScroll == nil
 	self.focusableElementForScroll = focusableElement

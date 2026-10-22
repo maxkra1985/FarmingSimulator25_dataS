@@ -50,7 +50,7 @@ function PlayerStateCrouch:resetTimers()
 end
 function PlayerStateCrouch:updateAsCurrent(dt)
 	if self:calculateIfCrouching() then
-		self.player.capsuleController:setHeight(PlayerCCT.DEFAULT_HEIGHT * 0.5)
+		self.player.capsuleController:setHeight(PlayerCCT.CROUCHED_HEIGHT)
 		self.crouchTime = self.crouchTime + dt * 0.001
 		self.transitionTime = math.min(self.transitionTime + dt * 0.001, PlayerStateCrouch.SMOOTHING_TIME)
 	else

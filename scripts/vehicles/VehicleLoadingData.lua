@@ -38,7 +38,7 @@ function VehicleLoadingData:setFilename(filename)
 	if storeItem ~= nil then
 		self:setStoreItem(storeItem)
 	else
-		Logging.error("Unable to find vehicle storeitem for '%s'", filename)
+		Logging.error("Unable to find vehicle storeItem for '%s'", filename)
 		printCallstack()
 	end
 end

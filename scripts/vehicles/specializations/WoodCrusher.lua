@@ -457,7 +457,7 @@ function WoodCrusher:crushSplitShape(woodCrusher, shape)
 	local splitType = g_splitShapeManager:getSplitTypeByIndex(getSplitType(shape))
 	if splitType ~= nil and 0 < splitType.woodChipsPerLiter then
 		local volume = getVolume(shape)
-		delete(shape)
+		deleteSplitShape(shape)
 		woodCrusher.crushingTime = 1000
 		self:onCrushedSplitShape(splitType, volume)
 	end

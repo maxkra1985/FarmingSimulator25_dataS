@@ -250,7 +250,9 @@ function TreeTransportMission:writeStream(streamId, connection)
 			writeSplitShapeIdToStream(streamId, treeNode)
 		end
 	end
-	NetworkUtil.writeNodeObject(streamId, self.sellingStation)
+	if streamWriteBool(streamId, self.sellingStation ~= nil) then
+		NetworkUtil.writeNodeObject(streamId, self.sellingStation)
+	end
 end
 function TreeTransportMission:readStream(streamId, connection)
 	self.numTrees = streamReadUInt8(streamId)
@@ -275,7 +277,9 @@ function TreeTransportMission:readStream(streamId, connection)
 			end
 		end
 	end
-	self.pendingSellingStationId = NetworkUtil.readNodeObjectId(streamId)
+	if streamReadBool(streamId) then
+		self.pendingSellingStationId = NetworkUtil.readNodeObjectId(streamId)
+	end
 	self.resolveServerIds = true
 end
 function TreeTransportMission:writeUpdateStream(streamId, connection, dirtyMask)

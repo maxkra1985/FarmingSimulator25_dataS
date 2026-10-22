@@ -1,5 +1,6 @@
 HarvestExtension = {}
 HarvestExtension.YIELD_DEBUG = false
+HarvestExtension.ORCHARD_MOD_NAME = "pdlc_beansAndAlpacasPack"
 HarvestExtension.MOD_NAME = g_currentModName
 local HarvestExtension_mt = Class(HarvestExtension)
 function HarvestExtension.new(pfModule, customMt)
@@ -268,9 +269,46 @@ function HarvestExtension:postProcessMowerArea(vehicle, workArea, dt, lastRealAr
 	self.lastRollerFactor = nil
 end
 function HarvestExtension:setLastScoringValues(area, farmlandId, nActual, nTarget, pHActual, pHTarget, ignoreOverfertilization, fillTypeIndex) end
+function HarvestExtension:getSoilYieldFactors(pfModule, fruitTypeIndex, worldX, worldZ)
+	local nitrogenMap = pfModule.nitrogenMap
+	local pHMap = pfModule.pHMap
+	local soilMap = pfModule.soilMap
+	if nitrogenMap == nil or pHMap == nil or soilMap == nil then
+		return nil, 0, 1
+	end
+	local soilTypeIndex = soilMap:getTypeIndexAtWorldPos(worldX, worldZ)
+	local fruitRequirement = nitrogenMap.fruitTypeIndexToFruitRequirement[fruitTypeIndex]
+	if fruitRequirement == nil or fruitRequirement.bySoilType == nil then
+		return nil, 0, 1
+	end
+	local soilSettings = nil
+	for _, _soilSettings in ipairs(fruitRequirement.bySoilType) do
+		if _soilSettings.soilTypeIndex == soilTypeIndex then
+			soilSettings = _soilSettings
+			break
+		end
+	end
+	if soilSettings == nil then
+		return nil, 0, 1
+	else
+		local nitrogenLevel = nitrogenMap:getLevelAtWorldPos(worldX, worldZ)
+		local nitrogenFactor = nitrogenMap:getYieldFactorByLevelDifference(nitrogenLevel - soilSettings.targetLevel, fruitRequirement.ignoreOverfertilization)
+		local pHLevel = pHMap:getLevelAtWorldPos(worldX, worldZ)
+		local pHTargetLevel = pHMap:getOptimalPHValueForSoilTypeIndex(soilTypeIndex)
+		local pHFactor = pHMap:getYieldFactorByLevelDifference(pHLevel - pHTargetLevel)
+		if HarvestExtension.YIELD_DEBUG then
+			Logging.info("PF Orchard soil: soilType: %d | N: %d / %d kg/ha | pH: %.1f / %.1f | ignoreOverfertilization: %s", soilTypeIndex, nitrogenMap:getNitrogenValueFromInternalValue(nitrogenLevel), nitrogenMap:getNitrogenValueFromInternalValue(soilSettings.targetLevel), pHMap:getPhValueFromInternalValue(pHLevel), pHMap:getPhValueFromInternalValue(pHTargetLevel), tostring(fruitRequirement.ignoreOverfertilization))
+		end
+		return nitrogenFactor, pHFactor, soilSettings.yieldPotential or 1
+	end
+end
 function HarvestExtension:overwriteGameFunctions(pfModule)
 	local fruitTypes = {}
 	local tempTarget = {}
+	local orchardFruitTypes = {}
+	local sampledNitrogenFactor = nil
+	local sampledPHFactor = nil
+	local sampledYieldPotential = nil
 	pfModule:overwriteGameFunction(FSDensityMapUtil, "updateVineCutArea", function(superFunc, fruitId, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
 		self.densityMapParallelogram:updateFromWorldPositions(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
 		fruitTypes[1] = fruitId
@@ -297,8 +335,8 @@ function HarvestExtension:overwriteGameFunctions(pfModule)
 		self.replaceVineMultiplierArea[6] = heightWorldZ
 		return superFunc(fruitId, startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
 	end)
-	pfModule:overwriteGameFunction(VineCutter, "harvestCallback", function(superFunc, vehicle, placeable, area, totalArea, weedFactor, sprayFactor, plowFactor, sectionLength)
-		superFunc(vehicle, placeable, area, totalArea, weedFactor, sprayFactor, plowFactor, sectionLength)
+	pfModule:overwriteGameFunction(VineCutter, "harvestCallback", function(superFunc, vehicle, placeable, area, totalArea, weedFactor, sprayFactor, plowFactor, sectionLength, limeFactor)
+		superFunc(vehicle, placeable, area, totalArea, weedFactor, sprayFactor, plowFactor, sectionLength, limeFactor)
 		self.checkMultiplier = false
 		self.replaceMultiplier = false
 		if self.replaceVineMultiplierArea ~= nil then
@@ -489,4 +527,64 @@ function HarvestExtension:overwriteGameFunctions(pfModule)
 			return 0
 		end
 	end)
+	local orchardModEnv = getfenv(0)[HarvestExtension.ORCHARD_MOD_NAME]
+	local bananaOrchard = orchardModEnv ~= nil and orchardModEnv.BananaOrchard or nil
+	if HarvestExtension.YIELD_DEBUG or bananaOrchard == nil then
+		Logging.info("PF Orchard: BananaOrchard %s", bananaOrchard ~= nil and "resolved, overwrites installed" or "not found, orchard support disabled")
+	end
+	if bananaOrchard ~= nil then
+		pfModule:overwriteGameFunction(bananaOrchard, "doHarvest", function(superFunc, orchard, node)
+			local startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ = orchard:getOrchardAreaByNode(node)
+			if startWorldX == nil then
+				return superFunc(orchard, node)
+			else
+				orchardFruitTypes[1] = orchard.metadata.fruitTypeIndex
+				local centerX = startWorldX + (widthWorldX - startWorldX) * 0.5 + (heightWorldX - startWorldX) * 0.5
+				local centerZ = startWorldZ + (widthWorldZ - startWorldZ) * 0.5 + (heightWorldZ - startWorldZ) * 0.5
+				local nitrogenBefore = pfModule.nitrogenMap:getLevelAtWorldPos(centerX, centerZ)
+				self.densityMapParallelogram:updateFromWorldPositions(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+				local usedFruitIndex = pfModule.coverMap:preUpdateCoverArea(orchardFruitTypes, self.densityMapParallelogram, false, false)
+				local result = superFunc(orchard, node)
+				self.densityMapParallelogram:updateFromWorldPositions(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ)
+				local phMapUpdated, nMapUpdated = pfModule.coverMap:postUpdateCoverArea(orchardFruitTypes, self.densityMapParallelogram, false, false, usedFruitIndex)
+				if HarvestExtension.YIELD_DEBUG then
+					local nitrogenAfter = pfModule.nitrogenMap:getLevelAtWorldPos(centerX, centerZ)
+					Logging.info("PF Orchard harvest: fruit '%s' | usedFruitIndex: %s | nMapUpdated: %s | pHMapUpdated: %s | N: %d -> %d kg/ha", tostring(orchard.metadata.fruitTypeIndex), tostring(usedFruitIndex), tostring(nMapUpdated), tostring(phMapUpdated), pfModule.nitrogenMap:getNitrogenValueFromInternalValue(nitrogenBefore), pfModule.nitrogenMap:getNitrogenValueFromInternalValue(nitrogenAfter))
+				end
+				return result
+			end
+		end)
+		pfModule:overwriteGameFunction(bananaOrchard, "getHarvestFillData", function(superFunc, orchard, node)
+			local startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ = orchard:getOrchardAreaByNode(node)
+			if startWorldX ~= nil then
+				local centerX = startWorldX + (widthWorldX - startWorldX) * 0.5 + (heightWorldX - startWorldX) * 0.5
+				local centerZ = startWorldZ + (widthWorldZ - startWorldZ) * 0.5 + (heightWorldZ - startWorldZ) * 0.5
+				sampledNitrogenFactor, sampledPHFactor, sampledYieldPotential = self:getSoilYieldFactors(pfModule, orchard.metadata.fruitTypeIndex, centerX, centerZ)
+			end
+			local fillLevel, isSick = superFunc(orchard, node)
+			if fillLevel ~= nil then
+				if sampledNitrogenFactor ~= nil then
+					local multiplier = fillLevel / orchard.metadata.baseFillLevel
+					if pfModule.yieldMap ~= nil then
+						pfModule.yieldMap:setAreaYield(startWorldX, startWorldZ, widthWorldX, widthWorldZ, heightWorldX, heightWorldZ, multiplier)
+					end
+					if HarvestExtension.YIELD_DEBUG then
+						Logging.info("PF Orchard yield: nFactor: %d%% | pHFactor: %d%% | yieldPotential: %d%% | sick: %s => multiplier: %d%% | fillLevel: %.1f l", sampledNitrogenFactor * 100, sampledPHFactor * 100, sampledYieldPotential * 100, tostring(isSick), multiplier * 100, fillLevel)
+					end
+				elseif HarvestExtension.YIELD_DEBUG then
+					Logging.info("PF Orchard yield: no soil data, using the untouched orchard model | fillLevel: %s", tostring(fillLevel))
+				end
+			end
+			sampledNitrogenFactor = nil
+			return fillLevel, isSick
+		end)
+		pfModule:overwriteGameFunction(bananaOrchard, "getYieldMultiplier", function(superFunc, sprayFactor, limeFactor, isSick, beeYieldBonus)
+			if sampledNitrogenFactor == nil then
+				return superFunc(sprayFactor, limeFactor, isSick, beeYieldBonus)
+			else
+				local multiplier = superFunc(sampledNitrogenFactor, sampledPHFactor, isSick, beeYieldBonus)
+				return multiplier * sampledYieldPotential
+			end
+		end)
+	end
 end

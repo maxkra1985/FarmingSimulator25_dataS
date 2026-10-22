@@ -24,7 +24,7 @@ function PlaceableSystem.new(mission, customMt)
 	if self.mission:getIsServer() and g_addTestCommands then
 		addConsoleCommand("gsPlaceablesDeleteAll", "Deletes all placeables", "consoleCommandDeleteAllPlaceables", self, nil, true)
 		addConsoleCommand("gsPlaceablesReloadAll", "Reloads all placeables", "consoleCommandReloadAllPlaceables", self)
-		addConsoleCommand("gsPlaceablesLoadAll", "Loads all placeables", "consoleCommandLoadAllPlaceables", self, nil, true)
+		addConsoleCommand("gsPlaceablesLoadAll", "Loads all placeables", "consoleCommandLoadAllPlaceables", self, "[modsOnly]", true)
 	end
 	if g_addTestCommands then
 		addConsoleCommand("gsPlaceablesPendingLoadings", "Prints the pending placeable loadings", "consoleCommandPrintPendingLoadings", self)
@@ -290,6 +290,7 @@ function PlaceableSystem:removePreplacedPlaceable(placeable)
 end
 function PlaceableSystem:deletePreplacedPlaceable(data)
 	if entityExists(data.rootNode) then
+		g_messageCenter:publish(MessageType.PLACEABLE_PRE_DELETE, data.placeable, data.rootNode)
 		Logging.devInfo("PlaceableSystem:deletePreplacedPlaceable - Deleted node '%s'", getName(data.rootNode))
 		delete(data.rootNode)
 	else
@@ -470,8 +471,15 @@ function PlaceableSystem:savePlaceableToXML(placeable, xmlFile, index, i, usedMo
 	placeable:saveToXMLFile(xmlFile, placeableKey, usedModNames)
 end
 function PlaceableSystem:load(xmlFilename, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
-	self.savegameXMLFile = XMLFile.load("placeablesXML", xmlFilename, Placeable.xmlSchemaSavegame)
-	self:loadFromXMLFile(self.savegameXMLFile, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
+	self.savegameXMLFile = XMLFile.loadIfExists("placeablesXML", xmlFilename, Placeable.xmlSchemaSavegame)
+	if self.savegameXMLFile == nil then
+		Logging.xmlInfo(xmlFilename, "Could not load placeables xml file!")
+		g_asyncTaskManager:addSubtask(function()
+			asyncCallbackFunction(asyncCallbackObject, {}, PlaceableLoadingState.OK, asyncCallbackArguments)
+		end)
+	else
+		self:loadFromXMLFile(self.savegameXMLFile, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
+	end
 end
 function PlaceableSystem:loadFromXMLFile(xmlFile, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
 	local defaultItemsToSPFarm = xmlFile:getValue("placeables#loadAnyFarmInSingleplayer", false)
@@ -692,27 +700,31 @@ function PlaceableSystem:consoleCommandReloadAllPlaceables()
 		return "No placeables found to reload"
 	end
 end
-function PlaceableSystem:consoleCommandLoadAllPlaceables()
+function PlaceableSystem:consoleCommandLoadAllPlaceables(modsOnly)
 	if self.isLoadAllRunning then
 		return "Cannot start loading all placeables. Another loading is currently running"
 	end
 	if not g_currentMission:getIsServer() or g_currentMission.missionDynamicInfo.isMultiplayer then
 		return "Placeable loading only allowed in SP"
 	end
+	local loadModsOnly = string.lower(modsOnly or "false") == "true"
 	local placeablesToLoad = {}
 	for _, storeItem in ipairs(g_storeManager:getItems()) do
 		if storeItem.brush == nil or storeItem.brush.type == "" then
 			continue
 		end
-		if storeItem.brush.type == "fence" then
-			local singletonFilename = storeItem.brush.parameters[1]
-			if singletonFilename ~= nil then
-				table.insert(placeablesToLoad, singletonFilename)
+		local isModOrDlc = storeItem.isMod or storeItem.dlcTitle ~= ""
+		if not loadModsOnly or isModOrDlc then
+			if storeItem.brush.type == "fence" or storeItem.brush.type == "vineOrchard" then
+				local singletonFilename = storeItem.brush.parameters[1]
+				if singletonFilename ~= nil then
+					table.insert(placeablesToLoad, singletonFilename)
+				else
+					Logging.error("No fence singleton filename found for '%s'", storeItem.xmlFilename)
+				end
 			else
-				Logging.error("No fence singleton filename found for '%s'", storeItem.xmlFilename)
+				table.insert(placeablesToLoad, storeItem)
 			end
-		else
-			table.insert(placeablesToLoad, storeItem)
 		end
 	end
 	if #placeablesToLoad == 0 then

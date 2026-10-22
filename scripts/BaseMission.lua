@@ -89,6 +89,12 @@ function BaseMission:initialize()
 	g_messageCenter:subscribe(MessageType.GAME_STATE_CHANGED, self.onGameStateChange, self)
 	self.hud = self:createHUD()
 	self.placementManager = PlacementManager.new()
+	if self:getIsServer() then
+		self.orchardBuildManager = OrchardBuildManager.new()
+	end
+	if self:getIsClient() then
+		self.orchardBuildClient = OrchardBuildClient.new()
+	end
 end
 function BaseMission:createHUD()
 	local hud = nil
@@ -124,6 +130,14 @@ function BaseMission:delete()
 	end
 	if self.placementManager ~= nil then
 		self.placementManager:delete()
+	end
+	if self.orchardBuildManager ~= nil then
+		self.orchardBuildManager:delete()
+		self.orchardBuildManager = nil
+	end
+	if self.orchardBuildClient ~= nil then
+		self.orchardBuildClient:delete()
+		self.orchardBuildClient = nil
 	end
 	if g_localPlayer ~= nil then
 		g_localPlayer:delete()

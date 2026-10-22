@@ -497,6 +497,21 @@ end
 function Sprayer:getUseSprayerAIRequirements()
 	return true
 end
+function Sprayer:updateAiParameters()
+	local spec = self.spec_sprayer
+	local fillType = spec.workAreaParameters.sprayFillType
+	if fillType ~= FillType.UNKNOWN then
+		self:setSprayerAITerrainDetailProhibitedRange(fillType)
+	else
+		if self:getUseSprayerAIRequirements() and self.addAITerrainDetailProhibitedRange ~= nil then
+			self:clearAITerrainDetailRequiredRange()
+			self:clearAITerrainDetailProhibitedRange()
+			self:clearAIFruitRequirements()
+			self:clearAIFruitProhibitions()
+			self:addAIGroundTypeRequirements(Sprayer.AI_REQUIRED_GROUND_TYPES)
+		end
+	end
+end
 function Sprayer:setSprayerAITerrainDetailProhibitedRange(fillType)
 	if self:getUseSprayerAIRequirements() and self.addAITerrainDetailProhibitedRange ~= nil then
 		self:clearAITerrainDetailRequiredRange()
@@ -705,8 +720,9 @@ function Sprayer:loadWorkAreaFromXML(superFunc, workArea, xmlFile, key)
 end
 function Sprayer:getIsWorkAreaActive(superFunc, workArea)
 	if workArea.sprayType ~= nil then
-		local sprayType = self:getActiveSprayType()
-		if sprayType ~= nil and sprayType.index ~= workArea.sprayType then
+		local spec = self.spec_sprayer
+		local sprayType = spec.sprayTypes[workArea.sprayType]
+		if sprayType ~= nil and not self:getIsSprayTypeActive(sprayType) then
 			return false
 		end
 	end

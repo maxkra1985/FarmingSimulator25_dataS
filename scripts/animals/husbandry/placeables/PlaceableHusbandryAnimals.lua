@@ -1,4 +1,5 @@
 PlaceableHusbandryAnimals = {}
+PlaceableHusbandryAnimals.PLACEMENT_COLLISION_MIN_CONTOUR_POINTS = 4
 function PlaceableHusbandryAnimals.prerequisitesPresent(specializations)
 	return SpecializationUtil.hasSpecialization(PlaceableHusbandry, specializations)
 end
@@ -724,6 +725,9 @@ function PlaceableHusbandryAnimals:getAnimalDescription(superFunc, cluster)
 end
 function PlaceableHusbandryAnimals:createNavigationMeshPlacementCollision(contourPositions3D)
 	local spec = self.spec_husbandryAnimals
+	if #contourPositions3D < PlaceableHusbandryAnimals.PLACEMENT_COLLISION_MIN_CONTOUR_POINTS * 3 then
+		return false
+	end
 	local minX = math.huge
 	local maxX = -math.huge
 	local minZ = math.huge
@@ -838,6 +842,7 @@ end
 function PlaceableHusbandryAnimals.consoleCommandToggleDebug()
 	PlaceableHusbandryAnimals.debugEnabled = not PlaceableHusbandryAnimals.debugEnabled
 	executeConsoleCommand(string.format("showNavMesh %s", PlaceableHusbandryAnimals.debugEnabled), false)
+	executeConsoleCommand(string.format("enableAnimalStatesDebugRendering %s", PlaceableHusbandryAnimals.debugEnabled), false)
 	if not PlaceableHusbandryAnimals.debugEnabled then
 		g_debugManager:removeGroup("NM-Contour")
 		g_debugManager:removeGroup("PlaceableHusbandryMeadow")

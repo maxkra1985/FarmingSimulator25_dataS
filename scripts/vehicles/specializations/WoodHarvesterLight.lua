@@ -126,7 +126,7 @@ function WoodHarvesterLight:onUpdate(dt, isActiveForInput, isActiveForInputIgnor
 							local tx, ty, tz = getWorldTranslation(splitShapeId)
 							self:spawnTreeStump(tx, ty, tz)
 						end
-						delete(getParent(splitShapeId))
+						deleteSplitShape(splitShapeId)
 						g_treePlantManager:removingSplitShape(splitShapeId)
 						local total, _ = g_farmManager:updateFarmStats(self:getActiveFarm(), "cutTreeCount", 1)
 						if total ~= nil then

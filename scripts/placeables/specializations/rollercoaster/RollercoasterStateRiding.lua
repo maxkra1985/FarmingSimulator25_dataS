@@ -75,6 +75,3 @@ end
 function RollercoasterStateRiding:updateInfo(infoTable)
 	table.insert(infoTable, self.infoBoxRideUnderway)
 end
-function RollercoasterStateRiding:getIsConstructibleState()
-	return false
-end

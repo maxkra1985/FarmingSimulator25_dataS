@@ -217,7 +217,9 @@ function KioskMode:initializedGUIClasses()
 	MainScreen.updateStoreButtons = KioskMode.EMPTY_FUNC
 	MPLoadingScreen.openWardrobe = KioskMode.EMPTY_FUNC
 	MPLoadingScreen.onReadyToStart = Utils.overwrittenFunction(MPLoadingScreen.onReadyToStart, KioskMode.inj_mpLoadingScreen_onReadyToStart)
-	InGameMenuMobileSettingsFrame.onFrameOpen = Utils.appendedFunction(InGameMenuMobileSettingsFrame.onFrameOpen, KioskMode.inj_inGameMenuMobileSettingsFrame_onFrameOpen)
+	if InGameMenuMobileSettingsFrame ~= nil then
+		InGameMenuMobileSettingsFrame.onFrameOpen = Utils.appendedFunction(InGameMenuMobileSettingsFrame.onFrameOpen, KioskMode.inj_inGameMenuMobileSettingsFrame_onFrameOpen)
+	end
 	InGameMenu.onButtonSaveGame = KioskMode.EMPTY_FUNC
 	CareerScreen.updateButtons = Utils.appendedFunction(CareerScreen.updateButtons, KioskMode.inj_careerScreen_updateButtons)
 	CareerScreen.update = Utils.appendedFunction(CareerScreen.update, KioskMode.inj_careerScreen_update)
@@ -233,6 +235,7 @@ function KioskMode:init()
 	SpecializationManager.addSpecialization = Utils.appendedFunction(SpecializationManager.addSpecialization, KioskMode.inj_specializationManager_addSpecialization)
 	PlayerInputComponent.registerGlobalPlayerActionEvents = Utils.appendedFunction(PlayerInputComponent.registerGlobalPlayerActionEvents, KioskMode.inj_playerInputComponent_registerGlobalPlayerActionEvents)
 	PlayerInputComponent.getCanToggleCamera = Utils.appendedFunction(PlayerInputComponent.getCanToggleCamera, KioskMode.inj_playerInputComponent_getCanToggleCamera)
+	PlayerSystem.loadFromSavegameXML = Utils.overwrittenFunction(PlayerSystem.loadFromSavegameXML, KioskMode.inj_playerSystem_loadFromSavegameXML)
 	FSBaseMission.getIsAutoSaveSupported = Utils.appendedFunction(FSBaseMission.getIsAutoSaveSupported, KioskMode.inj_fsBaseMission_getIsAutoSaveSupported)
 	FSBaseMission.update = Utils.appendedFunction(FSBaseMission.update, KioskMode.inj_fsBaseMission_update)
 	AnimalLoadingTrigger.load = Utils.overwrittenFunction(AnimalLoadingTrigger.load, KioskMode.inj_animalLoadingTrigger_load)
@@ -819,6 +822,31 @@ function KioskMode.inj_playerInputComponent_getCanToggleCamera(player, superFunc
 		return false
 	else
 		return superFunc(player, ...)
+	end
+end
+function KioskMode.inj_playerSystem_loadFromSavegameXML(playerSystem, superFunc, ...)
+	superFunc(playerSystem, ...)
+	local playerDataByUniqueId = playerSystem.unloadedPlayerDataByUniqueId
+	if playerDataByUniqueId == nil then
+		return
+	end
+	local playerDataCount = playerSystem.unloadedPlayerDataCount
+	if playerDataCount ~= 1 then
+		Logging.info("KioskMode: skipped adopting saved player data, savegame contains %d player entries", playerDataCount)
+		return
+	end
+	local savedUniqueId, playerData = next(playerDataByUniqueId)
+	if playerData == nil then
+		return
+	end
+	local uniqueUserId = getUniqueUserId()
+	if savedUniqueId == uniqueUserId then
+		return
+	else
+		playerDataByUniqueId[savedUniqueId] = nil
+		playerData.uniqueId = uniqueUserId
+		playerDataByUniqueId[uniqueUserId] = playerData
+		Logging.info("KioskMode: adopted saved player data from savegame to the current user")
 	end
 end
 function KioskMode.inj_fsBaseMission_update(mission, dt)

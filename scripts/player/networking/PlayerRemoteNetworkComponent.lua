@@ -26,5 +26,6 @@ function PlayerRemoteNetworkComponent:readUpdateStream(streamId, connection, tim
 	interpolator:startNetworkNewPhase()
 	self.player.mover.isGrounded = isGrounded
 	self.player.mover:setIsCrouching(isCrouching)
+	self.player.capsuleController:setCrouched(isCrouching)
 	self.player.isFirstPerson = isFirstPerson
 end

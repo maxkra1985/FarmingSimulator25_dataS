@@ -9,7 +9,6 @@ source("dataS/scripts/gui/hud/ingameMap/IngameMapMobile.lua")
 source("dataS/scripts/gui/hud/SideNotificationMobile.lua")
 source("dataS/scripts/gui/hud/HUDPopupMessageMobile.lua")
 source("dataS/scripts/gui/hud/HUDButtonElement.lua")
-source("dataS/scripts/gui/hud/IntroductionHelpHUDUtil.lua")
 source("dataS/scripts/gui/hud/InputGlyphMobileElement.lua")
 source("dataS/scripts/gui/hud/POIInfoDisplay.lua")
 MobileHUD = {}

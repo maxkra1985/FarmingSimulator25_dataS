@@ -21,7 +21,7 @@ InGameMenuMobileMapFrame.HOTSPOT_SORTING_PRIO = {
 	[InGameMenuMobileMapFrame.PAGE_ID.FIELDS] = { MapHotspot.CATEGORY_MISSION, MapHotspot.CATEGORY_TOUR, MapHotspot.CATEGORY_OTHER, MapHotspot.CATEGORY_STEERABLE, MapHotspot.CATEGORY_COMBINE, MapHotspot.CATEGORY_TRAILER, MapHotspot.CATEGORY_TOOL, MapHotspot.CATEGORY_ANIMAL, MapHotspot.CATEGORY_UNLOADING, MapHotspot.CATEGORY_LOADING, MapHotspot.CATEGORY_PRODUCTION, MapHotspot.CATEGORY_SHOP, MapHotspot.CATEGORY_AI, MapHotspot.CATEGORY_FIELD, MapHotspot.CATEGORY_PLAYER },
 	[InGameMenuMobileMapFrame.PAGE_ID.AI] = { MapHotspot.CATEGORY_FIELD, MapHotspot.CATEGORY_MISSION, MapHotspot.CATEGORY_TOUR, MapHotspot.CATEGORY_ANIMAL, MapHotspot.CATEGORY_UNLOADING, MapHotspot.CATEGORY_LOADING, MapHotspot.CATEGORY_PRODUCTION, MapHotspot.CATEGORY_SHOP, MapHotspot.CATEGORY_OTHER, MapHotspot.CATEGORY_STEERABLE, MapHotspot.CATEGORY_COMBINE, MapHotspot.CATEGORY_TRAILER, MapHotspot.CATEGORY_TOOL, MapHotspot.CATEGORY_AI, MapHotspot.CATEGORY_PLAYER },
 }
-InGameMenuMobileMapFrame.BUTTON_TEXTS = { SET_MARKER = "action_tag", REMOVE_MARKER = "action_untag", VEHICLE_RESET = "button_reset", DIALOG_VEHICLE_RESET_DONE = "ui_vehicleResetDone", DIALOG_VEHICLE_RESET_FAILED = "ui_vehicleResetFailed", DIALOG_VEHICLE_IN_USE = "shop_messageReturnVehicleInUse", DIALOG_VEHICLE_NO_PERMISSION = "shop_messageNoPermissionGeneral", DIALOG_VEHICLE_RESET_CONFIRM = "ui_wantToResetVehicleText", DIALOG_BUY_FARMLAND_TITLE = "shop_messageBuyFarmlandTitle", DIALOG_BUY_FARMLAND_NOT_ENOUGH_MONEY = "shop_messageNotEnoughMoneyToBuyFarmland", MOBILE_BUY_FIELD_TEXT = "ui_mobile_buyFieldDialogText", MOBILE_BUY_FIELD_TEXT_COINS = "ui_mobile_buyFieldDialogText_buyCoins", BUTTON_CLOSE_MAP = "button_closeMap", BUTTON_CANCEL = "button_cancel" }
+InGameMenuMobileMapFrame.BUTTON_TEXTS = { SET_MARKER = "action_tag", REMOVE_MARKER = "action_untag", VEHICLE_RESET = "button_reset", DIALOG_VEHICLE_IN_USE = "shop_messageReturnVehicleInUse", DIALOG_VEHICLE_NO_PERMISSION = "shop_messageNoPermissionGeneral", DIALOG_BUY_FARMLAND_TITLE = "shop_messageBuyFarmlandTitle", DIALOG_BUY_FARMLAND_NOT_ENOUGH_MONEY = "shop_messageNotEnoughMoneyToBuyFarmland", MOBILE_BUY_FIELD_TEXT = "ui_mobile_buyFieldDialogText", MOBILE_BUY_FIELD_TEXT_COINS = "ui_mobile_buyFieldDialogText_buyCoins", BUTTON_CLOSE_MAP = "button_closeMap", BUTTON_CANCEL = "button_cancel" }
 InGameMenuMobileMapFrame.CLEAR_INPUT_ACTIONS = { InputAction.MENU_ACCEPT, InputAction.MENU_ACTIVATE, InputAction.MENU_CANCEL, InputAction.MENU_EXTRA_1, InputAction.MENU_EXTRA_2, InputAction.SWITCH_VEHICLE, InputAction.SWITCH_VEHICLE_BACK, InputAction.CAMERA_ZOOM_IN_OUT, InputAction.MENU_AXIS_LEFT_RIGHT }
 InGameMenuMobileMapFrame.CLEAR_CLOSE_INPUT_ACTIONS = { InputAction.SWITCH_VEHICLE, InputAction.SWITCH_VEHICLE_BACK, InputAction.CAMERA_ZOOM_IN_OUT }
 local NO_CALLBACK = function() end
@@ -1752,7 +1752,14 @@ function InGameMenuMobileMapFrame:onClickEnterVehicle()
 end
 function InGameMenuMobileMapFrame:onClickResetVehicle()
 	if not self.isResetPending and ((g_currentMission.tourIconsBase == nil or not g_currentMission.tourIconsBase.visible) and self.currentHotspot ~= nil) then
-		YesNoDialog.show(self.onYesNoReset, self, g_i18n:getText(InGameMenuMobileMapFrame.BUTTON_TEXTS.DIALOG_VEHICLE_RESET_CONFIRM), g_i18n:getText(InGameMenuMobileMapFrame.BUTTON_TEXTS.VEHICLE_RESET))
+		local vehicle = InGameMenuMapUtil.getHotspotVehicle(self.currentHotspot)
+		if vehicle == nil then
+			return
+		end
+		local confirmText, successText, failedText = vehicle:getResetDialogTexts()
+		self.resetSuccessText = successText
+		self.resetFailedText = failedText
+		YesNoDialog.show(self.onYesNoReset, self, confirmText, g_i18n:getText(InGameMenuMobileMapFrame.BUTTON_TEXTS.VEHICLE_RESET))
 	end
 end
 function InGameMenuMobileMapFrame:onYesNoReset(yes)
@@ -1769,8 +1776,12 @@ end
 function InGameMenuMobileMapFrame:onVehicleReset(state)
 	self.isResetPending = false
 	g_messageCenter:unsubscribe(ResetVehicleEvent, self)
+	local successText = self.resetSuccessText or g_i18n:getText(Vehicle.L10N_RESET_SUCCESS)
+	local failedText = self.resetFailedText or g_i18n:getText(Vehicle.L10N_RESET_FAILED)
+	self.resetSuccessText = nil
+	self.resetFailedText = nil
 	if state == ResetVehicleEvent.STATE_SUCCESS then
-		InfoDialog.show(g_i18n:getText(InGameMenuMobileMapFrame.BUTTON_TEXTS.DIALOG_VEHICLE_RESET_DONE), nil, nil, DialogElement.TYPE_INFO)
+		InfoDialog.show(successText, nil, nil, DialogElement.TYPE_INFO)
 		self:updateVehicles()
 		self.vehiclesList:reloadData()
 		self.vehiclesList.sliderElement.parent:setVisible(self.vehiclesList.visible)
@@ -1780,7 +1791,7 @@ function InGameMenuMobileMapFrame:onVehicleReset(state)
 		self.blockListSelectionEvents = false
 		self.blockPanToHotspot = true
 	elseif state == ResetVehicleEvent.STATE_FAILED then
-		InfoDialog.show(g_i18n:getText(InGameMenuMobileMapFrame.BUTTON_TEXTS.DIALOG_VEHICLE_RESET_FAILED))
+		InfoDialog.show(failedText)
 	elseif state == ResetVehicleEvent.STATE_IN_USE then
 		InfoDialog.show(g_i18n:getText(InGameMenuMobileMapFrame.BUTTON_TEXTS.DIALOG_VEHICLE_IN_USE))
 	else

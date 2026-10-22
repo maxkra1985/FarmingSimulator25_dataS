@@ -22,8 +22,6 @@ function InGameMenu.register()
 	InGameMenuSaveFrame.register()
 	InGameMenuTourFrame.register()
 	InGameMenuSettingsFrame.register()
-	InGameMenuMobileSettingsFrame.register()
-	InGameMenuMobileMapFrame.register()
 	if Platform.hasHints then
 		InGameMenuHintFrame.register()
 	end

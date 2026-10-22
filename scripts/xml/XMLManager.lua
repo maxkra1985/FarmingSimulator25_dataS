@@ -63,48 +63,14 @@ function XMLManager:initSchemas()
 		end)
 	end
 end
-local schemaRequiredModNames = { ["pdlc_macDonPack"] = true, ["pdlc_nexatPack"] = true, ["pdlc_plainsAndPrairiesPack"] = true, ["pdlc_daimlerTruckPack"] = true, ["pdlc_highlandsFishingPack"] = true, ["pdlc_vredoPack"] = true, ["pdlc_skyAgriculturePack"] = true, ["FS25_precisionFarming"] = true }
 function XMLManager.consoleCommandGenerateSchemas(_, deleteExisting)
 	if g_xmlManager == nil then
 		return
-	end
-	if not StartParams.getIsSet("scriptDebug") then
+	elseif not StartParams.getIsSet("scriptDebug") then
 		printError("Error: schema export is only available if the game was launched with '-scriptDebug'")
-		return
-	end
-	if getLanguage() ~= 0 then
+	elseif getLanguage() ~= 0 then
 		printError("Error: schema export should only be done with the game in english language setting")
-		return
-	end
-	local missingMods = false
-	for modName, _ in pairs(g_modIsLoaded) do
-		if schemaRequiredModNames[modName] == true or string.contains(modName, "testMap") then
-			continue
-		end
-		missingMods = true
-	end
-	for modName, _ in pairs(schemaRequiredModNames) do
-		if g_modIsLoaded[modName] == true then
-			continue
-		end
-		missingMods = true
-	end
-	if missingMods then
-		Logging.error("XML schema export could not be executed. Mods do not match requirements:")
-		for modName, _ in pairs(g_modIsLoaded) do
-			if schemaRequiredModNames[modName] == true or string.contains(modName, "testMap") then
-				print(" - " .. modName .. " (ok)")
-			else
-				printError(" - " .. modName .. " (not allowed)")
-			end
-		end
-		for modName, _ in pairs(schemaRequiredModNames) do
-			if g_modIsLoaded[modName] == true then
-				continue
-			end
-			printError(" - " .. modName .. " (missing)")
-		end
-	else
+	elseif DocumentationManager.validateRequiredMods("XML schema export") then
 		if Utils.stringToBoolean(deleteExisting) then
 			print("deleting existing xsd and html files")
 			local deleteFilesInDir = function(dir)

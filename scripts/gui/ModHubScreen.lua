@@ -120,6 +120,7 @@ function ModHubScreen:reset()
 end
 function ModHubScreen:onOpen(element)
 	g_modHubController:startModification()
+	g_modHubController:updateTotalModSpace()
 	if modDownloadManagerLoaded() then
 		self:setIsLoading(false)
 		self.checkForLoaded = false
@@ -228,21 +229,27 @@ function ModHubScreen:onSelectItem(page, modId)
 end
 function ModHubScreen:updateDiscSpace(freeSpaceKb, usedSpaceKb)
 	local topFrame = self:getTopFrame()
-	if topFrame ~= self.pageLoading and (topFrame ~= self.pageExtraContent and topFrame.spaceUsageLabel ~= nil) then
-		if Platform.hasLimitedModSpace then
-			local total = (freeSpaceKb + usedSpaceKb) / 1024
-			local used = usedSpaceKb / 1024
-			topFrame.spaceUsageLabel:setText(string.format("%s / %s Mb (%0.f%%)", g_i18n:formatNumber(used, 2, true), g_i18n:formatNumber(total, 2, true), used / total * 100))
-			topFrame.diskSpaceBox:setVisible(true)
-			topFrame.diskSpaceBoxBg:setVisible(true)
-			topFrame.diskSpaceBox:invalidateLayout()
-			topFrame.diskSpaceBoxBg:setSize(topFrame.diskSpaceBox.flowSizes[1] + 60 * g_pixelSizeScaledX)
-			return
-		end
+	if topFrame == self.pageLoading or topFrame == self.pageExtraContent or topFrame.spaceUsageLabel == nil then
+		return
+	end
+	if not Platform.hasLimitedModSpace then
 		if topFrame.diskSpaceBox ~= nil then
 			topFrame.diskSpaceBox:setVisible(false)
 			topFrame.diskSpaceBoxBg:setVisible(false)
 		end
+	else
+		local totalSpaceKb = g_modHubController:getTotalModSpaceKb()
+		local total = totalSpaceKb / 1024
+		local used = math.min(usedSpaceKb, totalSpaceKb) / 1024
+		local usedPercentage = 0
+		if 0 < total then
+			usedPercentage = used / total * 100
+		end
+		topFrame.spaceUsageLabel:setText(string.format("%s / %s Mb (%.0f%%)", g_i18n:formatNumber(used, 2, true), g_i18n:formatNumber(total, 2, true), usedPercentage))
+		topFrame.diskSpaceBox:setVisible(true)
+		topFrame.diskSpaceBoxBg:setVisible(true)
+		topFrame.diskSpaceBox:invalidateLayout()
+		topFrame.diskSpaceBoxBg:setSize(topFrame.diskSpaceBox.flowSizes[1] + 60 * g_pixelSizeScaledX)
 	end
 end
 function ModHubScreen:onSearchButton(categoryId)

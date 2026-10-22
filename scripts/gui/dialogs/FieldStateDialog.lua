@@ -1,5 +1,17 @@
 FieldStateDialog = {}
 local FieldStateDialog_mt = Class(FieldStateDialog, DialogElement)
+FieldStateDialog.COURSE_MIN_WORKING_WIDTH = 1
+FieldStateDialog.COURSE_MAX_WORKING_WIDTH = 30
+FieldStateDialog.COURSE_DEFAULT_WORKING_WIDTH = 6
+FieldStateDialog.COURSE_MIN_NUM_HEADLANDS = 1
+FieldStateDialog.COURSE_MAX_NUM_HEADLANDS = 6
+FieldStateDialog.COURSE_DEFAULT_NUM_HEADLANDS = 2
+FieldStateDialog.COURSE_PERCENTAGE_STEP = 5
+FieldStateDialog.COURSE_DEFAULT_PERCENTAGE = 100
+FieldStateDialog.COURSE_WORK_DIRECTION_STEP = 5
+FieldStateDialog.COURSE_WORK_DIRECTION_AUTOMATIC = -1
+FieldStateDialog.OPTION_STATE_YES = 2
+FieldStateDialog.ORDER_STATE_HEADLANDS_FIRST = 1
 function FieldStateDialog.register()
 	local fieldStateDialog = FieldStateDialog.new()
 	g_gui:loadGui("dataS/gui/dialogs/FieldStateDialog.xml", "FieldStateDialog", fieldStateDialog)
@@ -64,30 +76,21 @@ function FieldStateDialog:onOpen()
 		table.insert(sprayLevelTexts, tostring(i))
 	end
 	self.sprayLevel:setTexts(sprayLevelTexts)
-	local maxPlowLevel = Platform.gameplay.usePlowCounter and fieldGroundSystem:getMaxValue(FieldDensityMap.PLOW_LEVEL) or 0
-	local plowLevelTexts = {}
-	for i = 0, maxPlowLevel do
-		table.insert(plowLevelTexts, tostring(i))
-	end
-	self.plowLevel:setTexts(plowLevelTexts)
+	self.plowLevel:setTexts({ "needs plowing", "is plowed" })
 	local maxLimeLevel = Platform.gameplay.useLimeCounter and fieldGroundSystem:getMaxValue(FieldDensityMap.LIME_LEVEL) or 0
 	local limeLevelTexts = {}
 	for i = 0, maxLimeLevel do
-		table.insert(limeLevelTexts, tostring(i))
+		if i == 0 then
+			table.insert(limeLevelTexts, "needs liming")
+		elseif i == maxLimeLevel then
+			table.insert(limeLevelTexts, "fully limed")
+		else
+			table.insert(limeLevelTexts, string.format("partly limed (%d/%d)", i, maxLimeLevel))
+		end
 	end
 	self.limeLevel:setTexts(limeLevelTexts)
-	local maxRollerLevel = Platform.gameplay.useRolling and fieldGroundSystem:getMaxValue(FieldDensityMap.ROLLER_LEVEL) or 0
-	local rollerLevelTexts = {}
-	for i = 0, maxRollerLevel do
-		table.insert(rollerLevelTexts, tostring(i))
-	end
-	self.rollerLevel:setTexts(rollerLevelTexts)
-	local maxStubbleShredLevel = Platform.gameplay.useStubbleShred and fieldGroundSystem:getMaxValue(FieldDensityMap.STUBBLE_SHRED_LEVEL) or 0
-	local stubbleShredLevelTexts = {}
-	for i = 0, maxStubbleShredLevel do
-		table.insert(stubbleShredLevelTexts, tostring(i))
-	end
-	self.stubbleShredLevel:setTexts(stubbleShredLevelTexts)
+	self.rollerLevel:setTexts({ "needs rolling", "is rolled" })
+	self.stubbleShredLevel:setTexts({ "not shredded", "is shredded" })
 	local stoneSystem = g_currentMission.stoneSystem
 	if stoneSystem ~= nil and stoneSystem:getMapHasStones() then
 		local stoneTexts = { "Invisible", "Small", "Medium", "Big", "Picked", "Blocked after picked" }
@@ -96,6 +99,49 @@ function FieldStateDialog:onOpen()
 	end
 	local weedTexts = { "invisible", "invisible dense", "small alive", "small dense alive", "big alive", "small dense weeded alive", "small dead", "small dense dead", "big dead" }
 	self.weed:setTexts(weedTexts)
+	self.useFieldCourse:setTexts({ "No", "Yes" })
+	self.useFieldCourse:setState(1, true)
+	self.workHeadlands:setTexts({ "No", "Yes" })
+	self.workHeadlands:setState(FieldStateDialog.OPTION_STATE_YES, true)
+	self.orderMode:setTexts({ "Headlands first", "Up-down first" })
+	self.orderMode:setState(2, true)
+	local workingWidthTexts = {}
+	for width = FieldStateDialog.COURSE_MIN_WORKING_WIDTH, FieldStateDialog.COURSE_MAX_WORKING_WIDTH do
+		table.insert(workingWidthTexts, string.format("%d m", width))
+	end
+	self.workingWidth:setTexts(workingWidthTexts)
+	self.workingWidth:setState(FieldStateDialog.COURSE_DEFAULT_WORKING_WIDTH - FieldStateDialog.COURSE_MIN_WORKING_WIDTH + 1, true)
+	local numHeadlandsTexts = {}
+	for num = FieldStateDialog.COURSE_MIN_NUM_HEADLANDS, FieldStateDialog.COURSE_MAX_NUM_HEADLANDS do
+		table.insert(numHeadlandsTexts, tostring(num))
+	end
+	self.numHeadlands:setTexts(numHeadlandsTexts)
+	self.numHeadlands:setState(FieldStateDialog.COURSE_DEFAULT_NUM_HEADLANDS - FieldStateDialog.COURSE_MIN_NUM_HEADLANDS + 1, true)
+	local percentageTexts = {}
+	for percentage = 0, 100, FieldStateDialog.COURSE_PERCENTAGE_STEP do
+		table.insert(percentageTexts, tostring(percentage))
+	end
+	self.workPercentage:setTexts(percentageTexts)
+	self.workPercentage:setState(FieldStateDialog.COURSE_DEFAULT_PERCENTAGE / FieldStateDialog.COURSE_PERCENTAGE_STEP + 1, true)
+	local workDirectionTexts = { "Automatic" }
+	self.workDirectionValues = { FieldStateDialog.COURSE_WORK_DIRECTION_AUTOMATIC }
+	for degrees = 0, 180 - FieldStateDialog.COURSE_WORK_DIRECTION_STEP, FieldStateDialog.COURSE_WORK_DIRECTION_STEP do
+		table.insert(workDirectionTexts, string.format("%d \194\176", degrees))
+		table.insert(self.workDirectionValues, math.rad(degrees))
+	end
+	self.workDirection:setTexts(workDirectionTexts)
+	self.workDirection:setState(1, true)
+	self:setFieldCourseElementsDisabled(true)
+	self.statusText:setText("")
+end
+function FieldStateDialog:update(dt)
+	FieldStateDialog:superClass().update(self, dt)
+	local numPendingTasks = g_fieldManager:getNumPendingUpdateTasks()
+	if 0 < numPendingTasks then
+		self.statusText:setText(string.format("Updating fields... %d task(s) remaining", numPendingTasks))
+	else
+		self.statusText:setText("")
+	end
 end
 function FieldStateDialog:setFieldId(fieldIdStr)
 	if fieldIdStr ~= nil then
@@ -247,6 +293,17 @@ function FieldStateDialog:onClickGrowthStates(growthState)
 		end
 	end
 end
+function FieldStateDialog:onClickUseFieldCourse(state)
+	self:setFieldCourseElementsDisabled(state ~= FieldStateDialog.OPTION_STATE_YES)
+end
+function FieldStateDialog:setFieldCourseElementsDisabled(disabled)
+	self.workingWidth:setDisabled(disabled)
+	self.numHeadlands:setDisabled(disabled)
+	self.workHeadlands:setDisabled(disabled)
+	self.orderMode:setDisabled(disabled)
+	self.workDirection:setDisabled(disabled)
+	self.workPercentage:setDisabled(disabled)
+end
 function FieldStateDialog:onClickOk()
 	self:applySettings()
 	self:close()
@@ -255,26 +312,75 @@ end
 function FieldStateDialog:onClickApply()
 	self:applySettings()
 end
-function FieldStateDialog:applySettings()
+function FieldStateDialog:onClickQuickHarvestReady()
+	local fruitTypeDesc = self:getSelectedFruitTypeDesc()
+	if fruitTypeDesc == nil then
+		Logging.warning("FieldStateDialog: select a crop first to apply the harvest ready quick setting")
+	else
+		local fieldGroundSystem = g_currentMission.fieldGroundSystem
+		self.growthStates:setState(FieldStateDialog.getHarvestReadyGrowthState(fruitTypeDesc), true)
+		self.weed:setState(1)
+		self.sprayLevel:setState(fieldGroundSystem:getMaxValue(FieldDensityMap.SPRAY_LEVEL) + 1)
+		if Platform.gameplay.useLimeCounter then
+			self.limeLevel:setState(fieldGroundSystem:getMaxValue(FieldDensityMap.LIME_LEVEL) + 1)
+		end
+		if Platform.gameplay.usePlowCounter then
+			self.plowLevel:setState(fieldGroundSystem:getMaxValue(FieldDensityMap.PLOW_LEVEL) + 1)
+		end
+	end
+end
+function FieldStateDialog:onClickQuickHarvested()
+	local fruitTypeDesc = self:getSelectedFruitTypeDesc()
+	if fruitTypeDesc == nil then
+		Logging.warning("FieldStateDialog: select a crop first to apply the harvested quick setting")
+	else
+		self.growthStates:setState(fruitTypeDesc.cutState, true)
+	end
+end
+function FieldStateDialog:onClickQuickCultivated()
+	self.fruitTypes:setState(1, true)
+	self.growthStates:setState(1, true)
+	self.groundTypes:setState(FieldGroundType.CULTIVATED)
+	self.weed:setState(1)
+	self.sprayTypes:setState(FieldSprayType.NONE)
+	self.sprayLevel:setState(1)
+end
+function FieldStateDialog:getSelectedFruitTypeDesc()
+	local state = self.fruitTypes:getState()
+	if state <= 1 then
+		return nil
+	else
+		return g_fruitTypeManager:getFruitTypeByIndex(state - 1)
+	end
+end
+function FieldStateDialog.getHarvestReadyGrowthState(fruitTypeDesc)
+	if fruitTypeDesc.maxPreparingGrowthState ~= -1 then
+		return fruitTypeDesc.maxPreparingGrowthState
+	else
+		return fruitTypeDesc.maxHarvestingGrowthState
+	end
+end
+function FieldStateDialog:getSelectedFields()
 	local fieldIds = self.fieldIds:getText()
 	local idStrs = string.split(fieldIds, ",")
 	local fields = {}
-	if 0 < #idStrs then
-		for _, idStr in ipairs(idStrs) do
-			local idStr = string.trim(idStr)
-			if string.lower(idStr) == "all" then
-				fields = g_fieldManager:getFields()
-				break
-			end
-			local id = tonumber(idStr)
-			local field = g_fieldManager:getFieldById(id)
-			if field ~= nil then
-				table.insert(fields, field)
-			else
-				Logging.warning("Field '%s' not defined", idStr)
-			end
+	for _, idStr in ipairs(idStrs) do
+		local idStr = string.trim(idStr)
+		if string.lower(idStr) == "all" then
+			return g_fieldManager:getFields()
+		end
+		local id = tonumber(idStr)
+		local field = g_fieldManager:getFieldById(id)
+		if field ~= nil then
+			table.insert(fields, field)
+		else
+			Logging.warning("Field '%s' not defined", idStr)
 		end
 	end
+	return fields
+end
+function FieldStateDialog:applySettings()
+	local fields = self:getSelectedFields()
 	local fruitTypeIndex = FruitType.UNKNOWN
 	local growthState = 0
 	local state = self.fruitTypes:getState()
@@ -293,6 +399,22 @@ function FieldStateDialog:applySettings()
 	local plowLevel = self.plowLevel:getState() - 1
 	local rollerLevel = self.rollerLevel:getState() - 1
 	local stubbleShredLevel = self.stubbleShredLevel:getState() - 1
+	local stateValues = {}
+	stateValues.fruitTypeIndex = fruitTypeIndex
+	stateValues.growthState = growthState
+	stateValues.weedState = weedState
+	stateValues.stoneLevel = stoneLevel
+	stateValues.groundType = groundType
+	stateValues.groundAngle = groundAngle
+	stateValues.sprayType = sprayType
+	stateValues.sprayLevel = sprayLevel
+	stateValues.limeLevel = limeLevel
+	stateValues.plowLevel = plowLevel
+	stateValues.rollerLevel = rollerLevel
+	stateValues.stubbleShredLevel = stubbleShredLevel
+	local useFieldCourse = self.useFieldCourse:getState() == FieldStateDialog.OPTION_STATE_YES
+	self.courseGenerationId = (self.courseGenerationId or 0) + 1
+	local courseGenerationId = self.courseGenerationId
 	for _, field in ipairs(fields) do
 		if self.buyField then
 			local fieldFarmland = field.farmland
@@ -300,22 +422,168 @@ function FieldStateDialog:applySettings()
 				fieldFarmland:setOwnerFarmId(g_localPlayer.farmId)
 			end
 		end
+		if useFieldCourse then
+			self:applyFieldCourse(field, stateValues, courseGenerationId)
+		else
+			self:applyFullField(field, stateValues)
+		end
+	end
+end
+function FieldStateDialog:applyFullField(field, stateValues)
+	local task = FieldUpdateTask.new()
+	task:setField(field)
+	task:setArea(field:getDensityMapPolygon())
+	self:applyStateValuesToTask(task, stateValues, stateValues.groundAngle)
+	g_fieldManager:addFieldUpdateTask(task)
+end
+function FieldStateDialog:applyFieldCourse(field, stateValues, courseGenerationId)
+	local workingWidth = self.workingWidth:getState() - 1 + FieldStateDialog.COURSE_MIN_WORKING_WIDTH
+	local numHeadlands = self.numHeadlands:getState() - 1 + FieldStateDialog.COURSE_MIN_NUM_HEADLANDS
+	local percentage = (self.workPercentage:getState() - 1) * FieldStateDialog.COURSE_PERCENTAGE_STEP / 100
+	local workHeadlands = self.workHeadlands:getState() == FieldStateDialog.OPTION_STATE_YES
+	local headlandsFirst = self.orderMode:getState() == FieldStateDialog.ORDER_STATE_HEADLANDS_FIRST
+	local settings = FieldCourseSettings.new()
+	settings.implementWidth = workingWidth
+	settings.numHeadlands = numHeadlands
+	settings.workHeadlands = workHeadlands
+	settings.headlandsFirst = headlandsFirst
+	settings.workDirection = self.workDirectionValues[self.workDirection:getState()]
+	local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(stateValues.fruitTypeIndex)
+	if fruitTypeDesc ~= nil and fruitTypeDesc.plantSeparation ~= nil then
+		settings.rowSpacing = fruitTypeDesc.plantSeparation[1]
+		settings.rowSnapAngle = fruitTypeDesc.directionSnapAngle
+	end
+	local x, z = field:getIndicatorPosition()
+	local oppositeStateValues = nil
+	if percentage < 1 then
+		oppositeStateValues = self:buildOppositeHarvestStateValues(stateValues)
+	end
+	FieldCourse.generateUICourseByFieldPosition(x, z, settings, function(fieldCourse)
+		if courseGenerationId ~= self.courseGenerationId then
+			return
+		elseif fieldCourse == nil then
+			Logging.warning("FieldStateDialog: could not generate field course for field '%s'", tostring(field:getId()))
+		else
+			local groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels = g_currentMission.fieldGroundSystem:getDensityMapData(FieldDensityMap.GROUND_TYPE)
+			local onFieldFilter = DensityMapFilter.new(groundTypeMapId, groundTypeFirstChannel, groundTypeNumChannels)
+			onFieldFilter:setValueCompareParams(DensityValueCompareType.GREATER, 0)
+			local maxLength = fieldCourse.totalLength * percentage
+			local workedLength = 0
+			for _, segment in ipairs(fieldCourse.segments) do
+				if segment.isTurn or not workHeadlands and segment.isHeadlandSegment then
+					continue
+				end
+				local values = stateValues
+				if maxLength <= workedLength then
+					if oppositeStateValues == nil then
+						break
+					end
+					values = oppositeStateValues
+				end
+				self:enqueueSegmentTask(field, fieldCourse, segment, workingWidth, values, onFieldFilter)
+				workedLength = workedLength + segment.length
+			end
+		end
+	end)
+end
+function FieldStateDialog:buildOppositeHarvestStateValues(stateValues)
+	local fruitTypeDesc = self:getSelectedFruitTypeDesc()
+	if fruitTypeDesc == nil then
+		return nil
+	else
+		local growthState = stateValues.growthState
+		local isHarvestReady = fruitTypeDesc:getIsHarvestReady(growthState) or fruitTypeDesc:getIsPreparable(growthState)
+		local oppositeGrowthState = nil
+		if isHarvestReady then
+			oppositeGrowthState = fruitTypeDesc.cutState
+		elseif fruitTypeDesc:getIsCut(growthState) then
+			oppositeGrowthState = FieldStateDialog.getHarvestReadyGrowthState(fruitTypeDesc)
+		else
+			return nil
+		end
+		if oppositeGrowthState == nil or oppositeGrowthState == 0 then
+			return nil
+		end
+		local oppositeStateValues = {}
+		for key, value in pairs(stateValues) do
+			oppositeStateValues[key] = value
+		end
+		oppositeStateValues.growthState = oppositeGrowthState
+		local oppositeGroundType = self:getGroundTypeForGrowthState(fruitTypeDesc, oppositeGrowthState)
+		if oppositeGroundType ~= nil then
+			oppositeStateValues.groundType = oppositeGroundType
+		end
+		return oppositeStateValues
+	end
+end
+function FieldStateDialog:getGroundTypeForGrowthState(fruitTypeDesc, growthState)
+	if fruitTypeDesc:getIsCut(growthState) and fruitTypeDesc.harvestGroundType ~= nil then
+		return fruitTypeDesc.harvestGroundType
+	end
+	if fruitTypeDesc.groundTypeChangeType ~= nil and fruitTypeDesc.groundTypeChangeGrowthState <= growthState then
+		return fruitTypeDesc.groundTypeChangeType
+	end
+	return nil
+end
+function FieldStateDialog:enqueueSegmentTask(field, fieldCourse, segment, workingWidth, stateValues, onFieldFilter)
+	local polygon = self:buildSegmentStripPolygon(segment, workingWidth)
+	if polygon == nil then
+		return
+	else
+		local firstPos = segment.positions[1]
+		local lastPos = segment.positions[#segment.positions]
+		local dirX, dirZ = MathUtil.vector2Normalize(lastPos[1] - firstPos[1], lastPos[2] - firstPos[2])
+		local segmentAngle = MathUtil.getYRotationFromDirection(dirX, dirZ) % 3.141592653589793
 		local task = FieldUpdateTask.new()
 		task:setField(field)
-		task:setArea(field:getDensityMapPolygon())
-		task:setFruit(fruitTypeIndex, growthState)
-		task:setWeedState(weedState)
-		task:setStoneLevel(stoneLevel)
-		task:setGroundType(groundType)
-		task:setGroundAngle(groundAngle)
-		task:setSprayType(sprayType)
-		task:setSprayLevel(sprayLevel)
-		task:setLimeLevel(limeLevel)
-		task:setPlowLevel(plowLevel)
-		task:setRollerLevel(rollerLevel)
-		task:setStubbleShredLevel(stubbleShredLevel)
-		task:resetDisplacement()
-		task:clearTireTracks()
+		task:setArea(polygon)
+		task:addFilter(onFieldFilter)
+		self:applyStateValuesToTask(task, stateValues, segmentAngle)
 		g_fieldManager:addFieldUpdateTask(task)
+	end
+end
+function FieldStateDialog:applyStateValuesToTask(task, stateValues, groundAngle)
+	task:setFruit(stateValues.fruitTypeIndex, stateValues.growthState)
+	task:setWeedState(stateValues.weedState)
+	task:setStoneLevel(stateValues.stoneLevel)
+	task:setGroundType(stateValues.groundType)
+	task:setGroundAngle(groundAngle)
+	task:setSprayType(stateValues.sprayType)
+	task:setSprayLevel(stateValues.sprayLevel)
+	task:setLimeLevel(stateValues.limeLevel)
+	task:setPlowLevel(stateValues.plowLevel)
+	task:setRollerLevel(stateValues.rollerLevel)
+	task:setStubbleShredLevel(stateValues.stubbleShredLevel)
+	task:resetDisplacement()
+	task:clearTireTracks()
+end
+function FieldStateDialog:buildSegmentStripPolygon(segment, workingWidth)
+	if #segment.positions < 2 then
+		return nil
+	else
+		local halfWidth = workingWidth * 0.5
+		local positions = {}
+		for _, pos in ipairs(segment.positions) do
+			table.insert(positions, { pos[1], pos[2] })
+		end
+		FieldCourseUtil.extendSegment(positions, 1, halfWidth)
+		FieldCourseUtil.extendSegment(positions, -1, halfWidth)
+		local numPositions = #positions
+		local polygon = DensityMapPolygon.new()
+		for i = 1, numPositions do
+			local pairIndex = math.min(i, numPositions - 1)
+			local p1 = positions[pairIndex]
+			local p2 = positions[pairIndex + 1]
+			local dirX, dirZ = MathUtil.vector2Normalize(p2[1] - p1[1], p2[2] - p1[2])
+			polygon:addPolygonPoint(positions[i][1] - dirZ * halfWidth, positions[i][2] + dirX * halfWidth)
+		end
+		for i = numPositions, 1, -1 do
+			local pairIndex = math.min(i, numPositions - 1)
+			local p1 = positions[pairIndex]
+			local p2 = positions[pairIndex + 1]
+			local dirX, dirZ = MathUtil.vector2Normalize(p2[1] - p1[1], p2[2] - p1[2])
+			polygon:addPolygonPoint(positions[i][1] + dirZ * halfWidth, positions[i][2] - dirX * halfWidth)
+		end
+		return polygon
 	end
 end

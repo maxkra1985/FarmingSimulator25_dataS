@@ -279,6 +279,10 @@ function VehicleConfigurationItemWheel.generateConfigurations(configurationItems
 		configItem.baseConfigItem = baseConfigItem
 		configItem.maxForwardSpeed = baseConfigItem.maxForwardSpeed
 		configItem.maxForwardSpeedShop = baseConfigItem.maxForwardSpeedShop
+		configItem.dependentConfigurations = baseConfigItem.dependentConfigurations
+		configItem.postLoadObjectChange = baseConfigItem.postLoadObjectChange
+		configItem.shopTranslationOffset = baseConfigItem.shopTranslationOffset
+		configItem.shopRotationOffset = baseConfigItem.shopRotationOffset
 		table.insert(configurationItems, configItem)
 		local index = #configurationItems
 		configItem:setIndex(index)

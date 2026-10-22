@@ -482,7 +482,8 @@ function Twister:onObjectCallback(transformId, subShapeIndex, isLast)
 							if not getIsSplitShapeSplit(transformId) then
 								local splitTypeIndex = getSplitType(transformId)
 								local treeType = g_treePlantManager:getTreeTypeDescFromSplitType(splitTypeIndex)
-								if treeType ~= nil and treeType.index ~= self.treeTypeIndex then
+								local isDestructibleTreeType = treeType ~= nil and treeType.index ~= self.treeTypeIndex
+								if isDestructibleTreeType and self:getCanDestructTree(getParent(transformId)) then
 									self.foundObjects[transformId] = { isSplitShape = true, isBale = false, isPlaceable = false }
 								end
 							end
@@ -495,6 +496,15 @@ function Twister:onObjectCallback(transformId, subShapeIndex, isLast)
 			self:onFinishCallback()
 		end
 		return true
+	end
+end
+function Twister:getCanDestructTree(treeNode)
+	local x, _, z = getWorldTranslation(treeNode)
+	local farmlandId = g_farmlandManager:getFarmlandIdAtWorldPosition(x, z)
+	if farmlandId == FarmlandManager.NOT_BUYABLE_FARM_ID then
+		return false
+	else
+		return g_farmlandManager:getIsValidFarmlandId(farmlandId)
 	end
 end
 function Twister:addHotspots()

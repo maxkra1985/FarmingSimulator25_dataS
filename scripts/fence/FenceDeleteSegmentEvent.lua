@@ -31,5 +31,8 @@ function FenceDeleteSegmentEvent:run(connection)
 			segment:delete()
 			g_messageCenter:publish(FenceDeleteSegmentEvent, self.fencePlaceable, segment)
 		end
+		if g_server ~= nil and (fence:getNumSegments() == 0 and self.fencePlaceable.delete ~= nil) then
+			self.fencePlaceable:delete()
+		end
 	end
 end

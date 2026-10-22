@@ -8,7 +8,7 @@ function SoilMapResetDensityMapTask.new(customMt)
 	local self = SoilMapResetDensityMapTask:superClass().new(customMt or SoilMapResetDensityMapTask_mt)
 	self.farmlandId = nil
 	self.multiModifier = nil
-	self.frameBudget = 0.00025
+	self.frameBudget = 0.00075
 	self.frames = 0
 	self.totalTime = 0
 	self.minX = -g_currentMission.terrainSize * 0.5

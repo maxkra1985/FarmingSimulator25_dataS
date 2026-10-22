@@ -85,6 +85,9 @@ function CultivateMission.isAvailableForField(field, mission)
 		end
 		local growthState = fieldState.growthState
 		local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
+		if fruitTypeDesc.useForHarvestMissionsOnly then
+			return false
+		end
 		if fruitTypeDesc:getIsCatchCrop() and growthState <= 1 then
 			return false
 		end

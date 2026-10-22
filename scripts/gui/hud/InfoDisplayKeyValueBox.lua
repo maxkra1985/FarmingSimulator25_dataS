@@ -1,5 +1,6 @@
 InfoDisplayKeyValueBox = {}
 local InfoDisplayKeyValueBox_mt = Class(InfoDisplayKeyValueBox, InfoDisplayBox)
+InfoDisplayKeyValueBox.TEXT_TRIM_REPLACEMENT = "..."
 function InfoDisplayKeyValueBox.new(infoDisplay, uiScale, customMt)
 	local self = InfoDisplayBox.new(infoDisplay, uiScale, customMt or InfoDisplayKeyValueBox_mt)
 	self.lines = {}
@@ -43,6 +44,7 @@ function InfoDisplayKeyValueBox:storeScaledValues()
 	self.keyOffsetX = infoDisplay:scalePixelToScreenWidth(30)
 	self.warningOffsetX, self.warningOffsetY = infoDisplay:scalePixelValuesToScreenVector(30, -3)
 	self.valueOffsetX = infoDisplay:scalePixelToScreenWidth(-14)
+	self.keyToValueMinGap = infoDisplay:scalePixelToScreenWidth(12)
 	self.titleOffsetX, self.titleOffsetY = infoDisplay:scalePixelValuesToScreenVector(14, -27)
 	self.titleMaxWidth = infoDisplay:scalePixelToScreenWidth(312)
 	local iconWidth, iconHeight = infoDisplay:scalePixelValuesToScreenVector(20, 20)
@@ -87,12 +89,18 @@ function InfoDisplayKeyValueBox:draw(posX, posY)
 			local key = line.key
 			local value = line.value
 			local isWarning = line.isWarning
+			local hasValue = value ~= nil and value ~= ""
+			local valueWidth = 0
+			if hasValue then
+				valueWidth = getTextWidth(self.valueTextSize, value)
+			end
 			local keyWidth = nil
 			if isWarning then
 				setTextAlignment(RenderText.ALIGN_LEFT)
 				setTextColor(activeColor[1], activeColor[2], activeColor[3], activeColor[4])
 				setTextBold(true)
 				linePosY = linePosY + self.warningOffsetY
+				key = self:getLimitedKeyText(key, warningPosX, valuePosX, valueWidth)
 				renderText(warningPosX, linePosY, self.keyTextSize, key)
 				keyWidth = getTextWidth(self.keyTextSize, key)
 				setTextBold(false)
@@ -101,14 +109,14 @@ function InfoDisplayKeyValueBox:draw(posX, posY)
 			else
 				setTextColor(1, 1, 1, 1)
 				setTextAlignment(RenderText.ALIGN_LEFT)
+				key = self:getLimitedKeyText(key, keyPosX, valuePosX, valueWidth)
 				renderText(keyPosX, linePosY, self.keyTextSize, key)
 				keyWidth = getTextWidth(self.keyTextSize, key)
 			end
-			if value ~= nil and value ~= "" then
+			if hasValue then
 				setTextColor(1, 1, 1, 1)
 				setTextAlignment(RenderText.ALIGN_RIGHT)
 				renderText(valuePosX, linePosY, self.valueTextSize, value)
-				local valueWidth = getTextWidth(self.valueTextSize, value)
 				local dashedLineStartX = keyPosX + keyWidth + 3 * g_pixelSizeX
 				local dashedLineWidth = valuePosX - valueWidth - dashedLineStartX - 3 * g_pixelSizeX
 				drawDashedLine(dashedLineStartX, linePosY, dashedLineWidth, self.dashedLineHeight, self.dashWidth, self.dashGapWidth, inactiveColor[1], inactiveColor[2], inactiveColor[3], inactiveColor[4], true)
@@ -149,6 +157,15 @@ end
 function InfoDisplayKeyValueBox:setTitle(title)
 	title = utf8ToUpper(title)
 	if title ~= self.title then
-		self.title = Utils.limitTextToWidth(title, self.titleTextSize, self.titleMaxWidth, false, "...")
+		self.title = Utils.limitTextToWidth(title, self.titleTextSize, self.titleMaxWidth, false, InfoDisplayKeyValueBox.TEXT_TRIM_REPLACEMENT)
+	end
+end
+function InfoDisplayKeyValueBox:getLimitedKeyText(key, keyPosX, valuePosX, valueWidth)
+	local maxKeyWidth = valuePosX - valueWidth - keyPosX - self.keyToValueMinGap
+	if maxKeyWidth <= 0 then
+		return ""
+	else
+		local limitedKey = Utils.limitTextToWidth(key, self.keyTextSize, maxKeyWidth, false, InfoDisplayKeyValueBox.TEXT_TRIM_REPLACEMENT)
+		return limitedKey
 	end
 end

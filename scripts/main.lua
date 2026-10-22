@@ -16,13 +16,13 @@ GS_PROFILE_MEDIUM = 3
 GS_PROFILE_HIGH = 4
 GS_PROFILE_VERY_HIGH = 5
 GS_PROFILE_ULTRA = 6
-g_gameVersion = 26
-g_gameVersionNotification = "1.24.0.0"
-g_gameVersionDisplay = "1.24.0.0"
+g_gameVersion = 27
+g_gameVersionNotification = "1.25.0.0"
+g_gameVersionDisplay = "1.25.0.0"
 g_gameVersionDisplayExtra = ""
 g_isDevelopmentConsoleScriptModTesting = false
 g_minModDescVersion = 90
-g_maxModDescVersion = 114
+g_maxModDescVersion = 115
 g_language = 0
 g_languageShort = "en"
 g_languageSuffix = "_en"
@@ -182,6 +182,7 @@ function init(args)
 			g_networkDebug = true
 			print(string.format("GameDirectory: %s", getAppBasePath()))
 			print(string.format("UniqueUserId: %s", getUniqueUserId()))
+			source("dataS/scripts/testing/ModHubTestManager.lua")
 		end
 		if g_addTestCommands or StartParams.getIsSet("cheats") then
 			g_addCheatCommands = true
@@ -535,6 +536,7 @@ function init(args)
 		if Platform.hasAnimalTradingDialog then
 			AnimalTradingDialog.register()
 		end
+		AnimalWorkerDialog.register()
 		ChatDialog.register()
 		ColorPickerDialog.register()
 		g_connectionFailedDialog = ConnectionFailedDialog.register()
@@ -559,6 +561,8 @@ function init(args)
 		PalletShopDialog.register()
 		VehicleShopDialog.register()
 		AISettingsDialog.register()
+		OrchardBrushDialog.register()
+		OrchardBuildProgressDialog.register()
 		ESRBUpdateDialog.register()
 		MultiOptionDialog.register()
 		updateLoadingBarProgress()
@@ -775,6 +779,9 @@ function update(dt)
 		g_ignitionLockManager:update(dt)
 		g_debugManager:update(dt)
 		g_lifetimeStats:update(dt)
+		if g_modHubTestManager ~= nil then
+			g_modHubTestManager:update(dt)
+		end
 		g_soundMixer:update(dt)
 		g_asyncTaskManager:update(dt)
 		g_messageCenter:update(dt)
@@ -1213,7 +1220,9 @@ function loadUserSettings(gameSettings)
 		copyFile(gameSettingsPathTemplate, g_savegamePath, true)
 		g_savegameXML = loadXMLFile("savegameXML", g_savegamePath)
 	end
-	syncProfileFiles()
+	if not Platform.needsSignIn then
+		syncProfileFiles()
+	end
 	local revision = getXMLInt(g_savegameXML, "gameSettings#revision")
 	local gameSettingsTemplate = loadXMLFile("GameSettingsTemplate", gameSettingsPathTemplate)
 	local revisionTemplate = getXMLInt(gameSettingsTemplate, "gameSettings#revision")

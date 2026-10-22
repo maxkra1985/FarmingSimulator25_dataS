@@ -16,6 +16,8 @@ source("dataS/scripts/field/course/enums/FieldCourseDetectionState.lua")
 source("dataS/scripts/field/course/enums/FieldCourseGenerationState.lua")
 source("dataS/scripts/field/course/ai/AIFieldCourse.lua")
 local FieldCourseManager_mt = Class(FieldCourseManager, AbstractManager)
+FieldCourseManager.FRAME_BUDGET = 0.00075
+FieldCourseManager.FRAME_BUDGET_GUI = 0.01
 function FieldCourseManager.new(customMt)
 	local self = AbstractManager.new(customMt or FieldCourseManager_mt)
 	self.updateables = {}
@@ -83,6 +85,12 @@ function FieldCourseManager:update(dt)
 			end
 		end
 	end
+end
+function FieldCourseManager:getFrameBudget()
+	if g_gui ~= nil and g_gui:getIsGuiVisible() then
+		return FieldCourseManager.FRAME_BUDGET_GUI
+	end
+	return FieldCourseManager.FRAME_BUDGET
 end
 function FieldCourseManager:generateFieldCourseAtWorldPos(wx, wz, fieldCourseSettings, callback, callbackTarget)
 	FieldCourse.generateByFieldPosition(wx, wz, fieldCourseSettings, function(fieldCourse)

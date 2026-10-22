@@ -3,6 +3,7 @@ source("dataS/scripts/placeables/specializations/constructible/ConstructibleStat
 source("dataS/scripts/placeables/specializations/constructible/ConstructibleState.lua")
 source("dataS/scripts/placeables/specializations/constructible/ConstructibleStateBuilding.lua")
 source("dataS/scripts/placeables/specializations/constructible/ConstructibleStateFinalize.lua")
+PlaceableConstructible.FINISH_STATE_COMMAND = "gsConstructibleFinishState"
 function PlaceableConstructible.prerequisitesPresent(specializations)
 	return true
 end
@@ -17,7 +18,9 @@ function PlaceableConstructible.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "getConstructibleStateIndex", PlaceableConstructible.getConstructibleStateIndex)
 	SpecializationUtil.registerFunction(placeableType, "resetConstructibleToState", PlaceableConstructible.resetConstructibleToState)
 	SpecializationUtil.registerFunction(placeableType, "consoleCommandFinishConstructionState", PlaceableConstructible.consoleCommandFinishConstructionState)
+	SpecializationUtil.registerFunction(placeableType, "removeConstructibleFinishStateCommand", PlaceableConstructible.removeConstructibleFinishStateCommand)
 	SpecializationUtil.registerFunction(placeableType, "getNumFinishedConstructibleStates", PlaceableConstructible.getNumFinishedConstructibleStates)
+	SpecializationUtil.registerFunction(placeableType, "addConstructionProgressInfo", PlaceableConstructible.addConstructionProgressInfo)
 end
 function PlaceableConstructible.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "collectPickObjects", PlaceableConstructible.collectPickObjects)
@@ -105,7 +108,7 @@ function PlaceableConstructible:onLoad(savegame)
 		end
 		local stateName = string.upper(self.xmlFile:getValue(stateKey .. "#name", ""))
 		if spec.stateNameToIndex[stateName] ~= nil then
-			Logging.xmlError(self.xmlFile, "State '%s' already defined", stateName, stateKey)
+			Logging.xmlError(self.xmlFile, "State '%s' at '%s' already defined", stateName, stateKey)
 			break
 		end
 		local stateClassName = self.xmlFile:getValue(stateKey .. "#class", "")
@@ -176,14 +179,16 @@ function PlaceableConstructible:onFinalizePlacement(savegame)
 			spec.stateIndexPending = nil
 			spec.postFinalize = nil
 		else
-			self:setConstructibleState(spec.startStateIndex)
+			for i = 1, spec.startStateIndex do
+				self:setConstructibleState(i)
+			end
 		end
 		self:raiseActive()
 	end
 end
 function PlaceableConstructible:onDelete()
 	local spec = self.spec_constructible
-	removeConsoleCommand("gsConstructibleFinishState")
+	self:removeConstructibleFinishStateCommand()
 	g_messageCenter:unsubscribeAll(self)
 	if spec.unloadingStation ~= nil then
 		g_currentMission.storageSystem:removeUnloadingStation(spec.unloadingStation, self)
@@ -214,8 +219,8 @@ function PlaceableConstructible:collectPickObjects(superFunc, node)
 end
 function PlaceableConstructible:saveToXMLFile(xmlFile, key, usedModNames)
 	local spec = self.spec_constructible
-	if spec.stateIndex ~= nil and 0 < spec.stateIndex then
-		local state = spec.stateMachine[spec.stateIndex]
+	local state = spec.stateMachine[spec.stateIndex]
+	if state ~= nil then
 		xmlFile:setValue(key .. ".state#name", state.name)
 		state:saveToXMLFile(xmlFile, key, usedModNames)
 	end
@@ -227,7 +232,9 @@ function PlaceableConstructible:loadFromXMLFile(xmlFile, key)
 	spec.stateIndexPending = spec.stateNameToIndex[stateName] or 1
 	function spec.postFinalize()
 		local state = spec.stateMachine[spec.stateIndexPending]
-		state:loadFromXMLFile(xmlFile, key)
+		if state ~= nil then
+			state:loadFromXMLFile(xmlFile, key)
+		end
 	end
 	spec.storage:loadFromXMLFile(xmlFile, key .. ".storage")
 end
@@ -239,12 +246,14 @@ function PlaceableConstructible:onReadStream(streamId, connection)
 	local storageId = NetworkUtil.readNodeObjectId(streamId)
 	spec.storage:readStream(streamId, connection)
 	g_client:finishRegisterObject(spec.storage, storageId)
-	local stateIndex = streamReadUInt8(streamId)
-	for i = 1, stateIndex do
-		self:setConstructibleState(i)
+	if streamReadBool(streamId) then
+		local stateIndex = streamReadUInt8(streamId)
+		for i = 1, stateIndex do
+			self:setConstructibleState(i)
+		end
+		local state = spec.stateMachine[stateIndex]
+		state:onReadStream(streamId, connection)
 	end
-	local state = spec.stateMachine[stateIndex]
-	state:onReadStream(streamId, connection)
 end
 function PlaceableConstructible:onWriteStream(streamId, connection)
 	local spec = self.spec_constructible
@@ -254,9 +263,11 @@ function PlaceableConstructible:onWriteStream(streamId, connection)
 	NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(spec.storage))
 	spec.storage:writeStream(streamId, connection)
 	g_server:registerObjectInStream(connection, spec.storage)
-	streamWriteUInt8(streamId, spec.stateIndex)
 	local state = spec.stateMachine[spec.stateIndex]
-	state:onWriteStream(streamId, connection)
+	if streamWriteBool(streamId, state ~= nil) then
+		streamWriteUInt8(streamId, spec.stateIndex)
+		state:onWriteStream(streamId, connection)
+	end
 end
 function PlaceableConstructible:onReadUpdateStream(streamId, timestamp, connection)
 	if connection:getIsServer() then
@@ -327,7 +338,8 @@ function PlaceableConstructible:setConstructiblePreviewState()
 end
 function PlaceableConstructible:setConstructibleState(newStateIndex)
 	local spec = self.spec_constructible
-	if self.isServer and self.propertyState ~= PlaceablePropertyState.CONSTRUCTION_PREVIEW then
+	local canSendStateEvent = self.isServer and self.isRegistered and self.propertyState ~= PlaceablePropertyState.CONSTRUCTION_PREVIEW
+	if canSendStateEvent then
 		g_server:broadcastEvent(ConstructibleStateEvent.new(self, newStateIndex), false)
 	end
 	if newStateIndex ~= spec.stateIndex then
@@ -354,10 +366,7 @@ end
 function PlaceableConstructible:updateInfo(superFunc, infoTable)
 	superFunc(self, infoTable)
 	local spec = self.spec_constructible
-	local finishedStates, numConstructibleStates = self:getNumFinishedConstructibleStates()
-	if finishedStates < numConstructibleStates then
-		table.insert(infoTable, { title = g_i18n:getText("ui_construction_state"), text = string.format("(%d / %d)", finishedStates, numConstructibleStates) })
-	end
+	self:addConstructionProgressInfo(infoTable)
 	spec.fillTypesAndLevelsAuxiliary = {}
 	for fillType, fillLevel in pairs(spec.storage:getFillLevels()) do
 		spec.fillTypesAndLevelsAuxiliary[fillType] = (spec.fillTypesAndLevelsAuxiliary[fillType] or 0) + fillLevel
@@ -383,7 +392,7 @@ function PlaceableConstructible:updateInfo(superFunc, infoTable)
 		end
 	end
 	local state = spec.stateMachine[spec.stateIndex]
-	if state.updateInfo ~= nil then
+	if state ~= nil and state.updateInfo ~= nil then
 		state:updateInfo(infoTable)
 	end
 end
@@ -414,16 +423,15 @@ function PlaceableConstructible:setOwnerFarmId(superFunc, farmId, noEventSend)
 	end
 end
 function PlaceableConstructible:onInfoTriggerEnter(nodeId)
-	local spec = self.spec_constructible
-	if spec ~= nil then
-		addConsoleCommand("gsConstructibleFinishState", "Finishes current construction state", "consoleCommandFinishConstructionState", self)
+	if PlaceableConstructible.finishStateCommandOwner ~= nil then
+		return
+	else
+		addConsoleCommand(PlaceableConstructible.FINISH_STATE_COMMAND, "Finishes current construction state", "consoleCommandFinishConstructionState", self)
+		PlaceableConstructible.finishStateCommandOwner = self
 	end
 end
 function PlaceableConstructible:onInfoTriggerLeave(nodeId)
-	local spec = self.spec_constructible
-	if spec ~= nil then
-		removeConsoleCommand("gsConstructibleFinishState")
-	end
+	self:removeConstructibleFinishStateCommand()
 end
 function PlaceableConstructible:consoleCommandFinishConstructionState()
 	local spec = self.spec_constructible
@@ -437,21 +445,49 @@ function PlaceableConstructible:consoleCommandFinishConstructionState()
 		Logging.info("No next state found")
 	end
 end
+function PlaceableConstructible:removeConstructibleFinishStateCommand()
+	if PlaceableConstructible.finishStateCommandOwner ~= self then
+		return
+	else
+		removeConsoleCommand(PlaceableConstructible.FINISH_STATE_COMMAND)
+		PlaceableConstructible.finishStateCommandOwner = nil
+	end
+end
 function PlaceableConstructible:getNumFinishedConstructibleStates()
 	local spec = self.spec_constructible
-	local numConstructibleStates = -2
+	local numConstructibleStates = 0
 	local finishedStates = 0
 	for i, state in ipairs(spec.stateMachine) do
 		if state:getIsConstructibleState() then
-			if i ~= spec.isPreviewState then
-				numConstructibleStates = numConstructibleStates + 1
-			end
+			numConstructibleStates = numConstructibleStates + 1
 			if i < spec.stateIndex then
 				finishedStates = finishedStates + 1
 			end
 		end
 	end
 	return finishedStates, numConstructibleStates
+end
+function PlaceableConstructible:addConstructionProgressInfo(infoTable)
+	local spec = self.spec_constructible
+	local finishedStates, numConstructibleStates = self:getNumFinishedConstructibleStates()
+	if numConstructibleStates <= finishedStates then
+		return
+	else
+		local state = spec.stateMachine[spec.stateIndex]
+		local isWorkStepActive = false
+		if state ~= nil then
+			isWorkStepActive = state:getIsConstructibleState()
+		end
+		local currentStep = finishedStates
+		if isWorkStepActive then
+			currentStep = finishedStates + 1
+		end
+		table.insert(infoTable, { title = g_i18n:getText("ui_construction_workStep"), text = string.format("%d / %d", currentStep, numConstructibleStates) })
+		if isWorkStepActive then
+			local percentage = math.floor(state:getProgress() * 100)
+			table.insert(infoTable, { title = g_i18n:getText("ui_construction_state"), text = string.format("%d%%", percentage) })
+		end
+	end
 end
 function PlaceableConstructible.loadSpecValueFillTypes(xmlFile, customEnvironment, baseDir, resultTable)
 	if not xmlFile:hasProperty("placeable.constructible") then

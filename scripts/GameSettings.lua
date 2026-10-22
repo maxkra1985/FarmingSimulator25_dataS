@@ -89,6 +89,7 @@ GameSettings.SETTING = {
 	["CUSTOM_COLORS"] = "customColors",
 	["ESRB_UPDATE_SHOWN"] = "wasESRBUpdateShown",
 	["SHOW_FISHING_INTRO"] = "showFishingIntro",
+	["SHOW_BANANA_MACHETE_HINT"] = "showBananaMacheteHint",
 	["PLAYED_MULTIPLAYER"] = "playedMultiplayer",
 	["TOTAL_PLAYED_SECONDS"] = "totalPlayedSeconds",
 	["STARTED_GUIDED_TOUR"] = "startedGuidedTour",
@@ -216,6 +217,7 @@ function GameSettings:setDefault()
 	self[GameSettings.SETTING.CUSTOM_COLORS] = {}
 	self[GameSettings.SETTING.ESRB_UPDATE_SHOWN] = false
 	self[GameSettings.SETTING.SHOW_FISHING_INTRO] = true
+	self[GameSettings.SETTING.SHOW_BANANA_MACHETE_HINT] = true
 	self[GameSettings.SETTING.PLAYED_MULTIPLAYER] = false
 	self[GameSettings.SETTING.TOTAL_PLAYED_SECONDS] = -1
 	self[GameSettings.SETTING.STARTED_GUIDED_TOUR] = false
@@ -447,6 +449,7 @@ function GameSettings:loadFromXML(xmlFile)
 		self:setValue(GameSettings.SETTING.CAMERA_BOBBING, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.cameraBobbing"), self[GameSettings.SETTING.CAMERA_BOBBING]))
 		self:setValue(GameSettings.SETTING.ESRB_UPDATE_SHOWN, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.wasESRBUpdateShown"), self[GameSettings.SETTING.ESRB_UPDATE_SHOWN]))
 		self:setValue(GameSettings.SETTING.SHOW_FISHING_INTRO, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.showFishingIntro"), self[GameSettings.SETTING.SHOW_FISHING_INTRO]))
+		self:setValue(GameSettings.SETTING.SHOW_BANANA_MACHETE_HINT, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.showBananaMacheteHint"), self[GameSettings.SETTING.SHOW_BANANA_MACHETE_HINT]))
 		self:setValue(GameSettings.SETTING.PLAYED_MULTIPLAYER, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.recommender#playedMultiplayer"), self[GameSettings.SETTING.PLAYED_MULTIPLAYER]))
 		self:setValue(GameSettings.SETTING.TOTAL_PLAYED_SECONDS, Utils.getNoNil(getXMLInt(xmlFile, "gameSettings.recommender#totalPlayedSeconds"), self[GameSettings.SETTING.TOTAL_PLAYED_SECONDS]))
 		self:setValue(GameSettings.SETTING.STARTED_GUIDED_TOUR, Utils.getNoNil(getXMLBool(xmlFile, "gameSettings.recommender#startedGuidedTour"), self[GameSettings.SETTING.STARTED_GUIDED_TOUR]))
@@ -583,6 +586,9 @@ function GameSettings:saveToXMLFile(xmlFile)
 		setXMLBool(xmlFile, "gameSettings.wasESRBUpdateShown", self[GameSettings.SETTING.ESRB_UPDATE_SHOWN])
 		if not self[GameSettings.SETTING.SHOW_FISHING_INTRO] then
 			setXMLBool(xmlFile, "gameSettings.showFishingIntro", self[GameSettings.SETTING.SHOW_FISHING_INTRO])
+		end
+		if not self[GameSettings.SETTING.SHOW_BANANA_MACHETE_HINT] then
+			setXMLBool(xmlFile, "gameSettings.showBananaMacheteHint", self[GameSettings.SETTING.SHOW_BANANA_MACHETE_HINT])
 		end
 		setXMLBool(xmlFile, "gameSettings.recommender#playedMultiplayer", self[GameSettings.SETTING.PLAYED_MULTIPLAYER])
 		setXMLInt(xmlFile, "gameSettings.recommender#totalPlayedSeconds", self[GameSettings.SETTING.TOTAL_PLAYED_SECONDS])

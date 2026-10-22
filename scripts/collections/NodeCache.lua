@@ -45,19 +45,19 @@ function NodeCache:returnNodeToCache(node)
 	if templateIndex == nil then
 		Logging.error("NodeCache:returnNodeToCache: Node %q (%d) is not a clone of a template", getName(node), node)
 	elseif getParent(node) ~= 0 then
-		Logging.error("NodeCache:returnNodeInstanceToBuffer: Node %q (%d) is still linked", getName(node), node)
+		Logging.error("NodeCache:returnNodeToCache: Node %q (%d) is still linked", getName(node), node)
 	else
 		table.insert(self.templateIndexToBuffer[templateIndex], node)
 	end
 end
 function NodeCache:empty()
-	for meshIndex, buffer in ipairs(self.templateIndexToBuffer) do
+	for _, buffer in ipairs(self.templateIndexToBuffer) do
 		for _, mesh in ipairs(buffer) do
+			self.cloneToTemplateIndex[mesh] = nil
 			delete(mesh)
 		end
 		table.clear(buffer)
 	end
-	table.clear(self.cloneToTemplateIndex)
 end
 function NodeCache:delete()
 	self:empty()
@@ -65,6 +65,8 @@ function NodeCache:delete()
 		delete(templateNode)
 	end
 	table.clear(self.templateNodes)
+	table.clear(self.templateIndexToBuffer)
+	table.clear(self.cloneToTemplateIndex)
 end
 function NodeCache:drawDebug(screenX, screenY)
 	screenX = screenX or 0.02

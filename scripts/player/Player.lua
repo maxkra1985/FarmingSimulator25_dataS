@@ -5,6 +5,7 @@ Player.MAX_HAND_TOOL_CARRY_MASS = 15
 Player.HAND_TOOL_COUNT_NUM_BITS = 4
 Player.DEBUG_DISPLAY_FLAG = { NONE = 0, INITIALISATION = 1, HANDTOOLS = 2, NETWORK = 4, GRAPHICS = 8, STATE = 16, MOVEMENT = 32, INPUT = 64, ALL = 255 }
 Player.START_WITH_SUPERSPEED = StartParams.getIsSet("playerSuperSpeed")
+Player.SUPER_SPEED_SCALE_DEFAULT = 8
 Player.DEBUG_DISPLAY_FLAG.NETWORK_HANDTOOLS = bit32.bor(Player.DEBUG_DISPLAY_FLAG.NETWORK, Player.DEBUG_DISPLAY_FLAG.HANDTOOLS)
 Player.DEBUG_DISPLAY_FLAG.NETWORK_GRAPHICS = bit32.bor(Player.DEBUG_DISPLAY_FLAG.NETWORK, Player.DEBUG_DISPLAY_FLAG.GRAPHICS)
 Player.DEBUG_DISPLAY_FLAG.NETWORK_MOVEMENT = bit32.bor(Player.DEBUG_DISPLAY_FLAG.NETWORK, Player.DEBUG_DISPLAY_FLAG.MOVEMENT)
@@ -161,6 +162,7 @@ function Player.new(isServer, isClient)
 	self.isVerticalCut = true
 	self.toggleFlightModeCommand = nil
 	self.toggleSuperSpeedCommand = nil
+	self.superSpeedScale = Player.SUPER_SPEED_SCALE_DEFAULT
 	self.isStrafeWalkMode = false
 	self.forceHandToolFirstPerson = false
 	self.isFlashlightActive = false
@@ -546,6 +548,11 @@ function Player:setStyleAsync(style, isDefaultStyle, callback, noEventSend)
 		end
 	end
 	self.isDefaultStyle = isDefaultStyle
+	if self.graphicsComponent:getRequiresModelReload(style) then
+		for _, handTool in ipairs(self.carriedHandTools) do
+			handTool:detachTool()
+		end
+	end
 	self.graphicsComponent:setStyleAsync(style, finishedStyleCallback, nil, nil, false, nil, self.isOwner)
 	PlayerSetStyleEvent.sendEvent(self, style, NetworkUtil.getObjectId(self), noEventSend)
 end
@@ -672,14 +679,23 @@ function Player:getHolderName()
 end
 function Player:cycleHandTool(direction)
 	local numHandTools = #self.carriedHandTools
-	local newIndex = self.currentHandToolIndex + math.sign(direction)
 	local lowerLimit = self.hands ~= nil and 1 or 0
-	if numHandTools < newIndex then
-		newIndex = lowerLimit
-	elseif newIndex < lowerLimit then
-		newIndex = numHandTools
+	local step = math.sign(direction)
+	local newIndex = self.currentHandToolIndex
+	for _ = 1, numHandTools do
+		newIndex = newIndex + step
+		if numHandTools < newIndex then
+			newIndex = lowerLimit
+		elseif newIndex < lowerLimit then
+			newIndex = numHandTools
+		end
+		if newIndex == 0 then
+			break
+		end
+		local handTool = self.carriedHandTools[newIndex]
+		self:switchToHandToolIndex(newIndex)
+		return
 	end
-	self:switchToHandToolIndex(newIndex)
 end
 function Player:toggleHandTool()
 	local index = self.lastHandToolIndex
@@ -695,6 +711,10 @@ function Player:toggleHandTool()
 	if numHandTools < index then
 		index = numHandTools
 	end
+	local target = self.carriedHandTools[index]
+	if target ~= nil and target.isSelectable == false then
+		index = self.hands ~= nil and 1 or 0
+	end
 	self:switchToHandToolIndex(index)
 end
 function Player:switchToHandToolIndex(index)
@@ -707,6 +727,9 @@ function Player:switchToHandToolIndex(index)
 	local newHandTool = self.carriedHandTools[index]
 	if 0 < index and newHandTool == nil then
 		Logging.error("Cannot switch to hand tool with index of %d! Hand tool count: %d", index, #self.carriedHandTools)
+		return
+	end
+	if 0 < index and (newHandTool ~= nil and newHandTool.isSelectable == false) then
 		return
 	end
 	if self.currentHandTool == newHandTool then
@@ -731,6 +754,9 @@ function Player:setCurrentHandTool(handTool, noEventSend)
 		self.currentHandToolIndex = table.find(self.carriedHandTools, self.currentHandTool) or 0
 		if lastHandTool ~= nil and lastHandTool ~= handTool then
 			lastHandTool:stopHolding()
+			if self.currentHandTool ~= handTool then
+				return true
+			end
 		end
 		local handToolId = nil
 		if handTool ~= nil then
@@ -779,6 +805,12 @@ function Player:getMapPositionAndLookYaw()
 	local cameraYaw = MathUtil.getYRotationFromDirection(cameraDirectionX, cameraDirectionZ)
 	local x, _, z = self:getPosition()
 	return x, z, cameraYaw
+end
+function Player:getSuperSpeedScale()
+	return self.superSpeedScale
+end
+function Player:setSuperSpeedScale(superSpeedScale)
+	self.superSpeedScale = superSpeedScale
 end
 function Player:getRunMultiplier()
 	local runMultiplier = 1
@@ -883,11 +915,44 @@ function Player:createConsoleCommands()
 		addConsoleCommand("gsPlayerDebugFlagToggle", "Toggles the debug display flag with the given name for the player", "consoleCommandToggleDebugFlag", self)
 		addConsoleCommand("gsPlayerDebugFlagVerbosityToggle", "Toggles the debug display verbosity flag with the given name for the player", "consoleCommandToggleVerboseDebugFlag", self)
 		self:handleDebugBindings()
-		self.toggleFlightModeCommand = ConsoleValueToggle.new("gsPlayerFlightToggle", "Enables flight to be toggled (key J). Use keys Q and E to change altitude", nil, function(_, enabledString)
-			return "Player flight " .. enabledString
+		local applyFlightCollisionDisabled = function(disableCollisionString)
+			self.mover:setIsFlightCollisionDisabled(Utils.stringToBoolean(disableCollisionString))
+		end
+		local flightOutputFunction = function(enabled, enabledString)
+			if not enabled then
+				return "Player flight " .. enabledString
+			elseif self.mover:getIsFlightCollisionDisabled() then
+				return "Player flight enabled, collision is disabled while flying. Use keys Q and E to change altitude"
+			else
+				return 'Player flight enabled. Use keys Q and E to change altitude. To also disable the collision while flying, use "true" as the first parameter in the command'
+			end
+		end
+		self.toggleFlightModeCommand = ConsoleValueToggle.new("gsPlayerFlightToggle", "Enables flight to be toggled (key J). Use keys Q and E to change altitude. First argument is a boolean to determine if the collision of the player should be disabled while flying", nil, flightOutputFunction, "[disableCollision=false]", nil, applyFlightCollisionDisabled)
+		self.toggleFlightModeCommand.onEnabled:registerListener(applyFlightCollisionDisabled)
+		local applySuperSpeedScale = function(scaleString)
+			if scaleString == nil then
+				self:setSuperSpeedScale(Player.SUPER_SPEED_SCALE_DEFAULT)
+			else
+				local scale = tonumber(scaleString)
+				if scale == nil or scale <= 0 then
+					Logging.warning("gsPlayerSuperSpeedToggle: scale '%s' is not a positive number; keeping %.1f", tostring(scaleString), self:getSuperSpeedScale())
+					return
+				end
+				self:setSuperSpeedScale(scale)
+			end
+		end
+		local superSpeedOutputFunction = function(enabled, enabledString)
+			if not enabled then
+				return "Player super speed " .. enabledString
+			else
+				return string.format("Player super speed enabled (scale %.1f)", self:getSuperSpeedScale())
+			end
+		end
+		self.toggleSuperSpeedCommand = ConsoleValueToggle.new("gsPlayerSuperSpeedToggle", "Massively increases the movement speed of the player. Optional argument sets the speed multiplier", g_isDevelopmentVersion or Player.START_WITH_SUPERSPEED, superSpeedOutputFunction, string.format("[scale=%d]", Player.SUPER_SPEED_SCALE_DEFAULT), nil, function(scaleString)
+			applySuperSpeedScale(scaleString)
 		end)
-		self.toggleSuperSpeedCommand = ConsoleValueToggle.new("gsPlayerSuperSpeedToggle", "Massively increases the movement speed of the player", g_isDevelopmentVersion or Player.START_WITH_SUPERSPEED, function(_, enabledString)
-			return "Player super speed " .. enabledString
+		self.toggleSuperSpeedCommand.onEnabled:registerListener(function(scaleString)
+			applySuperSpeedScale(scaleString)
 		end)
 		local noClipOutputFunction = function(enabled, enabledString, disableTerrainCollision)
 			if not enabled then
@@ -1356,6 +1421,9 @@ function Player:drawDebug(posX, posY, textSize)
 	local x, y, z = localToWorld(node, 2, 2, 0)
 	local sx, sy, sz = project(x, y, z)
 	DebugUtil.drawDebugNode(node, "Root", false, 0)
+	if -1 < sx and (sx < 2 and (-1 < sy and (sy < 2 and (sz <= 1 and self.graphicsComponent ~= nil)))) then
+		self.graphicsComponent:debugDrawAnimator(sx, sy, 0.011)
+	end
 end
 function Player:consoleCommandToggleDebugFlag(flagName)
 	local flag = flagName ~= nil and Player.DEBUG_DISPLAY_FLAG[string.upper(flagName)] or nil
@@ -1403,97 +1471,136 @@ function Player:consoleCommandToggleForceHandToolFirstPerson()
 	self.forceHandToolFirstPerson = not self.forceHandToolFirstPerson
 	return string.format("ForceHandToolFirstPerson: %s", self.forceHandToolFirstPerson and "Active" or "Inactive")
 end
+function Player:getTipTargetSupportedFillTypeNames()
+	local supportedFillTypeNames = nil
+	local raycastCallbackTarget = {}
+	function raycastCallbackTarget.callbackFunc(_, hitActorId, x, y, z, distance, nx, ny, nz, subShapeIndex, hitShapeId)
+		local object = g_currentMission.nodeToObject[hitActorId]
+		local isFillableTarget = object ~= nil and object ~= self and object.getFillUnitIndexFromNode ~= nil
+		if not isFillableTarget then
+			return true
+		end
+		local fillUnitIndex = object:getFillUnitIndexFromNode(hitShapeId)
+		if fillUnitIndex == nil then
+			return true
+		else
+			local supportedFillTypes = nil
+			if object.getFillUnitSupportedFillTypes ~= nil then
+				supportedFillTypes = object:getFillUnitSupportedFillTypes(fillUnitIndex)
+			else
+				supportedFillTypes = object.fillTypes
+			end
+			supportedFillTypeNames = {}
+			if supportedFillTypes ~= nil then
+				supportedFillTypeNames = g_fillTypeManager:getFillTypeNamesByIndices(supportedFillTypes)
+			end
+			return false
+		end
+	end
+	local x, y, z = getWorldTranslation(g_localPlayer.rootNode)
+	raycastAll(x, y + 5, z, 0, -1, 0, 10, "callbackFunc", raycastCallbackTarget, CollisionFlag.FILLABLE)
+	return supportedFillTypeNames
+end
 function Player:consoleCommandTipToTrigger(fillTypeName, amountStr)
 	local usage = "gsTipToTrigger fillTypeName amount"
 	if not self.isControlled then
 		Logging.error("Not available within a vehicle, needs to be on foot")
 		return
-	end
-	if fillTypeName == nil then
-		Logging.error("No fillType given")
-		return usage
-	end
-	local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
-	if fillTypeIndex == nil then
-		Logging.error("Unknown fillType %q", fillTypeName)
-		return usage
-	end
-	if amountStr == nil then
-		Logging.error("No amount given")
-		return usage
-	end
-	local amount = tonumber(amountStr)
-	if amount == nil then
-		Logging.error("Given amount %q is not a number", amountStr)
-		return usage
-	end
-	local tipTargetObject = nil
-	local notSupported = nil
-	local missingSpace = nil
-	local amountToTip = amount
-	local raycastCallbackTarget = {}
-	function raycastCallbackTarget.callbackFunc(_, hitActorId, x, y, z, distance, nx, ny, nz, subShapeIndex, hitShapeId)
-		local mission = g_currentMission
-		local object = mission.nodeToObject[hitActorId]
-		notSupported = false
-		missingSpace = false
-		if object ~= nil and (object ~= self and object.getFillUnitIndexFromNode ~= nil) then
-			tipTargetObject = object
-			local fillUnitIndex = object:getFillUnitIndexFromNode(hitShapeId)
-			if fillUnitIndex ~= nil then
-				local fillType = tipFillType
-				if object:getFillUnitSupportsFillType(fillUnitIndex, fillType) then
-					local allowFillType = object:getFillUnitAllowsFillType(fillUnitIndex, fillType)
-					local farmId = self.farmId
-					local freeSpace = 0 < object:getFillUnitFreeCapacity(fillUnitIndex, fillType, farmId)
-					if not freeSpace then
-						missingSpace = true
-						Logging.error("Failed to tip. Target has no more space for this fillType")
+	elseif string.isNilOrWhitespace(fillTypeName) then
+		local fillTypeNames = self:getTipTargetSupportedFillTypeNames()
+		if fillTypeNames == nil then
+			Logging.error("No fillType given and no target found below current player position")
+			return usage
+		elseif 0 < #fillTypeNames then
+			printf("Supported fillTypes: %s", table.concat(fillTypeNames, " "))
+			return usage
+		else
+			print("Target below player supports no fillTypes")
+			return usage
+		end
+	else
+		local fillTypeIndex = g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
+		if fillTypeIndex == nil then
+			Logging.error("Unknown fillType %q", fillTypeName)
+			return usage
+		end
+		if amountStr == nil then
+			Logging.error("No amount given")
+			return usage
+		end
+		local amount = tonumber(amountStr)
+		if amount == nil then
+			Logging.error("Given amount %q is not a number", amountStr)
+			return usage
+		end
+		local tipTargetObject = nil
+		local notSupported = nil
+		local missingSpace = nil
+		local amountToTip = amount
+		local raycastCallbackTarget = {}
+		function raycastCallbackTarget.callbackFunc(_, hitActorId, x, y, z, distance, nx, ny, nz, subShapeIndex, hitShapeId)
+			local mission = g_currentMission
+			local object = mission.nodeToObject[hitActorId]
+			notSupported = false
+			missingSpace = false
+			if object ~= nil and (object ~= self and object.getFillUnitIndexFromNode ~= nil) then
+				tipTargetObject = object
+				local fillUnitIndex = object:getFillUnitIndexFromNode(hitShapeId)
+				if fillUnitIndex ~= nil then
+					local fillType = tipFillType
+					if object:getFillUnitSupportsFillType(fillUnitIndex, fillType) then
+						local allowFillType = object:getFillUnitAllowsFillType(fillUnitIndex, fillType)
+						local farmId = self.farmId
+						local freeSpace = 0 < object:getFillUnitFreeCapacity(fillUnitIndex, fillType, farmId)
+						if not freeSpace then
+							missingSpace = true
+							Logging.error("Failed to tip. Target has no more space for this fillType")
+							return
+						end
+						if allowFillType then
+							local delta = object:addFillUnitFillLevel(farmId, fillUnitIndex, amountToTip, fillType, ToolType.UNDEFINED, nil)
+							amountToTip = amountToTip - delta
+							if amountToTip <= 0 then
+								return false
+							end
+						end
+					else
+						Logging.error("Failed to tip. Target does not support this fillType")
+						local fillTypes = nil
+						if object.getFillUnitSupportedFillTypes ~= nil then
+							fillTypes = object:getFillUnitSupportedFillTypes(fillUnitIndex)
+						else
+							fillTypes = object.fillTypes
+						end
+						if fillTypes ~= nil then
+							local fillTypeNames = g_fillTypeManager:getFillTypeNamesByIndices(fillTypes)
+							if 0 < #fillTypeNames then
+								printf("Supported fillTypes: %s", table.concat(fillTypeNames, " "))
+							end
+						end
+						notSupported = true
 						return
 					end
-					if allowFillType then
-						local delta = object:addFillUnitFillLevel(farmId, fillUnitIndex, amountToTip, fillType, ToolType.UNDEFINED, nil)
-						amountToTip = amountToTip - delta
-						if amountToTip <= 0 then
-							return false
-						end
-					end
-				else
-					Logging.error("Failed to tip. Target does not support this fillType")
-					local fillTypes = nil
-					if object.getFillUnitSupportedFillTypes ~= nil then
-						fillTypes = object:getFillUnitSupportedFillTypes(fillUnitIndex)
-					else
-						fillTypes = object.fillTypes
-					end
-					if fillTypes ~= nil then
-						local fillTypeNames = g_fillTypeManager:getFillTypeNamesByIndices(fillTypes)
-						if 0 < #fillTypeNames then
-							printf("Supported fillTypes: %s", table.concat(fillTypeNames, " "))
-						end
-					end
-					notSupported = true
-					return
 				end
 			end
+			return true
 		end
-		return true
-	end
-	local x, y, z = getWorldTranslation(g_localPlayer.rootNode)
-	raycastAll(x, y + 5, z, 0, -1, 0, 10, "callbackFunc", raycastCallbackTarget, CollisionFlag.FILLABLE)
-	if tipTargetObject == nil then
-		Logging.error("Failed to tip. No target found below current player position")
-		return
-	end
-	if notSupported or missingSpace then
-		return
-	end
-	local tippedAmount = amount - amountToTip
-	if tippedAmount == 0 then
-		Logging.error("Failed to tip %q. Missing access or no space at target", fillTypeName)
-		return
-	else
-		return "Tipped " .. tippedAmount .. "l of " .. fillTypeName
+		local x, y, z = getWorldTranslation(g_localPlayer.rootNode)
+		raycastAll(x, y + 5, z, 0, -1, 0, 10, "callbackFunc", raycastCallbackTarget, CollisionFlag.FILLABLE)
+		if tipTargetObject == nil then
+			Logging.error("Failed to tip. No target found below current player position")
+			return
+		end
+		if notSupported or missingSpace then
+			return
+		end
+		local tippedAmount = amount - amountToTip
+		if tippedAmount == 0 then
+			Logging.error("Failed to tip %q. Missing access or no space at target", fillTypeName)
+			return
+		else
+			return "Tipped " .. tippedAmount .. "l of " .. fillTypeName
+		end
 	end
 end
 function Player:handleDebugBindings()
@@ -1573,7 +1680,7 @@ function Player:debugDraw(x, y, textSize)
 		end
 		if bit32.band(Player.DEBUG_DISPLAY_FLAG.GRAPHICS, Player.currentDebugFlag) ~= 0 then
 			if self.isOwner then
-				self.graphicsComponent:debugDrawAnimator(0.75, 0.5, 0.25, 0.3, 0.01)
+				self.graphicsComponent:debugDrawAnimator(0.75, 0.5, getCorrectTextSize(0.011))
 				if self.camera ~= nil then
 					y = self.camera:debugDraw(x, y, textSize)
 				end

@@ -51,8 +51,9 @@ function Environment:onCreateWater(id)
 				Logging.i3dWarning(id, "Environment:onCreateWater(): Water plane is missing %s", CollisionFlag.getBitAndName(CollisionFlag.WATER))
 			end
 			if g_currentMission.shallowWaterSimulation ~= nil then
-				if not g_currentMission.isLoadingMap then
-					Logging.i3dWarning(id, "Environment:onCreateWater(): Cannot add shallow water simulation planes using onCreate for meshes outside the map itself, use xml config 'placeable.shallowWaterSimulation' instead")
+				local isMapWaterPlane = g_currentMission.isLoadingMap and not Environment.getIsNodeInPlaceable(id)
+				if not isMapWaterPlane then
+					Logging.i3dWarning(id, "Environment:onCreateWater(): Cannot add shallow water simulation planes using onCreate for meshes outside the map itself.\n Use placeable specialization 'shallowWaterSimulation' and xml config 'placeable.shallowWaterSimulation' instead")
 					return
 				end
 				g_currentMission.shallowWaterSimulation:addWaterPlane(id)
@@ -60,6 +61,16 @@ function Environment:onCreateWater(id)
 			end
 		end
 	end
+end
+function Environment.getIsNodeInPlaceable(node)
+	local parent = getParent(node)
+	while parent ~= 0 do
+		if getUserAttribute(parent, "onCreate") == "Placeable.onCreate" then
+			return true
+		end
+		parent = getParent(parent)
+	end
+	return false
 end
 function Environment.new(mission)
 	local self = setmetatable({}, Environment_mt)

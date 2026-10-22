@@ -180,7 +180,9 @@ function HandToolSystem:saveToXML(handTools, xmlFile, usedModNames)
 				xmlIndex = xmlIndex + 1
 			end
 		end
-		xmlFile:save(false, true)
+		if 0 < xmlIndex then
+			xmlFile:save(false, true)
+		end
 	end
 end
 function HandToolSystem:saveHandToolToXML(handTool, xmlFile, index, i, usedModNames)
@@ -197,12 +199,13 @@ function HandToolSystem:saveHandToolToXML(handTool, xmlFile, index, i, usedModNa
 end
 function HandToolSystem:load(xmlFilename, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
 	self.savegameXMLFile = XMLFile.loadIfExists("handToolsXML", xmlFilename, HandToolSystem.savegameXMLSchema)
-	if self.savegameXMLFile ~= nil then
-		self:loadFromXMLFile(self.savegameXMLFile, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
-	else
-		if asyncCallbackFunction ~= nil then
+	if self.savegameXMLFile == nil then
+		Logging.xmlInfo(xmlFilename, "Could not load handtools xml file!")
+		g_asyncTaskManager:addSubtask(function()
 			asyncCallbackFunction(asyncCallbackObject, {}, HandToolLoadingState.OK, asyncCallbackArguments)
-		end
+		end)
+	else
+		self:loadFromXMLFile(self.savegameXMLFile, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
 	end
 end
 function HandToolSystem:loadFromXMLFile(xmlFile, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)

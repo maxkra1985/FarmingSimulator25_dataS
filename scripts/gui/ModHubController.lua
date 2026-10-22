@@ -14,6 +14,7 @@ function ModHubController.new()
 	self.categoryTypeMapping = {}
 	self.categoryNameMapping = {}
 	self.hasChanges = false
+	self.totalModSpaceKb = nil
 	self.hasTriggedUUIDInEngine = false
 	self.priceMapping = { en = "DLCPriceEUR", de = "DLCPriceEUR", pl = "DLCPriceEUR", cz = "DLCPriceEUR", fr = "DLCPriceEUR", es = "DLCPriceEUR", it = "DLCPriceEUR", pt = "DLCPriceEUR", hu = "DLCPriceEUR", nl = "DLCPriceEUR", da = "DLCPriceEUR", fi = "DLCPriceEUR", no = "DLCPriceEUR", sv = "DLCPriceEUR", jp = "DLCPriceUSD", ru = "DLCPriceUSD", cs = "DLCPriceUSD", ct = "DLCPriceUSD", br = "DLCPriceUSD", tr = "DLCPriceUSD", ro = "DLCPriceUSD", kr = "DLCPriceUSD", ea = "DLCPriceUSD", fc = "DLCPriceUSD", uk = "DLCPriceUSD", vi = "DLCPriceUSD", id = "DLCPriceUSD" }
 	local numLanguages = getNumOfLanguages()
@@ -82,6 +83,7 @@ function ModHubController:reset()
 	self.modIdToInfo = {}
 	self.categoryNameMapping = {}
 	self.categoryTypeMapping = {}
+	self.totalModSpaceKb = nil
 end
 function ModHubController:delete()
 	g_messageCenter:unsubscribeAll(self)
@@ -330,8 +332,14 @@ end
 function ModHubController:getUsedModSpaceKb()
 	return getModUsedSpaceKb()
 end
+function ModHubController:updateTotalModSpace()
+	self.totalModSpaceKb = getModFreeSpaceKb() + getModUsedSpaceKb()
+end
 function ModHubController:getTotalModSpaceKb()
-	return getModFreeSpaceKb() + getModUsedSpaceKb()
+	if self.totalModSpaceKb == nil then
+		self:updateTotalModSpace()
+	end
+	return self.totalModSpaceKb
 end
 function ModHubController:isContestEnabled()
 	if not self.isInitialized then

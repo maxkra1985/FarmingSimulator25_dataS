@@ -43,7 +43,8 @@ function AnimalSystem:loadMapData(xmlFile, missionInfo, baseDirectory)
 		return 0 < #self.types
 	end
 end
-function AnimalSystem:loadAnimals(xmlFile, baseDirectory)
+function AnimalSystem:loadAnimals(xmlFile, baseDirectory, customEnvironment)
+	customEnvironment = customEnvironment or self.customEnvironment
 	for _, key in xmlFile:iterator("animals.animal") do
 		if 2 ^ AnimalSystem.SEND_NUM_BITS - 1 <= #self.types then
 			Logging.xmlWarning(xmlFile, "Maximum number of supported animal types reached. Ignoring remaining types")
@@ -78,7 +79,7 @@ function AnimalSystem:loadAnimals(xmlFile, baseDirectory)
 			return
 		end
 		local statsBreedingName = xmlFile:getString(key .. "#statsBreeding")
-		local groupTitle = g_i18n:convertText(xmlFile:getString(key .. "#groupTitle"), self.customEnvironment)
+		local groupTitle = g_i18n:convertText(xmlFile:getString(key .. "#groupTitle"), customEnvironment)
 		local agentHeight = xmlFile:getFloat(key .. ".navMeshAgent#height")
 		local agentRadius = xmlFile:getFloat(key .. ".navMeshAgent#radius")
 		local agentMaxClimb = xmlFile:getFloat(key .. ".navMeshAgent#maxClimbMeters")
@@ -87,6 +88,7 @@ function AnimalSystem:loadAnimals(xmlFile, baseDirectory)
 		local animalType = {}
 		animalType.name = typeName
 		animalType.groupTitle = groupTitle
+		animalType.customEnvironment = customEnvironment
 		animalType.typeIndex = #self.types + 1
 		animalType.configFilename = Utils.getFilename(configFilename, baseDirectory)
 		animalType.clusterClass = ClassUtil.getClassObject(clusterClassName)
@@ -116,8 +118,16 @@ function AnimalSystem:validateAnimalType(animalType, baseDirectory)
 				local locomotionFilename = animalHusbandryConfigXML:getString(key .. ".locomotion#filename")
 				locomotionFilename = Utils.getFilename(locomotionFilename, baseDirectory)
 				local animationI3DFilename = animalHusbandryConfigXML:getString(key .. ".assets#animation")
+				if animationI3DFilename == nil then
+					Logging.xmlDevWarning(animalHusbandryConfigXML, "No animation file defined for animal at %q", key .. ".assets#animation")
+					return
+				end
 				animationI3DFilename = Utils.getFilename(animationI3DFilename, baseDirectory)
 				local animationI3DFile = loadI3DFile(animationI3DFilename, false, false, false)
+				if animationI3DFile == 0 then
+					Logging.xmlError(animalHusbandryConfigXML, "Could not load animal animation file %q given at %q.", animationI3DFilename, key .. ".assets#animation")
+					return
+				end
 				local skeletonIndexRaw = animalHusbandryConfigXML:getString(key .. ".assets#skeletonIndex")
 				local skeletonIndex = string.gsub(skeletonIndexRaw, ">", "|")
 				local skeletonRoot = I3DUtil.indexToObject(animationI3DFile, skeletonIndex)
@@ -174,10 +184,10 @@ function AnimalSystem:validateAnimalType(animalType, baseDirectory)
 						local to = animationXML:getString(transitionKey .. "#animationIdTo")
 						local clip = animationXML:getString(transitionKey .. "#clip")
 						if animationIds[from] == nil then
-							Logging.xmlWarning("Unknown animationId %q in transition %d (%s -> %s)", from, transitionIndex, from, to)
+							Logging.xmlWarning(animationXML, "Unknown animationId %q in transition %d (%s -> %s)", from, transitionIndex, from, to)
 						end
 						if animationIds[to] == nil then
-							Logging.xmlWarning("Unknown animationId %q in transition %d (%s -> %s)", to, transitionIndex, from, to)
+							Logging.xmlWarning(animationXML, "Unknown animationId %q in transition %d (%s -> %s)", to, transitionIndex, from, to)
 						end
 						if clip == nil then
 							continue
@@ -303,17 +313,7 @@ function AnimalSystem:loadSubType(animalType, subType, xmlFile, subTypeKey, base
 		if visual == nil then
 			continue
 		end
-		local valid = true
-		if #subType.visuals == 0 then
-			if visual.minAge ~= 0 then
-				valid = false
-				Logging.xmlWarning(xmlFile, "First visual must have minAge = 0 for '%s'", visualKey)
-			end
-		elseif visual.minAge <= subType.visuals[#subType.visuals].minAge then
-			valid = false
-			Logging.xmlWarning(xmlFile, "Visual minAge has to be greater than predecessor minAge. '%s'", visualKey)
-		end
-		if valid then
+		if self:validateVisual(subType, visual, visualKey, xmlFile) then
 			table.insert(subType.visuals, visual)
 		end
 	end
@@ -341,6 +341,22 @@ function AnimalSystem:loadAnimCurve(xmlFile, key)
 			end
 		end
 		return curve
+	end
+end
+function AnimalSystem:validateVisual(subType, visual, visualKey, xmlFile)
+	if #subType.visuals ~= 0 then
+		local previousVisual = subType.visuals[#subType.visuals]
+		if visual.minAge <= previousVisual.minAge then
+			Logging.xmlWarning(xmlFile, "Visual minAge has to be greater than predecessor minAge. '%s'", visualKey)
+			return false
+		else
+			return true
+		end
+	elseif visual.minAge == 0 then
+		return true
+	else
+		Logging.xmlWarning(xmlFile, "First visual must have minAge = 0 for '%s'", visualKey)
+		return false
 	end
 end
 function AnimalSystem:loadVisualData(animalType, xmlFile, key, baseDirectory)
@@ -373,7 +389,7 @@ function AnimalSystem:loadVisualData(animalType, xmlFile, key, baseDirectory)
 		if descItem == nil then
 			continue
 		end
-		table.insert(descriptions, g_i18n:convertText(descItem, self.customEnvironment))
+		table.insert(descriptions, g_i18n:convertText(descItem, animalType.customEnvironment))
 	end
 	if #descriptions == 0 then
 		Logging.xmlError(xmlFile, "Missing description for '%s'", key)

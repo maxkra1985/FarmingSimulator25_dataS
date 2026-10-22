@@ -106,7 +106,7 @@ function PlaceableAnimatedObjects:onWriteStream(streamId, connection)
 	if not connection:getIsServer() then
 		local spec = self.spec_animatedObjects
 		for _, animatedObject in ipairs(spec.animatedObjects) do
-			NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(animatedObject))
+			NetworkUtil.writeNodeObject(streamId, animatedObject)
 			animatedObject:writeStream(streamId, connection)
 			g_server:registerObjectInStream(connection, animatedObject)
 		end

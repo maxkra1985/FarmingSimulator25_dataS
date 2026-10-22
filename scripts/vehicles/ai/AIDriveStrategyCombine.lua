@@ -159,12 +159,12 @@ function AIDriveStrategyCombine:getDriveData(dt, vX, vY, vZ)
 						end
 					end
 				end
-				if not trailerInTrigger and (not invalidTrailerInTrigger and fillLevel < capacity) then
+				if not trailerInTrigger and (not invalidTrailerInTrigger and (fillLevel < capacity and not combine.spec_pipe.autoFoldWithFoldable)) then
 					pipeState = 1
 				end
 				if fillLevel < 0.1 then
 					if not combine.spec_pipe.aiFoldedPipeUsesTrailerSpace then
-						if not trailerInTrigger and not invalidTrailerInTrigger then
+						if not trailerInTrigger and (not invalidTrailerInTrigger and not combine.spec_pipe.autoFoldWithFoldable) then
 							pipeState = 1
 						end
 						if not combine:getIsTurnedOn() and combine:getCanBeTurnedOn() then

@@ -7,6 +7,8 @@ g_xmlManager:addCreateSchemaFunction(function()
 	xmlSchema:register(XMLValueType.STRING, "foliageType.fruitType#name")
 	xmlSchema:register(XMLValueType.BOOL, "foliageType.fruitType#shownOnMap")
 	xmlSchema:register(XMLValueType.BOOL, "foliageType.fruitType#useForFieldMissions")
+	xmlSchema:register(XMLValueType.BOOL, "foliageType.fruitType#useForHarvestMissionsOnly")
+	xmlSchema:register(XMLValueType.BOOL, "foliageType.fruitType#preventNPCFieldUpdate")
 	xmlSchema:register(XMLValueType.BOOL, "foliageType.fruitType#isCatchCrop")
 	xmlSchema:register(XMLValueType.VECTOR_4, "foliageType.fruitType.mapColors#default")
 	xmlSchema:register(XMLValueType.VECTOR_4, "foliageType.fruitType.mapColors#colorBlind")
@@ -21,6 +23,7 @@ g_xmlManager:addCreateSchemaFunction(function()
 	xmlSchema:register(XMLValueType.FLOAT, "foliageType.fruitType.harvest#cutHeight")
 	xmlSchema:register(XMLValueType.FLOAT, "foliageType.fruitType.harvest#forageCutHeight")
 	xmlSchema:register(XMLValueType.FLOAT, "foliageType.fruitType.harvest#beeYieldBonusPercentage")
+	xmlSchema:register(XMLValueType.FLOAT, "foliageType.fruitType.harvest#missionRewardScale", "Multiplier applied to the harvest contract reward per hectare for this fruit type", 1)
 	xmlSchema:register(XMLValueType.STRING, "foliageType.fruitType.harvest.transition(?)#src")
 	xmlSchema:register(XMLValueType.STRING, "foliageType.fruitType.harvest.transition(?)#target")
 	xmlSchema:register(XMLValueType.BOOL, "foliageType.fruitType.growth#resetsSpray")
@@ -194,6 +197,8 @@ function FruitTypeDesc:loadFromFoliageXMLFile(xmlFilename)
 		self.fillType = fillType
 		self.shownOnMap = xmlFile:getBool("foliageType.fruitType" .. "#shownOnMap", true)
 		self.useForFieldMissions = xmlFile:getBool("foliageType.fruitType" .. "#useForFieldMissions", true)
+		self.useForHarvestMissionsOnly = xmlFile:getBool("foliageType.fruitType" .. "#useForHarvestMissionsOnly")
+		self.preventNPCFieldUpdate = xmlFile:getBool("foliageType.fruitType" .. "#preventNPCFieldUpdate")
 		self.missionMultiplier = xmlFile:getFloat("foliageType.fruitType" .. "#missionMultiplier", 1)
 		self.isCatchCrop = xmlFile:getBool("foliageType.fruitType" .. "#isCatchCrop")
 		self.defaultMapColor = Color.parseFromString(xmlFile:getString("foliageType.fruitType" .. ".mapColors#default", "1 1 1 1"))
@@ -389,6 +394,7 @@ function FruitTypeDesc:loadFromFoliageXMLFile(xmlFilename)
 		self.cutHeight = xmlFile:getFloat("foliageType.fruitType" .. ".harvest#cutHeight", 0.15)
 		self.forageCutHeight = xmlFile:getFloat("foliageType.fruitType" .. ".harvest#forageCutHeight", self.forageCutHeight)
 		self.beeYieldBonusPercentage = xmlFile:getFloat("foliageType.fruitType" .. ".harvest#beeYieldBonusPercentage", 0)
+		self.harvestMissionRewardScale = xmlFile:getFloat("foliageType.fruitType" .. ".harvest#missionRewardScale", 1)
 		local harvestGroundTypeName = xmlFile:getString("foliageType.fruitType" .. ".harvest#groundType")
 		if harvestGroundTypeName ~= nil then
 			local groundType = FieldGroundType.getByName(harvestGroundTypeName)
@@ -409,7 +415,7 @@ function FruitTypeDesc:loadFromFoliageXMLFile(xmlFilename)
 		end
 		self.chopperUseHaulm = xmlFile:getBool("foliageType.fruitType" .. ".harvest#chopperUseHaulm", false)
 		self.resetsSpray = xmlFile:getBool("foliageType.fruitType" .. ".growth#resetsSpray", true)
-		self.growthRequiresLime = xmlFile:getBool("foliageType.fruitType" .. ".growth#requiresLime", true)
+		self.growthRequiresLime = xmlFile:getBool("foliageType.fruitType" .. ".growth#requiresLime", xmlFile:getBool("foliageType.fruitType" .. ".growth#growthRequiresLime", true))
 		self.increasesSoilDensity = xmlFile:getBool("foliageType.fruitType" .. ".soil#increasesDensity", false)
 		self.lowSoilDensityRequired = xmlFile:getBool("foliageType.fruitType" .. ".soil#lowDensityRequired", true)
 		self.consumesLime = xmlFile:getBool("foliageType.fruitType" .. ".soil#consumesLime", true)
@@ -492,6 +498,9 @@ function FruitTypeDesc:loadFromFoliageXMLFile(xmlFilename)
 				for i = self.minHarvestingGrowthState, self.maxHarvestingGrowthState do
 					transitions[i] = self.cutState
 				end
+			end
+			if next(transitions) == nil then
+				Logging.devWarning("FruitTypeDesc: No growthState with 'isForageReady' or 'isHarvestable' attribute defined for fruit '%s'!", self.name)
 			end
 		end
 		local harvestReadyTransitions = {}

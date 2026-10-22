@@ -138,6 +138,9 @@ function FertilizeMission.isAvailableForField(field, mission)
 			return false
 		end
 		local fruitType = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
+		if fruitType.useForHarvestMissionsOnly then
+			return false
+		end
 		if fruitType:getIsCatchCrop() then
 			return false
 		end

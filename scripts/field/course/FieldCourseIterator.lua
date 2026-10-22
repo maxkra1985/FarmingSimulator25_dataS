@@ -4,7 +4,6 @@ function FieldCourseIterator.new(x, z, fieldCourseSettings, func, finishedCallba
 	local self = setmetatable({}, FieldCourseIterator_mt)
 	self.func = func
 	self.finishedCallback = finishedCallback
-	self.frameBudget = 0.00025
 	self.fieldCourseSegmentIndex = 1
 	self.fieldCourseSegmentPosIndex = 1
 	FieldCourse.generateByFieldPosition(x, z, fieldCourseSettings, function(fieldCourse)
@@ -17,8 +16,9 @@ function FieldCourseIterator.new(x, z, fieldCourseSettings, func, finishedCallba
 	end)
 end
 function FieldCourseIterator:update(dt)
+	local frameBudget = g_fieldCourseManager:getFrameBudget()
 	local startTime = getTimeSec()
-	while getTimeSec() - startTime < self.frameBudget do
+	while getTimeSec() - startTime < frameBudget do
 		local segment = self.fieldCourse.segments[self.fieldCourseSegmentIndex]
 		if segment ~= nil then
 			local position = segment.positions[self.fieldCourseSegmentPosIndex]
@@ -35,6 +35,7 @@ function FieldCourseIterator:update(dt)
 			end
 		else
 			self:onFinish(true)
+			return
 		end
 	end
 end

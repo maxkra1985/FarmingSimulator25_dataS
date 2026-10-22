@@ -63,12 +63,10 @@ function ForestryRope:clone(linkNode)
 end
 function ForestryRope:delete()
 	g_currentMission:removeUpdateable(self)
-	if self.referenceFrame ~= nil then
-		if entityExists(self.referenceFrame) then
-			delete(self.referenceFrame)
-		end
-		g_i3DManager:releaseSharedI3DFile(self.sharedLoadRequestId)
+	if self.referenceFrame ~= nil and entityExists(self.referenceFrame) then
+		delete(self.referenceFrame)
 	end
+	g_i3DManager:releaseSharedI3DFile(self.sharedLoadRequestId)
 end
 function ForestryRope:update(dt)
 	if self.validTarget then

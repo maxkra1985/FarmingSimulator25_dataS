@@ -7,7 +7,9 @@ function PlaceableVine.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "updateVineVisuals", PlaceableVine.updateVineVisuals)
 	SpecializationUtil.registerFunction(placeableType, "destroyVineArea", PlaceableVine.destroyVineArea)
 	SpecializationUtil.registerFunction(placeableType, "getVineFruitTypeIndex", PlaceableVine.getVineFruitTypeIndex)
+	SpecializationUtil.registerFunction(placeableType, "getInitialGrowthState", PlaceableVine.getInitialGrowthState)
 	SpecializationUtil.registerFunction(placeableType, "setShakingFactor", PlaceableVine.setShakingFactor)
+	SpecializationUtil.registerFunction(placeableType, "setSqueezeFactor", PlaceableVine.setSqueezeFactor)
 	SpecializationUtil.registerFunction(placeableType, "harvestVine", PlaceableVine.harvestVine)
 	SpecializationUtil.registerFunction(placeableType, "prepareVine", PlaceableVine.prepareVine)
 	SpecializationUtil.registerFunction(placeableType, "getVineFruitType", PlaceableVine.getVineFruitType)
@@ -20,7 +22,6 @@ function PlaceableVine.registerOverwrittenFunctions(placeableType)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "doDeletePanel", PlaceableVine.doDeletePanel)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "generateSegmentPoles", PlaceableVine.generateSegmentPoles)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "deleteSegment", PlaceableVine.deleteSegment)
-	SpecializationUtil.registerOverwrittenFunction(placeableType, "getCanBePlacedAt", PlaceableVine.getCanBePlacedAt)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getHasParallelSnapping", PlaceableVine.getHasParallelSnapping)
 end
 function PlaceableVine.registerEventListeners(placeableType)
@@ -35,6 +36,8 @@ function PlaceableVine.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".vine#thresholdFactor", "Section work threshold factor")
 	schema:register(XMLValueType.INT, basePath .. ".vine#numLODOffsets", "Vine num lod offsets")
 	schema:register(XMLValueType.INT, basePath .. ".vine#numSections", "Vine num sub sections")
+	schema:register(XMLValueType.STRING, basePath .. ".vine#onSeasonGrowthState", "Growth state of freshly placed vines while the fruit type may be planted in the current period")
+	schema:register(XMLValueType.STRING, basePath .. ".vine#offSeasonGrowthState", "Growth state of freshly placed vines while the fruit type may not be planted in the current period")
 	schema:register(XMLValueType.INT, basePath .. ".vine.growthStates#previewNodeIndex", "Node index of preview node")
 	schema:register(XMLValueType.STRING, basePath .. ".vine.growthStates.growthState(?)#nodeIndex", "Growthstate node index. Relative to panel rootnode")
 	schema:register(XMLValueType.INT, basePath .. ".vine.growthStates.growthState(?).foliage(?)#state", "Growthstate")
@@ -68,6 +71,8 @@ function PlaceableVine:onLoad(savegame)
 		spec.numLODOffsets = xmlFile:getValue("placeable.vine#numLODOffsets", 0)
 		spec.numSections = math.max(xmlFile:getValue("placeable.vine#numSections", 1), 1)
 		spec.sectionLength = spec.length / spec.numSections
+		spec.onSeasonGrowthState = fruitType:getGrowthStateByName(xmlFile:getString("placeable.vine#onSeasonGrowthState"))
+		spec.offSeasonGrowthState = fruitType:getGrowthStateByName(xmlFile:getString("placeable.vine#offSeasonGrowthState"))
 		spec.vineSegments = {}
 		spec.nodes = {}
 		spec.growthStates = {}
@@ -206,7 +211,7 @@ function PlaceableVine:onCreateSegmentPanel(isPreview, segment, panel, poleIndex
 				end
 			end
 		end
-		local maxState = 1
+		local maxState = self:getInitialGrowthState()
 		local maxPixels = 0
 		data.sections = {}
 		data.growthValues = {}
@@ -274,15 +279,6 @@ function PlaceableVine:doDeletePanel(superFunc, segment, segmentIndex, poleIndex
 	end
 	superFunc(self, segment, segmentIndex, poleIndex)
 end
-function PlaceableVine:getCanBePlacedAt(superFunc, x, y, z, farmId)
-	local fruitDesc = g_fruitTypeManager:getFruitTypeByIndex(self:getVineFruitTypeIndex())
-	local isPlantingSeason = fruitDesc:getIsPlantableInPeriod(g_currentMission.missionInfo.growthMode, g_currentMission.environment.currentPeriod)
-	if not isPlantingSeason then
-		return false, string.format(g_i18n:getText("warning_theSelectedFruitTypeCantBePlantedInThisPeriod"), g_i18n:formatPeriod())
-	else
-		return superFunc(self, x, y, z)
-	end
-end
 function PlaceableVine:getHasParallelSnapping(superFunc)
 	return true
 end
@@ -297,6 +293,14 @@ function PlaceableVine:destroyVineArea(data)
 end
 function PlaceableVine:getVineFruitTypeIndex()
 	return self.spec_vine.fruitType.index
+end
+function PlaceableVine:getInitialGrowthState()
+	local spec = self.spec_vine
+	local isPlantingSeason = spec.fruitType:getIsPlantableInPeriod(g_currentMission.missionInfo.growthMode, g_currentMission.environment.currentPeriod)
+	if not isPlantingSeason and spec.offSeasonGrowthState ~= nil then
+		return spec.offSeasonGrowthState
+	end
+	return spec.onSeasonGrowthState or 1
 end
 function PlaceableVine:updateVineNode(node, isGrowing)
 	local spec = self.spec_vine
@@ -384,9 +388,9 @@ function PlaceableVine:harvestVine(node, startX, startY, startZ, currentX, curre
 			local factor = self:getSectionFactor(node, i, startX, startY, startZ, currentX, currentY, currentZ)
 			if spec.thresholdFactor < factor then
 				local section = data.sections[i]
-				local area, totalArea, weedFactor, sprayFactor, plowFactor = FSDensityMapUtil.updateVineCutArea(spec.fruitType.index, section[1], section[2], section[3], section[4], section[5], section[6])
+				local area, totalArea, weedFactor, sprayFactor, plowFactor, limeFactor = FSDensityMapUtil.updateVineCutArea(spec.fruitType.index, section[1], section[2], section[3], section[4], section[5], section[6])
 				if 0 < area then
-					callback(target, self, area, totalArea, weedFactor, sprayFactor, plowFactor, spec.sectionLength)
+					callback(target, self, area, totalArea, weedFactor, sprayFactor, plowFactor, spec.sectionLength, limeFactor)
 					needsUpdate = true
 				end
 			end
@@ -404,6 +408,18 @@ function PlaceableVine:setShakingFactor(node, worldX, worldY, worldZ, intensity)
 	else
 		for stateNode, _ in pairs(data.growthStates) do
 			I3DUtil.setShaderParameterRec(stateNode, "harvestPosition", worldX, worldY, worldZ, intensity)
+		end
+	end
+end
+function PlaceableVine:setSqueezeFactor(node, worldX, worldY, worldZ, strength, length, fadeLength)
+	local spec = self.spec_vine
+	local data = spec.nodes[node]
+	if data == nil then
+		return
+	else
+		for stateNode, _ in pairs(data.growthStates) do
+			I3DUtil.setShaderParameterRec(stateNode, "harvestSqueezePosition", worldX, worldY, worldZ, nil)
+			I3DUtil.setShaderParameterRec(stateNode, "harvestSqueezeScale", strength, length, fadeLength, nil)
 		end
 	end
 end

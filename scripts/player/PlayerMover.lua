@@ -15,6 +15,7 @@ PlayerMover.FLIGHT_MOVE_SPEED = 8
 PlayerMover.FLIGHT_MOVE_SPEED_FAST = 100
 PlayerMover.FLIGHT_HEIGHT_SPEED = 15
 PlayerMover.FLIGHT_HEIGHT_SPEED_FAST = 45
+PlayerMover.FLIGHT_NO_CLIP_TERRAIN_ARGUMENT = "true"
 function PlayerMover.new(player)
 	local self = setmetatable({}, PlayerMover_mt)
 	self.player = player
@@ -47,6 +48,8 @@ function PlayerMover.new(player)
 	self.currentFallTime = 0
 	self.currentGroundTime = 0
 	self.isFlightActive = false
+	self.isFlightCollisionDisabled = false
+	self.isFlightNoClipActive = false
 	self.dirtyFlag = self.player:getNextDirtyFlag()
 	self.onPositionTeleport = ListenerList.new()
 	return self
@@ -91,6 +94,36 @@ end
 function PlayerMover:setFlightActive(isFlightActive, isForced)
 	if not (not isForced and (self.player.toggleFlightModeCommand == nil or self.player.toggleFlightModeCommand.value == false)) then
 		self.isFlightActive = isFlightActive == true
+		self:updateFlightCollision()
+	end
+end
+function PlayerMover:getIsFlightCollisionDisabled()
+	return self.isFlightCollisionDisabled
+end
+function PlayerMover:setIsFlightCollisionDisabled(isFlightCollisionDisabled)
+	self.isFlightCollisionDisabled = isFlightCollisionDisabled == true
+	self:updateFlightCollision()
+end
+function PlayerMover:updateFlightCollision()
+	local noClipCommand = self.player.toggleNoClipCommand
+	if noClipCommand == nil then
+		return
+	end
+	local isCollisionDisabled = self.isFlightActive and self.isFlightCollisionDisabled
+	if isCollisionDisabled == self.isFlightNoClipActive then
+		return
+	else
+		if isCollisionDisabled then
+			if noClipCommand.value then
+				return
+			else
+				self.isFlightNoClipActive = true
+				noClipCommand:enableValue(PlayerMover.FLIGHT_NO_CLIP_TERRAIN_ARGUMENT)
+				return
+			end
+		end
+		self.isFlightNoClipActive = false
+		noClipCommand:disableValue()
 	end
 end
 function PlayerMover:getIsPhysicsEnabled()
@@ -151,11 +184,23 @@ function PlayerMover:setPosition(x, y, z, setNodeTranslation)
 	self.player.capsuleController:setPosition(x, y, z, setNodeTranslation)
 	self.player:raiseDefaultDirtyFlag()
 end
+function PlayerMover:getActiveSuperSpeedScale()
+	if self.player.isOwner and self.player.toggleSuperSpeedCommand.value then
+		return self.player:getSuperSpeedScale()
+	end
+	return 1
+end
+function PlayerMover:getActiveFlightSpeedScale()
+	if self.player.isOwner and self.player.toggleSuperSpeedCommand.value then
+		return self.player:getSuperSpeedScale() / Player.SUPER_SPEED_SCALE_DEFAULT
+	end
+	return 1
+end
 function PlayerMover:getAcceleration()
-	return self.player.isOwner and self.player.toggleSuperSpeedCommand.value and PlayerMover.ACCELERATION * 8 or PlayerMover.ACCELERATION
+	return PlayerMover.ACCELERATION * self:getActiveSuperSpeedScale()
 end
 function PlayerMover:getDeceleration()
-	return self.player.isOwner and self.player.toggleSuperSpeedCommand.value and PlayerMover.DECELERATION * 8 or PlayerMover.DECELERATION
+	return PlayerMover.DECELERATION * self:getActiveSuperSpeedScale()
 end
 function PlayerMover:getSpeed()
 	return self.currentSpeed
@@ -352,13 +397,14 @@ function PlayerMover:updateDeltas(dt)
 end
 function PlayerMover:updateHorizontalVelocity(dt)
 	if self.isFlightActive then
+		local superSpeedScale = self:getActiveFlightSpeedScale()
 		local desiredSpeed = nil
 		if 0 < self.player.inputComponent.runAxis then
 			local moveScalar = self.player.inputComponent.runAxis * self.player.inputComponent.walkAxis
-			desiredSpeed = self:calculateSmoothSpeed(moveScalar, false, PlayerMover.FLIGHT_MOVE_SPEED, PlayerMover.FLIGHT_MOVE_SPEED_FAST)
+			desiredSpeed = self:calculateSmoothSpeed(moveScalar, false, PlayerMover.FLIGHT_MOVE_SPEED * superSpeedScale, PlayerMover.FLIGHT_MOVE_SPEED_FAST * superSpeedScale)
 		else
 			local moveScalar = self.player.inputComponent.walkAxis
-			desiredSpeed = self:calculateSmoothSpeed(moveScalar, false, 0, PlayerMover.FLIGHT_MOVE_SPEED)
+			desiredSpeed = self:calculateSmoothSpeed(moveScalar, false, 0, PlayerMover.FLIGHT_MOVE_SPEED * superSpeedScale)
 		end
 		self.currentVelocityX = self.player.inputComponent.worldDirectionX * desiredSpeed
 		self.currentVelocityZ = self.player.inputComponent.worldDirectionZ * desiredSpeed
@@ -393,8 +439,9 @@ function PlayerMover:updateVerticalVelocity(dt)
 		self.currentVelocityY = 0
 	end
 	if self.isFlightActive then
+		local superSpeedScale = self:getActiveFlightSpeedScale()
 		local desiredSpeed = nil
-		desiredSpeed = 0 < self.player.inputComponent.runAxis and PlayerMover.FLIGHT_HEIGHT_SPEED_FAST * self.player.inputComponent.runAxis * self.player.inputComponent.flightAxis or PlayerMover.FLIGHT_HEIGHT_SPEED * self.player.inputComponent.flightAxis
+		desiredSpeed = 0 < self.player.inputComponent.runAxis and PlayerMover.FLIGHT_HEIGHT_SPEED_FAST * superSpeedScale * self.player.inputComponent.runAxis * self.player.inputComponent.flightAxis or PlayerMover.FLIGHT_HEIGHT_SPEED * superSpeedScale * self.player.inputComponent.flightAxis
 		self.currentVelocityY = desiredSpeed
 	elseif self.isOnLadder then
 		local desiredSpeed = PlayerMover.LADDER_CLIMB_SPEED * self.player.inputComponent.walkAxis

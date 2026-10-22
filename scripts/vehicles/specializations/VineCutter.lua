@@ -5,10 +5,12 @@ function VineCutter.initSpecialization()
 	schema:setXMLSpecializationType("VineCutter")
 	schema:register(XMLValueType.STRING, "vehicle.vineCutter#fruitType", "Fruit type")
 	schema:register(XMLValueType.STRING, "vehicle.vineCutter.vineCutterConfigurations.vineCutterConfiguration(?)#fruitType", "Fruit type")
+	schema:register(XMLValueType.STRING, "vehicle.vineCutter#fruitTypeConverter", "Name of fruit type converter")
+	schema:register(XMLValueType.STRING, "vehicle.vineCutter.vineCutterConfigurations.vineCutterConfiguration(?)#fruitTypeConverter", "Name of fruit type converter")
 	schema:setXMLSpecializationType()
 end
 function VineCutter.prerequisitesPresent(specializations)
-	return SpecializationUtil.hasSpecialization(VineDetector, specializations)
+	return true
 end
 function VineCutter.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getCombine", VineCutter.getCombine)
@@ -29,22 +31,47 @@ function VineCutter.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOff", VineCutter)
 end
 function VineCutter:onLoad(savegame)
-	local spec = self.spec_vineCutter
-	local configurationId = self.configurations.vineCutter or 1
-	local configKey = string.format("vehicle.vineCutter.vineCutterConfigurations.vineCutterConfiguration(%d)", configurationId - 1)
-	local fruitTypeName = self.xmlFile:getValue(configKey .. "#fruitType")
-	if fruitTypeName == nil then
-		fruitTypeName = self.xmlFile:getValue("vehicle.vineCutter#fruitType")
-	end
-	local fruitType = g_fruitTypeManager:getFruitTypeByName(fruitTypeName)
-	if fruitType ~= nil then
-		spec.inputFruitTypeIndex = fruitType.index
+	if self.raycastCallbackVineDetection == nil then
+		Logging.xmlWarning(self.xmlFile, "VineCutter requires a vine detection specialization that registers 'raycastCallbackVineDetection' on the vehicle. Cutter will be inactive.")
 	else
-		spec.inputFruitTypeIndex = FruitType.GRAPE
+		local spec = self.spec_vineCutter
+		local configurationId = self.configurations.vineCutter or 1
+		local configKey = string.format("vehicle.vineCutter.vineCutterConfigurations.vineCutterConfiguration(%d)", configurationId - 1)
+		local fruitTypeName = self.xmlFile:getValue(configKey .. "#fruitType")
+		if fruitTypeName == nil then
+			fruitTypeName = self.xmlFile:getValue("vehicle.vineCutter#fruitType")
+		end
+		local fruitType = g_fruitTypeManager:getFruitTypeByName(fruitTypeName)
+		if fruitType ~= nil then
+			spec.inputFruitTypeIndex = fruitType.index
+		else
+			spec.inputFruitTypeIndex = FruitType.GRAPE
+		end
+		local fruitTypeConverter = self.xmlFile:getValue(configKey .. "#fruitTypeConverter")
+		if fruitTypeConverter == nil then
+			fruitTypeConverter = self.xmlFile:getValue("vehicle.vineCutter#fruitTypeConverter")
+		end
+		if fruitTypeConverter ~= nil then
+			spec.fruitTypeConverters = {}
+			local data = g_fruitTypeManager:getConverterDataByName(fruitTypeConverter)
+			if data ~= nil then
+				for input, converter in pairs(data) do
+					spec.fruitTypeConverters[input] = converter
+				end
+			else
+				Logging.xmlWarning(self.xmlFile, "Cutter has invalid fruitTypeConverter '%s'", fruitTypeConverter)
+			end
+		end
+		if spec.fruitTypeConverters ~= nil then
+			spec.outputFillTypeIndex = spec.fruitTypeConverters[spec.inputFruitTypeIndex].fillTypeIndex
+			spec.outputConversionFactor = spec.fruitTypeConverters[spec.inputFruitTypeIndex].conversionFactor
+		else
+			spec.outputFillTypeIndex = g_fruitTypeManager:getFillTypeIndexByFruitTypeIndex(spec.inputFruitTypeIndex)
+			spec.outputConversionFactor = 1
+		end
+		spec.showFarmlandNotOwnedWarning = false
+		spec.warningYouDontHaveAccessToThisLand = g_i18n:getText("warning_youDontHaveAccessToThisLand")
 	end
-	spec.outputFillTypeIndex = g_fruitTypeManager:getFillTypeIndexByFruitTypeIndex(spec.inputFruitTypeIndex)
-	spec.showFarmlandNotOwnedWarning = false
-	spec.warningYouDontHaveAccessToThisLand = g_i18n:getText("warning_youDontHaveAccessToThisLand")
 end
 function VineCutter:onPostLoad(savegame)
 	if self.addCutterToCombine ~= nil then
@@ -72,8 +99,6 @@ function VineCutter:getCanStartVineDetection(superFunc)
 	local isTurnedOn = self:getIsTurnedOn()
 	if not isTurnedOn then
 		return false
-	elseif self.movingDirection < 0 then
-		return false
 	else
 		return true
 	end
@@ -93,6 +118,9 @@ function VineCutter:handleVinePlaceable(superFunc, node, placeable, x, y, z, dis
 	local spec = self.spec_vineCutter
 	spec.showFarmlandNotOwnedWarning = false
 	if not superFunc(self, node, placeable, x, y, z, distance) then
+		return false
+	end
+	if self.movingDirection < 0 then
 		return false
 	end
 	local farmlandId = g_farmlandManager:getFarmlandIdAtWorldPosition(x, z)
@@ -157,15 +185,20 @@ function VineCutter:getAIImplementUseVineSegment(superFunc, placeable, segment, 
 		return false
 	end
 end
-function VineCutter:harvestCallback(placeable, area, totalArea, weedFactor, sprayFactor, plowFactor, sectionLength)
+function VineCutter:harvestCallback(placeable, area, totalArea, weedFactor, sprayFactor, plowFactor, sectionLength, limeFactor)
 	local spec = self.spec_vineCutter
-	local limeFactor = 1
 	local stubbleTillageFactor = 1
 	local rollerFactor = 1
 	local beeYieldBonusPerc = 0
-	local multiplier = g_currentMission:getHarvestScaleMultiplier(spec.inputFruitTypeIndex, sprayFactor, plowFactor, 1, weedFactor, 1, 1, 0)
+	local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(spec.inputFruitTypeIndex)
+	if fruitTypeDesc ~= nil and fruitTypeDesc.beeYieldBonusPercentage ~= 0 then
+		local hitPosX, _, hitPosZ = self:getCurrentVineHitPosition()
+		beeYieldBonusPerc = g_currentMission.beehiveSystem:getBeehiveInfluenceFactorAt(hitPosX, hitPosZ) * fruitTypeDesc.beeYieldBonusPercentage
+	end
+	local multiplier = g_currentMission:getHarvestScaleMultiplier(spec.inputFruitTypeIndex, sprayFactor, plowFactor, limeFactor, weedFactor, 1, 1, beeYieldBonusPerc)
 	local realArea = area * multiplier
 	local liters = g_fruitTypeManager:getFruitTypeAreaLiters(spec.inputFruitTypeIndex, realArea, false)
+	liters = liters * spec.outputConversionFactor
 	spec.currentCombineVehicle:addCutterArea(area, liters, spec.inputFruitTypeIndex, spec.outputFillTypeIndex, 0, spec.lastTouchedFarmlandFarmId, 1)
 	if spec.inputFruitTypeIndex == FruitType.GRAPE then
 		g_farmManager:updateFarmStats(spec.lastTouchedFarmlandFarmId, "harvestedGrapes", sectionLength)

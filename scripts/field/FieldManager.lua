@@ -288,9 +288,9 @@ function FieldManager:unloadMapData()
 end
 function FieldManager:delete() end
 function FieldManager:loadFromXMLFile(xmlFilename)
-	local xmlFile = XMLFile.load("fields", xmlFilename, FieldManager.xmlSchemaSavegame)
+	local xmlFile = XMLFile.loadIfExists("fields", xmlFilename, FieldManager.xmlSchemaSavegame)
 	if xmlFile == nil then
-		return
+		Logging.xmlInfo(xmlFilename, "Could not load fields xml file!")
 	else
 		for _, key in xmlFile:iterator("fields.field") do
 			local fieldId = xmlFile:getInt(key .. "#id")
@@ -411,6 +411,13 @@ function FieldManager:updateField(field)
 		return
 	end
 	local fieldState = field:getFieldState()
+	local currentFruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(fieldState.fruitTypeIndex)
+	if currentFruitTypeDesc ~= nil and currentFruitTypeDesc.preventNPCFieldUpdate then
+		if currentFruitTypeDesc.useForHarvestMissionsOnly and currentFruitTypeDesc:getIsWithered(fieldState.growthState) then
+			self:harvestField(field)
+		end
+		return
+	end
 	self:logNPCAction("FieldManager: Update field '%s'", field:getName())
 	if fieldState.fruitTypeIndex ~= FruitType.UNKNOWN then
 		local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(fieldState.fruitTypeIndex)
@@ -629,6 +636,13 @@ function FieldManager:addFieldUpdateTask(updateTask, immediate)
 			end
 		end
 	end
+end
+function FieldManager:getNumPendingUpdateTasks()
+	local numTasks = #self.updateTasks
+	if self.currentUpdateTask ~= nil then
+		numTasks = numTasks + 1
+	end
+	return numTasks
 end
 function FieldManager:onFinishFieldUpdateTask(updateTask)
 	if updateTask.getField ~= nil then

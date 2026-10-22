@@ -96,6 +96,3 @@ function RollercoasterStateRideWaiting:updateInfo(infoTable)
 		table.insert(infoTable, self.infoBoxRideStartingIn)
 	end
 end
-function RollercoasterStateRideWaiting:getIsConstructibleState()
-	return false
-end

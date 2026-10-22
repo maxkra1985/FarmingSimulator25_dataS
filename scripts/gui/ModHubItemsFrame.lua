@@ -90,28 +90,28 @@ function ModHubItemsFrame:getMenuButtonInfo()
 	table.insert(buttons, self.backButtonInfo)
 	table.insert(buttons, self.nextPageButtonInfo)
 	table.insert(buttons, self.prevPageButtonInfo)
-	if self.categoryName == "update" then
-		for _, modInfo in pairs(self.mods) do
-			if modInfo:getIsExternal() then
-				continue
-			end
-			if Platform.isPC or not modInfo:getIsDLC() then
-				table.insert(buttons, self.updateAllButtonInfo)
-			else
-			end
-			if self.notifySearchCallback ~= NO_CALLBACK then
-				table.insert(buttons, self.searchButtonInfo)
-			end
-			if Platform.allowsScriptMods and (self.notifyToggleBetaCallback ~= NO_CALLBACK and (self.forcedModItems == nil and self.categoryName ~= "testing")) then
-				self.toggleTopButtonInfo.text = self.getBetaToggleText()
-				table.insert(buttons, self.toggleTopButtonInfo)
-			end
-			if self.categoryName == "testing" then
-				table.insert(buttons, self.deleteAllButtonInfo)
-			end
-			return buttons
+	if self.categoryName == "update" and self:getHasUpdatableMod() then
+		table.insert(buttons, self.updateAllButtonInfo)
+	end
+	if self.notifySearchCallback ~= NO_CALLBACK then
+		table.insert(buttons, self.searchButtonInfo)
+	end
+	if Platform.allowsScriptMods and (self.notifyToggleBetaCallback ~= NO_CALLBACK and (self.forcedModItems == nil and self.categoryName ~= "testing")) then
+		self.toggleTopButtonInfo.text = self.getBetaToggleText()
+		table.insert(buttons, self.toggleTopButtonInfo)
+	end
+	if self.categoryName == "testing" then
+		table.insert(buttons, self.deleteAllButtonInfo)
+	end
+	return buttons
+end
+function ModHubItemsFrame:getHasUpdatableMod()
+	for _, modInfo in ipairs(self.mods) do
+		if modInfo:getCanBeUpdatedDirectly() then
+			return true
 		end
 	end
+	return false
 end
 function ModHubItemsFrame:setItemClickCallback(itemClickedCallback)
 	self.notifyActivatedModItemCallback = itemClickedCallback or NO_CALLBACK
@@ -236,11 +236,8 @@ function ModHubItemsFrame:onButtonUpdateAll()
 end
 function ModHubItemsFrame:onYesNoUpdateAll(yes)
 	if yes then
-		for _, modInfo in pairs(self.mods) do
-			if modInfo:getIsExternal() then
-				continue
-			end
-			if Platform.isPC or not modInfo:getIsDLC() then
+		for _, modInfo in ipairs(self.mods) do
+			if modInfo:getCanBeUpdatedDirectly() then
 				g_modHubController:update(modInfo:getId())
 			end
 		end

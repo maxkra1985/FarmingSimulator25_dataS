@@ -6,7 +6,9 @@ function ConstructionBrushDestruct.new(subclass_mt, cursor)
 	local self = ConstructionBrushDestruct:superClass().new(subclass_mt or ConstructionBrushDestruct_mt, cursor)
 	self.supportsPrimaryButton = true
 	self.supportsPrimaryDragging = true
+	self.supportsTertiaryButton = true
 	self.requiredPermission = Farm.PERMISSION.SELL_PLACEABLE
+	self.deleteWholeSegment = true
 	return self
 end
 function ConstructionBrushDestruct:delete()
@@ -19,6 +21,7 @@ function ConstructionBrushDestruct:activate()
 	self.cursor:setSelectionMode(true)
 	self.coloredNodes = {}
 	self.destructionPreviewNodes = {}
+	self.hoveredDeletableFence = nil
 end
 function ConstructionBrushDestruct:deactivate()
 	self.cursor:setSelectionMode(false)
@@ -54,6 +57,7 @@ function ConstructionBrushDestruct:visualizeMouseOver()
 	local placeable = self.cursor:getHitPlaceable()
 	if placeable ~= self.lastPlaceable or self.perNodeMode then
 		self:resetPlaceableSelection()
+		self:setHoveredDeletableFence(nil)
 		if placeable ~= nil and g_localPlayer.farmId == placeable.ownerFarmId then
 			self.lastPlaceable = placeable
 			g_messageCenter:subscribe(SellPlaceableEvent, self.onPlaceableDestroyed, self)
@@ -75,7 +79,7 @@ function ConstructionBrushDestruct:visualizeMouseOver()
 					end
 					if #self.coloredNodes == 0 then
 						for _, node in ipairs(nodes) do
-							DebugShapeOutline.render(node, true)
+							DebugShapeOutline.render(node, true, true)
 						end
 					end
 				end
@@ -87,17 +91,48 @@ function ConstructionBrushDestruct:visualizeMouseOver()
 		end
 		return
 	end
-	local object = self.cursor:getHitObject()
-	if object ~= nil then
-		if object:isa(Fence) then
-			if object.getAllowSegmentDeletion ~= nil and not object:getAllowSegmentDeletion() then
-				return
-			end
-			local segment = object:getSegmentFromNode(self.cursor:getHitNode())
-			if segment ~= nil and segment:getCanBeModifiedByFarmId(g_localPlayer.farmId) then
-				DebugShapeOutline.render(segment.root, true)
-			end
+	local hoveredFence = self:visualizeFenceMouseOver(self.cursor:getHitNode())
+	self:setHoveredDeletableFence(hoveredFence)
+end
+function ConstructionBrushDestruct:visualizeFenceMouseOver(hitNode)
+	local segment = self:getDeletableFenceSegment(hitNode)
+	if segment == nil then
+		return nil
+	end
+	if self.deleteWholeSegment then
+		DebugShapeOutline.render(segment.root, true, true)
+		return segment.fence
+	end
+	local panelNode = segment:getDeletablePanelFromNode(hitNode)
+	if panelNode == nil then
+		return nil
+	else
+		DebugShapeOutline.render(panelNode, true, true)
+		local hitPart = segment:getSegmentPartFromNode(hitNode)
+		if hitPart ~= nil and hitPart ~= panelNode then
+			DebugShapeOutline.render(hitPart, true, true)
 		end
+		return segment.fence
+	end
+end
+function ConstructionBrushDestruct:getDeletableFenceSegment(hitNode)
+	local object = self.cursor:getHitObject()
+	if object == nil or not object:isa(Fence) then
+		return nil
+	end
+	if object.getAllowSegmentDeletion ~= nil and not object:getAllowSegmentDeletion() then
+		return nil
+	end
+	local segment = object:getSegmentFromNode(hitNode)
+	if segment == nil or not segment:getCanBeModifiedByFarmId(g_localPlayer.farmId) or not segment:getCanBeDeleted() then
+		return nil
+	end
+	return segment
+end
+function ConstructionBrushDestruct:setHoveredDeletableFence(fence)
+	if fence ~= self.hoveredDeletableFence then
+		self.hoveredDeletableFence = fence
+		self:setInputTextDirty()
 	end
 end
 function ConstructionBrushDestruct:onButtonPrimary(isDown, isDrag, isUp)
@@ -147,32 +182,62 @@ function ConstructionBrushDestruct:onButtonPrimary(isDown, isDrag, isUp)
 			return
 		end
 	end
+	if self:getAllowFenceDeletionInput(isDown, isDrag) then
+		self:requestFenceDeletion(self.deleteWholeSegment)
+	end
+end
+function ConstructionBrushDestruct:onButtonTertiary()
+	self.deleteWholeSegment = not self.deleteWholeSegment
+	self:setInputTextDirty()
+end
+function ConstructionBrushDestruct:getAllowFenceDeletionInput(isDown, isDrag)
 	if isDown then
-		if not isDrag then
-			local object = self.cursor:getHitObject()
-			if object ~= nil then
-				if object:isa(Fence) then
-					if self.awaitingFenceSegmentDeletion then
-						return
-					end
-					if object.getAllowSegmentDeletion ~= nil and not object:getAllowSegmentDeletion() then
-						return
-					end
-					local hitNode = self.cursor:getHitNode()
-					local segment = object:getSegmentFromNode(hitNode)
-					if segment ~= nil and segment:getCanBeModifiedByFarmId(g_localPlayer.farmId) then
-						self.awaitingFenceSegmentDeletion = true
-						g_messageCenter:subscribeOneshot(FenceDeleteSegmentEvent, function(fencePlaceable, segment)
-							if fencePlaceable ~= nil and fencePlaceable.playDestroySound ~= nil then
-								fencePlaceable:playDestroySound(true)
-							end
-							self.awaitingFenceSegmentDeletion = false
-						end)
-						g_client:getServerConnection():sendEvent(FenceDeleteSegmentEvent.new(object.parentObject, segment.id))
-					end
+		return true
+	else
+		return isDrag and not self.deleteWholeSegment
+	end
+end
+function ConstructionBrushDestruct:requestFenceDeletion(wholeSegment)
+	if not self:hasPlayerPermission() then
+		return
+	end
+	if self.awaitingFenceSegmentDeletion then
+		return
+	end
+	local hitNode = self.cursor:getHitNode()
+	local segment = self:getDeletableFenceSegment(hitNode)
+	if segment == nil then
+		return
+	end
+	local partNode = nil
+	local childIndex = nil
+	if wholeSegment then
+		partNode, childIndex = segment:getSegmentPartFromNode(hitNode)
+	else
+		partNode, childIndex = segment:getDeletablePanelFromNode(hitNode)
+	end
+	if partNode == nil then
+		return
+	else
+		local fence = segment.fence
+		local hitX, hitY, hitZ = getWorldTranslation(partNode)
+		self.awaitingFenceSegmentDeletion = true
+		g_messageCenter:subscribeOneshot(FenceRequestDeleteSegmentPartEvent, function(success)
+			local placeable = fence.parentObject
+			local placeableExists = false
+			if placeable ~= nil then
+				placeableExists = false
+				if placeable.rootNode ~= nil then
+					placeableExists = entityExists(placeable.rootNode)
 				end
 			end
-		end
+			if success and (placeableExists and placeable.playDestroySound ~= nil) then
+				placeable:playDestroySound(true)
+			end
+			self.awaitingFenceSegmentDeletion = false
+		end)
+		local event = FenceRequestDeleteSegmentPartEvent.newClientToServer(fence.parentObject, segment.id, childIndex, hitX, hitY, hitZ, wholeSegment)
+		g_client:getServerConnection():sendEvent(event)
 	end
 end
 function ConstructionBrushDestruct:destroyNodeInPlaceable(placeable)
@@ -200,5 +265,18 @@ function ConstructionBrushDestruct:onPlaceableDestroyed(state, sellPrice)
 	end
 end
 function ConstructionBrushDestruct:getButtonPrimaryText()
-	return "$l10n_input_CONSTRUCTION_REMOVE"
+	if self.hoveredDeletableFence == nil then
+		return "$l10n_input_CONSTRUCTION_REMOVE"
+	elseif self.deleteWholeSegment then
+		return "$l10n_action_fenceDeleteWholeSegment"
+	else
+		return "$l10n_action_fenceDeleteSinglePanel"
+	end
+end
+function ConstructionBrushDestruct:getButtonTertiaryText()
+	if self.hoveredDeletableFence == nil then
+		return nil
+	else
+		return "$l10n_action_fenceSwitchDeleteMode"
+	end
 end

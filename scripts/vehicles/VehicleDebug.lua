@@ -1926,6 +1926,10 @@ function VehicleDebug.consoleCommandExportScenegraph(unusedSelf, animationName, 
 			xmlFile:setString(key .. "#translation", x .. " " .. y .. " " .. z)
 			local rx, ry, rz = getRotation(node)
 			xmlFile:setString(key .. "#rotation", math.deg(rx) .. " " .. math.deg(ry) .. " " .. math.deg(rz))
+			local sx, sy, sz = getScale(node)
+			if sx ~= 1 or sy ~= 1 or sz ~= 1 then
+				xmlFile:setString(key .. "#scale", string.format("%f %f %f", sx, sy, sz))
+			end
 			if component ~= nil then
 				xmlFile:setFloat(key .. "#mass", vehicle:getComponentMass(component))
 			end

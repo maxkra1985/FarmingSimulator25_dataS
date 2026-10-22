@@ -102,7 +102,9 @@ function ConnectionHoses.registerCustomHoseNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#node", "Target or source node")
 	schema:register(XMLValueType.STRING, basePath .. "#type", "Hose type which can be any string that needs to match between hose and target node")
 	schema:register(XMLValueType.VECTOR_N, basePath .. "#inputAttacherJointIndices", "Input attacher joint indices")
+	schema:register(XMLValueType.NODE_INDICES, basePath .. "#inputAttacherJointNodes", "List of corresponding input attacher joint nodes (i3dIdentifiers or paths separated by space)")
 	schema:register(XMLValueType.VECTOR_N, basePath .. "#attacherJointIndices", "Attacher joint indices")
+	schema:register(XMLValueType.NODE_INDICES, basePath .. "#attacherJointNodes", "List of corresponding attacher joint nodes (i3dIdentifiers or paths separated by space)")
 	schema:register(XMLValueType.BOOL, basePath .. "#isActiveDirty", "Custom hose is permanently updated", false)
 	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, basePath)
 end
@@ -110,7 +112,9 @@ function ConnectionHoses.registerCustomHoseTargetNodesXMLPaths(schema, basePath)
 	schema:register(XMLValueType.NODE_INDEX, basePath .. "#node", "Target or source node")
 	schema:register(XMLValueType.STRING, basePath .. "#type", "Hose type which can be any string that needs to match between hose and target node")
 	schema:register(XMLValueType.VECTOR_N, basePath .. "#inputAttacherJointIndices", "Input attacher joint indices")
+	schema:register(XMLValueType.NODE_INDICES, basePath .. "#inputAttacherJointNodes", "List of corresponding input attacher joint nodes (i3dIdentifiers or paths separated by space)")
 	schema:register(XMLValueType.VECTOR_N, basePath .. "#attacherJointIndices", "Attacher joint indices")
+	schema:register(XMLValueType.NODE_INDICES, basePath .. "#attacherJointNodes", "List of corresponding attacher joint nodes (i3dIdentifiers or paths separated by space)")
 	ObjectChangeUtil.registerObjectChangeXMLPaths(schema, basePath)
 end
 function ConnectionHoses.registerFunctions(vehicleType)
@@ -675,15 +679,23 @@ function ConnectionHoses:loadCustomHosesFromXML(isHose, targetTable, attacherJoi
 			entry.type = xmlFile:getValue(customKey .. "#type")
 			if entry.type ~= nil then
 				entry.type = string.upper(entry.type)
+				local spec = self.spec_connectionHoses
 				entry.inputAttacherJointIndices = {}
 				local inputAttacherJointIndices = xmlFile:getValue(customKey .. "#inputAttacherJointIndices", nil, true)
 				if inputAttacherJointIndices ~= nil then
 					for _, v in ipairs(inputAttacherJointIndices) do
 						entry.inputAttacherJointIndices[v] = v
-						if inputAttacherJointMapping[v] == nil then
-							inputAttacherJointMapping[v] = {}
+					end
+				end
+				local inputAttacherJointNodes = xmlFile:getValue(customKey .. "#inputAttacherJointNodes", nil, self.components, self.i3dMappings, true)
+				if inputAttacherJointNodes ~= nil then
+					for _, node in ipairs(inputAttacherJointNodes) do
+						local jointIndex = self:getInputAttacherJointIndexByNode(node)
+						if jointIndex ~= nil then
+							entry.inputAttacherJointIndices[jointIndex] = jointIndex
+						else
+							Logging.xmlWarning(xmlFile, "Unable to resolve input attacher joint node '%s' for custom hose '%s'", getName(node), customKey)
 						end
-						table.insert(inputAttacherJointMapping[v], entry)
 					end
 				end
 				entry.attacherJointIndices = {}
@@ -691,16 +703,23 @@ function ConnectionHoses:loadCustomHosesFromXML(isHose, targetTable, attacherJoi
 				if attacherJointIndices ~= nil then
 					for _, v in ipairs(attacherJointIndices) do
 						entry.attacherJointIndices[v] = v
-						if attacherJointMapping[v] == nil then
-							attacherJointMapping[v] = {}
+					end
+				end
+				local attacherJointNodes = xmlFile:getValue(customKey .. "#attacherJointNodes", nil, self.components, self.i3dMappings, true)
+				if attacherJointNodes ~= nil then
+					for _, node in ipairs(attacherJointNodes) do
+						local jointIndex = self:getAttacherJointIndexByNode(node)
+						if jointIndex ~= nil then
+							entry.attacherJointIndices[jointIndex] = jointIndex
+						else
+							Logging.xmlWarning(xmlFile, "Unable to resolve attacher joint node '%s' for custom hose '%s'", getName(node), customKey)
 						end
-						table.insert(attacherJointMapping[v], entry)
 					end
 				end
 				if isHose then
 					entry.isActiveDirty = xmlFile:getValue(customKey .. "#isActiveDirty", false)
 					if entry.isActiveDirty then
-						table.insert(self.spec_connectionHoses.customHosesActiveDirty, entry)
+						table.insert(spec.customHosesActiveDirty, entry)
 					end
 					entry.startTranslation = { getTranslation(entry.node) }
 					entry.startRotation = { getRotation(entry.node) }
@@ -708,6 +727,18 @@ function ConnectionHoses:loadCustomHosesFromXML(isHose, targetTable, attacherJoi
 				if next(entry.inputAttacherJointIndices) == nil and next(entry.attacherJointIndices) == nil then
 					Logging.xmlWarning(xmlFile, "Missing inputAttacherJointIndices for custom hose '%s'", customKey)
 					return false
+				end
+				for _, jointIndex in pairs(entry.inputAttacherJointIndices) do
+					if inputAttacherJointMapping[jointIndex] == nil then
+						inputAttacherJointMapping[jointIndex] = {}
+					end
+					table.insert(inputAttacherJointMapping[jointIndex], entry)
+				end
+				for _, jointIndex in pairs(entry.attacherJointIndices) do
+					if attacherJointMapping[jointIndex] == nil then
+						attacherJointMapping[jointIndex] = {}
+					end
+					table.insert(attacherJointMapping[jointIndex], entry)
 				end
 				entry.objectChanges = {}
 				ObjectChangeUtil.loadObjectChangeFromXML(xmlFile, customKey, entry.objectChanges, self.components, self)

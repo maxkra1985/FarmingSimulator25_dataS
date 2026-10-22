@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="storkEgret" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/tileAndMirrorShader.xml" />
+    <File fileId="1" filename="$dataS/character/animals/wild/egret/storkEgret_diffuse.png" />
+    <File fileId="2" filename="$dataS/character/animals/wild/egret/storkEgret_normal.png" />
+    <File fileId="3" filename="$dataS/character/animals/wild/egret/storkEgret_specular.png" />
+  </Files>
+
+  <Materials>
+    <Material name="StorkEgret_M_mat" materialId="1" customShaderId="4" customShaderVariation="sssSpecularDirt">
+      <CustomParameter name="atlasInvSizeAndOffsetUV" value=".5 .5 0 0.5"/>
+      <CustomParameter name="dirt" value="0 20.0 20.0"/>
+      <CustomParameter name="dirtColor" value="0.20 0.14 0.08 0.0"/>
+      <CustomParameter name="mirrorScaleAndOffsetUV" value="1 1 0 0"/>
+      <CustomParameter name="sssColor" value="0.8 0.8 0.8 1.0"/>
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="storkEgret.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="StorkEgret" nodeId="1">
+      <Shape name="storkEgret" translation="0 0.485234 0.144438" shapeId="1" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="2"/>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

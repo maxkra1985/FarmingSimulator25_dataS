@@ -325,9 +325,9 @@ function VehicleSystem:saveVehicleToXML(vehicle, xmlFile, index, i, usedModNames
 	vehicle:saveToXMLFile(xmlFile, vehicleKey, usedModNames)
 end
 function VehicleSystem:load(xmlFilename, asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments, resetVehicles)
-	self.savegameXMLFile = XMLFile.load("vehiclesXML", xmlFilename, Vehicle.xmlSchemaSavegame)
+	self.savegameXMLFile = XMLFile.loadIfExists("vehiclesXML", xmlFilename, Vehicle.xmlSchemaSavegame)
 	if self.savegameXMLFile == nil then
-		Logging.xmlError(xmlFilename, "Loading vehicles xml file failed")
+		Logging.xmlInfo(xmlFilename, "Could not load vehicles xml file!")
 		g_asyncTaskManager:addSubtask(function()
 			asyncCallbackFunction(asyncCallbackObject, {}, VehicleLoadingState.ERROR, asyncCallbackArguments)
 		end)
@@ -648,11 +648,13 @@ function VehicleSystem:consoleCommandAddPallet(palletFillTypeName, amount, world
 		local palletFillType = g_fillTypeManager:getFillTypeIndexByName(palletFillTypeName)
 		if palletFillType == nil then
 			Logging.error("Error: Invalid pallet fillType '%s'", palletFillTypeName)
-			local bestMatch = Utils.getClosestMatchingString(palletFillTypeName, table.toList(pallets))
+			local palletsList = table.toList(pallets)
+			table.sort(palletsList)
+			local bestMatch = Utils.getClosestMatchingString(palletFillTypeName, palletsList)
 			if bestMatch ~= nil then
 				print(string.format("Did you mean %q?", bestMatch))
 			end
-			return string.format("Valid types are %s", table.concatKeys(pallets, ", "))
+			return string.format("Valid types are %s", table.concat(palletsList, ", "))
 		else
 			local xmlFilename = pallets[palletFillTypeName]
 			if xmlFilename == nil then

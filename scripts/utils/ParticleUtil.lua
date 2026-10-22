@@ -358,7 +358,15 @@ function ParticleUtil.copyParticleSystem(xmlFile, key, particleSystem, emitterSh
 	if emitterShape ~= nil then
 		emitterShape = clone(emitterShape, true, false, false)
 		ParticleUtil.setEmitterShape(currentPS, emitterShape)
-		local scale = currentPS.emitterShapeSize / currentPS.defaultEmitterShapeSize * currentPS.emitCountScale
+		local scale = currentPS.emitCountScale
+		local defaultEmitterShapeSize = currentPS.defaultEmitterShapeSize
+		if defaultEmitterShapeSize ~= nil then
+			if 0 < defaultEmitterShapeSize then
+				scale = currentPS.emitterShapeSize / defaultEmitterShapeSize * currentPS.emitCountScale
+			else
+				Logging.warning("Particle system '%s' has no valid emitter shape. Emit count is not scaled!", getName(psClone))
+			end
+		end
 		ParticleUtil.initEmitterScale(currentPS, scale)
 		ParticleUtil.setEmitCountScale(currentPS, 1)
 		if currentPS.lifespan ~= nil then

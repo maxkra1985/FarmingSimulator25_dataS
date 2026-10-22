@@ -4,6 +4,7 @@ ConstructionBrush.ERROR = { LAND_UNOWNED = 1, RESTRICTED_ZONE = 2, PLACEMENT_BLO
 ConstructionBrush.ERROR_MESSAGES = { [ConstructionBrush.ERROR.LAND_UNOWNED] = "ui_construction_landIsNotOwned", [ConstructionBrush.ERROR.PLACEMENT_BLOCKED] = "ui_construction_areaRestricted", [ConstructionBrush.ERROR.RESTRICTED_ZONE] = "ui_construction_areaRestricted", [ConstructionBrush.ERROR.STORE_PLACE] = "ui_construction_storeAreaRestricted", [ConstructionBrush.ERROR.SPAWN_PLACE] = "ui_construction_spawnAreaRestricted", [ConstructionBrush.ERROR.NO_PERMISSION] = "ui_construction_noBuildPermission" }
 ConstructionBrush.CURSOR_SIZES = { 1, 2, 4, 8, 16 }
 ConstructionBrush.DEBUG_TEXT_ATTR = Vector3.new(0.28, 0.98, 0.015)
+ConstructionBrush.RICE_FIELD_CHECK_WIDTH = 1
 function ConstructionBrush.new(customMt, cursor)
 	local self = setmetatable({}, customMt or ConstructionBrush_mt)
 	self.isActive = false
@@ -61,6 +62,25 @@ function ConstructionBrush:verifyAccess(x, y, z)
 		return ConstructionBrush.ERROR.RESTRICTED_ZONE
 	else
 		return nil
+	end
+end
+function ConstructionBrush:getIsPositionClearOfRiceFields(x, z)
+	local halfWidth = ConstructionBrush.RICE_FIELD_CHECK_WIDTH * 0.5
+	local numRicePixels = FSDensityMapUtil.getFieldTypeArea(FieldType.RICE, x - halfWidth, z - halfWidth, x + halfWidth, z - halfWidth, x - halfWidth, z + halfWidth)
+	return numRicePixels == 0
+end
+function ConstructionBrush:getIsLineClearOfRiceFields(x1, z1, x2, z2)
+	local dirX = x2 - x1
+	local dirZ = z2 - z1
+	local length = MathUtil.vector2Length(dirX, dirZ)
+	if length == 0 then
+		return self:getIsPositionClearOfRiceFields(x1, z1)
+	else
+		local halfWidth = ConstructionBrush.RICE_FIELD_CHECK_WIDTH * 0.5
+		local offsetX = -dirZ / length * halfWidth
+		local offsetZ = dirX / length * halfWidth
+		local numRicePixels = FSDensityMapUtil.getFieldTypeArea(FieldType.RICE, x1 + offsetX, z1 + offsetZ, x2 + offsetX, z2 + offsetZ, x1 - offsetX, z1 - offsetZ)
+		return numRicePixels == 0
 	end
 end
 function ConstructionBrush:hasPlayerPermission()

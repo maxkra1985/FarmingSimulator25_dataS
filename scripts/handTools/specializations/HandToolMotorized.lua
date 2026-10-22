@@ -36,10 +36,15 @@ function HandToolMotorized.registerFunctions(handToolType)
 	SpecializationUtil.registerFunction(handToolType, "updateRPM", HandToolMotorized.updateRPM)
 	SpecializationUtil.registerFunction(handToolType, "updateSounds", HandToolMotorized.updateSounds)
 	SpecializationUtil.registerFunction(handToolType, "updateVibrations", HandToolMotorized.updateVibrations)
+	SpecializationUtil.registerFunction(handToolType, "getVibrationOffset", HandToolMotorized.getVibrationOffset)
+end
+function HandToolMotorized.registerOverwrittenFunctions(handToolType)
+	SpecializationUtil.registerOverwrittenFunction(handToolType, "updateBobNode", HandToolMotorized.updateBobNode)
 end
 function HandToolMotorized.registerEventListeners(handToolType)
 	SpecializationUtil.registerEventListener(handToolType, "onDelete", HandToolMotorized)
 	SpecializationUtil.registerEventListener(handToolType, "onLoad", HandToolMotorized)
+	SpecializationUtil.registerEventListener(handToolType, "onPostLoad", HandToolMotorized)
 	SpecializationUtil.registerEventListener(handToolType, "onUpdate", HandToolMotorized)
 	SpecializationUtil.registerEventListener(handToolType, "onWriteUpdateStream", HandToolMotorized)
 	SpecializationUtil.registerEventListener(handToolType, "onReadUpdateStream", HandToolMotorized)
@@ -72,6 +77,18 @@ function HandToolMotorized:onLoad(xmlFile, baseDirectory)
 		spec.samples.idle = g_soundManager:loadSampleFromXML(xmlFile, "sounds.motorized.sounds", "idle", baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
 		spec.samples.stop = g_soundManager:loadSampleFromXML(xmlFile, "sounds.motorized.sounds", "stop", baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
 		self.exhaustEffects = g_effectManager:loadEffect(xmlFile, "handTool.motorized.exhaustEffects", self.components, self, self.i3dMappings)
+	end
+end
+function HandToolMotorized:onPostLoad(savegame)
+	local spec = self.spec_motorized
+	spec.vibrationHandledByBob = false
+	if spec.vibrationNode ~= nil and self.spec_bob ~= nil then
+		for _, bobNode in ipairs(self.spec_bob.bobNodes) do
+			if bobNode.node == spec.vibrationNode then
+				spec.vibrationHandledByBob = true
+				return
+			end
+		end
 	end
 end
 function HandToolMotorized:onDelete()
@@ -154,12 +171,30 @@ function HandToolMotorized:updateSounds(dt)
 end
 function HandToolMotorized:updateVibrations(dt)
 	local spec = self.spec_motorized
+	if spec.vibrationHandledByBob then
+		return
+	else
+		local vibrationX, vibrationY, vibrationZ = self:getVibrationOffset()
+		setTranslation(spec.vibrationNode, vibrationX, vibrationY, vibrationZ)
+	end
+end
+function HandToolMotorized:getVibrationOffset()
+	local spec = self.spec_motorized
 	local rpmAmount = 1 - math.clamp(MathUtil.inverseLerp(spec.minRPM, spec.maxRPM, spec.currentRPM), 0, 1)
 	local vibrationScale = MathUtil.lerp(0.05, 1, rpmAmount) * (1 - spec.currentLoad)
 	local vibrationX = MathUtil.randomFloat(-spec.vibrationAmountX, spec.vibrationAmountX) * vibrationScale
 	local vibrationY = MathUtil.randomFloat(-spec.vibrationAmountY, spec.vibrationAmountY) * vibrationScale
 	local vibrationZ = MathUtil.randomFloat(-spec.vibrationAmountZ, spec.vibrationAmountZ) * vibrationScale
-	setTranslation(spec.vibrationNode, vibrationX, vibrationY, vibrationZ)
+	return vibrationX, vibrationY, vibrationZ
+end
+function HandToolMotorized:updateBobNode(superFunc, bobNode, dt, isActive, speed)
+	superFunc(self, bobNode, dt, isActive, speed)
+	local spec = self.spec_motorized
+	if self.isClient and spec.vibrationNode ~= nil and bobNode.node == spec.vibrationNode then
+		local baseTranslation = bobNode.baseTranslation
+		local vibrationX, vibrationY, vibrationZ = self:getVibrationOffset()
+		setTranslation(bobNode.node, baseTranslation[1] + bobNode.offsetX + vibrationX, baseTranslation[2] + bobNode.offsetY + vibrationY, baseTranslation[3] + vibrationZ)
+	end
 end
 function HandToolMotorized:getTimeToReachRPM(rpm)
 	local spec = self.spec_motorized

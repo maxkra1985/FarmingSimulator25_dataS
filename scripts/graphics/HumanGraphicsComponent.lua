@@ -255,6 +255,9 @@ function HumanGraphicsComponent:getStyle(currentStyle)
 		return self.baseStyle or self.style
 	end
 end
+function HumanGraphicsComponent:getRequiresModelReload(style)
+	return self.model == nil or self.model.xmlFilename ~= style.xmlFilename
+end
 function HumanGraphicsComponent:setStyle(style, isTempStyle)
 	self.style:copyFrom(style)
 	if not isTempStyle then
@@ -379,5 +382,6 @@ function HumanGraphicsComponent:debugDraw(x, y, textSize, debugDrawModel)
 	return y
 end
 function HumanGraphicsComponent:debugDrawAnimator(x, y, textSize)
-	self.animation:debugDraw(x, y, textSize)
+	local newY = self.animation:debugDraw(x, y, textSize)
+	return newY
 end

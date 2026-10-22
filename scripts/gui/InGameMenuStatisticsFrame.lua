@@ -105,7 +105,6 @@ function InGameMenuStatisticsFrame:initialize()
 	local clonedSeparator = nil
 	for i = 1, 12 do
 		clonedText = self.monthTextTemplate:clone(self.fluctuationsLayoutBg)
-		clonedText:setText(g_i18n:formatPeriod(i, true))
 		table.insert(self.clonedPricesElements, clonedText)
 		table.insert(self.monthTexts, clonedText)
 		clonedSeparator = self.separatorTemplate:clone(self.fluctuationsLayoutBg)
@@ -306,6 +305,7 @@ function InGameMenuStatisticsFrame:onFrameOpen(element)
 	g_messageCenter:subscribe(MessageType.HANDTOOL_REMOVED, self.onHandToolSellEvent, self)
 	g_messageCenter:subscribe(MessageType.HANDTOOL_ADDED, self.onHandToolBuyEvent, self)
 	g_messageCenter:subscribe(HandToolSetHolderEvent, self.onHandToolSetHolderEvent, self)
+	self:setPeriodTitles()
 	self:rebuildTable()
 	self:updateTodayBar()
 	g_messageCenter:subscribe(MessageType.HOUR_CHANGED, self.onHourChanged, self)
@@ -861,6 +861,11 @@ function InGameMenuStatisticsFrame:updateTodayBar()
 	local parentSize = self.todayBar.parent.size[1]
 	self.todayBar:setPosition(parentSize * percentage + parentSize / (env:getDaysPerSeason() * 4) * 0.5, nil)
 end
+function InGameMenuStatisticsFrame:setPeriodTitles()
+	for i = 1, 12 do
+		self.monthTexts[i]:setText(g_i18n:formatPeriod(i, true))
+	end
+end
 function InGameMenuStatisticsFrame:rebuildTable()
 	local fruitTypes = {}
 	local otherTypes = {}
@@ -1276,33 +1281,46 @@ function InGameMenuStatisticsFrame:populateCellForItemInSection(list, section, i
 				cell:getAttribute("icon"):setVisible(false)
 				if self.sellingStationMode then
 					return
-				end
-				local profile = InGameMenuStatisticsFrame.PROFILE.PRICE_NORMAL
-				local sellingStation = stationData.sellingStation
-				cell:getAttribute("price"):setVisible(sellingStation ~= nil)
-				if sellingStation ~= nil then
-					local price = sellingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
-					cell:getAttribute("price"):setValue(tostring(price))
-					local priceTrend = sellingStation:getCurrentPricingTrend(fillTypeDesc.index)
-					if priceTrend ~= nil then
-						if Utils.isBitSet(priceTrend, SellingStation.PRICE_GREAT_DEMAND) then
-							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_GREAT_DEMAND
-						elseif Utils.isBitSet(priceTrend, SellingStation.PRICE_CLIMBING) then
-							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_CLIMBING
-						elseif Utils.isBitSet(priceTrend, SellingStation.PRICE_FALLING) then
-							profile = InGameMenuStatisticsFrame.PROFILE.PRICE_FALLING
+				else
+					local profile = InGameMenuStatisticsFrame.PROFILE.PRICE_NORMAL
+					local sellingStation = stationData.sellingStation
+					local sellingAllowed = false
+					if sellingStation ~= nil then
+						sellingAllowed = sellingStation:getIsFillTypeAllowed(fillTypeDesc.index)
+					end
+					cell:getAttribute("price"):setVisible(sellingAllowed)
+					if sellingAllowed then
+						local price = sellingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
+						cell:getAttribute("price"):setValue(tostring(price))
+						local priceTrend = sellingStation:getCurrentPricingTrend(fillTypeDesc.index)
+						if priceTrend ~= nil then
+							if Utils.isBitSet(priceTrend, SellingStation.PRICE_GREAT_DEMAND) then
+								profile = InGameMenuStatisticsFrame.PROFILE.PRICE_GREAT_DEMAND
+							elseif Utils.isBitSet(priceTrend, SellingStation.PRICE_CLIMBING) then
+								profile = InGameMenuStatisticsFrame.PROFILE.PRICE_CLIMBING
+							elseif Utils.isBitSet(priceTrend, SellingStation.PRICE_FALLING) then
+								profile = InGameMenuStatisticsFrame.PROFILE.PRICE_FALLING
+							end
 						end
 					end
-				end
-				cell:getAttribute("priceTrend"):applyProfile(profile)
-				local buyingStation = stationData.buyingStation
-				local palletBuyingStation = stationData.palletBuyingStation
-				local isBuyingStation = buyingStation ~= nil or palletBuyingStation ~= nil
-				cell:getAttribute("buyPrice"):setVisible(isBuyingStation)
-				if isBuyingStation then
-					local price = nil
-					price = buyingStation ~= nil and buyingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000 or palletBuyingStation:getEffectivePricePerPallet(fillTypeDesc.index)
-					cell:getAttribute("buyPrice"):setValue(tostring(price))
+					cell:getAttribute("priceTrend"):applyProfile(profile)
+					local buyingStation = stationData.buyingStation
+					local palletBuyingStation = stationData.palletBuyingStation
+					local isBuyingStation = buyingStation ~= nil or palletBuyingStation ~= nil
+					cell:getAttribute("buyPrice"):setVisible(isBuyingStation)
+					if isBuyingStation then
+						local price = nil
+						if buyingStation ~= nil then
+							price = buyingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
+						elseif palletBuyingStation:getHasPalletForFillType(fillTypeDesc.index) then
+							price = palletBuyingStation:getEffectivePricePerPallet(fillTypeDesc.index)
+						end
+						if price ~= nil then
+							cell:getAttribute("buyPrice"):setValue(tostring(price))
+						else
+							cell:getAttribute("buyPrice"):setVisible(false)
+						end
+					end
 					return
 				end
 			end

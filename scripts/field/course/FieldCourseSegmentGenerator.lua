@@ -1,11 +1,11 @@
 FieldCourseSegmentGenerator = {}
 local FieldCourseSegmentGenerator_mt = Class(FieldCourseSegmentGenerator)
+FieldCourseSegmentGenerator.MIN_ORCHARD_SEGMENT_LENGTH = 0.1
 function FieldCourseSegmentGenerator.new(fieldCourseSettings, callback)
 	local self = setmetatable({}, FieldCourseSegmentGenerator_mt)
 	self.fieldCourseSettings = fieldCourseSettings
 	self.callback = callback
 	self.state = FieldCourseGenerationState.FIELD_DETECTION
-	self.frameBudget = 0.00025
 	self.numHeadlandsToCreate = fieldCourseSettings.numHeadlands
 	self.headlandOnly = false
 	self.skipHeadland = false
@@ -58,96 +58,116 @@ function FieldCourseSegmentGenerator:generate()
 	end
 end
 function FieldCourseSegmentGenerator:update(dt)
-	if self.state == FieldCourseGenerationState.FIELD_DETECTION then
-		self.courseField:update(dt, self.frameBudget)
-	elseif self.state == FieldCourseGenerationState.VINEYARD_DETECTION then
-		if self:doVineyardDetection() then
-			self.state = FieldCourseGenerationState.FINISHED
-		else
-			self.state = FieldCourseGenerationState.HEADLAND_CREATION
+	local frameBudget = g_fieldCourseManager:getFrameBudget()
+	local startTime = getTimeSec()
+	local elapsedTime = 0
+	while elapsedTime < frameBudget do
+		self:updateState(dt, frameBudget - elapsedTime)
+		if self:getHasFinished() then
+			self:finish()
+			return
 		end
-	elseif self.state == FieldCourseGenerationState.HEADLAND_CREATION then
-		if not self:generateNextHeadland() then
-			if #self.headlandBoundaries == 0 then
-				self.state = FieldCourseGenerationState.INVALID
-			elseif self.headlandOnly then
-				self.state = FieldCourseGenerationState.FINISHED
-			else
-				self.state = FieldCourseGenerationState.SUB_AREA_DETECTION
-				local singleGroupMode = -0.01 <= self.fieldCourseSettings.workDirection
-				local baseBoundary = self.headlandBoundaries[#self.headlandBoundaries] or self.innerBoundary
-				self.trapezoidDecomposition = TrapezoidDecomposition.new(baseBoundary.boundaryLine, singleGroupMode)
-			end
+		if self:getIsWaitingForAsyncResult() then
+			return
 		end
-	elseif self.state == FieldCourseGenerationState.SUB_AREA_DETECTION then
-		if not self.trapezoidDecomposition:update(dt, self.frameBudget) then
-			self.state = FieldCourseGenerationState.SUB_AREA_PATH_CREATION
-			local trapezoidGroups = self.trapezoidDecomposition:getGroups()
-			for groupId, group in pairs(trapezoidGroups) do
-				local callback = function(lines)
-					self.linesByGroup[groupId] = lines
-					self.boundaryByGroup[groupId] = group.simplifiedBoundary
-				end
-				local task = BoundaryLineGenerationTask.new(group.simplifiedBoundary, group.center[1], group.center[2], group.direction[1], group.direction[2], self.islands, self.fieldCourseSettings, callback)
-				table.insert(self.boundaryLineGenerationTasks, task)
-			end
-			self.trapezoidDecomposition = nil
-		end
-	elseif self.state == FieldCourseGenerationState.SUB_AREA_PATH_CREATION then
-		for i = #self.boundaryLineGenerationTasks, 1, -1 do
-			if self.boundaryLineGenerationTasks[i]:update(dt, self.frameBudget) then
-				continue
-			end
-			table.remove(self.boundaryLineGenerationTasks, i)
-		end
-		if #self.boundaryLineGenerationTasks == 0 then
-			if self.isUICourse then
-				self.state = FieldCourseGenerationState.FINISHED
-			elseif self.fieldCourseSettings.segmentExtendedToBoundary then
-				self.state = FieldCourseGenerationState.SEGMENT_TO_BOUNDARY_EXTENSION
-			else
-				self.state = FieldCourseGenerationState.LINE_OVERLAP_CHECKS
-			end
-		end
-	elseif self.state == FieldCourseGenerationState.LINE_OVERLAP_CHECKS then
-		local sideOffset = self.fieldCourseSettings.implementWidth * 0.5
-		local offsetStep = self.fieldCourseSettings.implementWidth * 0.1
-		local startTime = getTimeSec()
-		local isValid = false
-		for groupIndex, lines in pairs(self.linesByGroup) do
-			local line = lines[self.currentOverlapLineIndex]
-			if line == nil then
-				continue
-			end
-			local positions = line.positions
-			FieldCourseUtil.shrinkSegmentUntilOverlap(self.linesByGroup, self.islands, self.headlandBoundaries, groupIndex, positions, -1, sideOffset, sideOffset, offsetStep)
-			FieldCourseUtil.shrinkSegmentUntilOverlap(self.linesByGroup, self.islands, self.headlandBoundaries, groupIndex, positions, 1, sideOffset, sideOffset, offsetStep)
-			FieldCourseUtil.extendSegmentUntilOverlap(self.linesByGroup, self.islands, self.headlandBoundaries, groupIndex, positions, -1, sideOffset, sideOffset, offsetStep)
-			FieldCourseUtil.extendSegmentUntilOverlap(self.linesByGroup, self.islands, self.headlandBoundaries, groupIndex, positions, 1, sideOffset, sideOffset, offsetStep)
-			isValid = true
-		end
-		while isValid do
-			self.currentOverlapLineIndex = self.currentOverlapLineIndex + 1
-			local endTime = getTimeSec()
-			if self.frameBudget < endTime - startTime then
-				break
-			end
-		end
-		if not isValid then
-			self.state = FieldCourseGenerationState.FINISHED
-		end
-	elseif self.state == FieldCourseGenerationState.SEGMENT_TO_BOUNDARY_EXTENSION then
-		local rootBoundary = self.headlandBoundaries[#self.headlandBoundaries] or self.fieldRootBoundary
-		for groupIndex, lines in pairs(self.linesByGroup) do
-			for _, line in ipairs(lines) do
-				local boundaryLine = self.boundaryByGroup[groupIndex] or rootBoundary.boundaryLine
-				FieldCourseSegmentGenerator.extendSegmentToBoundary(line.positions, boundaryLine, self.islands)
-			end
-		end
-		self.state = FieldCourseGenerationState.FINISHED
+		elapsedTime = getTimeSec() - startTime
 	end
-	if self:getHasFinished() then
-		self:finish()
+end
+function FieldCourseSegmentGenerator:updateState(dt, frameBudget)
+	if self.state == FieldCourseGenerationState.FIELD_DETECTION then
+		self.courseField:update(dt, frameBudget)
+	else
+		if self.state == FieldCourseGenerationState.VINEYARD_DETECTION then
+			if self:doVineyardDetection() then
+				self.state = FieldCourseGenerationState.FINISHED
+				return
+			else
+				self.state = FieldCourseGenerationState.HEADLAND_CREATION
+				return
+			end
+		end
+		if self.state == FieldCourseGenerationState.HEADLAND_CREATION then
+			if not self:generateNextHeadland() then
+				if #self.headlandBoundaries == 0 then
+					self.state = FieldCourseGenerationState.INVALID
+				elseif self.headlandOnly then
+					self.state = FieldCourseGenerationState.FINISHED
+				else
+					self.state = FieldCourseGenerationState.SUB_AREA_DETECTION
+					local singleGroupMode = -0.01 <= self.fieldCourseSettings.workDirection
+					local baseBoundary = self.headlandBoundaries[#self.headlandBoundaries] or self.innerBoundary
+					self.trapezoidDecomposition = TrapezoidDecomposition.new(baseBoundary.boundaryLine, singleGroupMode)
+				end
+			end
+		elseif self.state == FieldCourseGenerationState.SUB_AREA_DETECTION then
+			if not self.trapezoidDecomposition:update(dt, frameBudget) then
+				self.state = FieldCourseGenerationState.SUB_AREA_PATH_CREATION
+				local trapezoidGroups = self.trapezoidDecomposition:getGroups()
+				for groupId, group in pairs(trapezoidGroups) do
+					local callback = function(lines)
+						self.linesByGroup[groupId] = lines
+						self.boundaryByGroup[groupId] = group.simplifiedBoundary
+					end
+					local task = BoundaryLineGenerationTask.new(group.simplifiedBoundary, group.center[1], group.center[2], group.direction[1], group.direction[2], self.islands, self.fieldCourseSettings, callback)
+					table.insert(self.boundaryLineGenerationTasks, task)
+				end
+				self.trapezoidDecomposition = nil
+			end
+		elseif self.state == FieldCourseGenerationState.SUB_AREA_PATH_CREATION then
+			local tasksStartTime = getTimeSec()
+			for i = #self.boundaryLineGenerationTasks, 1, -1 do
+				local taskBudget = frameBudget - (getTimeSec() - tasksStartTime)
+				if self.boundaryLineGenerationTasks[i]:update(dt, taskBudget) then
+					continue
+				end
+				table.remove(self.boundaryLineGenerationTasks, i)
+			end
+			if #self.boundaryLineGenerationTasks == 0 then
+				if self.isUICourse then
+					self.state = FieldCourseGenerationState.FINISHED
+				elseif self.fieldCourseSettings.segmentExtendedToBoundary then
+					self.state = FieldCourseGenerationState.SEGMENT_TO_BOUNDARY_EXTENSION
+				else
+					self.state = FieldCourseGenerationState.LINE_OVERLAP_CHECKS
+				end
+			end
+		elseif self.state == FieldCourseGenerationState.LINE_OVERLAP_CHECKS then
+			local sideOffset = self.fieldCourseSettings.implementWidth * 0.5
+			local offsetStep = self.fieldCourseSettings.implementWidth * 0.1
+			local startTime = getTimeSec()
+			local isValid = false
+			for groupIndex, lines in pairs(self.linesByGroup) do
+				local line = lines[self.currentOverlapLineIndex]
+				if line == nil then
+					continue
+				end
+				local positions = line.positions
+				FieldCourseUtil.shrinkSegmentUntilOverlap(self.linesByGroup, self.islands, self.headlandBoundaries, groupIndex, positions, -1, sideOffset, sideOffset, offsetStep)
+				FieldCourseUtil.shrinkSegmentUntilOverlap(self.linesByGroup, self.islands, self.headlandBoundaries, groupIndex, positions, 1, sideOffset, sideOffset, offsetStep)
+				FieldCourseUtil.extendSegmentUntilOverlap(self.linesByGroup, self.islands, self.headlandBoundaries, groupIndex, positions, -1, sideOffset, sideOffset, offsetStep)
+				FieldCourseUtil.extendSegmentUntilOverlap(self.linesByGroup, self.islands, self.headlandBoundaries, groupIndex, positions, 1, sideOffset, sideOffset, offsetStep)
+				isValid = true
+			end
+			while isValid do
+				self.currentOverlapLineIndex = self.currentOverlapLineIndex + 1
+				local endTime = getTimeSec()
+				if frameBudget < endTime - startTime then
+					break
+				end
+			end
+			if not isValid then
+				self.state = FieldCourseGenerationState.FINISHED
+			end
+		elseif self.state == FieldCourseGenerationState.SEGMENT_TO_BOUNDARY_EXTENSION then
+			local rootBoundary = self.headlandBoundaries[#self.headlandBoundaries] or self.fieldRootBoundary
+			for groupIndex, lines in pairs(self.linesByGroup) do
+				for _, line in ipairs(lines) do
+					local boundaryLine = self.boundaryByGroup[groupIndex] or rootBoundary.boundaryLine
+					FieldCourseSegmentGenerator.extendSegmentToBoundary(line.positions, boundaryLine, self.islands)
+				end
+			end
+			self.state = FieldCourseGenerationState.FINISHED
+		end
 	end
 end
 function FieldCourseSegmentGenerator:generateNextHeadland()
@@ -231,6 +251,16 @@ function FieldCourseSegmentGenerator:generateNextHeadland()
 		return true
 	end
 end
+function FieldCourseSegmentGenerator:getIsWaitingForAsyncResult()
+	if self.state == FieldCourseGenerationState.FIELD_DETECTION then
+		if self.courseField ~= nil then
+			self.courseField:getIsWaitingForAsyncResult()
+		end
+		return true
+	else
+		return false
+	end
+end
 function FieldCourseSegmentGenerator:getHasFinished()
 	return self.state == FieldCourseGenerationState.FINISHED or self.state == FieldCourseGenerationState.INVALID
 end
@@ -289,6 +319,39 @@ function FieldCourseSegmentGenerator:finish()
 		self.callback(segments, self.courseField, self.isVineyardCourse)
 	end
 end
+function FieldCourseSegmentGenerator:getOrchardSegments(placeable)
+	if placeable.spec_vine ~= nil and placeable.spec_fence ~= nil then
+		local segments = {}
+		for _, segment in pairs(placeable.spec_fence.segments) do
+			local length = MathUtil.vector2Length(segment.x2 - segment.x1, segment.z2 - segment.z1)
+			if length < FieldCourseSegmentGenerator.MIN_ORCHARD_SEGMENT_LENGTH then
+				continue
+			end
+			table.insert(segments, { x1 = segment.x1, z1 = segment.z1, x2 = segment.x2, z2 = segment.z2 })
+		end
+		return segments
+	end
+	if placeable.harvestVine ~= nil and placeable.getFence ~= nil then
+		local fence = placeable:getFence()
+		if fence == nil then
+			return nil
+		else
+			local segments = {}
+			for _, segment in ipairs(fence:getSegments()) do
+				if segment.startPosX == nil or segment.endPosX == nil then
+					continue
+				end
+				local length = MathUtil.vector2Length(segment.endPosX - segment.startPosX, segment.endPosZ - segment.startPosZ)
+				if length < FieldCourseSegmentGenerator.MIN_ORCHARD_SEGMENT_LENGTH then
+					continue
+				end
+				table.insert(segments, { x1 = segment.startPosX, z1 = segment.startPosZ, x2 = segment.endPosX, z2 = segment.endPosZ })
+			end
+			return segments
+		end
+	end
+	return nil
+end
 function FieldCourseSegmentGenerator:doVineyardDetection()
 	if g_currentMission.placeableSystem == nil then
 		return false
@@ -296,11 +359,12 @@ function FieldCourseSegmentGenerator:doVineyardDetection()
 	local boundary = self.fieldRootBoundary.boundaryLine
 	local placeables = g_currentMission.placeableSystem.placeables
 	for _, placeable in ipairs(placeables) do
-		if placeable.spec_vine == nil or placeable.spec_fence == nil then
+		local orchardSegments = self:getOrchardSegments(placeable)
+		if orchardSegments == nil then
 			continue
 		end
 		local anyVineInsideBoundary = false
-		for i, segment in pairs(placeable.spec_fence.segments) do
+		for _, segment in ipairs(orchardSegments) do
 			if FieldCourseUtil.getIsPointInsideBoundary(segment.x1, segment.z1, boundary) or FieldCourseUtil.getIsPointInsideBoundary(segment.x2, segment.z2, boundary) then
 				anyVineInsideBoundary = true
 			else
@@ -308,10 +372,11 @@ function FieldCourseSegmentGenerator:doVineyardDetection()
 			if anyVineInsideBoundary then
 				local group = {}
 				local sideOffset = 0
-				if self.fieldCourseSettings.isVineyardRowTool then
-					sideOffset = placeable:getSnapDistance() * 0.5
+				local isOnRowTool = self.fieldCourseSettings.isVineyardTool and not self.fieldCourseSettings.isVineyardRowTool
+				if not isOnRowTool then
+					sideOffset = (placeable:getSnapDistance() or 0) * 0.5
 				end
-				for i, segment in pairs(placeable.spec_fence.segments) do
+				for _, segment in ipairs(orchardSegments) do
 					if FieldCourseUtil.getIsPointInsideBoundary(segment.x1, segment.z1, boundary) or FieldCourseUtil.getIsPointInsideBoundary(segment.x2, segment.z2, boundary) then
 						local dx = segment.x2 - segment.x1
 						local dz = segment.z2 - segment.z1
@@ -360,45 +425,26 @@ function FieldCourseSegmentGenerator:doVineyardDetection()
 							local dot1 = MathUtil.getProjectOnLineParameter(x3, z3, x1, z1, dx, dz)
 							local px = x1 + dx * dot1
 							local pz = z1 + dz * dot1
-							local sideOffset = MathUtil.vector2Length(px - x3, pz - z3)
-							if sideOffset < 0.01 then
+							local sideDistance = MathUtil.vector2Length(px - x3, pz - z3)
+							if sideDistance < 0.01 then
 								local dot2 = MathUtil.getProjectOnLineParameter(x4, z4, x1, z1, dx, dz)
-								if -0.25 <= dot1 and (dot1 <= length + 0.25 and -0.25 <= dot2) then
-									if dot2 <= length + 0.25 then
-										table.remove(group, j)
-									elseif -0.25 <= dot1 then
-										if dot1 <= length + 0.25 then
-											if length < dot2 then
-												x2 = x4
-												z2 = z4
-												line[2][1] = x2
-												line[2][2] = z2
-												length = MathUtil.vector2Length(x2 - x1, z2 - z1)
-											elseif dot2 < 0 then
-												x1 = x4
-												z1 = z4
-												line[1][1] = x1
-												line[1][2] = z1
-												length = MathUtil.vector2Length(x2 - x1, z2 - z1)
-											end
-										elseif -0.25 <= dot2 then
-											if dot2 <= length + 0.25 then
-												if dot1 < 0 then
-													x1 = x3
-													z1 = z3
-													line[1][1] = x1
-													line[1][2] = z1
-													length = MathUtil.vector2Length(x2 - x1, z2 - z1)
-												elseif length < dot2 then
-													x2 = x3
-													z2 = z3
-													line[2][1] = x2
-													line[2][2] = z2
-													length = MathUtil.vector2Length(x2 - x1, z2 - z1)
-												end
-											end
-										end
+								local minDot = math.min(dot1, dot2)
+								local maxDot = math.max(dot1, dot2)
+								if minDot <= length + 0.25 and -0.25 <= maxDot then
+									if minDot < 0 then
+										line[1][1] = x1 + dx * minDot
+										line[1][2] = z1 + dz * minDot
 									end
+									if length < maxDot then
+										line[2][1] = x1 + dx * maxDot
+										line[2][2] = z1 + dz * maxDot
+									end
+									x1 = line[1][1]
+									z1 = line[1][2]
+									x2 = line[2][1]
+									z2 = line[2][2]
+									length = MathUtil.vector2Length(x2 - x1, z2 - z1)
+									table.remove(group, j)
 								end
 							end
 						end

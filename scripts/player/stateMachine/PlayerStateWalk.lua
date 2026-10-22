@@ -52,7 +52,7 @@ end
 function PlayerStateWalk:getMaximumRunSpeed()
 	local runSpeed = PlayerStateWalk.MAXIMUM_RUN_SPEED
 	if self.player.toggleSuperSpeedCommand ~= nil and self.player.toggleSuperSpeedCommand.value then
-		runSpeed = runSpeed * 8
+		runSpeed = runSpeed * self.player:getSuperSpeedScale()
 	end
 	return runSpeed
 end

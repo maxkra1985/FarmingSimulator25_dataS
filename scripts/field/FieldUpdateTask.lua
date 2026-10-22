@@ -17,6 +17,8 @@ function FieldUpdateTask.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.INT, basePath .. "#stubbleShredLevel", "Stubbleshred level", nil, false)
 	FieldType.registerXMLPath(schema, basePath .. "#fieldType", "Name of the field type", nil, false)
 	schema:register(XMLValueType.BOOL, basePath .. "#clearHeight", "Clear tip anything", nil, false)
+	schema:register(XMLValueType.BOOL, basePath .. "#clearCultivatedFruit", "Clear every fruit type that may be cultivated", nil, false)
+	schema:register(XMLValueType.BOOL, basePath .. "#clearDecoFoliage", "Clear the deco foliage layers", nil, false)
 end
 function FieldUpdateTask.new(customMt)
 	local self = FieldUpdateTask:superClass().new(customMt or FieldUpdateTask_mt)
@@ -75,6 +77,12 @@ function FieldUpdateTask:saveToXMLFile(xmlFile, key)
 	end
 	if self.doClearHeight ~= nil then
 		xmlFile:setValue(key .. "#clearHeight", self.doClearHeight)
+	end
+	if self.doClearCultivatedFruit ~= nil then
+		xmlFile:setBool(key .. "#clearCultivatedFruit", self.doClearCultivatedFruit)
+	end
+	if self.doClearDecoFoliage ~= nil then
+		xmlFile:setBool(key .. "#clearDecoFoliage", self.doClearDecoFoliage)
 	end
 end
 function FieldUpdateTask:loadFromXMLFile(xmlFile, key)
@@ -150,6 +158,12 @@ function FieldUpdateTask:loadFromXMLFile(xmlFile, key)
 	local doClearHeight = xmlFile:getValue(key .. "#clearHeight")
 	if doClearHeight then
 		self:clearHeight()
+	end
+	if xmlFile:getBool(key .. "#clearCultivatedFruit", false) then
+		self:clearCultivatedFruit()
+	end
+	if xmlFile:getBool(key .. "#clearDecoFoliage", false) then
+		self:clearDecoFoliage()
 	end
 	if self.state == DensityMapUpdateTaskState.RUNNING then
 		self:start()
@@ -282,6 +296,16 @@ end
 function FieldUpdateTask:clearHeight()
 	self.doClearHeight = true
 end
+function FieldUpdateTask:clearCultivatedFruit()
+	self.doClearCultivatedFruit = true
+end
+function FieldUpdateTask:clearDecoFoliage()
+	if g_currentMission.foliageSystem == nil then
+		return
+	else
+		self.doClearDecoFoliage = true
+	end
+end
 function FieldUpdateTask:setValue(densityMapId, firstChannel, numChannels, value, filter1, filter2, filter3)
 	local modifier = DensityMapModifier.new(densityMapId, firstChannel, numChannels, g_terrainNode)
 	self.multiModifier:addExecuteSet(value, modifier, filter1, filter2, filter3)
@@ -297,10 +321,18 @@ function FieldUpdateTask:prepare()
 	local filter2 = self.filter2
 	local filter3 = self.filter3
 	local fieldGroundSystem = g_currentMission.fieldGroundSystem
+	if self.doClearDecoFoliage then
+		self:prepareClearDecoFoliage(filter1, filter2, filter3)
+	end
+	if self.doClearCultivatedFruit then
+		self:prepareClearCultivatedFruit(filter1, filter2, filter3)
+	end
 	if self.fruitTypeIndex ~= nil then
-		local haulmFruitTypeDesc = g_fruitTypeManager:getFirstHaulmFruitType()
-		if haulmFruitTypeDesc ~= nil then
-			self:setValue(haulmFruitTypeDesc.terrainDataPlaneIdHaulm, haulmFruitTypeDesc.startStateChannelHaulm, haulmFruitTypeDesc.numStateChannelsHaulm, 0, filter1, filter2, filter3)
+		if not self.doClearCultivatedFruit then
+			local haulmFruitTypeDesc = g_fruitTypeManager:getFirstHaulmFruitType()
+			if haulmFruitTypeDesc ~= nil then
+				self:setValue(haulmFruitTypeDesc.terrainDataPlaneIdHaulm, haulmFruitTypeDesc.startStateChannelHaulm, haulmFruitTypeDesc.numStateChannelsHaulm, 0, filter1, filter2, filter3)
+			end
 		end
 		if self.fruitTypeIndex == FruitType.UNKNOWN then
 			local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(FruitType.WHEAT)
@@ -310,6 +342,9 @@ function FieldUpdateTask:prepare()
 		else
 			local fruitTypeDesc = g_fruitTypeManager:getFruitTypeByIndex(self.fruitTypeIndex)
 			self:setValue(fruitTypeDesc.terrainDataPlaneId, fruitTypeDesc.startStateChannel, fruitTypeDesc.numStateChannels, self.growthState, filter1, filter2, filter3)
+			if fruitTypeDesc.terrainDataPlaneIdHaulm ~= nil and fruitTypeDesc:getIsCut(self.growthState) then
+				self:setValue(fruitTypeDesc.terrainDataPlaneIdHaulm, fruitTypeDesc.startStateChannelHaulm, fruitTypeDesc.numStateChannelsHaulm, 1, filter1, filter2, filter3)
+			end
 		end
 	end
 	if self.weedState ~= nil then
@@ -374,6 +409,37 @@ function FieldUpdateTask:prepare()
 		local displacementMapId, displacementFirstChannel, displacementNumChannels = fieldGroundSystem:getDisplacementData()
 		local resetValue = fieldGroundSystem:getDisplacementResetValue()
 		self:setValue(displacementMapId, displacementFirstChannel, displacementNumChannels, resetValue, filter1, filter2, filter3)
+	end
+end
+function FieldUpdateTask:prepareClearCultivatedFruit(filter1, filter2, filter3)
+	local haulmFruitTypeDesc = g_fruitTypeManager:getFirstHaulmFruitType()
+	if haulmFruitTypeDesc ~= nil then
+		self:setValue(haulmFruitTypeDesc.terrainDataPlaneIdHaulm, haulmFruitTypeDesc.startStateChannelHaulm, haulmFruitTypeDesc.numStateChannelsHaulm, 0, filter1, filter2, filter3)
+	end
+	for _, fruitTypeDesc in pairs(g_fruitTypeManager:getFruitTypes()) do
+		if fruitTypeDesc.terrainDataPlaneId == nil then
+			continue
+		end
+		if fruitTypeDesc.isCultivationAllowed then
+			local fruitModifier = DensityMapModifier.new(fruitTypeDesc.terrainDataPlaneId, fruitTypeDesc.startStateChannel, fruitTypeDesc.numStateChannels, g_terrainNode)
+			fruitModifier:setNewTypeIndexMode(DensityIndexCompareMode.ZERO)
+			self.multiModifier:addExecuteSet(0, fruitModifier, filter1, filter2, filter3)
+		end
+	end
+	for _, foliageLayerId in ipairs(g_currentMission.dynamicFoliageLayers) do
+		local numChannels = getTerrainDetailNumChannels(foliageLayerId)
+		local foliageModifier = DensityMapModifier.new(foliageLayerId, 0, numChannels, g_terrainNode)
+		self.multiModifier:addExecuteSet(0, foliageModifier, filter1, filter2, filter3)
+	end
+end
+function FieldUpdateTask:prepareClearDecoFoliage(filter1, filter2, filter3)
+	for _, decoFoliage in ipairs(g_currentMission.foliageSystem:getDecoFoliages()) do
+		if decoFoliage.terrainDataPlaneId == nil then
+			continue
+		end
+		local decoModifier = DensityMapModifier.new(decoFoliage.terrainDataPlaneId, decoFoliage.startStateChannel, decoFoliage.numStateChannels, g_terrainNode)
+		decoModifier:setNewTypeIndexMode(DensityIndexCompareMode.ZERO)
+		self.multiModifier:addExecuteSet(0, decoModifier, filter1, filter2, filter3)
 	end
 end
 function FieldUpdateTask:enqueue(immediate)

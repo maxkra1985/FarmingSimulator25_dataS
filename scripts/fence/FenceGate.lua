@@ -79,6 +79,8 @@ function FenceGate.loadMetadataFromXML(xmlFile, key, id, fence)
 	local hasStartPole = xmlFile:getBool(gateKey .. "#hasStartPole", true)
 	local hasEndPole = xmlFile:getBool(gateKey .. "#hasEndPole", true)
 	metadata.gate = { xmlKey = gateKey, length = length, depth = depth, alignY = alignY, depthOffset = depthOffset, hasStartPole = hasStartPole, hasEndPole = hasEndPole }
+	local sourceNode = xmlFile:getNode(gateKey .. "#node", nil, fence.components, fence.i3dMapping)
+	fence:addSourceNode(sourceNode)
 	return metadata
 end
 function FenceGate:delete()
@@ -194,26 +196,24 @@ function FenceGate:updateMeshes(force, validatePlacement)
 	end
 	if not entityExists(self.root) then
 		return false
+	end
+	local terrain = g_terrainNode or getChild(getRootNode(), "terrain")
+	for i = getNumOfChildren(self.root) - 1, 0, -1 do
+		local child = getChildAt(self.root, i)
+		removeFromPhysics(child)
+		unlink(child)
+		self.rootHidden = child
+	end
+	local length = MathUtil.vector3Length(self.endPosX - self.startPosX, self.endPosY - self.startPosY, self.endPosZ - self.startPosZ)
+	if length < 0.1 then
+		self.lastError = FenceSegment.ERROR_TOO_SHORT
+		return false
+	end
+	local lengthXZ = MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
+	if lengthXZ < 0.1 then
+		self.lastError = FenceSegment.ERROR_TOO_SHORT
+		return false
 	else
-		local terrain = g_terrainNode or getChild(getRootNode(), "terrain")
-		for i = getNumOfChildren(self.root) - 1, 0, -1 do
-			local child = getChildAt(self.root, i)
-			removeFromPhysics(child)
-			unlink(child)
-			self.rootHidden = child
-		end
-		if validatePlacement then
-			local length = MathUtil.vector3Length(self.endPosX - self.startPosX, self.endPosY - self.startPosY, self.endPosZ - self.startPosZ)
-			if length < 0.1 then
-				self.lastError = FenceSegment.ERROR_TOO_SHORT
-				return false
-			end
-			if MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ) < 0.1 then
-				self.lastError = FenceSegment.ERROR_TOO_SHORT
-				return false
-			end
-		end
-		local lengthXZ = MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
 		local curLen = 0
 		local dx, dz = MathUtil.vector2Normalize(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
 		local x = nil
@@ -397,13 +397,10 @@ function FenceGate:getHasVisualEndPole()
 	end
 end
 function FenceGate:getSegmentPartStartEnd(node)
-	node = self:getSegmentPartFromNode(node)
-	if node == nil then
+	local partNode = self:getSegmentPartFromNode(node)
+	if partNode == nil then
 		return nil
 	else
-		local sx, sy, sz = getWorldTranslation(node)
-		local isFirst = MathUtil.vector3Length(sx - self.startPosX, sy - self.startPosY, sz - self.startPosZ) < 0.01
-		local isLast = MathUtil.vector3Length(sx - self.endPosX, sy - self.endPosY, sz - self.endPosZ) < 0.01
-		return self.startPosX, self.startPosY, self.startPosZ, self.endPosX, self.endPosY, self.endPosZ, isFirst, isLast
+		return self.startPosX, self.startPosY, self.startPosZ, self.endPosX, self.endPosY, self.endPosZ, true, true
 	end
 end

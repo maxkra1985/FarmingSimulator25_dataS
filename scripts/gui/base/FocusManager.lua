@@ -127,12 +127,12 @@ function FocusManager:loadElementFromCustomValues(element, focusId, focusChangeD
 	return success
 end
 function FocusManager:removeElement(element)
+	for _, child in pairs(element.elements) do
+		self:removeElement(child)
+	end
 	if not element.focusId then
 		return
 	else
-		for _, child in pairs(element.elements) do
-			self:removeElement(child)
-		end
 		if element:getIsFocused() then
 			element:onFocusLeave()
 			FocusManager:unsetFocus(element)

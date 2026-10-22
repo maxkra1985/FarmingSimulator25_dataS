@@ -7,7 +7,7 @@ Rideable.GROUND_RAYCAST_OFFSET = 1.2
 Rideable.GROUND_RAYCAST_MAXDISTANCE = 5
 Rideable.GROUND_RAYCAST_COLLISIONMASK = CollisionFlag.TERRAIN + CollisionFlag.TERRAIN_DELTA + CollisionFlag.ROAD + CollisionFlag.STATIC_OBJECT
 function Rideable.prerequisitesPresent(specializations)
-	return SpecializationUtil.hasSpecialization(CCTDrivable, specializations)
+	return SpecializationUtil.hasSpecialization(CCTDrivable, specializations) and SpecializationUtil.hasSpecialization(Enterable, specializations)
 end
 function Rideable.initSpecialization()
 	local schema = Vehicle.xmlSchema
@@ -201,6 +201,7 @@ function Rideable:onLoad(savegame)
 	spec.interpolationDt = 16
 	spec.ridingTimer = 0
 	spec.doHusbandryCheck = 0
+	spec.pendingHusbandryHandover = nil
 	spec.proxy = self.xmlFile:getValue("vehicle.rideable#proxy", nil, self.components, self.i3dMappings)
 	if spec.proxy ~= nil then
 		setRigidBodyType(spec.proxy, RigidBodyType.NONE)
@@ -545,25 +546,40 @@ function Rideable:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection
 			self:setRideableSteer(steeringValue)
 		end
 	end
-	if self.isServer and 0 < spec.doHusbandryCheck then
+	if not self.isServer then
+		return
+	elseif spec.pendingHusbandryHandover ~= nil then
+		local handover = spec.pendingHusbandryHandover
+		spec.pendingHusbandryHandover = nil
+		local cluster = self:getCluster()
+		local x, y, z = getWorldTranslation(self.rootNode)
+		local rx, ry, rz = localRotationToWorld(self.rootNode, 0, 3.141592653589793, 0)
+		cluster:setPendingSpawnWorldPosition(x, y, z, rx, ry, rz)
+		handover.husbandry:addCluster(cluster)
+		if handover.lastOwner ~= nil then
+			handover.lastOwner:sendEvent(RideableStableNotificationEvent.new(true, spec.cluster:getName()), nil, true)
+		end
+		self:delete()
+	else
+		if spec.doHusbandryCheck <= 0 then
+			return
+		end
 		spec.doHusbandryCheck = spec.doHusbandryCheck - dt
 		local mission = g_currentMission
 		local isInRange, husbandry = mission.husbandrySystem:getHusbandryInRideableRange(self)
-		if isInRange then
-			local isInStable = nil
-			if husbandry ~= nil then
-				local cluster = self:getCluster()
-				husbandry:addCluster(cluster)
-				self:delete()
-				isInStable = true
-			else
-				isInStable = false
-			end
+		if not isInRange then
+			spec.lastOwner = nil
+		elseif husbandry == nil then
 			if spec.lastOwner ~= nil then
-				spec.lastOwner:sendEvent(RideableStableNotificationEvent.new(isInStable, spec.cluster:getName()), nil, true)
+				spec.lastOwner:sendEvent(RideableStableNotificationEvent.new(false, spec.cluster:getName()), nil, true)
 			end
+			spec.lastOwner = nil
+		else
+			self:removeFromPhysics()
+			spec.pendingHusbandryHandover = { husbandry = husbandry, lastOwner = spec.lastOwner }
+			spec.doHusbandryCheck = 0
+			spec.lastOwner = nil
 		end
-		spec.lastOwner = nil
 	end
 end
 function Rideable:onUpdateInterpolation(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)

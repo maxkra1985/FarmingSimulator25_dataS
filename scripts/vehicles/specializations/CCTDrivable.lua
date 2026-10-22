@@ -1,6 +1,6 @@
 CCTDrivable = {}
 function CCTDrivable.prerequisitesPresent(specializations)
-	return SpecializationUtil.hasSpecialization(Enterable, specializations)
+	return true
 end
 function CCTDrivable.initSpecialization()
 	local schema = Vehicle.xmlSchema
@@ -18,9 +18,11 @@ function CCTDrivable.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getIsCCTOnGround", CCTDrivable.getIsCCTOnGround)
 	SpecializationUtil.registerFunction(vehicleType, "getCCTCollisionMask", CCTDrivable.getCCTCollisionMask)
 	SpecializationUtil.registerFunction(vehicleType, "getCCTWorldTranslation", CCTDrivable.getCCTWorldTranslation)
+	SpecializationUtil.registerFunction(vehicleType, "getIsAIMovingObstacle", CCTDrivable.getIsAIMovingObstacle)
 end
 function CCTDrivable.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "addToPhysics", CCTDrivable.addToPhysics)
+	SpecializationUtil.registerOverwrittenFunction(vehicleType, "removeFromPhysics", CCTDrivable.removeFromPhysics)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "setWorldPosition", CCTDrivable.setWorldPosition)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "setWorldPositionQuaternion", CCTDrivable.setWorldPositionQuaternion)
 end
@@ -48,12 +50,19 @@ function CCTDrivable:onDelete()
 	local spec = self.spec_cctdrivable
 	if spec.controllerIndex ~= nil then
 		removeCCT(spec.controllerIndex)
+		spec.controllerIndex = nil
+	end
+	if spec.cctNode ~= nil then
 		delete(spec.cctNode)
+		spec.cctNode = nil
 	end
 end
 function CCTDrivable:moveCCT(moveX, moveY, moveZ)
 	if self.isServer then
 		local spec = self.spec_cctdrivable
+		if spec.controllerIndex == nil then
+			return
+		end
 		moveCCT(spec.controllerIndex, moveX, moveY, moveZ, spec.movementCollisionGroup, spec.movementCollisionMask)
 		self:raiseActive()
 	end
@@ -71,12 +80,11 @@ function CCTDrivable:getTouchingNode()
 end
 function CCTDrivable:getIsCCTOnGround()
 	local spec = self.spec_cctdrivable
-	if self.isServer then
+	if self.isServer and spec.controllerIndex ~= nil then
 		local _, _, isOnGround = getCCTCollisionFlags(spec.controllerIndex)
 		return isOnGround
-	else
-		return false
 	end
+	return false
 end
 function CCTDrivable:getCCTCollisionMask()
 	local spec = self.spec_cctdrivable
@@ -87,6 +95,9 @@ function CCTDrivable:getCCTWorldTranslation()
 	local cctX, cctY, cctZ = getTranslation(spec.cctNode)
 	cctY = cctY + spec.cctCenterOffset
 	return cctX, cctY, cctZ
+end
+function CCTDrivable:getIsAIMovingObstacle()
+	return true
 end
 function CCTDrivable:setWorldPosition(superFunc, x, y, z, xRot, yRot, zRot, i, changeInterp)
 	superFunc(self, x, y, z, xRot, yRot, zRot, i, changeInterp)
@@ -117,4 +128,14 @@ function CCTDrivable:addToPhysics(superFunc)
 		end
 		return true
 	end
+end
+function CCTDrivable:removeFromPhysics(superFunc)
+	if self.isServer then
+		local spec = self.spec_cctdrivable
+		if spec.controllerIndex ~= nil then
+			removeCCT(spec.controllerIndex)
+			spec.controllerIndex = nil
+		end
+	end
+	return superFunc(self)
 end

@@ -426,10 +426,16 @@ function ColorPickerDialog:updateSubCategoryPages(subCategoryIndex)
 	elseif subCategoryIndex == ColorPickerDialog.CATEGORY_FAVORITES then
 		self:setColors(self.customColors, self.lastFavoritesButtonIndex)
 	end
+	self:updateButtonVisibility()
+end
+function ColorPickerDialog:updateButtonVisibility()
+	local subCategoryIndex = self.pageSelector:getState()
+	local isFavorites = subCategoryIndex == ColorPickerDialog.CATEGORY_FAVORITES
+	local hasColors = 0 < #self.colors
 	self.addToFavoritesButton:setVisible(subCategoryIndex == ColorPickerDialog.CATEGORY_CUSTOM and #self.customColors < ColorPickerDialog.MAX_NUM_CUSTOM_COLORS)
-	self.okButton:setVisible(subCategoryIndex ~= ColorPickerDialog.CATEGORY_FAVORITES or 0 < #self.colors)
-	self.deleteButton:setVisible(subCategoryIndex == ColorPickerDialog.CATEGORY_FAVORITES and 0 < #self.colors)
-	self.renameButton:setVisible(subCategoryIndex == ColorPickerDialog.CATEGORY_FAVORITES and 0 < #self.colors)
+	self.okButton:setVisible(not isFavorites or hasColors)
+	self.deleteButton:setVisible(isFavorites and hasColors)
+	self.renameButton:setVisible(isFavorites and hasColors)
 	self.buttonsBox:invalidateLayout()
 end
 function ColorPickerDialog:onHueChanged(hueState)
@@ -485,6 +491,7 @@ function ColorPickerDialog:onYesNoDeleteFromFavorites(yes)
 		self.colorNameBox:invalidateLayout()
 		self:setColors(self.customColors)
 		self:setInitialFocus()
+		self:updateButtonVisibility()
 		self.customColorsDirty = true
 	end
 end

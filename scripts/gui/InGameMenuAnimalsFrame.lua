@@ -12,7 +12,7 @@ end
 function InGameMenuAnimalsFrame.new(target, custom_mt)
 	local self = TabbedMenuFrameElement.new(target, custom_mt or InGameMenuAnimalsFrame_mt)
 	self.sortedHusbandries = {}
-	self.selectedClusterIsHorse = false
+	self.selectedClusterCanBeRenamed = false
 	self.selectedCluster = nil
 	self.selectedHusbandry = nil
 	self.animalDataUpdateTime = InGameMenuAnimalsFrame.UPDATE_INTERVAL
@@ -75,6 +75,13 @@ function InGameMenuAnimalsFrame:initialize()
 			self:onButtonHotspot()
 		end,
 		profile = "buttonHotspot",
+	}
+	self.animalWorkerButtonInfo = {
+		inputAction = InputAction.MENU_EXTRA_1,
+		text = g_i18n:getText(InGameMenuAnimalsFrame.L10N_SYMBOL.BUTTON_ANIMAL_WORKER),
+		callback = function()
+			self:onButtonAnimalWorker()
+		end,
 	}
 	self.subCategoryDotTemplate:unlinkElement()
 	FocusManager:removeElement(self.subCategoryDotTemplate)
@@ -249,7 +256,7 @@ function InGameMenuAnimalsFrame:displayCluster(cluster, husbandry)
 	end
 	local subTypeIndex = cluster:getSubTypeIndex()
 	local age = cluster:getAge()
-	local visual = g_currentMission.animalSystem:getVisualByAge(subTypeIndex, age)
+	local visual = cluster:getVisual()
 	if visual ~= nil then
 		local subType = g_currentMission.animalSystem:getSubTypeByIndex(subTypeIndex)
 		local name = g_fillTypeManager:getFillTypeTitleByIndex(subType.fillTypeIndex)
@@ -292,13 +299,58 @@ function InGameMenuAnimalsFrame:updateMenuButtons()
 			table.insert(self.menuButtonInfo, self.hotspotButtonInfo)
 		end
 	end
-	if self.selectedClusterIsHorse and Platform.gameplay.canRenameHorses then
+	if self.selectedClusterCanBeRenamed and Platform.gameplay.canRenameAnimals then
 		table.insert(self.menuButtonInfo, self.renameButtonInfo)
+	end
+	if self:getSelectedAnimalWorkerHusbandry() ~= nil then
+		table.insert(self.menuButtonInfo, self.animalWorkerButtonInfo)
 	end
 	self:setMenuButtonInfoDirty()
 end
-function InGameMenuAnimalsFrame:renameCurrentHorse(newName, hasConfirmed)
-	if hasConfirmed and (self.selectedClusterIsHorse and Platform.gameplay.canRenameHorses) then
+function InGameMenuAnimalsFrame:getSelectedAnimalWorkerHusbandry()
+	local husbandry = self.selectedHusbandry
+	if husbandry == nil or husbandry.getAnimalWorkerAvailableTasks == nil then
+		return nil
+	end
+	if g_localPlayer == nil or husbandry:getOwnerFarmId() ~= g_localPlayer.farmId then
+		return nil
+	end
+	if not g_currentMission:getHasPlayerPermission(Farm.PERMISSION.HIRE_ASSISTANT) then
+		return nil
+	elseif #husbandry:getAnimalWorkerAvailableTasks() ~= 0 then
+		return husbandry
+	else
+		return nil
+	end
+end
+function InGameMenuAnimalsFrame:onButtonAnimalWorker()
+	local husbandry = self:getSelectedAnimalWorkerHusbandry()
+	if husbandry == nil then
+		return
+	else
+		AnimalWorkerDialog.show(husbandry, self.onAnimalWorkerStateSelected, self.onAnimalWorkerPerform, self)
+	end
+end
+function InGameMenuAnimalsFrame:onAnimalWorkerStateSelected(husbandry, task, enabled)
+	if g_server ~= nil then
+		local applied = husbandry:applyAnimalWorkerStateFromEvent(task, enabled)
+		g_server:broadcastEvent(PlaceableHusbandryAnimalWorkerStateEvent.newServerToClient(husbandry, task, applied))
+	else
+		g_client:getServerConnection():sendEvent(PlaceableHusbandryAnimalWorkerStateEvent.newClientToServer(husbandry, task, enabled))
+	end
+	self:updateMenuButtons()
+end
+function InGameMenuAnimalsFrame:onAnimalWorkerPerform(husbandry, task)
+	if g_server == nil then
+		g_client:getServerConnection():sendEvent(PlaceableHusbandryAnimalWorkerPerformEvent.new(husbandry, task))
+		return nil, nil
+	else
+		local numHandled, cost = husbandry:performAnimalWorkerTask(task)
+		return numHandled, cost
+	end
+end
+function InGameMenuAnimalsFrame:renameSelectedAnimal(newName, hasConfirmed)
+	if hasConfirmed and (self.selectedClusterCanBeRenamed and Platform.gameplay.canRenameAnimals) then
 		self.selectedHusbandry:renameAnimal(self.selectedCluster.id, newName)
 	end
 end
@@ -357,8 +409,7 @@ function InGameMenuAnimalsFrame:populateCellForItemInSection(list, section, inde
 	local clusters = self.subTypeIndexToClusters[subTypeIndex]
 	local cluster = clusters[index]
 	local age = cluster:getAge()
-	local visual = g_currentMission.animalSystem:getVisualByAge(subTypeIndex, age)
-	local subType = g_currentMission.animalSystem:getSubTypeByIndex(subTypeIndex)
+	local visual = cluster:getVisual()
 	if visual ~= nil then
 		local name = nil
 		if cluster.getName ~= nil then
@@ -370,7 +421,7 @@ function InGameMenuAnimalsFrame:populateCellForItemInSection(list, section, inde
 		local priceText = g_i18n:formatMoney(price, 0, true, true)
 		cell:getAttribute("priceValue"):setText(priceText)
 		cell:getAttribute("count"):setText(cluster ~= nil and "x" .. cluster.numAnimals or "")
-		cell:getAttribute("count"):setVisible(subType.typeIndex ~= AnimalType.HORSE)
+		cell:getAttribute("count"):setVisible(1 < cluster:getMaxNumAnimals())
 		cell:getAttribute("name"):setText(name)
 		cell:getAttribute("typeIcon"):setImageFilename(visual.store.imageFilename)
 	end
@@ -388,13 +439,13 @@ function InGameMenuAnimalsFrame:onHusbandryChanged(index)
 	end
 end
 function InGameMenuAnimalsFrame:onButtonRename()
-	if not Platform.gameplay.canRenameHorses then
+	if not Platform.gameplay.canRenameAnimals then
 		return
 	else
 		local promptText = g_i18n:getText(InGameMenuAnimalsFrame.L10N_SYMBOL.PROMPT_RENAME)
 		local imePromptText = g_i18n:getText(InGameMenuAnimalsFrame.L10N_SYMBOL.IME_PROMPT_RENAME)
 		local confirmText = g_i18n:getText(InGameMenuAnimalsFrame.L10N_SYMBOL.BUTTON_CONFIRM)
-		TextInputDialog.show(self.renameCurrentHorse, self, self.selectedCluster:getName(), promptText, imePromptText, InGameMenuAnimalsFrame.MAX_ANIMAL_NAME_LENGTH, confirmText, nil, nil, true)
+		TextInputDialog.show(self.renameSelectedAnimal, self, self.selectedCluster:getName(), promptText, imePromptText, InGameMenuAnimalsFrame.MAX_ANIMAL_NAME_LENGTH, confirmText, nil, nil, true)
 	end
 end
 function InGameMenuAnimalsFrame:onButtonHotspot()
@@ -421,9 +472,8 @@ function InGameMenuAnimalsFrame:onListSelectionChanged(list, section, index)
 		local clusters = self.subTypeIndexToClusters[subTypeIndex]
 		local cluster = clusters[index]
 		local husbandry = self.sortedHusbandries[self.subCategorySelector:getState()]
-		local subType = g_currentMission.animalSystem:getSubTypeByIndex(cluster:getSubTypeIndex())
-		local isHorse = subType.typeIndex == AnimalType.HORSE
-		self.selectedClusterIsHorse = isHorse
+		local canBeRenamed = cluster.getName ~= nil and cluster.setName ~= nil
+		self.selectedClusterCanBeRenamed = canBeRenamed
 		self.selectedCluster = cluster
 		self:displayCluster(self.selectedCluster, husbandry)
 		self.livestockAttributesLayout:invalidateLayout()
@@ -431,7 +481,7 @@ function InGameMenuAnimalsFrame:onListSelectionChanged(list, section, index)
 	end
 end
 InGameMenuAnimalsFrame.FILL_TYPE_SEPARATOR = " / "
-InGameMenuAnimalsFrame.L10N_SYMBOL = { HORSE_FITNESS = "ui_horseFitness", CLEANLINESS = "statistic_cleanliness", WATER = "statistic_water", STRAW = "statistic_strawStorage", BUTTON_RENAME = "button_rename", BUTTON_CONFIRM = "button_confirm", BUTTON_HOTSPOT = "button_showOnMap", SET_MARKER = "action_tag", REMOVE_MARKER = "action_untag", PROMPT_RENAME = "ui_enterHorseName", IME_PROMPT_RENAME = "ui_horseName", FOOD_MIX_QUANITITY = "animals_foodMixQuantity", FOOD_DESCRIPTION_PARALLEL = "animals_foodMixDescriptionParallel", FOOD_DESCRIPTION_SERIAL = "animals_foodMixDescriptionSerial" }
+InGameMenuAnimalsFrame.L10N_SYMBOL = { HORSE_FITNESS = "ui_horseFitness", CLEANLINESS = "statistic_cleanliness", WATER = "statistic_water", STRAW = "statistic_strawStorage", BUTTON_ANIMAL_WORKER = "ui_animalWorker_manage", BUTTON_RENAME = "button_rename", BUTTON_CONFIRM = "button_confirm", BUTTON_HOTSPOT = "button_showOnMap", SET_MARKER = "action_tag", REMOVE_MARKER = "action_untag", PROMPT_RENAME = "ui_enterName", IME_PROMPT_RENAME = "ui_name", FOOD_MIX_QUANITITY = "animals_foodMixQuantity", FOOD_DESCRIPTION_PARALLEL = "animals_foodMixDescriptionParallel", FOOD_DESCRIPTION_SERIAL = "animals_foodMixDescriptionSerial" }
 InGameMenuAnimalsFrame.STATUS_BAR_HIGH = 0.66
 InGameMenuAnimalsFrame.STATUS_BAR_MEDIUM = 0.33
 InGameMenuAnimalsFrame.COLOR = { GREEN = { 0.3763, 0.6038, 0.0782, 1 }, ORANGE = { 0.8, 0.4, 0, 1 }, RED = { 0.8069, 0.0097, 0.0097, 1 } }

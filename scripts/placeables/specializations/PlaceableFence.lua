@@ -3,6 +3,7 @@ PlaceableFence.EPSILON = 0.00001
 source("dataS/scripts/placeables/specializations/events/PlaceableFenceAddGateEvent.lua")
 source("dataS/scripts/placeables/specializations/events/PlaceableFenceAddSegmentEvent.lua")
 source("dataS/scripts/placeables/specializations/events/PlaceableFenceRemoveSegmentEvent.lua")
+source("dataS/scripts/placeables/specializations/events/PlaceableFenceSegmentBatchEvent.lua")
 function PlaceableFence.prerequisitesPresent(specializations)
 	return true
 end
@@ -12,9 +13,11 @@ end
 function PlaceableFence.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "addSegment", PlaceableFence.addSegment)
 	SpecializationUtil.registerFunction(placeableType, "addSegmentShapesToUpdate", PlaceableFence.addSegmentShapesToUpdate)
+	SpecializationUtil.registerFunction(placeableType, "calculateSegmentPoles", PlaceableFence.calculateSegmentPoles)
 	SpecializationUtil.registerFunction(placeableType, "createSegment", PlaceableFence.createSegment)
 	SpecializationUtil.registerFunction(placeableType, "deletePanel", PlaceableFence.deletePanel)
 	SpecializationUtil.registerFunction(placeableType, "deleteSegment", PlaceableFence.deleteSegment)
+	SpecializationUtil.registerFunction(placeableType, "detachSourceNodes", PlaceableFence.detachSourceNodes)
 	SpecializationUtil.registerFunction(placeableType, "doDeletePanel", PlaceableFence.doDeletePanel)
 	SpecializationUtil.registerFunction(placeableType, "fakeRandomValueForPosition", PlaceableFence.fakeRandomValueForPosition)
 	SpecializationUtil.registerFunction(placeableType, "findRaycastInfo", PlaceableFence.findRaycastInfo)
@@ -22,11 +25,14 @@ function PlaceableFence.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "getGate", PlaceableFence.getGate)
 	SpecializationUtil.registerFunction(placeableType, "getMaxVerticalAngle", PlaceableFence.getMaxVerticalAngle)
 	SpecializationUtil.registerFunction(placeableType, "getMaxVerticalAngleAndYForPreview", PlaceableFence.getMaxVerticalAngleAndYForPreview)
+	SpecializationUtil.registerFunction(placeableType, "getMaxVerticalAngleAndYForSegment", PlaceableFence.getMaxVerticalAngleAndYForSegment)
 	SpecializationUtil.registerFunction(placeableType, "getMaxVerticalGateAngle", PlaceableFence.getMaxVerticalGateAngle)
 	SpecializationUtil.registerFunction(placeableType, "getNodesToDeleteForPanel", PlaceableFence.getNodesToDeleteForPanel)
 	SpecializationUtil.registerFunction(placeableType, "getNumSequments", PlaceableFence.getNumSequments)
 	SpecializationUtil.registerFunction(placeableType, "getPanelLength", PlaceableFence.getPanelLength)
 	SpecializationUtil.registerFunction(placeableType, "getIsPanelLengthFixed", PlaceableFence.getIsPanelLengthFixed)
+	SpecializationUtil.registerFunction(placeableType, "getIsBuildLocked", PlaceableFence.getIsBuildLocked)
+	SpecializationUtil.registerFunction(placeableType, "setBuildLocked", PlaceableFence.setBuildLocked)
 	SpecializationUtil.registerFunction(placeableType, "getPoleNear", PlaceableFence.getPoleNear)
 	SpecializationUtil.registerFunction(placeableType, "getPoleNearOverlapCallback", PlaceableFence.getPoleNearOverlapCallback)
 	SpecializationUtil.registerFunction(placeableType, "getPolePosition", PlaceableFence.getPolePosition)
@@ -55,6 +61,7 @@ function PlaceableFence.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "onTerrainDeformationSyncerUpdate", PlaceableFence.onTerrainDeformationSyncerUpdate)
 end
 function PlaceableFence.registerOverwrittenFunctions(placeableType)
+	SpecializationUtil.registerOverwrittenFunction(placeableType, "canBeSold", PlaceableFence.canBeSold)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "collectPickObjects", PlaceableFence.collectPickObjects)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "getDestructionMethod", PlaceableFence.getDestructionMethod)
 	SpecializationUtil.registerOverwrittenFunction(placeableType, "performNodeDestruction", PlaceableFence.performNodeDestruction)
@@ -114,6 +121,7 @@ function PlaceableFence:onLoad(savegame)
 	spec.segmentsToUpdate = {}
 	spec.animatedObjects = {}
 	spec.previewSegment = nil
+	spec.buildLockCount = 0
 	spec.panelLength = xmlFile:getValue("placeable.fence.panels#length")
 	spec.panelLengthFixed = xmlFile:getValue("placeable.fence.panels#fixedLength")
 	spec.maxVerticalAngle = xmlFile:getValue("placeable.fence#maxVerticalAngle", 35)
@@ -158,6 +166,30 @@ function PlaceableFence:onLoad(savegame)
 			Logging.xmlWarning(xmlFile, "Gate node does not exist at %s", key)
 		end
 	end)
+	self:detachSourceNodes()
+end
+function PlaceableFence:detachSourceNodes()
+	local spec = self.spec_fence
+	spec.sourceNodes = {}
+	for _, pole in ipairs(spec.poles) do
+		PlaceableFence.detachSourceNode(spec.sourceNodes, pole)
+	end
+	for _, panel in ipairs(spec.panels) do
+		PlaceableFence.detachSourceNode(spec.sourceNodes, panel)
+	end
+	for _, gate in ipairs(spec.gates) do
+		PlaceableFence.detachSourceNode(spec.sourceNodes, gate.node)
+	end
+end
+function PlaceableFence.detachSourceNode(sourceNodes, node)
+	if node == nil or not entityExists(node) then
+		return
+	end
+	if getParent(node) ~= 0 then
+		removeFromPhysics(node)
+		unlink(node)
+	end
+	table.insert(sourceNodes, node)
 end
 function PlaceableFence:onDelete()
 	local spec = self.spec_fence
@@ -184,6 +216,14 @@ function PlaceableFence:onDelete()
 		for _, animatedObject in ipairs(spec.animatedObjects) do
 			animatedObject:delete()
 		end
+	end
+	if spec.sourceNodes ~= nil then
+		for _, sourceNode in ipairs(spec.sourceNodes) do
+			if entityExists(sourceNode) then
+				delete(sourceNode)
+			end
+		end
+		spec.sourceNodes = nil
 	end
 end
 function PlaceableFence:onReadStream(streamId, connection)
@@ -306,32 +346,36 @@ function PlaceableFence:registerTerrainHeightChangeCallbacks(segment)
 	local dirX = segment.x2 - startPosX
 	local dirZ = segment.z2 - startPosZ
 	local length = MathUtil.vector2Length(dirX, dirZ)
-	dirX, dirZ = MathUtil.vector2Normalize(dirX, dirZ)
-	local terrainDeformationSyncer = g_currentMission.terrainDeformationSyncer
-	local offset = 0
-	local stepSize = 0.5
-	while true do
-		local x = startPosX + dirX * offset
-		local z = startPosZ + dirZ * offset
-		local cellX, cellZ = terrainDeformationSyncer:getCellIndicesAtWorldPosition(x, z)
-		if cellX == nil then
-			break
+	if length <= 0 then
+		return
+	else
+		dirX, dirZ = MathUtil.vector2Normalize(dirX, dirZ)
+		local terrainDeformationSyncer = g_currentMission.terrainDeformationSyncer
+		local offset = 0
+		local stepSize = 0.5
+		while true do
+			local x = startPosX + dirX * offset
+			local z = startPosZ + dirZ * offset
+			local cellX, cellZ = terrainDeformationSyncer:getCellIndicesAtWorldPosition(x, z)
+			if cellX == nil then
+				break
+			end
+			local cellId = terrainDeformationSyncer:getCellId(cellX, cellZ)
+			if self.cellIdToSegments == nil then
+				self.cellIdToSegments = {}
+			end
+			if self.cellIdToSegments[cellId] == nil then
+				self.cellIdToSegments[cellId] = {}
+				terrainDeformationSyncer:addCellUpdateListener(self, cellX, cellZ)
+				self.cellIdToSegments[cellId][segment] = true
+				break
+			else
+				break
+			end
 		end
-		local cellId = terrainDeformationSyncer:getCellId(cellX, cellZ)
-		if self.cellIdToSegments == nil then
-			self.cellIdToSegments = {}
+		while not (length <= offset) do
+			offset = math.min(offset + 0.5, length)
 		end
-		if self.cellIdToSegments[cellId] == nil then
-			self.cellIdToSegments[cellId] = {}
-			terrainDeformationSyncer:addCellUpdateListener(self, cellX, cellZ)
-			self.cellIdToSegments[cellId][segment] = true
-			break
-		else
-			break
-		end
-	end
-	while not (length <= offset) do
-		offset = math.min(offset + 0.5, length)
 	end
 end
 function PlaceableFence:onTerrainDeformationSyncerUpdate(cellX, cellZ, cellId)
@@ -429,7 +473,10 @@ function PlaceableFence:getPoleShapeForPreview()
 end
 function PlaceableFence:getMaxVerticalAngleAndYForPreview()
 	local spec = self.spec_fence
-	local segment = spec.previewSegment
+	local maxAngle, minY, maxY = self:getMaxVerticalAngleAndYForSegment(spec.previewSegment)
+	return maxAngle, minY, maxY
+end
+function PlaceableFence:getMaxVerticalAngleAndYForSegment(segment)
 	local maxAngle = 0
 	local minY = 1000
 	local maxY = -1000
@@ -461,6 +508,26 @@ function PlaceableFence:getPanelLength()
 end
 function PlaceableFence:getIsPanelLengthFixed()
 	return self.spec_fence.panelLengthFixed
+end
+function PlaceableFence:canBeSold(superFunc)
+	if self:getIsBuildLocked() then
+		return false, g_i18n:getText("shop_messageObjectInUse")
+	else
+		local canBeSold, warning = superFunc(self)
+		return canBeSold, warning
+	end
+end
+function PlaceableFence:getIsBuildLocked()
+	local spec = self.spec_fence
+	return 0 < spec.buildLockCount
+end
+function PlaceableFence:setBuildLocked(isLocked)
+	local spec = self.spec_fence
+	if isLocked then
+		spec.buildLockCount = spec.buildLockCount + 1
+	else
+		spec.buildLockCount = math.max(spec.buildLockCount - 1, 0)
+	end
 end
 function PlaceableFence:createSegment(x1, z1, x2, z2, renderFirst, gateIndex)
 	return { x1 = x1, z1 = z1, x2 = x2, z2 = z2, renderFirst = renderFirst, renderLast = true, gateIndex = gateIndex, poles = {} }
@@ -793,13 +860,30 @@ function PlaceableFence:fakeRandomValueForPosition(x, y, z, n)
 end
 function PlaceableFence:generateSegmentPoles(segment, sync)
 	local spec = self.spec_fence
+	if not self:calculateSegmentPoles(segment) then
+		return
+	else
+		if sync then
+			self:removePickingNodesForSegment(segment)
+			self:updateSegmentShapes(segment)
+			self:addPickingNodesForSegment(segment)
+		else
+			self:addSegmentShapesToUpdate(segment)
+		end
+		if spec.previewSegment ~= segment then
+			self:updateDirtyAreas(segment.x1, segment.z1, segment.x2, segment.z2)
+		end
+	end
+end
+function PlaceableFence:calculateSegmentPoles(segment)
+	local spec = self.spec_fence
 	local totalDistance = MathUtil.getPointPointDistance(segment.x1, segment.z1, segment.x2, segment.z2)
 	local numWholeFences = math.max(math.floor(totalDistance / spec.panelLength) - 1, 0)
 	for i = 1, #segment.poles do
 		segment.poles[i] = nil
 	end
 	if totalDistance < 0.01 then
-		return
+		return false
 	else
 		if segment.gateIndex ~= nil then
 			segment.poles[1] = segment.x1
@@ -824,16 +908,7 @@ function PlaceableFence:generateSegmentPoles(segment, sync)
 				nextPole = nextPole + 2
 			end
 		end
-		if sync then
-			self:removePickingNodesForSegment(segment)
-			self:updateSegmentShapes(segment)
-			self:addPickingNodesForSegment(segment)
-		else
-			self:addSegmentShapesToUpdate(segment)
-		end
-		if spec.previewSegment ~= segment then
-			self:updateDirtyAreas(segment.x1, segment.z1, segment.x2, segment.z2)
-		end
+		return true
 	end
 end
 function PlaceableFence:updateSegmentShapes(segment)

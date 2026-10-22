@@ -28,6 +28,9 @@ function PlayerStateFall:calculateMaximumSpeed()
 	return PlayerStateFall.MAXIMUM_MOVE_SPEED
 end
 function PlayerStateFall:calculateDesiredHorizontalVelocity(directionX, directionZ)
-	local maximumMoveSpeed = self.player.toggleSuperSpeedCommand.value and PlayerStateFall.MAXIMUM_MOVE_SPEED * 8 or PlayerStateFall.MAXIMUM_MOVE_SPEED
+	local maximumMoveSpeed = PlayerStateFall.MAXIMUM_MOVE_SPEED
+	if self.player.toggleSuperSpeedCommand.value then
+		maximumMoveSpeed = maximumMoveSpeed * self.player:getSuperSpeedScale()
+	end
 	return directionX * maximumMoveSpeed, directionZ * maximumMoveSpeed
 end

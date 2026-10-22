@@ -49,6 +49,13 @@ function SplitShapeManager:loadMapData()
 	self:addSplitType("PINUSTABULIFORMIS", "treeType_pinusTabuliformis", 36, 0.9, 3.5, true, nil, 1000)
 	self:addSplitType("PINUSSYLVESTRIS", "treeType_pinusSylvestris", 37, 0.8, 3.3, true, nil, 1000)
 	self:addSplitType("CHESTNUT", "treeType_chestnut", 38, 0.85, 3.3, true, nil, 1000)
+	self:addSplitType("BRAZILNUT", "treeType_brazilNut", 39, 0.95, 3.3, true, nil, 1000)
+	self:addSplitType("BRAZILWOOD", "treeType_brazilWood", 40, 1.2, 3.3, true, nil, 1000)
+	self:addSplitType("JATOBA", "treeType_jatoba", 41, 1.05, 3.3, true, nil, 1000)
+	self:addSplitType("PALMBUTIA", "treeType_palmButia", 42, 0.4, 4.3, true, nil, 1000)
+	self:addSplitType("PALMCARNAUBA", "treeType_palmCarnauba", 43, 0.45, 4.3, true, nil, 1000)
+	self:addSplitType("SUCUPIRA", "treeType_sucupira", 44, 1.15, 3.3, true, nil, 1000)
+	self:addSplitType("YELLOWIPE", "treeType_yellowIpe", 45, 1.1, 3.3, true, nil, 1000)
 	if g_isDevelopmentVersion then
 		addConsoleCommand("gsSplitTypesExport", "Exports registered split types to xml files", "exportToXML", self)
 	end

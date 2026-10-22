@@ -146,10 +146,23 @@ function PlayerSystem:loadFromSavegameXML(xmlFilename)
 		end
 	else
 		self.unloadedPlayerDataCount = 0
-		for playerIndex, playerKey in xmlFile:iterator("players.player") do
+		local default = nil
+		for _, playerKey in xmlFile:iterator("players.player") do
 			local playerData = Player.loadDataFromXMLFile(xmlFile, playerKey)
-			self.unloadedPlayerDataByUniqueId[playerData.uniqueId] = playerData
+			if playerData.uniqueId == "DEFAULT_PLAYER" then
+				default = playerData
+			else
+				self.unloadedPlayerDataByUniqueId[playerData.uniqueId] = playerData
+				self.unloadedPlayerDataCount = self.unloadedPlayerDataCount + 1
+			end
+		end
+		local uniqueId = getUniqueUserId()
+		local data = self.unloadedPlayerDataByUniqueId[uniqueId]
+		if data == nil and default ~= nil then
+			default.uniqueId = uniqueId
+			self.unloadedPlayerDataByUniqueId[default.uniqueId] = default
 			self.unloadedPlayerDataCount = self.unloadedPlayerDataCount + 1
+			Logging.info("Use default player setup for current user")
 		end
 		xmlFile:delete()
 		xmlFile = nil

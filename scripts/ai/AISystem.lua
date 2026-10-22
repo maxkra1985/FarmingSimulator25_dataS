@@ -138,32 +138,34 @@ function AISystem:loadMapData(xmlFile, missionInfo, baseDirectory)
 	self.roadSplines = {}
 end
 function AISystem:addRoadSpline(spline, maxWidth, maxTurningRadius, maxHeight)
-	if self.isServer and spline ~= nil then
-		if self.navigationMap ~= nil then
-			I3DUtil.iterateRecursively(spline, function(subSpline)
-				if I3DUtil.getIsSpline(subSpline) then
-					local isAllowed = true
-					if getUserAttribute(subSpline, "isAISpline") == false then
-						isAllowed = false
-					end
-					if isAllowed then
-						local defaultMaxWidth = maxWidth or self.defaultVehicleMaxWidth
-						local defaultMaxHeight = maxHeight or self.defaultVehicleMaxHeightSpline
-						local defaultMaxTurningRadius = maxTurningRadius or self.defaultVehicleMaxTurningRadius
-						addRoadsToVehicleNavigationMap(self.navigationMap, subSpline, defaultMaxWidth, defaultMaxHeight, defaultMaxTurningRadius)
-						setVisibility(subSpline, self.splinesVisible)
-						table.addElement(self.roadSplines, subSpline)
-					end
-				end
-			end, true)
+	if spline == nil then
+		return
+	else
+		if self.isServer and self.navigationMap == nil then
+			local delayedSplineData = {}
+			delayedSplineData.spline = spline
+			delayedSplineData.maxWidth = maxWidth
+			delayedSplineData.maxTurningRadius = maxTurningRadius
+			delayedSplineData.maxHeight = maxHeight
+			table.addElement(self.delayedRoadSplines, delayedSplineData)
 			return
 		end
-		local delayedSplineData = {}
-		delayedSplineData.spline = spline
-		delayedSplineData.maxWidth = maxWidth
-		delayedSplineData.maxTurningRadius = maxTurningRadius
-		delayedSplineData.maxHeight = maxHeight
-		table.addElement(self.delayedRoadSplines, delayedSplineData)
+		I3DUtil.iterateRecursively(spline, function(subSpline)
+			if not I3DUtil.getIsSpline(subSpline) then
+				return
+			end
+			if getUserAttribute(subSpline, "isAISpline") == false then
+				return
+			end
+			if self.isServer then
+				local defaultMaxWidth = maxWidth or self.defaultVehicleMaxWidth
+				local defaultMaxHeight = maxHeight or self.defaultVehicleMaxHeightSpline
+				local defaultMaxTurningRadius = maxTurningRadius or self.defaultVehicleMaxTurningRadius
+				addRoadsToVehicleNavigationMap(self.navigationMap, subSpline, defaultMaxWidth, defaultMaxHeight, defaultMaxTurningRadius)
+			end
+			setVisibility(subSpline, self.splinesVisible)
+			table.addElement(self.roadSplines, subSpline)
+		end, true)
 	end
 end
 function AISystem:removeRoadSpline(spline)

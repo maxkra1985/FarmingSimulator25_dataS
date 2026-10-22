@@ -105,23 +105,37 @@ function InGameMenuHelpFrame:updateContents(page)
 			if paragraph.noSpacing then
 				row.margin = { 0, 0, 0, 0 }
 			end
-			if paragraph.image ~= nil then
+			local image = paragraph.image
+			local imageSlice = nil
+			if image ~= nil and image.sliceId ~= nil then
+				imageSlice = g_overlayManager:getSliceInfoById(image.sliceId)
+				if imageSlice == nil then
+					image = nil
+				end
+			end
+			if image ~= nil then
 				textFullElement:setVisible(false)
 				if paragraph.text ~= nil then
 					textElement:setText(g_helpLineManager:convertText(paragraph.text, paragraph.customEnvironment))
 					textHeight = textElement:getTextHeight(true)
 					textElement:setSize(nil, textHeight)
 				end
-				local filename = Utils.getFilename(paragraph.image.filename, page.baseDirectory)
-				imageElement:setImageFilename(filename)
-				imageElement:setImageUVs(nil, unpack(paragraph.image.uvs))
+				if image.sliceId ~= nil then
+					imageElement:setImageSlice(nil, image.sliceId)
+				else
+					local filename = Utils.getFilename(image.filename, page.baseDirectory)
+					imageElement:setImageFilename(filename)
+					imageElement:setImageUVs(nil, unpack(image.uvs))
+				end
 				if imageElement.originalWidth == nil then
 					imageElement.originalWidth = imageElement.absSize[1]
 				end
-				if paragraph.image.displaySize ~= nil then
-					imageElement:setSize(paragraph.image.displaySize[1], paragraph.image.displaySize[2])
+				if image.displaySize ~= nil then
+					imageElement:setSize(image.displaySize[1], image.displaySize[2])
+				elseif imageSlice ~= nil then
+					imageElement:setSize(imageSlice.width, imageSlice.height)
 				elseif paragraph.text == nil then
-					imageElement:setSize(row.absSize[1], row.absSize[1] * paragraph.image.aspectRatio * g_screenAspectRatio)
+					imageElement:setSize(row.absSize[1], row.absSize[1] * image.aspectRatio * g_screenAspectRatio)
 				else
 					imageElement:setSize(imageElement.originalWidth, nil)
 				end
@@ -138,7 +152,7 @@ function InGameMenuHelpFrame:updateContents(page)
 				textHeightFullHeight = textFullElement:getTextHeight(true)
 				textFullElement:setSize(nil, textHeightFullHeight)
 			end
-			local imageHeight = paragraph.image ~= nil and imageElement.absSize[2] or 0
+			local imageHeight = image ~= nil and imageElement.absSize[2] or 0
 			row:setSize(nil, math.max(textHeight, textHeightFullHeight, imageHeight))
 			row:invalidateLayout()
 		end
@@ -172,11 +186,10 @@ function InGameMenuHelpFrame:populateCellForItemInSection(list, section, index, 
 	local page = self:getPage(section, index)
 	cell:getAttribute("title"):setText(g_i18n:convertText(page.title, page.customEnvironment))
 	local icon = cell:getAttribute("icon")
-	if page.iconSliceId ~= nil then
-		icon:setVisible(true)
+	local hasIcon = page.iconSliceId ~= nil and g_overlayManager:getSliceInfoById(page.iconSliceId) ~= nil
+	icon:setVisible(hasIcon)
+	if hasIcon then
 		icon:setImageSlice(nil, page.iconSliceId)
-	else
-		icon:setVisible(false)
 	end
 end
 function InGameMenuHelpFrame:getPage(categoryIndex, pageIndex)

@@ -9,6 +9,7 @@ function SimpleHusbandry.onCreate(_, node)
 	local husbandry = SimpleHusbandry.new()
 	if husbandry:load(node) then
 		g_currentMission:addUpdateable(husbandry)
+		g_messageCenter:subscribe(MessageType.PLACEABLE_PRE_DELETE, husbandry.onPlaceablePreDelete, husbandry)
 	else
 		husbandry:delete()
 	end
@@ -17,6 +18,7 @@ function SimpleHusbandry.new(customMt)
 	local self = setmetatable({}, customMt or SimpleHusbandry_mt)
 	self.husbandryId = nil
 	self.animalIds = {}
+	self.node = nil
 	return self
 end
 function SimpleHusbandry:load(node)
@@ -25,6 +27,7 @@ function SimpleHusbandry:load(node)
 		Logging.error("Given node '%s' is not a navigation mesh!", getName(node))
 		return false
 	end
+	self.node = node
 	local animalTypeName = getUserAttribute(node, "animalType")
 	local animalType = g_currentMission.animalSystem:getTypeByName(animalTypeName)
 	if animalType == nil then
@@ -53,6 +56,7 @@ function SimpleHusbandry:load(node)
 end
 function SimpleHusbandry:delete()
 	g_currentMission:removeUpdateable(self)
+	g_messageCenter:unsubscribeAll(self)
 	if self.husbandryId ~= nil then
 		for animalId, _ in pairs(self.animalIds) do
 			removeHusbandryAnimal(self.husbandryId, animalId)
@@ -63,12 +67,27 @@ function SimpleHusbandry:delete()
 	end
 end
 function SimpleHusbandry:update(dt)
-	if self.husbandryId ~= nil then
+	if self.husbandryId == nil then
+		return
+	else
 		setAnimalDaytime(self.husbandryId, g_currentMission.environment.dayTime)
 		if self.needsAnimals and isHusbandryReady(self.husbandryId) then
 			self:addAnimals()
 			self.needsAnimals = false
 		end
+	end
+end
+function SimpleHusbandry:onPlaceablePreDelete(placeable, rootNode)
+	if self.husbandryId == nil then
+		return
+	end
+	if self.node == nil or not entityExists(self.node) then
+		return
+	end
+	if not I3DUtil.getIsLinkedToNode(rootNode, self.node) then
+		return
+	else
+		self:delete()
 	end
 end
 function SimpleHusbandry:onIndoorStateChanged(isIndoor)

@@ -117,6 +117,20 @@ function StonePickMission.tryGenerateMission()
 	end
 	return nil
 end
+function StonePickMission.getFieldHasStones(field)
+	local stoneSystem = g_currentMission.stoneSystem
+	if stoneSystem == nil or not stoneSystem:getMapHasStones() then
+		return false
+	end
+	local mapId, firstChannel, numChannels = stoneSystem:getDensityMapData()
+	local modifier = DensityMapModifier.new(mapId, firstChannel, numChannels, g_terrainNode)
+	local filter = DensityMapFilter.new(modifier)
+	filter:setValueCompareParams(DensityValueCompareType.GREATER, 0)
+	local densityMapPolygon = field:getDensityMapPolygon()
+	densityMapPolygon:applyToModifier(modifier)
+	local _, area = modifier:executeGet(filter)
+	return 0 < area
+end
 function StonePickMission.isAvailableForField(field, mission)
 	if mission == nil then
 		local fieldState = field:getFieldState()
@@ -131,6 +145,10 @@ function StonePickMission.isAvailableForField(field, mission)
 		if groundType ~= FieldGroundType.PLOWED then
 			return false
 		end
+		if not StonePickMission.getFieldHasStones(field) then
+			Logging.devWarning("StonePickMission cannot be generated for field %q, no stones in density map for field area", field:getId())
+			return false
+		end
 	end
 	local environment = g_currentMission.environment
 	if environment ~= nil and environment.currentSeason == Season.WINTER then
@@ -141,6 +159,13 @@ end
 function StonePickMission.canRun()
 	local data = g_missionManager:getMissionTypeDataByName(StonePickMission.NAME)
 	if data.maxNumInstances <= data.numInstances then
+		return false
+	end
+	local stoneSystem = g_currentMission.stoneSystem
+	if stoneSystem == nil or not stoneSystem:getMapHasStones() then
+		return false
+	end
+	if not g_currentMission.missionInfo.stonesEnabled then
 		return false
 	else
 		return true

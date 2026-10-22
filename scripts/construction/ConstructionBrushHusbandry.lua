@@ -57,6 +57,10 @@ function ConstructionBrushHusbandry:onCustomizeFenceStart(placeable)
 	brush:setValidateCallback(function(finishedValidationFunc)
 		self:validateFence(finishedValidationFunc, placeable)
 	end)
+	brush:setFinishCheckCallback(function(closingSegment)
+		local canFinish, warning = placeable:getCanFinishFenceCustomization(closingSegment)
+		return canFinish, warning
+	end)
 	g_constructionScreen:setBrush(brush, true)
 end
 function ConstructionBrushHusbandry:validateFence(finishedValidationFunc, placeable)

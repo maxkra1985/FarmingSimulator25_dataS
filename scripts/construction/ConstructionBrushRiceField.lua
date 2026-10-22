@@ -3,6 +3,7 @@ local ConstructionBrushRiceField_mt = Class(ConstructionBrushRiceField, Construc
 ConstructionBrushRiceField.ERROR = { MININUM_LENGTH = 1, COLLISION = 2, NOT_ENOUGH_MONEY = 3, CANNOT_BE_PLACED_HERE = 4 }
 ConstructionBrushRiceField.ERROR_MESSAGES = { [ConstructionBrushRiceField.ERROR.MININUM_LENGTH] = "ui_construction_distanceTooShort", [ConstructionBrushRiceField.ERROR.COLLISION] = "ui_construction_collidesWithItem", [ConstructionBrushRiceField.ERROR.NOT_ENOUGH_MONEY] = "ui_construction_notEnoughMoney", [ConstructionBrushRiceField.ERROR.CANNOT_BE_PLACED_HERE] = "ui_construction_cannotBePlacedHere" }
 ConstructionBrushRiceField.HEIGHT_CHANGE_INCREMENT = 0.25
+ConstructionBrushRiceField.LINE_SCALE = 4
 function ConstructionBrushRiceField.new(subclass_mt, cursor)
 	local self = ConstructionBrushRiceField:superClass().new(subclass_mt or ConstructionBrushRiceField_mt, cursor)
 	self.overlapCollisionMask = CollisionFlag.WATER + CollisionFlag.PLACEMENT_BLOCKING
@@ -20,6 +21,7 @@ function ConstructionBrushRiceField.new(subclass_mt, cursor)
 	self.pendingCreation = false
 	self.heightMapUnitSize = getTerrainHeightmapUnitSize(g_terrainNode)
 	self.lineVisualization = Line3D.new()
+	self.lineVisualization:setLineScale(ConstructionBrushRiceField.LINE_SCALE, ConstructionBrushRiceField.LINE_SCALE)
 	self.debugBox = DebugBox.new()
 	return self
 end

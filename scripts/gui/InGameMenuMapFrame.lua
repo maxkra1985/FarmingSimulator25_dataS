@@ -249,6 +249,8 @@ function InGameMenuMapFrame:onFrameClose()
 		end
 	end
 	self.isResetPending = false
+	self.resetSuccessText = nil
+	self.resetFailedText = nil
 	self.startJobPending = false
 	if self:getIsPicking() then
 		self:executePickingCallback(false)
@@ -1589,11 +1591,15 @@ end
 function InGameMenuMapFrame:onVehicleReset(state)
 	self.isResetPending = false
 	g_messageCenter:unsubscribe(ResetVehicleEvent, self)
+	local successText = self.resetSuccessText or g_i18n:getText(Vehicle.L10N_RESET_SUCCESS)
+	local failedText = self.resetFailedText or g_i18n:getText(Vehicle.L10N_RESET_FAILED)
+	self.resetSuccessText = nil
+	self.resetFailedText = nil
 	if state == ResetVehicleEvent.STATE_SUCCESS then
-		InfoDialog.show(g_i18n:getText(InGameMenuMapFrame.L10N_SYMBOL.DIALOG_VEHICLE_RESET_DONE), nil, nil, DialogElement.TYPE_INFO)
+		InfoDialog.show(successText, nil, nil, DialogElement.TYPE_INFO)
 		self:selectFirstHotspot()
 	elseif state == ResetVehicleEvent.STATE_FAILED then
-		InfoDialog.show(g_i18n:getText(InGameMenuMapFrame.L10N_SYMBOL.DIALOG_VEHICLE_RESET_FAILED))
+		InfoDialog.show(failedText)
 	elseif state == ResetVehicleEvent.STATE_IN_USE then
 		InfoDialog.show(g_i18n:getText(InGameMenuMapFrame.L10N_SYMBOL.DIALOG_VEHICLE_IN_USE))
 	else
@@ -1603,7 +1609,14 @@ end
 function InGameMenuMapFrame:onClickResetVehicle()
 	local mission = g_currentMission
 	if not self.isResetPending and ((mission.tourIconsBase == nil or not mission.tourIconsBase.visible) and self.currentHotspot ~= nil) then
-		YesNoDialog.show(self.onYesNoReset, self, g_i18n:getText(InGameMenuMapFrame.L10N_SYMBOL.DIALOG_VEHICLE_RESET_CONFIRM), g_i18n:getText(InGameMenuMapFrame.L10N_SYMBOL.VEHICLE_RESET))
+		local vehicle = InGameMenuMapUtil.getHotspotVehicle(self.currentHotspot)
+		if vehicle == nil then
+			return true
+		end
+		local confirmText, successText, failedText = vehicle:getResetDialogTexts()
+		self.resetSuccessText = successText
+		self.resetFailedText = failedText
+		YesNoDialog.show(self.onYesNoReset, self, confirmText, g_i18n:getText(InGameMenuMapFrame.L10N_SYMBOL.VEHICLE_RESET))
 	end
 	return true
 end
@@ -2582,25 +2595,6 @@ InGameMenuMapFrame.HOTSPOT_FILTER_CATEGORIES = {
 InGameMenuMapFrame.GLYPH_SIZE = { 36, 36 }
 InGameMenuMapFrame.GLYPH_TEXT_SIZE = 20
 InGameMenuMapFrame.GLYPH_COLOR = { 1, 1, 1, 1 }
-InGameMenuMapFrame.L10N_SYMBOL = {
-	VEHICLE_RESET = "button_reset",
-	SELECT_ALL = "button_selectAll",
-	DESELECT_ALL = "button_deselectAll",
-	DIALOG_VEHICLE_RESET_DONE = "ui_vehicleResetDone",
-	DIALOG_VEHICLE_RESET_FAILED = "ui_vehicleResetFailed",
-	DIALOG_VEHICLE_IN_USE = "shop_messageReturnVehicleInUse",
-	DIALOG_VEHICLE_NO_PERMISSION = "shop_messageNoPermissionGeneral",
-	DIALOG_VEHICLE_RESET_CONFIRM = "ui_wantToResetVehicleText",
-	DIALOG_BUY_FARMLAND = "shop_messageBuyFarmlandText",
-	DIALOG_BUY_FARMLAND_TITLE = "shop_messageBuyFarmlandTitle",
-	DIALOG_BUY_FARMLAND_NOT_ENOUGH_MONEY = "shop_messageNotEnoughMoneyToBuyFarmland",
-	DIALOG_BUY_FARMLAND_ACTIVE_MISSION = "shop_messageBuyFarmlandMissionRunning",
-	DIALOG_SELL_FARMLAND = "shop_messageSellFarmlandText",
-	DIALOG_SELL_FARMLAND_TITLE = "shop_messageSellFarmlandTitle",
-	DIALOG_CANNOT_SELL_WTIH_PLACEABLES = "shop_messageCannotSellFarmlandWithPlaceables",
-	INPUT_MOVE_CURSOR = "ui_ingameMenuMapMoveCursor",
-	INPUT_PAN_MAP = "ui_ingameMenuMapPan",
-	INPUT_ZOOM_MAP = "ui_ingameMenuMapZoom",
-}
+InGameMenuMapFrame.L10N_SYMBOL = { VEHICLE_RESET = "button_reset", SELECT_ALL = "button_selectAll", DESELECT_ALL = "button_deselectAll", DIALOG_VEHICLE_IN_USE = "shop_messageReturnVehicleInUse", DIALOG_VEHICLE_NO_PERMISSION = "shop_messageNoPermissionGeneral", DIALOG_BUY_FARMLAND = "shop_messageBuyFarmlandText", DIALOG_BUY_FARMLAND_TITLE = "shop_messageBuyFarmlandTitle", DIALOG_BUY_FARMLAND_NOT_ENOUGH_MONEY = "shop_messageNotEnoughMoneyToBuyFarmland", DIALOG_BUY_FARMLAND_ACTIVE_MISSION = "shop_messageBuyFarmlandMissionRunning", DIALOG_SELL_FARMLAND = "shop_messageSellFarmlandText", DIALOG_SELL_FARMLAND_TITLE = "shop_messageSellFarmlandTitle", DIALOG_CANNOT_SELL_WTIH_PLACEABLES = "shop_messageCannotSellFarmlandWithPlaceables", INPUT_MOVE_CURSOR = "ui_ingameMenuMapMoveCursor", INPUT_PAN_MAP = "ui_ingameMenuMapPan", INPUT_ZOOM_MAP = "ui_ingameMenuMapZoom" }
 InGameMenuMapFrame.PROFILE = { MONEY_VALUE_NEUTRAL = "ingameMenuMapMoneyValue", MONEY_VALUE_NEGATIVE = "ingameMenuMapMoneyValueNegative", CONTEXT_BUTTON = "fs25_mapContextButtonListItemButton", CONTEXT_BUTTON_GAMEPAD = "fs25_mapContextButtonListItemButtonGamepad" }
 InGameMenuMapFrame.ACTIONS = { GOTO_JOB = 1, ENTER_VEHICLE = 2, CREATE_JOB = 3, START_JOB = 4, CANCEL_JOB = 5, SKIP_TASK = 6, RESET_VEHICLE = 7, SELL_VEHICLE = 8, VISIT_PLACE = 9, MANAGE = 10, BUY = 11, SELL = 12, SET_MARKER = 13, REMOVE_MARKER = 14 }

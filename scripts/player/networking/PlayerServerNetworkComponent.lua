@@ -82,6 +82,7 @@ function PlayerServerNetworkComponent:readUpdateStream(streamId, connection, tim
 		self.player.capsuleController:move(movementX, movementY, movementZ)
 		self.player.mover:setMovementYaw(movementYaw)
 		self.player.mover:setIsCrouching(isCrouching)
+		self.player.capsuleController:setCrouched(isCrouching)
 		local interpolator = self.player.positionalInterpolator
 		interpolator:startNetworkNewPhase()
 		interpolator:setTargetYaw(movementYaw)

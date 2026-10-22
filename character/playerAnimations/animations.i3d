@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 
 <i3D name="animations" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Maya Exporter" version="10.0.0" revision="43376" />
+  </Asset>
 
   <Files>
   </Files>

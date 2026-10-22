@@ -35,6 +35,8 @@ function MaterialManager:loadMapData(xmlFile, missionInfo, baseDirectory, finish
 	self:addMaterialType("chopper")
 	self:addMaterialType("soil")
 	self:addMaterialType("sprayer")
+	self:addMaterialType("sprayerCannonSolid")
+	self:addMaterialType("sprayerCannonBillboard")
 	self:addMaterialType("spreader")
 	self:addMaterialType("pipe")
 	self:addMaterialType("mower")

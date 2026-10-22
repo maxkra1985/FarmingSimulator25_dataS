@@ -182,12 +182,10 @@ function CareerScreen:update(dt)
 			self.isAcceptPressed = false
 		end
 		if Platform.allowSavegameMigration then
-			if not self.isActivatePressed then
-				if g_updateLoopIndex - self.openUpdateLoopIndex == 2 then
-					self.isActivateActionReady = true
-				elseif g_gui:getIsDialogVisible() then
-					self.isActivateActionReady = false
-				end
+			if g_gui:getIsDialogVisible() then
+				self.isActivateActionReady = false
+			elseif not self.isActivatePressed then
+				self.isActivateActionReady = true
 			end
 			if self.activateDownStartTimer ~= nil then
 				local duration = g_time - self.activateDownStartTimer
@@ -195,7 +193,7 @@ function CareerScreen:update(dt)
 					self.activateDownStartTimer = nil
 				end
 			end
-			self.isActivatetPressed = false
+			self.isActivatePressed = false
 		end
 	end
 end
@@ -266,11 +264,7 @@ function CareerScreen:onAcceptPressed()
 	end
 end
 function CareerScreen:onActivateUp()
-	if not self.isActivateActionReady then
-		self.isActivateActionReady = true
-	elseif self.activateDownStartTimer ~= nil then
-		return
-	end
+	self.activateDownStartTimer = nil
 end
 function CareerScreen:onActivatePressed()
 	self.isActivatePressed = true
@@ -786,6 +780,7 @@ function CareerScreen:migrateSavegame()
 					SavegameMigrationProgressDialog.hide()
 					if errorCode == SavegameController.UPLOAD_STATE_OK then
 						InfoDialog.show(g_i18n:getText("savegameMigration_done"))
+						self:recreateSavegameList()
 					elseif errorCode == SavegameController.UPLOAD_STATE_BAD_INDEX then
 						InfoDialog.show(g_i18n:getText("savegameMigration_invalidSavegameIndex"))
 					elseif errorCode == SavegameController.UPLOAD_STATE_LOAD_FAILED then
@@ -796,7 +791,7 @@ function CareerScreen:migrateSavegame()
 					end
 				end
 				SavegameMigrationProgressDialog.show(0)
-				local success = saveStartMigrateToPlayfab("progressCallback", nil)
+				local success = g_savegameController:migrateSavegame(progressCallback, nil)
 				if not success then
 					SavegameMigrationProgressDialog.hide()
 					InfoDialog.show(g_i18n:getText("savegameMigration_unknownError"))

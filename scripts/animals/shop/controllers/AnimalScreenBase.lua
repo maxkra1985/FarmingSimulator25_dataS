@@ -23,6 +23,26 @@ end
 function AnimalScreenBase:initItems()
 	self:initSourceItems()
 	self:initTargetItems()
+	table.sort(self.targetItems, function(a, b)
+		local clusterA = a.cluster
+		local clusterB = b.cluster
+		if clusterA.subTypeIndex ~= clusterB.subTypeIndex then
+			return clusterA.subTypeIndex < clusterB.subTypeIndex
+		elseif clusterA.age ~= clusterB.age then
+			return clusterA.age < clusterB.age
+		else
+			if clusterA.name ~= clusterB.name then
+				if clusterA.name == nil then
+					return false
+				elseif clusterB.name == nil then
+					return true
+				else
+					return clusterA.name < clusterB.name
+				end
+			end
+			return clusterA.id < clusterB.id
+		end
+	end)
 end
 function AnimalScreenBase:initSourceItems() end
 function AnimalScreenBase:initTargetItems() end
@@ -32,13 +52,6 @@ end
 function AnimalScreenBase:getSourceData(id) end
 function AnimalScreenBase:getSourceAnimalTypes() end
 function AnimalScreenBase:getTargetItems()
-	table.sort(self.targetItems, function(a, b)
-		if a.cluster.subTypeIndex == b.cluster.subTypeIndex then
-			return a.cluster.age < b.cluster.age
-		else
-			return a.cluster.subTypeIndex < b.cluster.subTypeIndex
-		end
-	end)
 	return self.targetItems
 end
 function AnimalScreenBase:getTargetData() end

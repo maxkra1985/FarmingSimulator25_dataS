@@ -4,6 +4,9 @@ NPC.CONVERSATION_ITEM_INDEX_SEND_NUM_BITS = 8
 NPC.CONVERSATION_OPTION_INDEX_SEND_NUM_BITS = 8
 NPC.VOICEOVER_PLAYBACK_DELAY_MS = 500
 NPC.VOICEOVER_DURATION_PER_WORD_MS = 350
+NPC.DEBUG_ANIMATION_OFFSET_X = 2
+NPC.DEBUG_ANIMATION_OFFSET_Y = 2
+NPC.DEBUG_ANIMATION_TEXT_SIZE = 0.011
 local NPC_mt = Class(NPC, Object)
 InitStaticObjectClass(NPC, "NPC")
 g_xmlManager:addCreateSchemaFunction(function()
@@ -390,12 +393,29 @@ function NPC:update(dt)
 			end
 		end
 		if NPCManager.DEBUG_ANIMATIONS then
-			self.playerGraphics.animation:debugDraw(0.025, 0.95, 0.014)
+			self:debugDrawAnimation()
 		end
 	end
 	local player = self:getInteractingPlayer()
 	if player ~= nil and (player == g_localPlayer and (self:getIsInFacialAnimationConversation() and not self:getIsPhoneConversation())) then
 		player:updateWhileInConversation(dt, self)
+	end
+end
+function NPC:debugDrawAnimation()
+	if self.playerGraphics == nil or self.playerGraphics.animation == nil then
+		return
+	end
+	local node = self.playerGraphics.graphicsRootNode
+	if node == nil or node == 0 then
+		return
+	end
+	local worldX, worldY, worldZ = localToWorld(node, NPC.DEBUG_ANIMATION_OFFSET_X, NPC.DEBUG_ANIMATION_OFFSET_Y, 0)
+	local screenX, screenY, screenZ = project(worldX, worldY, worldZ)
+	local isOnScreen = -1 < screenX and screenX < 2 and -1 < screenY and screenY < 2 and screenZ <= 1
+	if not isOnScreen then
+		return
+	else
+		self.playerGraphics.animation:debugDraw(screenX, screenY, getCorrectTextSize(NPC.DEBUG_ANIMATION_TEXT_SIZE))
 	end
 end
 function NPC:getName()

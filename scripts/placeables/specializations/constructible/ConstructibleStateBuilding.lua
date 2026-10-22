@@ -98,6 +98,20 @@ function ConstructibleStateBuilding:isDone()
 	end
 	return true
 end
+function ConstructibleStateBuilding:getIsConstructibleState()
+	return 0 < #self.inputs
+end
+function ConstructibleStateBuilding:getProgress()
+	if self.totalAmount <= 0 then
+		return 1
+	else
+		local remainingAmount = 0
+		for _, input in ipairs(self.inputs) do
+			remainingAmount = remainingAmount + input.remainingAmount
+		end
+		return (self.totalAmount - remainingAmount) / self.totalAmount
+	end
+end
 function ConstructibleStateBuilding:onReadStream(streamId, connection)
 	for i, input in ipairs(self.inputs) do
 		self:updateRemainingAmount(input, streamReadFloat32(streamId))

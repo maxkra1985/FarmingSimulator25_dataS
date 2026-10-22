@@ -30,6 +30,7 @@ function SowingMachine.initSpecialization()
 	schema:register(XMLValueType.STRING, "vehicle.sowingMachine#consumableName", "Define a consumable that is emptied instead of the fill unit")
 	schema:register(XMLValueType.FLOAT, "vehicle.sowingMachine#seedUsageScale", "Seed usage scale (Can be used to increase or decrease the usage for certain tools)", 1)
 	EffectManager.registerEffectXMLPaths(schema, "vehicle.sowingMachine.effects")
+	EffectManager.registerEffectXMLPaths(schema, "vehicle.sowingMachine.fillEffects")
 	schema:register(XMLValueType.STRING, "vehicle.storeData.specs.seedFruitTypeCategories", "Seed fruit type categories")
 	schema:register(XMLValueType.STRING, "vehicle.storeData.specs.seedFruitTypes", "Seed fruit types")
 	schema:setXMLSpecializationType()
@@ -88,6 +89,7 @@ function SowingMachine.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onDeactivate", SowingMachine)
 	SpecializationUtil.registerEventListener(vehicleType, "onStateChange", SowingMachine)
 	SpecializationUtil.registerEventListener(vehicleType, "onChangedFillType", SowingMachine)
+	SpecializationUtil.registerEventListener(vehicleType, "onFillUnitFillLevelChanged", SowingMachine)
 	SpecializationUtil.registerEventListener(vehicleType, "onAIFieldCourseSettingsInitialized", SowingMachine)
 end
 function SowingMachine:onLoad(savegame)
@@ -180,6 +182,7 @@ function SowingMachine:onLoad(savegame)
 		spec.fillTypeSources = {}
 		if self.isClient then
 			spec.effects = g_effectManager:loadEffect(self.xmlFile, "vehicle.sowingMachine.effects", self.components, self, self.i3dMappings)
+			spec.fillEffects = g_effectManager:loadEffect(self.xmlFile, "vehicle.sowingMachine.fillEffects", self.components, self, self.i3dMappings)
 		end
 		spec.workAreaParameters = {}
 		spec.workAreaParameters.seedsFruitType = nil
@@ -224,6 +227,7 @@ function SowingMachine:onDelete()
 			g_soundManager:deleteSamples(spec.samples.airBlower)
 		end
 		g_effectManager:deleteEffects(spec.effects)
+		g_effectManager:deleteEffects(spec.fillEffects)
 		g_animationManager:deleteAnimations(spec.animationNodes)
 	end
 end
@@ -853,6 +857,18 @@ function SowingMachine:onChangedFillType(fillUnitIndex, fillTypeIndex, oldFillTy
 	local spec = self.spec_sowingMachine
 	if fillUnitIndex == spec.fillUnitIndex then
 		g_animationManager:setFillType(spec.animationNodes, fillTypeIndex)
+	end
+end
+function SowingMachine:onFillUnitFillLevelChanged(fillUnitIndex, fillLevelDelta, fillTypeIndex, toolType, fillPositionData, appliedDelta)
+	local spec = self.spec_sowingMachine
+	if self.isClient and fillUnitIndex == spec.fillUnitIndex then
+		if 0 < self:getFillUnitFillLevel(fillUnitIndex) then
+			local fillType = self:getFillUnitForcedMaterialFillType(fillUnitIndex) or fillTypeIndex
+			g_effectManager:setEffectTypeInfo(spec.fillEffects, fillType)
+			g_effectManager:startEffects(spec.fillEffects)
+			return
+		end
+		g_effectManager:stopEffects(spec.fillEffects)
 	end
 end
 function SowingMachine:onAIFieldCourseSettingsInitialized(fieldCourseSettings)

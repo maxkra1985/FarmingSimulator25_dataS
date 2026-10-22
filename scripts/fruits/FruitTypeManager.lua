@@ -25,7 +25,6 @@ end
 local FruitTypeManager_mt = Class(FruitTypeManager, AbstractManager)
 function FruitTypeManager.new(customMt)
 	local self = AbstractManager.new(customMt or FruitTypeManager_mt)
-	addConsoleCommand("gsFruitTypesExportStats", "Exports the fruit type stats into a text file", "consoleCommandExportStats", self)
 	return self
 end
 function FruitTypeManager:initDataStructures()
@@ -497,8 +496,8 @@ end
 function FruitTypeManager:getConverterDataByName(converterName)
 	return self.nameToConverter[converterName and string.upper(converterName)]
 end
-function FruitTypeManager:addModFoliageType(name, filename)
-	table.insert(self.modFoliageTypesToLoad, { name = name, filename = filename })
+function FruitTypeManager:addModFoliageType(name, filename, requiredMapModName)
+	table.insert(self.modFoliageTypesToLoad, { name = name, filename = filename, requiredMapModName = requiredMapModName })
 end
 function FruitTypeManager:getDefaultDataPlaneId()
 	return self.defaultDataPlaneId
@@ -521,29 +520,6 @@ function FruitTypeManager:setTerrainDataPlaneIndex(fruitType, terrainDataPlaneIn
 end
 function FruitTypeManager:getFruitTypeByDensityTypeIndex(densityTypeIndex)
 	return self.densityTypeIndexToFruitType[densityTypeIndex]
-end
-function FruitTypeManager:consoleCommandExportStats()
-	local content = ""
-	for _, fruitTypeDesc in ipairs(self.fruitTypes) do
-		content = content .. fruitTypeDesc:getStatsText() .. "\n"
-	end
-	content = content .. "\n"
-	content = content .. "\n"
-	content = content .. "Weeder / How States\n"
-	content = content .. " Name          "
-	for i = 1, 9 do
-		content = content .. string.format("[  %d  ] ", i)
-	end
-	content = content .. "\n"
-	for _, fruitTypeDesc in ipairs(self.fruitTypes) do
-		content = content .. fruitTypeDesc:getWeedingStateText() .. "\n"
-	end
-	local profilePath = getUserProfileAppPath()
-	local filename = profilePath .. "fruitTypeStats.txt"
-	local file = io.open(filename, "w")
-	file:write(content)
-	file:close()
-	Logging.info("Fruit type stats exported to %s", filename)
 end
 function FruitTypeManager.convert(xmlFile, key)
 	local name = xmlFile:getString(key .. "#name")

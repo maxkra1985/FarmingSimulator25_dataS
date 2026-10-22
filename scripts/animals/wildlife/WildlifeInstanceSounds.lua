@@ -4,6 +4,7 @@ function WildlifeInstanceSounds.registerXMLPaths(xmlSchema)
 	xmlSchema:register(XMLValueType.STRING, "species.sounds.sound(?)#name", "The name of the sound group", nil, true)
 	xmlSchema:register(XMLValueType.FLOAT, "species.sounds.sound(?)#cooldown", "The time in seconds in which the same sound group cannot be played more than once", 0, false)
 	xmlSchema:register(XMLValueType.FLOAT, "species.sounds.sound(?)#chance", "The chance of the sound playing", 1, false)
+	SoundManager.registerSampleXMLPaths(xmlSchema, "species.sounds.sound(?)", "sample(?)")
 end
 function WildlifeInstanceSounds.new(instance)
 	local self = setmetatable({}, WildlifeInstanceSounds_mt)
@@ -35,7 +36,11 @@ function WildlifeInstanceSounds:playSound(soundGroupName, chanceOverride)
 	if self.currentSample ~= nil and not self:deleteCurrentSample() then
 		return
 	end
-	local soundGroup = self.instance.species.soundAttributes.soundGroups[soundGroupName]
+	local soundAttributes = self.instance.species.soundAttributes
+	if soundAttributes == nil then
+		return
+	end
+	local soundGroup = soundAttributes.soundGroups[soundGroupName]
 	if soundGroup == nil or #soundGroup == 0 then
 		return
 	end
@@ -56,25 +61,34 @@ end
 function WildlifeInstanceSounds.loadAttributesTable(xmlFile)
 	local attributes = {}
 	attributes.linkNode = createTransformGroup("soundNode")
-	local _modName, baseDirectory = Utils.getModNameAndBaseDirectory(xmlFile:getFilename())
+	local _, baseDirectory = Utils.getModNameAndBaseDirectory(xmlFile:getFilename())
 	attributes.soundGroups = {}
-	for soundGroupIndex, soundGroupKey in xmlFile:iterator("species.sounds.sound") do
-		local soundGroup = {}
-		soundGroup.name = xmlFile:getValue(soundGroupKey .. "#name")
-		soundGroup.cooldown = xmlFile:getValue(soundGroupKey .. "#cooldown", 0)
-		soundGroup.chance = xmlFile:getValue(soundGroupKey .. "#chance", 1)
-		attributes.soundGroups[soundGroup.name] = soundGroup
-		for sampleIndex, sampleKey in xmlFile:iterator(soundGroupKey .. ".sample") do
-			local sample = g_soundManager:loadSampleFromXML(xmlFile, soundGroupKey, string.format("sample(%d)", sampleIndex), baseDirectory, attributes.linkNode, 1, AudioGroup.ENVIRONMENT, nil, nil)
-			table.insert(soundGroup, sample)
+	for _, soundGroupKey in xmlFile:iterator("species.sounds.sound") do
+		local name = xmlFile:getString(soundGroupKey .. "#name")
+		if name == nil then
+			Logging.xmlWarning(xmlFile, "Missing name for sound group '%s'", soundGroupKey)
+		else
+			local soundGroup = {}
+			soundGroup.name = name
+			soundGroup.cooldown = xmlFile:getFloat(soundGroupKey .. "#cooldown", 0) * 1000
+			soundGroup.chance = xmlFile:getFloat(soundGroupKey .. "#chance", 1)
+			attributes.soundGroups[name] = soundGroup
+			for sampleIndex, _ in xmlFile:iterator(soundGroupKey .. ".sample") do
+				local sampleName = string.format("sample(%d)", sampleIndex - 1)
+				local sample = g_soundManager:loadSampleFromXML(xmlFile, soundGroupKey, sampleName, baseDirectory, attributes.linkNode, 1, AudioGroup.ENVIRONMENT, nil, nil)
+				if sample == nil then
+					continue
+				end
+				table.insert(soundGroup, sample)
+			end
 		end
 	end
 	return attributes
 end
 function WildlifeInstanceSounds.deleteAttributesTable(attributes)
-	for _, soundGroup in ipairs(attributes) do
-		for _, sound in ipairs(soundGroup) do
-			g_soundManager:deleteSample(sound.sample)
+	for _, soundGroup in pairs(attributes.soundGroups) do
+		for _, sample in ipairs(soundGroup) do
+			g_soundManager:deleteSample(sample)
 		end
 	end
 	delete(attributes.linkNode)

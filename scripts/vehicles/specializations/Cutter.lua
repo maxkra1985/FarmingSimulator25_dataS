@@ -719,11 +719,14 @@ function Cutter:processHaulmDropArea(workArea, dt)
 	if not self.isServer and Cutter.CLIENT_DM_UPDATE_RADIUS < self.currentUpdateDistance then
 		return 0, 0
 	end
+	local isCutting = g_currentMission.time - 150 <= spec.lastAreaBiggerZeroTime
 	if spec.valueDelay ~= nil then
-		local value = spec.valueDelay:add(g_currentMission.time - 150 <= spec.lastAreaBiggerZeroTime and 1 or 0, dt)
+		local value = spec.valueDelay:add(isCutting and 1 or 0, dt)
 		if value == 0 then
 			return 0, 0
 		end
+	elseif not isCutting then
+		return 0, 0
 	end
 	local fruitType = spec.currentInputFruitType
 	if fruitType ~= nil and fruitType ~= FruitType.UNKNOWN then

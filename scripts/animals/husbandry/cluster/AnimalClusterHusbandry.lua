@@ -80,9 +80,11 @@ function AnimalClusterHusbandry:updateVisuals()
 	for _, cluster in ipairs(clusters) do
 		local numAnimals = cluster:getNumAnimals()
 		if 0 < numAnimals then
-			local subTypeIndex = cluster:getSubTypeIndex()
-			local age = cluster:getAge()
-			local visualAnimalIndex = self.animalSystem:getVisualAnimalIndexByAge(subTypeIndex, age)
+			local visual = cluster:getVisual()
+			if visual == nil then
+				continue
+			end
+			local visualAnimalIndex = visual.visualAnimalIndex
 			clusterToVisualAnimalIndex[cluster] = visualAnimalIndex
 			totalNumAnimals = totalNumAnimals + numAnimals
 			local index = visualAnimalIndexToDataIndex[visualAnimalIndex]
@@ -166,6 +168,7 @@ function AnimalClusterHusbandry:updateVisuals()
 					for animalId, typeIndex in pairs(self.animalIdToVisualAnimalIndex) do
 						if visualAnimalIndex == typeIndex then
 							self.animalIdToCluster[animalId] = nil
+							self.animalIdToVisualAnimalIndex[animalId] = nil
 							newAnimalMapping[animalId] = cluster
 							newAnimalIdToVisualAnimalIndex[animalId] = typeIndex
 							clusterToNumAnimals[cluster] = clusterToNumAnimals[cluster] - 1
@@ -186,17 +189,24 @@ function AnimalClusterHusbandry:updateVisuals()
 				removeHusbandryAnimal(self.husbandryId, animalId)
 			end
 			for cluster, numAnimals in pairs(clusterToNumAnimals) do
+				local pendingX, pendingY, pendingZ, pendingRX, pendingRY, pendingRZ = cluster:getPendingSpawnWorldPosition()
 				for i = 1, numAnimals do
 					local visualAnimalIndex = clusterToVisualAnimalIndex[cluster]
-					local animalId = addHusbandryAnimal(self.husbandryId, visualAnimalIndex - 1)
+					local initialPosition = nil
+					local initialRotation = nil
+					if pendingX ~= nil then
+						initialPosition = vector.create(pendingX, pendingY, pendingZ)
+						initialRotation = vector.create(pendingRX, pendingRY, pendingRZ)
+						cluster:clearPendingSpawnWorldPosition()
+						pendingX = nil
+					end
+					local animalId = addHusbandryAnimal(self.husbandryId, visualAnimalIndex - 1, initialPosition, initialRotation)
 					if animalId == 0 then
 						Logging.error("Unable to add animal with visual index %d for husbandry %d", visualAnimalIndex - 1, self.husbandryId)
 					else
-						local subTypeIndex = cluster:getSubTypeIndex()
-						local age = cluster:getAge()
-						local visualData = self.animalSystem:getVisualByAge(subTypeIndex, age)
-						local variations = visualData.visualAnimal.variations
-						if 1 < #variations then
+						local visualData = cluster:getVisual()
+						if visualData ~= nil and 1 < #visualData.visualAnimal.variations then
+							local variations = visualData.visualAnimal.variations
 							local variation = variations[math.random(1, #variations)]
 							setAnimalTextureTile(self.husbandryId, animalId, variation.tileUIndex, variation.tileVIndex)
 						end

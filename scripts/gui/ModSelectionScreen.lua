@@ -486,10 +486,8 @@ function ModSelectionScreen:loadAvailableMods()
 				local modId = getModIdByFilename(mod.modName)
 				if modId ~= 0 then
 					local modInfo = g_modHubController:getModInfo(modId)
-					local isUpdate = modInfo:getIsUpdate()
-					local isExternal = modInfo:getIsExternal()
-					local isDirectory = mod.isDirectory
-					if modInfo ~= nil and (isUpdate and (not isExternal and (not isDirectory and (Platform.isPC or not modInfo:getIsDLC())))) then
+					local hasModHubUpdate = modInfo:getIsUpdate() and modInfo:getCanBeUpdatedDirectly()
+					if hasModHubUpdate and not mod.isDirectory then
 						self.updatableMods[mod] = modId
 						self.numUpdatableMods = self.numUpdatableMods + 1
 					end

@@ -1,6 +1,7 @@
 PlayerCCT = {}
 local PlayerCCT_mt = Class(PlayerCCT)
 PlayerCCT.DEFAULT_HEIGHT = 1.1
+PlayerCCT.CROUCHED_HEIGHT = PlayerCCT.DEFAULT_HEIGHT * 0.5
 PlayerCCT.DEFAULT_COLLISION_GROUP = CollisionFlag.PLAYER
 PlayerCCT.DEFAULT_COLLISION_MASK = CollisionMask.ALL - bit32.bor(CollisionFlag.WATER, CollisionFlag.AI_BLOCKING, CollisionFlag.GROUND_TIP_BLOCKING, CollisionFlag.PLACEMENT_BLOCKING, CollisionFlag.PRECIPITATION_BLOCKING, CollisionFlag.CAMERA_BLOCKING, CollisionFlag.ANIMAL_POSITIONING, CollisionFlag.ANIMAL_NAV_MESH_BLOCKING, CollisionFlag.TRAFFIC_VEHICLE_BLOCKING, CollisionFlag.TERRAIN_DISPLACEMENT)
 PlayerCCT.DEFAULT_MOVEMENT_COLLISION_GROUP = PlayerCCT.DEFAULT_COLLISION_GROUP
@@ -76,6 +77,9 @@ function PlayerCCT:setHeight(height)
 		self.heightChangePhysicsIndex = nil
 		self.height = height
 	end
+end
+function PlayerCCT:setCrouched(isCrouching)
+	self:setHeight(isCrouching and PlayerCCT.CROUCHED_HEIGHT or PlayerCCT.DEFAULT_HEIGHT)
 end
 function PlayerCCT:getRadius()
 	return self.radius

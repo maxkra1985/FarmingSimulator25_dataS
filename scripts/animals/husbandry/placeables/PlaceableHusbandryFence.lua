@@ -3,6 +3,9 @@ source("dataS/scripts/animals/husbandry/placeables/events/HusbandryFenceCustomiz
 source("dataS/scripts/animals/husbandry/placeables/events/HusbandryFenceCustomizeFinishEvent.lua")
 source("dataS/scripts/animals/husbandry/placeables/events/HusbandryFenceValidateEvent.lua")
 PlaceableHusbandryFence = {}
+PlaceableHusbandryFence.DEFAULT_PLACEMENT_ERROR_MESSAGE = "warning_canNotPlaceFence"
+PlaceableHusbandryFence.MIN_CONTOUR_POINTS = 4
+PlaceableHusbandryFence.TOO_FEW_CORNERS_ERROR_MESSAGE = "ui_construction_fenceHusbandryTooFewCorners"
 function PlaceableHusbandryFence.prerequisitesPresent(specializations)
 	return true
 end
@@ -15,6 +18,7 @@ function PlaceableHusbandryFence.registerFunctions(placeableType)
 	SpecializationUtil.registerFunction(placeableType, "getCustomizeableSectionStartAndEndPositions", PlaceableHusbandryFence.getCustomizeableSectionStartAndEndPositions)
 	SpecializationUtil.registerFunction(placeableType, "getDefaultFenceOrientation", PlaceableHusbandryFence.getDefaultFenceOrientation)
 	SpecializationUtil.registerFunction(placeableType, "getFenceContourPositions", PlaceableHusbandryFence.getFenceContourPositions)
+	SpecializationUtil.registerFunction(placeableType, "getCanFinishFenceCustomization", PlaceableHusbandryFence.getCanFinishFenceCustomization)
 	SpecializationUtil.registerFunction(placeableType, "updateHusbandryFence", PlaceableHusbandryFence.updateHusbandryFence)
 	SpecializationUtil.registerFunction(placeableType, "finalizeHusbandryFence", PlaceableHusbandryFence.finalizeHusbandryFence)
 	SpecializationUtil.registerFunction(placeableType, "createDefaultFence", PlaceableHusbandryFence.createDefaultFence)
@@ -49,6 +53,7 @@ function PlaceableHusbandryFence.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.BOOL, basePath .. ".sections.section(?)#isReversed", "Reverse segment (gate)")
 	schema:register(XMLValueType.BOOL, basePath .. ".sections.section(?)#customizable", "User has the option to place this section manually")
 	schema:register(XMLValueType.NODE_INDEX, basePath .. ".sections.section(?).node(?)#node", "Fence node")
+	schema:register(XMLValueType.NODE_INDEX, basePath .. ".additionalNavMeshNodes.node(?)#node", "Navigation mesh contour node that adds a polygon point to the generated nav mesh without spawning a fence segment")
 	schema:setXMLSpecializationType()
 end
 function PlaceableHusbandryFence.registerSavegameXMLPaths(schema, basePath)
@@ -125,6 +130,14 @@ function PlaceableHusbandryFence:onFenceI3DLoaded(i3dNode, failedReason, args)
 				end
 			end
 			spec.hasFence = 0 < #spec.fenceSegmentsData
+			spec.navigationContourNodes = {}
+			for _, navigationNodeKey in self.xmlFile:iterator("placeable.husbandry.fence.additionalNavMeshNodes.node") do
+				local node = self.xmlFile:getValue(navigationNodeKey .. "#node", nil, self.components, self.i3dMappings)
+				if node == nil then
+					continue
+				end
+				table.insert(spec.navigationContourNodes, node)
+			end
 			if self.propertyState == PlaceablePropertyState.CONSTRUCTION_PREVIEW then
 				self:createDefaultFence()
 			end
@@ -142,6 +155,9 @@ function PlaceableHusbandryFence:onDelete()
 	if self.fenceXmlFile ~= nil then
 		self.fenceXmlFile:delete()
 		self.fenceXmlFile = nil
+	end
+	if spec.fence ~= nil then
+		spec.fence.isBeingDeleted = true
 	end
 	if spec.previewSegments ~= nil then
 		for _, segment in ipairs(spec.previewSegments) do
@@ -217,10 +233,11 @@ function PlaceableHusbandryFence:onPreFinalizePlacement()
 		if self.isServer and not self.isLoadedFromSavegame then
 			self:createDefaultFence()
 			for _, segment in ipairs(spec.previewSegments) do
-				Logging.devInfo("PlaceableHusbandryFence.finalizeHusbandryFence: Finalize segments")
+				Logging.devInfo("PlaceableHusbandryFence:onPreFinalizePlacement: Finalize segments")
+				segment:updateMeshes(true, false)
 				segment:finalize()
 			end
-			Logging.devInfo("PlaceableHusbandryFence.finalizeHusbandryFence: Finalize fence")
+			Logging.devInfo("PlaceableHusbandryFence:onPreFinalizePlacement: Finalize fence")
 			spec.fence:finalize()
 		end
 	end
@@ -237,13 +254,13 @@ function PlaceableHusbandryFence:finalizeHusbandryFence()
 	else
 		local contourPositions3D = self:getFenceContourPositions()
 		local success = false
-		if 9 <= #contourPositions3D then
+		if PlaceableHusbandryFence.MIN_CONTOUR_POINTS * 3 <= #contourPositions3D then
 			success = self:createNavigationMeshFromContour(contourPositions3D)
 		end
 		return success
 	end
 end
-function PlaceableHusbandryFence:getFenceContourPositions(ignoreCustomizableSegments)
+function PlaceableHusbandryFence:getFenceContourPositions(ignoreCustomizableSegments, additionalSegment)
 	local spec = self.spec_husbandryFence
 	local contourPositions3D = {}
 	local addPosition = function(x, y, z)
@@ -270,7 +287,28 @@ function PlaceableHusbandryFence:getFenceContourPositions(ignoreCustomizableSegm
 			addPosition(x2, y2, z2)
 		end
 	end
+	if additionalSegment ~= nil then
+		local x, y, z = additionalSegment:getStartPos()
+		local x2, y2, z2 = additionalSegment:getEndPos()
+		addPosition(x, y, z)
+		addPosition(x2, y2, z2)
+	end
+	if spec.navigationContourNodes ~= nil then
+		for _, node in ipairs(spec.navigationContourNodes) do
+			local x, y, z = getWorldTranslation(node)
+			addPosition(x, y, z)
+		end
+	end
 	return contourPositions3D
+end
+function PlaceableHusbandryFence:getCanFinishFenceCustomization(closingSegment)
+	local contourPositions3D = self:getFenceContourPositions(true, closingSegment)
+	if #contourPositions3D < PlaceableHusbandryFence.MIN_CONTOUR_POINTS * 3 then
+		local warning = g_i18n:getText(PlaceableHusbandryFence.TOO_FEW_CORNERS_ERROR_MESSAGE)
+		return false, warning
+	else
+		return true, nil
+	end
 end
 function PlaceableHusbandryFence:createNavigationMesh(superFunc)
 	local spec = self.spec_husbandryFence
@@ -315,7 +353,7 @@ function PlaceableHusbandryFence:finishFenceCustomization(user, success, noEvent
 			end
 			g_server:broadcastEvent(HusbandryFenceUpdateEvent.new(self, success), true)
 		end
-		local contourPositions3D = self:getFenceContourPositions()
+		local contourPositions3D = self:getFenceContourPositions(success)
 		self:createNavigationMeshPlacementCollision(contourPositions3D)
 	end
 end
@@ -326,7 +364,7 @@ function PlaceableHusbandryFence:tryFinalizeFence()
 	else
 		local contourPositions3D = self:getFenceContourPositions(true)
 		local success = false
-		if 9 <= #contourPositions3D then
+		if PlaceableHusbandryFence.MIN_CONTOUR_POINTS * 3 <= #contourPositions3D then
 			success = self:createNavigationMeshFromContour(contourPositions3D)
 		end
 		return success
@@ -412,9 +450,9 @@ function PlaceableHusbandryFence:updateHusbandryFence()
 	if spec.fenceSegmentsData == nil then
 		return true
 	else
-		spec.lastFenceError = nil
+		spec.fenceErrorMessageKey = nil
 		local hitNodes = {}
-		local isBlocked = false
+		local isOnUnownedLand = false
 		local segmentIndex = 1
 		local segments = spec.previewSegments
 		for _, section in ipairs(spec.fenceSegmentsData) do
@@ -423,12 +461,12 @@ function PlaceableHusbandryFence:updateHusbandryFence()
 				segment:setStartPos(getWorldTranslation(node))
 				segment:setEndPos(getWorldTranslation(section.nodes[nodeIndex + 1]))
 				if not segment:updateMeshes() then
-					spec.lastFenceError = segment.lastError
+					spec.fenceErrorMessageKey = ConstructionBrushNewFence.SEGMENT_ERROR_TO_MESSAGE[segment.lastError]
 					return false
 				end
 				segment:checkOverlap(hitNodes)
 				if segment:getHasBlockingOverlap(self.ownerFarmId) then
-					isBlocked = true
+					isOnUnownedLand = true
 				end
 				segmentIndex = segmentIndex + 1
 			end
@@ -437,7 +475,12 @@ function PlaceableHusbandryFence:updateHusbandryFence()
 			DebugShapeOutline.render(node)
 		end
 		local hasOverlap = next(hitNodes) ~= nil
-		return not hasOverlap and not isBlocked
+		if isOnUnownedLand then
+			spec.fenceErrorMessageKey = ConstructionBrush.ERROR_MESSAGES[ConstructionBrush.ERROR.LAND_UNOWNED]
+		elseif hasOverlap then
+			spec.fenceErrorMessageKey = ConstructionBrushNewFence.ERROR_MESSAGES[ConstructionBrushNewFence.ERROR.COLLISION]
+		end
+		return not hasOverlap and not isOnUnownedLand
 	end
 end
 function PlaceableHusbandryFence:setPreviewPosition(superFunc, x, y, z, rotX, rotY, rotZ)
@@ -479,10 +522,9 @@ function PlaceableHusbandryFence:getDefaultFenceOrientation()
 end
 function PlaceableHusbandryFence:getCanBePlacedAt(superFunc, x, y, z, farmId)
 	local spec = self.spec_husbandryFence
-	if not self.spec_husbandryFence.canBePlaced then
-		local lastError = spec.lastFenceError
-		local errorMessageLocaKey = ConstructionBrushNewFence.SEGMENT_ERROR_TO_MESSAGE[lastError] or "warning_canNotPlaceFence"
-		return false, g_i18n:getText(errorMessageLocaKey)
+	if not spec.canBePlaced then
+		local errorMessageKey = spec.fenceErrorMessageKey or PlaceableHusbandryFence.DEFAULT_PLACEMENT_ERROR_MESSAGE
+		return false, g_i18n:getText(errorMessageKey)
 	else
 		return superFunc(self, x, y, z, farmId)
 	end

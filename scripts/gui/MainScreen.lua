@@ -109,6 +109,9 @@ end
 function MainScreen:onClose()
 	MainScreen:superClass().onClose(self)
 	g_inputBinding:removeActionEventsByTarget(self)
+	if g_modHubTestManager ~= nil then
+		g_modHubTestManager:removeConsoleCommands()
+	end
 	g_messageCenter:unsubscribeAll(self)
 	GuiOverlay.deleteOverlay(self.notificationImage.overlay)
 	GuiOverlay.deleteOverlay(self.notificationImagePrev.overlay)
@@ -121,6 +124,9 @@ function MainScreen:onOpen()
 	MainScreen:superClass().onOpen(self)
 	setPresenceMode(PresenceModes.PRESENCE_IDLE)
 	flushWebCache()
+	if g_modHubTestManager ~= nil then
+		g_modHubTestManager:addConsoleCommands()
+	end
 	self:resetNotifications()
 	if self.firstTimeOpened then
 		self.firstTimeOpened = false
@@ -160,7 +166,9 @@ function MainScreen:onOpen()
 	if isESRBDiscVersion() and not g_gameSettings:getValue(GameSettings.SETTING.ESRB_UPDATE_SHOWN) then
 		self:showESRBUpdateinfo()
 	end
-	if g_modNameToDirectory[g_uniqueDlcNamePrefix .. "highlandsFishingPack"] ~= nil then
+	if g_modNameToDirectory[g_uniqueDlcNamePrefix .. "beansAndAlpacasPack"] ~= nil then
+		self.backgroundImage:setImageFilename("shared/splash_beansandalpacas.png")
+	elseif g_modNameToDirectory[g_uniqueDlcNamePrefix .. "highlandsFishingPack"] ~= nil then
 		self.backgroundImage:setImageFilename("shared/splash_highlandsFishing.png")
 	else
 		self.backgroundImage:setImageFilename("shared/splash.png")

@@ -346,6 +346,9 @@ function FieldCourseField:update(dt, frameBudget)
 		end
 	end
 end
+function FieldCourseField:getIsWaitingForAsyncResult()
+	return self.state == FieldCourseDetectionState.BOUNDARY_COLLISION_CHECK and self.boundaryCollisionCheckPending == true
+end
 function FieldCourseField:setProtectedBoundary(protectedBoundarySize)
 	self.protectedBoundary = self.fieldRootBoundary:extend(protectedBoundarySize) or self.fieldRootBoundary
 	for _, island in ipairs(self.islands) do

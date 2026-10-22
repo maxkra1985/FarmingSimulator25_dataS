@@ -233,6 +233,7 @@ function Mission00:onMaterialsLoaded(missionInfo, missionDynamicInfo)
 		end)
 		g_asyncTaskManager:addTask(function()
 			g_sprayTypeManager:loadMapData(self.xmlFile, missionInfo, self.baseDirectory)
+			g_sprayTypeManager:loadModSprayTypes()
 			g_mpLoadingScreen:hitLoadingTarget(MPLoadingScreen.LOAD_TARGETS.DATA)
 		end)
 	end

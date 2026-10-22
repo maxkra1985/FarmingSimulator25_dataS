@@ -298,6 +298,7 @@ function HandTool:loadFinished()
 	if not self.handToolLoadingData.canBeDropped then
 		self.canBeDropped = false
 	end
+	self.isSelectable = nil
 	local soundsXMLFilename = self.xmlFile:getValue("handTool.base.sounds#filename", nil)
 	soundsXMLFilename = Utils.getFilename(soundsXMLFilename, self.baseDirectory)
 	self.externalSoundsFile = XMLFile.loadIfExists("TempExternalSounds", soundsXMLFilename, HandTool.xmlSchemaSounds)
@@ -677,6 +678,7 @@ function HandTool:setCarryingPlayerHidden()
 	SpecializationUtil.raiseEvent(self, "onCarryingPlayerHidden")
 end
 function HandTool:setCarryingPlayerStyleChanged()
+	self:attachTool()
 	SpecializationUtil.raiseEvent(self, "onCarryingPlayerStyleChanged")
 end
 function HandTool:setCarryingPlayerEnteredVehicle()

@@ -134,11 +134,19 @@ function FruitPreparer:getDoGroundManipulation(superFunc)
 	return superFunc(self) and spec.isWorking
 end
 function FruitPreparer:doCheckSpeedLimit(superFunc)
-	local _v5 = superFunc(self)
-	if not _v5 and (self:getIsTurnedOn() and self.getIsImplementChainLowered ~= nil) then
-		self:getIsImplementChainLowered()
+	if superFunc(self) then
+		return true
+	else
+		if self:getIsTurnedOn() then
+			if self.getIsImplementChainLowered ~= nil and self:getIsImplementChainLowered() then
+				return true
+			end
+			if self.getIsLowered ~= nil and self:getIsLowered(true) then
+				return true
+			end
+		end
+		return false
 	end
-	return _v5
 end
 function FruitPreparer:getAllowCutterAIFruitRequirements(superFunc)
 	return false

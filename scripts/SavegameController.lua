@@ -99,6 +99,21 @@ end
 function SavegameController:resetStorageDeviceSelection()
 	saveResetStorageDeviceSelection()
 end
+function SavegameController:onSavegameMigrationComplete(success, startingSavegameSlot)
+	if self.savegameMigrationCallback ~= nil then
+		local errorCode = success and SavegameController.UPLOAD_STATE_OK or -1
+		self.savegameMigrationCallback(self.savegameMigrationTarget, errorCode, nil)
+	end
+end
+function SavegameController:migrateSavegame(callbackFunc, callbackTarget)
+	if saveStartMigrateToPlayfab == nil then
+		return false
+	else
+		self.savegameMigrationCallback = callbackFunc
+		self.savegameMigrationTarget = callbackTarget
+		return saveStartMigrateToPlayfab("onSavegameMigrationComplete", self)
+	end
+end
 function SavegameController:onDebugSavegameUploadProgress(errorCode, progress)
 	if self.debugSavegameUploadCallback ~= nil then
 		self.debugSavegameUploadCallback(self.debugSavegameUploadTarget, errorCode, progress)

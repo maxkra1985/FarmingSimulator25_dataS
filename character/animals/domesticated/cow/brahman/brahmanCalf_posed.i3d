@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="brahmanCalf_posed" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Maya Exporter" version="10.0.0" revision="41901" />
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/tileAndMirrorShader.xml" />
+    <File fileId="1" filename="$dataS/character/animals/domesticated/cow/brahman/brahmanCalf_diffuse.png" />
+    <File fileId="2" filename="$dataS/character/animals/domesticated/cow/brahman/brahmanCalf_normal.png" />
+    <File fileId="3" filename="$dataS/character/animals/domesticated/cow/brahman/brahmanCalf_specular.png" />
+    <File fileId="5" filename="$dataS/character/animals/domesticated/cow/cattle_alpha.png" />
+  </Files>
+
+  <Materials>
+    <Material name="brahmanCalf:brahmanCalf_01_mat" materialId="2" customShaderId="4" customShaderVariation="sssSpecularDirt">
+      <CustomParameter name="atlasInvSizeAndOffsetUV" value="0.5 0.5 1 0"/>
+      <CustomParameter name="dirt" value="0 20.0 20.0"/>
+      <CustomParameter name="dirtColor" value="0.20 0.14 0.08 0"/>
+      <CustomParameter name="mirrorScaleAndOffsetUV" value="1 1 0 0.5"/>
+      <CustomParameter name="sssColor" value="0.938 0.8 0.8 1"/>
+      <Custommap name="dirtNmap" fileId="3"/>
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+    </Material>
+    <Material name="brahmanCalf:brahmanCalf_02_mat" materialId="1" customShaderId="4" customShaderVariation="sssSpecularDirt_alphaMapSecondUV">
+      <CustomParameter name="atlasInvSizeAndOffsetUV" value="0.5 0.5 0 0"/>
+      <CustomParameter name="dirt" value="1 20 20"/>
+      <CustomParameter name="dirtColor" value="0.20 0.14 0.08 0"/>
+      <CustomParameter name="mirrorScaleAndOffsetUV" value="1 1 0 0.5"/>
+      <CustomParameter name="sssColor" value="0.2 0.2 0.2 1"/>
+      <Custommap name="alphaMap" fileId="5"/>
+      <Custommap name="dirtNmap" fileId="3"/>
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+    </Material>
+    <Material name="brahmanCalf1:brahmanCalf_01_mat" materialId="3" customShaderId="4" customShaderVariation="sssSpecularDirt">
+      <CustomParameter name="atlasInvSizeAndOffsetUV" value="0.5 0.5 1 0"/>
+      <CustomParameter name="dirt" value="0 20.0 20.0"/>
+      <CustomParameter name="dirtColor" value="0.20 0.14 0.08 0"/>
+      <CustomParameter name="mirrorScaleAndOffsetUV" value="1 1 0 0.5"/>
+      <CustomParameter name="sssColor" value="0.938 0.8 0.8 1"/>
+      <Custommap name="dirtNmap" fileId="3"/>
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+    </Material>
+    <Material name="brahmanCalf2:brahmanCalf_01_mat" materialId="4" customShaderId="4" customShaderVariation="sssSpecularDirt">
+      <CustomParameter name="atlasInvSizeAndOffsetUV" value="0.5 0.5 1 0"/>
+      <CustomParameter name="dirt" value="0 20.0 20.0"/>
+      <CustomParameter name="dirtColor" value="0.20 0.14 0.08 0"/>
+      <CustomParameter name="mirrorScaleAndOffsetUV" value="1 1 0 0.5"/>
+      <CustomParameter name="sssColor" value="0.938 0.8 0.8 1"/>
+      <Custommap name="dirtNmap" fileId="3"/>
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="brahmanCalf_posed.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="BrahmanCalf" nodeId="1">
+      <TransformGroup name="hair" clipDistance="300" nodeId="2">
+        <Shape name="ear" shapeId="1" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="3"/>
+        <Shape name="whiskers" shapeId="2" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="4"/>
+        <Shape name="tail" shapeId="3" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="5"/>
+        <Shape name="eyelashes" shapeId="4" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="6"/>
+        <TransformGroup name="reverse" clipDistance="300" nodeId="7">
+          <Shape name="ear" shapeId="5" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="8"/>
+          <Shape name="eyelashes" shapeId="6" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="9"/>
+          <Shape name="tail" shapeId="7" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="10"/>
+          <Shape name="whiskers" shapeId="8" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="11"/>
+        </TransformGroup>
+      </TransformGroup>
+      <Shape name="brahmanTeeth" shapeId="9" castsShadows="true" receiveShadows="true" materialIds="2" clipDistance="300" nodeId="12"/>
+      <Shape name="brahmanBody" shapeId="10" castsShadows="true" receiveShadows="true" materialIds="2" clipDistance="300" nodeId="13"/>
+      <Shape name="brahmanEyes" shapeId="11" castsShadows="true" receiveShadows="true" materialIds="3" clipDistance="300" nodeId="14"/>
+      <Shape name="brahmanTonge" shapeId="12" castsShadows="true" receiveShadows="true" materialIds="4" clipDistance="300" nodeId="15"/>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

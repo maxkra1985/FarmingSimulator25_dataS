@@ -10,6 +10,9 @@ Vehicle.INTERACTION_FLAG_NONE = 0
 Vehicle.NUM_STATE_CHANGES = 0
 Vehicle.DAMAGED_SPEEDLIMIT_REDUCTION = 0.3
 Vehicle.INPUT_CONTEXT_NAME = "VEHICLE"
+Vehicle.L10N_RESET_CONFIRM = "ui_wantToResetVehicleText"
+Vehicle.L10N_RESET_SUCCESS = "ui_vehicleResetDone"
+Vehicle.L10N_RESET_FAILED = "ui_vehicleResetFailed"
 Vehicle.xmlSchema = nil
 Vehicle.xmlSchemaSounds = nil
 Vehicle.xmlSchemaSavegame = nil
@@ -189,6 +192,8 @@ function Vehicle.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getCanBePickedUp", Vehicle.getCanBePickedUp)
 	SpecializationUtil.registerFunction(vehicleType, "getCanBeReset", Vehicle.getCanBeReset)
 	SpecializationUtil.registerFunction(vehicleType, "getResetPlaces", Vehicle.getResetPlaces)
+	SpecializationUtil.registerFunction(vehicleType, "getResetDialogTexts", Vehicle.getResetDialogTexts)
+	SpecializationUtil.registerFunction(vehicleType, "reset", Vehicle.reset)
 	SpecializationUtil.registerFunction(vehicleType, "getCanBeSold", Vehicle.getCanBeSold)
 	SpecializationUtil.registerFunction(vehicleType, "getCanBeAddedToSales", Vehicle.getCanBeAddedToSales)
 	SpecializationUtil.registerFunction(vehicleType, "getReloadXML", Vehicle.getReloadXML)
@@ -2968,6 +2973,12 @@ function Vehicle:getCanBeReset()
 end
 function Vehicle:getResetPlaces()
 	return g_currentMission:getResetPlaces(), g_currentMission.usedLoadPlaces
+end
+function Vehicle:getResetDialogTexts()
+	local confirmText = g_i18n:getText(Vehicle.L10N_RESET_CONFIRM)
+	local successText = g_i18n:getText(Vehicle.L10N_RESET_SUCCESS)
+	local failedText = g_i18n:getText(Vehicle.L10N_RESET_FAILED)
+	return confirmText, successText, failedText
 end
 function Vehicle:getCanBeSold()
 	local storeItem = g_storeManager:getItemByXMLFilename(self.configFileName)

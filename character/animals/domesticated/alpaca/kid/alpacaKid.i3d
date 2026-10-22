@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="alpacaKid" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Maya Exporter" version="10.0.0" revision="43376" />
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/tileAndMirrorShader.xml" />
+    <File fileId="5" filename="$dataS/character/animals/domesticated/alpaca/adult/masterAlpaca_mask.png" />
+    <File fileId="1" filename="$dataS/character/animals/domesticated/alpaca/baby/alpacaBaby_diffuse.png" />
+    <File fileId="2" filename="$dataS/character/animals/domesticated/alpaca/baby/alpacaBaby_normal.png" />
+    <File fileId="3" filename="$dataS/character/animals/domesticated/alpaca/baby/alpacaBaby_specular.png" />
+  </Files>
+
+  <Materials>
+    <Material name="alpacaBaby_01_mat1" materialId="1" customShaderId="4" customShaderVariation="sssSpecularDirt">
+      <CustomParameter name="atlasInvSizeAndOffsetUV" value="0.5 0.5 0.5 0.5"/>
+      <CustomParameter name="dirt" value="0 20.0 20.0"/>
+      <CustomParameter name="dirtColor" value="0.20 0.14 0.08 0.0"/>
+      <CustomParameter name="mirrorScaleAndOffsetUV" value="1 1 1 1"/>
+      <CustomParameter name="sssColor" value="0.938 0.938 0.938 1"/>
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+    </Material>
+    <Material name="alpacaBaby_02_mat1" materialId="2" customShaderId="4" customShaderVariation="sssSpecularDirt_alphaMapSecondUV">
+      <CustomParameter name="atlasInvSizeAndOffsetUV" value="0.5 0.5 0.5 0.5"/>
+      <CustomParameter name="dirt" value="0 20.0 20.0"/>
+      <CustomParameter name="dirtColor" value="0.20 0.14 0.08 0.0"/>
+      <CustomParameter name="mirrorScaleAndOffsetUV" value="1 1 1 1"/>
+      <CustomParameter name="sssColor" value="0.938 0.938 0.938 1"/>
+      <Custommap name="alphaMap" fileId="5"/>
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+    </Material>
+    <Material name="standardSurface1" materialId="3" diffuseColor="0.4 0.4 0.4 1">
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="alpacaKid.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="alpacaKidSkeleton" nodeId="1">
+      <TransformGroup name="root_jnt" nodeId="2">
+        <TransformGroup name="spine_01_jnt" translation="0 0.747896 -0.252531" rotation="0 -90 0" nodeId="3">
+          <TransformGroup name="spine_02_jnt" translation="0.09495 0 0" nodeId="4">
+            <TransformGroup name="spine_03_jnt" translation="0.098169 0 0" nodeId="5">
+              <TransformGroup name="spine_04_jnt" translation="0.098169 0 0" nodeId="6">
+                <TransformGroup name="spine_05_jnt" translation="0.09495 0 0" nodeId="7">
+                  <TransformGroup name="r_legFront_Hip_jnt" translation="0.019578 -0.0006 0.048051" rotation="-2.470262 -11.225352 -77.504494" nodeId="8">
+                    <TransformGroup name="r_legFront_Leg_jnt" translation="0.138221 0 0" rotation="-4.927436 10.393259 -37.79528" nodeId="9">
+                      <TransformGroup name="r_legFront_Knee_jnt" translation="0.164155 0 0" rotation="0 0 31.650742" nodeId="10">
+                        <TransformGroup name="r_legFront_KneeB_jnt" translation="0.184719 0 0" rotation="0 0 -14.528042" nodeId="11">
+                          <TransformGroup name="r_FootFront_Ankle_jnt" translation="0.233794 0 0" rotation="0 0 51.079369" nodeId="12">
+                            <TransformGroup name="r_FootFront_Middle_jnt" translation="0.045129 0 0" rotation="0 0 46.970001" nodeId="13"/>
+                          </TransformGroup>
+                        </TransformGroup>
+                      </TransformGroup>
+                    </TransformGroup>
+                  </TransformGroup>
+                  <TransformGroup name="l_LegFront_Hip_jnt" translation="0.019578 -0.0006 -0.048051" rotation="2.470262 11.225352 -77.504494" nodeId="14">
+                    <TransformGroup name="l_LegFront_Leg_jnt" translation="0.138221 0 0" rotation="4.927436 -10.393259 -37.79528" nodeId="15">
+                      <TransformGroup name="l_LegFront_Knee_jnt" translation="0.164155 0 0" rotation="0 0 31.650742" nodeId="16">
+                        <TransformGroup name="l_LegFront_KneeB_jnt" translation="0.184719 0 0" rotation="0 0 -14.528042" nodeId="17">
+                          <TransformGroup name="l_FootFront_Ankle_jnt" translation="0.233794 0 0" rotation="0 0 51.079369" nodeId="18">
+                            <TransformGroup name="l_FootFront_Middle_jnt" translation="0.045129 0 0" rotation="0 0 46.970001" nodeId="19"/>
+                          </TransformGroup>
+                        </TransformGroup>
+                      </TransformGroup>
+                    </TransformGroup>
+                  </TransformGroup>
+                  <TransformGroup name="neck_01_jnt" translation="0.111658 0.019134 0" rotation="180 0 66.568993" nodeId="20">
+                    <TransformGroup name="neck_02_jnt" translation="0.141683 0 0" nodeId="21">
+                      <TransformGroup name="neck_03_jnt" translation="0.141683 0 0" rotation="0.008321 0.099554 -18.653189" nodeId="22">
+                        <TransformGroup name="Head_01_jnt" translation="0.052085 0 0" nodeId="23">
+                          <TransformGroup name="jaw_jnt" translation="-0.018302 0.027384 0.000964" rotation="89.996704 -0.099847 -2.885796" nodeId="24">
+                            <TransformGroup name="tongue_01_jnt" translation="-0.023873 0 -0.034053" rotation="89.999855 84.510551 179.999847" nodeId="25">
+                              <TransformGroup name="tongue_02_jnt" translation="0.036709 0.004054 -0.000095" rotation="0.002567 0.213554 12.43262" nodeId="26">
+                                <TransformGroup name="tongue_03_jnt" translation="0.036799 0.003423 0.00005" rotation="-0.03991 -0.209807 10.081513" nodeId="27"/>
+                              </TransformGroup>
+                            </TransformGroup>
+                          </TransformGroup>
+                          <TransformGroup name="eye_l_jnt" translation="0.029599 0.063466 0.051772" rotation="90.687958 -0.057169 50.318375" nodeId="28"/>
+                          <TransformGroup name="eye_r_jnt" translation="0.029778 0.063451 -0.051507" rotation="90.84787 -0.062442 -56.089993" nodeId="29"/>
+                          <TransformGroup name="eye_r_eyelidPivot_jnt" translation="0.029776 0.063452 -0.049689" rotation="0.64514 -36.795795 85.296913" nodeId="30">
+                            <TransformGroup name="eye_r0_eyelidt_jnt" translation="0.000823 -0.006383 -0.021829" nodeId="31"/>
+                          </TransformGroup>
+                          <TransformGroup name="eye_l_eyelidPivot_jnt" translation="0.029414 0.061192 0.048727" rotation="0.894651 -36.795795 -94.852539" nodeId="32">
+                            <TransformGroup name="eye_l0_eyelidt_jnt" translation="-0.000826 0.010188 0.021805" nodeId="33"/>
+                          </TransformGroup>
+                          <TransformGroup name="nose_jnt" translation="-0.004183 0.150338 0.000061" rotation="90 -89.900101 175.222198" nodeId="34"/>
+                          <TransformGroup name="forehead_jnt" translation="0.067517 0.080058 0.000196" rotation="90 -89.900101 175.222198" nodeId="35"/>
+                          <TransformGroup name="ear_l_01_jnt" translation="0.081437 -0.006681 0.060826" rotation="131.638809 -53.224899 10.410491" nodeId="36">
+                            <TransformGroup name="ear_l_02_jnt" translation="0.022383 0.001214 0.010195" rotation="177.957855 -24.457027 3.103611" nodeId="37">
+                              <TransformGroup name="ear_l_03_jnt" translation="0.041906 0 0" nodeId="38"/>
+                            </TransformGroup>
+                          </TransformGroup>
+                          <TransformGroup name="ear_r_01_jnt" translation="0.081647 -0.006699 -0.060359" rotation="-48.284805 53.030533 -16.120991" nodeId="39">
+                            <TransformGroup name="ear_r_02_jnt" translation="0.023494 -0.005121 0.00531" rotation="-80.428398 12.452632 167.704727" nodeId="40">
+                              <TransformGroup name="ear_r_03_jnt" translation="-0.041906 0 0" nodeId="41"/>
+                            </TransformGroup>
+                          </TransformGroup>
+                        </TransformGroup>
+                      </TransformGroup>
+                    </TransformGroup>
+                  </TransformGroup>
+                </TransformGroup>
+              </TransformGroup>
+            </TransformGroup>
+          </TransformGroup>
+          <TransformGroup name="tail_00_jnt" translation="-0.080034 0.019995 0" rotation="-5.528717 2.23434 -158.061584" nodeId="42">
+            <TransformGroup name="tail_01_jnt" translation="0.064596 0 0" rotation="4.99901 -3.499674 12.863412" nodeId="43">
+              <TransformGroup name="tail_02_jnt" translation="0.091619 0 0" nodeId="44"/>
+            </TransformGroup>
+          </TransformGroup>
+          <TransformGroup name="r_legBack_Leg_jnt" translation="-0.028145 -0.059308 0.073121" rotation="0 0 -81.083267" nodeId="45">
+            <TransformGroup name="r_legBack_Knee_jnt" translation="0.196405 0 0" rotation="0 0 -43.578064" nodeId="46">
+              <TransformGroup name="r_legBack_KneeB_jnt" translation="0.215873 0 0" rotation="0 0 40.009415" nodeId="47">
+                <TransformGroup name="r_FootBack_Ankle_jnt" translation="0.282561 0 0" rotation="0 0 60.812901" nodeId="48">
+                  <TransformGroup name="r_FootBack_Middle_jnt" translation="0.039263 0 0" rotation="0 0 23.792999" nodeId="49"/>
+                </TransformGroup>
+              </TransformGroup>
+            </TransformGroup>
+          </TransformGroup>
+          <TransformGroup name="l_LegBack_Leg_jnt" translation="-0.028145 -0.059308 -0.073121" rotation="0 0 -81.083267" nodeId="50">
+            <TransformGroup name="l_LegBack_Knee_jnt" translation="0.196405 0 0" rotation="0 0 -43.578064" nodeId="51">
+              <TransformGroup name="l_LegBack_KneeB_jnt" translation="0.215873 0 0" rotation="0 0 40.009415" nodeId="52">
+                <TransformGroup name="l_FootBack_Ankle_jnt" translation="0.282561 0 0" rotation="0 0 60.812904" nodeId="53">
+                  <TransformGroup name="l_FootBack_Middle_jnt" translation="0.039263 0 0" rotation="0 0 23.792999" nodeId="54"/>
+                </TransformGroup>
+              </TransformGroup>
+            </TransformGroup>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+    <TransformGroup name="alpacaKid" clipDistance="300" nodeId="55">
+      <Shape name="body" shapeId="1" castsShadows="true" receiveShadows="true" materialIds="1" skinBindNodeIds="23 36 37 38 39 40 41 33 31 35 24 53 54 18 19 52 51 50 14 17 16 15 20 21 34 48 49 12 13 47 46 45 8 11 10 9 3 4 5 6 7 42 43 44" clipDistance="300" nodeId="56"/>
+      <Shape name="eye" shapeId="2" castsShadows="true" receiveShadows="true" materialIds="1" skinBindNodeIds="28 29" clipDistance="300" nodeId="57"/>
+      <Shape name="teeth" shapeId="3" castsShadows="true" receiveShadows="true" materialIds="1" skinBindNodeIds="23 24" clipDistance="300" nodeId="58"/>
+      <Shape name="tonge" shapeId="4" castsShadows="true" receiveShadows="true" materialIds="1" skinBindNodeIds="25 26 27" clipDistance="300" nodeId="59"/>
+      <TransformGroup name="hair" clipDistance="300" nodeId="60">
+        <Shape name="fullHair01" shapeId="5" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 36 37 38 39 40 41 33 31 35 24 53 54 18 19 52 51 50 14 17 16 15 20 21 34 48 49 12 13 47 46 45 8 11 10 9 3 4 5 6 7 42 43 44" clipDistance="10" nodeId="61"/>
+        <Shape name="fullHair02" shapeId="6" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 36 37 38 39 40 41 33 31 35 24 53 54 18 19 52 51 50 14 17 16 15 20 21 34 48 49 12 13 47 46 45 8 11 10 9 3 4 5 6 7 42 43 44" clipDistance="10" nodeId="62"/>
+        <Shape name="cheeksHair" shapeId="7" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 24 21" clipDistance="10" nodeId="63"/>
+        <Shape name="earHair" shapeId="8" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 36 37 38 39 40 41 28 29 22" clipDistance="10" nodeId="64"/>
+        <Shape name="headHair" shapeId="9" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 36 37 38 39 40 41 33 32 31 35 24 22" clipDistance="10" nodeId="65"/>
+        <Shape name="bodyHair" shapeId="10" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 36 39 52 51 50 14 17 16 15 20 21 47 46 45 8 11 10 9 3 4 5 6 7 42 43" clipDistance="10" nodeId="66"/>
+        <Shape name="tailHair" shapeId="11" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="50 45 3 42 43 44" clipDistance="10" nodeId="67"/>
+        <Shape name="eyelashes" shapeId="12" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 33 31" clipDistance="10" nodeId="68"/>
+        <TransformGroup name="reverse" clipDistance="10" nodeId="69">
+          <Shape name="cheeksHair" shapeId="13" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 24 21" clipDistance="10" nodeId="70"/>
+          <Shape name="earHair" shapeId="14" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 36 37 38 39 40 41 28 29 22" clipDistance="10" nodeId="71"/>
+          <Shape name="headHair" shapeId="15" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 36 37 38 39 40 41 33 32 31 35 24 22" clipDistance="10" nodeId="72"/>
+          <Shape name="bodyHair" shapeId="16" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 36 39 52 51 50 14 17 16 15 20 21 47 46 45 8 11 10 9 3 4 5 6 7 42 43" clipDistance="10" nodeId="73"/>
+          <Shape name="tailHair" shapeId="17" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="50 45 3 42 43 44" clipDistance="10" nodeId="74"/>
+          <Shape name="eyelashes" shapeId="18" castsShadows="false" receiveShadows="true" materialIds="2" skinBindNodeIds="23 33 31" clipDistance="10" nodeId="75"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+    <Shape name="alpacaKidproxy" visibility="false" shapeId="19" kinematic="true" linearDamping="0.5" angularDamping="0.5" collisionFilterGroup="0x200000" collisionFilterMask="0xfffffbff" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="3" nodeId="76"/>
+  </Scene>
+
+</i3D>

@@ -1,7 +1,7 @@
 ModHubCategoriesFrame = {}
 local ModHubCategoriesFrame_mt = Class(ModHubCategoriesFrame, TabbedMenuFrameElement)
 local NO_CALLBACK = function() end
-ModHubCategoriesFrame.SUB_CATEGORY = { CATEGORIES = 1, BEST = 2, MOST_DOWNLOADED = 3, LATEST = 4, RECOMMENDED = 5 }
+ModHubCategoriesFrame.SUB_CATEGORY = { CATEGORIES = 1, BEST = 2, RECOMMENDED = 3, LATEST = 4, MOST_DOWNLOADED = 5 }
 function ModHubCategoriesFrame.register()
 	local modHubCategoriesFrame = ModHubCategoriesFrame.new()
 	g_gui:loadGui("dataS/gui/ModHubCategoriesFrame.xml", "ModHubCategoriesFrame", modHubCategoriesFrame, true)
@@ -341,8 +341,8 @@ function ModHubCategoriesFrame:populateCellForItemInSection(list, section, index
 		cell:getAttribute("installedIcon"):setVisible(modInfo:getIsInstalled())
 	end
 end
-ModHubCategoriesFrame.HEADER_SLICES = { [ModHubCategoriesFrame.SUB_CATEGORY.CATEGORIES] = "gui.modhub_categories", [ModHubCategoriesFrame.SUB_CATEGORY.BEST] = "gui.modHub_best", [ModHubCategoriesFrame.SUB_CATEGORY.MOST_DOWNLOADED] = "gui.modHub_mostDownloaded", [ModHubCategoriesFrame.SUB_CATEGORY.LATEST] = "gui.modHub_latest", [ModHubCategoriesFrame.SUB_CATEGORY.RECOMMENDED] = "gui.modHub_recommended" }
-ModHubCategoriesFrame.HEADER_TITLES = { [ModHubCategoriesFrame.SUB_CATEGORY.CATEGORIES] = "ui_modHubCategories", [ModHubCategoriesFrame.SUB_CATEGORY.BEST] = "modHub_best", [ModHubCategoriesFrame.SUB_CATEGORY.MOST_DOWNLOADED] = "modHub_most_downloaded", [ModHubCategoriesFrame.SUB_CATEGORY.LATEST] = "modHub_latest", [ModHubCategoriesFrame.SUB_CATEGORY.RECOMMENDED] = "category_recommended" }
-ModHubCategoriesFrame.CATEGORY_IDS = { [ModHubCategoriesFrame.SUB_CATEGORY.BEST] = "best", [ModHubCategoriesFrame.SUB_CATEGORY.MOST_DOWNLOADED] = "most_downloaded", [ModHubCategoriesFrame.SUB_CATEGORY.LATEST] = "latest", [ModHubCategoriesFrame.SUB_CATEGORY.RECOMMENDED] = "recommended" }
+ModHubCategoriesFrame.HEADER_SLICES = { [ModHubCategoriesFrame.SUB_CATEGORY.CATEGORIES] = "gui.modhub_categories", [ModHubCategoriesFrame.SUB_CATEGORY.BEST] = "gui.modHub_best", [ModHubCategoriesFrame.SUB_CATEGORY.RECOMMENDED] = "gui.modHub_recommended", [ModHubCategoriesFrame.SUB_CATEGORY.LATEST] = "gui.modHub_latest", [ModHubCategoriesFrame.SUB_CATEGORY.MOST_DOWNLOADED] = "gui.modHub_mostDownloaded" }
+ModHubCategoriesFrame.HEADER_TITLES = { [ModHubCategoriesFrame.SUB_CATEGORY.CATEGORIES] = "ui_modHubCategories", [ModHubCategoriesFrame.SUB_CATEGORY.BEST] = "modHub_best", [ModHubCategoriesFrame.SUB_CATEGORY.RECOMMENDED] = "category_recommended", [ModHubCategoriesFrame.SUB_CATEGORY.LATEST] = "modHub_latest", [ModHubCategoriesFrame.SUB_CATEGORY.MOST_DOWNLOADED] = "modHub_most_downloaded" }
+ModHubCategoriesFrame.CATEGORY_IDS = { [ModHubCategoriesFrame.SUB_CATEGORY.BEST] = "best", [ModHubCategoriesFrame.SUB_CATEGORY.RECOMMENDED] = "recommended", [ModHubCategoriesFrame.SUB_CATEGORY.LATEST] = "latest", [ModHubCategoriesFrame.SUB_CATEGORY.MOST_DOWNLOADED] = "most_downloaded" }
 ModHubCategoriesFrame.PROFILE = { RATING_STAR_ACTIVE = "fs25_modHubAttributeRatingStarActive", RATING_STAR = "fs25_modHubAttributeRatingStar" }
 ModHubCategoriesFrame.L10N_SYMBOL = { STATUS_PENDING = "modHub_pending", STATUS_UPDATE = "modHub_update", STATUS_INSTALLED = "modHub_installed", STATUS_FAILED = "modHub_failed", BUTTON_DETAILS = "button_detail", BUTTON_SHOW_ALL = "button_modHubShowAll", BUTTON_SHOW_TOP = "button_modHubShowTop" }

@@ -113,6 +113,9 @@ function NPCManager:loadNPC(xmlFile, key, missionInfo, baseDirectory)
 	end
 end
 function NPCManager:saveToXMLFile(xmlFilename)
+	if self.npcs == nil or #self.npcs == 0 then
+		return true
+	end
 	local xmlFile = XMLFile.create("npcsXML", xmlFilename, "npcs", NPCManager.xmlSchemaSavegame)
 	if xmlFile == nil then
 		Logging.error("Failed to create npc xml file")

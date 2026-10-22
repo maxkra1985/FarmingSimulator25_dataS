@@ -337,17 +337,53 @@ end
 if GS_IS_EDITOR then
 	RainSimWeatherType = RainSimWeatherType
 	getUserName = getUserName or function(...)
-		return ""
+		return "UNKNOWN_USER"
 	end
 	getUserId = getUserId or function(...)
 		return ""
 	end
 	reportUser = reportUser or function(uniqueUserId, platformUserId, platformId, reason, ...) end
 	addConsoleCommand = addConsoleCommand or function(commandName, description, functionName, target, targetArgumentNames, excludeFromHistory, ...)
-		return true
+		local command = _G[commandName]
+		if command ~= nil then
+			printError(string.format("Error: Failed to register console command '%s. A global with the same name already exists!", commandName))
+			return false
+		else
+			_G[commandName] = function(...)
+				local func = nil
+				if target ~= nil then
+					func = target[functionName]
+				else
+					func = _G[functionName]
+				end
+				if type(func) ~= "function" then
+					printError(string.format("Error: Failed to execute console command '%s. Function '%s' does not exist!", commandName, functionName))
+				elseif target ~= nil then
+					func(target, ...)
+				else
+					func(...)
+				end
+			end
+			return true
+		end
 	end
-	removeConsoleCommand = removeConsoleCommand or function(commandName, ...) end
-	executeConsoleCommand = executeConsoleCommand or function(consoleCommandName, excludeFromHistory, ...) end
+	removeConsoleCommand = removeConsoleCommand or function(commandName, ...)
+		if _G[commandName] == nil then
+			printError(string.format("Error: Failed to remove console command '%s. Command does not exist!", commandName))
+			return false
+		else
+			_G[commandName] = nil
+			return true
+		end
+	end
+	executeConsoleCommand = executeConsoleCommand or function(consoleCommandName, excludeFromHistory, ...)
+		local command = _G[consoleCommandName]
+		if command == nil then
+			printError(string.format("Error: Console command '%s' does not exist!", consoleCommandName))
+		else
+			command(...)
+		end
+	end
 	getAppBasePath = getAppBasePath or function()
 		return getGameBasePath() or ""
 	end

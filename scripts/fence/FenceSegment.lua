@@ -4,11 +4,14 @@ source("dataS/scripts/utils/Utils.lua")
 source("dataS/scripts/misc/Logging.lua")
 source("dataS/scripts/fence/FenceNewSegmentEvent.lua")
 source("dataS/scripts/fence/FenceSegmentEvent.lua")
+source("dataS/scripts/fence/FenceSegmentBatchEvent.lua")
 source("dataS/scripts/fence/FenceDeleteSegmentEvent.lua")
 source("dataS/scripts/fence/FenceRequestDeleteSegmentEvent.lua")
+source("dataS/scripts/fence/FenceRequestDeleteSegmentPartEvent.lua")
 FenceSegment = {}
 FenceSegment.DEFAULT_PRICE_PER_M = 100
 FenceSegment.USER_ATTRIBUTE_VARIATION = "variationName"
+FenceSegment.PANEL_LENGTH_TOLERANCE = 0.01
 FenceSegment.ERROR_TOO_SHORT = 1
 FenceSegment.ERROR_TOO_STEEP = 2
 local FenceSegment_mt = Class(FenceSegment)
@@ -37,6 +40,7 @@ function FenceSegment.registerXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".panels.panel(?)#width", "")
 	schema:register(XMLValueType.FLOAT, basePath .. ".panels.panel(?)#height", "")
 	schema:register(XMLValueType.BOOL, basePath .. ".panels.panel(?)#alignY", "")
+	schema:register(XMLValueType.BOOL, basePath .. ".panels.panel(?)#scaleZ", "")
 end
 function FenceSegment.registerSavegameXMLPaths(schema, basePath)
 	schema:register(XMLValueType.VECTOR_TRANS, basePath .. "#start", "Segment start position")
@@ -83,6 +87,7 @@ function FenceSegment.loadMetadataFromXML(xmlFile, key, id, fence)
 		local height = xmlFile:getFloat(poleKey .. "#height", 2)
 		local nodeClone = clone(node, false, false, false)
 		local templateId = fence.nodeCache:addTemplate(nodeClone)
+		fence:addSourceNode(node)
 		metadata.maxWidth = math.max(metadata.maxWidth, radius * 2)
 		metadata.maxHeight = math.max(metadata.maxHeight, height)
 		metadata.poleNames = metadata.poleNames or {}
@@ -109,8 +114,10 @@ function FenceSegment.loadMetadataFromXML(xmlFile, key, id, fence)
 		local width = xmlFile:getFloat(panelKey .. "#width", 0)
 		local height = xmlFile:getFloat(panelKey .. "#height", 2)
 		local alignY = xmlFile:getBool(panelKey .. "#alignY")
+		local scaleZ = xmlFile:getBool(panelKey .. "#scaleZ")
 		local nodeClone = clone(node, false, false, false)
 		local templateId = fence.nodeCache:addTemplate(nodeClone)
+		fence:addSourceNode(node)
 		metadata.maxWidth = math.max(metadata.maxWidth, width)
 		metadata.maxHeight = math.max(metadata.maxHeight, height)
 		local collisionIndexPath = nil
@@ -121,7 +128,7 @@ function FenceSegment.loadMetadataFromXML(xmlFile, key, id, fence)
 			collisionIndexPath = I3DUtil.getNodePathIndices(collisionNode, node, false)
 			colPosX, colPosY, colPosZ = getTranslation(collisionNode)
 		end
-		local panel = { node = node, collisionIndexPath = collisionIndexPath, length = length, height = height, alignY = alignY, template = templateId, colPosX = colPosX, colPosY = colPosY, colPosZ = colPosZ, variationName = variationName }
+		local panel = { node = node, collisionIndexPath = collisionIndexPath, length = length, height = height, alignY = alignY, scaleZ = scaleZ, template = templateId, colPosX = colPosX, colPosY = colPosY, colPosZ = colPosZ, variationName = variationName }
 		if variationName ~= nil then
 			if variationNameToPanel[variationName] ~= nil then
 				Logging.xmlWarning(xmlFile, "Variation name already defined for '%s'", panelKey)
@@ -208,7 +215,7 @@ function FenceSegment:delete()
 	end
 	local startNeighbor = nil
 	local endNeighbor = nil
-	if self.fence ~= nil then
+	if self.fence ~= nil and not self.fence.isBeingDeleted then
 		if self.startPosX ~= nil then
 			startNeighbor = self.fence:getNeighborSegmentNeedingPoleUpdate(self.startPosX, self.startPosY, self.startPosZ, 0.1, self.id)
 		end
@@ -221,18 +228,10 @@ function FenceSegment:delete()
 		self.fence = nil
 	end
 	if startNeighbor ~= nil then
-		startNeighbor:removeNodeObjectMapping()
-		startNeighbor:removeFromPhysics()
-		startNeighbor:updateMeshes(true, false)
-		startNeighbor:addToPhysics()
-		startNeighbor:addNodeObjectMapping()
+		startNeighbor:rebuildMeshes()
 	end
 	if endNeighbor ~= nil and endNeighbor ~= startNeighbor then
-		endNeighbor:removeNodeObjectMapping()
-		endNeighbor:removeFromPhysics()
-		endNeighbor:updateMeshes(true, false)
-		endNeighbor:addToPhysics()
-		endNeighbor:addNodeObjectMapping()
+		endNeighbor:rebuildMeshes()
 	end
 	if self.root ~= nil then
 		if not self.notYetFinalized then
@@ -244,6 +243,7 @@ function FenceSegment:delete()
 		self.root = nil
 	end
 end
+function FenceSegment:onSegmentSplit(removedPanelNode, isFirst, isLast) end
 function FenceSegment:loadFromXMLFile(xmlFile, key)
 	local sx, sy, sz = xmlFile:getTranslation(key .. "#start")
 	local ex, ey, ez = xmlFile:getTranslation(key .. "#end")
@@ -290,6 +290,7 @@ function FenceSegment:readStream(streamId, connection, lastSegment)
 		self.hasStartPole = streamReadBool(streamId)
 		self.hasEndPole = streamReadBool(streamId)
 	end
+	self.isRebuiltFromSplit = streamReadBool(streamId)
 	self:registerTerrainHeightChangeCallbacks()
 end
 function FenceSegment:writeStream(streamId, connection, lastSegment)
@@ -314,15 +315,14 @@ function FenceSegment:writeStream(streamId, connection, lastSegment)
 		streamWriteBool(streamId, Utils.getNoNil(self.hasStartPole, false))
 		streamWriteBool(streamId, Utils.getNoNil(self.hasEndPole, false))
 	end
+	streamWriteBool(streamId, self.isRebuiltFromSplit == true)
 end
 function FenceSegment:registerTerrainHeightChangeCallbacks()
-	local dirX = self.endPosX - self.startPosX
-	local dirZ = self.endPosZ - self.startPosZ
-	if dirX == 0 and dirZ == 0 then
+	local dirX, dirZ = self:getDirectionXZ()
+	if dirX == nil then
 		return
 	end
-	local length = MathUtil.vector2Length(dirX, dirZ)
-	dirX, dirZ = MathUtil.vector2Normalize(dirX, dirZ)
+	local length = MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
 	local terrainDeformationSyncer = g_currentMission.terrainDeformationSyncer
 	local offset = 0
 	local stepSize = 0.5
@@ -358,9 +358,10 @@ function FenceSegment:onTerrainDeformationSyncerUpdate(cellX, cellZ, cellId)
 			self:removeNodeObjectMapping()
 			removeFromPhysics(self.root)
 			self:updateMeshes(true, false)
-			addToPhysics(self.root)
+			self:addToPhysics()
 			self:addNodeObjectMapping()
 			self:setCollisionAreaDirty()
+			self:onMeshesRebuilt()
 			self.pendingUpdateTimer = nil
 		end)
 		self.pendingUpdateTimer:start()
@@ -409,11 +410,31 @@ end
 function FenceSegment:getStartPos()
 	return self.startPosX, self.startPosY, self.startPosZ
 end
+function FenceSegment:getStartPosVector()
+	if self.startPosX == nil then
+		return nil
+	else
+		return vector.create(self.startPosX, self.startPosY, self.startPosZ)
+	end
+end
 function FenceSegment:getLength()
 	if self.startPosX == nil or self.endPosX == nil then
 		return 0
 	end
 	return MathUtil.vector3Length(self.endPosX - self.startPosX, self.endPosY - self.startPosY, self.endPosZ - self.startPosZ)
+end
+function FenceSegment:getDirectionXZ()
+	if self.startPosX == nil or self.endPosX == nil then
+		return nil, nil
+	end
+	local dirX = self.endPosX - self.startPosX
+	local dirZ = self.endPosZ - self.startPosZ
+	if MathUtil.vector2Length(dirX, dirZ) <= 0 then
+		return nil, nil
+	else
+		local normalizedX, normalizedZ = MathUtil.vector2Normalize(dirX, dirZ)
+		return normalizedX, normalizedZ
+	end
 end
 function FenceSegment:getActualLength()
 	if self.startPosX == nil or self.actualEndX == nil then
@@ -427,6 +448,21 @@ end
 function FenceSegment:getEndPos()
 	return self.endPosX, self.endPosY, self.endPosZ
 end
+function FenceSegment:getEndPosVector()
+	if self.endPosX == nil then
+		return nil
+	else
+		return vector.create(self.endPosX, self.endPosY, self.endPosZ)
+	end
+end
+function FenceSegment:setSeedOrigin(x, y, z)
+	self.seedOriginX = x
+	self.seedOriginY = y
+	self.seedOriginZ = z
+end
+function FenceSegment:getSeedOrigin()
+	return self.seedOriginX or self.startPosX, self.seedOriginY or self.startPosY, self.seedOriginZ or self.startPosZ
+end
 function FenceSegment:getActualEndPos()
 	return self.actualEndX, self.actualEndY, self.actualEndZ
 end
@@ -437,19 +473,30 @@ function FenceSegment:getMinimumPanelLength()
 	end
 	return panels[#panels].length
 end
+function FenceSegment:getSnapDistance()
+	local metadata = self.metadata
+	if metadata.parallelSnapping ~= nil and metadata.parallelSnapping.snapDistance ~= nil then
+		return metadata.parallelSnapping.snapDistance
+	end
+	if metadata.snapDistance ~= nil then
+		return metadata.snapDistance
+	else
+		return self:getMinimumPanelLength()
+	end
+end
 function FenceSegment:getLastError()
 	return self.lastError
 end
 function FenceSegment:updateMeshes(force, validatePlacement)
 	force = Utils.getNoNil(force, false)
 	validatePlacement = Utils.getNoNil(validatePlacement, true)
-	if g_server ~= nil then
-		self.hasStartPole = nil
-		self.hasEndPole = nil
-	end
 	self.lastError = nil
 	if not force and not self.isDirty then
 		return true
+	end
+	if g_server ~= nil then
+		self.hasStartPole = nil
+		self.hasEndPole = nil
 	end
 	if self.startPosX == nil or self.endPosX == nil then
 		return false
@@ -469,19 +516,31 @@ function FenceSegment:updateMeshes(force, validatePlacement)
 		if self.metadata.poles and 0 < #self.metadata.poles then
 			self:placePole(self.startPosX, self.startPosY, self.startPosZ, 1, 0)
 		end
+		self.actualStartX = self.startPosX
+		self.actualStartY = self.startPosY
+		self.actualStartZ = self.startPosZ
 		self.lastError = FenceSegment.ERROR_TOO_SHORT
 		return false
 	elseif MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ) < 0.1 then
+		self.actualStartX = self.startPosX
+		self.actualStartY = self.startPosY
+		self.actualStartZ = self.startPosZ
 		self.lastError = FenceSegment.ERROR_TOO_SHORT
 		return false
 	else
 		local segmentLengthXZ = MathUtil.vector2Length(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
+		local startX, startY, startZ = self:lerpOnTerrain(terrain, 0)
+		self.actualStartX = startX
+		self.actualStartY = startY
+		self.actualStartZ = startZ
 		local curLen = 0
 		local dx, dz = MathUtil.vector2Normalize(self.endPosX - self.startPosX, self.endPosZ - self.startPosZ)
 		local x = nil
 		local y = nil
 		local z = nil
-		local lastY = self.startPosY
+		local lastY = startY
+		local seedOriginX, seedOriginY, seedOriginZ = self:getSeedOrigin()
+		local seedBaseOffset = MathUtil.vector2Length(self.startPosX - seedOriginX, self.startPosZ - seedOriginZ)
 		local previousPanel = nil
 		local previousPanelLength = 0
 		local previousPanelData = nil
@@ -489,42 +548,32 @@ function FenceSegment:updateMeshes(force, validatePlacement)
 		local minScale = 1 - maxScaleDiff
 		local maxScale = 1 + maxScaleDiff
 		local shortestPanelLength = self.metadata.panels[#self.metadata.panels].length
+		local minBuildableLengthXZ = shortestPanelLength * minScale - FenceSegment.PANEL_LENGTH_TOLERANCE
+		if validatePlacement and segmentLengthXZ < minBuildableLengthXZ then
+			if self.metadata.poles and 0 < #self.metadata.poles then
+				self:placePole(startX, startY, startZ, dx, dz)
+			end
+			self.lastError = FenceSegment.ERROR_TOO_SHORT
+			return false
+		end
 		local isFirstPole = true
 		for _, panelGroup in ipairs(self.metadata.panelsGroupedByLength) do
 			local panelGroupLength = panelGroup[1].length
-			while panelGroupLength * minScale - 0.01 <= segmentLengthXZ - curLen do
+			while panelGroupLength * minScale - FenceSegment.PANEL_LENGTH_TOLERANCE <= segmentLengthXZ - curLen do
 				local randomPanelIndex = 1
 				if self.metadata.panelsUseRandomization then
-					randomPanelIndex = Fence.getDeterministicRandomValueForPosition(self.startPosX + curLen / 5, self.startPosY + curLen, self.startPosZ + curLen / 3, #panelGroup)
+					local seedDistance = seedBaseOffset + curLen
+					randomPanelIndex = Fence.getSmoothRandomIndexForPosition(seedOriginX + seedDistance / 5, seedOriginY + seedDistance, seedOriginZ + seedDistance / 3, Fence.VARIANT_NOISE_FREQUENCY, Fence.VARIANT_NOISE_OFFSET_PANEL, #panelGroup)
 				end
 				local panelData = panelGroup[randomPanelIndex]
 				if self.metadata.poles and 0 < #self.metadata.poles then
 					x, y, z = self:lerpOnTerrain(terrain, curLen / segmentLengthXZ)
-					local poleTemplate = self.metadata.poles[Fence.getDeterministicRandomValueForPosition(x, y, z, #self.metadata.poles)]
+					local poleTemplate = self.metadata.poles[Fence.getSmoothRandomIndexForPosition(x, y, z, Fence.VARIANT_NOISE_FREQUENCY, Fence.VARIANT_NOISE_OFFSET_POLE, #self.metadata.poles)]
 					local needsPole = true
 					if isFirstPole then
 						if g_server ~= nil then
-							local segment, isStartPole = self.fence:getNearPoleSegment(x, y, z, math.max(poleTemplate.radius, 0.05), self.id)
-							if segment ~= nil then
-								if isStartPole then
-									local hasVisualStartPole = false
-									if segment.getHasVisualStartPole ~= nil then
-										hasVisualStartPole = segment:getHasVisualStartPole()
-									end
-									local hasAlreadyStartPole = segment.hasStartPole
-									if hasVisualStartPole and hasAlreadyStartPole then
-										needsPole = false
-									end
-								else
-									local hasVisualEndPole = false
-									if segment.getHasVisualEndPole ~= nil then
-										hasVisualEndPole = segment:getHasVisualEndPole()
-									end
-									local hasAlreadyEndPole = segment.hasEndPole
-									if hasVisualEndPole and hasAlreadyEndPole then
-										needsPole = false
-									end
-								end
+							if self:getNeighborRendersPoleAt(x, y, z, math.max(poleTemplate.radius, 0.05)) then
+								needsPole = false
 							end
 							self.hasStartPole = needsPole
 						else
@@ -583,7 +632,8 @@ function FenceSegment:updateMeshes(force, validatePlacement)
 					local alignedLength = MathUtil.vector3Length(endX - x, endY - y, endZ - z)
 					scale = alignedLength / panelData.length
 				end
-				if scale ~= 1 then
+				local doScale = panelData.scaleZ == nil or panelData.scaleZ == true
+				if doScale and scale ~= 1 then
 					setScale(panel, 1, 1, scale)
 				end
 				curLen = curLen + actualPanelLength
@@ -597,20 +647,8 @@ function FenceSegment:updateMeshes(force, validatePlacement)
 		if self.metadata.poles and 0 < #self.metadata.poles then
 			local needsPole = true
 			if g_server ~= nil then
-				local segment, isStartPole = self.fence:getNearPoleSegment(x, y, z, 0.05, self.id)
-				if segment ~= nil then
-					if isStartPole then
-						if segment.getHasVisualStartPole ~= nil then
-							local hasStartPole = segment:getHasVisualStartPole()
-							if hasStartPole then
-								needsPole = false
-							end
-						end
-					elseif segment.getHasVisualEndPole ~= nil then
-						if segment:getHasVisualEndPole() then
-							needsPole = false
-						end
-					end
+				if self:getNeighborRendersPoleAt(x, y, z, 0.05) then
+					needsPole = false
 				end
 				self.hasEndPole = needsPole
 			else
@@ -631,10 +669,19 @@ function FenceSegment:updateMeshes(force, validatePlacement)
 		return true
 	end
 end
+function FenceSegment:rebuildMeshes()
+	self:removeNodeObjectMapping()
+	self:removeFromPhysics()
+	self:updateMeshes(true, false)
+	self:addToPhysics()
+	self:addNodeObjectMapping()
+	self:onMeshesRebuilt()
+end
+function FenceSegment:onMeshesRebuilt() end
 function FenceSegment:placePole(x, y, z, dx, dz)
-	local sx, sy, sz = self:getStartPos()
+	local sx, sy, sz = self:getSeedOrigin()
 	local distance = MathUtil.vector2Length(x - sx, z - sz)
-	local randomIndex = Fence.getDeterministicRandomValueForPosition(sx + distance / 5, sy + distance, sz + distance / 3, #self.metadata.poles)
+	local randomIndex = Fence.getSmoothRandomIndexForPosition(sx + distance / 5, sy + distance, sz + distance / 3, Fence.VARIANT_NOISE_FREQUENCY, Fence.VARIANT_NOISE_OFFSET_POLE, #self.metadata.poles)
 	local poleTemplate = self.metadata.poles[randomIndex]
 	local pole = self.fence.nodeCache:getNodeInstance(poleTemplate.template)
 	removeFromPhysics(pole)
@@ -658,6 +705,13 @@ function FenceSegment:lerpOnTerrain(terrain, alpha)
 	y = getTerrainHeightAtWorldPos(terrain, x, 0, z)
 	return x, y, z
 end
+function FenceSegment:getEndpointClearance(x, z, clearance)
+	if self.fence:getHasSegmentEndNear(x, z, Fence.CONNECTED_END_DISTANCE, self) then
+		return 0
+	else
+		return clearance
+	end
+end
 function FenceSegment:getOverlapBox(length)
 	length = length or MathUtil.vector3Length(self.actualEndX - self.startPosX, self.actualEndY - self.startPosY, self.actualEndZ - self.startPosZ)
 	local cx = (self.startPosX + self.actualEndX) / 2
@@ -673,8 +727,19 @@ function FenceSegment:getOverlapBox(length)
 	local ez = length / 2
 	local boundingCheckWidth = self.metadata.boundingCheckWidth
 	if boundingCheckWidth ~= nil then
-		ex = boundingCheckWidth * 0.5
-		ez = length * 0.5 + boundingCheckWidth * 0.5
+		local clearance = boundingCheckWidth * 0.5
+		local startClearance = self:getEndpointClearance(self.startPosX, self.startPosZ, clearance)
+		local endClearance = self:getEndpointClearance(self.actualEndX, self.actualEndZ, clearance)
+		ex = clearance
+		ez = length * 0.5 + (startClearance + endClearance) * 0.5
+		local centerOffset = (endClearance - startClearance) * 0.5
+		local dirX = self.actualEndX - self.startPosX
+		local dirZ = self.actualEndZ - self.startPosZ
+		if centerOffset ~= 0 and 0 < MathUtil.vector2Length(dirX, dirZ) then
+			local normalizedX, normalizedZ = MathUtil.vector2Normalize(dirX, dirZ)
+			cx = cx + normalizedX * centerOffset
+			cz = cz + normalizedZ * centerOffset
+		end
 	end
 	return cx, cy, cz, 0, ry, 0, ex, ey, ez
 end
@@ -691,8 +756,10 @@ function FenceSegment:checkOverlap(hitNodesTable, ignoreChildrenNode)
 		self.hitNodesTable = hitNodesTable
 		self.ignoreChildrenNode = ignoreChildrenNode
 		local mask = CollisionFlag.STATIC_OBJECT + CollisionFlag.BUILDING + CollisionFlag.PLAYER + CollisionFlag.VEHICLE + CollisionFlag.TREE + CollisionFlag.DYNAMIC_OBJECT
-		overlapCylinder(self.startPosX, self.startPosY + 0.5, self.startPosZ, 0.15, 3, Axis.Y, "onOverlapCylinderCallback", self, mask, false, true, true, true)
-		overlapCylinder(self.actualEndX, self.actualEndY + 0.5, self.actualEndZ, 0.15, 3, Axis.Y, "onOverlapCylinderCallback", self, mask, false, true, true, true)
+		local ignoreHeight = math.max(3, self.metadata.maxHeight + 1)
+		local ignoreCenterOffset = ignoreHeight * 0.5 - 0.5
+		overlapCylinder(self.startPosX, self.startPosY + ignoreCenterOffset, self.startPosZ, 0.15, ignoreHeight, Axis.Y, "onOverlapCylinderCallback", self, mask, false, true, true, true)
+		overlapCylinder(self.actualEndX, self.actualEndY + ignoreCenterOffset, self.actualEndZ, 0.15, ignoreHeight, Axis.Y, "onOverlapCylinderCallback", self, mask, false, true, true, true)
 		overlapBox(cx, cy, cz, rx, ry, rz, ex, ey, ez, "onOverlapBoxCallback", self, mask, true, true, true, true)
 		self.hitNodesTable = nil
 		self.ignoreNodes = nil
@@ -779,6 +846,30 @@ function FenceSegment:getSegmentPartStartEnd(node)
 		return sx, sy, sz, ex, ey, ez, isFirst, isLast
 	end
 end
+function FenceSegment:getDeletablePanelFromNode(node)
+	local part, childIndex = self:getSegmentPartFromNode(node)
+	if part == nil then
+		return nil
+	elseif self.metadata.poleNames == nil or self.metadata.poleNames[getName(part)] == nil then
+		return part, childIndex
+	else
+		local prevIndex = childIndex - 1
+		if 0 <= prevIndex then
+			local prevPart = getChildAt(self.root, prevIndex)
+			if self.metadata.poleNames[getName(prevPart)] == nil then
+				return prevPart, prevIndex
+			end
+		end
+		local nextIndex = childIndex + 1
+		if nextIndex < getNumOfChildren(self.root) then
+			local nextPart = getChildAt(self.root, nextIndex)
+			if self.metadata.poleNames[getName(nextPart)] == nil then
+				return nextPart, nextIndex
+			end
+		end
+		return nil
+	end
+end
 function FenceSegment:getId()
 	return self.metadata.id
 end
@@ -787,6 +878,36 @@ function FenceSegment:getHasVisualEndPole()
 end
 function FenceSegment:getHasVisualStartPole()
 	return self.metadata.poles ~= nil and 0 < #self.metadata.poles
+end
+function FenceSegment:getHasOwnStartPole()
+	if not self:getHasVisualStartPole() then
+		return false
+	else
+		return self.hasStartPole ~= false
+	end
+end
+function FenceSegment:getHasOwnEndPole()
+	if not self:getHasVisualEndPole() then
+		return false
+	else
+		return self.hasEndPole ~= false
+	end
+end
+function FenceSegment:getNeighborRendersPoleAt(x, y, z, radius)
+	local segment, isStartPole, isEndPole = self.fence:getNearPoleSegment(x, y, z, radius, self.id)
+	if segment == nil then
+		return false
+	else
+		local startX, startY, startZ = segment:getStartPos()
+		if isStartPole and (startX ~= nil and MathUtil.vector3Length(startX - x, startY - y, startZ - z) < radius) then
+			return segment:getHasOwnStartPole()
+		end
+		local endX, endY, endZ = segment:getEndPos()
+		if isEndPole and (endX ~= nil and MathUtil.vector3Length(endX - x, endY - y, endZ - z) < radius) then
+			return segment:getHasOwnEndPole()
+		end
+		return true
+	end
 end
 function FenceSegment:iteratorPanels()
 	local currentChildIndex = 0
@@ -857,11 +978,17 @@ function FenceSegment:finalize(loadedFromSavegame)
 		self.endPosX = self.actualEndX or self.endPosX
 		self.endPosY = self.actualEndY or self.endPosY
 		self.endPosZ = self.actualEndZ or self.endPosZ
-		self:addToPhysics()
+		if self:getDirectionXZ() == nil then
+			Logging.warning("Fence segment %s of type %q was finalized without a horizontal direction", self.id, self:getId())
+		end
+		self:addToPhysicsOnFinalize()
 		self.fence:addSegment(self)
 		self.notYetFinalized = nil
 		return true
 	end
+end
+function FenceSegment:addToPhysicsOnFinalize()
+	self:addToPhysics()
 end
 function FenceSegment:addToPhysics()
 	addToPhysics(self.root)
@@ -903,9 +1030,35 @@ function FenceSegment:getCanBeModifiedByFarmId(farmId)
 		return false
 	end
 end
+function FenceSegment:getCanBeDeleted()
+	return true
+end
 function FenceSegment:updatePanel(panelData, panelNode, panelLength, deltaY) end
+function FenceSegment:getSnapPosition(x, y, z, rx, ry, rz)
+	return nil
+end
+function FenceSegment:getSnapPickHeight()
+	return nil
+end
 function FenceSegment:setParallelSnappingSegment(segment)
 	self.parallelSnappingSegment = segment
+end
+function FenceSegment:getPanelOrPoleDataByNode(node)
+	if node == nil or node == 0 or not entityExists(node) then
+		return nil
+	end
+	while true do
+		local variationName = getUserAttribute(node, FenceSegment.USER_ATTRIBUTE_VARIATION)
+		if variationName ~= nil then
+			break
+		end
+		node = getParent(node)
+		if node == self.root or node == 0 then
+			return nil
+		end
+	end
+	local data = self.metadata.variationNameToPanel[variationName] or self.metadata.variationNameToPole[variationName]
+	return data, node
 end
 function FenceSegment.adjustPanelOffset(panelData, panelNode, panelLength, deltaY)
 	if not panelData.alignY then

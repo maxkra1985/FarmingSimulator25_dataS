@@ -63,13 +63,14 @@ function InfoDisplayBoxPrecisionFarming:draw(posX, posY)
 				self.warningIcon:setColor(r, g, b)
 				self.warningIcon:render()
 			end
+			local valueWidth = getTextWidth(self.valueTextSize, value)
 			setTextColor(r, g, b, a)
 			setTextAlignment(RenderText.ALIGN_LEFT)
+			key = self:getLimitedKeyText(key, keyPosX, valuePosX, valueWidth)
 			renderText(keyPosX, linePosY, self.keyTextSize, key)
 			local keyWidth = getTextWidth(self.keyTextSize, key)
 			setTextAlignment(RenderText.ALIGN_RIGHT)
 			renderText(valuePosX, linePosY, self.valueTextSize, value)
-			local valueWidth = getTextWidth(self.valueTextSize, value)
 			local dashedLineStartX = keyPosX + keyWidth + 3 * g_pixelSizeX
 			local dashedLineWidth = valuePosX - valueWidth - dashedLineStartX - 3 * g_pixelSizeX
 			drawDashedLine(dashedLineStartX, linePosY, dashedLineWidth, self.dashedLineHeight, self.dashWidth, self.dashGapWidth, inactiveColor[1], inactiveColor[2], inactiveColor[3], inactiveColor[4], true)

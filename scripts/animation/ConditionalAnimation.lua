@@ -37,6 +37,8 @@ end
 ConditionalAnimation.TYPE = {}
 ConditionalAnimation.TYPE.FLOAT = 0
 ConditionalAnimation.TYPE.BOOL = 1
+ConditionalAnimation.DEBUG_HEADER_TEXT_SCALE = 1.5
+ConditionalAnimation.DEBUG_VALUE_COLUMN_GAP = 0.5
 function ConditionalAnimation.new(customMt)
 	local self = setmetatable({}, customMt or ConditionalAnimation_mt)
 	self.animationId = nil
@@ -146,7 +148,7 @@ function ConditionalAnimation:getParameter(parameterId)
 			if param.type == ConditionalAnimation.TYPE.FLOAT then
 				return getConditionalAnimationFloatValue(self.animationId, param.id)
 			elseif param.type == ConditionalAnimation.TYPE.BOOL then
-				return getConditionalAnimationFloatValue(self.animationId, param.id)
+				return getConditionalAnimationBoolValue(self.animationId, param.id)
 			else
 				Logging.warning("Unsupported conditional animation parameter type! " .. tostring(param.type))
 				return nil
@@ -161,9 +163,49 @@ function ConditionalAnimation:update(dt)
 	end
 end
 function ConditionalAnimation:debugDraw(x, y, textSize)
+	self:debugDrawState()
+	local newY = self:debugDrawParameters(x, y, textSize)
+	return newY
+end
+function ConditionalAnimation:debugDrawState()
 	if self.animationId ~= nil then
 		local wx, wy, wz = getWorldTranslation(self.skeletonNode)
 		conditionalAnimationDebugDraw(self.animationId, wx, wy, wz)
 	end
-	return y
+end
+function ConditionalAnimation:debugDrawParameters(x, y, textSize)
+	if self.animationId == nil then
+		return y
+	else
+		y = DebugUtil.renderTextLine(x, y, textSize * ConditionalAnimation.DEBUG_HEADER_TEXT_SCALE, "ConditionalAnimation", nil, true)
+		local nameColumnX = x + self.widestParameterNameWidth * textSize
+		local valueColumnX = nameColumnX + ConditionalAnimation.DEBUG_VALUE_COLUMN_GAP * textSize
+		setTextBold(false)
+		setTextColor(Color.PRESETS.WHITE:unpack())
+		for _, parameter in ipairs(self.parameters) do
+			setTextAlignment(RenderText.ALIGN_RIGHT)
+			renderText(nameColumnX, y, textSize, parameter.debugName)
+			setTextAlignment(RenderText.ALIGN_LEFT)
+			renderText(valueColumnX, y, textSize, ConditionalAnimation.getParameterValueText(parameter))
+			y = DebugUtil.renderNewLine(y, textSize)
+		end
+		setTextAlignment(RenderText.ALIGN_LEFT)
+		return y
+	end
+end
+function ConditionalAnimation:addParameterDebugValues(values)
+	if self.animationId == nil then
+		return
+	else
+		for _, parameter in ipairs(self.parameters) do
+			table.insert(values, { name = parameter.name, value = parameter.value })
+		end
+	end
+end
+function ConditionalAnimation.getParameterValueText(parameter)
+	if parameter.type == ConditionalAnimation.TYPE.FLOAT then
+		return string.format("%.4f", parameter.value)
+	else
+		return tostring(parameter.value)
+	end
 end

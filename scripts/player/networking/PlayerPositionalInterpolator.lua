@@ -55,7 +55,7 @@ function PlayerPositionalInterpolator:update(dt)
 		self.player.mover:setPosition(interpolatedPositionX, interpolatedPositionY, interpolatedPositionZ)
 		self.player.mover:setMovementYaw(interpolatedYaw)
 		self.player.mover:setSpeed(speedXZ)
-		self.player.mover:setVelocity(self.interpolatedVelocityX, self.interpolatedVelocityZ, self.interpolatedVelocityZ)
+		self.player.mover:setVelocity(self.interpolatedVelocityX, self.interpolatedVelocityY, self.interpolatedVelocityZ)
 	end
 end
 function PlayerPositionalInterpolator:updateTick(dt)

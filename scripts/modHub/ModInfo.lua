@@ -88,6 +88,9 @@ end
 function ModInfo:getIsUpdate()
 	return getModMetaAttributeBool(self.modId, "isUpdate")
 end
+function ModInfo:getCanBeUpdatedDirectly()
+	return not self:getIsExternal() and not self:getIsDLC()
+end
 function ModInfo:getIsDownload()
 	return getModMetaAttributeBool(self.modId, "isDownload")
 end

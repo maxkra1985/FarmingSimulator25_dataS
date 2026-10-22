@@ -32,7 +32,7 @@ g_xmlManager:addInitSchemaFunction(function()
 	schema:register(XMLValueType.STRING, "missionVehicles.mission(?)" .. ".group(?).vehicle(?)#filename", "Filename of the vehicle", nil, true)
 	schema:registerAutoCompletionDataSource("missionVehicles.mission(?)" .. ".group(?).vehicle(?)#filename", "dataS/storeItems.xml", "storeItems.storeItem#xmlFilename")
 	schema:register(XMLValueType.STRING, "missionVehicles.mission(?)" .. ".group(?).vehicle(?).configuration(?)#name", "Name of the configuration", nil, true)
-	schema:register(XMLValueType.INT, "missionVehicles.mission(?)" .. ".group(?).vehicle(?).configuration(?)#id", "Id of the configuration", nil, true)
+	schema:register(XMLValueType.STRING, "missionVehicles.mission(?)" .. ".group(?).vehicle(?).configuration(?)#id", "Id of the configuration (numeric index or string saveId)", nil, true)
 	local savegameSchema = MissionManager.xmlSchemaSavegame
 	savegameSchema:register(XMLValueType.INT, "missions#version", "Version")
 	for _, missionType in ipairs(g_missionManager.missionTypes) do
@@ -615,15 +615,22 @@ function MissionManager:loadVehicleGroups(xmlFilename, baseDirectory)
 							end
 							local configurations = nil
 							for _, configKey in xmlFile:iterator(vehicleKey .. ".configuration") do
-								local name = xmlFile:getValue(configKey .. "#name")
-								local id = xmlFile:getValue(configKey .. "#id")
+								local name = xmlFile:getString(configKey .. "#name")
+								local id = xmlFile:getString(configKey .. "#id")
 								if name == nil then
 									Logging.xmlError(xmlFile, "Missing 'name' attribute for configuration at %q", configKey)
 								elseif id == nil then
 									Logging.xmlError(xmlFile, "Missing 'id' attribute for configuration %q at %q", name, configKey)
 								else
+									local configId = tonumber(id)
+									if configId == nil then
+										configId = ConfigurationUtil.getConfigIdBySaveId(vehicleXMLFilename, name, id)
+										if ConfigurationUtil.getSaveIdByConfigId(vehicleXMLFilename, name, configId) ~= id then
+											Logging.xmlWarning(xmlFile, "Configuration %q has no id %q in vehicle %q at %q, using fallback", name, id, vehicleXMLFilename, configKey)
+										end
+									end
 									configurations = configurations or {}
-									configurations[name] = id
+									configurations[name] = configId
 								end
 							end
 							table.insert(vehicles, { filename = vehicleXMLFilename, configurations = configurations })

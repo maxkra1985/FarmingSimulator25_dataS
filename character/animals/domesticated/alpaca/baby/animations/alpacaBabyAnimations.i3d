@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="alpacaBabyAnimations" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Maya Exporter" version="10.0.0" revision="43376" />
+  </Asset>
+
+  <Files>
+  </Files>
+
+  <Materials>
+  </Materials>
+
+
+  <Scene>
+    <TransformGroup name="alpacaBabySkeleton" nodeId="1">
+      <TransformGroup name="root_jnt" nodeId="2">
+        <TransformGroup name="spine_01_jnt" translation="-0.035991 0.52664 -0.201401" rotation="-27.376186 -81.049164 33.168236" nodeId="3">
+          <TransformGroup name="spine_02_jnt" translation="0.072969 0.000714 0.007217" rotation="1.426219 -6.90552 -2.920507" nodeId="4">
+            <TransformGroup name="spine_03_jnt" translation="0.076406 -0.005271 -0.001169" rotation="2.781732 1.338932 -4.082373" nodeId="5">
+              <TransformGroup name="spine_04_jnt" translation="0.07674 -0.000952 -0.000262" rotation="-1.813211 0.374761 -5.681841" nodeId="6">
+                <TransformGroup name="spine_05_jnt" translation="0.074356 -0.002955 0.001746" rotation="-0.685388 -5.950271 3.700886" nodeId="7">
+                  <TransformGroup name="r_legFront_Hip_jnt" translation="0.013232 0.018062 0.035333" rotation="-2.470194 -11.225367 -77.504509" nodeId="8">
+                    <TransformGroup name="r_legFront_Leg_jnt" translation="0.085674 0.001882 0.00338" rotation="-5.083581 9.822271 -32.034805" nodeId="9">
+                      <TransformGroup name="r_legFront_Knee_jnt" translation="0.120084 0 0" rotation="0 0 47.988499" nodeId="10">
+                        <TransformGroup name="r_legFront_KneeB_jnt" translation="0.135128 0 0" rotation="-1.411713 -10.219274 -26.38397" nodeId="11">
+                          <TransformGroup name="r_FootFront_Ankle_jnt" translation="0.171027 0 0" rotation="2.789141 2.250154 46.237598" nodeId="12">
+                            <TransformGroup name="r_FootFront_Middle_jnt" translation="0.033015 0 0" rotation="0.000242 0.000246 46.972237" nodeId="13"/>
+                          </TransformGroup>
+                        </TransformGroup>
+                      </TransformGroup>
+                    </TransformGroup>
+                  </TransformGroup>
+                  <TransformGroup name="l_LegFront_Hip_jnt" translation="0.012468 0.031023 -0.034833" rotation="2.470329 11.225338 -77.504478" nodeId="14">
+                    <TransformGroup name="l_LegFront_Leg_jnt" translation="0.112472 -0.002463 0.002019" rotation="-5.600753 -24.514828 -16.46172" nodeId="15">
+                      <TransformGroup name="l_LegFront_Knee_jnt" translation="0.120084 0 0" rotation="0 0 42.297596" nodeId="16">
+                        <TransformGroup name="l_LegFront_KneeB_jnt" translation="0.135128 0 0" rotation="7.66219 5.399429 -70.658272" nodeId="17">
+                          <TransformGroup name="l_FootFront_Ankle_jnt" translation="0.171027 0 0" rotation="5.063748 4.076726 16.850496" nodeId="18">
+                            <TransformGroup name="l_FootFront_Middle_jnt" translation="0.033014 0 0" rotation="-0.000006 -0.00001 31.020082" nodeId="19"/>
+                          </TransformGroup>
+                        </TransformGroup>
+                      </TransformGroup>
+                    </TransformGroup>
+                  </TransformGroup>
+                  <TransformGroup name="neck_01_jnt" translation="0.116066 0.002923 0.004019" rotation="171.452393 1.669051 71.374321" nodeId="20">
+                    <TransformGroup name="neck_02_jnt" translation="0.110514 -0.010918 -0.002117" rotation="0.146466 3.076468 -2.498051" nodeId="21">
+                      <TransformGroup name="neck_03_jnt" translation="0.111243 0.010949 -0.004418" rotation="-0.520286 4.447293 -10.155472" nodeId="22">
+                        <TransformGroup name="Head_01_jnt" translation="0.038091 -0.000044 0" rotation="0.007646 -0.000381 -4.365192" nodeId="23">
+                          <TransformGroup name="jaw_jnt" translation="-0.013389 0.020032 0.000705" rotation="90.013519 -0.098983 -12.554001" nodeId="24">
+                            <TransformGroup name="tongue_01_jnt" translation="-0.021436 0.002354 -0.021889" rotation="70.104698 73.891571 160.085678" nodeId="25">
+                              <TransformGroup name="tongue_02_jnt" translation="0.026853 0.002966 -0.000069" rotation="0.002567 0.213554 12.43262" nodeId="26">
+                                <TransformGroup name="tongue_03_jnt" translation="0.026919 0.002504 0.000036" rotation="-0.039903 -0.209809 10.081513" nodeId="27"/>
+                              </TransformGroup>
+                            </TransformGroup>
+                          </TransformGroup>
+                          <TransformGroup name="eye_l_jnt" translation="0.021652 0.046428 0.037873" rotation="90.687958 -0.057169 50.318375" nodeId="28"/>
+                          <TransformGroup name="eye_r_jnt" translation="0.021784 0.046417 -0.037679" rotation="90.84787 -0.062442 -56.089993" nodeId="29"/>
+                          <TransformGroup name="eye_r_eyelidPivot_jnt" translation="0.021782 0.046417 -0.036349" rotation="0.64514 -36.795795 85.296913" nodeId="30">
+                            <TransformGroup name="eye_r0_eyelidt_jnt" translation="0.000602 -0.004669 -0.015968" nodeId="31"/>
+                          </TransformGroup>
+                          <TransformGroup name="eye_l_eyelidPivot_jnt" translation="0.021517 0.044764 0.035645" rotation="0.894651 -36.795795 -94.852539" nodeId="32">
+                            <TransformGroup name="eye_l0_eyelidt_jnt" translation="-0.000604 0.007453 0.015951" nodeId="33"/>
+                          </TransformGroup>
+                          <TransformGroup name="nose_jnt" translation="-0.00306 0.109977 0.000045" rotation="90 -89.900101 175.222198" nodeId="34"/>
+                          <TransformGroup name="forehead_jnt" translation="0.049391 0.058565 0.000144" rotation="90 -89.900101 175.222198" nodeId="35"/>
+                          <TransformGroup name="ear_l_01_jnt" translation="0.059573 -0.004888 0.044496" rotation="76.272377 -44.268108 10.649981" nodeId="36">
+                            <TransformGroup name="ear_l_02_jnt" translation="0.016374 0.000888 0.007458" rotation="178.119339 -20.779917 2.03471" nodeId="37">
+                              <TransformGroup name="ear_l_03_jnt" translation="0.030656 0 0" rotation="-0.244303 1.890116 0.868197" nodeId="38"/>
+                            </TransformGroup>
+                          </TransformGroup>
+                          <TransformGroup name="ear_r_01_jnt" translation="0.059727 -0.0049 -0.044155" rotation="21.983141 57.73386 2.71656" nodeId="39">
+                            <TransformGroup name="ear_r_02_jnt" translation="0.017187 -0.003746 0.003884" rotation="-80.781815 12.714585 166.082657" nodeId="40">
+                              <TransformGroup name="ear_r_03_jnt" translation="-0.030656 0 0" rotation="0.000002 9.172169 0" nodeId="41"/>
+                            </TransformGroup>
+                          </TransformGroup>
+                        </TransformGroup>
+                      </TransformGroup>
+                    </TransformGroup>
+                  </TransformGroup>
+                </TransformGroup>
+              </TransformGroup>
+            </TransformGroup>
+          </TransformGroup>
+          <TransformGroup name="tail_00_jnt" translation="-0.058547 0.014627 0" rotation="-2.204627 6.824622 -149.400421" nodeId="42">
+            <TransformGroup name="tail_01_jnt" translation="0.047254 0 0" rotation="3.981 -3.969951 29.340759" nodeId="43">
+              <TransformGroup name="tail_02_jnt" translation="0.067022 0 0" rotation="1.00507 7.213455 12.695104" nodeId="44"/>
+            </TransformGroup>
+          </TransformGroup>
+          <TransformGroup name="r_legBack_Leg_jnt" translation="-0.020589 -0.043385 0.05349" rotation="7.745088 1.19397 -93.439476" nodeId="45">
+            <TransformGroup name="r_legBack_Knee_jnt" translation="0.143676 0 0" rotation="0 0 -50.247669" nodeId="46">
+              <TransformGroup name="r_legBack_KneeB_jnt" translation="0.157917 0 0" rotation="-0.04464 -5.470523 51.085819" nodeId="47">
+                <TransformGroup name="r_FootBack_Ankle_jnt" translation="0.206702 0 0" rotation="-1.150721 -0.642689 64.797188" nodeId="48">
+                  <TransformGroup name="r_FootBack_Middle_jnt" translation="0.028719 0 0" rotation="0.000144 0.00033 23.778822" nodeId="49"/>
+                </TransformGroup>
+              </TransformGroup>
+            </TransformGroup>
+          </TransformGroup>
+          <TransformGroup name="l_LegBack_Leg_jnt" translation="-0.016857 -0.026632 -0.063451" rotation="2.823816 -9.996795 -64.861313" nodeId="50">
+            <TransformGroup name="l_LegBack_Knee_jnt" translation="0.148156 0 0" rotation="-0.091627 0.227003 -52.344837" nodeId="51">
+              <TransformGroup name="l_LegBack_KneeB_jnt" translation="0.165121 0 0" rotation="4.954648 5.264276 58.754684" nodeId="52">
+                <TransformGroup name="l_FootBack_Ankle_jnt" translation="0.214504 0 0" rotation="-4.918633 -2.738257 21.34391" nodeId="53">
+                  <TransformGroup name="l_FootBack_Middle_jnt" translation="0.02868 0.000052 0" rotation="-0.000084 0.001734 23.781719" nodeId="54"/>
+                </TransformGroup>
+              </TransformGroup>
+            </TransformGroup>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+    <TransformGroup name="alpacaBaby" clipDistance="300" nodeId="55">
+      <TransformGroup name="hair" clipDistance="300" nodeId="56">
+        <TransformGroup name="reverse" clipDistance="10" nodeId="57">
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+
+  <Animation externalAnimFile="alpacaBabyAnimations.i3d.anim" />
+</i3D>

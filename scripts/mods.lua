@@ -962,6 +962,11 @@ function loadMod(modName, modDir, modFile, modTitle)
 			local filename, _ = Utils.getFilename(fillTypesFilename, g_currentModDirectory)
 			g_fillTypeManager:addModWithFillTypes(filename, g_currentModDirectory, modName)
 		end
+		local sprayTypesFilename = xmlFile:getString("modDesc.sprayTypes#filename")
+		if sprayTypesFilename ~= nil then
+			local filename, _ = Utils.getFilename(sprayTypesFilename, g_currentModDirectory)
+			g_sprayTypeManager:addModSprayTypes(filename, g_currentModDirectory, modName)
+		end
 		local densityMapHeightTypesFilename = xmlFile:getString("modDesc.densityMapHeightTypes#filename")
 		if densityMapHeightTypesFilename ~= nil then
 			local filename = Utils.getFilename(densityMapHeightTypesFilename, g_currentModDirectory)
@@ -973,6 +978,10 @@ function loadMod(modName, modDir, modFile, modTitle)
 			g_motionPathEffectManager:loadModMotionPathEffects(filename, g_currentModDirectory, modName)
 		end
 		if isDLCFile then
+			local requiredMapModName = nil
+			if xmlFile:getBool("modDesc.foliageTypes#onlyForOwnMaps", false) then
+				requiredMapModName = modName
+			end
 			for _, key in xmlFile:iterator("modDesc.foliageTypes.foliageType") do
 				local name = xmlFile:getString(key .. "#name")
 				local filename = xmlFile:getString(key .. "#filename")
@@ -980,7 +989,7 @@ function loadMod(modName, modDir, modFile, modTitle)
 					continue
 				end
 				filename = Utils.getFilename(filename, g_currentModDirectory)
-				g_fruitTypeManager:addModFoliageType(name, filename)
+				g_fruitTypeManager:addModFoliageType(name, filename, requiredMapModName)
 			end
 		end
 		local missionVehiclesFilename = xmlFile:getString("modDesc.missionVehicles#filename")
@@ -1149,6 +1158,7 @@ function createModDescSchema()
 	schema:register(XMLValueType.FILENAME, "modDesc.connectionHoses.connectionHose(?)#xmlFilename")
 	schema:register(XMLValueType.FILENAME, "modDesc.consumables.consumable(?)#xmlFilename")
 	schema:register(XMLValueType.FILENAME, "modDesc.fillTypes#filename", "file path to additional fillTypes xml file", nil, false)
+	schema:register(XMLValueType.FILENAME, "modDesc.sprayTypes#filename", "file path to additional sprayTypes xml file", nil, false)
 	schema:register(XMLValueType.FILENAME, "modDesc.missionVehicles#filename", "file path to mission vehicles xml file for he included", nil, false)
 	schema:register(XMLValueType.FILENAME, "modDesc.densityMapHeightTypes#filename")
 	HelpLineManager.registerCategoryXMLPaths(schema, "modDesc.helpLines.category(?)")

@@ -3,6 +3,9 @@ local BoundaryLineGenerationTask_mt = Class(BoundaryLineGenerationTask)
 function BoundaryLineGenerationTask.new(boundaryLine, sx, sz, dirX, dirZ, islands, fieldCourseSettings, callback)
 	local self = setmetatable({}, BoundaryLineGenerationTask_mt)
 	local forceStraightLines = false
+	if fieldCourseSettings.workDirectionForceStraightLines then
+		forceStraightLines = true
+	end
 	if 0 <= fieldCourseSettings.workDirection then
 		dirX, dirZ = MathUtil.getDirectionFromYRotation(fieldCourseSettings.workDirection)
 		forceStraightLines = true
@@ -260,7 +263,7 @@ function BoundaryLineGenerationTask.detectInsideBoundaryLines(lines, x, z, dirX,
 		end
 	end
 	table.sort(intersections, function(a, b)
-		return a[1] + a[2] < b[1] + b[2]
+		return a[1] * dirX + a[2] * dirZ < b[1] * dirX + b[2] * dirZ
 	end)
 	local numIntersections = #intersections
 	if numIntersections % 2 == 0 then

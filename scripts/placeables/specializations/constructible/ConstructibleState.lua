@@ -124,5 +124,8 @@ function ConstructibleState:getPlaySound()
 	return true
 end
 function ConstructibleState:getIsConstructibleState()
-	return true
+	return false
+end
+function ConstructibleState:getProgress()
+	return 0
 end

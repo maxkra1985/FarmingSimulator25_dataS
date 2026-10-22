@@ -8,6 +8,8 @@ function PlayerInputComponent.new(player)
 	self.player = player
 	self.locked = false
 	self.enterActionId = nil
+	self.toggleHandToolActionId = nil
+	self.cycleHandToolActionId = nil
 	self.radioActionId = nil
 	self.toggleFlightActionId = nil
 	self.upDownFlightActionId = nil
@@ -98,8 +100,8 @@ function PlayerInputComponent:registerActionEvents()
 		g_inputBinding:setActionEventTextVisibility(eventId, false)
 		_, self.toggleCameraId = g_inputBinding:registerActionEvent(InputAction.CAMERA_SWITCH, self, self.onInputSwitchCamera, false, true, false, true, nil, true)
 		g_inputBinding:setActionEventActive(self.toggleCameraId, self:getCanToggleCamera())
-		_, eventId = g_inputBinding:registerActionEvent(InputAction.TOGGLE_HANDTOOL, self, self.onInputToggleHandTool, false, true, false, true, nil, true)
-		_, eventId = g_inputBinding:registerActionEvent(InputAction.CYCLE_HANDTOOL, self, self.onInputCycleHandTool, false, true, false, true, nil, true)
+		_, self.toggleHandToolActionId = g_inputBinding:registerActionEvent(InputAction.TOGGLE_HANDTOOL, self, self.onInputToggleHandTool, false, true, false, true, nil, true)
+		_, self.cycleHandToolActionId = g_inputBinding:registerActionEvent(InputAction.CYCLE_HANDTOOL, self, self.onInputCycleHandTool, false, true, false, true, nil, true)
 		_, self.enterActionId = g_inputBinding:registerActionEvent(InputAction.ENTER, self, self.onInputEnter, false, true, false, false, nil, true)
 		_, self.toggleFlashlightId = g_inputBinding:registerActionEvent(InputAction.TOGGLE_LIGHTS_FPS, self, self.onInputToggleFlashlight, false, true, false, true, nil, true)
 		g_inputBinding:setActionEventText(self.toggleFlashlightId, g_i18n:getText("input_TOGGLE_LIGHTS_FPS"))
@@ -222,6 +224,8 @@ function PlayerInputComponent:unregisterActionEvents()
 		self.toggleFlightActionId = nil
 		self.upDownFlightActionId = nil
 		self.enterActionId = nil
+		self.toggleHandToolActionId = nil
+		self.cycleHandToolActionId = nil
 	end
 end
 function PlayerInputComponent:makeCurrent()

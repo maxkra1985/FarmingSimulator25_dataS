@@ -129,11 +129,11 @@ function WildlifeSpecies:getCanDespawnInstance(instance, playerX, playerZ, playe
 	return self.despawnRadius < distance
 end
 function WildlifeSpecies:getCosts()
-	local numInstances = 0
+	local numAnimals = 0
 	for _, instance in ipairs(self.instances) do
-		numInstances = instance:getNumAnimals()
+		numAnimals = numAnimals + instance:getNumAnimals()
 	end
-	return numInstances * self.costPerAnimal
+	return numAnimals * self.costPerAnimal
 end
 function WildlifeSpecies:getNumInstances()
 	return #self.instances

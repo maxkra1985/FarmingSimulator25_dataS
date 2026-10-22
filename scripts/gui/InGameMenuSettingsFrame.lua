@@ -884,7 +884,7 @@ function InGameMenuSettingsFrame:updateGraphicSettings()
 				self.frameGenerationTitle:setText(g_i18n:getText("setting_fidelityFxSR30FrameInterpolation"))
 				self.frameGenerationTooltip:setText(g_i18n:getText("toolTip_fidelityFxSR30FrameInterpolation"))
 			else
-				if isDLSSActive then
+				if isDLSSActive or isDLAAActive then
 					self.frameGenerationTitle:setText(g_i18n:getText("setting_dlssFrameInterpolation"))
 					self.frameGenerationTooltip:setText(g_i18n:getText("toolTip_dlssFrameInterpolation"))
 				else
@@ -1606,15 +1606,18 @@ function InGameMenuSettingsFrame:onClickFrameGeneration(state)
 	local isNativeXeSS = g_settingsModel:getRawValue(SettingsModel.SETTING.POST_PROCESS_AA) == PostProcessAntiAliasing.XESS
 	local isXeSSActive = g_settingsModel:getRawValue(SettingsModel.SETTING.XESS) ~= XeSSQuality.OFF
 	local isDLSSActive = g_settingsModel:getRawValue(SettingsModel.SETTING.DLSS) ~= DLSSQuality.OFF
+	local isDLAAActive = g_settingsModel:getRawValue(SettingsModel.SETTING.POST_PROCESS_AA) == PostProcessAntiAliasing.DLAA
 	local isNativeFSR3 = g_settingsModel:getRawValue(SettingsModel.SETTING.POST_PROCESS_AA) == PostProcessAntiAliasing.FSR3
 	local isFSR30Active = g_settingsModel:getRawValue(SettingsModel.SETTING.FIDELITYFX_SR_30) ~= FidelityFxSR30Quality.OFF
 	if isNativeXeSS or isXeSSActive then
 		g_settingsModel:setValue(SettingsModel.SETTING.XESS_FRAME_GENERATION, self.frameGenerationElement:getState() - 1)
 	else
-		if isDLSSActive then
+		if isDLSSActive or isDLAAActive then
 			g_settingsModel:setValue(SettingsModel.SETTING.DLSS_FRAME_GENERATION, self.frameGenerationElement:getState() - 1)
-		elseif isNativeFSR3 or isFSR30Active then
-			g_settingsModel:setValue(SettingsModel.SETTING.FIDELITYFX_SR_30_FRAME_GENERATION, self.frameGenerationElement:getState() - 1)
+		else
+			if isNativeFSR3 or isFSR30Active then
+				g_settingsModel:setValue(SettingsModel.SETTING.FIDELITYFX_SR_30_FRAME_GENERATION, self.frameGenerationElement:getState() - 1)
+			end
 		end
 	end
 	g_settingsModel:applyCustomSettings()

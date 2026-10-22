@@ -60,7 +60,10 @@ function PlayerStateJump:updateAsCurrent(dt)
 	self:trySwitchToValidTransition()
 end
 function PlayerStateJump:calculateDesiredHorizontalVelocity(directionX, directionZ)
-	local maximumMovepeed = self.player.toggleSuperSpeedCommand.value and PlayerStateJump.MAXIMUM_MOVE_SPEED * 8 or PlayerStateJump.MAXIMUM_MOVE_SPEED
-	local speed = self.player.mover:calculateSmoothSpeed(self.player.inputComponent.walkAxis, false, 0, maximumMovepeed)
+	local maximumMoveSpeed = PlayerStateJump.MAXIMUM_MOVE_SPEED
+	if self.player.toggleSuperSpeedCommand.value then
+		maximumMoveSpeed = maximumMoveSpeed * self.player:getSuperSpeedScale()
+	end
+	local speed = self.player.mover:calculateSmoothSpeed(self.player.inputComponent.walkAxis, false, 0, maximumMoveSpeed)
 	return directionX * speed, directionZ * speed
 end

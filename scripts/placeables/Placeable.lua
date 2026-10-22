@@ -4,6 +4,7 @@ local Placeable_mt = Class(Placeable, Object)
 InitStaticObjectClass(Placeable, "Placeable")
 Placeable.DEBUG_NETWORK = false
 Placeable.DEBUG_NETWORK_UPDATE = false
+Placeable.DRAW_DEBUG = StartParams.getIsSet("scriptDebug")
 Placeable.SELL_AND_DELETE = 0
 Placeable.SELL_AND_SPECTATOR_FARM = 1
 Placeable.DESTRUCTION = { SELL = 1, PER_NODE = 2 }
@@ -342,7 +343,7 @@ function Placeable:i3dFileLoaded(i3dNode, failedReason, args, i3dLoadingId)
 		else
 			g_asyncTaskManager:addTask(function()
 				self:loadFinished()
-			end)
+			end, string.format("Placable:loadFinished %s", self.configFileNameClean))
 		end
 	end
 end
@@ -433,7 +434,7 @@ function Placeable:loadFinished()
 				self.readyForFinishLoading = true
 				self:setLoadingStep(SpecializationLoadStep.AWAIT_SUB_I3D)
 			end
-			if StartParams.getIsSet("scriptDebug") then
+			if Placeable.DRAW_DEBUG then
 				g_debugManager:addDrawable(self)
 			end
 		end
@@ -564,13 +565,27 @@ function Placeable:delete(immediate)
 		Logging.devError("Trying to delete a already deleted placeable")
 		printCallstack()
 	else
+		if not g_currentMission.isExitingGame then
+			Logging.devInfo("Deleting placeable '%s' (property state: %s)", self.configFileName, PlaceablePropertyState.getName(self.propertyState))
+		end
 		g_messageCenter:unsubscribeAll(self)
+		if Placeable.DRAW_DEBUG then
+			g_debugManager:removeDrawable(self)
+		end
 		if self.tourId ~= nil then
 			g_guidedTourManager:removePlaceable(self.tourId)
 		end
 		self.isDeleting = true
 		SpecializationUtil.raiseEvent(self, "onPreDelete")
 		local placeableSystem = g_currentMission.placeableSystem
+		local preDeleteRootNode = self.rootNode
+		if self.isPreplaced then
+			local preplacedData = placeableSystem.uniqueIdToReplacedPlaceableData[self:getUniqueId()]
+			if preplacedData ~= nil then
+				preDeleteRootNode = preplacedData.rootNode
+			end
+		end
+		g_messageCenter:publish(MessageType.PLACEABLE_PRE_DELETE, self, preDeleteRootNode)
 		placeableSystem:removePlaceable(self)
 		g_currentMission:removeOwnedItem(self)
 		if self.sharedLoadRequestId ~= nil then
@@ -993,7 +1008,7 @@ function Placeable:setOverlayColor(r, g, b, alpha)
 	end
 end
 function Placeable:setOverlayColorNodes(node, nodeTable)
-	if getHasClassId(node, ClassIds.SHAPE) and getHasShaderParameter(node, "placeableColorScale") then
+	if getHasClassId(node, ClassIds.SHAPE) and (getHasShaderParameter(node, "placeableColorScale") and not getIsTerrainDecal(node)) then
 		nodeTable[#nodeTable + 1] = node
 	end
 	local numChildren = getNumOfChildren(node)

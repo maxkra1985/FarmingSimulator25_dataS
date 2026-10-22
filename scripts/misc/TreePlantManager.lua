@@ -454,7 +454,7 @@ function TreePlantManager:updateTrees(dt, dtGame)
 				self:removingSplitShape(shape)
 				for _, p in pairs(loadTreeTrunkData.parts) do
 					if p.isAbove then
-						delete(p.shape)
+						deleteSplitShape(p.shape)
 					else
 						loadTreeTrunkData.shape = p.shape
 					end
@@ -479,13 +479,13 @@ function TreePlantManager:updateTrees(dt, dtGame)
 							if p.isBelow then
 								continue
 							end
-							delete(p.shape)
+							deleteSplitShape(p.shape)
 						end
 					else
 						local finalShape = nil
 						for _, p in pairs(loadTreeTrunkData.parts) do
 							if p.isBelow then
-								delete(p.shape)
+								deleteSplitShape(p.shape)
 							else
 								finalShape = p.shape
 							end
@@ -1087,13 +1087,12 @@ function TreePlantManager:consoleCommandRemoveSplitShape()
 	function callbackTarget.callback(_, shape, ...)
 		if shape ~= 0 then
 			local minX, maxX, _, _, minZ, maxZ = getRigidBodyAABB(shape)
-			local nodeToDelete = shape
-			local nodeName = getName(shape)
-			if nodeName == "LOD0" and getRigidBodyType(shape) == RigidBodyType.STATIC then
-				nodeToDelete = getParent(shape)
+			Logging.info("removed %s (%d)", I3DUtil.getNodePath(shape), shape)
+			if getHasClassId(shape, ClassIds.MESH_SPLIT_SHAPE) then
+				deleteSplitShape(shape)
+			else
+				delete(shape)
 			end
-			Logging.info("removed %s (%d)", I3DUtil.getNodePath(nodeToDelete), nodeToDelete)
-			delete(nodeToDelete)
 			g_densityMapHeightManager:setCollisionMapAreaDirty(minX, minZ, maxX, maxZ, true)
 			g_currentMission.aiSystem:setAreaDirty(minX, minZ, maxX, maxZ)
 		end

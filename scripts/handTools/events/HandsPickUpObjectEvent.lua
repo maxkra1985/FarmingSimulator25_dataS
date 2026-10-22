@@ -54,7 +54,12 @@ function HandsPickUpObjectEvent:writeStream(streamId, connection)
 end
 function HandsPickUpObjectEvent:run(connection)
 	if not connection:getIsServer() then
-		g_server:broadcastEvent(self, false, connection, self.hands)
+		local ghostObject = HandsPickUpObjectEvent.getTargetGhostObject(self.target)
+		if ghostObject ~= nil then
+			g_server:broadcastEvent(self, false, connection, ghostObject, nil, nil, true)
+		else
+			g_server:broadcastEvent(self, false, connection, self.hands)
+		end
 	end
 	if self.hands ~= nil and (self.hands:getIsSynchronized() and (not self.hands:pickUpTarget(self.target, true) and not connection:getIsServer())) then
 		connection:sendEvent(HandsPickUpFailedEvent.new(self.hands))
@@ -63,9 +68,27 @@ end
 function HandsPickUpObjectEvent.sendEvent(hands, target, noEventSend)
 	if noEventSend == nil or noEventSend == false then
 		if g_server ~= nil then
-			g_server:broadcastEvent(HandsPickUpObjectEvent.new(hands, target), nil, nil, hands)
-			return
+			local event = HandsPickUpObjectEvent.new(hands, target)
+			local ghostObject = HandsPickUpObjectEvent.getTargetGhostObject(target)
+			if ghostObject ~= nil then
+				g_server:broadcastEvent(event, nil, nil, ghostObject, nil, nil, true)
+				return
+			else
+				g_server:broadcastEvent(event, nil, nil, hands)
+				return
+			end
 		end
 		g_client:getServerConnection():sendEvent(HandsPickUpObjectEvent.new(hands, target))
+	end
+end
+function HandsPickUpObjectEvent.getTargetGhostObject(target)
+	if target == nil or target.node == nil or target.node == 0 then
+		return nil
+	end
+	if getHasClassId(target.node, ClassIds.MESH_SPLIT_SHAPE) then
+		return nil
+	else
+		local nodeObject = g_currentMission:getNodeObject(target.node)
+		return nodeObject
 	end
 end

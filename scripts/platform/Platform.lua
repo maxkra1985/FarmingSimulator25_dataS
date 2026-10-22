@@ -200,6 +200,7 @@ function Platform.applyDefault()
 	self.gameplay.defaultCameraTilt = false
 	self.gameplay.needHorseCleaning = true
 	self.gameplay.canRenameHorses = true
+	self.gameplay.canRenameAnimals = true
 	self.ingameMap.canZoom = true
 	self.ingameMap.needsSolidBackground = true
 	self.ingameMap.sortsSpatially = false
@@ -212,6 +213,7 @@ function Platform.applyDefault()
 	self.playerInfo.showPlaceableInfo = true
 	self.playerInfo.showNPCNames = true
 	self.playerInfo.fieldInfoDistance = { 5, 5 }
+	self.documentationRequiredModNames = { ["pdlc_macDonPack"] = true, ["pdlc_nexatPack"] = true, ["pdlc_plainsAndPrairiesPack"] = true, ["pdlc_daimlerTruckPack"] = true, ["pdlc_highlandsFishingPack"] = true, ["pdlc_vredoPack"] = true, ["pdlc_skyAgriculturePack"] = true, ["pdlc_beansAndAlpacasPack"] = true, ["FS25_precisionFarming"] = true }
 end
 function Platform.applyConsole()
 	print("Platform: loading console")
@@ -386,6 +388,7 @@ function Platform.applyMobile()
 	self.gameplay.hasWeeder = false
 	self.gameplay.needHorseCleaning = false
 	self.gameplay.canRenameHorses = false
+	self.gameplay.canRenameAnimals = false
 	self.gameplay.disabledShopSpecValues = { ["balerBaleSizeRound"] = true, ["balerBaleSizeSquare"] = true, ["baleWrapperBaleSizeRound"] = true, ["baleWrapperBaleSizeSquare"] = true, ["baleLoaderBaleSizeRound"] = true, ["baleLoaderBaleSizeSquare"] = true, ["transmission"] = true, ["woodHarvesterMaxTreeSize"] = true }
 	self.ui.drawHudOnDialog = true
 	self.gameplay.wheelDensityHeightSmooth = false
@@ -405,6 +408,7 @@ function Platform.applyMobile()
 	self.playerInfo.showPlaceableInfo = false
 	self.playerInfo.showNPCNames = false
 	self.playerInfo.fieldInfoDistance = { 1, 1 }
+	self.documentationRequiredModNames = {}
 	table.insert(self.l10nPostfixes, "_mobile")
 end
 function Platform.applySwitch2()

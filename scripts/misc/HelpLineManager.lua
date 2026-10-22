@@ -27,6 +27,7 @@ function HelpLineManager.registerCategoryXMLPaths(schema, basePath)
 	schema:register(XMLValueType.STRING, basePath .. ".page(?).paragraph(?).image#displaySize", "")
 	schema:register(XMLValueType.FLOAT, basePath .. ".page(?).paragraph(?).image#heightScale", "", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. ".page(?).paragraph(?).image#aspectRatio", "", 1)
+	schema:register(XMLValueType.STRING, basePath .. ".page(?).paragraph(?).image#sliceId", "paragraph image slice id")
 end
 function HelpLineManager.registerHelplineXMLPaths(schema)
 	HelpLineManager.registerCategoryXMLPaths(schema, "helpLines.category(?)")
@@ -296,14 +297,15 @@ function HelpLineManager:loadPage(xmlFile, key, missionInfo, customEnvironment, 
 		paragraph.alignToImage = xmlFile:getBool(paragraphKey .. ".text#alignToImage")
 		paragraph.customEnvironment = customEnvironment
 		paragraph.noSpacing = xmlFile:getBool(paragraphKey .. "#noSpacing")
+		local sliceId = xmlFile:getString(paragraphKey .. ".image#sliceId")
 		local filename = xmlFile:getString(paragraphKey .. ".image#filename")
-		if filename ~= nil then
-			local heightScale = xmlFile:getFloat(paragraphKey .. ".image#heightScale", 1)
-			local aspectRatio = xmlFile:getFloat(paragraphKey .. ".image#aspectRatio", 1)
-			local size = string.getVector(xmlFile:getString(paragraphKey .. ".image#size"), 2) or { 1024, 1024 }
-			local uvs = GuiUtils.getUVs(xmlFile:getString(paragraphKey .. ".image#uvs", "0 0 1 1"), size)
-			local displaySize = GuiUtils.getNormalizedScreenValues(xmlFile:getString(paragraphKey .. ".image#displaySize"))
-			paragraph.image = { filename = filename, uvs = uvs, size = size, heightScale = heightScale, aspectRatio = aspectRatio, displaySize = displaySize }
+		if sliceId ~= nil and sliceId ~= "" then
+			if string.contains(sliceId, "%.") then
+				paragraph.image = { sliceId = sliceId, aspectRatio = xmlFile:getFloat(paragraphKey .. ".image#aspectRatio", 1), displaySize = GuiUtils.getNormalizedScreenValues(xmlFile:getString(paragraphKey .. ".image#displaySize")) }
+			elseif filename ~= nil then
+				local size = string.getVector(xmlFile:getString(paragraphKey .. ".image#size"), 2) or { 1024, 1024 }
+				paragraph.image = { filename = filename, size = size, uvs = GuiUtils.getUVs(xmlFile:getString(paragraphKey .. ".image#uvs", "0 0 1 1"), size), aspectRatio = xmlFile:getFloat(paragraphKey .. ".image#aspectRatio", 1), displaySize = GuiUtils.getNormalizedScreenValues(xmlFile:getString(paragraphKey .. ".image#displaySize")) }
+			end
 		end
 		table.insert(page.paragraphs, paragraph)
 	end

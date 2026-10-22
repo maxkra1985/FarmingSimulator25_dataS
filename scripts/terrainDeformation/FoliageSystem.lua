@@ -82,13 +82,17 @@ function FoliageSystem:loadMapData(mapXmlFile, missionInfo, baseDirectory)
 	end)
 	xmlFile:delete()
 	self.modFoliageTypesToLoad = missionInfo.foliageTypes or self.modFoliageTypesToLoad
-	local newFoliageTypes = g_fruitTypeManager.modFoliageTypesToLoad
-	for i = 1, #newFoliageTypes do
-		local newFoliageType = newFoliageTypes[i]
-		self:addModFoliageType(newFoliageType.name, newFoliageType.filename)
+	local mapModName = g_mapManager:getModNameFromMapId(missionInfo.mapId)
+	for _, newFoliageType in ipairs(g_fruitTypeManager.modFoliageTypesToLoad) do
+		if newFoliageType.requiredMapModName ~= nil then
+			if newFoliageType.requiredMapModName ~= mapModName then
+				Logging.devInfo("FoliageSystem - Skipped mod foliageType '%s'", newFoliageType.name)
+			else
+				self:addModFoliageType(newFoliageType.name, newFoliageType.filename)
+			end
+		end
 	end
-	for i = 1, #self.modFoliageTypesToLoad do
-		local foliageType = self.modFoliageTypesToLoad[i]
+	for _, foliageType in ipairs(self.modFoliageTypesToLoad) do
 		self:loadModFoliageType(foliageType.name, foliageType.filename)
 	end
 	if 0 < #self.modFoliageTypesToLoad then
@@ -139,16 +143,20 @@ function FoliageSystem:initTerrain(mission, terrainRootNode, terrainDetailId)
 				paintableFoliage.paintFilter = DensityMapFilter.new(paintableFoliage.paintModifier)
 			else
 				paintableFoliage.disabled = true
+				Logging.devWarning("FoliageSystem - paintableFoliage layer '%s' does not exist in the terrain. Painting is disabled for it.", paintableFoliage.layerName)
 			end
 		end
 	end
 	for key, decoFoliage in pairs(self.decoFoliages) do
 		local id, _ = getTerrainDataPlaneByName(self.terrainRootNode, decoFoliage.layerName)
-		if id == nil or id == 0 then
-			continue
+		if id ~= nil then
+			if id ~= 0 then
+				decoFoliage.terrainDataPlaneId = id
+				decoFoliage.modifier = DensityMapModifier.new(id, decoFoliage.startStateChannel, decoFoliage.numStateChannels, terrainRootNode)
+			else
+				Logging.devWarning("FoliageSystem - decoFoliage layer '%s' does not exist in the terrain. It cannot be removed by vehicles or landscaping.", decoFoliage.layerName)
+			end
 		end
-		decoFoliage.terrainDataPlaneId = id
-		decoFoliage.modifier = DensityMapModifier.new(id, decoFoliage.startStateChannel, decoFoliage.numStateChannels, terrainRootNode)
 	end
 	self:loadModFoliageTypes()
 end

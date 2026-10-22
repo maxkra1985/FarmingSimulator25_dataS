@@ -53,7 +53,6 @@ function Dog:load(spawner, xmlFilename, spawnX, spawnY, spawnZ)
 		self.dogInstance = dogInstance
 		setCompanionWaterDetectionOffset(self.dogInstance, 0.45)
 		setCompanionTrigger(self.dogInstance, self.animalId, "playerInteractionTriggerCallback", self)
-		setCompanionTextureTile(self.dogInstance, self.animalId, 1, 1)
 		local groundMask = CollisionFlag.TERRAIN + CollisionFlag.STATIC_OBJECT
 		local obstacleMask = CollisionFlag.STATIC_OBJECT + CollisionFlag.DYNAMIC_OBJECT + CollisionFlag.VEHICLE + CollisionFlag.BUILDING
 		setCompanionCollisionMask(self.dogInstance, groundMask, obstacleMask, CollisionFlag.WATER)
@@ -90,8 +89,8 @@ function Dog:readStream(streamId, connection)
 		local spawnY = streamReadFloat32(streamId)
 		local spawnZ = streamReadFloat32(streamId)
 		local name = streamReadString(streamId)
-		self.tileIndexU = streamReadUIntN(streamId, 3)
-		self.tileIndexV = streamReadUIntN(streamId, 3)
+		local tileIndexU = streamReadUIntN(streamId, 3)
+		local tileIndexV = streamReadUIntN(streamId, 3)
 		local isNew = self.xmlFilename == nil
 		if isNew then
 			self:load(spawner, xmlFilename, spawnX, spawnY, spawnZ)
@@ -99,7 +98,7 @@ function Dog:readStream(streamId, connection)
 				spawner.dog = self
 			end
 		end
-		self:setTextureTileIndices(self.tileIndexU, self.tileIndexV)
+		self:setTextureTileIndices(tileIndexU, tileIndexV)
 		self:setName(name)
 	end
 	Dog:superClass().readStream(self, streamId, connection)
@@ -249,7 +248,9 @@ function Dog:idleStay()
 end
 function Dog:idleWander() end
 function Dog:setTextureTileIndices(tileIndexU, tileIndexV)
-	if self.dogInstance ~= 0 then
+	self.tileIndexU = tileIndexU
+	self.tileIndexV = tileIndexV
+	if self.dogInstance ~= nil and self.dogInstance ~= 0 then
 		setCompanionTextureTile(self.dogInstance, self.animalId, tileIndexU, tileIndexV)
 	end
 end

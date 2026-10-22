@@ -52,7 +52,9 @@ function CreditsScreen:onOpen()
 	self.nextFadeInCreditsItemId = 1
 	self.nextFadeOutCreditsItemId = 1
 	self.creditsPlaceholder:setAbsolutePosition(self.creditsPlaceholder.absPosition[1], self.creditsStartY)
-	if g_modNameToDirectory[g_uniqueDlcNamePrefix .. "highlandsFishingPack"] ~= nil then
+	if g_modNameToDirectory[g_uniqueDlcNamePrefix .. "beansAndAlpacasPack"] ~= nil then
+		self.backgroundImage:setImageFilename("shared/splash_beansandalpacas.png")
+	elseif g_modNameToDirectory[g_uniqueDlcNamePrefix .. "highlandsFishingPack"] ~= nil then
 		self.backgroundImage:setImageFilename("shared/splash_highlandsFishing.png")
 	else
 		self.backgroundImage:setImageFilename("shared/splash.png")

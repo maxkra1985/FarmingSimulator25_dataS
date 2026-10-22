@@ -34,6 +34,7 @@ function AIImplement.registerAIImplementXMLPaths(schema, basePath)
 	schema:register(XMLValueType.FLOAT, basePath .. ".hasNoFullCoverageArea#offset", "Non full coverage area offset", 0)
 	schema:register(XMLValueType.BOOL, basePath .. ".headlandTailAvoidance#enabled", "Course generation setting to help long vehicles to stay inside field boundaries (sugarbeet harvesters for example)", false)
 	schema:register(XMLValueType.INT, basePath .. ".headland#minNumHeadlands", "Try to use this amount of headlands at least")
+	schema:register(XMLValueType.INT, basePath .. ".headland#maxNumHeadlands", "Limit the number of headlands to this value")
 	schema:register(XMLValueType.BOOL, basePath .. ".headland#cornerCutOutSupported", "Use corner cut out in the corners of the headland", "Defined by vehicle type")
 	schema:register(XMLValueType.INT, basePath .. ".headland#forcedDirection", "Forces a fixed direction for headlands. Starting headland loop direction still depends on the vehicle orientation. (1: clockwise, -1: counter-clockwise, 0: any)", 1)
 	schema:register(XMLValueType.FLOAT, basePath .. ".overlap#value", "Defines the ai line to line overlap", AIVehicleUtil.AREA_OVERLAP)
@@ -200,6 +201,7 @@ function AIImplement:onLoad(savegame)
 	spec.hasNoFullCoverageAreaOffset = self.xmlFile:getValue(baseName .. ".hasNoFullCoverageArea#offset", 0)
 	spec.headlandTailAvoidanceEnabled = self.xmlFile:getValue(baseName .. ".headlandTailAvoidance#enabled", false)
 	spec.minNumHeadlands = self.xmlFile:getValue(baseName .. ".headland#minNumHeadlands")
+	spec.maxNumHeadlands = self.xmlFile:getValue(baseName .. ".headland#maxNumHeadlands")
 	spec.cornerCutOutSupported = self.xmlFile:getValue(baseName .. ".headland#cornerCutOutSupported")
 	spec.headlandForcedDirection = self.xmlFile:getValue(baseName .. ".headland#forcedDirection", 1)
 	spec.overlap = self.xmlFile:getValue(baseName .. ".overlap#value")
@@ -292,6 +294,9 @@ function AIImplement:onPostAIFieldCourseSettingsInitialized(fieldCourseSettings)
 	end
 	if spec.minNumHeadlands ~= nil then
 		fieldCourseSettings.numHeadlands = math.max(spec.minNumHeadlands, fieldCourseSettings.numHeadlands)
+	end
+	if spec.maxNumHeadlands ~= nil then
+		fieldCourseSettings.numHeadlands = math.min(spec.maxNumHeadlands, fieldCourseSettings.numHeadlands)
 	end
 	if spec.cornerCutOutSupported ~= nil then
 		fieldCourseSettings.cornerCutOutSupported = spec.cornerCutOutSupported

@@ -8,7 +8,7 @@ function AdsSystem.new()
 	local numGroups = 0
 	for name, id in pairs(AdsSystem.OCCLUSION_GROUP) do
 		if numGroups == 32 then
-			Logging.warning("AdsSystem: Occclusion group limit (32) reached!")
+			Logging.warning("AdsSystem: Occlusion group limit (32) reached!")
 			break
 		end
 		self.groups[id] = { id = id, name = name, regions = {}, isActive = false }
@@ -33,7 +33,7 @@ function AdsSystem:drawDebug()
 	for _, group in pairs(self.groups) do
 		local groupId = group.id
 		if adsGetIsOcclusionRegionGroupActive(groupId) then
-			for k, region in ipairs(group.regions) do
+			for k in ipairs(group.regions) do
 				local minX, minY, maxX, maxY = adsGetOcclusionRegion(groupId, k - 1)
 				drawFilledRect(minX, minY, maxX - minX, maxY - minY, 1, 0, 0, 0.3, nil, nil, nil, nil)
 				setTextColor(1, 1, 1, 1)
@@ -111,7 +111,7 @@ function AdsSystem:consoleCommandToggleDecals()
 						for i = 1, 4 do
 							local index = (node % 4 + i) % 4
 							local filepath = string.namedFormat("%{dir}s/ad%{size}s_%{index}02d_diffuse.png", "dir", searchPath, "size", sizeStr, "index", index)
-							if fileExists(filepath) then
+							if textureFileExists(filepath) then
 								clonedDecalMat = setMaterialDiffuseMapFromFile(clonedDecalMat, filepath, false, true, false)
 								setMaterial(clonedDecal, clonedDecalMat, 0)
 								return

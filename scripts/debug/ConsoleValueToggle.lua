@@ -1,6 +1,6 @@
 ConsoleValueToggle = {}
 local ConsoleValueToggle_mt = Class(ConsoleValueToggle)
-function ConsoleValueToggle.new(commandName, commandDescription, startingValue, outputFunctionOrString, argumentNames, excludeFromHistory)
+function ConsoleValueToggle.new(commandName, commandDescription, startingValue, outputFunctionOrString, argumentNames, excludeFromHistory, reconfigureFunction)
 	local self = setmetatable({}, ConsoleValueToggle_mt)
 	self.value = startingValue ~= nil and startingValue or false
 	self.commandName = commandName
@@ -10,6 +10,7 @@ function ConsoleValueToggle.new(commandName, commandDescription, startingValue, 
 	self.outputFunctionOrString = outputFunctionOrString or function(_, enabledString)
 		return enabledString
 	end
+	self.reconfigureFunction = reconfigureFunction
 	addConsoleCommand(self.commandName, commandDescription, "consoleCommandToggleValue", self, argumentNames, excludeFromHistory)
 	return self
 end
@@ -18,7 +19,11 @@ function ConsoleValueToggle:delete()
 	self.onDeleted()
 end
 function ConsoleValueToggle:consoleCommandToggleValue(...)
-	if not self.value then
+	local hasArguments = 0 < select("#", ...)
+	local shouldReconfigure = self.value and hasArguments and self.reconfigureFunction ~= nil
+	if shouldReconfigure then
+		self.reconfigureFunction(...)
+	elseif not self.value then
 		self:enableValue(...)
 	else
 		self:disableValue(...)

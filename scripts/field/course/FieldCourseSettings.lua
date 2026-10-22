@@ -19,6 +19,7 @@ table.insert(FieldCourseSettings.SETTINGS, {
 		return 0 < v and math.deg(v) or "Automatic"
 	end,
 })
+table.insert(FieldCourseSettings.SETTINGS, { name = "workDirectionForceStraightLines", default = false, title = "Force Straight Lines", xmlValueType = XMLValueType.BOOL, customizable = false })
 table.insert(FieldCourseSettings.SETTINGS, { name = "workInitialSegment", default = false, title = "Work initial segment", xmlValueType = XMLValueType.BOOL, customizable = false })
 table.insert(FieldCourseSettings.SETTINGS, { name = "minTurnRadius", default = 8, title = "Minimum turn radius", xmlValueType = XMLValueType.FLOAT, customizable = false, min = 1, max = 20 })
 table.insert(FieldCourseSettings.SETTINGS, { name = "initialTurnRadiusFactor", default = 1, title = "Initial turn radius factor", xmlValueType = XMLValueType.FLOAT, customizable = false, min = 1, max = 5 })

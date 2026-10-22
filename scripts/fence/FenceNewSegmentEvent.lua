@@ -57,18 +57,21 @@ end
 function FenceNewSegmentEvent:run(connection)
 	if self.fencePlaceable ~= nil and self.fencePlaceable:getIsSynchronized() then
 		local statusCode = FenceNewSegmentEvent.STATUS_CODE.SUCCESS
-		if not self.segment:updateMeshes(true) then
+		local forceBuild = not connection:getIsLocal()
+		local player = g_currentMission:getPlayerByConnection(connection)
+		local farmId = player ~= nil and player.farmId or nil
+		if not self.segment:updateMeshes(forceBuild) then
 			statusCode = FenceNewSegmentEvent.STATUS_CODE.ERROR
-		else
-			local player = g_currentMission:getPlayerByConnection(connection)
-			if player ~= nil then
-				local farmId = player.farmId
+		elseif self.segment.getCanBeBuilt ~= nil then
+			if not self.segment:getCanBeBuilt(farmId) then
+				statusCode = FenceNewSegmentEvent.STATUS_CODE.ERROR
+			else
 				if farmId ~= nil then
 					local price = self.segment:getPrice()
 					g_currentMission:addMoney(-price, farmId, MoneyType.SHOP_PROPERTY_BUY, true)
 				end
+				self.segment:finalize()
 			end
-			self.segment:finalize()
 		end
 		if statusCode == FenceNewSegmentEvent.STATUS_CODE.SUCCESS then
 			g_server:broadcastEvent(FenceSegmentEvent.new(self.fencePlaceable, self.segment), false, nil, self.fencePlaceable)

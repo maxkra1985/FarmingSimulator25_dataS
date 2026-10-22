@@ -74,13 +74,16 @@ function PlaceableInfoTrigger:onDraw()
 end
 function PlaceableInfoTrigger:onInfoTriggerCallback(triggerId, otherId, onEnter, onLeave, onStay)
 	local spec = self.spec_infoTrigger
-	if g_localPlayer ~= nil and otherId == g_localPlayer.rootNode then
-		if onEnter then
-			spec.showInfo = true
-			g_currentMission:addDrawable(self)
-			SpecializationUtil.raiseEvent(self, "onInfoTriggerEnter", otherId)
-			return
-		end
+	if g_localPlayer == nil or otherId ~= g_localPlayer.rootNode then
+		return
+	end
+	if onEnter and not spec.showInfo then
+		spec.showInfo = true
+		g_currentMission:addDrawable(self)
+		SpecializationUtil.raiseEvent(self, "onInfoTriggerEnter", otherId)
+		return
+	end
+	if onLeave and spec.showInfo then
 		spec.showInfo = false
 		g_currentMission:removeDrawable(self)
 		SpecializationUtil.raiseEvent(self, "onInfoTriggerLeave", otherId)
