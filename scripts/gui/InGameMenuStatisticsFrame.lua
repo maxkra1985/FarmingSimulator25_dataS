@@ -884,7 +884,7 @@ function InGameMenuStatisticsFrame:rebuildTable()
 	end
 	table.sort(fruitTypes, fillTypeSortFunc)
 	table.sort(otherTypes, fillTypeSortFunc)
-	self:updateStationData()
+	self:updateStationDataForCurrentMode()
 	self.productList:reloadData()
 end
 function InGameMenuStatisticsFrame:getSelectedHotspot()
@@ -952,7 +952,7 @@ function InGameMenuStatisticsFrame:onButtonChangeSellingStationMode()
 	self.fluctuationsContainer:setVisible(not self.sellingStationMode)
 	self.headerProducts:setVisible(not self.sellingStationMode)
 	self.headerStations:setVisible(self.sellingStationMode)
-	self:updateStationData()
+	self:updateStationDataForCurrentMode()
 	self.productList:reloadData()
 	self.priceList:reloadData()
 end
@@ -1240,9 +1240,13 @@ function InGameMenuStatisticsFrame:populateCellForItemInSection(list, section, i
 				if isBuyingStation then
 					local price = nil
 					if buyingStation ~= nil then
-						price = buyingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
-					elseif palletBuyingStation:getHasPalletForFillType(fillTypeDesc.index) then
-						price = palletBuyingStation:getEffectivePricePerPallet(fillTypeDesc.index)
+						if buyingStation:getIsFillTypeSupported(fillTypeDesc.index) then
+							price = buyingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
+						elseif palletBuyingStation ~= nil then
+							if palletBuyingStation:getHasPalletForFillType(fillTypeDesc.index) then
+								price = palletBuyingStation:getEffectivePricePerPallet(fillTypeDesc.index)
+							end
+						end
 					end
 					if price ~= nil then
 						cell:getAttribute("buyPrice"):setValue(tostring(price))
@@ -1311,9 +1315,13 @@ function InGameMenuStatisticsFrame:populateCellForItemInSection(list, section, i
 					if isBuyingStation then
 						local price = nil
 						if buyingStation ~= nil then
-							price = buyingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
-						elseif palletBuyingStation:getHasPalletForFillType(fillTypeDesc.index) then
-							price = palletBuyingStation:getEffectivePricePerPallet(fillTypeDesc.index)
+							if buyingStation:getIsFillTypeSupported(fillTypeDesc.index) then
+								price = buyingStation:getEffectiveFillTypePrice(fillTypeDesc.index) * 1000
+							elseif palletBuyingStation ~= nil then
+								if palletBuyingStation:getHasPalletForFillType(fillTypeDesc.index) then
+									price = palletBuyingStation:getEffectivePricePerPallet(fillTypeDesc.index)
+								end
+							end
 						end
 						if price ~= nil then
 							cell:getAttribute("buyPrice"):setValue(tostring(price))
@@ -1525,6 +1533,19 @@ function InGameMenuStatisticsFrame:updateStationData(fillTypeDesc)
 	table.sort(self.currentStationData, function(station1, station2)
 		return station1.name < station2.name
 	end)
+end
+function InGameMenuStatisticsFrame:updateStationDataForCurrentMode()
+	if self.sellingStationMode then
+		self:updateStationData()
+	else
+		local section, index = self.productList:getSelectedPath()
+		local fillTypesInSection = self.fillTypes[section]
+		local fillTypeDesc = nil
+		if fillTypesInSection ~= nil then
+			fillTypeDesc = fillTypesInSection[index]
+		end
+		self:updateStationData(fillTypeDesc)
+	end
 end
 function InGameMenuStatisticsFrame:updateAcceptedFillTypes(placeable)
 	self.currentAcceptedFillTypes = {}

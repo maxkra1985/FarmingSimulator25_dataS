@@ -22,8 +22,10 @@ function FoliageSystem:delete()
 	self.paintableFoliages = {}
 	self.decoFoliages = {}
 	self.modFoliageTypesToLoad = {}
+	self.serverModFoliageTypes = nil
+	self.modFoliageTypesLoadedCallback = nil
 end
-function FoliageSystem:loadMapData(mapXmlFile, missionInfo, baseDirectory)
+function FoliageSystem:loadMapData(mapXmlFile, missionInfo, baseDirectory, callback)
 	local xmlFile = XMLFile.wrap(mapXmlFile)
 	xmlFile:iterate("map.paintableFoliages.paintableFoliage", function(index, key)
 		local layerName = xmlFile:getString(key .. "#layerName")
@@ -81,46 +83,72 @@ function FoliageSystem:loadMapData(mapXmlFile, missionInfo, baseDirectory)
 		Logging.xmlWarning(xmlFile, "Missing name for decoFoliage mapping '%s'", key)
 	end)
 	xmlFile:delete()
-	self.modFoliageTypesToLoad = missionInfo.foliageTypes or self.modFoliageTypesToLoad
-	local mapModName = g_mapManager:getModNameFromMapId(missionInfo.mapId)
-	for _, newFoliageType in ipairs(g_fruitTypeManager.modFoliageTypesToLoad) do
-		if newFoliageType.requiredMapModName ~= nil then
-			if newFoliageType.requiredMapModName ~= mapModName then
-				Logging.devInfo("FoliageSystem - Skipped mod foliageType '%s'", newFoliageType.name)
-			else
-				self:addModFoliageType(newFoliageType.name, newFoliageType.filename)
+	if not g_currentMission:getIsServer() then
+		self.modFoliageTypesLoadedCallback = callback
+		if self.serverModFoliageTypes ~= nil then
+			self:applyServerModFoliageTypes()
+		end
+		return true
+	else
+		self.modFoliageTypesToLoad = missionInfo.foliageTypes or self.modFoliageTypesToLoad
+		local mapModName = g_mapManager:getModNameFromMapId(missionInfo.mapId)
+		for _, newFoliageType in ipairs(g_fruitTypeManager.modFoliageTypesToLoad) do
+			if newFoliageType.requiredMapModName ~= nil then
+				if newFoliageType.requiredMapModName ~= mapModName then
+					Logging.devInfo("FoliageSystem - Skipped mod foliageType '%s'", newFoliageType.name)
+				else
+					self:addModFoliageType(newFoliageType.name, newFoliageType.filename)
+				end
 			end
 		end
+		self:loadModFoliageTypeData()
+		callback()
+		return true
 	end
-	for _, foliageType in ipairs(self.modFoliageTypesToLoad) do
-		self:loadModFoliageType(foliageType.name, foliageType.filename)
-	end
-	if 0 < #self.modFoliageTypesToLoad then
-		g_fruitTypeManager:initializeFruitTypeConverters()
-	end
-	return true
 end
 function FoliageSystem:unloadMapData()
 	self.paintableFoliages = {}
 end
 function FoliageSystem:streamWriteModFoliageTypes(streamId, connection)
-	streamWriteUInt8(streamId, #self.modFoliageTypesToLoad)
+	local loadedFoliageTypes = {}
 	for _, foliageType in ipairs(self.modFoliageTypesToLoad) do
+		if g_fruitTypeManager.filenameToFruitType[foliageType.filename] == nil then
+			continue
+		end
+		table.insert(loadedFoliageTypes, foliageType)
+	end
+	streamWriteUInt8(streamId, #loadedFoliageTypes)
+	for _, foliageType in ipairs(loadedFoliageTypes) do
 		streamWriteString(streamId, foliageType.name)
 		streamWriteString(streamId, NetworkUtil.convertToNetworkFilename(foliageType.filename))
 	end
 end
 function FoliageSystem:streamReadModFoliageTypes(streamId, connection)
-	local numLoadedFoliageTypes = 0
+	local serverModFoliageTypes = {}
 	local numTypes = streamReadUInt8(streamId)
 	for i = 1, numTypes do
 		local name = streamReadString(streamId)
 		local filename = NetworkUtil.convertFromNetworkFilename(streamReadString(streamId))
-		if self:addModFoliageType(name, filename) and self:loadModFoliageType(name, filename) then
-			numLoadedFoliageTypes = numLoadedFoliageTypes + numLoadedFoliageTypes
-		end
+		table.insert(serverModFoliageTypes, { name = name, filename = filename })
 	end
-	if 0 < numLoadedFoliageTypes then
+	self.serverModFoliageTypes = serverModFoliageTypes
+	if self.modFoliageTypesLoadedCallback ~= nil then
+		self:applyServerModFoliageTypes()
+	end
+end
+function FoliageSystem:applyServerModFoliageTypes()
+	self.modFoliageTypesToLoad = self.serverModFoliageTypes
+	self.serverModFoliageTypes = nil
+	self:loadModFoliageTypeData()
+	local callback = self.modFoliageTypesLoadedCallback
+	self.modFoliageTypesLoadedCallback = nil
+	callback()
+end
+function FoliageSystem:loadModFoliageTypeData()
+	for _, foliageType in ipairs(self.modFoliageTypesToLoad) do
+		self:loadModFoliageType(foliageType.name, foliageType.filename)
+	end
+	if 0 < #self.modFoliageTypesToLoad then
 		g_fruitTypeManager:initializeFruitTypeConverters()
 	end
 end

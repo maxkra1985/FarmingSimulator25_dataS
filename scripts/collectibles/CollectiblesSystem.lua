@@ -190,42 +190,22 @@ function CollectiblesSystem:onStateEvent(state)
 	self:updateHotspotState()
 end
 function CollectiblesSystem:updateTargetState()
-	if self.target ~= nil then
-		if self.incompleteNode ~= nil then
+	if self.target == nil then
+		return
+	else
+		if self.incompleteNode ~= nil and entityExists(self.incompleteNode) then
 			setVisibility(self.incompleteNode, not self.isComplete)
 		end
-		if self.completeNode ~= nil then
+		if self.completeNode ~= nil and entityExists(self.completeNode) then
 			setVisibility(self.completeNode, self.isComplete)
 		end
 		for _, info in pairs(self.collectibles) do
-			if info.targetName == nil then
-				continue
-			end
 			local collected = self.collected[info.index] or false
-			if info.target == nil then
-				continue
-			end
-			setVisibility(info.target, collected)
-			if collected then
-				addToPhysics(info.target)
-			else
-				removeFromPhysics(info.target)
-			end
+			CollectiblesSystem.setTargetNodeActive(info.target, collected)
 		end
 		for _, info in pairs(self.groups) do
-			if info.targetName == nil then
-				continue
-			end
 			local collected = info.totalItems == info.collectedItems
-			if info.target == nil then
-				continue
-			end
-			setVisibility(info.target, collected)
-			if collected then
-				addToPhysics(info.target)
-			else
-				removeFromPhysics(info.target)
-			end
+			CollectiblesSystem.setTargetNodeActive(info.target, collected)
 		end
 	end
 end
@@ -282,6 +262,7 @@ end
 function CollectiblesSystem:addCollectibleTarget(target)
 	self.target = target
 	for _, info in pairs(self.collectibles) do
+		info.target = nil
 		if info.targetName == nil then
 			continue
 		end
@@ -292,6 +273,7 @@ function CollectiblesSystem:addCollectibleTarget(target)
 		info.target = node
 	end
 	for _, info in pairs(self.groups) do
+		info.target = nil
 		if info.targetName == nil then
 			continue
 		end
@@ -306,9 +288,19 @@ function CollectiblesSystem:addCollectibleTarget(target)
 	self:updateTargetState()
 end
 function CollectiblesSystem:removeCollectibleTarget(target)
-	self.target = nil
-	self.incompleteNode = nil
-	self.completeNode = nil
+	if target ~= self.target then
+		return
+	else
+		self.target = nil
+		self.incompleteNode = nil
+		self.completeNode = nil
+		for _, info in pairs(self.collectibles) do
+			info.target = nil
+		end
+		for _, info in pairs(self.groups) do
+			info.target = nil
+		end
+	end
 end
 function CollectiblesSystem:onTriggerCollectible(collectible)
 	local info = self.collectibles[collectible.name]
@@ -359,4 +351,15 @@ end
 function CollectiblesSystem:consoleCommandShowAll()
 	self.hotspotThreshold = 0
 	self:updateHotspotState()
+end
+function CollectiblesSystem.setTargetNodeActive(node, isActive)
+	if node == nil or not entityExists(node) then
+		return
+	end
+	setVisibility(node, isActive)
+	if isActive then
+		addToPhysics(node)
+	else
+		removeFromPhysics(node)
+	end
 end

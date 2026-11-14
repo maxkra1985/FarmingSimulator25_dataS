@@ -399,12 +399,12 @@ end
 function ProductionPoint:readStream(streamId, connection)
 	ProductionPoint:superClass().readStream(self, streamId, connection)
 	if connection:getIsServer() then
-		local numSellFillTypes = streamReadUInt8(streamId)
+		local numSellFillTypes = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 		for i = 1, numSellFillTypes do
 			local fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 			self:setOutputDistributionMode(fillType, ProductionPoint.OUTPUT_MODE.DIRECT_SELL, true)
 		end
-		local numDeliverFillTypes = streamReadUInt8(streamId)
+		local numDeliverFillTypes = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 		for i = 1, numDeliverFillTypes do
 			local fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 			self:setOutputDistributionMode(fillType, ProductionPoint.OUTPUT_MODE.AUTO_DELIVER, true)
@@ -438,11 +438,11 @@ end
 function ProductionPoint:writeStream(streamId, connection)
 	ProductionPoint:superClass().writeStream(self, streamId, connection)
 	if not connection:getIsServer() then
-		streamWriteUInt8(streamId, table.size(self.outputFillTypeIdsDirectSell))
+		streamWriteUIntN(streamId, table.size(self.outputFillTypeIdsDirectSell), FillTypeManager.SEND_NUM_BITS)
 		for directSellFillTypeId in pairs(self.outputFillTypeIdsDirectSell) do
 			streamWriteUIntN(streamId, directSellFillTypeId, FillTypeManager.SEND_NUM_BITS)
 		end
-		streamWriteUInt8(streamId, table.size(self.outputFillTypeIdsAutoDeliver))
+		streamWriteUIntN(streamId, table.size(self.outputFillTypeIdsAutoDeliver), FillTypeManager.SEND_NUM_BITS)
 		for autoDeliverFillTypeId in pairs(self.outputFillTypeIdsAutoDeliver) do
 			streamWriteUIntN(streamId, autoDeliverFillTypeId, FillTypeManager.SEND_NUM_BITS)
 		end

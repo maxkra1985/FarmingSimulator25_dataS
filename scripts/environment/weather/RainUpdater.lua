@@ -81,7 +81,9 @@ function RainUpdater:reset()
 		if rainType.rootNode == nil then
 			continue
 		end
-		delete(rainType.rootNode)
+		if entityExists(rainType.rootNode) then
+			delete(rainType.rootNode)
+		end
 	end
 	self.presets = {}
 	self.types = {}

@@ -663,7 +663,7 @@ function Baler:onReadStream(streamId, connection)
 	end
 	local numBales = streamReadUInt8(streamId)
 	for i = 1, numBales do
-		local fillType = streamReadIntN(streamId, FillTypeManager.SEND_NUM_BITS)
+		local fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 		local fillLevel = streamReadFloat32(streamId)
 		self:createBale(fillType, fillLevel)
 		if spec.baleAnimCurve == nil then
@@ -707,7 +707,7 @@ function Baler:onWriteStream(streamId, connection)
 	streamWriteUInt8(streamId, #spec.bales)
 	for i = 1, #spec.bales do
 		local bale = spec.bales[i]
-		streamWriteIntN(streamId, bale.fillType, FillTypeManager.SEND_NUM_BITS)
+		streamWriteUIntN(streamId, bale.fillType, FillTypeManager.SEND_NUM_BITS)
 		streamWriteFloat32(streamId, bale.fillLevel)
 		if spec.baleAnimCurve == nil then
 			continue

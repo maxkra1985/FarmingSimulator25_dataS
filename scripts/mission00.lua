@@ -224,8 +224,16 @@ function Mission00:onMaterialsLoaded(missionInfo, missionDynamicInfo)
 			g_effectManager:loadMapData()
 		end)
 		g_asyncTaskManager:addTask(function()
-			self.foliageSystem:loadMapData(self.xmlFile, missionInfo, self.baseDirectory)
+			self.foliageSystem:loadMapData(self.xmlFile, missionInfo, self.baseDirectory, function()
+				self:onModFoliageTypesLoaded(missionInfo)
+			end)
 		end)
+	end
+end
+function Mission00:onModFoliageTypesLoaded(missionInfo)
+	if self.cancelLoading then
+		return
+	else
 		g_asyncTaskManager:addTask(function()
 			g_fillTypeManager:loadModFillTypes()
 			g_densityMapHeightManager:loadModDensityMapHeightTypes()

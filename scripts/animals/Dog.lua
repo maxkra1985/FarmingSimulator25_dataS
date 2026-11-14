@@ -127,6 +127,13 @@ function Dog:readUpdateStream(streamId, timestamp, connection)
 	end
 end
 function Dog:update(dt)
+	if self.isTextureTilePending then
+		if isCompanionReady(self.dogInstance) then
+			self:applyTextureTile()
+		else
+			self:raiseActive()
+		end
+	end
 	if self.isServer then
 		if self.isStaying and self:isAbandoned(dt) then
 			self:teleportToSpawn()
@@ -250,9 +257,18 @@ function Dog:idleWander() end
 function Dog:setTextureTileIndices(tileIndexU, tileIndexV)
 	self.tileIndexU = tileIndexU
 	self.tileIndexV = tileIndexV
-	if self.dogInstance ~= nil and self.dogInstance ~= 0 then
-		setCompanionTextureTile(self.dogInstance, self.animalId, tileIndexU, tileIndexV)
+	if self.dogInstance == nil then
+		return
+	elseif isCompanionReady(self.dogInstance) then
+		self:applyTextureTile()
+	else
+		self.isTextureTilePending = true
+		self:raiseActive()
 	end
+end
+function Dog:applyTextureTile()
+	setCompanionTextureTile(self.dogInstance, self.animalId, self.tileIndexU, self.tileIndexV)
+	self.isTextureTilePending = nil
 end
 function Dog:isAbandoned(dt)
 	local isEntityInRange = false

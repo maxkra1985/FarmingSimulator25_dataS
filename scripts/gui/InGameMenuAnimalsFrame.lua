@@ -350,7 +350,13 @@ function InGameMenuAnimalsFrame:onAnimalWorkerPerform(husbandry, task)
 	end
 end
 function InGameMenuAnimalsFrame:renameSelectedAnimal(newName, hasConfirmed)
-	if hasConfirmed and (self.selectedClusterCanBeRenamed and Platform.gameplay.canRenameAnimals) then
+	if self.selectedClusterCanBeRenamed then
+		local canRename = false
+		if self.selectedCluster ~= nil then
+			canRename = Platform.gameplay.canRenameAnimals
+		end
+	end
+	if hasConfirmed and canRename then
 		self.selectedHusbandry:renameAnimal(self.selectedCluster.id, newName)
 	end
 end
@@ -389,6 +395,11 @@ function InGameMenuAnimalsFrame:reloadList()
 	self.animalBox:setVisible(hasAnimals)
 	self.detailDescriptionText:setVisible(hasAnimals)
 	self.noAnimalsText:setVisible(false)
+	if not hasAnimals and self.selectedCluster ~= nil then
+		self.selectedCluster = nil
+		self.selectedClusterCanBeRenamed = false
+		self:updateMenuButtons()
+	end
 end
 function InGameMenuAnimalsFrame:getNumberOfSections(list)
 	return #self.husbandrySubTypes
@@ -428,6 +439,7 @@ function InGameMenuAnimalsFrame:populateCellForItemInSection(list, section, inde
 end
 function InGameMenuAnimalsFrame:onHusbandryChanged(index)
 	self.selectedCluster = nil
+	self.selectedClusterCanBeRenamed = false
 	self:updateAnimalData()
 	local husbandry = self.sortedHusbandries[index]
 	if husbandry == nil then
@@ -439,9 +451,7 @@ function InGameMenuAnimalsFrame:onHusbandryChanged(index)
 	end
 end
 function InGameMenuAnimalsFrame:onButtonRename()
-	if not Platform.gameplay.canRenameAnimals then
-		return
-	else
+	if Platform.gameplay.canRenameAnimals and self.selectedCluster ~= nil then
 		local promptText = g_i18n:getText(InGameMenuAnimalsFrame.L10N_SYMBOL.PROMPT_RENAME)
 		local imePromptText = g_i18n:getText(InGameMenuAnimalsFrame.L10N_SYMBOL.IME_PROMPT_RENAME)
 		local confirmText = g_i18n:getText(InGameMenuAnimalsFrame.L10N_SYMBOL.BUTTON_CONFIRM)
@@ -470,6 +480,9 @@ function InGameMenuAnimalsFrame:onListSelectionChanged(list, section, index)
 	if g_gui.currentlyReloading == false then
 		local subTypeIndex = self.husbandrySubTypes[section]
 		local clusters = self.subTypeIndexToClusters[subTypeIndex]
+		if clusters == nil or clusters[index] == nil then
+			return
+		end
 		local cluster = clusters[index]
 		local husbandry = self.sortedHusbandries[self.subCategorySelector:getState()]
 		local canBeRenamed = cluster.getName ~= nil and cluster.setName ~= nil

@@ -16,7 +16,7 @@ end
 function ColorPickerDialog.show(callback, target, args, colors, defaultColorIndex, defaultMaterial, customColor, customColorsEnabled, disableOpenSound, materialSelectionDisabled)
 	if ColorPickerDialog.INSTANCE ~= nil then
 		local dialog = ColorPickerDialog.INSTANCE
-		dialog.dialogColors = colors
+		dialog.dialogColors = colors or {}
 		dialog.dialogDefaultColorIndex = defaultColorIndex
 		dialog.dialogCustomColor = customColor
 		dialog.dialogDefaultMaterial = defaultMaterial
@@ -101,13 +101,14 @@ function ColorPickerDialog:onOpen()
 	self.customColors = table.copyIndex(g_gameSettings:getValue(GameSettings.SETTING.CUSTOM_COLORS))
 	self:setInitialFocus()
 	self.needsRenderColorUpdate = true
+	local defaultColor = self.dialogColors[self.dialogDefaultColorIndex]
 	if self.customColorsEnabled then
 		if self.dialogCustomColor ~= nil then
 			self:setCustomColorRGB(self.dialogCustomColor)
 			self:onClickCustom()
-		elseif self.colors ~= nil then
-			if self.colors[self.dialogDefaultColorIndex] ~= nil then
-				self:setCustomColorRGB(self.colors[self.dialogDefaultColorIndex].color)
+		elseif defaultColor ~= nil then
+			if defaultColor.color ~= nil then
+				self:setCustomColorRGB(defaultColor.color)
 				self:onClickList()
 			else
 				self:onHueChanged(1)
@@ -431,7 +432,7 @@ end
 function ColorPickerDialog:updateButtonVisibility()
 	local subCategoryIndex = self.pageSelector:getState()
 	local isFavorites = subCategoryIndex == ColorPickerDialog.CATEGORY_FAVORITES
-	local hasColors = 0 < #self.colors
+	local hasColors = self.colors ~= nil and 0 < #self.colors
 	self.addToFavoritesButton:setVisible(subCategoryIndex == ColorPickerDialog.CATEGORY_CUSTOM and #self.customColors < ColorPickerDialog.MAX_NUM_CUSTOM_COLORS)
 	self.okButton:setVisible(not isFavorites or hasColors)
 	self.deleteButton:setVisible(isFavorites and hasColors)

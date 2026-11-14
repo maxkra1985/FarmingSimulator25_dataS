@@ -140,7 +140,7 @@ function OrchardBrushDialog:onClose()
 end
 function OrchardBrushDialog:update(dt)
 	OrchardBrushDialog:superClass().update(self, dt)
-	if 0 < self.fieldCourseUpdateTimer then
+	if 0 < self.fieldCourseUpdateTimer and not self.fieldCourseLoading then
 		self.fieldCourseUpdateTimer = self.fieldCourseUpdateTimer - dt
 		if self.fieldCourseUpdateTimer <= 0 then
 			self:updateFieldCourse()
@@ -222,8 +222,9 @@ function OrchardBrushDialog:updateMapState()
 	self.ingameMapElement:fitToBoundary(minX, maxX, minZ, maxZ, OrchardBrushDialog.MAP_BOUNDARY_PADDING)
 	self.ingameMapElement:setMapAlpha(1)
 	local hasCourse = self.fieldCourse ~= nil
-	local showNoFieldFound = not self.fieldCourseLoading and not hasCourse and not self.hasExistingRows
-	self.loadingAnimation:setVisible(self.fieldCourseLoading)
+	local isPending = self:getIsCoursePending()
+	local showNoFieldFound = not isPending and not hasCourse and not self.hasExistingRows
+	self.loadingAnimation:setVisible(isPending)
 	self.noFieldFoundText:setVisible(showNoFieldFound)
 	self:updateWorkDirectionArrow(hasCourse)
 	self.rowCountText:setText(string.format("%d", self:getPlantingRowCount()))
@@ -291,6 +292,9 @@ function OrchardBrushDialog:getBuildLimitWarning()
 	local totalLength = self:getTotalBuildableLength()
 	return self.optionsProvider:getOrchardBuildLimitWarning(numRows, totalLength, self.panelLength)
 end
+function OrchardBrushDialog:getIsCoursePending()
+	return self.fieldCourseLoading == true or 0 < self.fieldCourseUpdateTimer
+end
 function OrchardBrushDialog:updateBuildStatus()
 	local hasCourse = self.fieldCourse ~= nil
 	local totalPrice = self:getTotalBuildableLength() * (self.pricePerMeter or 0)
@@ -315,7 +319,8 @@ function OrchardBrushDialog:updateBuildStatus()
 	end
 	self.warningText:setText(warning or "")
 	self.warningText:setVisible(warning ~= nil)
-	local canBuild = hasCourse and canAfford and limitWarning == nil
+	local hasSettledCourse = hasCourse and not self:getIsCoursePending()
+	local canBuild = hasSettledCourse and canAfford and limitWarning == nil
 	self.buildButton:setDisabled(not canBuild)
 end
 function OrchardBrushDialog:getBoundaryBoundingBox()
@@ -433,24 +438,25 @@ function OrchardBrushDialog:setWorkDirectionValue(value)
 	self:updateMapState()
 end
 function OrchardBrushDialog:onClickBuild()
-	if self.fieldCourse == nil then
+	if self.fieldCourse == nil or self:getIsCoursePending() then
 		return
 	end
 	if self.buildButton:getIsDisabled() then
 		return
-	end
-	local segments = self.fieldCourse.segments
-	local settings = self.fieldCourseSettings
-	local optionStates = self.optionStates
-	local callbackFunc = self.callbackFunc
-	local target = self.target
-	self:close()
-	if callbackFunc ~= nil then
-		if target ~= nil then
-			callbackFunc(target, true, settings, segments, optionStates)
-			return
+	else
+		local segments = self.fieldCourse.segments
+		local settings = self.fieldCourseSettings
+		local optionStates = self.optionStates
+		local callbackFunc = self.callbackFunc
+		local target = self.target
+		self:close()
+		if callbackFunc ~= nil then
+			if target ~= nil then
+				callbackFunc(target, true, settings, segments, optionStates)
+				return
+			end
+			callbackFunc(true, settings, segments, optionStates)
 		end
-		callbackFunc(true, settings, segments, optionStates)
 	end
 end
 function OrchardBrushDialog:onClickCustomOption(state, element)

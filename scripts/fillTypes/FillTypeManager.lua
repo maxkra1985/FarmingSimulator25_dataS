@@ -3,7 +3,7 @@ FillType = nil
 FillTypeCategory = nil
 FillTypeManager = {}
 FillTypeManager.FILLTYPE_START_TOTAL_AMOUNT = 50000
-FillTypeManager.SEND_NUM_BITS = 8
+FillTypeManager.SEND_NUM_BITS = 10
 FillTypeManager.MASS_SCALE = 1
 g_xmlManager:addCreateSchemaFunction(function()
 	FillTypeManager.xmlSchema = XMLSchema.new("fillTypes")

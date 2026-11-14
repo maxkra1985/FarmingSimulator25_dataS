@@ -22,6 +22,7 @@ function ConstructionBrushDestruct:activate()
 	self.coloredNodes = {}
 	self.destructionPreviewNodes = {}
 	self.hoveredDeletableFence = nil
+	self.perNodeMode = false
 end
 function ConstructionBrushDestruct:deactivate()
 	self.cursor:setSelectionMode(false)
@@ -58,6 +59,7 @@ function ConstructionBrushDestruct:visualizeMouseOver()
 	if placeable ~= self.lastPlaceable or self.perNodeMode then
 		self:resetPlaceableSelection()
 		self:setHoveredDeletableFence(nil)
+		self.perNodeMode = false
 		if placeable ~= nil and g_localPlayer.farmId == placeable.ownerFarmId then
 			self.lastPlaceable = placeable
 			g_messageCenter:subscribe(SellPlaceableEvent, self.onPlaceableDestroyed, self)
@@ -91,8 +93,10 @@ function ConstructionBrushDestruct:visualizeMouseOver()
 		end
 		return
 	end
-	local hoveredFence = self:visualizeFenceMouseOver(self.cursor:getHitNode())
+	local hitNode = self.cursor:getHitNode()
+	local hoveredFence = self:visualizeFenceMouseOver(hitNode)
 	self:setHoveredDeletableFence(hoveredFence)
+	self:visualizeTreeMouseOver(hitNode)
 end
 function ConstructionBrushDestruct:visualizeFenceMouseOver(hitNode)
 	local segment = self:getDeletableFenceSegment(hitNode)
@@ -133,6 +137,18 @@ function ConstructionBrushDestruct:setHoveredDeletableFence(fence)
 	if fence ~= self.hoveredDeletableFence then
 		self.hoveredDeletableFence = fence
 		self:setInputTextDirty()
+	end
+end
+function ConstructionBrushDestruct:visualizeTreeMouseOver(hitNode)
+	if not TreeRemoveEvent.getIsTreeRemovable(hitNode, g_localPlayer.farmId) then
+		return
+	end
+	DebugShapeOutline.render(hitNode, true, true)
+	local price = TreeRemoveEvent.getPrice(hitNode)
+	if g_currentMission:getMoney() < price then
+		self.cursor:setErrorMessage(g_i18n:getText("ui_construction_notEnoughMoney"))
+	else
+		self.cursor:setMessage(g_i18n:formatMoney(price, 0, true, true))
 	end
 end
 function ConstructionBrushDestruct:onButtonPrimary(isDown, isDrag, isUp)
@@ -181,6 +197,10 @@ function ConstructionBrushDestruct:onButtonPrimary(isDown, isDrag, isUp)
 			YesNoDialog.show(callbackFunc, nil, text)
 			return
 		end
+	end
+	if isDown and TreeRemoveEvent.getIsTreeRemovable(self.cursor:getHitNode(), g_localPlayer.farmId) then
+		g_client:getServerConnection():sendEvent(TreeRemoveEvent.new(self.cursor:getHitNode()))
+		return
 	end
 	if self:getAllowFenceDeletionInput(isDown, isDrag) then
 		self:requestFenceDeletion(self.deleteWholeSegment)

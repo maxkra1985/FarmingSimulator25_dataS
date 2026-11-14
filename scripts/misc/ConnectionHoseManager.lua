@@ -36,6 +36,9 @@ function ConnectionHoseManager:unloadMapData()
 	for _, hoseType in pairs(self.typeByName) do
 		for _, adapter in pairs(hoseType.adapters) do
 			delete(adapter.node)
+			if adapter.detachedNode == nil then
+				continue
+			end
 			delete(adapter.detachedNode)
 		end
 		for _, hose in pairs(hoseType.hoses) do

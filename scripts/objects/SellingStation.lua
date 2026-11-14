@@ -156,7 +156,7 @@ function SellingStation:readStream(streamId, connection)
 	self.moneyChangeType = MoneyType.registerWithId(moneyTypeId, "soldMaterials", "finance_other")
 	SellingStation:superClass().readStream(self, streamId, connection)
 	if connection:getIsServer() then
-		local numFillTypes = streamReadUInt8(streamId)
+		local numFillTypes = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 		for i = 1, numFillTypes do
 			local fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 			self.fillTypePrices[fillType] = streamReadUInt16(streamId) / 1000
@@ -168,7 +168,7 @@ function SellingStation:writeStream(streamId, connection)
 	streamWriteUInt16(streamId, self.moneyChangeType.id)
 	SellingStation:superClass().writeStream(self, streamId, connection)
 	if not connection:getIsServer() then
-		streamWriteUInt8(streamId, self.numFillTypesForSelling)
+		streamWriteUIntN(streamId, self.numFillTypesForSelling, FillTypeManager.SEND_NUM_BITS)
 		if 0 < self.numFillTypesForSelling then
 			for fillType, _ in pairs(self.acceptedFillTypes) do
 				if 0 < self.originalFillTypePrices[fillType] then
@@ -184,7 +184,7 @@ end
 function SellingStation:readUpdateStream(streamId, timestamp, connection)
 	SellingStation:superClass().readUpdateStream(self, streamId, timestamp, connection)
 	if connection:getIsServer() and streamReadBool(streamId) then
-		local numFillTypes = streamReadUInt8(streamId)
+		local numFillTypes = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 		for i = 1, numFillTypes do
 			local fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS)
 			self.fillTypePrices[fillType] = streamReadUInt16(streamId) / 1000
@@ -195,7 +195,7 @@ end
 function SellingStation:writeUpdateStream(streamId, connection, dirtyMask)
 	SellingStation:superClass().writeUpdateStream(self, streamId, connection, dirtyMask)
 	if not connection:getIsServer() and streamWriteBool(streamId, bit32.band(dirtyMask, self.unloadingStationDirtyFlag) ~= 0) then
-		streamWriteUInt8(streamId, self.numFillTypesForSelling)
+		streamWriteUIntN(streamId, self.numFillTypesForSelling, FillTypeManager.SEND_NUM_BITS)
 		if 0 < self.numFillTypesForSelling then
 			for fillType, _ in pairs(self.acceptedFillTypes) do
 				if 0 < self.originalFillTypePrices[fillType] then
